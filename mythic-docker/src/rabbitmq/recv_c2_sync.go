@@ -85,7 +85,7 @@ func processC2SyncMessages(msg amqp.Delivery) interface{} {
 
 	if err := json.Unmarshal(msg.Body, &c2SyncMsg); err != nil {
 		logging.LogError(err, "Failed to process c2 sync message")
-		go database.SendAllOperationsMessage(fmt.Sprintf("Failed to sync c2 profile %s", err.Error()), 0, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync c2 profile %s", err.Error()), 0, "", database.MESSAGE_LEVEL_WARNING)
 		return C2SyncMessageResponse{Success: false, Error: err.Error()}
 	} else {
 		response := C2SyncMessageResponse{}
@@ -93,7 +93,7 @@ func processC2SyncMessages(msg amqp.Delivery) interface{} {
 			// failed to sync message
 			response.Success = false
 			response.Error = fmt.Sprintf("Error: %v", err)
-			go database.SendAllOperationsMessage(fmt.Sprintf("Failed to sync %s - %s", c2SyncMsg.Profile.Name, err.Error()), 0, c2SyncMsg.Profile.Name, database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to sync %s - %s", c2SyncMsg.Profile.Name, err.Error()), 0, c2SyncMsg.Profile.Name, database.MESSAGE_LEVEL_WARNING)
 		} else {
 			// successfully synced
 			response.Success = true
@@ -163,7 +163,7 @@ func c2Sync(in C2SyncMessage) error {
 		logging.LogError(err, "Failed to sync C2 profile")
 		return err
 	}
-	go database.SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", c2Profile.Name, in.ContainerVersion), 0, "", database.MESSAGE_LEVEL_INFO)
+	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", c2Profile.Name, in.ContainerVersion), 0, "", database.MESSAGE_LEVEL_INFO)
 	go database.ResolveAllOperationsMessage(getDownContainerMessage(c2Profile.Name), 0)
 	go autoStartC2Profile(c2Profile)
 	reSyncPayloadTypes()
@@ -302,7 +302,7 @@ func autoStartC2Profile(c2Profile databaseStructs.C2profile) {
 		} else {
 			UpdateC2ProfileRunningStatus(c2Profile, c2StartResp.InternalServerRunning)
 			if !c2StartResp.InternalServerRunning {
-				go database.SendAllOperationsMessage(fmt.Sprintf("Failed to start c2 profile %s:\n%s", c2Profile.Name, c2StartResp.Error), 0, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to start c2 profile %s:\n%s", c2Profile.Name, c2StartResp.Error), 0, "", database.MESSAGE_LEVEL_WARNING)
 			}
 		}
 	}

@@ -25,7 +25,7 @@ func processPtTaskProcessResponseMessages(msg amqp.Delivery) {
 	} else {
 		// now process the create_tasking response body to update the task
 		if !payloadMsg.Success {
-			go database.SendAllOperationsMessage(fmt.Sprintf("Failed to process response message for task %d:\n%s", payloadMsg.TaskID, payloadMsg.Error),
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to process response message for task %d:\n%s", payloadMsg.TaskID, payloadMsg.Error),
 				0, "", database.MESSAGE_LEVEL_WARNING)
 		} else {
 			logging.LogDebug("Successfully processed process response for task", "task_id", payloadMsg.TaskID)

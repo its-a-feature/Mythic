@@ -40,17 +40,17 @@ func processTrSyncMessages(msg amqp.Delivery) interface{} {
 	response := TrSyncMessageResponse{Success: false}
 	if err := json.Unmarshal(msg.Body, &trSyncMsg); err != nil {
 		logging.LogError(err, "Failed to process tr sync message")
-		go database.SendAllOperationsMessage(fmt.Sprintf("Failed to sync translation container - %s", err.Error()), 0, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync translation container - %s", err.Error()), 0, "", database.MESSAGE_LEVEL_WARNING)
 	} else {
 		if err := trSync(trSyncMsg); err != nil {
 			// failed to sync message
 			response.Success = false
 			response.Error = fmt.Sprintf("Error: %v", err)
-			go database.SendAllOperationsMessage(fmt.Sprintf("Failed to sync %s - %s", trSyncMsg.Name, err.Error()), 0, trSyncMsg.Name, database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to sync %s - %s", trSyncMsg.Name, err.Error()), 0, trSyncMsg.Name, database.MESSAGE_LEVEL_WARNING)
 		} else {
 			// successfully synced
 			response.Success = true
-			go database.SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", trSyncMsg.Name, trSyncMsg.ContainerVersion), 0, "", database.MESSAGE_LEVEL_INFO)
+			go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", trSyncMsg.Name, trSyncMsg.ContainerVersion), 0, "", database.MESSAGE_LEVEL_INFO)
 			go database.ResolveAllOperationsMessage(getDownContainerMessage(trSyncMsg.Name), 0)
 			logging.LogDebug("Successfully synced", "service", trSyncMsg.Name)
 			reSyncPayloadTypes()

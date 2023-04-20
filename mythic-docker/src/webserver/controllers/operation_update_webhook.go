@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"database/sql"
 	"fmt"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -141,7 +142,7 @@ func UpdateOperationWebhook(c *gin.Context) {
 						} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
 							logging.LogError(err, "Failed to lookup operator username")
 						} else {
-							go database.SendAllOperationsMessage(fmt.Sprintf("Updated %s to lead", newUser.Username),
+							go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to lead", newUser.Username),
 								currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
 						}
 					} else if _, err := database.DB.Exec(`UPDATE operatoroperation SET 
@@ -151,7 +152,7 @@ func UpdateOperationWebhook(c *gin.Context) {
 					} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
 						logging.LogError(err, "Failed to lookup operator username")
 					} else {
-						go database.SendAllOperationsMessage(fmt.Sprintf("Updated %s to lead", newUser.Username),
+						go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to lead", newUser.Username),
 							currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
 					}
 				}

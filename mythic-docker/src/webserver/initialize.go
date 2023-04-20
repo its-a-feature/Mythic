@@ -164,6 +164,7 @@ func setRoutes(r *gin.Engine) {
 				allOperationMembers.POST("preview_file_webhook", webcontroller.PreviewFileWebhook)
 				// submitting webhooks
 				allOperationMembers.POST("send_external_webhook", webcontroller.SendExternalWebhookWebhook)
+				allOperationMembers.POST("create_operation_event_log", webcontroller.CreateOperationEventLog)
 			}
 
 			noSpectators := protected.Group("/api/v1.4/")

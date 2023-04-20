@@ -253,7 +253,7 @@ type Mutation {
 type Mutation {
   sendExternalWebhook(
     webhook_type: String!
-    webhook_data: [DictionaryEntry!]!
+    webhook_data: jsonb!
   ): sendExternalWebhookOutput
 }
 

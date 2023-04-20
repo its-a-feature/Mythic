@@ -27,7 +27,7 @@ func processPtTaskOPSECPreMessages(msg amqp.Delivery) {
 		task.ID = payloadMsg.TaskID
 		if task.ID <= 0 {
 			// we ran into an error and couldn't even get the task information out
-			go database.SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
 			return
 		}
 		if payloadMsg.Success {

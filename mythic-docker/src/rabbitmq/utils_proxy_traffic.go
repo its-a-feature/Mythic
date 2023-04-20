@@ -216,7 +216,7 @@ func (p *callbackPortUsage) Start() error {
 			addr := fmt.Sprintf("0.0.0.0:%d", p.Port)
 			if l, err := net.Listen("tcp", addr); err != nil {
 				logging.LogError(err, "Failed to start listening on new port")
-				go database.SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 				return err
 			} else {
 				p.listener = &l
@@ -234,7 +234,7 @@ func (p *callbackPortUsage) Start() error {
 	} else {
 		err := errors.New(fmt.Sprintf("Failed to start listening on port %d, it's not exposed through docker", p.Port))
 		logging.LogError(err, "Can't start listening")
-		go database.SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 		return err
 	}
 

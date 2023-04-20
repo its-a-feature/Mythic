@@ -2,6 +2,7 @@ package webcontroller
 
 import (
 	"fmt"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +34,7 @@ func FileDirectDownloadWebhook(c *gin.Context) {
     			WHERE payload.uuid=$1`, agentFileID); err != nil {
 				logging.LogError(err, "Failed to get file data from database")
 				message := fmt.Sprintf("Attempt to download unknown file: %s", agentFileID)
-				go database.SendAllOperationsMessage(message, 0, "", database.MESSAGE_LEVEL_WARNING)
+				go rabbitmq.SendAllOperationsMessage(message, 0, "", database.MESSAGE_LEVEL_WARNING)
 				c.AbortWithStatus(http.StatusNotFound)
 				return
 			} else {

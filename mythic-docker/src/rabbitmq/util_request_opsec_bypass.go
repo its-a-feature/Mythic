@@ -45,7 +45,7 @@ func RequestOpsecBypass(input RequestOpsecBypassMessage) RequestOpsecBypassMessa
 					errMsg := errors.New(fmt.Sprintf("%s tried to submit an opsec bypass request for task %d, but only the lead can approve this",
 						input.OperatorOperation.CurrentOperator.Username, task.DisplayID))
 					logging.LogError(errMsg, "Failed bypass request")
-					go database.SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
 					response.Error = errMsg.Error()
 					return response
 				}
@@ -57,7 +57,7 @@ func RequestOpsecBypass(input RequestOpsecBypassMessage) RequestOpsecBypassMessa
 					errMsg := errors.New(fmt.Sprintf("%s tried to submit an opsec bypass request for task %d, but spectators cannot approve this",
 						input.OperatorOperation.CurrentOperator.Username, task.DisplayID))
 					logging.LogError(errMsg, "Failed bypass request")
-					go database.SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
 					response.Error = errMsg.Error()
 					return response
 				}
@@ -66,7 +66,7 @@ func RequestOpsecBypass(input RequestOpsecBypassMessage) RequestOpsecBypassMessa
 					errMsg := errors.New(fmt.Sprintf("%s tried to submit an opsec bypass request for task %d, but spectators cannot approve this",
 						input.OperatorOperation.CurrentOperator.Username, task.DisplayID))
 					logging.LogError(errMsg, "Failed bypass request")
-					go database.SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
 					response.Error = errMsg.Error()
 					return response
 				} else if task.OperatorID != input.OperatorOperation.CurrentOperator.ID {
@@ -103,7 +103,7 @@ func RequestOpsecBypass(input RequestOpsecBypassMessage) RequestOpsecBypassMessa
 					errMsg := errors.New(fmt.Sprintf("%s tried to submit an opsec bypass request for task %d, but only the lead can approve this",
 						input.OperatorOperation.CurrentOperator.Username, task.DisplayID))
 					logging.LogError(errMsg, "Failed bypass request")
-					go database.SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
 					response.Error = errMsg.Error()
 					return response
 				}
@@ -115,7 +115,7 @@ func RequestOpsecBypass(input RequestOpsecBypassMessage) RequestOpsecBypassMessa
 					errMsg := errors.New(fmt.Sprintf("%s tried to submit an opsec bypass request for task %d, but spectators cannot approve this",
 						input.OperatorOperation.CurrentOperator.Username, task.DisplayID))
 					logging.LogError(errMsg, "Failed bypass request")
-					go database.SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
 					response.Error = errMsg.Error()
 					return response
 				}
@@ -124,7 +124,7 @@ func RequestOpsecBypass(input RequestOpsecBypassMessage) RequestOpsecBypassMessa
 					errMsg := errors.New(fmt.Sprintf("%s tried to submit an opsec bypass request for task %d, but spectators cannot approve this",
 						input.OperatorOperation.CurrentOperator.Username, task.DisplayID))
 					logging.LogError(errMsg, "Failed bypass request")
-					go database.SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(errMsg.Error(), input.OperatorOperation.CurrentOperation.ID, "", database.MESSAGE_LEVEL_WARNING)
 					response.Error = errMsg.Error()
 					return response
 				} else if task.OperatorID != input.OperatorOperation.CurrentOperator.ID {

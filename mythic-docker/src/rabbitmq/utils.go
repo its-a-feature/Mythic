@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -885,4 +886,113 @@ func GetSaveFilePath() (string, string, error) {
 		payloadFilePath = filepath.Join(".", "files", newUUID)
 	}
 	return "", "", errors.New("Failed to create file on disk")
+}
+
+func SendAllOperationsMessage(message string, operationID int, source string, messageLevel database.MESSAGE_LEVEL) {
+	/*
+		Send a message to all operation's event logs if operationID is 0, otherwise just send it to the specific operation.
+		if messageLevel == "error", first check to see if there's an unresolved message of type `source` first.
+			if so, increment the counter
+			if not, create the message
+	*/
+	var operations []databaseStructs.Operation
+	if err := database.DB.Select(&operations, `SELECT id, "name", webhook, channel FROM operation WHERE complete=false`); err != nil {
+		logging.LogError(err, "Failed to get operations for SendAllOperationsMessage", "message", message)
+		return
+	}
+	sourceString := source
+	if sourceString == "" {
+		if sourceIdentifier, err := uuid.NewUUID(); err != nil {
+			logging.LogError(err, "Failed to generate new UUID for source of SendAllOperationsMessage")
+		} else {
+			sourceString = sourceIdentifier.String()
+		}
+	}
+	for _, operation := range operations {
+		if operationID == 0 || operation.ID == operationID {
+			// this is the operation we're interested in
+			if messageLevel == database.MESSAGE_LEVEL_WARNING {
+				existingMessage := databaseStructs.Operationeventlog{}
+				if err := database.DB.Get(&existingMessage, `
+				SELECT id, count, "message", source FROM operationeventlog WHERE
+				level='warning' and source=$1 and operation_id=$2 and resolved=false and deleted=false
+				`, sourceString, operation.ID); err != nil {
+					if err != sql.ErrNoRows {
+						logging.LogError(err, "Failed to query existing event log message")
+					} else if err == sql.ErrNoRows {
+						newMessage := databaseStructs.Operationeventlog{
+							Source:      sourceString,
+							Level:       messageLevel,
+							Message:     message,
+							OperationID: operation.ID,
+							Count:       0,
+						}
+						if _, err := database.DB.NamedExec(`INSERT INTO operationeventlog 
+						(source, "level", "message", operation_id, count) 
+						VALUES 
+						(:source, :level, :message, :operation_id, :count)`, newMessage); err != nil {
+							logging.LogError(err, "Failed to create new operationeventlog message")
+						} else {
+
+							go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
+								OperationID:      operation.ID,
+								OperationName:    operation.Name,
+								OperationWebhook: operation.Webhook,
+								OperationChannel: operation.Channel,
+								OperatorUsername: "",
+								Action:           WEBHOOK_TYPE_ALERT,
+								Data: map[string]interface{}{
+									"message":   newMessage.Message,
+									"source":    newMessage.Source,
+									"count":     newMessage.Count,
+									"timestamp": time.Now().UTC(),
+								},
+							})
+
+						}
+					}
+				} else {
+					// err was nil, so we did get a matching existing message
+					existingMessage.Count += 1
+					if _, err := database.DB.NamedExec(`UPDATE operationeventlog SET 
+					"count"=:count 
+					WHERE id=:id`, existingMessage); err != nil {
+						logging.LogError(err, "Failed to increase count on operationeventlog")
+					} else {
+
+						go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
+							OperationID:      operation.ID,
+							OperationName:    operation.Name,
+							OperationWebhook: operation.Webhook,
+							OperationChannel: operation.Channel,
+							OperatorUsername: "",
+							Action:           WEBHOOK_TYPE_ALERT,
+							Data: map[string]interface{}{
+								"message":   existingMessage.Message,
+								"source":    existingMessage.Source,
+								"count":     existingMessage.Count,
+								"timestamp": time.Now().UTC(),
+							},
+						})
+
+					}
+				}
+			} else {
+				newMessage := databaseStructs.Operationeventlog{
+					Source:      sourceString,
+					Level:       messageLevel,
+					Message:     message,
+					OperationID: operation.ID,
+					Count:       0,
+				}
+				if _, err := database.DB.NamedExec(`INSERT INTO operationeventlog 
+				(source, "level", "message", operation_id, count) 
+				VALUES 
+				(:source, :level, :message, :operation_id, :count)`, newMessage); err != nil {
+					logging.LogError(err, "Failed to create new operationeventlog message")
+				}
+			}
+
+		}
+	}
 }

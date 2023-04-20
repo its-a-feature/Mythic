@@ -38,7 +38,7 @@ func AgentMessageWebhook(c *gin.Context) {
 		logging.LogError(err, "Failed to read body of agent message")
 		errorMessage := "Error! Failed to read body of agent message. Check the following details for more information about the request:\nConnection to: "
 		errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
-		go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_body", database.MESSAGE_LEVEL_WARNING)
+		go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_body", database.MESSAGE_LEVEL_WARNING)
 		c.Status(http.StatusNotFound)
 		return
 	} else if c2Header := c.GetHeader("mythic"); c2Header == "" {
@@ -46,7 +46,7 @@ func AgentMessageWebhook(c *gin.Context) {
 		errorMessage := "Error! Failed to find Mythic header. Check the following details for more information about the request:\nConnection to: "
 		errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
 		errorMessage += "Did this come from a Mythic C2 Profile? If so, make sure it's adding the `mythic` header with the name of the C2 profile"
-		go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
+		go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
 		c.Status(http.StatusNotFound)
 		return
 	} else if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
@@ -77,7 +77,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 		errorMessage := "Error! Failed to find Mythic header. Check the following details for more information about the request:\nConnection to: "
 		errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
 		errorMessage += "Did this come from a Mythic C2 Profile? If so, make sure it's adding the `mythic` header with the name of the C2 profile"
-		go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
+		go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
 		c.Status(http.StatusNotFound)
 		return
 	} else {
@@ -90,7 +90,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 					errorMessage := "Error! Failed to base64 decode url encoded query parameter. Check the following details for more information about the request:\nConnection to: "
 					errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
 					logging.LogError(err, "Failed to base64 decode url encoded query parameter", "param key", key)
-					go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
+					go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
 					c.Status(http.StatusNotFound)
 					return
 				} else {
@@ -113,7 +113,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 			if base64Bytes, err := base64.StdEncoding.DecodeString(agentMessage); err != nil {
 				errorMessage := "Error! Failed to base64 decode cookie parameter. Check the following details for more information about the request:\nConnection to: "
 				errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\nCookie: %v\n", requestUrl, c.Request.Method, requestIp, cookies[0])
-				go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
+				go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
 				logging.LogError(err, "Failed to base64 decode cookie value", "cookie key", cookies[0].Name)
 				c.Status(http.StatusNotFound)
 				return
@@ -139,7 +139,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 			}); err != nil {
 				errorMessage := "Error! Failed to find message in body of get request. Check the following details for more information about the request:\nConnection to: "
 				errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
-				go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
+				go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
 				logging.LogError(err, "Failed to process agent message in body of get request")
 				c.Status(http.StatusNotFound)
 				return

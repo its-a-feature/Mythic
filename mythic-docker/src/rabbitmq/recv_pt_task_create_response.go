@@ -31,11 +31,11 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		task.ID = payloadMsg.TaskID
 		if task.ID <= 0 {
 			// we ran into an error and couldn't even get the task information out
-			go database.SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
 			return
 		} else if err := database.DB.Get(&task, `SELECT status, operation_id FROM task WHERE id=$1`, task.ID); err != nil {
 			logging.LogError(err, "Failed to find task from create_tasking")
-			go database.SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_WARNING)
 			return
 		}
 		logging.LogInfo("got response back from create message", "resp", payloadMsg, "original", string(msg.Body))

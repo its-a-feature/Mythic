@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"fmt"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net"
 	"net/http"
 
@@ -55,7 +56,7 @@ func IPBlockMiddleware() gin.HandlerFunc {
 			}
 		}
 		logging.LogError(nil, "Client IP not in allowed IP blocks", "client_ip", ipAddr)
-		go database.SendAllOperationsMessage(fmt.Sprintf("Client IP, %s, not in allowed IP blocks: %v", ipAddr.String(), utils.MythicConfig.AllowedIPBlocks),
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Client IP, %s, not in allowed IP blocks: %v", ipAddr.String(), utils.MythicConfig.AllowedIPBlocks),
 			0, ipAddr.String(), database.MESSAGE_LEVEL_WARNING)
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		c.Abort()

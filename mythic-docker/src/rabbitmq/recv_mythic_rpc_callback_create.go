@@ -109,7 +109,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		return response
 	} else if payload.Operation.Complete {
 		logging.LogError(nil, "Operation is complete, but payload still trying to create callback", "payload_uuid", input.PayloadUUID)
-		go database.SendAllOperationsMessage(fmt.Sprintf(
+		go SendAllOperationsMessage(fmt.Sprintf(
 			"Operation %s is complete, but payload %s is still trying to create a callback via %s\n", payload.Operation.Name, payload.UuID, input.C2ProfileName),
 			0, fmt.Sprintf("complete_operation_%s", payload.UuID), database.MESSAGE_LEVEL_WARNING)
 		response.Error = "Operation is complete, but payload still trying to create callback"
@@ -232,7 +232,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 					}
 				}
 				operationsMsg := fmt.Sprintf("New Callback (%d) %s@%s with pid %d", callback.DisplayID, callback.User, callback.Host, callback.PID)
-				go database.SendAllOperationsMessage(operationsMsg, callback.OperationID, "", "info")
+				go SendAllOperationsMessage(operationsMsg, callback.OperationID, "", "info")
 				// prep data to send for log messages and webhook messages
 				webhookData := NewCallbackWebhookData{
 					User:           callback.User,

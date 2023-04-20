@@ -214,9 +214,9 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 				VALUES (:agent_file_id, :path, :operation_id, :operator_id, :sha1, :md5, :complete, :filename, :comment, :chunk_size, :total_chunks, :chunks_received)`,
 				newFileMeta); err != nil {
 				logging.LogError(err, "Failed to create new filemeta data")
-				go database.SendAllOperationsMessage("Failed to create report", newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage("Failed to create report", newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_WARNING)
 			} else {
-				go database.SendAllOperationsMessage("created report:"+newFileMeta.AgentFileID, newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_INFO)
+				go SendAllOperationsMessage("created report:"+newFileMeta.AgentFileID, newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_INFO)
 			}
 		}
 	}

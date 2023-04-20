@@ -162,7 +162,7 @@ func processPayloadSyncMessages(msg amqp.Delivery) interface{} {
 	if err := json.Unmarshal(msg.Body, &payloadSyncMsg); err != nil {
 		logging.LogError(err, "Failed to process payload sync message")
 		response.Error = err.Error()
-		go database.SendAllOperationsMessage(fmt.Sprintf("Failed to sync payload type container - %s", err.Error()), 0, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync payload type container - %s", err.Error()), 0, "", database.MESSAGE_LEVEL_WARNING)
 	} else {
 
 		if err := payloadTypeSync(payloadSyncMsg); err != nil {
@@ -170,7 +170,7 @@ func processPayloadSyncMessages(msg amqp.Delivery) interface{} {
 			logging.LogError(err, "Failed to fully sync payload type")
 			response.Success = false
 			response.Error = fmt.Sprintf("Error: %v", err)
-			go database.SendAllOperationsMessage(response.Error, 0, payloadSyncMsg.PayloadType.Name, database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(response.Error, 0, payloadSyncMsg.PayloadType.Name, database.MESSAGE_LEVEL_WARNING)
 		} else {
 			// successfully synced
 			response.Success = true
@@ -268,7 +268,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			}
 			if err := database.DB.Get(&translationContainer, `SELECT id FROM translationcontainer WHERE "name"=$1`, translationContainer.Name); err != nil {
 				logging.LogError(err, "Failed to find corresponding translation container for payload type")
-				go database.SendAllOperationsMessage(fmt.Sprintf("Failed to find translation container, %s, for %s", translationContainer.Name, payloadtype.Name), 0, "", "warning")
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to find translation container, %s, for %s", translationContainer.Name, payloadtype.Name), 0, "", "warning")
 			} else if _, err = database.DB.Exec(`UPDATE payloadtype SET translation_container_id=$1 WHERE id=$2`, translationContainer.ID, payloadtype.ID); err != nil {
 				logging.LogError(err, "Failed to associate translation container with payload type")
 			} else {
@@ -281,7 +281,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			// translation container information potentially changed, invalidate all the caches and re-do them with the updates
 			InvalidateAllCachedUUIDInfo()
 		}
-		go database.SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "", "info")
+		go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "", "info")
 		go database.ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
 		checkContainerStatusAddPtChannel <- payloadtype
 		return nil
@@ -1061,7 +1061,7 @@ func updatePayloadTypeCommandMitreAttack(in PayloadTypeSyncMessage, syncCommand 
 			attack := databaseStructs.Attack{}
 			if err := database.DB.Get(&attack, "SELECT * FROM attack WHERE t_num=$1", newMitreAttack); err != nil {
 				logging.LogError(err, "Failed to find ATT&CK TNum", "t_num", newMitreAttack)
-				database.SendAllOperationsMessage(
+				SendAllOperationsMessage(
 					fmt.Sprintf("%s:%s - Failed to find ATT&CK TNum: %s", in.PayloadType.Name, syncCommand.Name, newMitreAttack),
 					0, "", "warning")
 			} else {

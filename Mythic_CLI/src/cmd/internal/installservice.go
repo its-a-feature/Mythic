@@ -70,13 +70,13 @@ func InstallFolder(installPath string, overWrite bool) error {
 					if config.IsSet("docker-compose") {
 						if err := AddDockerComposeEntry(f.Name(), config.GetStringMap("docker-compose")); err != nil {
 							fmt.Printf("[-] Failed to add service to docker-compose: %v\n", err)
-						} else if err := DockerStart([]string{f.Name()}); err != nil {
+						} else if err := DockerBuild([]string{f.Name()}); err != nil {
 							fmt.Printf("[-] Failed to start service: %v\n", err)
 						}
 					} else {
 						if err := AddDockerComposeEntry(f.Name(), make(map[string]interface{})); err != nil {
 							fmt.Printf("[-] Failed to add service to docker-compose: %v\n", err)
-						} else if err := DockerStart([]string{f.Name()}); err != nil {
+						} else if err := DockerBuild([]string{f.Name()}); err != nil {
 							fmt.Printf("[-] Failed to start service: %v\n", err)
 						}
 					}
@@ -130,7 +130,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 					fmt.Printf("[*] Adding c2, %s, into docker-compose\n", f.Name())
 					if err := AddDockerComposeEntry(f.Name(), make(map[string]interface{})); err != nil {
 						fmt.Printf("[-] Failed to add %s to docker-compose: %v\n", f.Name(), err)
-					} else if err := DockerStart([]string{f.Name()}); err != nil {
+					} else if err := DockerBuild([]string{f.Name()}); err != nil {
 						fmt.Printf("[-] Failed to start service: %v\n", err)
 					}
 				}

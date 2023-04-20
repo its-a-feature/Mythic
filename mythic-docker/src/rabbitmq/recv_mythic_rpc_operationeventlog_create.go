@@ -69,7 +69,7 @@ func MythicRPCOperationEventLogCreate(input MythicRPCOperationEventLogCreateMess
 	} else if input.OperationId != nil {
 		operationId = *input.OperationId
 	}
-	database.SendAllOperationsMessage(input.Message, operationId, "", input.MessageLevel)
+	SendAllOperationsMessage(input.Message, operationId, "", input.MessageLevel)
 	response.Success = true
 	return response
 }

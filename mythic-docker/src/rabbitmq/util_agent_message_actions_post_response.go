@@ -841,7 +841,7 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 			*
 			FROM filemeta
 			WHERE agent_file_id=$1 AND operation_id=$2`, *agentResponse.Upload.FileID, task.OperationID); err != nil {
-			go database.SendAllOperationsMessage(fmt.Sprintf("Failed to find fileID in agent upload request: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to find fileID in agent upload request: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 			logging.LogError(err, "Failed to find fileID in agent upload request", "file_id", *agentResponse.Upload.FileID)
 			return uploadResponse, err
 		} else {
@@ -854,15 +854,15 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 			}
 			if !fileMeta.Complete {
 				logging.LogError(nil, "Trying to upload a file to an agent that isn't fully on Mythic's server yet")
-				go database.SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - not completely uploaded to Mythic yet: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - not completely uploaded to Mythic yet: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 				return uploadResponse, errors.New("trying to upload a file to an agent that isn't fully on Mythic's server yet")
 			} else if fileMeta.Deleted {
 				logging.LogError(nil, "Trying to upload a file to an agent that is deleted")
-				go database.SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was deleted from Mythic: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was deleted from Mythic: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 				return uploadResponse, errors.New("trying to upload a file to an agent that is deleted")
 			} else if fileStat, err := os.Stat(fileMeta.Path); err != nil {
 				logging.LogError(err, "Failed to find file on disk")
-				go database.SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was not found on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was not found on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 				return uploadResponse, errors.New("trying to upload a file to an agent that was not found on disk")
 			} else {
 				totalChunks := int(math.Ceil(float64(fileStat.Size()) / chunkSize))
@@ -874,19 +874,19 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 				}
 				if chunkNum >= totalChunks {
 					logging.LogError(nil, "Requested chunk number greater than number of available chunks for file")
-					go database.SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Requested chunk number greater than number of available chunks for file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Requested chunk number greater than number of available chunks for file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 					return uploadResponse, errors.New("requested chunk number greater than number of available chunks for file")
 				} else if file, err := os.Open(fileMeta.Path); err != nil {
 					logging.LogError(err, "Failed to open file to get chunk for agent upload")
-					go database.SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to open file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to open file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 					return uploadResponse, errors.New("failed to open file to get chunk for agent upload")
 				} else if _, err := file.Seek(int64(chunkNum*int(chunkSize)), 0); err != nil {
 					logging.LogError(err, "Failed to seek file to get chunk for agent upload")
-					go database.SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to seek file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to seek file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 					return uploadResponse, errors.New("failed to seek file to get chunk for agent upload")
 				} else if bytesRead, err := file.Read(chunkData); err != nil {
 					logging.LogError(err, "Failed to read file to get chunk for agent upload")
-					go database.SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to read file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to read file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 					return uploadResponse, errors.New("failed to read file to get chunk for agent upload")
 				} else {
 					uploadResponse.ChunkData = chunkData[:bytesRead]
@@ -919,7 +919,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 	if agentResponse.Upload.FullPath != nil && *agentResponse.Upload.FullPath != "" {
 		if filePieces, err := utils.SplitFilePathGetHost(*agentResponse.Upload.FullPath, "", []string{}); err != nil {
 			logging.LogError(err, "Failed to parse out the full path returned by the agent for an upload")
-			go database.SendAllOperationsMessage(fmt.Sprintf("Failed to parse out the full path returned by the agent for an upload: %v\n", err), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to parse out the full path returned by the agent for an upload: %v\n", err), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 			return
 		} else {
 			if filePieces.Host == "" {
@@ -944,10 +944,10 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_download_from_agent, :is_screenshot, :host)
 			RETURNING id`); err != nil {
 					logging.LogError(err, "Failed to insert new filemeta data for a separate task pulling down an already uploaded file")
-					go database.SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 				} else if err = statement.Get(&newFileMeta, newFileMeta); err != nil {
 					logging.LogError(err, "Failed to insert net filemeta data for a separate task")
-					go database.SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 				} else {
 					go EmitFileLog(newFileMeta.ID)
 					go associateFileMetaWithMythicTree(filePieces, newFileMeta, task)
@@ -961,7 +961,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 					SET full_remote_path=:full_remote_path, filename=:filename, host=:host
 					WHERE id=:id`, fileMeta); err != nil {
 					logging.LogError(err, "Failed to update filemeta path/filename/host ")
-					go database.SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 				} else {
 					go EmitFileLog(fileMeta.ID)
 					go associateFileMetaWithMythicTree(filePieces, fileMeta, task)
@@ -976,10 +976,10 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			fileMeta.Deleted = true
 			if _, err := database.DB.NamedExec(`UPDATE filemeta SET deleted=:deleted WHERE id=:id`, fileMeta); err != nil {
 				logging.LogError(err, "Failed to mark file as deleted after successful fetch")
-				go database.SendAllOperationsMessage(fmt.Sprintf("Failed to mark file as deleted after successful fetch: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to mark file as deleted after successful fetch: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 			} else if err := os.RemoveAll(fileMeta.Path); err != nil {
 				logging.LogError(err, "Failed to delete file after successful fetch")
-				go database.SendAllOperationsMessage(fmt.Sprintf("Failed to delete file after successful fetch: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to delete file after successful fetch: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 			}
 		}
 	}
@@ -1017,7 +1017,7 @@ func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta datab
 	fileMeta.MythicTreeID.Int64 = int64(newTree.ID)
 	if _, err := database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, fileMeta); err != nil {
 		logging.LogError(err, "Failed to associate filemeta with mythictree ")
-		go database.SendAllOperationsMessage(fmt.Sprintf("Failed to associate file with file browser: %s\n", fileMeta.AgentFileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to associate file with file browser: %s\n", fileMeta.AgentFileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 	}
 }
 func addFilePermissions(fileBrowser *agentMessagePostResponseFileBrowser) map[string]interface{} {
@@ -1057,7 +1057,7 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 	// given a FileBrowser object, need to insert it into database and potentially insert parents along the way
 	if pathData, err := utils.SplitFilePathGetHost(fileBrowser.ParentPath, fileBrowser.Name, []string{}); err != nil {
 		logging.LogError(err, "Failed to add data for file browser due to path issue")
-		go database.SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 		return err
 	} else {
 		if pathData.Host == "" {
@@ -1367,7 +1367,7 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 		newFile.OperationID, newFile.FullRemotePath); err == sql.ErrNoRows {
 		if pathData, err := utils.SplitFilePathGetHost(string(newFile.FullRemotePath), "", []string{}); err != nil {
 			logging.LogError(err, "Failed to add data for file browser due to path issue")
-			go database.SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 		} else {
 			if pathData.Host == "" {
 				pathData.Host = strings.ToUpper(task.Callback.Host)

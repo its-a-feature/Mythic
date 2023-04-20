@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"fmt"
+	"time"
 )
 
 type WEBHOOK_TYPE = string
@@ -12,6 +13,8 @@ const (
 	WEBHOOK_TYPE_NEW_CALLBACK WEBHOOK_TYPE = "new_callback"
 	WEBHOOK_TYPE_NEW_FEEDBACK              = "new_feedback"
 	WEBHOOK_TYPE_NEW_STARTUP               = "new_startup"
+	WEBHOOK_TYPE_ALERT                     = "new_alert"
+	WEBHOOK_TYPE_CUSTOM                    = "new_custom"
 )
 
 // WEBHOOK CONTAINER MESSAGE FORMAT STRUCTS
@@ -42,6 +45,19 @@ type NewCallbackWebhookData struct {
 	DisplayID      int    `json:"display_id" mapstructure:"display_id"`
 	ID             int    `json:"id" mapstructure:"id"`
 	IntegrityLevel int    `json:"integrity_level" mapstructure:"integrity_level"`
+}
+
+type NewAlertMessageWebhookData struct {
+	OperatorID *int      `json:"operator_id" mapstructure:"operator_id"`
+	Message    string    `json:"message" mapstructure:"message"`
+	Source     string    `json:"source" mapstructure:"source"`
+	Count      int       `json:"count" mapstructure:"count"`
+	Timestamp  time.Time `json:"timestamp" mapstructure:"timestamp"`
+}
+
+type NewCustomWebhookData struct {
+	Timestamp time.Time `json:"timestamp" mapstructure:"timestamp"`
+	Message   string    `json:"message" mapstructure:"message"`
 }
 
 func GetWebhookRoutingKey(webhookAction WEBHOOK_TYPE) string {

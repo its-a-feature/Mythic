@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -158,80 +157,6 @@ func HashUserPassword(databaseOperator databaseStructs.Operator, password string
 	return fmt.Sprintf("%x", hashBytes)
 }
 
-func SendAllOperationsMessage(message string, operationID int, source string, messageLevel MESSAGE_LEVEL) {
-	/*
-		Send a message to all operation's event logs if operationID is 0, otherwise just send it to the specific operation.
-		if messageLevel == "error", first check to see if there's an unresolved message of type `source` first.
-			if so, increment the counter
-			if not, create the message
-	*/
-	var operations []databaseStructs.Operation
-	if err := DB.Select(&operations, `SELECT id FROM operation WHERE complete=false`); err != nil {
-		logging.LogError(err, "Failed to get operations for SendAllOperationsMessage", "message", message)
-		return
-	}
-	sourceString := source
-	if sourceString == "" {
-		if sourceIdentifier, err := uuid.NewUUID(); err != nil {
-			logging.LogError(err, "Failed to generate new UUID for source of SendAllOperationsMessage")
-		} else {
-			sourceString = sourceIdentifier.String()
-		}
-	}
-	for _, operation := range operations {
-		if operationID == 0 || operation.ID == operationID {
-			// this is the operation we're interested in
-			if messageLevel == MESSAGE_LEVEL_WARNING {
-				existingMessage := databaseStructs.Operationeventlog{}
-				if err := DB.Get(&existingMessage, `
-				SELECT id, count FROM operationeventlog WHERE
-				level='warning' and source=$1 and operation_id=$2 and resolved=false and deleted=false
-				`, sourceString, operation.ID); err != nil {
-					if err != sql.ErrNoRows {
-						logging.LogError(err, "Failed to query existing event log message")
-					} else if err == sql.ErrNoRows {
-						newMessage := databaseStructs.Operationeventlog{
-							Source:      sourceString,
-							Level:       string(messageLevel),
-							Message:     message,
-							OperationID: operation.ID,
-							Count:       0,
-						}
-						if _, err := DB.NamedExec(`INSERT INTO operationeventlog 
-						(source, "level", "message", operation_id, count) 
-						VALUES 
-						(:source, :level, :message, :operation_id, :count)`, newMessage); err != nil {
-							logging.LogError(err, "Failed to create new operationeventlog message")
-						}
-					}
-				} else {
-					// err was nil, so we did get a matching existing message
-					existingMessage.Count += 1
-					if _, err := DB.NamedExec(`UPDATE operationeventlog SET 
-					"count"=:count 
-					WHERE id=:id`, existingMessage); err != nil {
-						logging.LogError(err, "Failed to increase count on operationeventlog")
-					}
-				}
-			} else {
-				newMessage := databaseStructs.Operationeventlog{
-					Source:      sourceString,
-					Level:       string(messageLevel),
-					Message:     message,
-					OperationID: operation.ID,
-					Count:       0,
-				}
-				if _, err := DB.NamedExec(`INSERT INTO operationeventlog 
-				(source, "level", "message", operation_id, count) 
-				VALUES 
-				(:source, :level, :message, :operation_id, :count)`, newMessage); err != nil {
-					logging.LogError(err, "Failed to create new operationeventlog message")
-				}
-			}
-
-		}
-	}
-}
 func ResolveAllOperationsMessage(message string, operationID int) {
 	/*
 		Resolve a message in all operation's event logs if operationID is 0, otherwise just resolve it to the specific operation.

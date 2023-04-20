@@ -17,14 +17,9 @@ type SendExternalWebhookInput struct {
 	Input ExternalWebhook `json:"input" binding:"required"`
 }
 
-type ExternalWebhookData struct {
-	Key   string `json:"key" binding:"required"`
-	Value string `json:"value" binding:"required"`
-}
-
 type ExternalWebhook struct {
-	WebhookType string                `json:"webhook_type" binding:"required"`
-	WebhookData []ExternalWebhookData `json:"webhook_data" binding:"required"`
+	WebhookType string            `json:"webhook_type"`
+	WebhookData map[string]string `json:"webhook_data" binding:"required"`
 }
 
 type SendExternalWebhookResponse struct {
@@ -52,12 +47,12 @@ func SendExternalWebhookWebhook(c *gin.Context) {
 	} else {
 		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 		webhookDataMap := make(map[string]interface{})
-		for _, entry := range input.Input.WebhookData {
-			if strings.HasSuffix(entry.Key, "_id") {
-				if taskIdInt, err := strconv.Atoi(entry.Value); err != nil {
-					logging.LogError(err, "Failed to convert task_id to int", "_id value", entry.Value)
+		for key, entry := range input.Input.WebhookData {
+			if strings.HasSuffix(key, "_id") {
+				if taskIdInt, err := strconv.Atoi(entry); err != nil {
+					logging.LogError(err, "Failed to convert task_id to int", "_id value", entry)
 				} else {
-					if entry.Key == "task_id" && taskIdInt > 0 {
+					if key == "task_id" && taskIdInt > 0 {
 						// need to convert this from display_id to task_id
 						task := databaseStructs.Task{DisplayID: taskIdInt, OperationID: operatorOperation.CurrentOperation.ID}
 						if err := database.DB.Get(&task, `SELECT id FROM task WHERE display_id=$1 AND operation_id=$2`,
@@ -74,12 +69,12 @@ func SendExternalWebhookWebhook(c *gin.Context) {
 						}
 
 					} else {
-						webhookDataMap[entry.Key] = taskIdInt
+						webhookDataMap[key] = taskIdInt
 					}
 
 				}
 			} else {
-				webhookDataMap[entry.Key] = entry.Value
+				webhookDataMap[key] = entry
 			}
 
 		}
@@ -95,9 +90,17 @@ func SendExternalWebhookWebhook(c *gin.Context) {
 		switch input.Input.WebhookType {
 		case rabbitmq.WEBHOOK_TYPE_NEW_CALLBACK:
 		case rabbitmq.WEBHOOK_TYPE_NEW_FEEDBACK:
+		case "new_custom":
+			fallthrough
+		case "":
+			webhookMessage.Action = rabbitmq.WEBHOOK_TYPE_CUSTOM
 		default:
 			logging.LogError(errors.New("Unknown webhook type for SendExternalWebhookWebhook"),
 				"Failed to find webhook type", "webhook_type", input.Input.WebhookType)
+			c.JSON(http.StatusOK, SendExternalWebhookResponse{
+				Status: "error",
+				Error:  "unknown webhook_type - try 'new_custom' or ''",
+			})
 			return
 		}
 		go rabbitmq.RabbitMQConnection.EmitWebhookMessage(webhookMessage)

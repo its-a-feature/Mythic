@@ -1,7 +1,7 @@
 FROM jupyter/base-notebook:python-3.10
 
 RUN pip3 uninstall -y mythic
-RUN pip3 install mythic==0.1.0rc3
+RUN pip3 install mythic==0.1.0rc6
 
 WORKDIR /projects
 

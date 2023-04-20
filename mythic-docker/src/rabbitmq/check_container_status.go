@@ -87,7 +87,7 @@ func checkContainerStatus() {
 					logging.LogError(err, "Failed to set container running status", "container_running", payloadTypesToCheck[container].ContainerRunning, "container", container)
 				}
 				if !running {
-					database.SendAllOperationsMessage(
+					SendAllOperationsMessage(
 						getDownContainerMessage(container),
 						0, fmt.Sprintf("%s_container_down", container), "warning")
 					go updateDownContainerBuildingPayloads(container)
@@ -109,7 +109,7 @@ func checkContainerStatus() {
 				}
 				if !running {
 					UpdateC2ProfileRunningStatus(c2profilesToCheck[container], false)
-					database.SendAllOperationsMessage(
+					SendAllOperationsMessage(
 						getDownContainerMessage(container),
 						0, fmt.Sprintf("%s_container_down", container), "warning")
 				}
@@ -134,7 +134,7 @@ func checkContainerStatus() {
 					logging.LogError(nil, "Failed to get translation container from map for updating running status")
 				}
 				if !running {
-					database.SendAllOperationsMessage(
+					SendAllOperationsMessage(
 						getDownContainerMessage(container),
 						0, fmt.Sprintf("%s_container_down", container), "warning")
 				}

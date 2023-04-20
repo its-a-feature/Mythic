@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"database/sql"
 	"fmt"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -92,7 +93,7 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 			} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
 				logging.LogError(err, "Failed to lookup operator username")
 			} else {
-				go database.SendAllOperationsMessage(fmt.Sprintf("Adding %s to operation", newUser.Username),
+				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Adding %s to operation", newUser.Username),
 					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
 			}
 		}
@@ -107,7 +108,7 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 			} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
 				logging.LogError(err, "Failed to lookup operator username")
 			} else {
-				go database.SendAllOperationsMessage(fmt.Sprintf("Removing %s from operation", newUser.Username),
+				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removing %s from operation", newUser.Username),
 					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
 			}
 		}
@@ -122,7 +123,7 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 			} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
 				logging.LogError(err, "Failed to lookup operator username")
 			} else {
-				go database.SendAllOperationsMessage(fmt.Sprintf("Updated %s to operator", newUser.Username),
+				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to operator", newUser.Username),
 					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
 			}
 		}
@@ -137,7 +138,7 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 			} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
 				logging.LogError(err, "Failed to lookup operator username")
 			} else {
-				go database.SendAllOperationsMessage(fmt.Sprintf("Updated %s to spectator", newUser.Username),
+				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to spectator", newUser.Username),
 					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
 			}
 		}
@@ -158,11 +159,11 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 				if err := database.DB.Get(&profileName, `SELECT "name" FROM disabledcommandsprofile WHERE id=$1`, disabledProfile.DisabledCommandProfileID); err != nil {
 					logging.LogError(err, "Failed to get disabled commands profile name")
 				} else {
-					go database.SendAllOperationsMessage(fmt.Sprintf("Updated %s's disabled commands profile to '%s' ", newUser.Username, profileName),
+					go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s's disabled commands profile to '%s' ", newUser.Username, profileName),
 						currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
 				}
 			} else {
-				go database.SendAllOperationsMessage(fmt.Sprintf("Removed %s's disabled commands profile ", newUser.Username),
+				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removed %s's disabled commands profile ", newUser.Username),
 					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
 			}
 		}

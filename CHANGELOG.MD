@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0rc42] - 2023-04-20
+
+### Added
+
+- Added two new kinds of webhooks - one for alerts in the operation event log and one for custom webhook data
+- Added examples of new webhooks in Jupyter notebook
+
 ## [3.0.0rc41] - 2023-04-19
 
 ### Added
