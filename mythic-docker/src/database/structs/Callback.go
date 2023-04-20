@@ -25,7 +25,7 @@ type Callback struct {
 	Payload             Payload           `db:"payload" json:"-"`
 	IntegrityLevel      int               `db:"integrity_level" json:"integrity_level" mapstructure:"integrity_level"`
 	Locked              bool              `db:"locked" json:"locked" mapstructure:"locked"`
-	LockedOperatorID    structs.NullInt64 `db:"locked_operator_id" json:"locked_operator_id"`
+	LockedOperatorID    structs.NullInt64 `db:"locked_operator_id" json:"locked_operator_id,omitempty"`
 	OperationID         int               `db:"operation_id" json:"operation_id" mapstructure:"operation_id"`
 	Operation           Operation         `db:"operation" json:"-"`
 	CryptoType          string            `db:"crypto_type" json:"crypto_type" mapstructure:"crypto_type"`

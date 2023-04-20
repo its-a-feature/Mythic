@@ -12,8 +12,8 @@ type Filemeta struct {
 	TotalChunks         int               `db:"total_chunks" json:"total_chunks" mapstructure:"total_chunks"`
 	ChunksReceived      int               `db:"chunks_received" json:"chunks_received" mapstructure:"chunks_received"`
 	ChunkSize           int               `db:"chunk_size" json:"chunk_size" mapstructure:"chunk_size"`
-	TaskID              structs.NullInt64 `db:"task_id" json:"task_id" mapstructure:"task_id"`
-	Task                *Task             `db:"task" json:"task" mapstructure:"task"`
+	TaskID              structs.NullInt64 `db:"task_id" json:"task_id,omitempty" mapstructure:"task_id"`
+	Task                *Task             `db:"task" json:"-" mapstructure:"task"`
 	Complete            bool              `db:"complete" json:"complete" mapstructure:"complete"`
 	Path                string            `db:"path" json:"path" mapstructure:"path"`
 	FullRemotePath      []byte            `db:"full_remote_path" json:"full_remote_path" mapstructure:"full_remote_path"`
@@ -21,7 +21,7 @@ type Filemeta struct {
 	IsPayload           bool              `db:"is_payload" json:"is_payload" mapstructure:"is_payload"`
 	IsScreenshot        bool              `db:"is_screenshot" json:"is_screenshot" mapstructure:"is_screenshot"`
 	IsDownloadFromAgent bool              `db:"is_download_from_agent" json:"is_download_from_agent" mapstructure:"is_download_from_agent"`
-	MythicTreeID        structs.NullInt64 `db:"mythictree_id" json:"mythictree_id" mapstructure:"mythictree_id"`
+	MythicTreeID        structs.NullInt64 `db:"mythictree_id" json:"mythictree_id,omitempty" mapstructure:"mythictree_id"`
 	Filename            []byte            `db:"filename" json:"filename" mapstructure:"filename"`
 	DeleteAfterFetch    bool              `db:"delete_after_fetch" json:"delete_after_fetch" mapstructure:"delete_after_fetch"`
 	OperationID         int               `db:"operation_id" json:"operation_id" mapstructure:"operation_id"`
