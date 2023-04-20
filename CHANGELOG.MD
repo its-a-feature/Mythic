@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated some json tags on structs to omit unnecessary nested structure parsing with empty values 
+- Fixed the error message for bad messages to Mythic and added more error logging to the UI
 
 ## [3.0.0rc38] - 2023-04-18
 

@@ -39,7 +39,7 @@ func AgentMessageWebhook(c *gin.Context) {
 		errorMessage := "Error! Failed to read body of agent message. Check the following details for more information about the request:\nConnection to: "
 		errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
 		go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_body", database.MESSAGE_LEVEL_WARNING)
-		c.JSON(http.StatusNotFound, gin.H{})
+		c.Status(http.StatusNotFound)
 		return
 	} else if c2Header := c.GetHeader("mythic"); c2Header == "" {
 		logging.LogError(err, "Failed to get 'mythic' header")
@@ -47,14 +47,14 @@ func AgentMessageWebhook(c *gin.Context) {
 		errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
 		errorMessage += "Did this come from a Mythic C2 Profile? If so, make sure it's adding the `mythic` header with the name of the C2 profile"
 		go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
-		c.JSON(http.StatusNotFound, gin.H{})
+		c.Status(http.StatusNotFound)
 		return
 	} else if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
 		C2Profile:     c2Header,
 		Base64Message: &agentMessage,
 		RemoteIP:      requestIp,
 	}); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{})
+		c.Status(http.StatusNotFound)
 		return
 	} else {
 		c.Data(http.StatusOK, "application/octet-stream", response)
@@ -67,7 +67,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 	// first check for first query param
 	// then check for first cookie
 	// finally check for request body
-	requestUrl := c.Request.URL.RawPath
+	requestUrl := c.Request.URL.String()
 	if forwardedURL := c.GetHeader("x-forwarded-url"); forwardedURL != "" {
 		requestUrl = forwardedURL
 	}
@@ -75,10 +75,10 @@ func AgentMessageGetWebhook(c *gin.Context) {
 	if c2Header := c.GetHeader("mythic"); c2Header == "" {
 		logging.LogError(nil, "Failed to get 'mythic' header")
 		errorMessage := "Error! Failed to find Mythic header. Check the following details for more information about the request:\nConnection to: "
-		errorMessage += fmt.Sprintf("/%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
+		errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
 		errorMessage += "Did this come from a Mythic C2 Profile? If so, make sure it's adding the `mythic` header with the name of the C2 profile"
 		go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
-		c.JSON(http.StatusNotFound, gin.H{})
+		c.Status(http.StatusNotFound)
 		return
 	} else {
 		params := c.Request.URL.Query()
@@ -87,8 +87,11 @@ func AgentMessageGetWebhook(c *gin.Context) {
 			for key, _ := range params {
 				agentMessage := params.Get(key)
 				if base64Bytes, err := base64.URLEncoding.DecodeString(agentMessage); err != nil {
+					errorMessage := "Error! Failed to base64 decode url encoded query parameter. Check the following details for more information about the request:\nConnection to: "
+					errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
 					logging.LogError(err, "Failed to base64 decode url encoded query parameter", "param key", key)
-					c.JSON(http.StatusNotFound, gin.H{})
+					go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
+					c.Status(http.StatusNotFound)
 					return
 				} else {
 					if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
@@ -97,7 +100,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 						RemoteIP:   requestIp,
 					}); err != nil {
 						logging.LogError(err, "Failed to process url encoded agent message")
-						c.JSON(http.StatusNotFound, gin.H{})
+						c.Status(http.StatusNotFound)
 						return
 					} else {
 						c.Data(http.StatusOK, "application/octet-stream", response)
@@ -108,8 +111,11 @@ func AgentMessageGetWebhook(c *gin.Context) {
 		} else if len(cookies) > 0 {
 			agentMessage := cookies[0].Value
 			if base64Bytes, err := base64.StdEncoding.DecodeString(agentMessage); err != nil {
+				errorMessage := "Error! Failed to base64 decode cookie parameter. Check the following details for more information about the request:\nConnection to: "
+				errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\nCookie: %v\n", requestUrl, c.Request.Method, requestIp, cookies[0])
+				go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
 				logging.LogError(err, "Failed to base64 decode cookie value", "cookie key", cookies[0].Name)
-				c.JSON(http.StatusNotFound, gin.H{})
+				c.Status(http.StatusNotFound)
 				return
 			} else {
 				if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
@@ -118,7 +124,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 					RemoteIP:   requestIp,
 				}); err != nil {
 					logging.LogError(err, "Failed to process agent message from cookie")
-					c.JSON(http.StatusNotFound, gin.H{})
+					c.Status(http.StatusNotFound)
 					return
 				} else {
 					c.Data(http.StatusOK, "application/octet-stream", response)
@@ -131,8 +137,11 @@ func AgentMessageGetWebhook(c *gin.Context) {
 				Base64Message: &agentMessage,
 				RemoteIP:      requestIp,
 			}); err != nil {
+				errorMessage := "Error! Failed to find message in body of get request. Check the following details for more information about the request:\nConnection to: "
+				errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
+				go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
 				logging.LogError(err, "Failed to process agent message in body of get request")
-				c.JSON(http.StatusNotFound, gin.H{})
+				c.Status(http.StatusNotFound)
 				return
 			} else {
 				c.Data(http.StatusOK, "application/octet-stream", response)
@@ -140,7 +149,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 			}
 		} else {
 			logging.LogError(nil, "Failed to find query param, cookie, or message body ")
-			c.JSON(http.StatusNotFound, gin.H{})
+			c.Status(http.StatusNotFound)
 			return
 		}
 	}
