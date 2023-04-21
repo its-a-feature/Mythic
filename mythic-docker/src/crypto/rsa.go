@@ -47,15 +47,24 @@ func RsaEncryptBytes(plainBytes []byte, publicKey []byte) ([]byte, error) {
 	if pkcs1RSAPublicKey, _ := pem.Decode(publicKey); pkcs1RSAPublicKey == nil {
 		logging.LogError(nil, "Failed to find PEM encoded public key")
 		return nil, errors.New("Failed to find PEM encoded public key")
-	} else if pubKey, err := x509.ParsePKCS1PublicKey(pkcs1RSAPublicKey.Bytes); err != nil {
-		logging.LogError(err, "Failed to parse public key to encrypt with RSA")
-		errorString := fmt.Sprintf("Failed to parse public key to encrypt with RSA: %s", err.Error())
-		return nil, errors.New(errorString)
-	} else if encryptedData, err := rsa.EncryptOAEP(hash, rand.Reader, pubKey, plainBytes, nil); err != nil {
-		logging.LogError(err, "Failed to encrypt with RSA key")
-		errorString := fmt.Sprintf("Failed to encrypt with RSA key: %s", err.Error())
-		return nil, errors.New(errorString)
 	} else {
-		return encryptedData, nil
+		var pubKey *rsa.PublicKey
+		var err error
+		if pubKey, err = x509.ParsePKCS1PublicKey(pkcs1RSAPublicKey.Bytes); err != nil {
+			if pubAny, err := x509.ParsePKIXPublicKey(pkcs1RSAPublicKey.Bytes); err != nil {
+				logging.LogError(err, "Failed to parse public key to encrypt with RSA")
+				errorString := fmt.Sprintf("Failed to parse public key to encrypt with RSA: %s", err.Error())
+				return nil, errors.New(errorString)
+			} else {
+				pubKey = pubAny.(*rsa.PublicKey)
+			}
+		}
+		if encryptedData, err := rsa.EncryptOAEP(hash, rand.Reader, pubKey, plainBytes, nil); err != nil {
+			logging.LogError(err, "Failed to encrypt with RSA key")
+			errorString := fmt.Sprintf("Failed to encrypt with RSA key: %s", err.Error())
+			return nil, errors.New(errorString)
+		} else {
+			return encryptedData, nil
+		}
 	}
 }
