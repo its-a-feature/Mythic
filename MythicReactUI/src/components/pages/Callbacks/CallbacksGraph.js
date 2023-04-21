@@ -24,8 +24,6 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import Chip from '@mui/material/Chip';
-import Box from '@mui/material/Box';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -179,7 +177,7 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
 	        {
 		        title: 'Hide Callback',
 		        action: function(g, elm) {
-		            hideCallback({variables: {callback_id: elm.node.id}});
+		            hideCallback({variables: {callback_display_id: elm.node.display_id}});
 		        }
 	        },
 	        {
@@ -273,14 +271,6 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
                      {name: "Download Graph", click: () => {
                         saveSvgAsPng(document.getElementById("callbacksgraph"), "diagram.png");
                      }}];
-    const getConfigString = () => {
-        let config = "";
-        config += viewConfig["include_disconnected"] ? "Showing All Edges, " : "Showing Only Active Edges, ";
-        config += viewConfig["show_all_nodes"] ? "Showing All Callbacks, " : "Showing Active Callbacks, ";
-        config += "Layout: " + viewConfig["rankDir"] + ", ";
-        config += viewConfig["packet_flow_view"] ? "Showing Egress Routes" : "Showing Connections Paths";
-        return config;
-    }
     const handleClose = (event) => {
         if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
           return;
@@ -401,8 +391,6 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
                                         action={"select"} display={"display"} identifier={"display"}/>}
                 />
             }
-            
-            
                 <svg id="callbacksgraph" ref={dagreRef} width="100%" height="100%"></svg> 
             </div>
     );

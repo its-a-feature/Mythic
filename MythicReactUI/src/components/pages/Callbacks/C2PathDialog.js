@@ -166,10 +166,14 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
         } else if(view_config.group_by === "ip") {
             try{
                 let parts = JSON.parse(node[view_config.group_by]);
-                if(parts.length > 0){return parts[0]}
-                return "";
+                if(parts.length > 0 && parts[0].length > 0){
+                    return parts[0]
+                }
+                return "127.0.0.1";
             }catch(error){
-                console.log(error)
+                if(!node[view_config.group_by] || node[view_config.group_by].length === 0){
+                    return "127.0.0.1"
+                }
                 return node[view_config.group_by];
             }
         } else if(view_config.group_by === "user"){
@@ -194,10 +198,17 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
             if(name === "ip"){
                 try{
                     let parts = JSON.parse(edge[name]);
-                    if(parts.length > 0){return parts[0]}
-                    return "";
+                    console.log("ip parts", parts)
+                    if(parts.length > 0 && parts[0].length > 0){
+                        return parts[0]
+                    }
+                    console.log("no ip parts for the following",edge[name])
+                    return "127.0.0.1";
                 }catch(error){
                     console.log(error)
+                    if(!edge[name] || edge[name].length === 0){
+                        return "127.0.0.1"
+                    }
                     return edge[name];
                 }
             } else if(name === "user") {
