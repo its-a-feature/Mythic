@@ -197,6 +197,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 					OperationID:     operatorOperation.CurrentOperation.ID,
 					OperatorID:      operatorOperation.CurrentOperator.ID,
 					PayloadFileUUID: fileMeta.AgentFileID,
+					Filename:        string(fileMeta.Filename),
 				}
 				SendPayloadBuildMessage(databasePayload, rabbitmqPayloadBuildMsg)
 				return databasePayload.UuID, databasePayload.ID, nil
