@@ -15,6 +15,7 @@ type PayloadBuildMessage struct {
 	PayloadType string   `json:"payload_type"`
 	CommandList []string `json:"commands"`
 	// build param name : build value
+	Filename        string                  `json:"filename"`
 	BuildParameters map[string]interface{}  `json:"build_parameters"`
 	C2Profiles      []PayloadBuildC2Profile `json:"c2profiles"`
 	WrappedPayload  *[]byte                 `json:"wrapped_payload,omitempty"`
@@ -44,6 +45,7 @@ type PayloadBuildResponse struct {
 	Success            bool      `json:"success"`
 	Payload            *[]byte   `json:"payload,omitempty"`
 	AgentFileID        *string   `json:"agent_file_id"`
+	UpdatedFilename    *string   `json:"updated_filename,omitempty"`
 	UpdatedCommandList *[]string `json:"updated_command_list,omitempty"`
 	BuildStdErr        string    `json:"build_stderr"`
 	BuildStdOut        string    `json:"build_stdout"`
@@ -70,8 +72,11 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 		//logging.LogInfo("got build response", "buildMsg", payloadBuildResponse)
 		databasePayload := databaseStructs.Payload{}
 		if err := database.DB.Get(&databasePayload, `SELECT 
-			payload.build_message, payload.build_stderr, payload.build_stdout, payload.id, payload.build_phase
+			payload.build_message, payload.build_stderr, payload.build_stdout, payload.id, payload.build_phase,
+			filemeta.filename "filemeta.filename",
+			filemeta.id "filemeta.id"
 			FROM payload 
+			JOIN filemeta ON payload.file_id = filemeta.id
 			WHERE uuid=$1 
 			LIMIT 1`, payloadBuildResponse.PayloadUUID); err != nil {
 			logging.LogError(err, "Failed to get payload from the database")
@@ -83,6 +88,14 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 				databasePayload.BuildPhase = PAYLOAD_BUILD_STATUS_SUCCESS
 			} else {
 				databasePayload.BuildPhase = PAYLOAD_BUILD_STATUS_ERROR
+			}
+			if payloadBuildResponse.UpdatedFilename != nil {
+				databasePayload.Filemeta.Filename = []byte(*payloadBuildResponse.UpdatedFilename)
+				if _, err := database.DB.NamedExec(`UPDATE filemeta SET 
+                    filename=:filename
+                    WHERE id=:id`, databasePayload.Filemeta); err != nil {
+					logging.LogError(err, "Failed to update filename for payload")
+				}
 			}
 			/* Payload should be uploaded separately
 			if payloadBuildResponse.Payload != nil && len(*payloadBuildResponse.Payload) > 0 {
