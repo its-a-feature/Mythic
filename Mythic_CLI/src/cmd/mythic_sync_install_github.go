@@ -24,6 +24,13 @@ func init() {
 		false,
 		`Force installing from GitHub and don't prompt to overwrite files if an older version is already installed'`,
 	)
+	installMythicSyncGitHubCmd.Flags().StringVarP(
+		&branch,
+		"branch",
+		"b",
+		"",
+		`Install a specific branch from GitHub instead of the main/master branch`,
+	)
 }
 
 func installMythicSyncGitHub(cmd *cobra.Command, args []string) {
@@ -32,12 +39,10 @@ func installMythicSyncGitHub(cmd *cobra.Command, args []string) {
 			fmt.Printf("[-] Failed to install service: %v\n", err)
 		}
 	} else {
-		var branch = ""
-
 		if len(args) == 2 {
 			branch = args[1]
 		}
-		if err := internal.InstallService(args[0], branch, force); err != nil {
+		if err := internal.InstallMythicSync(args[0], branch); err != nil {
 			fmt.Printf("[-] Failed to install service: %v\n", err)
 		} else {
 			fmt.Printf("[+] Successfully installed service!\n")
