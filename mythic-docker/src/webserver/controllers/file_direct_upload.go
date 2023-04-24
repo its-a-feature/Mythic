@@ -53,18 +53,15 @@ func FileDirectUploadWebhook(c *gin.Context) {
 		})
 		return
 	} else {
-		fileMeta := databaseStructs.Filemeta{
-			ChunkSize:      int(file.Size),
-			TotalChunks:    1,
-			ChunksReceived: 1,
-		}
-		//logging.LogDebug("Go a direct file upload request", "contents", fileData)
-		fileMeta.Md5 = mythicCrypto.HashMD5(fileData)
-		fileMeta.Sha1 = mythicCrypto.HashSha1(fileData)
+		filemeta.ChunkSize = len(fileData)
+		filemeta.TotalChunks = 1
+		filemeta.ChunksReceived = 1
+		filemeta.Md5 = mythicCrypto.HashMD5(fileData)
+		filemeta.Sha1 = mythicCrypto.HashSha1(fileData)
 		if _, err := database.DB.NamedExec(`UPDATE filemeta SET
 				chunk_size=:chunk_size, md5=:md5, sha1=:sha1, total_chunks=:total_chunks, chunks_received=:chunks_received, complete=true
 				WHERE id=:id`,
-			fileMeta); err != nil {
+			filemeta); err != nil {
 			logging.LogError(err, "Failed to save metadata to database")
 			c.JSON(http.StatusOK, gin.H{
 				"status": "error",

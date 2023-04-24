@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0rc45] - 2023-04-24
+
+### Changed
+
+- Fixed a bug in file uploads that was causing the sha1 and md5 of payloads to not be recorded
+
 ## [3.0.0rc44] - 2023-04-21
 
 ### Changed
