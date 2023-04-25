@@ -82,6 +82,12 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("mythic_react_debug", false)
 	// installed service configuration
 	mythicEnv.SetDefault("installed_service_cpus", "1")
+	mythicEnv.SetDefault("webhook_default_url", "")
+	mythicEnv.SetDefault("webhook_default_callback_channel", "")
+	mythicEnv.SetDefault("webhook_default_feedback_channel", "")
+	mythicEnv.SetDefault("webhook_default_startup_channel", "")
+	mythicEnv.SetDefault("webhook_default_alert_channel", "")
+	mythicEnv.SetDefault("webhook_default_custom_channel", "")
 
 }
 func parseMythicEnvironmentVariables() {
