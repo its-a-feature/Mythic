@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0rc47] - 2023-04-25
+
+### Changed
+
+- Fixed an issue where SendMythicRPCFileCreate wasn't setting the is_screenshot or is_download_from_agent fields
+
 ## [3.0.0rc46] - 2023-04-24
 
 ### Changed
