@@ -153,6 +153,18 @@ export function ConsumingServicesTable(props){
                                 <IconButton onClick={()=>{issueTestWebook("new_startup")}}><PublicIcon /></IconButton>
                             </TableCell>
                         </TableRow>
+                        <TableRow hover>
+                            <TableCell>New Alert Webhook</TableCell>
+                            <TableCell>
+                                <IconButton onClick={()=>{issueTestWebook("new_alert")}}><PublicIcon /></IconButton>
+                            </TableCell>
+                        </TableRow>
+                        <TableRow hover>
+                            <TableCell>New Custom Webhook</TableCell>
+                            <TableCell>
+                                <IconButton onClick={()=>{issueTestWebook("new_custom")}}><PublicIcon /></IconButton>
+                            </TableCell>
+                        </TableRow>
                     </TableBody>
                 </Table>
             </TableContainer>

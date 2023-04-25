@@ -34,7 +34,7 @@ export function BrowserScriptsTable(props){
                     ) : (null)
                 }
             </Paper>
-            <TableContainer component={Paper} className="mythicElement" style={{maxHeight: "calc(50vh)"}}>  
+            <TableContainer component={Paper} className="mythicElement" style={{maxHeight: "90%"}}>
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
@@ -45,7 +45,6 @@ export function BrowserScriptsTable(props){
                         <TableCell> Author</TableCell>
                         <TableCell style={{width: "15em"}}>User Modified?</TableCell>
                         <TableCell style={{width: "8em"}}> Edit</TableCell>
-                        <TableCell style={{width: "15rem"}}>Apply to Operation</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>

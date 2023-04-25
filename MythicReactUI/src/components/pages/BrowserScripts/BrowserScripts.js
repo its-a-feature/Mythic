@@ -209,7 +209,8 @@ export function BrowserScripts({me}){
           onSubmitApplyToOperation={onSubmitApplyToOperation} 
           onSubmitRemoveFromOperation={onSubmitRemoveFromOperation}
         />
-        <BrowserScriptsOperationsTable {...operationBrowserScripts} />
+
     </React.Fragment>
     );
 }
+/*<BrowserScriptsOperationsTable {...operationBrowserScripts} /> */

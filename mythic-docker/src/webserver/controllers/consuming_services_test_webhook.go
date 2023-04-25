@@ -39,6 +39,12 @@ func ConsumingServicesTestWebhook(c *gin.Context) {
 			messageData["message"] = "oh snap! :snap: We found a bug!"
 		case rabbitmq.WEBHOOK_TYPE_NEW_CALLBACK:
 			messageData["description"] = "This is a test callback notification!"
+		case rabbitmq.WEBHOOK_TYPE_ALERT:
+			messageData["source"] = "MythicTest"
+			messageData["message"] = "This is a test alert!"
+		case rabbitmq.WEBHOOK_TYPE_CUSTOM:
+			messageData["some data"] = "some value"
+			messageData["some other data"] = "some other value"
 		default:
 
 		}

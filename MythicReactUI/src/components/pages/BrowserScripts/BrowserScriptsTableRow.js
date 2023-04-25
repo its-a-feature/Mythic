@@ -62,22 +62,14 @@ export function BrowserScriptsTableRow(props){
                 <TableCell>{props.author}</TableCell>
                 <TableCell>{props.user_modified ? "User Modified" : "" } </TableCell>
                 <TableCell><Button size="small" variant="contained" onClick={ () => {setOpenEdit(true);} } color="primary"> Edit </Button></TableCell>
-                <TableCell>
-                    {isApplied ?
-                        (<Button size="small" variant="contained" onClick={onSubmitRemoveFromOperation} color="secondary">Remove</Button>)
-                    :
-                        (<Button size="small" variant="contained" onClick={onSubmitApplyToOperation} color="primary">Apply</Button>)
-                    }
-                </TableCell>
-                {openEdit ? (   
+                {openEdit &&
                     <MythicDialog fullWidth={true} maxWidth="xl" open={openEdit} 
                         onClose={()=>{setOpenEdit(false);}} 
                         innerDialog={
                             <EditScriptDialog onClose={()=>{setOpenEdit(false);}} payload_type_id={props.payloadtype.id} command_id={props.command.id}
                                 script={props.script} onSubmitEdit={onSubmitEdit} onRevert={onRevert} author={props.author}/>
-                        } />    
-                    ) : (null)
-                }
+                        } />
+                    }
             </TableRow>
         </React.Fragment>
         )

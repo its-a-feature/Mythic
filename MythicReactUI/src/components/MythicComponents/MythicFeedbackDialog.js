@@ -16,7 +16,7 @@ import {snackActions} from '../utilities/Snackbar';
 import {useMutation } from '@apollo/client';
 
 const submitFeedbackMutation = gql`
-  mutation submitFeedback($webhookType: String!, $webhookData: [DictionaryEntry!]!){
+  mutation submitFeedback($webhookType: String!, $webhookData: jsonb!){
     sendExternalWebhook(webhook_type: $webhookType, webhook_data: $webhookData){
       status
       error
@@ -48,12 +48,12 @@ export function MythicFeedbackDialog(props) {
     }
   });
   const handleSubmit = () => {
-      let webhookData = [];
+      let webhookData = {};
       if(taskID > 0){
-        webhookData.push({"key": "task_id", "value": String(taskID)});
+        webhookData["task_id"] = String(taskID);
       }
-      webhookData.push({"key": "message", "value": message});
-      webhookData.push({"key": "feedback_type", "value": messageType})
+      webhookData["message"] =  message;
+      webhookData["feedback_type"] = messageType;
       submitFeedback({variables: {webhookType: "new_feedback", webhookData: webhookData}});
   }
   const handleMessageTypeChange = (evt) => {
