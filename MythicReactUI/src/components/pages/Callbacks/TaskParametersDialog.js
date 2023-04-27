@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -12,14 +12,13 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import {TaskParametersDialogRow} from './TaskParametersDialogRow';
-import {useQuery, gql, useLazyQuery, useMutation } from '@apollo/client';
+import {gql, useLazyQuery, useMutation, useQuery} from '@apollo/client';
 import FormControl from '@mui/material/FormControl';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import Input from '@mui/material/Input';
 import {UploadTaskFile} from '../../MythicComponents/MythicFileUpload';
-import { Backdrop } from '@mui/material';
-import {CircularProgress} from '@mui/material';
+import {Backdrop, CircularProgress} from '@mui/material';
 import Divider from '@mui/material/Divider';
 import {useTheme} from '@mui/material/styles';
 import {b64DecodeUnicode} from './ResponseDisplay';
@@ -146,6 +145,7 @@ query getAllPayloadsOnHostsQuery($operation_id: Int!){
         payload {
             auto_generated
             id
+            operation_id
             description
             filemetum {
                 filename_text
@@ -213,13 +213,13 @@ const addPayloadOnHostMutation = gql`
 `;
 // use this to remove a payload on a host
 const removePayloadOnHostMutation = gql`
-    mutation removePayloadOnHostMutation($payloadOnHostID: Int!){
-        delete_payloadonhost_by_pk(id: $payloadOnHostID) {
-            id
+    mutation removePayloadOnHostMutation($payload_id: Int!, $host: String!, $operation_id: Int!){
+        update_payloadonhost(where: {host: {_eq: $host}, payload_id: {_eq: $payload_id}, operation_id: {_eq: $operation_id}}, _set: {deleted: true}) {
+            affected_rows
           }
     }
 `;
-// use this to get all of the parameters and information for the command we're trying to execute
+// use this to get all the parameters and information for the command we're trying to execute
 const getCommandQuery = gql`
 query getCommandQuery($id: Int!){
   command_by_pk(id: $id) {
@@ -392,8 +392,12 @@ export function TaskParametersDialog(props) {
                         return {...prev};
                     }
                 }, {});
-                let agentConnectValue = {host: choice.host, agent_uuid: choice.payload.uuid, callback_uuid: choice.agent_callback_id, c2_profile: {name: choices[0]["c2profile"]["name"], parameters: c2profileparameters} };
-                return agentConnectValue;
+                return {
+                    host: choice.host,
+                    agent_uuid: choice.payload.uuid,
+                    callback_uuid: choice.agent_callback_id,
+                    c2_profile: {name: choices[0]["c2profile"]["name"], parameters: c2profileparameters}
+                };
             }else{
                 return {};
             }
@@ -404,7 +408,7 @@ export function TaskParametersDialog(props) {
                        (!requiredPieces["payloads"] || loadedAllPayloadsLoading) && 
                        (!requiredPieces["connect"] || loadedAllPayloadsOnHostsLoading) &&
                        (!requiredPieces["credentials"] || loadedCredentialsLoading) ){
-            //only process the parameter once we have fetched all of the required pieces
+            //only process the parameter once we have fetched all the required pieces
             const params = rawParameters.command_by_pk.commandparameters.reduce( (prev, cmd) => {
                 if(cmd.parameter_group_name !== selectedParameterGroup){
                     return [...prev];
@@ -527,12 +531,20 @@ export function TaskParametersDialog(props) {
                                 return [...prevn, profile.c2profile.name];
                             }, []).join(",");
                             if(foundP2P){
-                                return [...prevn, {...payload, display: b64DecodeUnicode(payload.filemetum.filename_text) + " - " + profiles + " - " + payload.description}];
+                                return [...prevn, {...payload, display: b64DecodeUnicode(payload.filemetum.filename_text) + " - " + profiles + " - " + payload.description,
+                                filemetum: {filename_text: b64DecodeUnicode(payload.filemetum.filename_text)}}];
                             }else{
                                 return [...prevn];
                             }
                             
-                        }, []);
+                        }, []).sort((a,b) => {
+                            if(a.filemetum.filename_text === b.filemetum.filename_text){
+                                return a.id < b.id ? 1 : -1
+                            }else{
+                                return a.filemetum.filename_text < b.filemetum.filename_text ? 1 : -1
+                            }
+                        });
+
                         const callbacksOrganized = loadedAllPayloadsOnHostsLoading.callback.reduce( (prevn, entry) => {
                             let found = false;
                             const updates = prevn.map( (host) => {
@@ -584,34 +596,47 @@ export function TaskParametersDialog(props) {
                             const updates = prevn.map( (host) => {
                                 if(host.host === entry.host){
                                     found = true;
+                                    // need to check for entries that exist within host.payload but not loadedAllPayloadsOnHostsLoading.payloadonhost
+                                        // this would mean that the payload was deleted
                                     //now we need to merge this entry with our current payloads/callbacks for the host
                                     let duplicated_payload = false;
                                     host.payloads.forEach( (p) => {
                                         if(p.id === entry.payload.id){duplicated_payload = true}
                                     });
                                     if(duplicated_payload){return host}
+                                    // what was fetched doesn't exist in the current list
                                     const c2info = entry.payload.c2profileparametersinstances.reduce( (prevn, cur) => {
-                                    const val = !cur.c2profileparameter.crypto_type ? cur.value : {crypto_type: cur.value, enc_key: cur.enc_key_base64, dec_key: cur.dec_key_base64};
-                                        if(cur.c2profile.name in prevn){
-                                            //we just want to add a new entry to the c2profile.name list
-                                            
-                                            return {...prevn, [cur.c2profile.name]: [...prevn[cur.c2profile.name], { name: cur.c2profileparameter.name, value:  val } ] }
-                                    }else{
-                                        return {...prevn, [cur.c2profile.name]: [ { name: cur.c2profileparameter.name, value: val } ] }
-                                        }
-                                    }, {});
+                                        const val = !cur.c2profileparameter.crypto_type ? cur.value : {crypto_type: cur.value, enc_key: cur.enc_key_base64, dec_key: cur.dec_key_base64};
+                                            if(cur.c2profile.name in prevn){
+                                                //we just want to add a new entry to the c2profile.name list
+
+                                                return {...prevn, [cur.c2profile.name]: [...prevn[cur.c2profile.name], { name: cur.c2profileparameter.name, value:  val } ] }
+                                        }else{
+                                            return {...prevn, [cur.c2profile.name]: [ { name: cur.c2profileparameter.name, value: val } ] }
+                                            }
+                                        }, {});
                                     let c2array = [];
                                     for( const [key, value] of Object.entries(c2info)){
                                         c2array.push({name: key, parameters: value});
                                     }
-                                    const payloadInfo = {...entry.payload, c2info: c2array, display: b64DecodeUnicode(entry.payload.filemetum.filename_text) + " - " + entry.payload.description, type: "payload", payloadOnHostID:entry.id};
-                                    return {...host, payloads: [...host.payloads, payloadInfo]}
+                                    const payloadInfo = {...entry.payload, c2info: c2array,
+                                        display: b64DecodeUnicode(entry.payload.filemetum.filename_text) + " - " + entry.payload.description,
+                                        type: "payload", payloadOnHostID:entry.id, filemetum: {filename_text: b64DecodeUnicode(entry.payload.filemetum.filename_text)}
+                                    };
+                                    return {...host, payloads: [...host.payloads, payloadInfo].sort((a,b) => {
+                                            if(a.filemetum.filename_text === b.filemetum.filename_text){
+                                                return a.id < b.id ? 1 : -1
+                                            }else{
+                                                return a.filemetum.filename_text < b.filemetum.filename_text ? 1 : -1
+                                            }
+                                        })}
                                 }else{
                                     //this doesn't match our host, so don't modify
                                     return host; 
                                 }
                             });
                             if(!found){
+                                // did even find the host, so add a new host entry
                                 const c2info = entry.payload.c2profileparametersinstances.reduce( (prevn, cur) => {
                                     const val = !cur.c2profileparameter.crypto_type ? cur.value : {crypto_type: cur.value, enc_key: cur.enc_key_base64, dec_key: cur.dec_key_base64};
                                     if(cur.c2profile.name in prevn){
@@ -626,14 +651,17 @@ export function TaskParametersDialog(props) {
                                 for( const [key, value] of Object.entries(c2info)){
                                     c2array.push({name: key, parameters: value});
                                 }
-                                const payloadInfo = {...entry.payload, c2info: c2array, display: b64DecodeUnicode(entry.payload.filemetum.filename_text) + " - " + entry.payload.description, type: "payload", payloadOnHostID:entry.id};
+                                const payloadInfo = {...entry.payload, c2info: c2array,
+                                    display: b64DecodeUnicode(entry.payload.filemetum.filename_text) + " - " + entry.payload.description,
+                                    type: "payload", payloadOnHostID:entry.id,
+                                    filemetum: {filename_text: b64DecodeUnicode(entry.payload.filemetum.filename_text)}};
                                 return [...prevn, {host: entry.host, payloads: [payloadInfo] } ]
                             }else{
                                 return updates;
                             }
                         }, []);
                         // callbacksOrganized has all the information for active callbacks to link to
-                        // organized has all of the information for payloads on hosts to link to
+                        // organized has all the information for payloads on hosts to link to
                         // need to merge the two
                         const allOrganized = callbacksOrganized.reduce( (prevn, cur) => {
                             let hostIndex = prevn.findIndex(o => o.host === cur.host);
@@ -668,12 +696,22 @@ export function TaskParametersDialog(props) {
                                 }
                             }
                             if(matched){
-                                return [...prevn, {...payload, display: b64DecodeUnicode(payload.filemetum.filename_text) + " - " + profiles + " - " + payload.description}]
+                                return [...prevn, {...payload,
+                                    display: b64DecodeUnicode(payload.filemetum.filename_text) + " - " + profiles + " - " + payload.description,
+                                    filemetum: {filename_text: b64DecodeUnicode(payload.filemetum.filename_text)}
+                                }]
                             }else{
                                 return prevn;
                             }
                             
                         }, []);
+                        payloads.sort((a,b) => {
+                            if(a.filemetum.filename_text === b.filemetum.filename_text){
+                                return a.id < b.id ? 1 : -1
+                            }else{
+                                return a.filemetum.filename_text < b.filemetum.filename_text ? 1 : -1
+                            }
+                        });
                         //now filter the payloads based on supported_agents and supported_agent_build_parameters
                         if(payloads.length > 0){
                             return [...prev, {...cmd, choices: payloads, default_value: payloads[0].uuid, value: payloads[0].uuid}];
@@ -751,8 +789,8 @@ export function TaskParametersDialog(props) {
     const onAgentConnectAddNewPayloadOnHost = (host, payload) => {
         addPayloadOnHost({variables: {host: host, payload_id: payload} })
     }
-    const onAgentConnectRemovePayloadOnHost = (payloadOnHostID) => {
-        RemovePayloadOnHost({variables: {payloadOnHostID: payloadOnHostID}})
+    const onAgentConnectRemovePayloadOnHost = ({payload, host}) => {
+        RemovePayloadOnHost({variables: {host: host, payload_id: payload.id, operation_id: payload.operation_id}})
     }
     const onChange = (name, value, error) => {
         //console.log("called props.onChange to update a value for submission, have these parameters: ", [...parameters]);

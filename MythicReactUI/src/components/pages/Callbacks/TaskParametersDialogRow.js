@@ -2,7 +2,6 @@ import React, {useEffect} from 'react';
 import Table from '@mui/material/Table';
 import TableContainer from '@mui/material/TableContainer';
 import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
@@ -208,7 +207,7 @@ export function TaskParametersDialogRow(props){
            if(props.dynamic_query_function === null && value===""){
                 setChoiceOptions([...props.choices]);
                 setValue(props.value);
-           }else if(props.choices.length != ChoiceOptions.length){
+           }else if(props.choices.length !== ChoiceOptions.length){
                if(!usingDynamicParamChoices.current){
                     setChoiceOptions([...props.choices]);
                }    
@@ -337,7 +336,7 @@ export function TaskParametersDialogRow(props){
     }
     const onAgentConnectRemovePayloadOnHost = () => {
         if(props.choices[agentConnectHost]["payloads"][agentConnectPayload].payloadOnHostID){
-            props.onAgentConnectRemovePayloadOnHost(props.choices[agentConnectHost]["payloads"][agentConnectPayload].payloadOnHostID);
+            props.onAgentConnectRemovePayloadOnHost({payload: props.choices[agentConnectHost]["payloads"][agentConnectPayload], host: agentConnectHostOptions[agentConnectHost].host});
         }else{
             snackActions.warning("Can't remove a callback");
         }
@@ -461,7 +460,7 @@ export function TaskParametersDialogRow(props){
                 )
             case "LinkInfo":
                 return (
-                    <FormControl>
+                    <FormControl style={{width: "100%"}}>
                         <Select
                           native
                           value={value}
@@ -479,13 +478,14 @@ export function TaskParametersDialogRow(props){
                 )
             case "PayloadList":
                 return (
-                    <FormControl>
+                    <FormControl style={{width: "100%"}}>
                         <Select
                           native
                           value={value}
+
                           autoFocus={props.autoFocus}
                           onChange={onChangeValue}
-                          input={<Input />}
+                          input={<Input  />}
                         >
                         {
                             props.choices.map((opt, i) => (
@@ -512,7 +512,7 @@ export function TaskParametersDialogRow(props){
                                     <TableRow>
                                         <MythicStyledTableCell>Payload on that host</MythicStyledTableCell>
                                         <MythicStyledTableCell>
-                                            <FormControl>
+                                            <FormControl style={{width: "100%"}}>
                                                 <Select
                                                   native
                                                   value={agentConnectNewPayload}
@@ -543,7 +543,7 @@ export function TaskParametersDialogRow(props){
                                             Host 
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
-                                            <FormControl>
+                                            <FormControl style={{width: "100%"}}>
                                                 <Select
                                                 native
                                                 value={agentConnectHost}
@@ -562,7 +562,7 @@ export function TaskParametersDialogRow(props){
                                     <TableRow>
                                         <MythicStyledTableCell>Payload</MythicStyledTableCell>
                                         <MythicStyledTableCell>
-                                            <FormControl>
+                                            <FormControl style={{width: "100%"}}>
                                                 <Select
                                                 native
                                                 value={agentConnectPayload}
@@ -590,7 +590,7 @@ export function TaskParametersDialogRow(props){
                                     <TableRow>
                                         <MythicStyledTableCell>C2 Profile</MythicStyledTableCell>
                                         <MythicStyledTableCell>
-                                            <FormControl>
+                                            <FormControl style={{width: "100%"}}>
                                                     <Select
                                                     native
                                                     value={agentConnectC2Profile}
@@ -629,7 +629,7 @@ export function TaskParametersDialogRow(props){
                                     ) ) }
                                 </TableBody>
                             </Table>
-                        ): (null)}
+                        ): null}
                     </TableContainer>
                 )
             case "CredentialJson":
@@ -672,7 +672,7 @@ export function TaskParametersDialogRow(props){
                     </MythicStyledTooltip>
                     {props.required ? (
                         <Typography component="div" style={{color: theme.palette.warning.main}}>Required</Typography>
-                    ) : (null) }
+                    ) : null }
                  </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {getParameterObject()}

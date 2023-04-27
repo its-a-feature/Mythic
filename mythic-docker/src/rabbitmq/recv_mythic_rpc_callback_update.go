@@ -31,6 +31,7 @@ type MythicRPCCallbackUpdateMessage struct {
 	Domain            *string   `json:"domain,omitempty"`
 	Architecture      *string   `json:"architecture,omitempty"`
 	Description       *string   `json:"description,omitempty"`
+	ProcessName       *string   `json:"process_name,omitempty"`
 }
 type MythicRPCCallbackUpdateMessageResponse struct {
 	Success bool   `json:"success"`
@@ -145,10 +146,13 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 	if input.Description != nil {
 		callback.Description = *input.Description
 	}
+	if input.ProcessName != nil {
+		callback.ProcessName = *input.ProcessName
+	}
 	if _, err := database.DB.NamedExec(`UPDATE callback SET
 		"user"=:user, host=:host, pid=:pid, ip=:ip, extra_info=:extra_info, sleep_info=:sleep_info, enc_key=:enc_key, dec_key=:dec_key, 
 		crypto_type=:crypto_type, external_ip=:external_ip, integrity_level=:integrity_level, os=:os, domain=:domain, architecture=:architecture, 
-		description=:description  
+		description=:description, process_name=:process_name  
 		WHERE id=:id`, callback); err != nil {
 		logging.LogError(err, "Failed to update callback information")
 		response.Error = err.Error()
