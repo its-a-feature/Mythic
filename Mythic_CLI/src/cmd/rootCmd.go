@@ -16,7 +16,8 @@ var rootCmd = &cobra.Command{
 	Use:   "mythic-cli",
 	Short: fmt.Sprintf("A command line interface for managing Mythic. Version: %s", config.Version),
 	Long: `Mythic CLI is a command line interface for managing the Mythic application and associated containers and services.
-Commands are grouped by their use and all support '-h' for help.`,
+Commands are grouped by their use and all support '-h' for help.
+For a list of available services to install, check out: https://mythicmeta.github.io/overview/`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

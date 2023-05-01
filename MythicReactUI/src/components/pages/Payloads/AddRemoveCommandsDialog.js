@@ -171,17 +171,17 @@ export function AddRemoveCommandsDialog(props) {
     const setFinalTags = () => {
       // things to add are in the `right` now but weren't for `originalRight`
       const commandsToAdd = right.filter( (command) => {
-        return originalRight.filter(orig => orig.command.cmd == command.cmd).length == 0;
+        return originalRight.filter(orig => orig.command.cmd === command.cmd).length == 0;
       });
       const commandsToRemove = originalRight.filter( (command) => {
-        return right.filter(newCommand => newCommand.cmd == command.command.cmd).length == 0;
+        return right.filter(newCommand => newCommand.cmd === command.command.cmd).length == 0;
       })
       props.onSubmit({commandsToAdd, commandsToRemove});
       props.onClose();
     }
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Add or Remove Commands for Payload {props.uuid}</DialogTitle>
+        <DialogTitle id="form-dialog-title">Add or Remove Commands for Payload {props.filename}</DialogTitle>
         <DialogContent dividers={true} style={{height: "100%", display: "flex", flexDirection: "column", position: "relative",  maxHeight: "100%"}}>
           This will add or remove commands associated with this payload from Mythic's perspective. 
           This does NOT add or remove commands within the payload itself.

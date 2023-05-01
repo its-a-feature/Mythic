@@ -54,7 +54,7 @@ export function App(props) {
         '"Segoe UI Symbol"',
       ].join(',') : localStorageFontFamily;
     const localStorageTopColor = localStorage.getItem(`${me?.user?.user_id || 0}-topColor`);
-    const initialLocalStorageTopColorValue = localStorageTopColor === null ? "#7f93c0" : localStorageTopColor;
+    const initialLocalStorageTopColorValue = localStorageTopColor === null ? "#3c4d67" : localStorageTopColor;
     const theme = React.useMemo(
         () =>
             createTheme({
@@ -64,7 +64,11 @@ export function App(props) {
                     },
                     mode: themeMode,
                     background: {
-                        contrast: themeMode === 'dark' ? '#ffffff' : 'rgb(37, 41, 51)',
+                        contrast: themeMode === 'dark' ? '#ffffff' : '#30455e',
+                        default: themeMode === "dark" ? 'rgb(31, 31, 31)' : 'white',
+                    },
+                    listSubHeader: {
+                      default: themeMode === "dark" ? 'rgb(50, 50, 50)' : 'rgb(240, 240, 240)',
                     },
                     text: {
                         contrast: themeMode === 'dark' ? '#000' : '#fff',
@@ -75,6 +79,7 @@ export function App(props) {
                     textBackgroundColorError: themeMode === 'dark' ? '#9f1616' : '#f19da3',
                     graphGroup: themeMode === 'dark' ? '#394c5d' : '#d3d7e8',
                 },
+
                 folderColor: '#f1d592',
                 tableHeader: '#484848',
                 tableBorder: themeMode === 'dark' ? 'rgba(81,81,81,1)' : 'rgba(224,224,224,1)',

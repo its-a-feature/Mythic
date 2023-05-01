@@ -556,7 +556,7 @@ function FileMetaUploadTableRow(props){
     return (
         <React.Fragment>
             <TableRow hover>
-                <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
+                {openDelete && <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>}
                 <MythicStyledTableCell>
                     {props.deleted ? (null) : (
                         <MythicStyledTooltip title="Toggle to download multiple files at once">
@@ -638,7 +638,7 @@ function FileMetaUploadTableRow(props){
                                                 </MythicStyledTableCell>
                                                 <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.operator.username}</Typography></MythicStyledTableCell>
                                                 <MythicStyledTableCell>
-                                                    {props.task === null ? (null) : (
+                                                    {props.task === null ? null : (
                                                         <>
                                                             <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
                                                             <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
@@ -652,7 +652,7 @@ function FileMetaUploadTableRow(props){
       
                                                     </MythicStyledTableCell>
                                                 <MythicStyledTableCell>
-                                                    {props.task === null ? (null) : (
+                                                    {props.task === null ? null : (
                                                         <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.command.cmd}</Typography>
                                                     )}
                                                 </MythicStyledTableCell>
@@ -688,7 +688,7 @@ function FileMetaUploadTableRow(props){
                             </Collapse>
                         </MythicStyledTableCell>
                     </TableRow>
-            ) : (null) }
+            ) : null }
         </React.Fragment>
     )
 }
@@ -711,6 +711,16 @@ export function FileMetaScreenshotTable(props){
         });
         setFiles(updated);
     }
+    const onDelete = ({file_ids}) => {
+        const updated = files.map( (file) => {
+            if(file_ids.includes(file.id)){
+                return {...file, deleted: true};
+            }else{
+                return {...file}
+            }
+        });
+        setFiles(updated);
+    }
     const imageRefs = files.map( f => f.agent_file_id);
 
     return (
@@ -718,6 +728,7 @@ export function FileMetaScreenshotTable(props){
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
+                        <TableCell style={{width: "5rem"}}>Delete</TableCell>
                         <TableCell style={{width: "300px"}}>Thumbnail</TableCell>
                         <TableCell >Filename</TableCell>
                         <TableCell >Time</TableCell>
@@ -736,6 +747,7 @@ export function FileMetaScreenshotTable(props){
                         {...op}
                         index={index}
                         imageRefs={imageRefs}
+                        onDelete={onDelete}
                         me={props.me}
                     />
                 ))}
@@ -745,9 +757,11 @@ export function FileMetaScreenshotTable(props){
     )
 }
 function FileMetaScreenshotTableRow(props){
+    const [openDelete, setOpenDelete] = React.useState(false);
     const [openDetails, setOpenDetails] = React.useState(false);
     const me = props.me;
     const now = (new Date()).toISOString();
+    const theme = useTheme();
     const [openScreenshot, setOpenScreenshot] = React.useState(false);
     const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
     const [updateComment] = useMutation(updateFileComment, {
@@ -759,10 +773,29 @@ function FileMetaScreenshotTableRow(props){
     const onSubmitUpdatedComment = (comment) => {
         updateComment({variables: {file_id: props.id, comment: comment}})
     }
+    const [deleteFile] = useMutation(updateFileDeleted, {
+        onCompleted: (data) => {
+            snackActions.dismiss();
+            props.onDelete(data.deleteFile);
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to delete file");
+        }
+    })
+    const onAcceptDelete = () => {
+        deleteFile({variables: {file_id: props.id}})
+    }
     
     return (
         <React.Fragment>
             <TableRow hover>
+                {openDelete && <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>}
+                <MythicStyledTableCell>
+                    {props.deleted ? null : (
+                        <IconButton size="small" onClick={()=>{setOpenDelete(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
+                    )}
+                </MythicStyledTableCell>
                 <MythicStyledTableCell >
                     <img onClick={() => setOpenScreenshot(true)} src={"/api/v1.4/files/screencaptures/" + props.agent_file_id + "?" + now} style={{width: "270px", cursor: "pointer"}} />
                     {openScreenshot && 

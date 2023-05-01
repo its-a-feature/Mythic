@@ -7,5 +7,5 @@ linux:
 macos:
 	cd Mythic_CLI && make build_binary_macos && mv mythic-cli ../
 
-build_binary_macos_custom:
-	cd Mythic_CLI && make build_binary_macos_custom
+macos_local:
+	cd Mythic_CLI && make build_binary_macos_local

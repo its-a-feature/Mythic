@@ -456,7 +456,7 @@ function DetailedPayloadInnerTable(props){
                 {openAddRemoveCommandsDialog &&
                   <MythicDialog fullWidth={true} maxWidth="md" open={openAddRemoveCommandsDialog} 
                       onClose={()=>{setOpenAddRemoveCommandsDialog(false);}} 
-                      innerDialog={<AddRemoveCommandsDialog uuid={props.uuid} onClose={()=>{setOpenAddRemoveCommandsDialog(false);}} onSubmit={addRemoveCommandsSubmit} />}
+                      innerDialog={<AddRemoveCommandsDialog uuid={props.uuid} filename={b64DecodeUnicode(data.payload[0].filemetum.filename_text)} onClose={()=>{setOpenAddRemoveCommandsDialog(false);}} onSubmit={addRemoveCommandsSubmit} />}
                   />
                 }
                 {openProgressIndicator &&

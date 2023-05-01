@@ -87,6 +87,9 @@ const useStyles = makeStyles((theme) => ({
     ...theme.mixins.toolbar,
     justifyContent: 'flex-end',
   },
+  listSubHeader: {
+    backgroundColor: theme.palette.listSubHeader.default
+  },
   appBar: {
     width: "100%",
     backgroundColor: theme.topAppBarColor,
@@ -382,7 +385,7 @@ export function TopAppBar(props) {
         <Divider />
         <List
         subheader={
-          <ListSubheader component="div" id="nested-list-subheader">
+          <ListSubheader className={classes.listSubHeader} component="div" id="nested-list-subheader">
             Home
           </ListSubheader>
         }>
@@ -399,7 +402,7 @@ export function TopAppBar(props) {
         <Divider />
             <List
             subheader={
-              <ListSubheader component="div" id="nested-list-subheader">
+              <ListSubheader className={classes.listSubHeader} component="div" id="nested-list-subheader">
                 Global Configurations
               </ListSubheader>
             }>
@@ -467,7 +470,7 @@ export function TopAppBar(props) {
         <Divider />
             <List
             subheader={
-              <ListSubheader component="div" id="nested-list-subheader">
+              <ListSubheader className={classes.listSubHeader} component="div" id="nested-list-subheader">
                 Operational Views
               </ListSubheader>
             }>
@@ -496,7 +499,7 @@ export function TopAppBar(props) {
         <Divider />
         <List
             subheader={
-              <ListSubheader component="div" id="nested-list-subheader">
+              <ListSubheader className={classes.listSubHeader} component="div" id="nested-list-subheader">
                 Optional Configurations
               </ListSubheader>
             }>

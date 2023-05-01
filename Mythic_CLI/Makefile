@@ -16,7 +16,7 @@ build_binary_macos:
 	mv src/${BINARY_NAME} .
 	chmod +x ${BINARY_NAME}
 
-build_binary_macos_custom:
+build_binary_macos_local:
 	cd src && go build -o ../../mythic-cli .
 
 build_all_linux: build_container build_binary

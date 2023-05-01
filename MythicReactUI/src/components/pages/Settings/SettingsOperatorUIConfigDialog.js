@@ -72,7 +72,7 @@ export function SettingsOperatorUIConfigDialog(props) {
         '"Segoe UI Emoji"',
         '"Segoe UI Symbol"',
       ].join(','));
-      setTopColor("#7f93c0");
+      setTopColor("#3c4d67");
       setHideUsernames(false);
     }
   
