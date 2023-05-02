@@ -93,7 +93,8 @@ func TestMythicRabbitmqConnection() {
 		rabbitmqAddress = mythicEnv.GetString("RABBITMQ_HOST")
 	}
 	if rabbitmqAddress == "127.0.0.1" && !isServiceRunning("mythic_rabbitmq") {
-		log.Fatalf("[-] Service mythic_rabbitmq should be running on the host, but isn't. Containers will be unable to connect.\nStart it by starting Mythic ('sudo ./mythic-cli mythic start') or manually with 'sudo ./mythic-cli mythic start mythic_rabbitmq'\n")
+		log.Printf("[-] Service mythic_rabbitmq should be running on the host, but isn't. Containers will be unable to connect.\nStart it by starting Mythic ('sudo ./mythic-cli mythic start') or manually with 'sudo ./mythic-cli mythic start mythic_rabbitmq'\n")
+		return
 	}
 	maxCount := 10
 	var err error
@@ -114,12 +115,12 @@ func TestMythicRabbitmqConnection() {
 	}
 	fmt.Printf("[-] Failed to make a connection to the RabbitMQ server: %v\n", err)
 	if isServiceRunning("mythic_rabbitmq") {
-		log.Fatalf("    The mythic_rabbitmq service is running, but mythic-cli is unable to connect\n")
+		log.Printf("    The mythic_rabbitmq service is running, but mythic-cli is unable to connect\n")
 	} else {
 		if rabbitmqAddress == "127.0.0.1" {
-			log.Fatalf("    The mythic_rabbitmq service isn't running, but should be running locally. Did you start it?\n")
+			log.Printf("    The mythic_rabbitmq service isn't running, but should be running locally. Did you start it?\n")
 		} else {
-			log.Fatalf("    The mythic_rabbitmq service isn't running locally, check to make sure it's running with the proper credentials\n")
+			log.Printf("    The mythic_rabbitmq service isn't running locally, check to make sure it's running with the proper credentials\n")
 		}
 
 	}
