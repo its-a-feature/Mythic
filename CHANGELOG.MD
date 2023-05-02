@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0-rc50] - 2023-05-02
+
+### Changed
+
+- Updated agent post_response process dictionary to support `update_deleted` key to mark processes as deleted
+- Updated agent post_response process dictionary to support `os` key to mark processes as `windows`, `macOS`, or `linux`
+- Updated UI to add new "View Just This Process Tree" option in Info dropdown for process tree view
+- Fixed bug with callback graph view's link commands
+- Fixed bug with re-added edges in graph view
+
 ## [3.0.0rc49] - 2023-04-26
 
 ### Changed

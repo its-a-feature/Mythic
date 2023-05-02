@@ -923,9 +923,18 @@ func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 			//callbackGraph.AddByAgentIds(callback.AgentCallbackID, callback.AgentCallbackID, uuidInfo.C2ProfileName)
 			if uuidInfo.EdgeId == 0 {
 				if err := database.DB.Get(&uuidInfo.EdgeId, `SELECT id FROM callbackgraphedge
-						WHERE source_id=$1 AND destination_id=$2 AND c2_profile_id=$3`,
-					uuidInfo.CallbackID, uuidInfo.CallbackID, uuidInfo.C2ProfileID); err != nil {
-
+						WHERE source_id=$1 AND destination_id=$2 AND c2_profile_id=$3 AND operation_id=$4`,
+					uuidInfo.CallbackID, uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID); err == sql.ErrNoRows {
+					if _, err := database.DB.Exec(`INSERT INTO callbackgraphedge
+						(source_id, destination_id, c2_profile_id, operation_id)
+						VALUES ($1, $1, $2, $3)`,
+						uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID); err != nil {
+						logging.LogError(err, "Failed to add callback graph edge id for callback checking in",
+							"c2 id", uuidInfo.C2ProfileID, "callback id", uuidInfo.CallbackID)
+					}
+				} else if err != nil {
+					logging.LogError(err, "Failed to fetch callback graph edge id for callback checking in",
+						"c2 id", uuidInfo.C2ProfileID, "callback id", uuidInfo.CallbackID)
 				}
 			}
 			if !uuidInfo.Active {

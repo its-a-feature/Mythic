@@ -256,7 +256,7 @@ query getCommandQuery($id: Int!){
   }
 }
 `;
-// use this to get all of the credentials for the command we're trying to execute
+// use this to get all the credentials for the command we're trying to execute
 const getCredentialsQuery = gql`
 query getCredentialsQuery($operation_id: Int!){
     credential(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}}){
@@ -413,6 +413,7 @@ export function TaskParametersDialog(props) {
                 if(cmd.parameter_group_name !== selectedParameterGroup){
                     return [...prev];
                 }
+                console.log(props.command);
                 switch(cmd.type){
                     case "Boolean":
                         if(cmd.name in props.command.parsedParameters){

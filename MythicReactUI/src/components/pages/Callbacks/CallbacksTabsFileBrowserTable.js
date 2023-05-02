@@ -135,6 +135,9 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         setFilterOptions(newFilterOptions);
     }
     const filterRow = (row) => {
+        if(!props.showDeletedFiles && props.treeRootData[props.selectedFolderData.host][row].deleted){
+            return true;
+        }
         for(const [key,value] of Object.entries(filterOptions)){
             if(!String(props.treeRootData[props.selectedFolderData.host][row][key]).toLowerCase().includes(value)){
                 return true;
@@ -182,7 +185,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                 }
                 
         }, []),
-        [sortedData, props.onTaskRowAction, filterOptions, columnVisibility]
+        [sortedData, props.onTaskRowAction, filterOptions, columnVisibility, props.showDeletedFiles]
     );
 
     useEffect(() => {
@@ -194,7 +197,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         }
         setAllData(Object.keys(props.treeAdjMatrix[props.selectedFolderData.host]?.[desiredPath] || {}));
         //console.log("just set all data")
-    }, [props.selectedFolderData, props.showDeletedFiles, props.treeAdjMatrix]);
+    }, [props.selectedFolderData, props.treeAdjMatrix]);
 
     const onRowDoubleClick = (e, rowIndex) => {
         const rowData = props.treeRootData[props.selectedFolderData.host][allData[rowIndex]];

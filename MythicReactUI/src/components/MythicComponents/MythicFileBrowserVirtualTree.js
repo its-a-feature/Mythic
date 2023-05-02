@@ -255,12 +255,12 @@ const FileBrowserVirtualTree = ({
   onExpandNode,
   onCollapseNode,
   contextMenuOptions,
+  showDeletedFiles,
 }) => {
   const flattenNode = useCallback(
     // node is just a full_path_text
     (node, host, depth = 0) => {
       if(depth === 0){
-        
         return [
           {
             id: treeRootData[host][node].id,
@@ -298,6 +298,7 @@ const FileBrowserVirtualTree = ({
           },
           ...(Object.keys(treeAdjMatrix[host]?.[node] || {})).reduce( (prev, cur) => {
             if(!treeRootData[host][cur].can_have_children){return [...prev]}
+            if(!showDeletedFiles && treeRootData[host][cur].deleted){return [...prev]}
             return [...prev, flattenNode(cur, host, depth+1)];
         }, []).flat()
         ];
@@ -319,7 +320,7 @@ const FileBrowserVirtualTree = ({
       ];
      
     },
-    [openNodes] // eslint-disable-line react-hooks/exhaustive-deps
+    [openNodes, showDeletedFiles] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const flattenedNodes = useMemo(() => {
@@ -341,13 +342,18 @@ const FileBrowserVirtualTree = ({
         children: matrix[""],
         full_path_text: host,
       });
-      finalData.push(...Object.keys(matrix[""]).map(c => flattenNode(c, host, 1)).flat())
+      finalData.push(...Object.keys(matrix[""]).reduce((prev, c) => {
+          if(!showDeletedFiles && c.deleted) {
+              return [...prev];
+          } else {
+              return [...prev, ...flattenNode(c, host, 1)]
+          }
+      }, []).flat())
     }
     //console.log("flattened data", finalData)
     return finalData;
     //nodes.map((node) => flattenNode(node)).flat()
-  },[flattenNode, treeRootData, treeAdjMatrix]
-  );
+  },[flattenNode, treeRootData, treeAdjMatrix, showDeletedFiles]);
   return (
     flattenedNodes.length > 0 ? (
       <AutoSizer>
@@ -373,7 +379,7 @@ const FileBrowserVirtualTree = ({
         </List>
       )}
     </AutoSizer>
-    ) : (null)
+    ) : null
     
   );
 };

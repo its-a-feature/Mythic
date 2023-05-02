@@ -44,8 +44,8 @@ subscription CallbacksSubscription($operation_id: Int!){
 }
  `;
 export const SUB_Edges = gql`
-subscription CallbacksSubscription ($operation_id: Int!){
-  callbackgraphedge(where: {operation_id: {_eq: $operation_id}}, order_by: {id: desc}) {
+subscription CallbacksSubscription{
+  callbackgraphedge(order_by: {id: desc}) {
     id
     end_timestamp
     destination {
@@ -123,7 +123,7 @@ export function CallbacksTop(props){
         },
     });
     useSubscription(SUB_Edges, {
-        variables: {operation_id: me?.user?.current_operation_id || 0}, fetchPolicy: "network-only",
+        fetchPolicy: "network-only",
         onSubscriptionData: ({subscriptionData}) => {
           if(!mountedRef.current){
             return;

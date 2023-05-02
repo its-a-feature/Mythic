@@ -2,9 +2,7 @@ import React, {useRef, useEffect, useState} from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
 import * as d3 from 'd3';
-import {createContextMenu} from './D3ContextMenu';
 import dagreD3 from 'dagre-d3';
 import {useTheme} from '@mui/material/styles';
 import OutlinedInput from '@mui/material/OutlinedInput';
@@ -145,7 +143,7 @@ export function C2PathDialog(props) {
 }
 
 
-export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_events, theme) =>{
+export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_events, theme, setContextMenu) =>{
     const disconnected = `stroke: ${theme.palette.warning.main}; stroke-width: 3px; stroke-dasharray: 5, 5; fill:none`;
     const disconnectedArrow = `fill: ${theme.palette.warning.main}`;
     const connected = `stroke: ${theme.palette.info.main}; fill: none; stroke-width: 1.5px;`;
@@ -355,18 +353,36 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
                 add_edge_to_mythic(g, edge, view_config);
             }
         }else{
-            if(g.hasEdge(edge.source.id, edge.destination.id, edge.c2profile.name)){
-                //we've seen an edge between these two before
-                if(edge.id > g.edge(edge.source.id, edge.destination.id, edge.c2profile.name).edge_id){
-                    add_edge_p2p(g, edge, view_config);
+            let source_str_id = `${edge.source.id}`;
+            let destination_str_id = `${edge.destination.id}`
+            if(view_config["packet_flow_view"]){
+                // destination -> source
+                if(g.hasEdge(destination_str_id, source_str_id, edge.c2profile.name)){
+                    //we've seen an edge between these two before
+                    if(edge.id > g.edge(destination_str_id, source_str_id, edge.c2profile.name).edge_id){
+                        add_edge_p2p(g, edge, view_config);
+                    }else{
+                        console.log("doing nothing, dropping data");
+                    }
                 }else{
-                    console.log("doing nothing, dropping data");
+                    //this is a new edge
+                    add_edge_p2p(g, edge, view_config);
                 }
-            }else{
-                //this is a new edge
-                add_edge_p2p(g, edge, view_config);
+
+            } else {
+                // source -> destination
+                if(g.hasEdge(source_str_id, destination_str_id, edge.c2profile.name)){
+                    //we've seen an edge between these two before
+                    if(edge.id > g.edge(source_str_id, destination_str_id, edge.c2profile.name).edge_id){
+                        add_edge_p2p(g, edge, view_config);
+                    }else{
+                        console.log("doing nothing, dropping data");
+                    }
+                }else{
+                    //this is a new edge
+                    add_edge_p2p(g, edge, view_config);
+                }
             }
-            
         }
     });
     var render = new dagreD3.render();
@@ -394,7 +410,7 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
              .on("mouseover", function(d) { node_events["mouseover"](parent, node, d) })
              .on("mouseout", function(d) { node_events["mouseout"](parent, node, d) })
              .on("click", function(d) { d3.event.preventDefault(); node_events["click"](parent, node, d) })
-             .on("contextmenu", (d) => {createContextMenu(g, node, node_events["contextmenu"], width, height, "#callbacksgraph")});
+             .on("contextmenu", (d) => {setContextMenu(d3.event, g, node); d3.event.preventDefault();})
          node.intersect = function(point) {
              //return dagreD3.intersect.circle(node, 25, point);
              //console.log(node, point, Math.max(node.width, node.label?.length))
@@ -402,7 +418,7 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
          };
          return shapeSvg;
      };
-     render.shapes().square = function square(parent, bbox, node){
+    render.shapes().square = function square(parent, bbox, node){
          var shapeSvg = parent.insert("rect")
             .attr("width", function(d) {
                 let candidates = g.children(getGroupBy(node.node, view_config));
@@ -439,7 +455,6 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
         return shapeSvg;
      }
      // if a parent has no children then it should be removed
-    
     render(svgGroup, g);
     if(reZoom){
         var graphWidth = g.graph().width + 40;

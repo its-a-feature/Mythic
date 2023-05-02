@@ -25,6 +25,8 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import SettingsIcon from '@mui/icons-material/Settings';
 import EditIcon from '@mui/icons-material/Edit';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 const getPermissionsDataQuery = gql`
     query getPermissionsQuery($mythictree_id: Int!) {
@@ -45,7 +47,7 @@ const updateFileComment = gql`
 
 
 
-export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick, onTaskRowAction, host}) => {
+export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick, onTaskRowAction, host, showDeletedFiles}) => {
     //const [allData, setAllData] = React.useState([]);
     //console.log("treeAdjMatrix updated in table", treeAdjMatrix)
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
@@ -57,6 +59,8 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         "visible": ["Info","PID", "PPID", "Name", "Tags", "Comment"],
         "hidden": [ ]
     })
+    const [singleTreeData, setSingleTreeData] = React.useState({});
+    const [viewSingleTreeData, setViewSingleTreeData] = React.useState(false);
     const [openAdjustColumnsDialog, setOpenAdjustColumnsDialog] = React.useState(false);
     const [updatedTreeAdjMatrix, setUpdatedTreeAdjMatrix] = React.useState(treeAdjMatrix);
     const openAllNodes = () => {
@@ -85,10 +89,10 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
           if( adjustedMatrix[host] === undefined){adjustedMatrix[host] = {}}
           for(const [key, children] of Object.entries(matrix)){
             // if key !== "", if key is in another entry, leave it. if it's not anywhere else, add it to ""
-            // key is the parent and children are all of the child processes
+            // key is the parent and children are all the child processes
             if(adjustedMatrix[host][key] === undefined){adjustedMatrix[host][key] = children}
             if(key === ""){
-                // add all of the children automatically
+                // add all the children automatically
                 for(const [i, v] of Object.entries(children)){
                     adjustedMatrix[host][key][i] = v
                 }
@@ -113,7 +117,9 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     React.useEffect( () => {
         openAllNodes();
     }, [updatedTreeAdjMatrix])
-    
+    React.useEffect(() => {
+        setViewSingleTreeData(false);
+    }, [host]);
     const onExpandNode = (nodeId) => {
         setOpenNodes({
           ...openNodes,
@@ -139,8 +145,8 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     };
     const columnDefaults = [
         { name: 'Info', width: 50, disableAutosize: true, disableSort: true, disableFilterMenu: true },
-        { name: 'PID', type: 'number', key: 'process_id', inMetadata: true, width: 50},
-        { name: 'PPID', type: 'number', key: 'parent_process_id', inMetadata: true, width: 50},
+        { name: 'PID', type: 'number', key: 'process_id', inMetadata: true, width: 100},
+        { name: 'PPID', type: 'number', key: 'parent_process_id', inMetadata: true, width: 100},
         { name: 'Name', type: 'string', disableSort: false, key: 'name_text', fillWidth: true },
         { name: 'Tags', type: 'tags', disableSort: true, disableFilterMenu: true, width: 220 },
         { name: 'Comment', type: 'string', key: 'comment', disableSort: false, width: 200 },
@@ -162,8 +168,11 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     );
     const flattenNode = useCallback(
         (node, host, depth = 0) => {
+            let treeToUse = updatedTreeAdjMatrix;
+            if(viewSingleTreeData){
+                treeToUse = singleTreeData;
+            }
           if(depth === 0){
-            
             return [
               {
                 id: treeRootData[host][node]?.id || parseInt(node),
@@ -172,14 +181,14 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                 name_text: treeRootData[host][node]?.name_text || node,
                 deleted: treeRootData[host][node]?.deleted || true,
                 depth,
-                isLeaf: Object.keys(updatedTreeAdjMatrix[host]?.[node] || {}).length === 0,
+                isLeaf: Object.keys(treeToUse[host]?.[node] || {}).length === 0,
                 can_have_children: treeRootData[host][node]?.can_have_children || true,
                 isOpen: true,
-                children: (updatedTreeAdjMatrix[host]?.[node] || {}),
+                children: (treeToUse[host]?.[node] || {}),
                 host,
                 root: true
               },
-              ...(Object.keys(updatedTreeAdjMatrix[host]?.[node] || {})).reduce( (prev, cur) => {
+              ...(Object.keys(treeToUse[host]?.[node] || {})).reduce( (prev, cur) => {
                 if(!(treeRootData[host][cur]?.can_have_children || true)){return [...prev]}
                 return [...prev, flattenNode(cur, host, depth+1)];
             }, []).flat()
@@ -196,14 +205,14 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                 name_text: treeRootData[host][node]?.name_text || node,
                 deleted: treeRootData[host][node]?.deleted || true,
                 depth,
-                isLeaf: Object.keys(updatedTreeAdjMatrix[host]?.[node] || {}).length === 0,
+                isLeaf: Object.keys(treeToUse[host]?.[node] || {}).length === 0,
                 can_have_children: treeRootData[host][node]?.can_have_children || true,
                 isOpen: true,
-                children: (updatedTreeAdjMatrix[host]?.[node] || {}), 
+                children: (treeToUse[host]?.[node] || {}),
                 host,
                 root: false,
               },
-              ...(Object.keys(updatedTreeAdjMatrix[host]?.[node] || {})).reduce( (prev, cur) => {
+              ...(Object.keys(treeToUse[host]?.[node] || {})).reduce( (prev, cur) => {
                 if(!(treeRootData[host][cur]?.can_have_children || true)){return [...prev]}
                 return [...prev, flattenNode(cur, host, depth+1)];
             }, []).flat()
@@ -217,23 +226,27 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
               name_text: treeRootData[host][node]?.name_text || node,
               deleted: treeRootData[host][node]?.deleted || true,
               depth,
-              isLeaf: Object.keys(updatedTreeAdjMatrix[host]?.[node] || {}).length === 0,
+              isLeaf: Object.keys(treeToUse[host]?.[node] || {}).length === 0,
               can_have_children: treeRootData[host][node]?.can_have_children || true,
               isOpen: false,
-              children: (updatedTreeAdjMatrix[host]?.[node] || {}), 
+              children: (treeToUse[host]?.[node] || {}),
               host,
               root: false,
             }
           ];
          
         },
-        [openNodes, updatedTreeAdjMatrix] // eslint-disable-line react-hooks/exhaustive-deps
+        [openNodes, updatedTreeAdjMatrix, singleTreeData, viewSingleTreeData] // eslint-disable-line react-hooks/exhaustive-deps
     );
     const allData = useMemo(() => {
         // need to return an array
         let finalData = [];
+        let treeToUse = updatedTreeAdjMatrix;
+        if(viewSingleTreeData){
+            treeToUse = singleTreeData;
+        }
         //console.log("in useMemo", updatedTreeAdjMatrix, "host", host)
-        if(host === "" || updatedTreeAdjMatrix[host] === undefined){return finalData}
+        if(host === "" || treeToUse[host] === undefined){return finalData}
         finalData.push({
         id: host,
         name: host,
@@ -245,13 +258,13 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         root: true,
         deleted: false,
         success: true,
-        children: updatedTreeAdjMatrix[host][""],
+        children: treeToUse[host][""],
         full_path_text: host,
         });
-        finalData.push(...Object.keys(updatedTreeAdjMatrix[host][""] === undefined ? {} : updatedTreeAdjMatrix[host][""]).map(c => flattenNode(c, host, 1)).flat())
+        finalData.push(...Object.keys(treeToUse[host][""] === undefined ? {} : treeToUse[host][""]).map(c => flattenNode(c, host, 1)).flat())
     
         return finalData;
-    },[flattenNode, treeRootData, host, updatedTreeAdjMatrix, openNodes],
+    },[flattenNode, treeRootData, host, updatedTreeAdjMatrix, openNodes, singleTreeData, viewSingleTreeData],
     );
     const sortedData = React.useMemo(() => {
         if (sortData.sortKey === null || sortData.sortType === null) {
@@ -289,13 +302,93 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     }
     const filterRow = (rowData) => {
         if(rowData.root){return true}
+        if(!showDeletedFiles && treeRootData[host][rowData.full_path_text] !== undefined && treeRootData[host][rowData.full_path_text].deleted){
+            return true;
+        }
+        let filterOptionInMetadata = {}
+        for(const [key, value] of Object.entries(filterOptions)){
+            for(let i = 0; i < columnDefaults.length; i++){
+                if(columnDefaults[i].key === key){
+                    filterOptionInMetadata[key] = columnDefaults[i].inMetadata
+                }
+            }
+        }
         for(const [key,value] of Object.entries(filterOptions)){
             if(treeRootData[host][rowData.full_path_text] === undefined){return true}
-            if(!String(treeRootData[host][rowData.full_path_text][key]).toLowerCase().includes(value)){
-                return true;
+            if(filterOptionInMetadata[key]){
+                if(!String(treeRootData[host][rowData.full_path_text]?.metadata[key]).toLowerCase().includes(value)){
+                    return true;
+                }
+            }else{
+                if(!String(treeRootData[host][rowData.full_path_text][key]).toLowerCase().includes(value)){
+                    return true;
+                }
             }
         }
         return false;
+    }
+    const setSingleTree = (treeElement) => {
+        // find all data (ancestor and children) of treeElement and hide all the rest
+        // make a new adjacency matrix
+        let singleTreeAdjMatrix = {[treeElement.host]: {}};
+
+        // get the parent hierarchy all the way up
+        let parent = treeRootData[treeElement.host][treeElement.full_path_text].parent_path_text;
+        let current = treeElement.full_path_text;
+        //console.log("initial parent", parent, "adj", treeAdjMatrix[treeElement.host][parent])
+        while(treeAdjMatrix[treeElement.host][parent] !== undefined){
+            singleTreeAdjMatrix[treeElement.host][parent] = {[current]: 1};
+            //console.log("tree data of parent", treeRootData[treeElement.host][parent])
+            if(treeRootData[treeElement.host][parent] === undefined){
+                break;
+            }
+            current = parent;
+            parent = treeRootData[treeElement.host][parent].parent_path_text
+        }
+        // now get all the descendents of the selected element
+        if(treeAdjMatrix[treeElement.host][treeElement.full_path_text] !== undefined){
+            singleTreeAdjMatrix[treeElement.host][treeElement.full_path_text] = treeAdjMatrix[treeElement.host][treeElement.full_path_text]
+            let leftToProcess = Object.keys(treeAdjMatrix[treeElement.host][treeElement.full_path_text]);
+            while(leftToProcess.length > 0){
+                let nextChild = leftToProcess.shift();
+                if(treeAdjMatrix[treeElement.host][nextChild] !== undefined){
+                    singleTreeAdjMatrix[treeElement.host][nextChild] = treeAdjMatrix[treeElement.host][nextChild];
+                    leftToProcess.push(...Object.keys(treeAdjMatrix[treeElement.host][nextChild]));
+                }
+            }
+        }
+        for(const [host, matrix] of Object.entries(singleTreeAdjMatrix)){
+            // looping through the hosts to adjust their entries
+            if( singleTreeAdjMatrix[host] === undefined){singleTreeAdjMatrix[host] = {}}
+            for(const [key, children] of Object.entries(matrix)){
+                // if key !== "", if key is in another entry, leave it. if it's not anywhere else, add it to ""
+                // key is the parent and children are all the child processes
+                if(singleTreeAdjMatrix[host][key] === undefined){singleTreeAdjMatrix[host][key] = children}
+                if(key === ""){
+                    // add all the children automatically
+                    for(const [i, v] of Object.entries(children)){
+                        singleTreeAdjMatrix[host][key][i] = v
+                    }
+                } else {
+                    // check if key  is in children anywhere, if not, add it to adjustedMatrix[host][""][key] = 1
+                    let found = false;
+                    for(const [keySearch, childrenSearch] of Object.entries(matrix)){
+                        for(const [i, v] of Object.entries(childrenSearch)){
+                            if(i === key){found=true}
+                        }
+                    }
+                    if(!found){
+                        if(singleTreeAdjMatrix[host][""] === undefined){singleTreeAdjMatrix[host][""] = {}}
+                        singleTreeAdjMatrix[host][""][key] = 1;
+                    }
+                }
+            }
+        }
+        setSingleTreeData(singleTreeAdjMatrix);
+        onSubmitFilterOptions({});
+    }
+    const toggleViewSingleTreeData = () => {
+        setViewSingleTreeData(!viewSingleTreeData);
     }
     const gridData = React.useMemo(
         () =>
@@ -309,7 +402,10 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                 return  <FileBrowserTableRowActionCell 
                                             treeRootData={treeRootData} 
                                             host={host} 
-                                            rowData={row} 
+                                            rowData={row}
+                                            viewSingleTreeData={viewSingleTreeData}
+                                            setSingleTree={setSingleTree}
+                                            toggleViewSingleTreeData={toggleViewSingleTreeData}
                                             onTaskRowAction={onTaskRowAction} />;
                             case "Name":
                                 return <FileBrowserTableRowNameCell 
@@ -349,7 +445,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                     })];
                 }
             }, []),
-        [sortedData, onTaskRowAction, filterOptions, columnVisibility]
+        [sortedData, onTaskRowAction, filterOptions, columnVisibility, showDeletedFiles]
     );
     const onClickHeader = (e, columnIndex) => {
         const column = columns[columnIndex];
@@ -502,49 +598,7 @@ const FileBrowserTableRowStringCell = ({cellData, treeRootData, host, rowData}) 
         <div>{cellData}</div>
     )
 }
-const FileBrowserTableRowDateCell = ({ cellData }) => {
-    if(cellData === "" || cellData <= 0){
-        return cellData;
-    }
-    try{
-        // handle Unix epoch timestamps
-        const dateData = new Date(parseInt(cellData)).toISOString();
-        return dateData.slice(0, 10) + " " + dateData.slice(11,-1);
-    }catch(error){
-        try{
-            // handle windows FILETIME values
-            const dateData = new Date( ((parseInt(cellData) / 10000000) - 11644473600) * 1000).toISOString();
-            return dateData.slice(0, 10) + " " + dateData.slice(11,-1);
-        }catch(error2){
-            console.log("error with timestamp: ", cellData);
-            return String(cellData);
-        }
-        
-    }
-    
-};
-const FileBrowserTableRowSizeCell = ({ cellData }) => {
-    const getStringSize = () => {
-        try {
-            // process for getting human readable string from bytes: https://stackoverflow.com/a/18650828
-            let bytes = parseInt(cellData);
-            if (cellData === '') return '';
-            if (bytes === 0) return '0 B';
-            const decimals = 2;
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-        } catch (error) {
-            return cellData;
-        }
-    };
-    return getStringSize(cellData);
-};
-const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, host}) => {
+const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, host, viewSingleTreeData,setSingleTree, toggleViewSingleTreeData}) => {
     const dropdownAnchorRef = React.useRef(null);
     const theme = useTheme();
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -589,18 +643,30 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
         }
         setDropdownOpen(false);
     };
-    const optionsA = [{name: 'View Detailed Data', icon: <VisibilityIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
-                        evt.stopPropagation();
-                        getPermissions({variables: {mythictree_id: rowData.id}});
-                    }},
-                    {
-                        name: 'Edit Comment',
-                        icon: <EditIcon style={{ paddingRight: '5px' }} />,
-                        click: (evt) => {
-                            evt.stopPropagation();
-                            setFileCommentDialogOpen(true);
-                        },
-                    },
+    const optionsA = [
+        {
+            name: 'View Detailed Data', icon: <VisibilityIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
+            evt.stopPropagation();
+            getPermissions({variables: {mythictree_id: rowData.id}});
+        }},
+        {
+            name: 'Edit Comment',
+            icon: <EditIcon style={{ paddingRight: '5px' }} />,
+            click: (evt) => {
+                evt.stopPropagation();
+                setFileCommentDialogOpen(true);
+            },
+        },
+        {
+            name: viewSingleTreeData ? "Stop Single Tree View" : "View Just This Process Tree",
+            icon: viewSingleTreeData ?
+                <VisibilityOffIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/> :
+                <AccountTreeIcon style={{paddingRight: "5px", color: theme.palette.success.main}}/>,
+            click: (evt) => {
+                setSingleTree(rowData);
+                toggleViewSingleTreeData();
+            }
+        }
     ];
     const optionsB = [
                     {name: 'Task Inject', icon: <GetAppIcon style={{paddingRight: "5px", color: theme.palette.success.main}}/>, click: (evt) => {

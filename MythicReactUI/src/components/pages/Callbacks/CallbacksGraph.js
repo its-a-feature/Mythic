@@ -6,6 +6,7 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import Paper from '@mui/material/Paper';
 import Grow from '@mui/material/Grow';
 import Popper from '@mui/material/Popper';
+import Popover from '@mui/material/Popover';
 import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
@@ -26,7 +27,7 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 
 const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
+const ITEM_PADDING_TOP = 1;
 const MenuProps = {
   PaperProps: {
     style: {
@@ -47,7 +48,7 @@ function getStyles(name, selectedOptions, theme) {
 
 export const loadedLinkCommandsQuery = gql`
 query loadedLinkCommandsQuery ($callback_id: Int!){
-  loadedcommands(where: {callback_id: {_eq: $callback_id}, command: {supported_ui_features: {_ilike: "graph_view:link"}, deleted: {_eq: false}}}) {
+  loadedcommands(where: {callback_id: {_eq: $callback_id}, command: {supported_ui_features: {_contains: "graph_view:link"}, deleted: {_eq: false}}}) {
     command {
         id
         cmd
@@ -64,6 +65,10 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
     const dagreRef = useRef(null);    
     const dropdownAnchorRef = React.useRef(null);
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
+    const [contextMenuOpen, setContextMenuOpen] = React.useState(false);
+    const [contextMenuData, setContextMenuData] = React.useState({
+        "g": null, "elem": null, "pageX": 0, "pageY": 0
+    });
     const [reZoom, setReZoom] = useState(true);
     //used for creating a task to do a link command
     const [linkCommands, setLinkCommands] = React.useState([]);
@@ -80,16 +85,17 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
     const [selectedGroupBy, setSelectedGroupBy] = React.useState("host");
     const groupByOptions = ["host", "user", "ip", "domain", "os", "process_name", "extra_info"];
     const [getLinkCommands] = useLazyQuery(loadedLinkCommandsQuery, {fetchPolicy: "network-only",
-        onCompleted: data => {            
-            if(data.loadedcommands.length === 1){
+        onCompleted: data => {
+            const updatedCommands = data.loadedcommands.map( c => {return {command: {...c.command, parsedParameters: {}}}})
+            if(updatedCommands.length === 1){
                 //no need for a popup, there's only one possible command
-                setSelectedLinkCommand(data.loadedcommands[0].command);
+                setSelectedLinkCommand(updatedCommands[0].command);
                 setOpenParametersDialog(true);
-            }else if(data.loadedcommands.length === 0){
+            }else if(updatedCommands.length === 0){
                 //no possible command can be used, do a notification
-                snackActions.warning("No commands loaded that are 'link' commands");
+                snackActions.warning("No commands loaded support the ui feature 'graph_view:link'");
             }else{
-                const cmds = data.loadedcommands.map( (cmd) => { return {...cmd, display: cmd.command.cmd} } );
+                const cmds = updatedCommands.map( (cmd) => { return {...cmd, display: cmd.command.cmd} } );
                 setLinkCommands(cmds);
                 setSelectedLinkCommand(cmds[0].command);
                 setOpenSelectLinkCommandDialog(true);
@@ -143,6 +149,21 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
     const [hideCallback] = useMutation(hideCallbackMutation, {
         update: (cache, {data}) => {
             //console.log(data);
+        },
+        onError: (error) => {
+            console.log(error)
+            snackActions.error(error.message);
+            setContextMenuOpen(false);
+        },
+        onCompleted: (data) => {
+            console.log(data)
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Successfully hid callback")
+            }else{
+                snackActions.error(data.updateCallback.error)
+            }
+
+            setContextMenuOpen(false);
         }
     });
     const [manuallyRemoveEdge] = useMutation(removeEdgeMutation, {
@@ -184,6 +205,7 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
 		        title: 'Interact',
 		        action: function(g, elm){
 		            onOpenTab({tabType: "interact", tabID: elm.node.id + "interact", callbackID: elm.node.id});
+                    setContextMenuOpen(false);
 	            }
             },
             {
@@ -209,6 +231,7 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
 	                }, []);
 	                setEdgeOptions(opts);
 	                setManuallyRemoveEdgeDialogOpen(true);
+                    setContextMenuOpen(false);
                 }
             },
             {
@@ -216,6 +239,7 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
                 action: function(g, elm){
                     setAddEdgeSource(elm.node);
                     setManuallyAddEdgeDialogOpen(true);
+                    setContextMenuOpen(false);
                 }
 	        },
 	        {
@@ -226,7 +250,7 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
                     setSelectedCallback(null);
 	                getLinkCommands({variables: {callback_id: elm.node.id} });
 	                setSelectedCallback(elm.node);
-	                
+                    setContextMenuOpen(false);
                 }
             },
         ]       
@@ -277,9 +301,16 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
         }
         setDropdownOpen(false);
       };
+    const handleContextMenuClose = (event) => {
+        setContextMenuOpen(false);
+    }
+    const setContextMenu = (event, graph, node) => {
+        setContextMenuData({"g": graph, "elem": node, "pageX": event.pageX, "pageY": event.pageY});
+        setContextMenuOpen(true);
+    }
     useEffect( () => {
         const allEdges = [...callbackgraphedges];
-        drawC2PathElements(allEdges, dagreRef, true, viewConfig, node_events, theme);
+        drawC2PathElements(allEdges, dagreRef, true, viewConfig, node_events, theme, setContextMenu);
         setReZoom(false);
     }, [callbackgraphedges, reZoom, viewConfig, theme]) // eslint-disable-line react-hooks/exhaustive-deps
     return (
@@ -338,7 +369,7 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
                 
             </div>
             
-            <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 200}}>
+            <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} transition role={undefined} style={{zIndex: 200}}>
               {({ TransitionProps, placement }) => (
                 <Grow
                   {...TransitionProps}
@@ -391,6 +422,24 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
                                         action={"select"} display={"display"} identifier={"display"}/>}
                 />
             }
+            <Popover open={contextMenuOpen} anchorReference="anchorPosition"
+                anchorPosition={{top: contextMenuData.pageY, left: contextMenuData.pageX}}
+                role={undefined} style={{zIndex: 200}}>
+                <Paper style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                    <ClickAwayListener onClickAway={handleContextMenuClose}>
+                        <MenuList id="split-button-menu">
+                            {node_events.contextmenu.map((option, index) => (
+                                <MenuItem
+                                    key={option.title}
+                                    onClick={(event) => option.action(contextMenuData.g, contextMenuData.elem)}
+                                >
+                                    {option.title}
+                                </MenuItem>
+                            ))}
+                        </MenuList>
+                    </ClickAwayListener>
+                </Paper>
+            </Popover>
                 <svg id="callbacksgraph" ref={dagreRef} width="100%" height="100%"></svg> 
             </div>
     );
