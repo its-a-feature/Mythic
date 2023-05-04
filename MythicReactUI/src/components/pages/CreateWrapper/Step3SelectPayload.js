@@ -43,7 +43,7 @@ query getWrappablePayloads($payloadType: Int!) {
     wrap_these_payload_types {
       wrapped {
         name
-        payloads(where: {auto_generated: {_eq: false}, build_phase: {_eq: "success"}, deleted: {_eq: false}}) {
+        payloads(where: {auto_generated: {_eq: false}, build_phase: {_eq: "success"}, deleted: {_eq: false}}, order_by: {id: desc}) {
           id
           description
           uuid

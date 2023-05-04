@@ -7,6 +7,7 @@ import AceEditor from 'react-ace';
 import "ace-builds/src-noconflict/mode-javascript";
 import "ace-builds/src-noconflict/theme-github";
 import "ace-builds/src-noconflict/theme-monokai";
+import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
 import { gql, useQuery } from '@apollo/client';
 import MenuItem from '@mui/material/MenuItem';

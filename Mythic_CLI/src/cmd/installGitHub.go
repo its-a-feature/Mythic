@@ -8,11 +8,12 @@ import (
 
 // installCmd represents the config command
 var installGitHubCmd = &cobra.Command{
-	Use:   "github url [branch] [-f]",
-	Short: "install services from GitHub or other Git-based repositories",
-	Long:  `Run this command to install services from Git-based repositories by doing a git clone`,
-	Run:   installGitHub,
-	Args:  cobra.RangeArgs(1, 2),
+	Use:     "github url [branch] [-f]",
+	Short:   "install services from GitHub or other Git-based repositories",
+	Long:    `Run this command to install services from Git-based repositories by doing a git clone`,
+	Aliases: []string{"git"},
+	Run:     installGitHub,
+	Args:    cobra.RangeArgs(1, 2),
 }
 var force bool
 var branch string
@@ -24,7 +25,7 @@ func init() {
 		"force",
 		"f",
 		false,
-		`Force installing from GitHub and don't prompt to overwrite files if an older version is already installed'`,
+		`Force installing from GitHub and don't prompt to overwrite files if an older version is already installed`,
 	)
 	installGitHubCmd.Flags().StringVarP(
 		&branch,

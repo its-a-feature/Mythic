@@ -56,7 +56,7 @@ build_protobuf_python:
 
 build_protobuf: build_protobuf_go
 build_and_build_protobuf: build_protobuf build
-build_final: build_and_build_protobuf copy_to_final
+build_final: build copy_to_final
 build_and_run: build_and_build_protobuf run_local_build
 local_testing: build_and_build_protobuf run_custom_values
 

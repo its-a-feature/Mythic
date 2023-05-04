@@ -5,6 +5,7 @@ docs/_build/
 # Environments
 .env
 tmp
+saved_images/
 .venv
 *.swp
 mythic_server

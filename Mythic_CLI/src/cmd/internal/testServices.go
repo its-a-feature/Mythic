@@ -80,9 +80,9 @@ func TestMythicConnection() {
 	}
 	fmt.Printf("[-] Failed to make connection to Mythic Server\n")
 	fmt.Printf("    This could be due to limited resources on the host (recommended at least 2CPU and 4GB RAM)\n")
-	fmt.Printf("    If there is an issue with Mythic server, use 'mythic-cli GetLogs mythic_server' to view potential errors\n")
+	fmt.Printf("    If there is an issue with Mythic server, use 'mythic-cli logs mythic_server' to view potential errors\n")
 	Status()
-	fmt.Printf("[*] Fetching GetLogs from mythic_server now:\n")
+	fmt.Printf("[*] Fetching logs from mythic_server now:\n")
 	GetLogs("mythic_server", "500")
 	os.Exit(1)
 }

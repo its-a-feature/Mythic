@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0-rc51] - 2023-05-04
+
+### Changed
+
+- Updated `mythic-cli` with `update`, `save`, and `load` commands
+  - `update` command simply checks Mythic version, mythic-cli version, and mythic UI version locally against either the main branch or the branch specified with `-b`
+  - `save` command exports specified docker images to disk for use with load command
+  - `load` command loads exported docker images into local docker engine (helpful for offline environments)
+- Updated UI to allow `crtl+F` within more output boxes
+- Updated Dockerimages
+- Updated `mythic` PyPi package in `jupyter` container to `mythic==0.1.0rc9`
+
 ## [3.0.0-rc50] - 2023-05-02
 
 ### Changed

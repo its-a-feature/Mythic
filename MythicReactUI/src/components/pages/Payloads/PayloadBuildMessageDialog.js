@@ -9,6 +9,7 @@ import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
+import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
 
 const getDescriptionQuery = gql`

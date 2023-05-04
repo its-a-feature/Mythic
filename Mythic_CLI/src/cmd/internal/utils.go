@@ -276,3 +276,12 @@ func checkDockerVersion() bool {
 		return false
 	}
 }
+
+func generateSavedImageFolder() error {
+	savedImagePath := filepath.Join(getCwdFromExe(), "saved_images")
+	if dirExists(savedImagePath) {
+		return nil
+	} else {
+		return os.MkdirAll(savedImagePath, 0755)
+	}
+}

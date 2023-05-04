@@ -2,9 +2,11 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -295,4 +297,60 @@ func DockerBuildReactUI() error {
 		return err
 	}
 	return nil
+}
+func DockerSave(containers []string) error {
+	if err := generateSavedImageFolder(); err != nil {
+		return errors.New(fmt.Sprintf("[-] Failed to generate folder to save images: %v\n", err))
+	} else if cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation()); err != nil {
+		return errors.New(fmt.Sprintf("[-] Failed to connect to Docker: %v\n", err))
+	} else {
+		savedContainers := containers
+		if len(savedContainers) == 0 {
+			if diskAgents, err := getElementsOnDisk(); err != nil {
+				return errors.New(fmt.Sprintf("[-] Failed to get agents on disk: %v\n", err))
+			} else if currentMythicServices, err := GetCurrentMythicServiceNames(); err != nil {
+				return errors.New(fmt.Sprintf("[-] Failed to get mythic service list: %v\n", err))
+			} else {
+				savedContainers = append([]string{}, diskAgents...)
+				savedContainers = append(savedContainers, currentMythicServices...)
+			}
+		}
+		savedImagePath := filepath.Join(getCwdFromExe(), "saved_images", "mythic_save.tar")
+		finalSavedContainers := []string{}
+		for i, _ := range savedContainers {
+			if imageExists(savedContainers[i]) {
+				containerName := fmt.Sprintf("%s:latest", savedContainers[i])
+				finalSavedContainers = append(finalSavedContainers, containerName)
+			} else {
+				fmt.Printf("[-] No image locally for %s\n", savedContainers[i])
+			}
+		}
+		fmt.Printf("[*] Saving the following images:\n%v\n", finalSavedContainers)
+		fmt.Printf("[*] This will take a while for Docker to compress and generate the layers...\n")
+		if ioReadCloser, err := cli.ImageSave(context.Background(), finalSavedContainers); err != nil {
+			return errors.New(fmt.Sprintf("[-] Failed to get contents of docker image: %v\n", err))
+		} else if outFile, err := os.Create(savedImagePath); err != nil {
+			return errors.New(fmt.Sprintf("[-] Failed to create output file: %v\n", err))
+		} else {
+			defer outFile.Close()
+			fmt.Printf("[*] Saving to %s\nThis will take a while...\n", savedImagePath)
+			if _, err = io.Copy(outFile, ioReadCloser); err != nil {
+				return errors.New(fmt.Sprintf("[-] Failed to write contents to file: %v\n", err))
+			}
+		}
+		return nil
+	}
+}
+func DockerLoad() error {
+	savedImagePath := filepath.Join(getCwdFromExe(), "saved_images", "mythic_save.tar")
+	if cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation()); err != nil {
+		return errors.New(fmt.Sprintf("[-] Failed to connect to Docker: %v\n", err))
+	} else if ioReadCloser, err := os.OpenFile(savedImagePath, os.O_RDONLY, 0x600); err != nil {
+		return errors.New(fmt.Sprintf("[-] Failed to read tar file: %v\n", err))
+	} else if _, err := cli.ImageLoad(context.Background(), ioReadCloser, false); err != nil {
+		return errors.New(fmt.Sprintf("[-] Failed to load image into Docker: %v\n", err))
+	} else {
+		fmt.Printf("[+] loaded docker images!\n")
+		return nil
+	}
 }
