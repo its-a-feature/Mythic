@@ -116,7 +116,7 @@ const TagChipDisplay = ({tag}) => {
     <React.Fragment>
       <Chip label={tag.tagtype.name} size="small" onClick={(e) => onSelectTag(e)} style={{float: "right", backgroundColor:tag.tagtype.color}} />
       {openTagDisplay && 
-        <MythicDialog fullWidth={true} maxWidth="sm" open={openTagDisplay} 
+        <MythicDialog fullWidth={true} maxWidth="md" open={openTagDisplay}
           onClose={onClose} 
           innerDialog={<ViewTagDialog onClose={onClose} target_object_id={tag.id}/>}
       />}
@@ -188,12 +188,23 @@ return (
                             {Object.keys(selectedTag.data).map( key => (
                               <TableRow key={key} hover>
                                 <TableCell>{key}</TableCell>
-                                <TableCell>{selectedTag.data[key].startsWith("http") ? (
-                                    <>
-                                      {"Click for: "}
-                                      <Link href={selectedTag.data[key]} target="_blank" referrerPolicy='no'>{key}</Link>
-                                    </>
-                                ) : (selectedTag.data[key])}</TableCell>
+                                {typeof selectedTag.data[key] === "string" ? (
+                                    <TableCell>{selectedTag.data[key].startsWith("http") ? (
+                                        <>
+                                          {"Click for: "}
+                                          <Link href={selectedTag.data[key]} target="_blank" referrerPolicy='no'>{key}</Link>
+                                        </>
+                                    ) : (selectedTag.data[key])}</TableCell>
+                                ) : typeof selectedTag.data[key] === "object" ? (
+                                    <TableCell>{selectedTag.data[key].toString()}</TableCell>
+                                ) : typeof selectedTag.data[key] === "boolean" ? (
+                                    <TableCell>{selectedTag.data[key] ? "True" : "False"}</TableCell>
+                                ) :
+                                (
+                                    <TableCell>{selectedTag.data[key]}</TableCell>
+                                )
+                                }
+
                               </TableRow>
                             ))}
                           </TableBody>
@@ -212,7 +223,9 @@ return (
                         setOptions={{
                           showLineNumbers: true,
                           tabSize: 4,
-                          useWorker: false
+                          useWorker: false,
+                          wrapBehavioursEnabled: true,
+                          wrap: true
                         }}/>
                     )}
                   </TableCell>
