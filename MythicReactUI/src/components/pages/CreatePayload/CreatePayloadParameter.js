@@ -32,9 +32,15 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const [chooseOptions, setChooseOptions] = React.useState([]);
     const [dateValue, setDateValue] = React.useState(new Date());
     const [arrayValue, setArrayValue] = React.useState([""]);
+    const [fileValue, setFileValue] = React.useState({name: ""});
     const submitDictChange = (list) => {
         onChange(name, list, false);
     };
+    const onFileChange = (evt) => {
+        setFileValue({name: evt.target.files[0].name});
+        onChange(name, evt.target.files[0]);
+
+    }
     useEffect( () => {
         if(parameter_type === "ChooseOne"){
             setValue(trackedValue);
@@ -43,10 +49,11 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setValueNum(trackedValue);
         }else if(parameter_type === "String"){
             setValue(trackedValue);
-        }else if(parameter_type === "ChooseMultiple"){
+        }else if(parameter_type === "ChooseMultiple") {
             setMultiValue(trackedValue);
-            setChooseOptions(choices); 
-            
+            setChooseOptions(choices);
+        }else if(parameter_type === "File") {
+            setFileValue({name: ""});
         }else if(parameter_type === "Date"){
             setDateValue(trackedValue);
             onChange(name, trackedValue, "");
@@ -148,7 +155,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     }
     const addDictValEntry = () => {
         // add the selected value to our dict array
-        let choice = {...dictSelectOptionsChoice, value: "", default_show: true, value: dictSelectOptionsChoice.default_value};
+        let choice = {...dictSelectOptionsChoice, default_show: true, value: dictSelectOptionsChoice.default_value};
         if(choice.name === "Custom..."){
             choice.name = "";
         } 
@@ -162,7 +169,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 if(cur.name === op.name){return preCount + 1}
                 return preCount;
             }, 0);
-            if(count == 0){
+            if(count === 0){
                 return [...prev, {...op}];    
             }else{
                 return [...prev]
@@ -251,6 +258,12 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         </Grid>
                     </LocalizationProvider>
                 );
+            case "File":
+                return (
+                    <Button variant="contained" component="label">
+                        { fileValue.name === "" ? "Select File" : fileValue.name }
+                    <input onChange={onFileChange} type="file" hidden /> </Button>
+                )
             case "ChooseOne":
                 return (
                     <FormControl>
@@ -383,6 +396,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 return false;
             case "String":
                 return value !== initialValue;
+            case "File":
+                return value !== "";
             case "Number":
                 return (valueNum*1) !== (initialValue *1);
             case "Boolean":

@@ -5,8 +5,9 @@ import Typography from '@mui/material/Typography';
 import {PayloadSubscriptionNotification} from './PayloadSubscriptionNotification';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {snackActions} from '../../utilities/Snackbar';
+import {UploadTaskFile} from "../../MythicComponents/MythicFileUpload";
 
- const create_payload = gql`
+const create_payload = gql`
  mutation createPayloadMutation($payload: String!) {
   createPayload(payloadDefinition: $payload) {
     error
@@ -51,20 +52,30 @@ export function Step5Build(props){
     const onChangeDescription = (name, value, error) => {
         setDescription(value);
     }
-    const finished = () => {
-        const buildParameters = props.buildOptions[1]["parameters"].map( (param) => {
-            if(param.parameter_type === "Dictionary"){
-                const newDict = param.value.reduce( (prev, cur) => {
-                    if(cur.default_show){
+    const finished = async () => {
+        let buildParameters = [];
+        for(let i = 0; i < props.buildOptions[1]["parameters"].length; i++){
+            let param = props.buildOptions[1]["parameters"][i];
+            if (param.parameter_type === "Dictionary") {
+                const newDict = param.value.reduce((prev, cur) => {
+                    if (cur.default_show) {
                         return {...prev, [cur.name]: cur.value};
                     }
                     return {...prev}
                 }, {});
-                return {name: param.name, value: newDict};
+                buildParameters.push({name: param.name, value: newDict});
+            } else if (param.parameter_type === "File") {
+                const newUUID = await UploadTaskFile(param.value, "Uploaded as build parameter for " + filename);
+                if (newUUID) {
+                    buildParameters.push({name: param.name, value: newUUID});
+                } else {
+                    snackActions.error("Failed to upload files")
+                    return;
+                }
             } else {
-                return {name: param.name, value: param.value};
+                buildParameters.push({name: param.name, value: param.value});
             }
-        });
+        }
         const c2Profiles = props.buildOptions[3].reduce( (prev, c2) => {
             if(c2.selected){
                 const parameters = c2.c2profileparameters.reduce( (prev, param) => {

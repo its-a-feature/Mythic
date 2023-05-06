@@ -38,6 +38,7 @@ const (
 	BUILD_PARAMETER_TYPE_DICTIONARY                         = "Dictionary"
 	BUILD_PARAMETER_TYPE_ARRAY                              = "Array"
 	BUILD_PARAMETER_TYPE_NUMBER                             = "Number"
+	BUILD_PARAMETER_TYPE_FILE                               = "File"
 )
 
 type BuildParameter struct {

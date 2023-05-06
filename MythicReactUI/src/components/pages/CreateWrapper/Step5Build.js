@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import {PayloadSubscriptionNotification} from '../CreatePayload/PayloadSubscriptionNotification';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {snackActions} from '../../utilities/Snackbar';
+import {UploadTaskFile} from "../../MythicComponents/MythicFileUpload";
 
  const create_payload = gql`
  mutation createPayloadMutation($payload: String!) {
@@ -50,10 +51,30 @@ export function Step5Build(props){
     const onChangeDescription = (name, value, error) => {
         setDescription(value);
     }
-    const finished = () => {
-        const buildParameters = props.buildOptions[1]["parameters"].map( (param) => {
-            return param;
-        });
+    const finished = async () => {
+        let buildParameters = [];
+        for(let i = 0; i < props.buildOptions[1]["parameters"].length; i++){
+            let param = props.buildOptions[1]["parameters"][i];
+            if (param.parameter_type === "Dictionary") {
+                const newDict = param.value.reduce((prev, cur) => {
+                    if (cur.default_show) {
+                        return {...prev, [cur.name]: cur.value};
+                    }
+                    return {...prev}
+                }, {});
+                buildParameters.push({name: param.name, value: newDict});
+            } else if (param.parameter_type === "File") {
+                const newUUID = await UploadTaskFile(param.value, "Uploaded as build parameter for " + filename);
+                if (newUUID) {
+                    buildParameters.push({name: param.name, value: newUUID});
+                } else {
+                    snackActions.error("Failed to upload files")
+                    return;
+                }
+            } else {
+                buildParameters.push({name: param.name, value: param.value});
+            }
+        }
         const finishedPayload = {
             "selected_os": props.buildOptions[0],
             "payload_type": props.buildOptions[1]["payload_type"],

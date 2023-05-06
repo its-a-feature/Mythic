@@ -36,6 +36,8 @@ func getSyncToDatabaseValueForChoices(parameterType string, choices []string, di
 		fallthrough
 	case BUILD_PARAMETER_TYPE_NUMBER:
 		fallthrough
+	case BUILD_PARAMETER_TYPE_FILE:
+		fallthrough
 	case BUILD_PARAMETER_TYPE_DATE:
 		return databaseStructs.MythicJSONArray{}, nil
 	default:
@@ -297,6 +299,17 @@ func getFinalStringForDatabaseInstanceValueFromUserSuppliedValue(parameterType s
 			logging.LogError(tmpErr, "bad type of value for parameter type *_PARAMETER_TYPE_DATE", "value", v)
 			return "", tmpErr
 		}
+	case COMMAND_PARAMETER_TYPE_FILE:
+		switch v := userSuppliedValue.(type) {
+		case string:
+			return strings.TrimSpace(v), nil
+		case nil:
+			return "", nil
+		default:
+			tmpErr := errors.New(fmt.Sprintf("bad type for *_PARAMETER_TYPE_STRING: %T", v))
+			logging.LogError(tmpErr, "bad type of value for parameter type *_PARAMETER_TYPE_STRING", "value", v)
+			return "", tmpErr
+		}
 	case COMMAND_PARAMETER_TYPE_CONNECTION_INFO:
 		fallthrough
 	case COMMAND_PARAMETER_TYPE_LINK_INFO:
@@ -304,8 +317,6 @@ func getFinalStringForDatabaseInstanceValueFromUserSuppliedValue(parameterType s
 	case COMMAND_PARAMETER_TYPE_CREDENTIAL:
 		fallthrough
 	case COMMAND_PARAMETER_TYPE_PAYLOAD_LIST:
-		fallthrough
-	case COMMAND_PARAMETER_TYPE_FILE:
 		return "", nil
 	default:
 		logging.LogError(nil, "unknown parameter type", "type", parameterType)
@@ -462,6 +473,8 @@ func GetInterfaceValueForContainer(parameterType string, finalString string, enc
 			return dictionary, nil
 		}
 	case BUILD_PARAMETER_TYPE_DATE:
+		return strings.TrimSpace(finalString), nil
+	case BUILD_PARAMETER_TYPE_FILE:
 		return strings.TrimSpace(finalString), nil
 	default:
 		logging.LogError(nil, "unknown parameter type", "type", parameterType)

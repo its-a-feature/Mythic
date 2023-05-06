@@ -49,11 +49,7 @@ export const getDefaultValueForType = (parameter) => {
         case "Array":
             return JSON.parse(parameter.default_value);
         case "Boolean":
-            if(parameter.default_value === "true"){
-                return true;
-            } else {
-                return false;
-            }
+            return parameter.default_value === "true";
         case "Dictionary":
             // this will be an array of configuration
             if(typeof parameter.choices === "string"){
@@ -66,7 +62,8 @@ export const getDefaultValueForType = (parameter) => {
                     return {...c, value: c.default_value}
                 });
             }
-            
+        case "File":
+            return {name: ""};
         case "Date":
             // date default_value is a string of a number representing the day offset
             var tmpDate = new Date();

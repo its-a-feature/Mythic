@@ -260,7 +260,7 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 			buildOutput += err.Error() + "\n"
 		} else if !opsecCheckResponse.Success {
 			checksPassed = false
-			buildOutput += opsecCheckResponse.Error + "\n"
+			buildOutput += "[-] !!! C2 OPSEC check failed !!! \n" + opsecCheckResponse.Error + "\n"
 		} else {
 			buildOutput += opsecCheckResponse.Message + "\n"
 		}
@@ -273,7 +273,7 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 			buildOutput += err.Error() + "\n"
 		} else if !configCheckResponse.Success {
 			checksPassed = false
-			buildOutput += configCheckResponse.Error + "\n"
+			buildOutput += "[-] !!! C2 Configuration check failed !!! \n" + configCheckResponse.Error + "\n"
 		} else {
 			buildOutput += configCheckResponse.Message + "\n"
 		}
@@ -292,6 +292,9 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 	}
 	if !checksPassed {
 		// one or more opsec checks failed, we need to bail out of building the payload
+		logging.LogError(nil, "One or more c2 profiles errored out for an opsec check")
+		SendAllOperationsMessage(fmt.Sprintf("C2 Profile aborted build process due to OPSEC or Configuration error"), databasePayload.OperationID,
+			"mythic_payload_build", database.MESSAGE_LEVEL_WARNING)
 		database.UpdatePayloadWithError(databasePayload, errors.New(buildOutput))
 	} else if err := RabbitMQConnection.SendStructMessage(
 		MYTHIC_EXCHANGE,
