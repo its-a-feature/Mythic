@@ -1161,7 +1161,9 @@ CREATE SEQUENCE public.callbackport_id_seq
 CREATE TABLE public.callbackport (
     id integer DEFAULT nextval('public.callbackport_id_seq'::regclass) NOT NULL,
     callback_id integer NOT NULL,
-    port integer NOT NULL,
+    local_port integer NOT NULL,
+	remote_port integer NOT NULL DEFAULT 0,
+	remote_ip text DEFAULT ''::text NOT NULL,
     task_id integer NOT NULL,
     operation_id integer NOT NULL,
     port_type text DEFAULT 'socks'::text NOT NULL

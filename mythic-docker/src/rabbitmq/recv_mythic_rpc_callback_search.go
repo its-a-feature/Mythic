@@ -14,6 +14,7 @@ import (
 
 type MythicRPCCallbackSearchMessage struct {
 	AgentCallbackUUID            string  `json:"agent_callback_id"`
+	AgentCallbackID              int     `json:"callback_id"`
 	SearchCallbackID             *int    `json:"search_callback_id"`
 	SearchCallbackDisplayID      *int    `json:"search_callback_display_id"`
 	SearchCallbackUUID           *string `json:"search_callback_uuid"`
@@ -85,7 +86,7 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 	if err := database.DB.Get(&callback, `SELECT
 		operation_id
 		FROM callback
-		WHERE agent_callback_id=$1`, input.AgentCallbackUUID); err != nil {
+		WHERE agent_callback_id=$1 OR id=$2`, input.AgentCallbackUUID, input.AgentCallbackID); err != nil {
 		logging.LogError(err, "Failed to find callback UUID")
 		response.Error = err.Error()
 		return response

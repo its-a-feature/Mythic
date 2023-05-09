@@ -31,8 +31,8 @@ export function SocksSearchTable(props){
 
     const onEditDeleted = ({id, port, port_type}) => {
         const updates = callbacks.map( (cred) => {
-            if(cred.id === id && cred.port == port && cred.port_type == port_type){
-                return {...cred, port: null}
+            if(cred.id === id && cred.local_port === port && cred.port_type === port_type){
+                return {...cred, local_port: null}
             }else{
                 return {...cred}
             }
@@ -50,7 +50,8 @@ export function SocksSearchTable(props){
                         <TableCell >Host</TableCell>
                         <TableCell >Description</TableCell>
                         <TableCell >Callback</TableCell>
-                        <TableCell >Port</TableCell>
+                        <TableCell >Local Port</TableCell>
+                        <TableCell >Remote Connection</TableCell>
                         <TableCell >Proxy Type</TableCell>
                     </TableRow>
                 </TableHead>
@@ -76,25 +77,25 @@ function CallbackSearchTableRow(props){
     const [updateDeleted] = useMutation(stopSocks, {
         onCompleted: (data) => {
             snackActions.success("Stopped proxy on that Port");
-            props.onEditDeleted({id: props.id, port: props.port, port_type: props.port_type});
+            props.onEditDeleted({id: props.id, port: props.local_port, port_type: props.port_type});
         },
         onError: (data) => {
             snackActions.error("Operation not allowed");
         }
     });
     const onAcceptDelete = () => {
-        updateDeleted({variables: {callback_id: props.callback.id, port: props.port, port_type: props.port_type}})
+        updateDeleted({variables: {callback_id: props.callback.id, port: props.local_port, port_type: props.port_type}})
     }
     return (
         <React.Fragment>
             <TableRow hover>
                 <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={"Stop Proxy"}/>
                 
-                <TableCell>{props.port ? (
+                <TableCell>{props.local_port ? (
                     <Tooltip title="Stop Proxy Port on Mythic Server">
                         <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
                     </Tooltip>
-                ) : ( null )} </TableCell>
+                ) : null} </TableCell>
                 <TableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.callback.user}</Typography>
                 </TableCell>
@@ -109,10 +110,16 @@ function CallbackSearchTableRow(props){
                     </Link>
                 </TableCell>
                 <TableCell>
-                <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.port}</Typography>
+                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.local_port}</Typography>
                 </TableCell>
                 <TableCell>
-                <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.port_type}</Typography>
+                    {props.remote_port !== 0 &&
+                        <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.remote_ip}:{props.remote_port}</Typography>
+                    }
+
+                </TableCell>
+                <TableCell>
+                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.port_type}</Typography>
                 </TableCell>
             </TableRow>
         </React.Fragment>

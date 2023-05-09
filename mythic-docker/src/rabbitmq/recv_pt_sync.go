@@ -127,12 +127,12 @@ type CommandParameter struct {
 }
 
 type CommandAttribute struct {
-	SupportedOS                                     []string          `json:"supported_os" mapstructure:"supported_os"`
-	CommandIsBuiltin                                bool              `json:"builtin" mapstructure:"builtin"`
-	CommandIsSuggested                              bool              `json:"suggested_command" mapstructure:"suggested_command"`
-	CommandCanOnlyBeLoadedLater                     bool              `json:"load_only" mapstructure:"load_only"`
-	FilterCommandAvailabilityByAgentBuildParameters map[string]string `json:"filter_by_build_parameter" mapstructure:"filter_by_build_parameter"`
-	AdditionalAttributes                            map[string]string `json:"additional_items" mapstructure:",remain"`
+	SupportedOS                                     []string               `json:"supported_os" mapstructure:"supported_os"`
+	CommandIsBuiltin                                bool                   `json:"builtin" mapstructure:"builtin"`
+	CommandIsSuggested                              bool                   `json:"suggested_command" mapstructure:"suggested_command"`
+	CommandCanOnlyBeLoadedLater                     bool                   `json:"load_only" mapstructure:"load_only"`
+	FilterCommandAvailabilityByAgentBuildParameters map[string]string      `json:"filter_by_build_parameter" mapstructure:"filter_by_build_parameter"`
+	AdditionalAttributes                            map[string]interface{} `json:"additional_items" mapstructure:",remain"`
 }
 
 type ParameterGroupInfo struct {
@@ -184,7 +184,7 @@ func processPayloadSyncMessages(msg amqp.Delivery) interface{} {
 }
 
 func payloadTypeSync(in PayloadTypeSyncMessage) error {
-	logging.LogDebug("Received connection to PayloadTypeSync", "syncMessage", in)
+	//logging.LogDebug("Received connection to PayloadTypeSync", "syncMessage", in)
 	payloadtype := databaseStructs.Payloadtype{}
 	if in.PayloadType.Name == "" {
 		logging.LogError(nil, "Can't have payload container with empty name - bad sync")
@@ -195,7 +195,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	}
 	if err := database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE name=$1`, in.PayloadType.Name); err != nil {
 		// this means we don't have the payload, so we need to create it and all the associated components
-		logging.LogDebug("Failed to find payload type, syncing new data", "payload", payloadtype)
+		//logging.LogDebug("Failed to find payload type, syncing new data", "payload", payloadtype)
 		payloadtype.Name = in.PayloadType.Name
 		payloadtype.Author = in.PayloadType.Author
 		payloadtype.ContainerRunning = true
@@ -217,12 +217,12 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 				logging.LogError(err, "Failed to create new payloadtype")
 				return err
 			} else {
-				logging.LogDebug("New payloadtype", "payloadtype", payloadtype)
+				//logging.LogDebug("New payloadtype", "payloadtype", payloadtype)
 			}
 		}
 	} else {
 		// the payload exists in the database, so we need to go down the track of updating/adding/removing information
-		logging.LogDebug("Found payload", "payload", payloadtype)
+		//logging.LogDebug("Found payload", "payload", payloadtype)
 		payloadtype.Name = in.PayloadType.Name
 		payloadtype.Author = in.PayloadType.Author
 		payloadtype.ContainerRunning = true
@@ -311,11 +311,11 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 				logging.LogError(err, "Failed to parse buildparameter into structure when syncing command")
 				return err
 			} else {
-				logging.LogDebug("Got row from buildparameter while syncing payloadtype", "row", databaseParameter)
+				//logging.LogDebug("Got row from buildparameter while syncing payloadtype", "row", databaseParameter)
 				for _, newParameter := range syncingParameters {
 					if newParameter.Name == databaseParameter.Name {
 						// we found a matching parameter name, update it
-						logging.LogDebug("Found matching newParameter.Name and databaseParameter.Name", "name", newParameter.Name)
+						//logging.LogDebug("Found matching newParameter.Name and databaseParameter.Name", "name", newParameter.Name)
 						updatedAndDeletedParameters = append(updatedAndDeletedParameters, databaseParameter.Name)
 						found = true
 						// update it
@@ -359,7 +359,7 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 				}
 			}
 			if !found {
-				logging.LogDebug("Failed to find matching parameter name, deleting parameter", "parameter", databaseParameter)
+				//logging.LogDebug("Failed to find matching parameter name, deleting parameter", "parameter", databaseParameter)
 				updatedAndDeletedParameters = append(updatedAndDeletedParameters, databaseParameter.Name)
 				// we didn't see the current parameter in the syncingParameters from the agent container
 				// this means that it once existed, but shouldn't anymore - mark it as deleted
@@ -415,7 +415,7 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 					logging.LogError(err, "Failed to create new build parameter")
 					return err
 				} else {
-					logging.LogDebug("New build parameter", "build_parameter", databaseParameter)
+					//logging.LogDebug("New build parameter", "build_parameter", databaseParameter)
 				}
 			}
 
@@ -556,7 +556,7 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 				logging.LogError(err, "Failed to parse command into structure when syncing payloadtype")
 				return err
 			} else {
-				logging.LogDebug("Got row from commands while syncing payloadtype", "row", databaseCommand)
+				//logging.LogDebug("Got row from commands while syncing payloadtype", "row", databaseCommand)
 				updatedAndDeletedCommands = append(updatedAndDeletedCommands, databaseCommand.Cmd)
 				found := false
 				for _, newCommand := range syncingCommands {
@@ -593,9 +593,10 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 						for k, v := range newCommand.CommandAttributes.AdditionalAttributes {
 							attributes[k] = v
 						}
-						logging.LogDebug("updating database attributes to new thing", "attributes", attributes, "supported_os", attributes["supported_os"], "newfeatures", newCommand.SupportedUIFeatures)
+						logging.LogDebug("updating command", "struct values", newCommand.CommandAttributes, "map values", attributes)
+						//logging.LogDebug("updating database attributes to new thing", "attributes", attributes, "supported_os", attributes["supported_os"], "newfeatures", newCommand.SupportedUIFeatures)
 						databaseCommand.Attributes = GetMythicJSONTextFromStruct(attributes)
-						logging.LogDebug("Found matching cmd when syncing payload type, time to update it", "cmd_new", databaseCommand)
+						//logging.LogDebug("Found matching cmd when syncing payload type, time to update it", "cmd_new", databaseCommand)
 						_, err = database.DB.NamedExec(`UPDATE command SET 
 							needs_admin=:needs_admin, help_cmd=:help_cmd, description=:description, "version"=:version, attributes=:attributes, 
 							supported_ui_features=:supported_ui_features, author=:author, deleted=:deleted, script_only=:script_only 
@@ -636,7 +637,7 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 		}
 	}
 	for _, newCommand := range syncingCommands {
-		logging.LogInfo("looping to see if need to add command", "updatedAndDeleted", updatedAndDeletedCommands, "current", newCommand.Name)
+		//logging.LogInfo("looping to see if need to add command", "updatedAndDeleted", updatedAndDeletedCommands, "current", newCommand.Name)
 		if utils.SliceContains(updatedAndDeletedCommands, newCommand.Name) {
 			continue
 		}
@@ -655,7 +656,7 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 			Deleted:             false,
 			ScriptOnly:          newCommand.ScriptOnlyCommand,
 		}
-		logging.LogDebug("adding a new command", "new attributes", newCommand.CommandAttributes)
+		//logging.LogDebug("adding a new command", "new attributes", newCommand.CommandAttributes)
 		attributes := map[string]interface{}{
 			"supported_os":              newCommand.CommandAttributes.SupportedOS,
 			"builtin":                   newCommand.CommandAttributes.CommandIsBuiltin,
@@ -686,7 +687,7 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 				logging.LogError(err, "Failed to create new command")
 				return err
 			} else {
-				logging.LogDebug("New command", "command", databaseCommand)
+				//logging.LogDebug("New command", "command", databaseCommand)
 				if err := updatePayloadTypeCommandParameters(in, payloadtype, newCommand.CommandParameters, databaseCommand); err != nil {
 					return err
 				} else if err := updatePayloadTypeCommandBrowserScripts(in, newCommand, databaseCommand); err != nil {
@@ -721,20 +722,20 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 				logging.LogError(err, "Failed to parse commandparameter into structure when syncing command")
 				return err
 			} else {
-				logging.LogDebug("Got row from commandparameters while syncing command", "row", databaseParameter)
+				//logging.LogDebug("Got row from commandparameters while syncing command", "row", databaseParameter)
 				found := false
 				for _, newParameter := range syncingParameters {
 					if newParameter.Name == databaseParameter.Name {
 						// we found a matching parameter name, but now need to loop through this command's parameter groups
-						logging.LogDebug("Found matching newParameter.Name and databaseParameter.Name", "name", newParameter.Name)
+						//logging.LogDebug("Found matching newParameter.Name and databaseParameter.Name", "name", newParameter.Name)
 						for _, newParameterGroup := range newParameter.ParameterGroupInformation {
-							logging.LogDebug("Looking to see if group names match", "newParameterGroup.GroupName", newParameterGroup.GroupName, "databaseParameter.ParameterGroupName", databaseParameter.ParameterGroupName)
+							//logging.LogDebug("Looking to see if group names match", "newParameterGroup.GroupName", newParameterGroup.GroupName, "databaseParameter.ParameterGroupName", databaseParameter.ParameterGroupName)
 							if newParameterGroup.GroupName == databaseParameter.ParameterGroupName {
 								// we found an exact match to update
 
 								updatedAndDeletedParameters = append(updatedAndDeletedParameters, databaseParameter.Name+databaseParameter.ParameterGroupName)
 								found = true
-								logging.LogDebug("updating found to true and appending value", "updatedAndDeletedParameters", updatedAndDeletedParameters)
+								//logging.LogDebug("updating found to true and appending value", "updatedAndDeletedParameters", updatedAndDeletedParameters)
 								// update it
 								if newParameter.CLIName == "" {
 									newParameter.CLIName = strings.ReplaceAll(newParameter.Name, " ", "-")
@@ -781,7 +782,7 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 					}
 				}
 				if !found {
-					logging.LogDebug("Failed to find matching group and parameter name")
+					//logging.LogDebug("Failed to find matching group and parameter name")
 					// we didn't see the current parameter in the syncingParameters from the agent container
 					// this means that it once existed, but shouldn't anymore - mark it as deleted
 					logging.LogDebug("Need to delete command parameter", "parameter", databaseParameter, "cmd", command)
@@ -843,7 +844,7 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 						logging.LogError(err, "Failed to create new command parameter")
 						return err
 					} else {
-						logging.LogDebug("New command parameter", "command_parameter", databaseParameter)
+						//logging.LogDebug("New command parameter", "command_parameter", databaseParameter)
 					}
 				}
 			}

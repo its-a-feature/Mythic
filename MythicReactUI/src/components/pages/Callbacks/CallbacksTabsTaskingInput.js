@@ -703,6 +703,35 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             return undefined;
         }
     }
+    const simplifyGroupNameChoices = (groupNames, cmd, parsed) => {
+        // for each option in groupNames, see if we have all the required parameters
+        // if there's 2+ options that meet all requirements, then we don't know which to do
+        // if there's 1 option that meets all requirements and 1+ that still needs more, pick the first
+        let finalGroupNames = [];
+        for(let i = 0; i < groupNames.length; i++){
+            let currentGroupName = groupNames[i];
+            let foundAllRequired = true;
+            for(let j = 0; j < cmd.commandparameters.length; j++){
+                if(cmd.commandparameters[j]["parameter_group_name"] === currentGroupName){
+                    if(cmd.commandparameters[j].required && (parsed[cmd.commandparameters[j].cli_name] === undefined &&
+                    parsed[cmd.commandparameters[j].name] === undefined)){
+                        foundAllRequired = false;
+                    }
+                }
+            }
+            if(foundAllRequired){
+                finalGroupNames.push(currentGroupName);
+            }
+        }
+        console.log(finalGroupNames)
+        if(finalGroupNames.length === 0){
+            return "";
+        } else if(finalGroupNames.length === 1){
+            return finalGroupNames[0];
+        } else {
+            return "";
+        }
+    }
     const determineCommandGroupName = (cmd, parsed) => {
         if(cmd.commandparameters.length === 0){
             return [];
@@ -714,7 +743,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             return [...prev, cur.parameter_group_name];
         }, []);
         for(const key of Object.keys(parsed)){
-            // for all of the things we've parsed out so far, determin their parameter groups
+            // for all the things we've parsed out so far, determine their parameter groups
             if( key !== "_"){
                 // we don't care about positional arguments at the moment
                 let paramGroups = [];
@@ -723,7 +752,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         paramGroups.push(cmd.commandparameters[i]["parameter_group_name"])
                     }
                 }
-                // now paramGroups has all of the group names associated with `key`
+                // now paramGroups has all the group names associated with `key`
                 // we have some set of possible options, so we need to find the intersection with paramGroups and cmdGroupOptions
                 let intersection = cmdGroupOptions.reduce( (prev, cur) => {
                     if(paramGroups.includes(cur)){
@@ -733,7 +762,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 }, [])
                 if(intersection.length === 0){
                     // this is a bad thing, we did an intersection and there's no similar paramter groups, but parameters have been supplied
-                    return [];
+                    return undefined;
                 }
                 cmdGroupOptions = [...intersection];
             }
@@ -903,7 +932,13 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             try{
                 parsedWithPositionalParameters = JSON.parse(params);
                 cmdGroupName = determineCommandGroupName(cmd, parsedWithPositionalParameters);
-                cmdGroupName.sort()
+                if(cmdGroupName !== undefined){
+                    cmdGroupName.sort()
+                } else {
+                    snackActions.warning("Two or more of the specified parameters can't be used together", snackMessageStyles);
+                    return;
+                }
+
             }catch(error){
                 snackActions.warning("Failed to parse modified JSON value", snackMessageStyles);
                 return;
@@ -917,7 +952,13 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             parsed["_"].unshift(cmd);
             //console.log(message, parsed);
             cmdGroupName = determineCommandGroupName(cmd, parsed);
-            cmdGroupName.sort();
+            if(cmdGroupName !== undefined){
+                cmdGroupName.sort();
+            } else {
+                snackActions.warning("Two or more of the specified parameters can't be used together", snackMessageStyles);
+                return;
+            }
+
             if(cmd.commandparameters.length > 0){
                 parsedWithPositionalParameters = fillOutPositionalArguments(cmd, parsed, cmdGroupName);
                 //console.log(parsedWithPositionalParameters);
@@ -942,8 +983,13 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 if(cmdGroupName.includes("Default")){
                     props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(force_parsed_popup), ["Default"], unmodifiedHistoryValue);
                 }else{
-                    snackActions.warning("Passed arguments are ambiguous, use shift+enter for modal or provide more parameters", snackMessageStyles);
-                    return;
+                    let simplifiedGroupName = simplifyGroupNameChoices(cmdGroupName, cmd, parsedWithPositionalParameters)
+                    if(simplifiedGroupName === "" ){
+                        snackActions.warning("Passed arguments are ambiguous, use shift+enter for modal or provide more parameters", snackMessageStyles);
+                        return;
+                    } else {
+                        props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(force_parsed_popup), [simplifiedGroupName], unmodifiedHistoryValue);
+                    }
                 }
             }
             setMessage("");

@@ -1923,9 +1923,11 @@
         columns:
           - callback_id
           - id
+          - local_port
           - operation_id
-          - port
           - port_type
+          - remote_ip
+          - remote_port
           - task_id
         filter:
           operation_id:
@@ -1936,9 +1938,11 @@
         columns:
           - callback_id
           - id
+          - local_port
           - operation_id
-          - port
           - port_type
+          - remote_ip
+          - remote_port
           - task_id
         filter:
           operation_id:
@@ -1949,9 +1953,11 @@
         columns:
           - callback_id
           - id
+          - local_port
           - operation_id
-          - port
           - port_type
+          - remote_ip
+          - remote_port
           - task_id
         filter:
           operation_id:
@@ -1962,9 +1968,11 @@
         columns:
           - callback_id
           - id
+          - local_port
           - operation_id
-          - port
           - port_type
+          - remote_ip
+          - remote_port
           - task_id
         filter:
           operation_id:
@@ -1975,9 +1983,11 @@
         columns:
           - callback_id
           - id
+          - local_port
           - operation_id
-          - port
           - port_type
+          - remote_ip
+          - remote_port
           - task_id
         filter:
           operation_id:

@@ -10,9 +10,11 @@ import (
 )
 
 type MythicRPCProxyStartMessage struct {
-	TaskID   int    `json:"task_id"`
-	Port     int    `json:"port"`
-	PortType string `json:"port_type"`
+	TaskID     int    `json:"task_id"`
+	LocalPort  int    `json:"local_port"`
+	RemotePort int    `json:"remote_port"`
+	RemoteIP   string `json:"remote_ip"`
+	PortType   string `json:"port_type"`
 }
 type MythicRPCProxyStartMessageResponse struct {
 	Success bool   `json:"success"`
@@ -41,7 +43,7 @@ func MythicRPCProxyStart(input MythicRPCProxyStartMessage) MythicRPCProxyStartMe
 		response.Error = err.Error()
 		return response
 	} else {
-		if err := proxyPorts.Add(task.CallbackID, input.PortType, input.Port, task.ID, task.OperationID); err != nil {
+		if err := proxyPorts.Add(task.CallbackID, input.PortType, input.LocalPort, input.RemotePort, input.RemoteIP, task.ID, task.OperationID); err != nil {
 			logging.LogError(err, "Failed to add new callback port")
 			response.Error = err.Error()
 			return response

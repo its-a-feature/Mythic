@@ -458,13 +458,21 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 		if _, ok := decryptedMessage[CALLBACK_PORT_TYPE_SOCKS]; ok {
 			socksMessages := []proxyFromAgentMessage{}
 			//logging.LogDebug("got socks data from agent", "data", decryptedMessage[CALLBACK_PORT_TYPE_SOCKS])
-			if err := mapstructure.Decode(decryptedMessage[CALLBACK_PORT_TYPE_SOCKS], &socksMessages); err != nil {
-				logging.LogError(err, "Failed to convert agent socks message to proxyToAgentMessage struct")
+			if err = mapstructure.Decode(decryptedMessage[CALLBACK_PORT_TYPE_SOCKS], &socksMessages); err != nil {
+				logging.LogError(err, "Failed to convert agent socks message to proxyFromAgentMessage struct")
 			} else {
 				//logging.LogDebug("got socks data from agent mapped into struct", "data", socksMessages)
 				go proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_SOCKS, socksMessages)
 			}
-
+		}
+		if _, ok := decryptedMessage[CALLBACK_PORT_TYPE_RPORTFWD]; ok {
+			rpfwdMessages := []proxyFromAgentMessage{}
+			if err = mapstructure.Decode(decryptedMessage[CALLBACK_PORT_TYPE_RPORTFWD], &rpfwdMessages); err != nil {
+				logging.LogError(err, "Failed to convert agent socks message to proxyFromAgentMessage struct")
+			} else {
+				//logging.LogDebug("got rpfwd data from agent mapped into struct", "data", socksMessages)
+				go proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_RPORTFWD, rpfwdMessages)
+			}
 		}
 		// regardless of the message type, get proxy data if it exists
 		delegateResponses = append(delegateResponses, getDelegateProxyMessages(uuidInfo, agentUUIDLength)...)
@@ -476,6 +484,11 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			logging.LogError(err, "Failed to get proxy data")
 		} else if proxyData != nil {
 			response[CALLBACK_PORT_TYPE_SOCKS] = proxyData
+		}
+		if proxyData, err := proxyPorts.GetDataForCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_RPORTFWD); err != nil {
+			logging.LogError(err, "Failed to get proxy data")
+		} else if proxyData != nil {
+			response[CALLBACK_PORT_TYPE_RPORTFWD] = proxyData
 		}
 		response["action"] = decryptedMessage["action"]
 		if utils.MythicConfig.DebugAgentMessage {

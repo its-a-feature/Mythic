@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0-rc53] - 2023-05-09
+
+### Changed
+
+- Modified MythicRPCProxyStart to support rportfwd
+- Updated Dockerfile build to user smaller base images and use multi-stage builds to reduce final size
+- Docker images updated:
+  - itsafeaturemythic/mythic_base_go       <-- go1.20 with garble and gRPC
+  - itsafeaturemythic/mythic_base_python   <-- python 3.11 with the latest mythic_container PyPi package installed
+  - itsafeaturemythic/mythic_go_dotnet     <-- mythic_go_base + .NET Core 7.0 SDK, nuget, and the Mono compiler
+  - itsafeaturemythic/mythic_python_dotnet <-- mythic_python_base + .NET Core 7.0 SDK, nuget, and the Mono compiler
+  - itsafeaturemythic/mythic_go_macos      <-- mythic_go_base + macOS 12.1 SDK
+  - itsafeaturemythic/mythic_python_macos  <-- mythic_python_base + macOS 12.1 SDK
+  - All docker images now have a rolling `:latest` tag that can be used
+  - All docker images (and mythic-cli builds) now work for ARM as well as x86_64
+- Fixed an issue with additional attributes not getting captured for commands
+
 ## [3.0.0-rc52] - 2023-05-05
 
 ### Added

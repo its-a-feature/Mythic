@@ -15,7 +15,7 @@ MYTHIC_DEFAULT_OPERATION?="Operation Chimera"
 MYTHIC_DEBUG_AGENT_MESSAGE?=false
 
 build:
-	go build -o ${BINARY_NAME} -tags="nomsgpack" .
+	CGO_ENABLED=0 go build -o ${BINARY_NAME} -tags="nomsgpack" .
 copy_to_final:
 	cp ${BINARY_NAME} /
 copy_from_final:

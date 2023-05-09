@@ -20,7 +20,7 @@ From there, you can run `sudo ./mythic-cli start` to bring up all default Mythic
 
 The Mythic repository itself does not host any Payload Types or any C2 Profiles. Instead, Mythic provides a command, `./mythic-cli install github <url> [branch name] [-f]`, that can be used to install agents into a current Mythic instance.
 
-Payload Types are hosted on the [MythicAgents](https://github.com/MythicAgents) organization and C2 Profiles are hosted on the [MythiC2Profiles](https://github.com/MythicC2Profiles) organization.
+Payload Types and C2 Profiles can be found on the [overview](https://mythicmeta.github.io/overview) page.
 
 To install an agent, simply run the script and provide an argument of the path to the agent on GitHub:
 ```bash
@@ -32,25 +32,31 @@ The same is true for installing C2 Profiles:
 sudo ./mythic-cli install github https://github.com/MythicC2Profiles/http
 ```
 
-This is a slight departure from previous Mythic versions which included a few default Payload Types and C2 Profiles within this repository. This change allows the agents and c2 profiles to be updated at a much more regular pace and finally separates out the Mythic Core components from the rest of Mythic. 
+This is a slight departure from previous Mythic versions which included a few default Payload Types and C2 Profiles within this repository. This change allows the agents and c2 profiles to be updated at a much more regular pace and finally separates out the Mythic Core components from the rest of Mythic.
+
+## Updating
+
+Use the `./mythic-cli update` command to check for available updates across `mythic-cli`, `mythic_server`, and `mythic_react`'s UI. 
+This will _NOT_ do the update for you, but let you know if an update exists. To check for updates against a specific branch, use `./mythic-cli update -b [branch name]`.
+
 
 ## Mythic Container Configurations & PyPi Packages
 
 Mythic uses Docker and Docker-compose for all of its components, which allows Mythic to provide a wide range of components and features without having requirements exist on the host. However, it can be helpful to have insight into how the containers are configured. All of Mythic's docker containers are hosted on DockerHub under [itsafeaturemythic](https://hub.docker.com/search?q=itsafeaturemythic&type=image).
 
-Additionally, Mythic uses a custom PyPi package (mythic_container) and a custom Golang package (https://github.com/MythicMeta/MythicContainer) to help control and sync information between all of the containers as well as providing an easy way to script access to the server.
+- [mythic_go_base](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_go_base/general)
+- [mythic_go_dotnet](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_go_dotnet/general)
+- [mythic_go_macos]()
+- [mythic_python_base](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_python_base/general)
+- [mythic_python_dotnet](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_python_dotnet/general)
+- [mythic_python_macos]()
+- [mythic_python_go](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_python_go/general)
+
+Additionally, Mythic uses a custom PyPi package (mythic_container) and a custom Golang package (https://github.com/MythicMeta/MythicContainer) to help control and sync information between all the containers as well as providing an easy way to script access to the server.
 
 All of this can be found on the [MythicMeta](https://github.com/MythicMeta):  
-* PyPi source code for all packages uploaded to PyPi
-* Scripting source code
-
-## Current Container PyPi Package requirements
-
-The current PyPi package for Mythic v3.0.0 is mythic_container==0.2.0-rc1.
-
-## Current Container Golang Package requirements
-
-The current Golang package for Mythic v3.0.0 is at github.com/MythicMeta/MythicContainer
+* PyPi source code for all packages uploaded to PyPi (https://github.com/MythicMeta/MythicContainerPyPi)
+* Scripting source code (https://github.com/MythicMeta/Mythic_Scripting)
 
 ## Documentation
 
@@ -68,9 +74,6 @@ The following people have contributed a lot to the project. As you see their han
 
 ## Sponsors
 
-Mythic is very fortunate that the following people/corporations have sponsored the continued development efforts of Mythic at the $20+/month rate:
-
-- Matthew Conway (@mattreduce): April 2022 - Present
 
 ## Liability
 

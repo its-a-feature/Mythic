@@ -2,15 +2,13 @@ import {MythicTabPanel, MythicSearchTabLabel} from '../../MythicComponents/Mythi
 import React, { useEffect } from 'react';
 import { gql, useLazyQuery, useQuery} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
-import Pagination from '@mui/material/Pagination';
-import { Typography } from '@mui/material';
 import {SocksSearchTable} from './SocksSearchTable';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faSocks} from '@fortawesome/free-solid-svg-icons';
 
 const userSearch = gql`
-query portsQuery($operation_id: Int!) {
-    callbackport(distinct_on: id, order_by: {id: desc}, where: {operation_id: {_eq: $operation_id}}) {
+query portsQuery{
+    callbackport(distinct_on: id, order_by: {id: desc}) {
         callback {
             user
             host
@@ -25,9 +23,12 @@ query portsQuery($operation_id: Int!) {
             init_callback
             last_checkin
         }
-        port
+        local_port
+        remote_port
+        remote_ip
         port_type
         task_id
+        id
     }
 }
 `;
@@ -41,9 +42,7 @@ export function SearchTabSocksLabel(props){
 
 export const SearchTabSocksPanel = (props) =>{
     const [callbackData, setCallbackData] = React.useState([]);
-    const me = props.me;
     useQuery(userSearch, {
-        variables: {operation_id: me?.user?.current_operation_id || 0},
         fetchPolicy: "network-only",
         onCompleted: (data) => {
             snackActions.dismiss();

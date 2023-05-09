@@ -1,5 +1,4 @@
-#FROM itsafeaturemythic/mythic_base_image:0.0.2
-FROM itsafeaturemythic/mythic_base:latest
+FROM itsafeaturemythic/mythic_go_base:latest
 
 WORKDIR /usr/src/app
 
@@ -7,4 +6,10 @@ COPY ["src/", "."]
 
 RUN make build_final
 
-CMD ["/bin/bash", "-c", "cp /mythic_server . && ./mythic_server" ]
+FROM alpine
+
+COPY --from=0 /mythic_server /mythic_server
+
+WORKDIR /usr/src/app
+
+CMD ["/bin/sh", "-c", "cp /mythic_server . && ./mythic_server" ]

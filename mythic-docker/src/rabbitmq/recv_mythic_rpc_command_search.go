@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/its-a-feature/Mythic/utils"
 	"reflect"
 
@@ -49,6 +50,19 @@ func init() {
 	})
 }
 
+func interfaceArrayToStringArray(input []interface{}) []string {
+	stringArray := make([]string, len(input))
+	for i := 0; i < len(input); i++ {
+		switch v := input[i].(type) {
+		case string:
+			stringArray[i] = v
+		default:
+			stringArray[i] = fmt.Sprintf("%v", v)
+		}
+	}
+	return stringArray
+}
+
 // MYTHIC_RPC_OBJECT_ACTION - Say what the function does
 func MythicRPCCommandSearch(input MythicRPCCommandSearchMessage) MythicRPCCommandSearchMessageResponse {
 	response := MythicRPCCommandSearchMessageResponse{
@@ -79,10 +93,7 @@ func MythicRPCCommandSearch(input MythicRPCCommandSearchMessage) MythicRPCComman
 			}
 		}
 		uiFeatures := command.SupportedUiFeatures.StructValue()
-		stringUIFeatures := make([]string, len(uiFeatures))
-		for i, u := range uiFeatures {
-			stringUIFeatures[i] = u.(string)
-		}
+		stringUIFeatures := interfaceArrayToStringArray(uiFeatures)
 		attributes := map[string]interface{}{}
 		if err := command.Attributes.Unmarshal(&attributes); err != nil {
 			logging.LogError(err, "Failed to get attributes from command")
@@ -95,32 +106,51 @@ func MythicRPCCommandSearch(input MythicRPCCommandSearchMessage) MythicRPCComman
 			}
 		}
 		if input.SearchOs != nil {
+			logging.LogInfo("Searching supported OS", "os", *input.SearchOs)
 			attributeSupportedOS := attributes["supported_os"].([]interface{})
-			supportedOS := make([]string, len(attributeSupportedOS))
-			for i := 0; i < len(attributeSupportedOS); i++ {
-				supportedOS[i] = attributeSupportedOS[i].(string)
-			}
+			supportedOS := interfaceArrayToStringArray(attributeSupportedOS)
 			if len(supportedOS) != 0 {
 				if !utils.SliceContains(supportedOS, *input.SearchOs) {
 					continue
 				}
 			}
+			logging.LogInfo("matched OS requirement")
 		}
 		if input.SearchAttributes != nil {
 			matchedValues := true
+			logging.LogInfo("Search attributes", "raw", input.SearchAttributes, "command attributes", attributes)
 			for searchKey, searchValue := range input.SearchAttributes {
 				if actualValue, ok := attributes[searchKey]; ok {
-					switch searchValue.(type) {
+					logging.LogInfo("Searching attributes", "search value", searchValue, "search key", searchKey, "actual value", actualValue)
+					switch v := actualValue.(type) {
 					case []interface{}:
-						if !reflect.DeepEqual(searchValue, actualValue) {
-							matchedValues = false
+						actualArray := interfaceArrayToStringArray(v)
+						var searchArray []string
+						switch s := searchValue.(type) {
+						case []interface{}:
+							searchArray = interfaceArrayToStringArray(s)
+						default:
+							searchArray = []string{fmt.Sprintf("%v", s)}
+						}
+						logging.LogInfo("checking arrays", "search", searchArray, "actual", actualArray)
+						// need to make sure every value in searchArray is in actualArray
+						for i, _ := range searchArray {
+							if !utils.SliceContains(actualArray, searchArray[i]) {
+								matchedValues = false
+							}
 						}
 					case map[string]interface{}:
-						if !reflect.DeepEqual(searchValue, actualValue) {
-							matchedValues = false
+						searchMap := searchValue.(map[string]interface{})
+						logging.LogInfo("checking maps", "search", searchMap, "actual", v)
+						for skey, sval := range searchMap {
+							if aval, ok := v[skey]; !ok {
+								matchedValues = false
+							} else if !reflect.DeepEqual(sval, aval) {
+								matchedValues = false
+							}
 						}
 					default:
-						if searchValue != actualValue {
+						if !reflect.DeepEqual(searchValue, v) {
 							matchedValues = false
 						}
 					}
