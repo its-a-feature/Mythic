@@ -2628,14 +2628,6 @@ ALTER TABLE ONLY public.callbackport
 
 
 --
--- Name: callbackport callbackport_port_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.callbackport
-    ADD CONSTRAINT callbackport_port_key UNIQUE (port);
-
-
---
 -- Name: callbacktoken callbacktoken_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
