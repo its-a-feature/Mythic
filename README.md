@@ -52,58 +52,64 @@ This will _NOT_ do the update for you, but let you know if an update exists. To 
 
 
 ## Mythic Docker Containers
-<img src="https://img.shields.io/docker/v/itsafeaturemythic/mythic_go_base?color=green&label=latest&sort=semver&style=plastic"/> 
+<img src="https://img.shields.io/docker/v/itsafeaturemythic/mythic_go_base?color=green&label=latest&sort=semver&style=plastic" alt="latest docker versions"/> 
 
 Mythic uses Docker and Docker-compose for all of its components, which allows Mythic to provide a wide range of components and features without having requirements exist on the host. However, it can be helpful to have insight into how the containers are configured. All of Mythic's docker containers are hosted on DockerHub under [itsafeaturemythic](https://hub.docker.com/search?q=itsafeaturemythic&type=image).
 
 - [mythic_go_base](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_go_base/general)
-  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_go_base/latest"/>
-  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_go_base" />
+  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_go_base/latest" alt="image size"/>
+  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_go_base" alt="docker pull count" />
 - [mythic_go_dotnet](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_go_dotnet/general) 
-  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_go_dotnet/latest"/>
-  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_go_dotnet" />
+  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_go_dotnet/latest" alt="image size"/>
+  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_go_dotnet" alt="docker pull count"/>
 - [mythic_go_macos](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_go_macos/general) 
-  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_go_macos/latest"/>
-  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_go_macos" />
+  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_go_macos/latest" alt="image size"/>
+  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_go_macos" alt="docker pull count"/>
 - [mythic_python_base](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_python_base/general) 
-  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_python_base/latest"/>
-  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_python_base" />
+  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_python_base/latest" alt="image size"/>
+  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_python_base" alt="docker pull count"/>
 - [mythic_python_dotnet](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_python_dotnet/general) 
-  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_python_dotnet/latest"/>
-  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_python_dotnet" />
+  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_python_dotnet/latest" alt="image size"/>
+  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_python_dotnet" alt="docker pull count"/>
 - [mythic_python_macos](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_python_macos/general) 
-  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_python_macos/latest"/>
-  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_python_macos" />
+  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_python_macos/latest" alt="image size"/>
+  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_python_macos" alt="docker pull count"/>
 - [mythic_python_go](https://hub.docker.com/repository/docker/itsafeaturemythic/mythic_python_go/general) 
-  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_python_go/latest"/>
-  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_python_go" />
+  - <img src="https://img.shields.io/docker/image-size/itsafeaturemythic/mythic_python_go/latest" alt="image size"/>
+  - <img src="https://img.shields.io/docker/pulls/itsafeaturemythic/mythic_python_go" alt="docker pull count"/>
 
 Additionally, Mythic uses a custom PyPi package (mythic_container) and a custom Golang package (https://github.com/MythicMeta/MythicContainer) to help control and sync information between all the containers as well as providing an easy way to script access to the server.
 
 Dockerfiles for each of these Docker images can be found on [MythicMeta](https://github.com/MythicMeta/Mythic_Docker_Templates).
 
 ### mythic-container PyPi
-<img src="https://img.shields.io/pypi/dm/mythic-container" />
-<img src="https://img.shields.io/pypi/pyversions/mythic-container" />
-<img src="https://img.shields.io/pypi/v/mythic-container?color=green&label=latest%20PyPi" />
+<p align="left">
+  <img src="https://img.shields.io/pypi/dm/mythic-container" alt="mythic-container downloads" />
+  <img src="https://img.shields.io/pypi/pyversions/mythic-container" alt="mythic-container python version" />
+  <img src="https://img.shields.io/pypi/v/mythic-container?color=green&label=latest%20PyPi" alt="mythic-container version" />
+</p>
 
 The `mythic-container` PyPi package source code is available on [MythicMeta](https://github.com/MythicMeta/MythicContainerPyPi) and is automatically installed on all of the `mythic_python_*` Docker images.
 
 This PyPi package is responsible for connecting to RabbitMQ, syncing your data to Mythic, and responding to things like Tasking, Webhooks, and configuration updates.
 
 ### github.com/MythicMeta/MythicContainer
-<img src="https://img.shields.io/github/go-mod/go-version/MythicMeta/MythicContainer"/>
-<img src="https://img.shields.io/github/v/release/MythicMeta/MythicContainer?include_prereleases&label=Latest&color=orange" />
-<img src="https://img.shields.io/github/v/release/MythicMeta/MythicContainer?label=Latest%20Stable" />
+<p align="left">
+  <img src="https://img.shields.io/github/go-mod/go-version/MythicMeta/MythicContainer" alt="MythicContainer go version"/>
+  <img src="https://img.shields.io/github/v/release/MythicMeta/MythicContainer?include_prereleases&label=Latest&color=orange" alt="MythicContainer latest version" />
+  <img src="https://img.shields.io/github/v/release/MythicMeta/MythicContainer?label=Latest%20Stable" alt="MythicContainer latest stable version" />
+</p>
 
 The `github.com/MythicMeta/MythicContainer` Golang package source code is available on [MythicMeta](https://github.com/MythicMeta/MythicContainer).
 
 This Golang package is responsible for connecting to RabbitMQ, syncing your data to Mythic, and responding to things like Tasking, Webhooks, and configuration updates.
 
 ## Mythic Scripting
-<img src="https://img.shields.io/pypi/dm/mythic" />
-<img src="https://img.shields.io/pypi/pyversions/mythic" />
-<img src="https://img.shields.io/pypi/v/mythic?color=green&label=latest%20PyPi" />
+<p align="left">
+  <img src="https://img.shields.io/pypi/dm/mythic" alt="mythic scripting downloads" />
+  <img src="https://img.shields.io/pypi/pyversions/mythic" alt="mythic scripting python version" />
+  <img src="https://img.shields.io/pypi/v/mythic?color=green&label=latest%20PyPi" alt="mythic scripting latest pypi version" />
+</p>
 
 
 * Scripting source code (https://github.com/MythicMeta/Mythic_Scripting)
