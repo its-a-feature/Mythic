@@ -24,3 +24,12 @@ other = "更多"
 
 [Expand-title]
 other = "展开"
+
+[Byte-symbol]
+other = "B"
+
+[Kilobyte-symbol]
+other = "KB"
+
+[Megabyte-symbol]
+other = "MB"

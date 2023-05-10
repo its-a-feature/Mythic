@@ -1,7 +1,6 @@
 +++
 chapter = false
 title = "Mythic"
-alwaysopen = true
 +++
 
 # Mythic
@@ -17,3 +16,5 @@ For each agent you will find overview information, operational security consider
 For each C2 profile you will find overview information, opsec considerations, developer information, and traffic flow for what it looks like on the wire.
 
 For each wrapper you'll find overview info, opsec considerations, and developer information about what the wrapper aims to accomplish.
+
+{{% children  %}}

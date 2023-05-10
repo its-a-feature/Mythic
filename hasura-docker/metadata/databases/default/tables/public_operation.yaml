@@ -27,6 +27,13 @@ array_relationships:
         table:
           name: callbackgraphedge
           schema: public
+  - name: callbackports
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: callbackport
+          schema: public
   - name: callbacks
     using:
       foreign_key_constraint_on:
@@ -111,19 +118,26 @@ array_relationships:
         table:
           name: process
           schema: public
+  - name: tags
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: tag
+          schema: public
+  - name: tagtypes
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: tagtype
+          schema: public
   - name: taskartifacts
     using:
       foreign_key_constraint_on:
         column: operation_id
         table:
           name: taskartifact
-          schema: public
-  - name: tasktags
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          name: tasktag
           schema: public
 select_permissions:
   - role: developer

@@ -1,1 +1,0 @@
-FROM itsafeaturemythic/python38_translator_container:0.0.5

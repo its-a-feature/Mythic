@@ -42,6 +42,13 @@ array_relationships:
         table:
           name: callback
           schema: public
+  - name: payload_build_steps
+    using:
+      foreign_key_constraint_on:
+        column: payload_id
+        table:
+          name: payload_build_step
+          schema: public
   - name: payloadc2profiles
     using:
       foreign_key_constraint_on:
@@ -82,24 +89,25 @@ select_permissions:
     permission:
       columns:
         - auto_generated
-        - build_container
-        - build_message
-        - build_phase
-        - build_stderr
-        - build_stdout
         - callback_alert
-        - creation_time
         - deleted
         - file_id
         - id
         - operation_id
         - operator_id
-        - os
         - payload_type_id
-        - tag
         - task_id
-        - uuid
         - wrapped_payload_id
+        - build_container
+        - build_message
+        - build_phase
+        - build_stderr
+        - build_stdout
+        - description
+        - os
+        - uuid
+        - creation_time
+        - updated_at
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -107,24 +115,25 @@ select_permissions:
     permission:
       columns:
         - auto_generated
-        - build_container
-        - build_message
-        - build_phase
-        - build_stderr
-        - build_stdout
         - callback_alert
-        - creation_time
         - deleted
         - file_id
         - id
         - operation_id
         - operator_id
-        - os
         - payload_type_id
-        - tag
         - task_id
-        - uuid
         - wrapped_payload_id
+        - build_container
+        - build_message
+        - build_phase
+        - build_stderr
+        - build_stdout
+        - description
+        - os
+        - uuid
+        - creation_time
+        - updated_at
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -132,24 +141,25 @@ select_permissions:
     permission:
       columns:
         - auto_generated
-        - build_container
-        - build_message
-        - build_phase
-        - build_stderr
-        - build_stdout
         - callback_alert
-        - creation_time
         - deleted
         - file_id
         - id
         - operation_id
         - operator_id
-        - os
         - payload_type_id
-        - tag
         - task_id
-        - uuid
         - wrapped_payload_id
+        - build_container
+        - build_message
+        - build_phase
+        - build_stderr
+        - build_stdout
+        - description
+        - os
+        - uuid
+        - creation_time
+        - updated_at
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -157,24 +167,25 @@ select_permissions:
     permission:
       columns:
         - auto_generated
-        - build_container
-        - build_message
-        - build_phase
-        - build_stderr
-        - build_stdout
         - callback_alert
-        - creation_time
         - deleted
         - file_id
         - id
         - operation_id
         - operator_id
-        - os
         - payload_type_id
-        - tag
         - task_id
-        - uuid
         - wrapped_payload_id
+        - build_container
+        - build_message
+        - build_phase
+        - build_stderr
+        - build_stdout
+        - description
+        - os
+        - uuid
+        - creation_time
+        - updated_at
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -182,24 +193,25 @@ select_permissions:
     permission:
       columns:
         - auto_generated
-        - build_container
-        - build_message
-        - build_phase
-        - build_stderr
-        - build_stdout
         - callback_alert
-        - creation_time
         - deleted
         - file_id
         - id
         - operation_id
         - operator_id
-        - os
         - payload_type_id
-        - tag
         - task_id
-        - uuid
         - wrapped_payload_id
+        - build_container
+        - build_message
+        - build_phase
+        - build_stderr
+        - build_stdout
+        - description
+        - os
+        - uuid
+        - creation_time
+        - updated_at
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -209,7 +221,7 @@ update_permissions:
       columns:
         - callback_alert
         - deleted
-        - tag
+        - description
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -219,7 +231,7 @@ update_permissions:
       columns:
         - callback_alert
         - deleted
-        - tag
+        - description
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -229,7 +241,7 @@ update_permissions:
       columns:
         - callback_alert
         - deleted
-        - tag
+        - description
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -239,7 +251,7 @@ update_permissions:
       columns:
         - callback_alert
         - deleted
-        - tag
+        - description
       filter:
         operation_id:
           _in: X-Hasura-operations

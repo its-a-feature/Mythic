@@ -1,0 +1,169 @@
+table:
+  name: tagtype
+  schema: public
+object_relationships:
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+array_relationships:
+  - name: tags
+    using:
+      foreign_key_constraint_on:
+        column: tagtype_id
+        table:
+          name: tag
+          schema: public
+insert_permissions:
+  - role: developer
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - color
+        - description
+        - name
+        - operation_id
+  - role: mythic_admin
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - color
+        - description
+        - name
+        - operation_id
+  - role: operation_admin
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - color
+        - description
+        - name
+        - operation_id
+  - role: operator
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - color
+        - description
+        - name
+        - operation_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - name
+        - color
+        - description
+        - operation_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - name
+        - color
+        - description
+        - operation_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - name
+        - color
+        - description
+        - operation_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - id
+        - name
+        - color
+        - description
+        - operation_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - name
+        - color
+        - description
+        - operation_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - color
+        - description
+        - name
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - color
+        - description
+        - name
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - color
+        - description
+        - name
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - color
+        - description
+        - name
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations

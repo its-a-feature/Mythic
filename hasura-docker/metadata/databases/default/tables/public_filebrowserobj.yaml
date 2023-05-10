@@ -26,6 +26,13 @@ array_relationships:
         table:
           name: filemeta
           schema: public
+  - name: tags
+    using:
+      foreign_key_constraint_on:
+        column: filebrowser_id
+        table:
+          name: tag
+          schema: public
 computed_fields:
   - name: full_path_text
     definition:

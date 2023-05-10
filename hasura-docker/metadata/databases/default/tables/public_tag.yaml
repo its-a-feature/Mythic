@@ -1,0 +1,339 @@
+table:
+  name: tag
+  schema: public
+object_relationships:
+  - name: credential
+    using:
+      foreign_key_constraint_on: credential_id
+  - name: filebrowserobj
+    using:
+      foreign_key_constraint_on: filebrowser_id
+  - name: filemetum
+    using:
+      foreign_key_constraint_on: filemeta_id
+  - name: keylog
+    using:
+      foreign_key_constraint_on: keylog_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: process
+    using:
+      foreign_key_constraint_on: process_id
+  - name: response
+    using:
+      foreign_key_constraint_on: response_id
+  - name: tagtype
+    using:
+      foreign_key_constraint_on: tagtype_id
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+  - name: taskartifact
+    using:
+      foreign_key_constraint_on: taskartifact_id
+insert_permissions:
+  - role: developer
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - credential_id
+        - filebrowser_id
+        - filemeta_id
+        - id
+        - keylog_id
+        - operation_id
+        - process_id
+        - response_id
+        - tagtype_id
+        - task_id
+        - taskartifact_id
+        - data
+        - source
+        - url
+  - role: mythic_admin
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - credential_id
+        - filebrowser_id
+        - filemeta_id
+        - id
+        - keylog_id
+        - operation_id
+        - process_id
+        - response_id
+        - tagtype_id
+        - task_id
+        - taskartifact_id
+        - data
+        - source
+        - url
+  - role: operation_admin
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - credential_id
+        - filebrowser_id
+        - filemeta_id
+        - id
+        - keylog_id
+        - operation_id
+        - process_id
+        - response_id
+        - tagtype_id
+        - task_id
+        - taskartifact_id
+        - data
+        - source
+        - url
+  - role: operator
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - credential_id
+        - filebrowser_id
+        - filemeta_id
+        - id
+        - keylog_id
+        - operation_id
+        - process_id
+        - response_id
+        - tagtype_id
+        - task_id
+        - taskartifact_id
+        - data
+        - source
+        - url
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - tagtype_id
+        - data
+        - url
+        - operation_id
+        - filemeta_id
+        - filebrowser_id
+        - process_id
+        - credential_id
+        - task_id
+        - taskartifact_id
+        - keylog_id
+        - response_id
+        - source
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - tagtype_id
+        - data
+        - url
+        - operation_id
+        - filemeta_id
+        - filebrowser_id
+        - process_id
+        - credential_id
+        - task_id
+        - taskartifact_id
+        - keylog_id
+        - response_id
+        - source
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - tagtype_id
+        - data
+        - url
+        - operation_id
+        - filemeta_id
+        - filebrowser_id
+        - process_id
+        - credential_id
+        - task_id
+        - taskartifact_id
+        - keylog_id
+        - response_id
+        - source
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - id
+        - tagtype_id
+        - data
+        - url
+        - operation_id
+        - filemeta_id
+        - filebrowser_id
+        - process_id
+        - credential_id
+        - task_id
+        - taskartifact_id
+        - keylog_id
+        - response_id
+        - source
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - tagtype_id
+        - data
+        - url
+        - operation_id
+        - filemeta_id
+        - filebrowser_id
+        - process_id
+        - credential_id
+        - task_id
+        - taskartifact_id
+        - keylog_id
+        - response_id
+        - source
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - credential_id
+        - data
+        - filebrowser_id
+        - filemeta_id
+        - id
+        - keylog_id
+        - operation_id
+        - process_id
+        - response_id
+        - source
+        - task_id
+        - taskartifact_id
+        - url
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - credential_id
+        - data
+        - filebrowser_id
+        - filemeta_id
+        - id
+        - keylog_id
+        - operation_id
+        - process_id
+        - response_id
+        - source
+        - task_id
+        - taskartifact_id
+        - url
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - credential_id
+        - data
+        - filebrowser_id
+        - filemeta_id
+        - id
+        - keylog_id
+        - operation_id
+        - process_id
+        - response_id
+        - source
+        - task_id
+        - taskartifact_id
+        - url
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - credential_id
+        - data
+        - filebrowser_id
+        - filemeta_id
+        - id
+        - keylog_id
+        - operation_id
+        - process_id
+        - response_id
+        - source
+        - task_id
+        - taskartifact_id
+        - url
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+delete_permissions:
+  - role: developer
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations

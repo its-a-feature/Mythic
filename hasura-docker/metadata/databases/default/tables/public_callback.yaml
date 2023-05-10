@@ -14,9 +14,6 @@ object_relationships:
   - name: payload
     using:
       foreign_key_constraint_on: registered_payload_id
-  - name: task
-    using:
-      foreign_key_constraint_on: socks_task_id
 array_relationships:
   - name: c2profileparametersinstances
     using:
@@ -24,13 +21,6 @@ array_relationships:
         column: callback_id
         table:
           name: c2profileparametersinstance
-          schema: public
-  - name: callbackaccesstimes
-    using:
-      foreign_key_constraint_on:
-        column: callback_id
-        table:
-          name: callbackaccesstime
           schema: public
   - name: callbackc2profiles
     using:
@@ -52,6 +42,13 @@ array_relationships:
         column: destination_id
         table:
           name: callbackgraphedge
+          schema: public
+  - name: callbackports
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          name: callbackport
           schema: public
   - name: callbacktokens
     using:
@@ -91,192 +88,192 @@ select_permissions:
   - role: developer
     permission:
       columns:
-        - id
-        - agent_callback_id
-        - init_callback
-        - last_checkin
-        - user
-        - host
-        - pid
-        - ip
-        - external_ip
-        - process_name
-        - description
-        - operator_id
         - active
-        - registered_payload_id
-        - integrity_level
         - locked
-        - locked_operator_id
-        - operation_id
-        - crypto_type
         - dec_key
         - enc_key
-        - os
+        - display_id
+        - id
+        - integrity_level
+        - locked_operator_id
+        - operation_id
+        - operator_id
+        - pid
+        - registered_payload_id
+        - agent_callback_id
         - architecture
+        - crypto_type
+        - description
         - domain
-        - port
+        - external_ip
         - extra_info
+        - host
+        - ip
+        - os
+        - process_name
         - sleep_info
-        - socks_task_id
+        - user
+        - updated_at
+        - init_callback
+        - last_checkin
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
         operation_id:
-          _in: X-Hasura-operations
+          _eq: X-Hasura-current-operation-id
       allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
-        - id
-        - agent_callback_id
-        - init_callback
-        - last_checkin
-        - user
-        - host
-        - pid
-        - ip
-        - external_ip
-        - process_name
-        - description
-        - operator_id
         - active
-        - registered_payload_id
-        - integrity_level
         - locked
-        - locked_operator_id
-        - operation_id
-        - crypto_type
         - dec_key
         - enc_key
-        - os
+        - display_id
+        - id
+        - integrity_level
+        - locked_operator_id
+        - operation_id
+        - operator_id
+        - pid
+        - registered_payload_id
+        - agent_callback_id
         - architecture
+        - crypto_type
+        - description
         - domain
-        - port
+        - external_ip
         - extra_info
+        - host
+        - ip
+        - os
+        - process_name
         - sleep_info
-        - socks_task_id
+        - user
+        - updated_at
+        - init_callback
+        - last_checkin
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
         operation_id:
-          _in: X-Hasura-operations
+          _eq: X-Hasura-current-operation-id
       allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
-        - id
-        - agent_callback_id
-        - init_callback
-        - last_checkin
-        - user
-        - host
-        - pid
-        - ip
-        - external_ip
-        - process_name
-        - description
-        - operator_id
         - active
-        - registered_payload_id
-        - integrity_level
         - locked
-        - locked_operator_id
-        - operation_id
-        - crypto_type
         - dec_key
         - enc_key
-        - os
+        - display_id
+        - id
+        - integrity_level
+        - locked_operator_id
+        - operation_id
+        - operator_id
+        - pid
+        - registered_payload_id
+        - agent_callback_id
         - architecture
+        - crypto_type
+        - description
         - domain
-        - port
+        - external_ip
         - extra_info
+        - host
+        - ip
+        - os
+        - process_name
         - sleep_info
-        - socks_task_id
+        - user
+        - updated_at
+        - init_callback
+        - last_checkin
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
         operation_id:
-          _in: X-Hasura-operations
+          _eq: X-Hasura-current-operation-id
       allow_aggregations: true
   - role: operator
     permission:
       columns:
-        - id
-        - agent_callback_id
-        - init_callback
-        - last_checkin
-        - user
-        - host
-        - pid
-        - ip
-        - external_ip
-        - process_name
-        - description
-        - operator_id
         - active
-        - registered_payload_id
-        - integrity_level
         - locked
-        - locked_operator_id
-        - operation_id
-        - crypto_type
         - dec_key
         - enc_key
-        - os
+        - display_id
+        - id
+        - integrity_level
+        - locked_operator_id
+        - operation_id
+        - operator_id
+        - pid
+        - registered_payload_id
+        - agent_callback_id
         - architecture
+        - crypto_type
+        - description
         - domain
-        - port
+        - external_ip
         - extra_info
+        - host
+        - ip
+        - os
+        - process_name
         - sleep_info
-        - socks_task_id
+        - user
+        - updated_at
+        - init_callback
+        - last_checkin
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
         operation_id:
-          _in: X-Hasura-operations
+          _eq: X-Hasura-current-operation-id
       allow_aggregations: true
   - role: spectator
     permission:
       columns:
-        - id
-        - agent_callback_id
-        - init_callback
-        - last_checkin
-        - user
-        - host
-        - pid
-        - ip
-        - external_ip
-        - process_name
-        - description
-        - operator_id
         - active
-        - registered_payload_id
-        - integrity_level
         - locked
-        - locked_operator_id
-        - operation_id
-        - crypto_type
         - dec_key
         - enc_key
-        - os
+        - display_id
+        - id
+        - integrity_level
+        - locked_operator_id
+        - operation_id
+        - operator_id
+        - pid
+        - registered_payload_id
+        - agent_callback_id
         - architecture
+        - crypto_type
+        - description
         - domain
-        - port
+        - external_ip
         - extra_info
+        - host
+        - ip
+        - os
+        - process_name
         - sleep_info
-        - socks_task_id
+        - user
+        - updated_at
+        - init_callback
+        - last_checkin
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
         operation_id:
-          _in: X-Hasura-operations
+          _eq: X-Hasura-current-operation-id
       allow_aggregations: true
 update_permissions:
   - role: developer
@@ -291,8 +288,10 @@ update_permissions:
         - integrity_level
         - ip
         - os
+        - pid
         - process_name
         - sleep_info
+        - user
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -311,6 +310,7 @@ update_permissions:
         - integrity_level
         - ip
         - os
+        - pid
         - process_name
         - sleep_info
         - user

@@ -1,8 +1,0 @@
-{
-  "username": "mythic_user",
-  "password": "mythic_password",
-  "virtual_host": "mythic_vhost",
-  "host": "127.0.0.1",
-  "name": "hostname",
-  "container_files_path": "/Mythic/"
-}

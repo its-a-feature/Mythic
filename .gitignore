@@ -4,10 +4,20 @@ __pycache__/
 docs/_build/
 # Environments
 .env
+tmp
+saved_images/
 .venv
+*.swp
+mythic_server
+docker-compose.yml
+.ipynb_checkpoints/
 env/
 venv/
 ENV/
+mythic-cli
+.DS_Store
+[0-9a-zA-Z]*-[0-9a-zA-Z]*-[0-9a-zA-Z]*-[0-9a-zA-Z]*-[0-9a-zA-Z]*
+*.svg
 env.bak/
 venv.bak/
 # pycharm
@@ -15,15 +25,16 @@ venv.bak/
 # ssl certs
 ssl/
 # Mythic files
-files/
 mythic_access.*
 mythic_sync/
 postgres-docker/database/
 rabbitmq-docker/storage/
 C2_profiles/
 Payload_Types/
+InstalledServices/
 Docker_Templates/
 documentation-docker/content/
+documentation-docker/public/
 display_output.txt
 nginx-docker/config/conf.d/services.conf
 ## Ignore Visual Studio temporary files, build results, and
@@ -149,3 +160,5 @@ _ReSharper*/
 
 # vscode
 .vscode/
+
+jupyter-docker/jupyter/MythicExamples/.ipynb_checkpoints/

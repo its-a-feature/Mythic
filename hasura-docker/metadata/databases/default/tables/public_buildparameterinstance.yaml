@@ -12,21 +12,25 @@ select_permissions:
   - role: developer
     permission:
       columns:
-        - id
+        - dec_key
+        - enc_key
         - build_parameter_id
+        - id
         - payload_id
-        - parameter
+        - value
       filter:
         payload:
           operation_id:
-            _in: X-Hasura-operions
+            _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
+        - dec_key
+        - enc_key
         - build_parameter_id
         - id
         - payload_id
-        - parameter
+        - value
       filter:
         payload:
           operation_id:
@@ -34,10 +38,12 @@ select_permissions:
   - role: operation_admin
     permission:
       columns:
+        - dec_key
+        - enc_key
         - build_parameter_id
         - id
         - payload_id
-        - parameter
+        - value
       filter:
         payload:
           operation_id:
@@ -45,10 +51,12 @@ select_permissions:
   - role: operator
     permission:
       columns:
+        - dec_key
+        - enc_key
         - build_parameter_id
         - id
         - payload_id
-        - parameter
+        - value
       filter:
         payload:
           operation_id:
@@ -56,10 +64,12 @@ select_permissions:
   - role: spectator
     permission:
       columns:
+        - dec_key
+        - enc_key
         - build_parameter_id
         - id
         - payload_id
-        - parameter
+        - value
       filter:
         payload:
           operation_id:

@@ -1,0 +1,69 @@
+table:
+  name: callbackport
+  schema: public
+object_relationships:
+  - name: callback
+    using:
+      foreign_key_constraint_on: callback_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - callback_id
+        - id
+        - operation_id
+        - port
+        - task_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - callback_id
+        - id
+        - operation_id
+        - port
+        - task_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - callback_id
+        - id
+        - operation_id
+        - port
+        - task_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - callback_id
+        - id
+        - operation_id
+        - port
+        - task_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - callback_id
+        - id
+        - operation_id
+        - port
+        - task_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations

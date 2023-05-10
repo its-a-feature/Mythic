@@ -2,7 +2,6 @@
 title = "Agents"
 chapter = false
 weight = 5
-alwaysopen = true
 +++
 
 ## Agent Documentation

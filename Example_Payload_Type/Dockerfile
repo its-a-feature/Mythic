@@ -1,1 +1,0 @@
-FROM itsafeaturemythic/python38_payload:0.1.1

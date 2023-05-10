@@ -89,13 +89,10 @@ update_permissions:
 delete_permissions:
   - role: mythic_admin
     permission:
-      backend_only: false
       filter: {}
   - role: operation_admin
     permission:
-      backend_only: false
       filter: {}
   - role: operator
     permission:
-      backend_only: false
       filter: {}
