@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 // installCmd represents the config command
@@ -29,6 +30,7 @@ func init() {
 func installFolder(cmd *cobra.Command, args []string) {
 	if err := internal.InstallFolder(args[0], force); err != nil {
 		fmt.Printf("[-] Failed to install service: %v\n", err)
+		os.Exit(1)
 	} else {
 		fmt.Printf("[+] Successfully installed service!\n")
 	}

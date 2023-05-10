@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 // installCmd represents the config command
@@ -37,6 +38,7 @@ func installMythicSyncGitHub(cmd *cobra.Command, args []string) {
 	if args[0] == "" {
 		if err := internal.InstallMythicSync("https://github.com/GhostManager/mythic_sync", ""); err != nil {
 			fmt.Printf("[-] Failed to install service: %v\n", err)
+			os.Exit(1)
 		}
 	} else {
 		if len(args) == 2 {
@@ -44,6 +46,7 @@ func installMythicSyncGitHub(cmd *cobra.Command, args []string) {
 		}
 		if err := internal.InstallMythicSync(args[0], branch); err != nil {
 			fmt.Printf("[-] Failed to install service: %v\n", err)
+			os.Exit(1)
 		} else {
 			fmt.Printf("[+] Successfully installed service!\n")
 		}
