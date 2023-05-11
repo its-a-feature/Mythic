@@ -31,6 +31,8 @@ export function SettingsOperatorTable(props){
             setOpenNewDialog(false);
         }
     }
+    const userData = props.operators.filter(o => o.id === (props.me?.user?.id || 0))
+    const userIsAdmin = userData.length > 0 ? userData[0].admin : false;
     return (
         <React.Fragment>
         <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
@@ -64,6 +66,7 @@ export function SettingsOperatorTable(props){
                 {props.operators.map( (op) => (
                     <SettingsOperatorTableRow
                         me={props.me}
+                        userIsAdmin={userIsAdmin}
                         onViewUTCChanged={props.onViewUTCChanged}
                         onAdminChanged={props.onAdminChanged}
                         onActiveChanged={props.onActiveChanged} 

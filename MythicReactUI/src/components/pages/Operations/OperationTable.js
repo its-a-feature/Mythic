@@ -73,8 +73,13 @@ export function OperationTable(props){
     });
     const [updateOperation] = useMutation(Update_Operation, {
         onCompleted: (data) => {
-          props.onUpdateOperation(data.updateOperation);
-          snackActions.success("Successfully updated operation");
+            if(data.updateOperation.status === "success"){
+                props.onUpdateOperation(data.updateOperation);
+                snackActions.success("Successfully updated operation");
+            } else {
+                snackActions.error(data.updateOperation.error);
+            }
+
         },
         onError: (data) => {
           snackActions.error("Failed to update operation");
@@ -86,7 +91,7 @@ export function OperationTable(props){
             console.log(data);
             if(data.createOperation.status === "success"){
                 snackActions.success("Successfully created operation!");
-                props.onNewOperation({name: data.createOperation.operation_name, id: data.createOperation.operation_name});
+                props.onNewOperation({name: data.createOperation.operation_name, id: data.createOperation.operation_id});
             }else{
                 snackActions.error(data.createOperation.error);
             }

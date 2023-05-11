@@ -146,6 +146,9 @@ func setRoutes(r *gin.Engine) {
 			protected.POST("/api/v1.4/generate_apitoken_webhook", webcontroller.GenerateAPITokenWebhook)
 			protected.POST("/api/v1.4/update_current_operation_webhook", webcontroller.UpdateCurrentOperationWebhook)
 			protected.POST("/api/v1.4/update_operator_password_webhook", webcontroller.UpdateOperatorPasswordWebhook)
+			protected.POST("/api/v1.4/create_operator", webcontroller.CreateOperatorWebhook)
+			// operation
+			protected.POST("/api/v1.4/create_operation_webhook", webcontroller.CreateOperationWebhook)
 			// following require you to have an operation set
 			allOperationMembers := protected.Group("/api/v1.4/")
 			allOperationMembers.Use(authentication.RBACMiddlewareAll())
@@ -191,10 +194,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("start_stop_profile_webhook", webcontroller.StartStopC2ProfileWebhook)
 				// payload
 				noSpectators.POST("rebuild_webhook", webcontroller.PayloadRebuildWebhook)
-				// user
-				noSpectators.POST("create_operator", webcontroller.CreateOperatorWebhook)
 				// operation
-				noSpectators.POST("create_operation_webhook", webcontroller.CreateOperationWebhook)
 				noSpectators.POST("update_operation_webhook", webcontroller.UpdateOperationWebhook)
 				noSpectators.POST("update_operatoroperation_webhook", webcontroller.UpdateOperatorOperationWebhook)
 				// file

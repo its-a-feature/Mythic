@@ -104,10 +104,14 @@ export function OperationTableRowUpdateOperatorsDialog(props) {
     })
     const [updateOperationMembers] = useMutation(Update_Operators, {
       onCompleted: (data) => {
+          if(data.updateOperatorOperation.status === "error"){
+              snackActions.error(data.updateOperatorOperation.error)
+          }
         props.onClose();
       },
       onError: (data) => {
-        props.onClose();
+          snackActions.error("Failed to update members: " + data.message)
+          props.onClose();
       }
     })
     const onAccept = () =>{

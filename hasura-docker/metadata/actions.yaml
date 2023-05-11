@@ -107,6 +107,7 @@ actions:
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_operation_webhook'
       forward_client_headers: true
     permissions:
+      - role: spectator
       - role: operator
       - role: operation_admin
       - role: mythic_admin
@@ -128,6 +129,8 @@ actions:
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_operator'
       forward_client_headers: true
     permissions:
+      - role: spectator
+      - role: developer
       - role: operator
       - role: operation_admin
       - role: mythic_admin

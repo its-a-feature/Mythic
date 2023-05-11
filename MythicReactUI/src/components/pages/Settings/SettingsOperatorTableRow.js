@@ -20,13 +20,11 @@ import { SettingsOperatorDeleteDialog } from './SettingsOperatorDeleteDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { toLocalTime } from '../../utilities/Time';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
-import {useTheme} from '@mui/material/styles';
 import {SettingsOperatorUIConfigDialog} from './SettingsOperatorUIConfigDialog';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { snackActions } from '../../utilities/Snackbar';
 
 export function SettingsOperatorTableRow(props){
-    const theme = useTheme();
     const [open, setOpen] = React.useState(false);
     const [openUpdate, setOpenUpdateDialog] = React.useState(false);
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
@@ -73,7 +71,9 @@ export function SettingsOperatorTableRow(props){
         <React.Fragment>
             <TableRow key={props.id}>
                 <MythicStyledTableCell>
-                  <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
+                    <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}}
+                              disabled={!(isMe || props.userIsAdmin)} color="error"
+                              variant="contained"><DeleteIcon/></Button>
                   {openDelete && 
                       <MythicDialog open={openDelete} 
                       onClose={()=>{setOpenDeleteDialog(false);}} 
@@ -83,7 +83,11 @@ export function SettingsOperatorTableRow(props){
                   
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.username}</MythicStyledTableCell>
-                <MythicStyledTableCell><IconButton size="small" onClick={()=>{setOpenUpdateDialog(true);}} color="info" variant="contained"><SettingsIcon color="warning" /></IconButton>
+                <MythicStyledTableCell>
+                    <Button size="small"
+                            disabled={!(isMe || props.userIsAdmin)}
+                           onClick={()=>{setOpenUpdateDialog(true);}}
+                           color="info" variant="contained"><SettingsIcon /></Button>
                   {openUpdate &&
                     <MythicDialog open={openUpdate} 
                      onClose={()=>{setOpenUpdateDialog(false);}} 
@@ -95,6 +99,7 @@ export function SettingsOperatorTableRow(props){
                 <MythicStyledTableCell>
                     <Switch
                         checked={props.view_utc_time}
+                        disabled={!isMe}
                         onChange={onViewUTCChanged}
                         color="primary"
                         inputProps={{ 'aria-label': 'primary checkbox' }}
@@ -117,6 +122,7 @@ export function SettingsOperatorTableRow(props){
                 <MythicStyledTableCell>
                     <Switch
                         checked={props.active}
+                        disabled={!props.userIsAdmin}
                         onChange={onActiveChanged}
                         inputProps={{ 'aria-label': 'primary checkbox' }}
                         name="active"
@@ -127,6 +133,7 @@ export function SettingsOperatorTableRow(props){
                 <MythicStyledTableCell>
                     <Switch
                         checked={props.admin}
+                        disabled={!props.userIsAdmin}
                         onChange={onAdminChanged}
                         inputProps={{ 'aria-label': 'primary checkbox' }}
                         name="admin"

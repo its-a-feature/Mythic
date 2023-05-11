@@ -84,9 +84,11 @@ export function OperationTableRow(props){
             <TableRow key={props.id} hover>
                 <TableCell>
                 {props.deleted ? (
-                  <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" variant="contained"><RestoreFromTrashOutlinedIcon/> Restore</Button>
+                  <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" variant="contained"
+                          disabled={me?.user?.current_operation_id !== props.id}><RestoreFromTrashOutlinedIcon/> Restore</Button>
                 ) : (
-                  <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/> Delete</Button>
+                  <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"
+                          disabled={me?.user?.current_operation_id !== props.id}><DeleteIcon/> Delete</Button>
                 )}
                 {openDelete && 
                     <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} 
@@ -95,7 +97,9 @@ export function OperationTableRow(props){
                       acceptColor={props.deleted ? "success": "error"} />
                   }
                 </TableCell>
-                <TableCell><Button size="small" onClick={()=>{setOpenUpdateNotifications(true);}} startIcon={<EditIcon/>} color={props.complete ? "success" : "primary"} variant="contained">Edit</Button>
+                <TableCell><Button size="small" onClick={()=>{setOpenUpdateNotifications(true);}} startIcon={<EditIcon/>}
+                                   disabled={me?.user?.current_operation_id !== props.id}
+                                   color={props.complete ? "success" : "primary"} variant="contained">Edit</Button>
                 {openUpdateNotifications && 
                     <MythicDialog open={openUpdateNotifications} fullWidth maxWidth={"lg"}
                         onClose={()=>{setOpenUpdateNotifications(false);}} 
@@ -103,7 +107,9 @@ export function OperationTableRow(props){
                      />
                 }
                 </TableCell>
-                <TableCell><Button size="small" onClick={()=>{setOpenUpdateOperators(true);}} startIcon={<AssignmentIndIcon/>} color={props.complete ? "success" : "primary"} variant="contained">Edit</Button>
+                <TableCell><Button size="small" onClick={()=>{setOpenUpdateOperators(true);}}
+                                   disabled={me?.user?.current_operation_id !== props.id}
+                                   startIcon={<AssignmentIndIcon/>} color={props.complete ? "success" : "primary"} variant="contained">Edit</Button>
                 {openUpdateOperators && 
                     <MythicDialog open={openUpdateOperators} maxHeight={"calc(80vh)"} fullWidth maxWidth={"md"}
                         onClose={()=>{setOpenUpdateOperators(false);}} 
@@ -114,11 +120,14 @@ export function OperationTableRow(props){
                 <TableCell>{props.name} {props.complete ? " (Completed) " : ""}</TableCell>
                 <TableCell>{props.admin.username}</TableCell>
                 <TableCell>
-                <Button size="small" startIcon={<AssessmentIcon/>} onClick={() => {snackActions.warning("Not Implemented")}} color="primary" variant="contained">Analysis</Button>
+                <Button size="small" startIcon={<AssessmentIcon/>}
+                        onClick={() => {snackActions.warning("Not Implemented")}} color="primary"
+                        disabled={me?.user?.current_operation_id !== props.id}
+                        variant="contained">Analysis</Button>
                 </TableCell>
                 <TableCell>{props.id === me.user.current_operation_id ? ("Current Operation") : (
                   <React.Fragment>
-                    <Button size="small"startIcon={<PlayArrowIcon/>} onClick={makeCurrentOperation} color="info" variant="contained">Make Current</Button>
+                    <Button size="small" startIcon={<PlayArrowIcon/>} onClick={makeCurrentOperation} color="info" variant="contained">Make Current</Button>
                    
                   </React.Fragment>
                 )}</TableCell>

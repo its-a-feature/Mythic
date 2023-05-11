@@ -58,14 +58,14 @@ func UpdateOperationWebhook(c *gin.Context) {
 			Error:  err.Error(),
 		})
 		return
-	} else if err := database.DB.Get(&operator, `SELECT * FROM operator WHERE id=$1`, userID); err != nil {
+	} else if err = database.DB.Get(&operator, `SELECT * FROM operator WHERE id=$1`, userID); err != nil {
 		logging.LogError(err, "Failed to get information about operator")
 		c.JSON(http.StatusOK, UpdateOperationResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
-	} else if err := database.DB.Get(&operatorRole, `SELECT * FROM operatoroperation WHERE 
+	} else if err = database.DB.Get(&operatorRole, `SELECT * FROM operatoroperation WHERE 
 		operator_id=$1 AND operation_id=$2`, operator.ID, input.Input.OperationID); err != sql.ErrNoRows && err != nil {
 		logging.LogError(err, "Failed to get information about operator's role in operation")
 		c.JSON(http.StatusOK, UpdateOperationResponse{
@@ -77,8 +77,8 @@ func UpdateOperationWebhook(c *gin.Context) {
 	} else if !operator.Admin && operatorRole.ViewMode != database.OPERATOR_OPERATION_VIEW_MODE_LEAD {
 		logging.LogError(nil, "Tried to update operation, but not admin or operation lead")
 		c.JSON(http.StatusOK, UpdateOperationResponse{
-			Status: "Must be global admin or lead of operation to update it",
-			Error:  err.Error(),
+			Status: "error",
+			Error:  "Must be global admin or lead of operation to update it",
 		})
 		return
 	} else {

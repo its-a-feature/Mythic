@@ -16,7 +16,7 @@ export function SettingsOperatorDeleteDialog(props) {
         <DialogTitle id="form-dialog-title">Delete Operator</DialogTitle>
         <DialogContent dividers={true}>
           <DialogContentText>
-            This deletes an operator and prevents them from permanently logging in again. If you want a temporary solution, disable the operator instead.
+            This deletes an operator and prevents them from permanently logging in again. If you want a temporary solution, mark the operator as inactive.
           </DialogContentText>
           <DialogContentText>
             Are you sure you want to delete operator "{props.username}"?
@@ -26,7 +26,7 @@ export function SettingsOperatorDeleteDialog(props) {
           <Button onClick={props.onClose} variant="contained" color="primary">
             Cancel
           </Button>
-          <Button onClick={onAccept} variant="contained" color="secondary">
+          <Button onClick={onAccept} variant="contained" color="error">
             Delete
           </Button>
         </DialogActions>
