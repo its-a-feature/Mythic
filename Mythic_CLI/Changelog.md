@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 1.0.14 - 2023-05-10
+
+### Changed
+
+- Fixed an issue where installing another services after mythic_sync would uninstall mythic_sync
+
 ## 1.0.13 - 2023-05-10
 
 ### Changed

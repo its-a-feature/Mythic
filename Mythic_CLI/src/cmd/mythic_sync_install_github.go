@@ -35,7 +35,7 @@ func init() {
 }
 
 func installMythicSyncGitHub(cmd *cobra.Command, args []string) {
-	if args[0] == "" {
+	if len(args) == 0 {
 		if err := internal.InstallMythicSync("https://github.com/GhostManager/mythic_sync", ""); err != nil {
 			fmt.Printf("[-] Failed to install service: %v\n", err)
 			os.Exit(1)

@@ -102,6 +102,13 @@ func GetIntendedMythicServiceNames() ([]string, error) {
 			if mythicEnv.GetBool("postgres_debug") {
 				containerList = append(containerList, service)
 			}
+		case "mythic_sync":
+			if mythicSyncPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder, "mythic_sync")); err != nil {
+				fmt.Printf("[-] Failed to get the absolute path to mythic_sync: %v\n", err)
+			} else if _, err = os.Stat(mythicSyncPath); !os.IsNotExist(err) {
+				// this means that the mythic_sync folder _does_ exist
+				containerList = append(containerList, service)
+			}
 		}
 	}
 	return containerList, nil
