@@ -2,7 +2,7 @@ package webcontroller
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
@@ -46,9 +46,9 @@ func CreateOperationEventLog(c *gin.Context) {
 		if input.Input.Level == "warning" {
 			level = "warning"
 		}
-		source := uuid.NewString()
-		if input.Input.Source != "" {
-			source = input.Input.Source
+		source := input.Input.Source
+		if input.Input.Source == "" {
+			source = mythicCrypto.HashMD5([]byte(input.Input.Message))
 		}
 		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 		go rabbitmq.SendAllOperationsMessage(input.Input.Message, operatorOperation.CurrentOperation.ID,

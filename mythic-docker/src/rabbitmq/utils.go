@@ -915,11 +915,7 @@ func SendAllOperationsMessage(message string, operationID int, source string, me
 	}
 	sourceString := source
 	if sourceString == "" {
-		if sourceIdentifier, err := uuid.NewUUID(); err != nil {
-			logging.LogError(err, "Failed to generate new UUID for source of SendAllOperationsMessage")
-		} else {
-			sourceString = sourceIdentifier.String()
-		}
+		sourceString = uuid.NewString()
 	}
 	for _, operation := range operations {
 		if operationID == 0 || operation.ID == operationID {
