@@ -13,16 +13,18 @@ import (
 )
 
 const (
-	connectionTimeoutSeconds = 3
+	connectionTimeoutSeconds  = 3
+	channelSendTimeoutSeconds = 2
 )
 
 type translationContainerServer struct {
 	services.UnimplementedTranslationContainerServer
 	sync.RWMutex
-	clients           map[string]*grpcClientConnections
-	connectionTimeout time.Duration
-	listening         bool
-	latestError       string
+	clients            map[string]*grpcClientConnections
+	connectionTimeout  time.Duration
+	channelSendTimeout time.Duration
+	listening          bool
+	latestError        string
 }
 
 type grpcClientConnections struct {
@@ -95,7 +97,9 @@ func (t *translationContainerServer) GetGenerateKeysChannels(translationContaine
 	t.Lock()
 	if _, ok := t.clients[translationContainerName]; ok {
 		t.Unlock()
-		return t.clients[translationContainerName].generateKeysMessage, t.clients[translationContainerName].generateKeysMessageResponse, nil
+		return t.clients[translationContainerName].generateKeysMessage,
+			t.clients[translationContainerName].generateKeysMessageResponse,
+			nil
 	}
 	t.Unlock()
 	return nil, nil, errors.New("no translation container by that name currently connected")
@@ -146,9 +150,11 @@ func (t *translationContainerServer) CheckClientConnected(translationContainerNa
 func (t *translationContainerServer) CheckListening() (listening bool, latestError string) {
 	return t.listening, t.latestError
 }
-
 func (t *translationContainerServer) GetTimeout() time.Duration {
 	return t.connectionTimeout
+}
+func (t *translationContainerServer) GetChannelTimeout() time.Duration {
+	return t.channelSendTimeout
 }
 func Initialize() {
 	// need to open a port to accept gRPC connections
@@ -158,6 +164,7 @@ func Initialize() {
 	// initialize the clients
 	TranslationContainerServer.clients = make(map[string]*grpcClientConnections)
 	TranslationContainerServer.connectionTimeout = connectionTimeoutSeconds * time.Second
+	TranslationContainerServer.channelSendTimeout = channelSendTimeoutSeconds * time.Second
 	connectString = fmt.Sprintf("0.0.0.0:%d", utils.MythicConfig.ServerGRPCPort)
 	go serveInBackground(connectString)
 
@@ -180,7 +187,7 @@ func serveInBackground(connectString string) {
 			logging.LogInfo("gRPC Initialized", "connection", connectString)
 			// tie the Servers to our new grpc server and our server struct
 			// use the TCP port in listen to process requests for the grpc server s
-			if err := s.Serve(listen); err != nil {
+			if err = s.Serve(listen); err != nil {
 				logging.LogError(err, "Failed to listen for gRPC connections")
 				TranslationContainerServer.latestError = err.Error()
 			}

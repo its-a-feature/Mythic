@@ -593,7 +593,7 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 						for k, v := range newCommand.CommandAttributes.AdditionalAttributes {
 							attributes[k] = v
 						}
-						logging.LogDebug("updating command", "struct values", newCommand.CommandAttributes, "map values", attributes)
+						//logging.LogDebug("updating command", "struct values", newCommand.CommandAttributes, "map values", attributes)
 						//logging.LogDebug("updating database attributes to new thing", "attributes", attributes, "supported_os", attributes["supported_os"], "newfeatures", newCommand.SupportedUIFeatures)
 						databaseCommand.Attributes = GetMythicJSONTextFromStruct(attributes)
 						//logging.LogDebug("Found matching cmd when syncing payload type, time to update it", "cmd_new", databaseCommand)

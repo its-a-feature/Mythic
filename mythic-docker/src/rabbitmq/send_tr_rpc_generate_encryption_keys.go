@@ -47,7 +47,6 @@ func (r *rabbitMQConnection) SendTrRPCGenerateEncryptionKeys(generateEncryptionK
 		select {
 		case response, ok := <-rcvMsgChan:
 			if !ok {
-				logging.LogError(nil, "Failed to receive from translation container")
 				return nil, errors.New(fmt.Sprintf("failed to receive from translation container: %s", generateEncryptionKeys.TranslationContainerName))
 			} else {
 				if response.GetSuccess() {
@@ -62,7 +61,6 @@ func (r *rabbitMQConnection) SendTrRPCGenerateEncryptionKeys(generateEncryptionK
 				return &trGenerateEncryptionKeysResponse, nil
 			}
 		case <-time.After(grpc.TranslationContainerServer.GetTimeout()):
-			logging.LogError(err, "timeout hit waiting to receive a message from the translation container")
 			return nil, errors.New(fmt.Sprintf("timeout hit waiting to receive message from the translation container: %s", generateEncryptionKeys.TranslationContainerName))
 		}
 	}
