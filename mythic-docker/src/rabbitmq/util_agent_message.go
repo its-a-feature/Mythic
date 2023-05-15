@@ -263,7 +263,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 		return instanceResponse
 		// 3. Parse out UUID and body
 	} else if messageUUID, err = uuid.Parse(string(base64DecodedMessage[:36])); err != nil {
-		if messageUUID, err = uuid.ParseBytes(base64DecodedMessage[:16]); err != nil {
+		if messageUUID, err = uuid.FromBytes(base64DecodedMessage[:16]); err != nil {
 			logging.LogError(err, "Failed to parse UUID from beginning of message")
 			errorMessage := fmt.Sprintf("Failed to parse a valid UUID from the beginning of an agent message\n")
 			errorMessage += "This likely happens if somme sort of traffic came through your C2 profile (ports too open) that isn't actually an agent message\n"
