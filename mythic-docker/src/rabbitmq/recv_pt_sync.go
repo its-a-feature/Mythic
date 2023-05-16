@@ -282,7 +282,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			// translation container information potentially changed, invalidate all the caches and re-do them with the updates
 			InvalidateAllCachedUUIDInfo()
 		}
-		go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "", "info")
+		go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "debug", "info")
 		go database.ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
 		checkContainerStatusAddPtChannel <- payloadtype
 		return nil
@@ -302,7 +302,7 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 		FROM buildparameter
 		WHERE payload_type_id = :id
 	`, payloadtype); err != nil {
-		logging.LogError(err, "Failed to fetch build parameters for payloadtype when syning")
+		logging.LogError(err, "Failed to fetch build parameters for payloadtype when syncing")
 		return err
 	} else {
 		for rows.Next() {

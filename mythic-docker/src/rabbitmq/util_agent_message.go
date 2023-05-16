@@ -287,18 +287,18 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 		errorMessage := fmt.Sprintf("Failed to correlate UUID, %s, to something Mythic knows.\n", messageUUID.String())
 		errorMessage += fmt.Sprintf("%s is likely a Callback or Payload from a Mythic instance that was deleted or had the database reset.\n", messageUUID.String())
 		errorMessage += fmt.Sprintf("Connection from %s\n", agentMessageInput.RemoteIP)
-		go SendAllOperationsMessage(errorMessage, 0, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
 		instanceResponse.Err = err
 		return instanceResponse
 	} else if decryptedMessage, err := DecryptMessage(uuidInfo, base64DecodedMessage[agentUUIDLength:totalBase64Bytes]); err != nil {
 		logging.LogError(err, "Failed to decrypt message and process as JSON")
 		errorMessage := fmt.Sprintf("Failed to decrypt message due to: %s\n", err.Error())
 		errorMessage += fmt.Sprintf("Connection from %s\n", agentMessageInput.RemoteIP)
-		go SendAllOperationsMessage(errorMessage, 0, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
 		instanceResponse.Err = err
 		return instanceResponse
 	} else if _, ok := decryptedMessage["action"]; !ok {
-		instanceResponse.Err = errors.New("Missing action")
+		instanceResponse.Err = errors.New("missing action")
 		return instanceResponse
 	} else {
 		if utils.MythicConfig.DebugAgentMessage {
@@ -308,7 +308,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 				logging.LogDebug("Parsing agent message", "step 3", decryptedMessage)
 				SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 3 (decrypted and parsed JSON): \n%s",
 					string(stringMsg)),
-					0, "debug", database.MESSAGE_LEVEL_INFO)
+					uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_INFO)
 			}
 		}
 		delegateResponses := []delegateMessageResponse{}
@@ -419,7 +419,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 					if utils.MythicConfig.DebugAgentMessage {
 						logging.LogDebug("Parsing agent message", "step 7", delegate)
 						SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 7 (delegate messages): \n%v", delegate),
-							0, "debug", database.MESSAGE_LEVEL_INFO)
+							uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_INFO)
 					}
 					currentDelegateMessage := AgentMessageRawInput{
 						C2Profile: delegate.C2ProfileName,
@@ -498,7 +498,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 				logging.LogDebug("Parsing agent message", "step final", response)
 				SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step final (Response JSON): \n%s",
 					string(stringMsg)),
-					0, "debug", database.MESSAGE_LEVEL_INFO)
+					uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_INFO)
 			}
 		}
 		if err != nil {
