@@ -87,6 +87,7 @@ Dockerfiles for each of these Docker images can be found on [MythicMeta](https:/
   <img src="https://img.shields.io/pypi/dm/mythic-container" alt="mythic-container downloads" />
   <img src="https://img.shields.io/pypi/pyversions/mythic-container" alt="mythic-container python version" />
   <img src="https://img.shields.io/pypi/v/mythic-container?color=green&label=latest%20PyPi" alt="mythic-container version" />
+  <img src="https://img.shields.io/github/v/release/MythicMeta/MythicContainerPypi?include_prereleases" alt="latest release" />
 </p>
 
 The `mythic-container` PyPi package source code is available on [MythicMeta](https://github.com/MythicMeta/MythicContainerPyPi) and is automatically installed on all of the `mythic_python_*` Docker images.

@@ -62,7 +62,7 @@ class MythicTextField extends React.Component {
                     onChange={this.onChange}
                     onKeyPress={this.onKeyPress} 
                     label={this.props.showLabel === undefined ? this.props.name : this.props.showLabel ? this.props.name : undefined} 
-                    autoFocus={this.props.autoFocus ? true : false}
+                    autoFocus={this.props.autoFocus}
                     variant="outlined" 
                     data-lpignore={true}
                     autoComplete={this.props.autoComplete === undefined ? "off" : (this.props.autoComplete ? "on" : "off")}
@@ -73,6 +73,7 @@ class MythicTextField extends React.Component {
                     maxRows={this.props.maxRows}
                     error={this.checkError()} 
                     type={this.props.type === undefined ? "text" : this.props.type}
+                    onWheel={ event => event.target.blur() }
                     InputProps={this.props.InputProps}
                     helperText={this.checkError() ? this.props.errorText : this.props.helperText}
                     style={{

@@ -226,16 +226,23 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"context": "./nginx-docker",
 			"args":    buildArguments,
 		}
-		nginxUseSSL := "ssl"
-		if !mythicEnv.GetBool("NGINX_USE_SSL") {
-			nginxUseSSL = ""
-		}
 		pStruct["healthcheck"] = map[string]interface{}{
 			"test":         []string{"CMD-SHELL", "curl -k https://127.0.0.1:${NGINX_PORT}"},
 			"interval":     "30s",
 			"timeout":      "60s",
 			"retries":      5,
 			"start_period": "15s",
+		}
+		nginxUseSSL := "ssl"
+		if !mythicEnv.GetBool("NGINX_USE_SSL") {
+			nginxUseSSL = ""
+			pStruct["healthcheck"] = map[string]interface{}{
+				"test":         []string{"CMD-SHELL", "curl -k http://127.0.0.1:${NGINX_PORT}"},
+				"interval":     "30s",
+				"timeout":      "60s",
+				"retries":      5,
+				"start_period": "15s",
+			}
 		}
 		environment := []string{
 			"DOCUMENTATION_HOST=${DOCUMENTATION_HOST}",

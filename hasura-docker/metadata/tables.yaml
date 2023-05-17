@@ -1180,12 +1180,8 @@
           - dec_key_base64
           - enc_key_base64
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
+          operation_id:
+            _eq: X-Hasura-current-operation-id
     - role: mythic_admin
       permission:
         columns:
@@ -1203,12 +1199,8 @@
           - dec_key_base64
           - enc_key_base64
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
+          operation_id:
+            _eq: X-Hasura-current-operation-id
     - role: operation_admin
       permission:
         columns:
@@ -1226,12 +1218,8 @@
           - dec_key_base64
           - enc_key_base64
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
+          operation_id:
+            _eq: X-Hasura-current-operation-id
     - role: operator
       permission:
         columns:
@@ -1249,12 +1237,8 @@
           - dec_key_base64
           - enc_key_base64
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
+          operation_id:
+            _eq: X-Hasura-current-operation-id
     - role: spectator
       permission:
         columns:
@@ -1272,12 +1256,8 @@
           - dec_key_base64
           - enc_key_base64
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
+          operation_id:
+            _eq: X-Hasura-current-operation-id
   update_permissions:
     - role: developer
       permission:
@@ -1285,89 +1265,65 @@
           - instance_name
           - value
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
-        check: null
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+        check:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
     - role: mythic_admin
       permission:
         columns:
           - instance_name
           - value
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
-        check: null
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+        check:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
     - role: operation_admin
       permission:
         columns:
           - instance_name
           - value
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
-        check: null
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+        check:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
     - role: operator
       permission:
         columns:
           - instance_name
           - value
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
-        check: null
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+        check:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
   delete_permissions:
     - role: developer
       permission:
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
+          operation_id:
+            _eq: X-Hasura-current-operation-id
     - role: mythic_admin
       permission:
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
+          operation_id:
+            _eq: X-Hasura-current-operation-id
     - role: operation_admin
       permission:
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
+          operation_id:
+            _eq: X-Hasura-current-operation-id
     - role: operator
       permission:
         filter:
-          _or:
-            - operation_id:
-                _in: X-Hasura-operations
-            - payload:
-                operation_id:
-                  _in: X-Hasura-operations
+          operation_id:
+            _eq: X-Hasura-current-operation-id
 - table:
     name: callback
     schema: public

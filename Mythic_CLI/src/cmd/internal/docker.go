@@ -266,6 +266,12 @@ func DockerBuild(containers []string) error {
 	if len(containers) == 0 {
 		return nil
 	} else {
+		for _, container := range containers {
+			if stringInSlice(container, MythicPossibleServices) {
+				// update the necessary docker compose entries for mythic services
+				addMythicServiceDockerComposeEntry(container)
+			}
+		}
 		if err := runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, containers...)); err != nil {
 			return err
 		} else if err := runDockerCompose(append([]string{"up", "--build", "-d"}, containers...)); err != nil {
@@ -298,6 +304,13 @@ func DockerRemoveImages() error {
 		}
 	}
 	return nil
+}
+func DockerRemoveContainers(containers []string) error {
+	if err := runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, containers...)); err != nil {
+		return err
+	} else {
+		return nil
+	}
 }
 func DockerBuildReactUI() error {
 	if _, err := runDocker([]string{"exec", "mythic_react", "/bin/sh", "-c", "npm run react-build"}); err != nil {

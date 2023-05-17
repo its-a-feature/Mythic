@@ -63,9 +63,9 @@ export function ExpandedCallback(props){
     
     const {callbackDisplayId} = useParams();
     const [callback, setCallbacks] = React.useState({"payload": {"payloadtype": {"name": ""}}, "callbacktokens": []});
-    const [tabInfo, setTabInfo] = React.useState({callbackDisplayID: parseInt(callbackDisplayId)});
+    const [tabInfo, setTabInfo] = React.useState({displayID: parseInt(callbackDisplayId)});
     useSubscription(SUB_Callbacks, {
-        variables: {callback_display_id: tabInfo.callbackDisplayID}, fetchPolicy: "network-only",
+        variables: {callback_display_id: tabInfo.displayID}, fetchPolicy: "network-only",
         shouldResubscribe: true,
         onSubscriptionData: ({subscriptionData}) => {
           if(subscriptionData.data.callback_stream.length === 0){
@@ -73,7 +73,8 @@ export function ExpandedCallback(props){
             return;
           }
           setCallbacks(subscriptionData.data.callback_stream[0]);
-          setTabInfo({tabID: "interact", tabType: "interact", callbackDisplayID: callbackDisplayId,
+          setTabInfo({tabID: "interact", tabType: "interact",
+          displayID: subscriptionData.data.callback_stream[0]["display_id"],
           callbackID: subscriptionData.data.callback_stream[0]["id"],
           payloadtype: subscriptionData.data.callback_stream[0]["payload"]["payloadtype"]["name"],
           payloadDescription: subscriptionData.data.callback_stream[0]["payload"]["description"],

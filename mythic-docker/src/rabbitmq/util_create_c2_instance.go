@@ -27,7 +27,7 @@ func CreateC2Instance(input CreateC2InstanceInput, operatorOperation *databaseSt
 	if err := database.DB.Select(&c2ProfileParameters, `SELECT
 	*
 	FROM c2profileparameters
-	WHERE c2profileparameters.c2_profile_id=$1`, input.C2ID); err != nil {
+	WHERE c2_profile_id=$1 and deleted=false`, input.C2ID); err != nil {
 		logging.LogError(err, "Failed to fetch c2 profile parameters when creating c2 instance")
 		response.Error = "Failed to fetch c2 profile parameters: " + err.Error()
 		return response
@@ -42,8 +42,10 @@ func CreateC2Instance(input CreateC2InstanceInput, operatorOperation *databaseSt
 		var paramsToSave []tempC2Param
 		for _, dbParam := range c2ProfileParameters {
 			// for each dbParam, see if there's a matching Name in the input.Parameters
+			found := false
 			for key, val := range input.Parameters {
 				if key == dbParam.Name {
+					found = true
 					if dbStringValue, err := getFinalStringForDatabaseInstanceValueFromUserSuppliedValue(dbParam.ParameterType, val); err != nil {
 						logging.LogError(err, "Failed to get string from user supplied value for saved c2 instance")
 						response.Error = "Failed to get string from user supplied value for saved c2 instance: " + err.Error()
@@ -57,6 +59,24 @@ func CreateC2Instance(input CreateC2InstanceInput, operatorOperation *databaseSt
 							C2ProfileID:  input.C2ID,
 						})
 					}
+				}
+			}
+			if !found {
+				if dbStringValue, err := getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(
+					dbParam.ParameterType, dbParam.DefaultValue,
+					dbParam.Choices.StructValue(),
+					dbParam.Randomize, dbParam.FormatString); err != nil {
+					logging.LogError(err, "Failed to get string from default value for saved c2 instance")
+					response.Error = "Failed to get string from default value for saved c2 instance: " + err.Error()
+					return response
+				} else {
+					paramsToSave = append(paramsToSave, tempC2Param{
+						ParameterID:  dbParam.ID,
+						Value:        dbStringValue,
+						OperationID:  operatorOperation.CurrentOperation.ID,
+						InstanceName: input.InstanceName,
+						C2ProfileID:  input.C2ID,
+					})
 				}
 			}
 		}

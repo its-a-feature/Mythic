@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.0.15 - 2023-05-17
+
+### Changed
+
+- re-building mythic service containers will re-generate their docker-compose file entries first
+
+### Added
+
+- Added a command to remove containers
+
 ## 1.0.14 - 2023-05-10
 
 ### Changed

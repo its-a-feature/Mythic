@@ -14,12 +14,10 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import {useTheme} from '@mui/material/styles';
 import { snackActions } from '../../utilities/Snackbar';
-import { meState } from '../../../cache';
-import {useReactiveVar} from '@apollo/client';
 import {getDefaultValueForType, getDefaultChoices} from '../CreatePayload/Step2SelectPayloadType';
 
 const getProfileConfigQuery = gql`
-query getProfileParameters($id: Int!, $operation_id: Int!) {
+query getProfileParameters($id: Int!) {
   c2profile_by_pk(id: $id) {
     c2profileparameters(where: {deleted: {_eq: false}}, order_by: {name: asc}){
       default_value
@@ -33,7 +31,7 @@ query getProfileParameters($id: Int!, $operation_id: Int!) {
       verifier_regex
       choices
     }
-    c2profileparametersinstances(where: {instance_name: {_is_null: false}, operation_id: {_eq: $operation_id}}, distinct_on: instance_name, order_by: {instance_name: asc}){
+    c2profileparametersinstances(where: {instance_name: {_is_null: false}}, distinct_on: instance_name, order_by: {instance_name: asc}){
       instance_name
       id
     }
@@ -41,8 +39,8 @@ query getProfileParameters($id: Int!, $operation_id: Int!) {
 }
 `;
 const getProfileInstaceQuery = gql`
-query getProfileInstanceQuery($name: String!, $operation_id: Int!) {
-  c2profileparametersinstance(where: {instance_name: {_eq: $name}, operation_id: {_eq: $operation_id}}) {
+query getProfileInstanceQuery($name: String!) {
+  c2profileparametersinstance(where: {instance_name: {_eq: $name}}) {
     c2profileparameter {
       default_value
       description
@@ -61,8 +59,8 @@ query getProfileInstanceQuery($name: String!, $operation_id: Int!) {
 }
 `;
 const deleteInstanceMutation = gql`
-mutation deleteSavedInstance($name: String!, $operation_id: Int!){
-  delete_c2profileparametersinstance(where: {instance_name: {_eq: $name}, operation_id: {_eq: $operation_id}}){
+mutation deleteSavedInstance($name: String!){
+  delete_c2profileparametersinstance(where: {instance_name: {_eq: $name}}){
     affected_rows
   }
 }
@@ -78,14 +76,13 @@ mutation createNewC2Instance($instance_name: String!, $c2_instance: String!, $c2
 
 export function C2ProfileSavedInstancesDialog(props) {
     const theme = useTheme();
-    const me = useReactiveVar(meState);
     const [instanceName, setInstanceName] = useState("");
     const [selectedInstance, setSelectedInstance] = useState("");
     const [createdInstances, setCreatedInstances] = useState([]);
     const [baseParameters, setBaseParameters] = useState([]);
     const [currentParameters, setCurrentParameters] = useState([]);
     const { loading } = useQuery(getProfileConfigQuery, {
-        variables: {id: props.id, operation_id: me?.user?.current_operation_id || 0},
+        variables: {id: props.id},
         onCompleted: data => {
             const parameters = data.c2profile_by_pk.c2profileparameters.map( (param) => {
               const initialValue = getDefaultValueForType(param);
@@ -201,7 +198,7 @@ export function C2ProfileSavedInstancesDialog(props) {
               return {...paramPrev, [param.name]: param.value};
           }
         }, {});
-        createInstance({variables: {operation_id: me?.user?.current_operation_id||0, instance_name: instanceName, c2profile_id: props.id, c2_instance: JSON.stringify(config)}})
+        createInstance({variables: {instance_name: instanceName, c2profile_id: props.id, c2_instance: JSON.stringify(config)}})
     }
     const onChange = (name, value, error) => {
       setInstanceName(value);
@@ -223,12 +220,12 @@ export function C2ProfileSavedInstancesDialog(props) {
         setCurrentParameters([...baseParameters]);
       }else{
         setCurrentParameters([]);
-        getInstanceValues({variables: {name: evt.target.value, operation_id: me.user.current_operation_id}});
+        getInstanceValues({variables: {name: evt.target.value}});
       }
     }
     const deleteInstanceButton = () => {
       setCurrentParameters([]);
-      deleteInstance({variables: {name: selectedInstance, operation_id: me.user.current_operation_id}})
+      deleteInstance({variables: {name: selectedInstance}})
     }
   return (
     <React.Fragment>

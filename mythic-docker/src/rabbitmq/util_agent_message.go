@@ -723,9 +723,9 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage []byte) (map[string]i
 				MythicEncrypts:           uuidInfo.MythicEncrypts,
 				CryptoKeys:               uuidInfo.getAllKeys(),
 			}); err != nil {
-				logging.LogError(err, "Failed to send response to translate custom message to Mythic C2")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
-					"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+				//logging.LogError(err, "Failed to send response to translate custom message to Mythic C2")
+				//go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
+				//	"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
 				return nil, err
 			} else if !convertedResponse.Success {
 				logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process custom message from agent")
@@ -756,9 +756,9 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage []byte) (map[string]i
 				MythicEncrypts:           uuidInfo.MythicEncrypts,
 				CryptoKeys:               uuidInfo.getAllKeys(),
 			}); err != nil {
-				logging.LogError(err, "Failed to send response to translate custom message to Mythic C2")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
-					"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+				//logging.LogError(err, "Failed to send response to translate custom message to Mythic C2")
+				//go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
+				//	"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
 				return nil, err
 			} else if !convertedResponse.Success {
 				logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process custom message from agent")
@@ -800,9 +800,9 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 			CryptoKeys:               uuidInfo.getAllKeys(),
 		}); err != nil {
 			// we send to translation container to convert to c2 specific format, then we encrypt
-			logging.LogError(err, "Failed to send agent message response to translation container")
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
-				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+			//logging.LogError(err, "Failed to send agent message response to translation container")
+			//go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
+			//	"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
 			return nil, err
 		} else if !convertedResponse.Success {
 			logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process message")
@@ -846,8 +846,8 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 			MythicEncrypts:           uuidInfo.MythicEncrypts,
 			CryptoKeys:               uuidInfo.getAllKeys(),
 		}); err != nil {
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container:\n%s", err.Error()), uuidInfo.OperationID,
-				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+			//go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container:\n%s", err.Error()), uuidInfo.OperationID,
+			//	"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
 			return nil, err
 		} else if !convertedResponse.Success {
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container:\n%s", convertedResponse.Error), uuidInfo.OperationID,

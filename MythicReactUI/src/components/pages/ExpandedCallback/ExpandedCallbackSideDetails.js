@@ -56,7 +56,7 @@ export function ExpandedCallbackSideDetailsTable(props){
     const lastCheckinTimestamp = React.useRef("");
     const lastCheckinTimestampFromMythic = React.useRef("");
     useSubscription(SUB_Edges, {
-        variables: {operation_id: me.user.current_operation_id}, fetchPolicy: "network-only",
+        fetchPolicy: "network-only",
         shouldResubscribe: true,
         onSubscriptionData: ({subscriptionData}) => {
           setCallbackEdges(subscriptionData.data.callbackgraphedge)
