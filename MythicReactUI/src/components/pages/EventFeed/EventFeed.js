@@ -77,8 +77,8 @@ mutation UpdateLevelOperationEventLog($id: Int!) {
  }
   `;
  const Update_ResolveAllErrors = gql`
-  mutation UpdateResolveAllErrorsOperationEventLog($operation_id: Int!) {
-    update_operationeventlog(where: {level: {_eq: "warning"}, resolved: {_eq: false}, operation_id: {_eq: $operation_id}}, _set: {resolved: true}) {
+  mutation UpdateResolveAllErrorsOperationEventLog {
+    update_operationeventlog(where: {level: {_eq: "warning"}, resolved: {_eq: false}}, _set: {resolved: true}) {
       returning{
           id
           resolved
