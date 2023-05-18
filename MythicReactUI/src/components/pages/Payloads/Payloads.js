@@ -108,7 +108,7 @@ export function Payloads(props){
       variables: {now:  fromNow},
       fetchPolicy: "no-cache",
       onSubscriptionData: ({subscriptionData}) => {
-        console.log("got data", subscriptionData.data.payload_stream)
+        //console.log("got data", subscriptionData.data.payload_stream)
         if(!mountedRef.current){
           return  null;
         }

@@ -350,7 +350,7 @@ function CredentialTableRow(props){
                                 <FontAwesomeIcon icon={faCopy} />
                             </IconButton>
                         </MythicStyledTooltip>
-                        <Typography variant="body2" style={{wordBreak: "break-all", }}><b>Credential: </b>{displayCred}</Typography>
+                        <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}><b>Credential: </b>{displayCred}</Typography>
                     </React.Fragment>
 
                 </MythicStyledTableCell>

@@ -11,9 +11,10 @@ import Popper from '@mui/material/Popper';
 import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
+import Pagination from '@mui/material/Pagination';
 
 
-const EventList = ({onUpdateDeleted, onUpdateLevel, onUpdateResolution, getSurroundingEvents, operationeventlog}) => {
+const EventList = ({onUpdateDeleted, onUpdateLevel, onUpdateResolution, operationeventlog}) => {
    return (
     <div style={{overflowY: "auto", flexGrow: 1}}>
         {operationeventlog.map( o => <EventFeedTableEvents {...o} 
@@ -21,7 +22,6 @@ const EventList = ({onUpdateDeleted, onUpdateLevel, onUpdateResolution, getSurro
             onUpdateDeleted={onUpdateDeleted}
             onUpdateLevel={onUpdateLevel}
             onUpdateResolution={onUpdateResolution}
-            getSurroundingEvents={getSurroundingEvents}
             />)}
     </div>
    )
@@ -32,10 +32,6 @@ export function EventFeedTable(props){
     const dropdownAnchorRef = React.useRef(null);
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const dropDownOptions = [
-        {
-            name: "Load More Events",
-            click: props.loadMore
-        },
         {
             name: "Load All Errors",
             click: props.loadNextError
@@ -48,10 +44,6 @@ export function EventFeedTable(props){
             name: "Resolve All Errors",
             click: props.resolveAllErrors
         },
-        {
-            name: props.sortDirection === "asc" ? "Change to newest at botom" : "Change to newest at top",
-            click: props.changeSortDirection
-        }
     ]
     const handleMenuItemClick = (event, index) => {
         dropDownOptions[index].click();
@@ -108,7 +100,11 @@ export function EventFeedTable(props){
                 </Paper>
                 
             </div>
-            
+            <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: "5px", paddingBottom: "10px"}}>
+                <Pagination count={Math.ceil(props.pageData.totalCount / props.pageData.fetchLimit)} variant="outlined" color="primary" boundaryCount={1}
+                            siblingCount={1} onChange={props.onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
+                <Typography style={{paddingLeft: "10px"}}>Total Results: {props.pageData.totalCount}</Typography>
+            </div>
         </div>
     )
 }

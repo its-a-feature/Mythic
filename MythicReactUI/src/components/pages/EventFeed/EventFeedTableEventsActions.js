@@ -24,10 +24,6 @@ export function EventFeedTableEventsActions(props){
         handleClose();
         props.onUpdateDeleted({id:props.id});
     }
-    const getSurroundingEvents = () => {
-        handleClose();
-        props.getSurroundingEvents({id:props.id});
-    }
     const handleClick = React.useCallback((e) => {
         setAnchorEl(e.currentTarget)
     }, []);
@@ -49,7 +45,6 @@ export function EventFeedTableEventsActions(props){
                             )
                         )
                     }
-                    <MenuItem onClick={getSurroundingEvents}>Get Surrounding Events</MenuItem>
                     <MenuItem onClick={onUpdateDeleted}><DeleteIcon/>Delete</MenuItem>
                 </Menu>
             </ListItemSecondaryAction>
