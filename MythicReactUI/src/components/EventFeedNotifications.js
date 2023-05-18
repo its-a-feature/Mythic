@@ -57,14 +57,24 @@ export function EventFeedNotifications(props) {
                 return;
             }
             if(data.operationeventlog_stream[0].operator){
-                const message = data.operationeventlog_stream[0].operator.username + ":" + data.operationeventlog_stream[0].message;
-                snackActions.info(message, { autoClose: 2000});
+                const message = data.operationeventlog_stream[0].operator.username + ":\n" + data.operationeventlog_stream[0].message;
+                if (data.operationeventlog_stream[0].level === "warning") {
+                    snackActions.warning(message, { autoClose: 2000});
+                } else {
+                    snackActions.info(message, { autoClose: 2000});
+                }
+
             }else {
-                snackActions.info(data.operationeventlog_stream[0].message, {autoClose: 3000});
+                if (data.operationeventlog_stream[0].level === "warning") {
+                    snackActions.warning(data.operationeventlog_stream[0].message, {autoClose: 3000});
+                } else {
+                    snackActions.info(data.operationeventlog_stream[0].message, {autoClose: 3000});
+                }
+
             }
         }else if(error){
             console.error(error);
-            snackActions.warning("Mythic encountered an error getting operational event stream", {autoHideDuration: 2000});
+            snackActions.error("Mythic encountered an error getting operational event stream", {autoHideDuration: 2000});
         }
     }, [loading, data, error, me.user]);
     return (    

@@ -337,6 +337,8 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 						C2ProfileParametersID: databaseC2ProfileParameter.ID,
 						Value:                 paramStringVal,
 					}
+					c2ParameterInstance.OperationID.Valid = true
+					c2ParameterInstance.OperationID.Int64 = int64(databasePayload.OperationID)
 					if databaseC2ProfileParameter.IsCryptoType {
 						if databasePayload.Payloadtype.TranslationContainerID.Valid {
 							if cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
@@ -386,8 +388,8 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 						finalC2Profile.Parameters[databaseC2ProfileParameter.Name] = interfaceParam
 					}
 					if _, err := database.DB.NamedExec(`INSERT INTO
-							c2profileparametersinstance (payload_id, c2_profile_id, c2_profile_parameters_id, value, enc_key, dec_key)
-							VALUES (:payload_id, :c2_profile_id, :c2_profile_parameters_id, :value, :enc_key, :dec_key)`,
+							c2profileparametersinstance (payload_id, c2_profile_id, c2_profile_parameters_id, value, enc_key, dec_key, operation_id)
+							VALUES (:payload_id, :c2_profile_id, :c2_profile_parameters_id, :value, :enc_key, :dec_key, :operation_id)`,
 						c2ParameterInstance); err != nil {
 						logging.LogError(err, "Failed to save c2 profile parameter instance into database")
 						return nil, err

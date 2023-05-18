@@ -4,13 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.1-rc06] - 2023-05-17
+## [3.0.1-rc07] - 2023-05-17
 
 ### Changed
 
 - fixed an issue with creating saved c2 instances that wouldn't supply default values for non-supplied parameters
 - updated the scripting version for the Jupyter Container
 - added two new examples in the Jupyter container for c2 profiles
+- fixed an issue with missing operation_id for c2 profile instances for payloads
 
 ## [3.0.1-rc05] - 2023-05-16
 

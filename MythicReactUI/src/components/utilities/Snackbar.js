@@ -2,16 +2,16 @@ import { toast } from 'react-toastify';
 
 export const snackActions = {
   success(msg, options) {
-    toast.success(msg, {position: toast.POSITION.TOP_CENTER, ...options});
+    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "success", ...options});
   },
   warning(msg, options) {
-    toast.warn(msg, {position: toast.POSITION.TOP_CENTER, ...options});
+    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "warning", ...options});
   },
   info(msg, options) {
-    toast.info(msg, {position: toast.POSITION.TOP_CENTER, ...options});
+    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "info", ...options});
   },
   error(msg, options) {
-    toast.error(msg, {position: toast.POSITION.TOP_CENTER, ...options});
+    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "error", ...options});
   },
   update(msg, toastID, options) {
     if(toast.isActive){
