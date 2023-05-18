@@ -7,7 +7,7 @@ import (
 
 // configCmd represents the config command
 var removeCmd = &cobra.Command{
-	Use:   "remove [container names]",
+	Use:   "remove_container [container names]",
 	Short: "Remove running or exited containers",
 	Long:  `Run this command to remove containers. These will say 'Exited' in the 'status' output if they're orphaned'.`,
 	Run:   removeContainer,
