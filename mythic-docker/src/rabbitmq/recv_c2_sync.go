@@ -59,15 +59,15 @@ type C2Parameter struct {
 }
 
 type ParameterDictionary struct {
-	Name         string `json:"name"`
-	DefaultValue string `json:"default_value"`
-	DefaultShow  bool   `json:"default_show"`
+	Name         string `json:"name" mapstructure:"name"`
+	DefaultValue string `json:"default_value" mapstructure:"default_value"`
+	DefaultShow  bool   `json:"default_show" mapstructure:"default_show"`
 }
 
 type SimplifiedParameterDictionary struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-	Key   string `json:"key"`
+	Name  string `json:"name" mapstructure:"name"`
+	Value string `json:"value" mapstructure:"value"`
+	Key   string `json:"key" mapstructure:"key"`
 }
 
 func init() {

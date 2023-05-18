@@ -395,7 +395,7 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 			logging.LogError(err, "Failed to unmarshal dictionary choices")
 			return "", err
 		}
-		var dictionary map[string]interface{}
+		dictionary := make(map[string]interface{})
 		for _, opt := range dictionaryChoices {
 			if opt.DefaultShow {
 				dictionary[opt.Name] = opt.DefaultValue
