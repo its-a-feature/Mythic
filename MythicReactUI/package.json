@@ -76,6 +76,7 @@
     "react-draggable": "^4.4.4",
     "react-router-dom": "^5.2.0",
     "react-scrollbar-size": "^4.0.0",
+    "react-split": "^2.0.14",
     "react-toastify": "^9.1.1",
     "react-virtualized": "^9.22.3",
     "react-virtualized-auto-sizer": "^1.0.5",

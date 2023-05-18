@@ -4,12 +4,10 @@ import SpeedDial from '@mui/material/SpeedDial';
 import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
 import makeStyles from '@mui/styles/makeStyles';
-import AspectRatioIcon from '@mui/icons-material/AspectRatio';
 import TocIcon from '@mui/icons-material/Toc';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-import { HeightsDialog } from './HeightsDialog';
-import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { CallbacksTop } from './CallbacksTop';
+import Split from 'react-split'
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -41,7 +39,6 @@ export function Callbacks({me}) {
     const [topDisplay, setTopDisplay] = React.useState('table');
     const [openTabs, setOpenTabs] = React.useState([]);
     const [clickedTabId, setClickedTabId] = React.useState('');
-    const [heights, setHeights] = React.useState({ top: '30%', bottom: '68%' });
     const openTabRef = React.useRef();
     useEffect(() => {
         const oldTabs = localStorage.getItem('openTabs');
@@ -55,15 +52,6 @@ export function Callbacks({me}) {
                 }
             } catch (error) {
                 console.log('failed to parse oldTabs', error);
-            }
-        }
-        const oldHeights = localStorage.getItem('heights');
-        if (oldHeights !== undefined && oldHeights !== null) {
-            try {
-                const newHeights = JSON.parse(oldHeights);
-                setHeights(newHeights);
-            } catch (error) {
-                console.log('failed to parse oldHeights', error);
             }
         }
     }, []);
@@ -104,11 +92,6 @@ export function Callbacks({me}) {
         localStorage.setItem('openTabs', JSON.stringify(tabSet));
         setOpenTabs(tabSet);
     }, [openTabs]);
-
-    const onSubmitHeights = React.useCallback((newHeights) => {
-        setHeights(newHeights);
-        localStorage.setItem('heights', JSON.stringify(newHeights));
-    }, []);
     const onDragTab = ({selected, toLeftOf}) => {
         //console.log("onDragTab in CallbacksTabs", selected, toLeftOf);
         let selectedPieces = selected.split("-");
@@ -170,7 +153,34 @@ export function Callbacks({me}) {
         },
     ];
     return (
-        <div style={{ maxWidth: '100%', height: '100%', flexDirection: 'column'}}>
+
+        <React.Fragment>
+            <SpeedDialWrapper setTopDisplay={setTopDisplay} />
+            <Split direction="vertical" sizes={[30, 70]} style={{ height: `calc(100vh - 4rem)` }}>
+                <div className="bg-gray-base">
+                    <CallbacksTop topDisplay={topDisplay} onOpenTab={onOpenTab.current} me={me}/>
+                </div>
+                <div className="bg-gray-mid">
+                    <CallbacksTabs
+                        onCloseTab={onCloseTab}
+                        onEditTabDescription={onEditTabDescription}
+                        key={'callbackstabs'}
+                        clickedTabId={clickedTabId}
+                        openTabs={openTabs}
+                        onDragTab={onDragTab}
+                        me={me}
+                        contextMenuOptions={contextMenuOptions}
+                    />
+                </div>
+            </Split>
+        </React.Fragment>
+
+
+    );
+}
+/*
+<div style={{ maxWidth: '100%', height: '100%', flexDirection: 'column'}}>
+
             <React.Fragment>
                 <SpeedDialWrapper setTopDisplay={setTopDisplay} heights={heights} onSubmitHeights={onSubmitHeights} />
                 <div style={{flexGrow: 1, flexBasis: heights.top, height: heights.top }}>
@@ -192,17 +202,10 @@ export function Callbacks({me}) {
                 </div>
             </React.Fragment>
         </div>
-    );
-}
-
+ */
 function SpeedDialWrapperPreMemo({ setTopDisplay, onSubmitHeights, heights }) {
     const [open, setOpen] = React.useState(false);
     const classes = useStyles();
-    const [openHeightsDialog, setOpenHeightsDialog] = React.useState(false);
-    const submitHeights = (newHeights) => {
-        setOpen(false);
-        onSubmitHeights(newHeights);
-    };
     const actions = React.useMemo(
         () => [
             {
@@ -219,40 +222,11 @@ function SpeedDialWrapperPreMemo({ setTopDisplay, onSubmitHeights, heights }) {
                     setTopDisplay('graph');
                 },
             },
-            {
-                icon: <AspectRatioIcon />,
-                name: 'Adjust Top/Bottom Size',
-                onClick: () => {
-                    setOpenHeightsDialog(true);
-                    setOpen(false);
-                },
-            },
         ],
         [] // eslint-disable-line react-hooks/exhaustive-deps
     );
     return (
         <React.Fragment>
-            {openHeightsDialog && (
-                <MythicDialog
-                    fullWidth={true}
-                    maxWidth='sm'
-                    open={openHeightsDialog}
-                    onClose={() => {
-                        setOpenHeightsDialog(false);
-                        setOpen(false);
-                    }}
-                    innerDialog={
-                        <HeightsDialog
-                            onClose={() => {
-                                setOpenHeightsDialog(false);
-                                setOpen(false);
-                            }}
-                            heights={heights}
-                            onSubmit={submitHeights}
-                        />
-                    }
-                />
-            )}
             <SpeedDial
                 ariaLabel='SpeedDial example'
                 className={classes.speedDial}

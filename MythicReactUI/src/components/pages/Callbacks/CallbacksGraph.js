@@ -70,6 +70,7 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
         "g": null, "elem": null, "pageX": 0, "pageY": 0
     });
     const [reZoom, setReZoom] = useState(true);
+    const [showConfiguration, setShowConfiguration] = React.useState(false);
     //used for creating a task to do a link command
     const [linkCommands, setLinkCommands] = React.useState([]);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
@@ -156,7 +157,6 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
             setContextMenuOpen(false);
         },
         onCompleted: (data) => {
-            console.log(data)
             if(data.updateCallback.status === "success"){
                 snackActions.success("Successfully hid callback")
             }else{
@@ -263,7 +263,11 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
         options[index].click();
         setDropdownOpen(false);
     };
-    const options = [{name: viewConfig["include_disconnected"] ? 'Show Only Active Edges' : "Show All Edges", click: () => {
+    const options = [
+                    {name: showConfiguration ? "Hide Grouping Options": "Show Grouping Options", click: () => {
+                        setShowConfiguration(!showConfiguration);
+                    }},
+                     {name: viewConfig["include_disconnected"] ? 'Show Only Active Edges' : "Show All Edges", click: () => {
                         const view = {...viewConfig, include_disconnected: !viewConfig["include_disconnected"]};
                         drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
                         setViewConfig(view);
@@ -314,59 +318,62 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
         setReZoom(false);
     }, [callbackgraphedges, reZoom, viewConfig, theme]) // eslint-disable-line react-hooks/exhaustive-deps
     return (
-        <div style={{maxWidth: "100%", "overflow": "auto", height: "100%"}}> 
-            <div style={{display: "flex"}} >
+        <div style={{maxWidth: "100%", "overflow": "hidden", height: "100%"}}>
+
+            <div style={{display: "flex",  position: 'absolute',}} >
                 <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" style={{marginTop: "10px"}} color="primary">
                     <Button size="small" color="primary" aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                         aria-expanded={dropdownOpen ? 'true' : undefined}
                         aria-haspopup="menu"
                         onClick={handleDropdownToggle}>
-                            Actions <ArrowDropDownIcon />
+                            Configure Graph View <ArrowDropDownIcon />
                     </Button>
                 </ButtonGroup>
-                <FormControl sx={{ width: 200,  marginTop: "10px" }}>
-                    <InputLabel id="demo-chip-label">Group Callbacks By</InputLabel>
-                    <Select
-                    labelId="demo-chip-label"
-                    id="demo-chip"
-                    
-                    value={selectedGroupBy}
-                    onChange={handleGroupByChange}
-                    input={<OutlinedInput id="select-chip" label="Group Callbacks By" />}
-                    >
-                    {groupByOptions.map((name) => (
-                        <MenuItem
-                        key={name}
-                        value={name}
+                {showConfiguration &&
+                    <FormControl sx={{ width: 200,  marginTop: "10px", backgroundColor: theme.palette.background.default}} >
+                        <InputLabel id="demo-chip-label">Group Callbacks By</InputLabel>
+                        <Select
+                        labelId="demo-chip-label"
+                        id="demo-chip"
+                        value={selectedGroupBy}
+                        onChange={handleGroupByChange}
+                        input={<OutlinedInput id="select-chip" label="Group Callbacks By" />}
                         >
-                        {name}
-                        </MenuItem>
-                    ))}
-                    </Select>
-                </FormControl>
-                <FormControl sx={{minWidth: 300, marginTop: "10px"}}>
-                    <InputLabel id="demo-multiple-chip-label">Display Properties per Callback</InputLabel>
-                    <Select
-                    labelId="demo-multiple-chip-label"
-                    id="demo-multiple-chip"
-                    multiple
-                    value={selectedComponentOptions}
-                    onChange={handleChange}
-                    input={<OutlinedInput id="select-multiple-chip" label="Display Properties per Callback" />}
-                    MenuProps={MenuProps}
-                    >
-                    {labelComponentOptions.map((name) => (
-                        <MenuItem
+                        {groupByOptions.map((name) => (
+                            <MenuItem
                             key={name}
                             value={name}
-                            style={getStyles(name, selectedComponentOptions, theme)}
                             >
-                        {name}
-                        </MenuItem>
-                    ))}
-                    </Select>
-                </FormControl>
-                
+                            {name}
+                            </MenuItem>
+                        ))}
+                        </Select>
+                    </FormControl>
+                }
+                {showConfiguration &&
+                    <FormControl sx={{minWidth: 300, marginTop: "10px",backgroundColor: theme.palette.background.default}}>
+                        <InputLabel id="demo-multiple-chip-label">Display Properties per Callback</InputLabel>
+                        <Select
+                        labelId="demo-multiple-chip-label"
+                        id="demo-multiple-chip"
+                        multiple
+                        value={selectedComponentOptions}
+                        onChange={handleChange}
+                        input={<OutlinedInput id="select-multiple-chip" label="Display Properties per Callback" />}
+                        MenuProps={MenuProps}
+                        >
+                        {labelComponentOptions.map((name) => (
+                            <MenuItem
+                                key={name}
+                                value={name}
+                                style={getStyles(name, selectedComponentOptions, theme)}
+                                >
+                            {name}
+                            </MenuItem>
+                        ))}
+                        </Select>
+                    </FormControl>
+                }
             </div>
             
             <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} transition role={undefined} style={{zIndex: 200}}>
@@ -440,8 +447,8 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
                     </ClickAwayListener>
                 </Paper>
             </Popover>
-                <svg id="callbacksgraph" ref={dagreRef} width="100%" height="100%"></svg> 
-            </div>
+            <svg id="callbacksgraph" ref={dagreRef} width="100%" height="100%"></svg>
+        </div>
     );
 }
 
