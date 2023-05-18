@@ -16,8 +16,8 @@ import MessageTypes from 'subscriptions-transport-ws/dist/message-types';
 import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 
-export const mythicVersion = "3.0.0-rc07";
-export const mythicUIVersion = "0.1.15-rc01";
+export const mythicVersion = "3.0.0-rc08";
+export const mythicUIVersion = "0.1.15-rc02";
 
 let fetchingNewToken = false;
 

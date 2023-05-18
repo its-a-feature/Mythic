@@ -177,11 +177,14 @@ export function TaskParametersDialogRow(props){
                     }
                 }else{
                     snackActions.warning("Mythic knows of no host with a P2P payload. Please add one.");
+                    props.setSubmenuOpenPreventTasking(true);
                 }
             }else{
                 setAgentConnectHostOptions([]);
+                setAgentConnectPayloadOptions([]);
                 setAgentConnectC2ProfileOptions([]);
-                snackActions.warning("Mythic knows of no host with a P2P payload. Please add one.")
+                snackActions.warning("Mythic knows of no host with a P2P payload. Please add one.");
+                props.setSubmenuOpenPreventTasking(true);
             }
        }else{
            if(value === ""){
@@ -331,6 +334,7 @@ export function TaskParametersDialogRow(props){
             snackActions.error("Must set a hostname");
             return;
         }
+        props.setSubmenuOpenPreventTasking(false);
         props.onAgentConnectAddNewPayloadOnHost(agentConnectNewHost.toUpperCase(), props.payload_choices[agentConnectNewPayload].id);
         setOpenAdditionalPayloadOnHostmenu(false);
     }
@@ -533,7 +537,10 @@ export function TaskParametersDialogRow(props){
                                             <Button component="span"  style={{color: theme.palette.success.main, padding: 0}} onClick={onAgentConnectAddNewPayloadOnHost}><AddCircleIcon />Confirm</Button>
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
-                                            <Button component="span" style={{color: theme.palette.warning.main, padding: 0}} onClick={() =>{setOpenAdditionalPayloadOnHostmenu(false)}}><CancelIcon />Cancel</Button>
+                                            <Button component="span" style={{color: theme.palette.warning.main, padding: 0}} onClick={() =>{
+                                                setOpenAdditionalPayloadOnHostmenu(false);
+                                                props.setSubmenuOpenPreventTasking(false);
+                                            }}><CancelIcon />Cancel</Button>
                                         </MythicStyledTableCell>
                                     </TableRow>
                                 </React.Fragment>
@@ -579,14 +586,17 @@ export function TaskParametersDialogRow(props){
                                             
                                         </MythicStyledTableCell>
                                     </TableRow>
-                                                <TableRow>
-                                                    <MythicStyledTableCell>
-                                                    <Button component="span" style={{color: theme.palette.success.main, padding: 0}} onClick={() =>{setOpenAdditionalPayloadOnHostmenu(true)}}><AddCircleIcon />Register New</Button>
-                                                    </MythicStyledTableCell>
-                                                    <MythicStyledTableCell>
-                                                    <Button component="span" style={{color: theme.palette.error.main, padding: 0}} onClick={onAgentConnectRemovePayloadOnHost}><DeleteIcon />Remove Listed</Button>
-                                                    </MythicStyledTableCell>
-                                                </TableRow>
+                                    <TableRow>
+                                        <MythicStyledTableCell>
+                                        <Button component="span" style={{color: theme.palette.success.main, padding: 0}} onClick={() =>{
+                                            setOpenAdditionalPayloadOnHostmenu(true);
+                                            props.setSubmenuOpenPreventTasking(true);
+                                        }}><AddCircleIcon />Register New</Button>
+                                        </MythicStyledTableCell>
+                                        <MythicStyledTableCell>
+                                        <Button component="span" style={{color: theme.palette.error.main, padding: 0}} onClick={onAgentConnectRemovePayloadOnHost}><DeleteIcon />Remove Listed</Button>
+                                        </MythicStyledTableCell>
+                                    </TableRow>
                                     <TableRow>
                                         <MythicStyledTableCell>C2 Profile</MythicStyledTableCell>
                                         <MythicStyledTableCell>
@@ -607,8 +617,6 @@ export function TaskParametersDialogRow(props){
                                         </MythicStyledTableCell>
                                     </TableRow>
                                 </React.Fragment>) }
-
-                                    
                             </TableBody>
                         </Table>
                         {agentConnectC2ProfileOptions.length > 0 && !openAdditionalPayloadOnHostMenu ? (
@@ -620,7 +628,6 @@ export function TaskParametersDialogRow(props){
                                         </TableRow>
                                     </TableHead>
                                 <TableBody>
-                                    
                                     {agentConnectC2ProfileOptions[agentConnectC2Profile]["parameters"].map( (opt, i) => (
                                         <TableRow key={"agentconnectparameters" + props.name + i}>
                                             <MythicStyledTableCell>{opt.name}</MythicStyledTableCell>

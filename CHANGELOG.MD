@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1-rc08] - 2023-05-18
+
+### Changed
+
+- Fixed a few things in the UI with linking
+- Fixed process browser in the UI not reporting process_id when tasking kill/inject
+- Fixed an issue where linked p2p agents would get egress connections in the UI
+
 ## [3.0.1-rc07] - 2023-05-17
 
 ### Changed

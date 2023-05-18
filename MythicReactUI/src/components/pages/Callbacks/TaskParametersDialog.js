@@ -22,6 +22,7 @@ import {Backdrop, CircularProgress} from '@mui/material';
 import Divider from '@mui/material/Divider';
 import {useTheme} from '@mui/material/styles';
 import {b64DecodeUnicode} from './ResponseDisplay';
+import {snackActions} from "../../utilities/Snackbar";
 
 //if we need to get all the loaded commands for the callback and filter, use this
 const GetLoadedCommandsQuery = gql`
@@ -306,7 +307,8 @@ export function TaskParametersDialog(props) {
         onCompleted: data => {
             getAllPayloadsOnHosts({variables: {operation_id: props.operation_id}})
         }
-    })
+    });
+    const [submenuOpenPreventTask, setSubmenuOpenPreventTask] = React.useState(false);
     useQuery(getCommandQuery, {
         variables: {id: props.command.id},
         fetchPolicy: "no-cache",
@@ -359,7 +361,9 @@ export function TaskParametersDialog(props) {
       let setB = new Set(b);
       return [...new Set(a)].filter(x => setB.has(x));
     }
-    
+    const setSubmenuOpenPreventTasking = (open) => {
+        setSubmenuOpenPreventTask(open);
+    }
     useEffect( () => {
         //console.log("use effect triggered")
         const getLinkInfoFromAgentConnect = (choices) => {
@@ -752,13 +756,19 @@ export function TaskParametersDialog(props) {
                 case "Number":
                 case "ChooseOne":
                 case "ChooseMultiple":
-                case "AgentConnect":
                 case "PayloadList":
                 case "Array":
                 case "LinkInfo":
-                    //console.log("sumbit param", param)
+                    //console.log("submit param", param)
                     collapsedParameters[param.name] = param.value;
                     break;
+                case "AgentConnect":
+                    if (Object.keys(param.value).length === 0){
+                        snackActions.warning("No connection info specified")
+                        return
+                    }
+                    collapsedParameters[param.name] = param.value;
+                    break
                 case "File":
                     setBackdropOpen(true);
                     const newUUID = await UploadTaskFile(param.value);
@@ -854,6 +864,7 @@ export function TaskParametersDialog(props) {
                             <TaskParametersDialogRow onSubmit={onSubmit} key={"taskparameterrow" + op.id} onChange={onChange} commandInfo={commandInfo} {...op} 
                                 callback_id={props.callback_id} onAgentConnectAddNewPayloadOnHost={onAgentConnectAddNewPayloadOnHost}
                                 onAgentConnectRemovePayloadOnHost={onAgentConnectRemovePayloadOnHost} addedCredential={addedCredential}
+                                                     setSubmenuOpenPreventTasking={setSubmenuOpenPreventTasking}
                                 />
                         ))}
                     </TableBody>
@@ -864,7 +875,7 @@ export function TaskParametersDialog(props) {
           <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
-          <Button onClick={onSubmit} variant="contained" color="warning">
+          <Button onClick={onSubmit} disabled={submenuOpenPreventTask} variant="contained" color="warning">
             Task
           </Button>
         </DialogActions>
