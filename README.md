@@ -52,7 +52,10 @@ This will _NOT_ do the update for you, but let you know if an update exists. To 
 
 
 ## Mythic Docker Containers
-<img src="https://img.shields.io/docker/v/itsafeaturemythic/mythic_go_base?color=green&label=latest&sort=semver&style=plastic" alt="latest docker versions"/> 
+<p align="left">
+  <img src="https://img.shields.io/docker/v/itsafeaturemythic/mythic_go_base?color=green&label=Latest Release&sort=semver" alt="latest docker versions"/> 
+  <img src="https://img.shields.io/github/v/release/MythicMeta/Mythic_Docker_Templates?include_prereleases&label=Latest%20Pre-Release"/>
+</p>
 
 Mythic uses Docker and Docker-compose for all of its components, which allows Mythic to provide a wide range of components and features without having requirements exist on the host. However, it can be helpful to have insight into how the containers are configured. All of Mythic's docker containers are hosted on DockerHub under [itsafeaturemythic](https://hub.docker.com/search?q=itsafeaturemythic&type=image).
 
@@ -87,7 +90,7 @@ Dockerfiles for each of these Docker images can be found on [MythicMeta](https:/
   <img src="https://img.shields.io/pypi/dm/mythic-container" alt="mythic-container downloads" />
   <img src="https://img.shields.io/pypi/pyversions/mythic-container" alt="mythic-container python version" />
   <img src="https://img.shields.io/pypi/v/mythic-container?color=green&label=Latest%20stable%20PyPi" alt="mythic-container version" />
-  <img src="https://img.shields.io/github/v/release/MythicMeta/MythicContainerPypi?include_prereleases&label=Latest Pre-Release" alt="latest release" />
+  <img src="https://img.shields.io/github/v/release/MythicMeta/MythicContainerPypi?include_prereleases&label=Latest Pre-Release&color=orange" alt="latest release" />
 </p>
 
 The `mythic-container` PyPi package source code is available on [MythicMeta](https://github.com/MythicMeta/MythicContainerPyPi) and is automatically installed on all of the `mythic_python_*` Docker images.
