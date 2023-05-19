@@ -205,15 +205,19 @@ export const TaskFromUIButton = ({callback_id, cmd, ui_feature, parameters, onTa
             createTask({variables: {...variables, callback_id: callbackData.callback_by_pk.display_id}})
         }
     }
-    const submitParametersDialog = (cmd, parameters, files) => {
+    const submitParametersDialog = (cmd, new_parameters, files) => {
         setOpenParametersDialog(false);
         try{
-            savedFinalVariables.current = JSON.parse(parameters);
+            savedFinalVariables.current = JSON.parse(new_parameters);
+            if(typeof parameters !== "string"){
+                savedFinalVariables.current = {...parameters, ...savedFinalVariables.current}
+                new_parameters = JSON.stringify(savedFinalVariables.current)
+            }
         }catch(error){
-            savedFinalVariables.current = parameters;
+            savedFinalVariables.current = new_parameters;
         }
         
-        onSubmitTasking({variables: {callback_id: callback_id, command: cmd, params: parameters, files, tasking_location: "modal"}});
+        onSubmitTasking({variables: {callback_id: callback_id, command: cmd, params: new_parameters, files, tasking_location: "modal"}});
     }
     const onSubmitSelectedToken = (token) => {
         setSelectedCallbackToken(token);
@@ -236,8 +240,6 @@ export const TaskFromUIButton = ({callback_id, cmd, ui_feature, parameters, onTa
         }
         if(selectedCallbackToken.token_id){
             createTask({variables: {...taskingVariables, callback_id: callbackData.callback_by_pk.display_id, token_id: selectedCallbackToken.token_id}});
-        }else{
-            return;
         }
         
     }, [selectedCallbackToken])

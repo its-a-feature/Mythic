@@ -17,6 +17,7 @@ import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
+import Split from 'react-split';
 
 const fileDataFragment = gql`
     fragment fileObjData on mythictree {
@@ -251,7 +252,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         setOpenTaskingButton(true);
     };
     const onUploadFileButton = ({ fullPath }) => {
-        taskingData.current = ({"parameters": {path: fullPath, full_path: fullPath, host: selectedFolderData.host}, "ui_feature": "file_browser:upload", "openDialog": true});
+        taskingData.current = ({"parameters":
+                {path: fullPath, full_path: fullPath, host: selectedFolderData.host},
+            "ui_feature": "file_browser:upload", "openDialog": true});
         setOpenTaskingButton(true);
     };
     const onTaskRowAction = useCallback(({ path, full_path, filename, uifeature, openDialog, getConfirmation }) => {
@@ -278,8 +281,8 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
     }
     return (
         <MythicTabPanel index={index} value={value}>
-            <div style={{ display: 'flex', flexGrow: 1, overflowY: 'auto' }}>
-                <div style={{ width: '30%', overflow: 'auto', flexGrow: 1 }}>
+            <Split direction="horizontal" style={{width: "100%", height: "100%", display: "flex"}} sizes={[30, 70]} >
+                <div className="bg-gray-base" style={{display: "inline-flex"}}>
                     <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={true}>
                         <CircularProgress color="inherit" />
                     </Backdrop>
@@ -292,33 +295,35 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         taskListing={taskListing}
                         tableOpenedPathId={tableOpenedPathIdRef.current}
                     />
-                    
+
                 </div>
-                <div style={{ width: '60%', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                    <div style={{ flexGrow: 0 }}>
-                        <FileBrowserTableTop
-                            selectedFolderData={selectedFolderData}
-                            onListFilesButton={onListFilesButton}
-                            onUploadFileButton={onUploadFileButton}
-                            toggleShowDeletedFiles={toggleShowDeletedFiles}
-                        />
-                    </div>
-                    <div style={{ flexGrow: 1 }}>
-                        <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={true}>
-                            <CircularProgress color="inherit" />
-                        </Backdrop>
-                        <CallbacksTabsFileBrowserTable
-                            showDeletedFiles={showDeletedFiles}
-                            onRowDoubleClick={fetchFolderData}
-                            treeRootData={treeRootDataRef.current}
-                            treeAdjMatrix={treeAdjMtx}
-                            selectedFolderData={selectedFolderData}
-                            onTaskRowAction={onTaskRowAction}
-                            me={me}
-                        />
+                <div className="bg-gray-light" style={{display: "inline-flex"}}>
+                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                        <div style={{ flexGrow: 0 }}>
+                            <FileBrowserTableTop
+                                selectedFolderData={selectedFolderData}
+                                onListFilesButton={onListFilesButton}
+                                onUploadFileButton={onUploadFileButton}
+                                toggleShowDeletedFiles={toggleShowDeletedFiles}
+                            />
+                        </div>
+                        <div style={{ flexGrow: 1 }}>
+                            <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={true}>
+                                <CircularProgress color="inherit" />
+                            </Backdrop>
+                            <CallbacksTabsFileBrowserTable
+                                showDeletedFiles={showDeletedFiles}
+                                onRowDoubleClick={fetchFolderData}
+                                treeRootData={treeRootDataRef.current}
+                                treeAdjMatrix={treeAdjMtx}
+                                selectedFolderData={selectedFolderData}
+                                onTaskRowAction={onTaskRowAction}
+                                me={me}
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
+            </Split>
             {openTaskingButton && 
                 <TaskFromUIButton ui_feature={taskingData.current?.ui_feature || " "} 
                     callback_id={tabInfo.callbackID} 

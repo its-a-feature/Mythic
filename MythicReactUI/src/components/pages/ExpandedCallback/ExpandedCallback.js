@@ -4,6 +4,7 @@ import {ExpandedCallbackSideDetails} from './ExpandedCallbackSideDetails';
 import  {useParams} from "react-router-dom";
 import {CallbacksTabsTaskingPanel} from '../Callbacks/CallbacksTabsTasking';
 import { snackActions } from '../../utilities/Snackbar';
+import Split from 'react-split';
 
 
 const SUB_Callbacks = gql`
@@ -85,14 +86,16 @@ export function ExpandedCallback(props){
     });
 
     return (
-        <div style={{width: "100%", height: "100%", maxHeight: "100%", display: "flex", flexDirection: "row"}}>
+        <div style={{width: "100%", height: "100%", maxHeight: "100%",}}>
           {tabInfo.payloadtype !== undefined ? (
-            <React.Fragment>
-              <ExpandedCallbackSideDetails me={props.me} callback={callback} />
-              <CallbacksTabsTaskingPanel me={props.me} 
-                style={{height:`calc(${96}vh)`, maxHeight:`calc(${96}vh)`, width:"69%", maxWidth: "69%", position: "absolute", overflow: "auto", display: "inline-flex", flexDirection: "column"}} 
-                tabInfo={tabInfo} callbacktokens={callback.callbacktokens}/>
-            </React.Fragment>
+              <Split direction="horizontal" style={{width: "100%", height: "100%", display: "flex", flexDirection: "row" }} sizes={[30, 70]} >
+                  <div className="bg-gray-base" style={{display: "inline-flex"}}>
+                      <ExpandedCallbackSideDetails me={props.me} callback={callback} />
+                  </div>
+                  <div className="bg-gray-light" style={{display: "inline-flex"}}>
+                      <CallbacksTabsTaskingPanel me={props.me} tabInfo={tabInfo} callbacktokens={callback.callbacktokens}/>
+                  </div>
+            </Split>
           ) : (
             <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>Fetching Callback</div>
           )}

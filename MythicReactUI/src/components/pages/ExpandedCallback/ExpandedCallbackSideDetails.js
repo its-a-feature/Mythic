@@ -23,18 +23,17 @@ import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip'
 import {SUB_Edges} from '../Callbacks/CallbacksTop';
 
 export function ExpandedCallbackSideDetails(props){
-    const maxWidth = "30%";
     const theme = useTheme();
     return (
-        <div style={{maxWidth, width: maxWidth, display: "inline-flex", height: "calc(94vh)", flexDirection: "column"}}>
+        <div style={{ width: "100%", height: "100%" }}>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                 <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Callback {props.callback.display_id}
                 </Typography>
             </Paper>
             <TableContainer component={Paper} className="mythicElement">   
-            <ExpandedCallbackSideDetailsTable {...props.callback} />
-        </TableContainer>
+                <ExpandedCallbackSideDetailsTable {...props.callback} />
+            </TableContainer>
         </div>
     )
 }
