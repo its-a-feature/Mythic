@@ -37,6 +37,22 @@ html, body, #root {
         
     }
 }
+.MuiListItem-root {
+    &:hover,
+    &--hovered {
+        background-color: ${(props) => props.theme.tableHover} !important;
+        color: ${(props) => props.theme.palette.text.primary} !important;
+        
+    }
+}
+.hoverme {
+    &:hover,
+    &--hovered {
+        background-color: ${(props) => props.theme.tableHover} !important;
+        color: ${(props) => props.theme.palette.text.primary} !important;
+        
+    }
+}
 .menuEntry {
   cursor: pointer;
 }

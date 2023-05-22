@@ -75,7 +75,7 @@ const ResizableGridWrapper = ({
             //updatedColumnWidths[updatedWidthIndex] += totalWidthDiff;
         }
         setColumnWidths(updatedColumnWidths);
-    }, [scrollbarWidth, columns]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [scrollbarWidth, columns, AutoSizerProps.width]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         gridRef.current.resetAfterColumnIndex(0, true);
@@ -96,11 +96,28 @@ const ResizableGridWrapper = ({
     const autosizeColumn = (columnIndex) => {
         const longestElementInColumn = Math.max(...items.map((itemRow) => {
             if(columns[columnIndex].key){
-                //console.log(columns[columnIndex].key)
-                //console.log(itemRow[columnIndex]?.props?.rowData)
+                if(columns[columnIndex].key.includes("time")){
+                    return 30;
+                }
+                try{
+                    items = JSON.parse(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]);
+                    if(Array.isArray(items) && items.length > 0){
+                        return String(items[0]).length;
+                    }
+                }catch(error){
+                    return String(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]).length || -1;
+                }
                 return String(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]).length || -1;
             } else if(typeof(itemRow[columnIndex]?.props?.cellData) === "string"){
-                return itemRow[columnIndex]?.props?.cellData.length;
+                try{
+                    items = JSON.parse(itemRow[columnIndex]?.props?.cellData);
+                    if(Array.isArray(items) && items.length > 0){
+                        return String(items[0]).length;
+                    }
+                }catch(error){
+                    return itemRow[columnIndex]?.props?.cellData.length;
+                }
+
             }else {
                 return itemRow[columnIndex]?.props?.cellData?.length || -1;
             }

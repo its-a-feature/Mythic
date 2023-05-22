@@ -127,7 +127,7 @@ const VirtualTreeRow = ({
     if (itemTreeData.isOpen) {
       onCollapseNode(item.id, item);
     } else {
-      snackActions.info('fetching elements...', { autoClose: false });
+      //snackActions.info('fetching elements...', { autoClose: false });
       onExpandNode(item.id, item);
     }
   };
@@ -159,7 +159,7 @@ const VirtualTreeRow = ({
       setOpenContextMenu(false);
     };
   return (
-    <div style={ListProps.style}>
+    <div className={"hoverme"} style={ListProps.style}>
     <div style={{display: 'flex' , marginBottom: "1px", flexGrow: 1, width: "100%"}}>
         {[...Array(itemTreeData.depth)].map((o, i) => (
             <div
@@ -361,8 +361,8 @@ const FileBrowserVirtualTree = ({
         <List
           itemData={flattenedNodes}
           direction="vertical"
-          height={AutoSizerProps.height - 10}
-          width={AutoSizerProps.width - 10}
+          height={AutoSizerProps.height}
+          width={AutoSizerProps.width}
           itemCount={flattenedNodes.length}
           itemSize={24}
         >

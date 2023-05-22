@@ -167,7 +167,6 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         },
         fetchPolicy: 'no-cache',
     });
-    
     useSubscription(fileDataSubscription, {
         variables: {now: fromNow},
         fetchPolicy: "no-cache",
@@ -196,7 +195,6 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             
         }
     })
-    
     const [getFolderData] = useLazyQuery(folderQuery, {
         onError: (data) => {
             console.error(data);
@@ -215,7 +213,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                 treeRootDataRef.current[data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
             }
             // now add in all of the adjacency info
-            snackActions.success('Fetched data');
+            //snackActions.success('Fetched data');
             // now join in the data by updating the adjacency matrix and root info
             const newMatrix = data.mythictree.reduce( (prev, cur) => {
                 if( prev[cur["host"]] === undefined) {

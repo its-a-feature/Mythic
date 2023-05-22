@@ -29,7 +29,7 @@ export function BrowserScriptsTable(props){
                     <MythicDialog fullWidth={true} maxWidth="md" open={openNewScriptDialog} 
                         onClose={()=>{setOpenNewScriptDialog(false);}} 
                         innerDialog={
-                            <EditScriptDialog onClose={()=>{setOpenNewScriptDialog(false);}} title="Create New Browser Script" new={true} onSubmitEdit={props.onSubmitNew} />
+                            <EditScriptDialog me={props.me} onClose={()=>{setOpenNewScriptDialog(false);}} title="Create New Browser Script" new={true} onSubmitEdit={props.onSubmitNew} />
                         } />    
                     ) : (null)
                 }
@@ -49,12 +49,14 @@ export function BrowserScriptsTable(props){
                 </TableHead>
                 <TableBody>
                 {props.browserscripts.map( (op) => (
-                    <BrowserScriptsTableRow onSubmitApplyToOperation={props.onSubmitApplyToOperation} 
-                    onSubmitRemoveFromOperation={props.onSubmitRemoveFromOperation} 
-                    operation_id={props.operation_id} onToggleActive={props.onToggleActive} 
-                    onSubmitEdit={props.onSubmitEdit} onRevert={props.onRevert} 
-                    onToggleOperation={props.onToggleOperation}
-                    onDelete={props.onDelete}
+                    <BrowserScriptsTableRow
+                        me={props.me}
+                        onSubmitApplyToOperation={props.onSubmitApplyToOperation}
+                        onSubmitRemoveFromOperation={props.onSubmitRemoveFromOperation}
+                        operation_id={props.operation_id} onToggleActive={props.onToggleActive}
+                        onSubmitEdit={props.onSubmitEdit} onRevert={props.onRevert}
+                        onToggleOperation={props.onToggleOperation}
+                        onDelete={props.onDelete}
                         key={"script" + op.id}
                         {...op}
                     />
