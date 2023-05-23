@@ -265,10 +265,10 @@ const TaskStatusDisplay = ({task, theme}) => {
   }else if(task.status === "cleared"){
     return (<Typography size="small" component="span"  style={{padding: "0", color: theme.palette.warning.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>cleared</Typography>)
   }else if(task.status === "completed" || task.status === "success"){
-    return (null)//return (<Typography size="small" style={{padding: "0", color: theme.palette.success.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>completed</Typography>)
+    return null//return (<Typography size="small" style={{padding: "0", color: theme.palette.success.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>completed</Typography>)
   }else if(task.status === "submitted"){
     return (<Typography size="small" component="span"  style={{padding: "0", color: theme.palette.info.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>{task.status.toLowerCase()}</Typography>)
-  }else if(task.status === "processing"){
+  }else if(task.status.toLowerCase().includes("processing")){
     return (<Typography size="small" component="span"  style={{padding: "0", color: theme.palette.warning.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>{task.status.toLowerCase()}</Typography>)
   }else if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
     return (<Typography size="small" component="span"  style={{padding: "0", color: theme.palette.warning.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>OPSEC BLOCKED (PRE)</Typography>)
@@ -296,7 +296,7 @@ const ColoredTaskDisplay = ({task, theme, children}) => {
       setThemeColor(theme.palette.warning.main);
     }else if(task.opsec_post_blocked && !task.opsec_post_bypassed){
       setThemeColor(theme.palette.warning.main);
-    }else if(task.status.toLowerCase() === "processing"){
+    }else if(task.status.toLowerCase().includes("processing")){
       setThemeColor(theme.palette.warning.main);
     }else if(task.status === "completed" || (task.status === "success" && task.completed)){
         setThemeColor(theme.palette.success.main);

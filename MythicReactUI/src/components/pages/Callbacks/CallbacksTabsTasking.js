@@ -366,7 +366,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         onCreateTask({callback_id: tabInfo.displayID, command: cmd, params: parameters, files: files, tasking_location: "modal", parameter_group_name: selectedParameterGroup});
     }
     const onCreateTask = ({callback_id, command, params, files, tasking_location, original_params, parameter_group_name}) => {
-        console.log(selectedToken)
+        //console.log(selectedToken)
         if(selectedToken.token_id !== undefined){
             createTask({variables: {callback_id, command, params, files, token_id: selectedToken.token_id, tasking_location, original_params, parameter_group_name}});
         }else{

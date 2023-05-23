@@ -84,6 +84,10 @@ const (
 	//
 	C2_RPC_CONFIG_CHECK_ROUTING_KEY = "c2_rpc_config_check"
 	//
+	C2_RPC_GET_IOC_ROUTING_KEY = "c2_rpc_get_ioc"
+	//
+	C2_RPC_SAMPLE_MESSAGE_ROUTING_KEY = "c2_rpc_sample_message"
+	//
 	C2_RPC_REDIRECTOR_RULES_ROUTING_KEY = "c2_rpc_redirector_rules"
 	//
 	C2_RPC_START_SERVER_ROUTING_KEY = "c2_rpc_start_server"

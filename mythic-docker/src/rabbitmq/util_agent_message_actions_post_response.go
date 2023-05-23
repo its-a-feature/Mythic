@@ -246,7 +246,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				} else if agentResponse.Completed != nil && *agentResponse.Completed {
 					currentTask.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
 				} else if currentTask.Status == PT_TASK_FUNCTION_STATUS_PROCESSING {
-					currentTask.Status = "processed"
+					currentTask.Status = PT_TASK_FUNCTION_STATUS_PROCESSED
 				}
 				if agentResponse.UserOutput != nil {
 					// do it in the background - the agent doesn't need the result of this directly

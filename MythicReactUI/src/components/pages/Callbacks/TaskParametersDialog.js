@@ -678,7 +678,7 @@ export function TaskParametersDialog(props) {
                                 return [...prevn, {...cur}];
                             }
                         }, [...organized]);
-                        console.log("updating choices and payload choices", allOrganized, agentConnectNewPayloads)
+                        //console.log("updating choices and payload choices", allOrganized, agentConnectNewPayloads)
                         return [...prev, {...cmd, choices: allOrganized, payload_choices: agentConnectNewPayloads, value: getLinkInfoFromAgentConnect(organized)}];
                     case "PayloadList":
                         let supported_agents = cmd.supported_agents;

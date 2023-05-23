@@ -162,6 +162,8 @@ func setRoutes(r *gin.Engine) {
 				allOperationMembers.POST("config_check_webhook", webcontroller.C2ProfileConfigCheckWebhook)
 				allOperationMembers.POST("export_payload_config_webhook", webcontroller.ExportPayloadConfigWebhook)
 				allOperationMembers.POST("redirect_rules_webhook", webcontroller.C2ProfileRedirectRulesWebhook)
+				allOperationMembers.POST("get_ioc_webhook", webcontroller.C2ProfileGetIOCWebhook)
+				allOperationMembers.POST("sample_message_webhook", webcontroller.C2ProfileSampleMessageWebhook)
 				// file
 				allOperationMembers.POST("download_bulk_webhook", webcontroller.DownloadBulkFilesWebhook)
 				allOperationMembers.POST("preview_file_webhook", webcontroller.PreviewFileWebhook)

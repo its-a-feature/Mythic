@@ -172,7 +172,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			}
 		}
 		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         []string{"CMD-SHELL", "wget -nv -t1 -O /dev/null http://127.0.0.1:${DOCUMENTATION_PORT}/docs/"},
+			"test":         "wget -nv -t1 -O /dev/null http://127.0.0.1:${DOCUMENTATION_PORT}/docs/",
 			"interval":     "10s",
 			"timeout":      "10s",
 			"retries":      5,
@@ -227,7 +227,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"args":    buildArguments,
 		}
 		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         []string{"CMD-SHELL", "curl -k https://127.0.0.1:${NGINX_PORT}"},
+			"test":         "wget --no-check-certificate -SqO - https://127.0.0.1:${NGINX_PORT}",
 			"interval":     "30s",
 			"timeout":      "60s",
 			"retries":      5,
@@ -287,7 +287,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"args":    buildArguments,
 		}
 		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         []string{"CMD-SHELL", "rabbitmq-diagnostics -q status && rabbitmq-diagnostics -q check_local_alarms"},
+			"test":         "rabbitmq-diagnostics -q status && rabbitmq-diagnostics -q check_local_alarms",
 			"interval":     "60s",
 			"timeout":      "30s",
 			"retries":      5,
@@ -363,7 +363,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			}
 		}
 		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         []string{"CMD-SHELL", "curl -k http://127.0.0.1:${MYTHIC_REACT_PORT}/new"},
+			"test":         "wget -SqO - http://127.0.0.1:${MYTHIC_REACT_PORT}/new",
 			"interval":     "30s",
 			"timeout":      "60s",
 			"retries":      3,
@@ -404,7 +404,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"./mythic-docker/src:/usr/src/app",
 		}
 		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         "curl -k http://127.0.0.1:${MYTHIC_SERVER_PORT}/health",
+			"test":         "wget -SqO - http://127.0.0.1:${MYTHIC_SERVER_PORT}/health",
 			"interval":     "60s",
 			"timeout":      "10s",
 			"retries":      5,

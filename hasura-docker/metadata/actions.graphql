@@ -6,6 +6,18 @@ type Mutation {
 }
 
 type Query {
+  c2GetIOC(
+    uuid: String!
+  ): GetIOCOutput
+}
+
+type Query {
+  c2SampleMessage(
+    uuid: String!
+  ): C2SampleMessageOutput
+}
+
+type Query {
   c2profileListFiles(
     id: Int!
   ): c2ProfileListFilesOutput
@@ -700,5 +712,17 @@ type createCredentialOutput {
 type createOperationEventLogOutput {
   status: String!
   error: String
+}
+
+type GetIOCOutput {
+  status: String!
+  error: String
+  output: String
+}
+
+type C2SampleMessageOutput {
+  status: String!
+  error: String
+  output: String
 }
 

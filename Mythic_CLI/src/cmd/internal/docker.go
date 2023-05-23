@@ -374,3 +374,13 @@ func DockerLoad() error {
 		return nil
 	}
 }
+func DockerHealth(containers []string) {
+	for _, container := range containers {
+		outputString, err := runDocker([]string{"inspect", "--format", "{{json .State.Health }}", container})
+		if err != nil {
+			fmt.Printf("failed to check status: %s", err.Error())
+		} else {
+			fmt.Printf("%s:\n%s\n\n", container, outputString)
+		}
+	}
+}

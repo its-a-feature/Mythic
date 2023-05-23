@@ -5,7 +5,8 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-const validContainerVersionMax = "v1.1"
+// validContainerVersionMax container's version must be strictly less than this value
+const validContainerVersionMax = "v1.2"
 
 func isValidContainerVersion(version string) bool {
 	if semver.IsValid(validContainerVersionMax) {
