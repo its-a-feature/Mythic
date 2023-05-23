@@ -286,7 +286,7 @@ const PaginationBar = ({selectAllOutput, totalCount, onSubmitPageChange, task, s
     onSubmitPageChange(value);
   };
   React.useEffect( () => {
-    if(maxCount != task.response_count){
+    if(maxCount !== task.response_count){
       setMaxCount(task.response_count);
     }
   }, [task.response_count]);
@@ -412,25 +412,11 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
   const [fetchScripts] = useLazyQuery(taskScript, {
     fetchPolicy: "network-only",
     onCompleted: (data) => {
-      if(data.browserscriptoperation.length > 0){
+      if(data.browserscript.length > 0){
         try{
-          let unb64script = b64DecodeUnicode(data.browserscriptoperation[0]["script"]);
-          let fun = Function('"use strict";return(' + unb64script + ')')();
-          script.current = fun;
-          setViewBrowserScript(true);
-          let res = script.current(task, rawResponses);
-          setBrowserScriptData(filterOutput(res));
-        }catch(error){
-          snackActions.error(error.toString());
-          console.log(error);
-          setViewBrowserScript(false);
-        }
-        
-      }else if(data.browserscript.length > 0){
-        try{
-          let unb64script = b64DecodeUnicode(data.browserscript[0]["script"]);
-          let fun = Function('"use strict";return(' + unb64script + ')')();
-          script.current = fun;
+          //let unb64script = b64DecodeUnicode(data.browserscript[0]["script"]);
+          //script.current = Function('"use strict";return(' + unb64script + ')')();
+          script.current = Function(`"use strict";return(${data.browserscript[0]["script"]})`)();
           setViewBrowserScript(true);
           //console.log(rawResponses);
           let res = script.current(task, rawResponses);
@@ -489,7 +475,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
               <Fab onClick={scrollToTop} color="info" size="small" aria-label="top" style={{position: "relative", right: 0, zIndex: 10}}><ArrowUpwardIcon /></Fab><br/>
               <Fab onClick={scrollToBottom} color="info" size="small" aria-label="top" style={{position: "relative", right: 0, zIndex: 10}}><ArrowDownwardIcon /></Fab>
             </div>
-          ): (null)}
+          ): null}
           
           {browserScriptData?.screenshot?.map( (scr, index) => (
               <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} {...scr} />
@@ -518,7 +504,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
               <Fab onClick={scrollToTop} color="info" size="small" aria-label="top" style={{position: "relative", right: 0, zIndex: 10}}><ArrowUpwardIcon /></Fab><br/>
               <Fab onClick={scrollToBottom} color="info" size="small" aria-label="top" style={{position: "relative", right: 0, zIndex: 10}}><ArrowDownwardIcon /></Fab>
             </div>
-          ): (null)}
+          ): null}
           <ResponseDisplayPlaintext plaintext={output}/>
       </React.Fragment>
       

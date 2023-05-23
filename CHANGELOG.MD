@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1-rc11] - 2023-05-23
+
+### Changed
+
+- Updated MythicRPCFileUpdateMessage to allow setting DeleteAfterFetch
+- Updated UI to support GenerateIOCs and GenerateSampleMessage for C2 containers
+- Updated UI to have icons next to options on the Payloads page so it's easier to find what you're looking for
+- Updated UI to not base64 encode browser scripts
+- Updated mythic_graphql with new GraphQL endpoint and permissions for c2GetIOC and c2SampleMessage functions
+- Fixed an issue with additional information incorrectly mapped to map[string]string instead of map[string]interface{}
+- Updated message about out-dated `upload` key for file transfers to be an informational debug message rather than a warning
+- Updated Jupyter with mythic==0.1.2
+
 ## [3.0.1-rc10] - 2023-05-22
 
 ### Changed

@@ -335,7 +335,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 		case "upload":
 			{
 				go SendAllOperationsMessage(fmt.Sprintf("Agent %s is using deprecated method of file transfer with the 'upload' action.", uuidInfo.PayloadTypeName),
-					uuidInfo.OperationID, "bad_upload_action", database.MESSAGE_LEVEL_WARNING)
+					uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_INFO)
 				response, err = handleAgentMessagePostResponse(&map[string]interface{}{
 					"action": "post_response",
 					"responses": []map[string]interface{}{

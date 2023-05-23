@@ -14,12 +14,13 @@ import (
 )
 
 type MythicRPCFileUpdateMessage struct {
-	AgentFileID     string  `json:"file_id"`
-	Comment         string  `json:"comment"`
-	Filename        string  `json:"filename"`
-	AppendContents  *[]byte `json:"append_contents"`
-	ReplaceContents *[]byte `json:"replace_contents"`
-	Delete          bool    `json:"delete"`
+	AgentFileID      string  `json:"file_id"`
+	Comment          string  `json:"comment"`
+	Filename         string  `json:"filename"`
+	DeleteAfterFetch *bool   `json:"delete_after_fetch"`
+	AppendContents   *[]byte `json:"append_contents"`
+	ReplaceContents  *[]byte `json:"replace_contents"`
+	Delete           bool    `json:"delete"`
 }
 
 // Every mythicRPC function call must return a response that includes the following two values
@@ -45,7 +46,8 @@ func MythicRPCFileUpdate(input MythicRPCFileUpdateMessage) MythicRPCFileUpdateMe
 	file := databaseStructs.Filemeta{
 		AgentFileID: input.AgentFileID,
 	}
-	if err := database.DB.Get(&file, `SELECT id, "comment", filename, "path" FROM filemeta WHERE agent_file_id=$1`, input.AgentFileID); err != nil {
+	if err := database.DB.Get(&file, `SELECT id, "comment", filename, "path", delete_after_fetch
+		FROM filemeta WHERE agent_file_id=$1`, input.AgentFileID); err != nil {
 		response.Error = err.Error()
 		return response
 	}
@@ -54,6 +56,9 @@ func MythicRPCFileUpdate(input MythicRPCFileUpdateMessage) MythicRPCFileUpdateMe
 	}
 	if input.Comment != "" {
 		file.Comment = input.Comment
+	}
+	if input.DeleteAfterFetch != nil {
+		file.DeleteAfterFetch = *input.DeleteAfterFetch
 	}
 	if input.AppendContents != nil {
 		if diskFile, err := os.OpenFile(file.Path, os.O_APPEND|os.O_RDWR, 0644); err != nil {
@@ -83,7 +88,7 @@ func MythicRPCFileUpdate(input MythicRPCFileUpdateMessage) MythicRPCFileUpdateMe
 				md5Sum := md5.Sum(fileContents)
 				file.Md5 = fmt.Sprintf("%x", md5Sum)
 				if _, err := database.DB.NamedExec(`UPDATE filemeta SET
-				"comment"=:comment, filename=:filename, sha1=:sha1, md5=:md5
+				"comment"=:comment, filename=:filename, sha1=:sha1, md5=:md5, delete_after_fetch=:delete_after_fetch 
 				WHERE id=:id`, file); err != nil {
 					response.Error = err.Error()
 					return response
@@ -113,7 +118,7 @@ func MythicRPCFileUpdate(input MythicRPCFileUpdateMessage) MythicRPCFileUpdateMe
 			md5Sum := md5.Sum(*input.ReplaceContents)
 			file.Md5 = fmt.Sprintf("%x", md5Sum)
 			if _, err := database.DB.NamedExec(`UPDATE filemeta SET
-				comment=:comment, filename=:filename, sha1=:sha1, md5=:md5
+				comment=:comment, filename=:filename, sha1=:sha1, md5=:md5, delete_after_fetch=:delete_after_fetch 
 				WHERE id=:id`, file); err != nil {
 				response.Error = err.Error()
 				return response
@@ -128,7 +133,7 @@ func MythicRPCFileUpdate(input MythicRPCFileUpdateMessage) MythicRPCFileUpdateMe
 			return response
 		} else {
 			if _, err := database.DB.NamedExec(`UPDATE filemeta SET
-				"comment"=:comment, filename=:filename, deleted=true
+				"comment"=:comment, filename=:filename, deleted=true, delete_after_fetch=:delete_after_fetch 
 				WHERE id=:id`, file); err != nil {
 				response.Error = err.Error()
 				return response
@@ -139,7 +144,7 @@ func MythicRPCFileUpdate(input MythicRPCFileUpdateMessage) MythicRPCFileUpdateMe
 		}
 	} else {
 		if _, err := database.DB.NamedExec(`UPDATE filemeta SET
-		"comment"=:comment, filename=:filename 
+		"comment"=:comment, filename=:filename, delete_after_fetch=:delete_after_fetch 
 		WHERE id=:id
 		`, file); err != nil {
 			response.Error = err.Error()

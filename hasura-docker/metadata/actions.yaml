@@ -14,11 +14,23 @@ actions:
       kind: ""
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/get_ioc_webhook'
       forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: c2SampleMessage
     definition:
       kind: ""
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/sample_message_webhook'
       forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: c2profileListFiles
     definition:
       kind: ""

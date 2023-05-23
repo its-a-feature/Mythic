@@ -207,8 +207,8 @@ query getAllPayloadsOnHostsQuery($operation_id: Int!){
 // use this to add a payload on a host
 const addPayloadOnHostMutation = gql`
     mutation addPayloadOnHostMutation($host: String!, $payload_id: Int!){
-        insert_payloadonhost(objects: {host: $host, payload_id: $payload_id}) {
-            affected_rows
+        insert_payloadonhost_one(object: {host: $host, payload_id: $payload_id}) {
+            id
           }
     }
 `;
@@ -300,12 +300,23 @@ export function TaskParametersDialog(props) {
     });
     const [addPayloadOnHost] = useMutation(addPayloadOnHostMutation, {
         onCompleted: data => {
-            getAllPayloadsOnHosts({variables: {operation_id: props.operation_id}})
+            if(data.insert_payloadonhost_one.id){
+                snackActions.success("Successfully tracked payload on host");
+            }
+            getAllPayloadsOnHosts({variables: {operation_id: props.operation_id}});
+        },
+        onError: data => {
+            console.log("failed to add payload on host", data);
+            snackActions.error("Failed to add payload on host: " + data.message);
         }
     });
     const [RemovePayloadOnHost] = useMutation(removePayloadOnHostMutation, {
         onCompleted: data => {
             getAllPayloadsOnHosts({variables: {operation_id: props.operation_id}})
+        },
+        onError: data => {
+            console.log("failed to remove payload from host", data);
+            snackActions.error("Failed to remove payload from host: " + data.message);
         }
     });
     const [submenuOpenPreventTask, setSubmenuOpenPreventTask] = React.useState(false);

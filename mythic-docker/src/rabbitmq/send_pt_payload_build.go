@@ -260,11 +260,11 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 			buildOutput += err.Error() + "\n"
 		} else if !opsecCheckResponse.Success {
 			checksPassed = false
-			buildOutput += "[-] !!! C2 OPSEC check failed !!! \n" + opsecCheckResponse.Error + "\n"
+			buildOutput += "[-] !!! C2 OPSEC check failed !!! \n" + opsecCheckResponse.Error
 		} else {
 			buildOutput += opsecCheckResponse.Message + "\n"
 		}
-		buildOutput += fmt.Sprintf("Step 2/%d - Issuing Config Check for\n", totalSteps)
+		buildOutput += fmt.Sprintf("Step 2/%d - Issuing Config Check\n", totalSteps)
 		if configCheckResponse, err := RabbitMQConnection.SendC2RPCConfigCheck(C2ConfigCheckMessage{
 			Name:       c2.Name,
 			Parameters: c2.Parameters,

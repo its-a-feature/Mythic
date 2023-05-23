@@ -28,8 +28,22 @@ import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip'
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {PayloadsTableRowBuildProgress} from './PayloadsTableRowBuildProgress';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
-
 import {CreateNewCallbackDialog} from './CreateNewCallbackDialog';
+import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
+import DescriptionIcon from '@mui/icons-material/Description';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import MessageIcon from '@mui/icons-material/Message';
+import ErrorIcon from '@mui/icons-material/Error';
+import CachedIcon from '@mui/icons-material/Cached';
+import SettingsIcon from '@mui/icons-material/Settings';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import AddIcCallIcon from '@mui/icons-material/AddIcCall';
+import PhoneMissedIcon from '@mui/icons-material/PhoneMissed';
+import FingerprintIcon from '@mui/icons-material/Fingerprint';
+import BiotechIcon from '@mui/icons-material/Biotech';
+import {PayloadGetIOCDialog} from "./PayloadGetIOCDialog";
+import {PayloadGetSampleMessageDialog} from "./PayloadGetSampleMessageDialog";
 
 const rebuildPayloadMutation = gql`
 mutation triggerRebuildMutation($uuid: String!) {
@@ -62,6 +76,8 @@ export function PayloadsTableRow(props){
     const [openConfigCheckDialog, setOpenConfigCheckDialog] = React.useState(false);
     const [openRedirectRulesDialog, setOpenRedirectRulesDialog] = React.useState(false);
     const [openCreateNewCallbackDialog, setOpenCreateNewCallbackDialog] = React.useState(false);
+    const [openGenerateIOCDialog, setOpenGenerateIOCDialog] = React.useState(false);
+    const [openGenerateSampleMessageDialog, setOpenGenerateSampleMessageDialog] = React.useState(false);
     const dropdownAnchorRef = useRef(null);
     const theme = useTheme();
     const [triggerRebuild] = useMutation(rebuildPayloadMutation, {
@@ -118,36 +134,45 @@ export function PayloadsTableRow(props){
         options[index].click();
         setOpenUpdateDialog(false);
     };
-    const options = [{name: 'Rename File', click: () => {
+    const options = [{name: <><DriveFileRenameOutlineIcon style={{marginRight: "10px"}}/> {"Rename File"}</> , click: () => {
                         setOpenFilenameDialog(true);
                      }},
-                     {name: 'Edit Description', click: () => {
+                     {name: <><DescriptionIcon style={{marginRight: "10px"}} />{'Edit Description'}</>, click: () => {
                         setOpenDescriptionDialog(true);
                      }},
-                     {name: props.callback_alert ? 'Stop Alerting to New Callbacks' : "Start Alerting to New Callbacks", click: () => {
+                     {name: props.callback_alert ?
+                             <><VisibilityIcon style={{marginRight: "10px"}}  />{'Stop Alerting to New Callbacks'}</> :
+                             <><VisibilityOffIcon style={{marginRight: "10px"}}  />{"Start Alerting to New Callbacks"}</>,
+                         click: () => {
                         onAlertChanged();
                       }},
-                     {name: 'View Build Message/Stdout', click: () => {
+                     {name: <><MessageIcon style={{marginRight: "10px"}}  />{'View Build Message/Stdout'} </> , click: () => {
                         setViewError(false);
                         setOpenBuildMessageDialog(true);
                      }},
-                     {name: 'View Build Errors', click: () => {
+                     {name: <><ErrorIcon style={{marginRight: "10px"}}  />{'View Build Errors'}</>, click: () => {
                         setViewError(true);
                         setOpenBuildMessageDialog(true);
                      }},
-                     {name: 'Trigger New Build', click: () => {
+                     {name: <><CachedIcon style={{marginRight: "10px"}} />{'Trigger New Build'}</>, click: () => {
                       triggerRebuild({variables: {uuid: props.uuid}});
                     }},
-                    {name: 'Export Payload Config', click: () => {
+                    {name: <><SettingsIcon style={{marginRight: "10px"}} />{'Export Payload Config'}</>, click: () => {
                       exportConfig({variables: {uuid: props.uuid}});
                     }},
-                    {name: 'Generate Redirect Rules', click: () => {
+                    {name: <><PhoneMissedIcon style={{marginRight: "10px"}} />{'Generate Redirect Rules'}</>, click: () => {
                       setOpenRedirectRulesDialog(true);
                     }},
-                    {name: 'Check Agent C2 Configuration', click: () => {
-                      setOpenConfigCheckDialog(true);
+                    {name: <><VerifiedIcon style={{marginRight: "10px"}} />{'Check Agent C2 Configuration'}</>, click: () => {
+                        setOpenConfigCheckDialog(true);
                     }},
-                    {name: 'Generate Callback', click: () => {
+                    {name: <><FingerprintIcon style={{marginRight: "10px"}} />{'Generate IOCs'}</>, click: () => {
+                        setOpenGenerateIOCDialog(true);
+                    }},
+                    {name: <><BiotechIcon style={{marginRight: "10px"}} />{'Generate Sample Message'}</>, click: () => {
+                        setOpenGenerateSampleMessageDialog(true);
+                    }},
+                    {name: <><AddIcCallIcon style={{marginRight: "10px"}} />{'Generate Callback'}</>, click: () => {
                       setOpenCreateNewCallbackDialog(true);
                     }}
                      ]
@@ -245,6 +270,18 @@ export function PayloadsTableRow(props){
                     <MythicDialog fullWidth={true} maxWidth="lg" open={openRedirectRulesDialog} 
                         onClose={()=>{setOpenRedirectRulesDialog(false);}} 
                         innerDialog={<PayloadRedirectRulesDialog uuid={props.uuid} onClose={()=>{setOpenRedirectRulesDialog(false);}} />}
+                    />
+                }
+                {openGenerateIOCDialog &&
+                    <MythicDialog fullWidth={true} maxWidth="lg" open={openGenerateIOCDialog}
+                                  onClose={()=>{setOpenGenerateIOCDialog(false);}}
+                                  innerDialog={<PayloadGetIOCDialog uuid={props.uuid} onClose={()=>{setOpenGenerateIOCDialog(false);}} />}
+                    />
+                }
+                {openGenerateSampleMessageDialog &&
+                    <MythicDialog fullWidth={true} maxWidth="lg" open={openGenerateSampleMessageDialog}
+                                  onClose={()=>{setOpenGenerateSampleMessageDialog(false);}}
+                                  innerDialog={<PayloadGetSampleMessageDialog uuid={props.uuid} onClose={()=>{setOpenGenerateSampleMessageDialog(false);}} />}
                     />
                 }
                 

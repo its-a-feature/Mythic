@@ -136,10 +136,10 @@ type CommandAttribute struct {
 }
 
 type ParameterGroupInfo struct {
-	ParameterIsRequired   bool              `json:"required"`
-	GroupName             string            `json:"group_name"`
-	UIModalPosition       uint32            `json:"ui_position"`
-	AdditionalInformation map[string]string `json:"additional_info"`
+	ParameterIsRequired   bool                   `json:"required"`
+	GroupName             string                 `json:"group_name"`
+	UIModalPosition       uint32                 `json:"ui_position"`
+	AdditionalInformation map[string]interface{} `json:"additional_info"`
 }
 
 type BrowserScript struct {

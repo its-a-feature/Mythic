@@ -25,10 +25,6 @@ subscription SubscribeBrowserScripts($operator_id: Int!) {
       cmd
       id
     }
-    browserscriptoperations {
-      operation_id
-      id
-    }
   }
 }
  `;

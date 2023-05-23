@@ -108,6 +108,7 @@ export function EditScriptDialog(props) {
             //setScript(atob(props.script));
             setScript(decodeURIComponent(window.atob(props.script)));
           }catch(error){
+            console.log(error)
             setScript(props.script);
           }
         }        
@@ -116,13 +117,15 @@ export function EditScriptDialog(props) {
         setScript(value);
     }
     const onSubmit = () => {
-        let newScript = window.btoa(encodeURIComponent(script));
-        props.onSubmitEdit({script: newScript, command_id: selectedCommand, payload_type_id: selectedPayloadType});
+        //let newScript = window.btoa(encodeURIComponent(script));
+        //props.onSubmitEdit({script: newScript, command_id: selectedCommand, payload_type_id: selectedPayloadType});
+        props.onSubmitEdit({script: script, command_id: selectedCommand, payload_type_id: selectedPayloadType});
         props.onClose();
     }
     const onTest = () => {
-        let newScript = window.btoa(encodeURIComponent(script));
-        props.onSubmitEdit({script: newScript, command_id: selectedCommand, payload_type_id: selectedPayloadType});
+        //let newScript = window.btoa(encodeURIComponent(script));
+        //props.onSubmitEdit({script: newScript, command_id: selectedCommand, payload_type_id: selectedPayloadType});
+        props.onSubmitEdit({script: script, command_id: selectedCommand, payload_type_id: selectedPayloadType});
         logStreamRef.current = "console.log messages:\n";
         setLogOutput(logStreamRef.current);
     }
