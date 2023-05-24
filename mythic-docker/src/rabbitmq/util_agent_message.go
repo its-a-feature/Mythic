@@ -588,6 +588,7 @@ func LookupEncryptionData(c2profile string, messageUUID string) (*cachedUUIDInfo
 		newCache.OperationID = callback.OperationID
 	} else if err := database.DB.Get(&payload, `SELECT
 		payload.id, payload.operation_id,
+		payload.deleted, payload.description, payload.uuid,
 		payloadtype.id "payloadtype.id",
 		payloadtype.name "payloadtype.name", 
 		payloadtype.mythic_encrypts "payloadtype.mythic_encrypts",
@@ -596,6 +597,11 @@ func LookupEncryptionData(c2profile string, messageUUID string) (*cachedUUIDInfo
 		JOIN payloadtype on payload.payload_type_id = payloadtype.id
 		WHERE payload.uuid=$1`, messageUUID); err == nil {
 		// we're looking at a payload message
+		if payload.Deleted {
+			err = errors.New(fmt.Sprintf("Payload %s, %s, is deleted, but trying to make a new callback. Attempt is blocked until you mark the payload as no longer deleted.", payload.UuID, payload.Description))
+			logging.LogError(err, "rejecting new callback")
+			return &newCache, err
+		}
 		newCache.UUID = messageUUID
 		newCache.UUIDType = UUIDTYPEPAYLOAD
 		newCache.PayloadID = payload.ID

@@ -126,7 +126,7 @@ export function TaskParametersDialogRow(props){
         if(props.dynamic_query_function !== ""){
             if(ChoiceOptions.length === 0){
                 setBackdropOpen(true);
-                snackActions.info("Querying payload type container for options...");
+                snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
                 getDynamicParams({variables:{
                     callback: props.callback_id,
                     parameter_name: props.name,

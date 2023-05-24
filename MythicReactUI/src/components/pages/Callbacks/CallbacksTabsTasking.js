@@ -150,7 +150,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             if(data.createTask.status === "error"){
                 snackActions.error(data.createTask.error);
             }else{
-                snackActions.success("Task created", {autoClose: 1000});
+                //snackActions.success("Task created", {autoClose: 1000});
             }
         },
         onError: data => {

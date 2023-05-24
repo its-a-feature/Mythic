@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1-rc12] - 2023-05-24
+
+### Changed
+
+- Added a check when getting a new callback to see if the payload is deleted, if so then no new callback is created and an alert is thrown to the operator
+- Reduced the popup display for some toast notifications when generating tasks
+- Attempt to locate and mitigate potential RPC timeout errors
+
 ## [3.0.1-rc11] - 2023-05-23
 
 ### Changed

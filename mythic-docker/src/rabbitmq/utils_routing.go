@@ -205,7 +205,6 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 		}
 		return nil
 	}
-
 }
 func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body []byte, exclusiveQueue bool) ([]byte, error) {
 	if conn, err := r.GetConnection(); err != nil {
@@ -270,7 +269,7 @@ func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body 
 			logging.LogError(err, "failed to deliver message to exchange/queue, NotifyReturn", "errorCode", ret.ReplyCode, "errorText", ret.ReplyText)
 			return nil, err
 		case <-time.After(RPC_TIMEOUT):
-			err := errors.New("Message delivery confirmation timed out")
+			err := errors.New("message delivery confirmation timed out in SendRPCMessage")
 			logging.LogError(err, "message delivery confirmation to exchange/queue timed out")
 			return nil, err
 		}
@@ -351,7 +350,7 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 		} else if msgs, err := ch.Consume(
 			q.Name, // queue name
 			"",     // consumer
-			true,   // auto-ack
+			false,  // auto-ack
 			false,  // exclusive
 			false,  // no local
 			false,  // no wait
@@ -364,6 +363,9 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 			go func() {
 				for d := range msgs {
 					go handler(d)
+					if err = ch.Ack(d.DeliveryTag, false); err != nil {
+						logging.LogError(err, "Failed to Ack message")
+					}
 				}
 				forever <- true
 			}()
