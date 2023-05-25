@@ -86,16 +86,6 @@ func GetC2RPCWriteFileRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, C2_RPC_WRITE_FILE)
 }
 
-// translation container rpc functions
-func GetTrRPCGenerateKeysRoutingKey(container string) string {
-	return fmt.Sprintf("%s_%s", container, TR_RPC_GENERATE_KEYS)
-}
-func GetTrRPCConvertFromMythicFormatRoutingKey(container string) string {
-	return fmt.Sprintf("%s_%s", container, TR_RPC_CONVERT_FROM_MYTHIC_C2_FORMAT)
-}
-func GetTrRPCConvertToMythicFormatRoutingKey(container string) string {
-	return fmt.Sprintf("%s_%s", container, TR_RPC_CONVERT_TO_MYTHIC_C2_FORMAT)
-}
 func GetTrRPCReSyncRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, TR_RPC_RESYNC_ROUTING_KEY)
 }
@@ -185,6 +175,7 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 			logging.LogError(err, "there was an error publishing a message", "queue", queue)
 			return err
 		}
+
 		select {
 		case ntf := <-ch.NotifyPublish(make(chan amqp.Confirmation, 1)):
 			if !ntf.Ack {
@@ -199,10 +190,11 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 			}
 			return err
 		case <-time.After(RPC_TIMEOUT):
-			err := errors.New("Message delivery confirmation timed out")
-			logging.LogError(err, "message delivery confirmation to exchange/queue timed out")
-			return err
+			err := errors.New("message delivery confirmation timed out")
+			logging.LogError(err, "no notify publish or notify return, , assuming success and continuing", "queue", queue)
+			return nil
 		}
+
 		return nil
 	}
 }
@@ -639,10 +631,6 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectTopicExchange(exchange strin
 		}
 
 	}
-}
-func (r *rabbitMQConnection) CheckTranslationContainerExists(name string) (bool, error) {
-	exclusiveQueue := true
-	return r.CheckConsumerExists(MYTHIC_EXCHANGE, GetTrRPCConvertFromMythicFormatRoutingKey(name), exclusiveQueue)
 }
 func (r *rabbitMQConnection) CheckPayloadTypeContainerExists(name string) (bool, error) {
 	exclusiveQueue := true
