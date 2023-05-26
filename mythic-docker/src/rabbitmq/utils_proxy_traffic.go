@@ -262,6 +262,11 @@ func (p *callbackPortUsage) Start() error {
 func (p *callbackPortUsage) Stop() error {
 	if p.listener != nil {
 		if err := (*p.listener).Close(); err != nil {
+			if err == net.ErrClosed {
+				logging.LogInfo("tasking to stop all connections via channel")
+				p.stopAllConnections <- true
+				return nil
+			}
 			logging.LogError(err, "Error calling close for the listener in the Stop function")
 			return err
 		}
@@ -269,6 +274,7 @@ func (p *callbackPortUsage) Stop() error {
 		p.stopAllConnections <- true
 		return nil
 	} else {
+		logging.LogInfo("tasking to stop all connections via channel")
 		p.stopAllConnections <- true
 		return nil
 	}

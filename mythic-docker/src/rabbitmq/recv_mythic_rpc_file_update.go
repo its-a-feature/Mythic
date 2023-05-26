@@ -17,7 +17,7 @@ type MythicRPCFileUpdateMessage struct {
 	AgentFileID      string  `json:"file_id"`
 	Comment          string  `json:"comment"`
 	Filename         string  `json:"filename"`
-	DeleteAfterFetch *bool   `json:"delete_after_fetch"`
+	DeleteAfterFetch *bool   `json:"delete_after_fetch,omitempty"`
 	AppendContents   *[]byte `json:"append_contents"`
 	ReplaceContents  *[]byte `json:"replace_contents"`
 	Delete           bool    `json:"delete"`
