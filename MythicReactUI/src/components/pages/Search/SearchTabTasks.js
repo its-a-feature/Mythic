@@ -108,6 +108,7 @@ const SearchTabTasksSearchPanel = (props) => {
     }
     const handleFilterTaskStatusValueChange = (name, value, error) => {
         setFilterTaskStatus(value);
+        props.onChangeTaskStatus(value);
     }
     const submitSearch = (event, querySearch, querySearchField, queryTaskStatus) => {
             let adjustedSearchField = querySearchField ? querySearchField : searchField;
