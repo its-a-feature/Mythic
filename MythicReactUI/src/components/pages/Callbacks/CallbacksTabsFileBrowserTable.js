@@ -135,7 +135,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         setFilterOptions(newFilterOptions);
     }
     const filterRow = (row) => {
-        if(!props.showDeletedFiles && props.treeRootData[props.selectedFolderData.host][row].deleted){
+        if(!props.showDeletedFiles && props.treeRootData[props.selectedFolderData.host][row]?.deleted){
             return true;
         }
         for(const [key,value] of Object.entries(filterOptions)){
@@ -168,7 +168,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                             cellData={row}
                                             rowData={props.treeRootData[props.selectedFolderData.host][row]} />;
                             case "Size":
-                                return TableRowSizeCell({ cellData: props.treeRootData[props.selectedFolderData.host][row].metadata.size, rowData: props.treeRootData[props.selectedFolderData.host][row] });
+                                return TableRowSizeCell({ cellData: props.treeRootData[props.selectedFolderData.host][row]?.metadata?.size, rowData: props.treeRootData[props.selectedFolderData.host][row] });
                             case "Tags":
                                 return <FileBrowserTagsCell 
                                             rowData={props.treeRootData[props.selectedFolderData.host][row]} 
@@ -177,7 +177,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                             selectedFolderData={props.selectedFolderData} 
                                             me={props.me} />
                             case "Last Modify":
-                                return TableRowDateCell({ cellData: props.treeRootData[props.selectedFolderData.host][row].metadata.modify_time, rowData: props.treeRootData[props.selectedFolderData.host][row] });
+                                return TableRowDateCell({ cellData: props.treeRootData[props.selectedFolderData.host][row]?.metadata?.modify_time, rowData: props.treeRootData[props.selectedFolderData.host][row] });
                             case "Comment":
                                 return <FileBrowserTableRowStringCell cellData={row.comment} rowData={props.treeRootData[props.selectedFolderData.host][row]} />
                         }
@@ -289,8 +289,8 @@ export const CallbacksTabsFileBrowserTable = (props) => {
 const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selectedFolderData }) => {
     const theme = useTheme();
     return (
-        <div style={{ alignItems: 'center', display: 'flex', textDecoration: treeRootData[selectedFolderData.host][cellData].deleted ? 'line-through' : '' }}>
-            {!treeRootData[selectedFolderData.host][cellData].can_have_children ? (
+        <div style={{ alignItems: 'center', display: 'flex', textDecoration: treeRootData[selectedFolderData.host][cellData]?.deleted ? 'line-through' : '' }}>
+            {!treeRootData[selectedFolderData.host][cellData]?.can_have_children ? (
                 <DescriptionIcon style={{ marginRight: '5px' }} />
             ) : (
                 <FontAwesomeIcon 
@@ -299,27 +299,27 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
                     style={{
                         marginRight: '5px',
                         color:
-                        treeRootData[selectedFolderData.host][cellData].success !== null
+                        treeRootData[selectedFolderData.host][cellData]?.success !== null
                                 ? theme.folderColor
                                 : 'grey',
                     }}
                 />
             )}
-            {treeRootData[selectedFolderData.host][cellData].filemeta.length > 0 ? <GetAppIcon color="success" /> : null}
+            {treeRootData[selectedFolderData.host][cellData]?.filemeta.length > 0 ? <GetAppIcon color="success" /> : null}
             <pre 
                 style={{
                     color:
-                    treeRootData[selectedFolderData.host][cellData].success !== null
+                    treeRootData[selectedFolderData.host][cellData]?.success !== null
                             ? theme.palette.text.primary
                             : theme.palette.text.secondary,
                 }}>
-                {treeRootData[selectedFolderData.host][cellData].name_text}
+                {treeRootData[selectedFolderData.host][cellData]?.name_text}
             </pre>
-            {treeRootData[selectedFolderData.host][cellData].success === true ? (
+            {treeRootData[selectedFolderData.host][cellData]?.success === true ? (
                 <MythicStyledTooltip title='Successfully listed contents of folder'>
                     <CheckCircleOutlineIcon color="success" fontSize='small' />
                 </MythicStyledTooltip>
-            ) : treeRootData[selectedFolderData.host][cellData].success === false ? (
+            ) : treeRootData[selectedFolderData.host][cellData]?.success === false ? (
                 <MythicStyledTooltip title='Failed to list contents of folder'>
                     <ErrorIcon fontSize='small' color="error" />
                 </MythicStyledTooltip>
@@ -330,8 +330,8 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
 const FileBrowserTagsCell = ({rowData, cellData, treeRootData, selectedFolderData, me}) => {
     return (
         <>
-            <ViewEditTags target_object={"mythictree_id"} target_object_id={treeRootData[selectedFolderData.host][cellData].id} me={me} />
-            <TagsDisplay tags={treeRootData[selectedFolderData.host][cellData].tags} />
+            <ViewEditTags target_object={"mythictree_id"} target_object_id={treeRootData[selectedFolderData.host][cellData]?.id} me={me} />
+            <TagsDisplay tags={treeRootData[selectedFolderData.host][cellData]?.tags} />
         </>
     )
 }
