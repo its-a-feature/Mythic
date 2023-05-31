@@ -67,9 +67,10 @@ func checkContainerStatus() {
 	go checkContainerStatusAddTR()
 	go initializeContainers()
 	for {
-		time.Sleep(RETRY_CONNECT_DELAY)
+		time.Sleep(CHECK_CONTAINER_STATUS_DELAY)
 		// loop through payload types
 		for container := range payloadTypesToCheck {
+			//logging.LogDebug("checking container", "container", container)
 			// check that a container is online
 			if running, err := RabbitMQConnection.CheckPayloadTypeContainerExists(payloadTypesToCheck[container].Name); err != nil {
 				logging.LogError(err, "Failed to check for payloadtype container existence")
@@ -98,6 +99,7 @@ func checkContainerStatus() {
 		// loop through c2 profiles
 		for container := range c2profilesToCheck {
 			// check that a container is online
+			//logging.LogDebug("checking container", "container", container)
 			if running, err := RabbitMQConnection.CheckC2ProfileContainerExists(container); err != nil {
 				logging.LogError(err, "Failed to check for c2 container existence")
 			} else if running != c2profilesToCheck[container].ContainerRunning {
@@ -125,6 +127,7 @@ func checkContainerStatus() {
 		// loop through translation containers
 		for container := range translationContainersToCheck {
 			// check that a container is online
+			//logging.LogDebug("checking container", "container", container)
 			running := checkTranslationContainerGRPCOnline(container)
 			if running != translationContainersToCheck[container].ContainerRunning {
 				if entry, ok := translationContainersToCheck[container]; ok {

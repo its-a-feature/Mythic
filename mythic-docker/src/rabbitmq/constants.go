@@ -6,6 +6,7 @@ const (
 	MYTHIC_EXCHANGE                        = "mythic_exchange"
 	MYTHIC_TOPIC_EXCHANGE                  = "mythic_topic_exchange"
 	RETRY_CONNECT_DELAY                    = 5 * time.Second
+	CHECK_CONTAINER_STATUS_DELAY           = 10 * time.Second
 	TIME_FORMAT_STRING_YYYY_MM_DD          = "2006-01-02"
 	TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS = "2006-01-02 15:04:05 Z07"
 	RPC_TIMEOUT                            = 20 * time.Second

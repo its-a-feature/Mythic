@@ -191,7 +191,7 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 			return err
 		case <-time.After(RPC_TIMEOUT):
 			err := errors.New("message delivery confirmation timed out")
-			logging.LogError(err, "no notify publish or notify return, , assuming success and continuing", "queue", queue)
+			logging.LogError(err, "no notify publish or notify return, assuming success and continuing", "queue", queue)
 			return nil
 		}
 
@@ -463,6 +463,7 @@ func (r *rabbitMQConnection) CheckConsumerExists(exchange string, queue string, 
 	//logging.LogDebug("checking queue existence", "queue", queue)
 	conn, err := r.GetConnection()
 	if err != nil {
+		logging.LogError(err, "Failed to connect to rabbitmq", "retry_wait_time", RETRY_CONNECT_DELAY)
 		return false, err
 	}
 	ch, err := conn.Channel()
@@ -471,7 +472,7 @@ func (r *rabbitMQConnection) CheckConsumerExists(exchange string, queue string, 
 		return false, err
 	}
 	defer ch.Close()
-	if err := ch.Confirm(false); err != nil {
+	if err = ch.Confirm(false); err != nil {
 		logging.LogError(err, "Channel could not be put into confirm mode")
 		return false, err
 	}
@@ -513,15 +514,22 @@ func (r *rabbitMQConnection) CheckConsumerExists(exchange string, queue string, 
 }
 func (r *rabbitMQConnection) GetNumberOfConsumersDirectChannels(exchange string, kind string, queue string) (uint, error) {
 	//logging.LogDebug("checking queue existence", "queue", queue)
-	if conn, err := r.GetConnection(); err != nil {
+	conn, err := r.GetConnection()
+	if err != nil {
 		return 0, err
-	} else if ch, err := conn.Channel(); err != nil {
+	}
+	ch, err := conn.Channel()
+	if err != nil {
 		logging.LogError(err, "Failed to open rabbitmq channel")
 		return 0, err
-	} else if err = ch.Confirm(false); err != nil {
+	}
+	defer ch.Close()
+	err = ch.Confirm(false)
+	if err != nil {
 		logging.LogError(err, "Channel could not be put into confirm mode")
 		return 0, err
-	} else if err = ch.ExchangeDeclare(
+	}
+	err = ch.ExchangeDeclare(
 		exchange, // exchange name
 		kind,     // type of exchange, ex: topic, fanout, direct, etc
 		true,     // durable
@@ -529,32 +537,37 @@ func (r *rabbitMQConnection) GetNumberOfConsumersDirectChannels(exchange string,
 		false,    // internal
 		false,    // no-wait
 		nil,      // arguments
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to declare exchange", "exchange", MYTHIC_TOPIC_EXCHANGE, "exchange_type", "topic", "retry_wait_time", RETRY_CONNECT_DELAY)
 		return 0, err
 
-	} else if q, err := ch.QueueDeclare(
+	}
+	q, err := ch.QueueDeclare(
 		queue, // name, queue
 		false, // durable
 		true,  // delete when unused
 		false, // exclusive
 		false, // no-wait
 		nil,   // arguments
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Unknown error (not 404 or 405) when checking for container existence")
 		return 0, err
-	} else if err = ch.QueueBind(
+	}
+	err = ch.QueueBind(
 		q.Name,   // queue name
 		queue,    // routing key
 		exchange, // exchange name
 		false,    // nowait
 		nil,      // arguments
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to bind to queue to receive messages", "retry_wait_time", RETRY_CONNECT_DELAY)
 		return 0, err
-	} else {
-		return uint(q.Consumers), nil
 	}
+	return uint(q.Consumers), nil
+
 }
 func (r *rabbitMQConnection) ReceiveFromMythicDirectTopicExchange(exchange string, queue string, routingKey string, handler QueueHandler, exclusiveQueue bool) {
 	// exchange is a direct exchange

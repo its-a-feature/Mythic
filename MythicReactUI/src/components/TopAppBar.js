@@ -453,7 +453,7 @@ export function TopAppBar(props) {
               <Collapse in={openOperations} unmountOnExit>
                 <List component="div" disablePadding>
                   <ListItem button className={classes.nested} component={Link} to='/new/payloadtypes' key={"payloadtypes"} onClick={handleDrawerClose}>
-                    <ListItemIcon><InboxIcon className="mythicElement"/></ListItemIcon>
+                    <ListItemIcon><HeadsetIcon className="mythicElement"/></ListItemIcon>
                     <ListItemText primary={"Agents & C2"} />
                   </ListItem>
                     <ListItem button className={classes.nested} component={Link} to='/new/operations' key={"modifyoperations"} onClick={handleDrawerClose}>

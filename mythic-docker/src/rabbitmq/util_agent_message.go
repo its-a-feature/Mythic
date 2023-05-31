@@ -336,6 +336,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			{
 				go SendAllOperationsMessage(fmt.Sprintf("Agent %s is using deprecated method of file transfer with the 'upload' action.", uuidInfo.PayloadTypeName),
 					uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_INFO)
+				logging.LogError(nil, "deprecated form of upload detected, please update agent code to use new method")
 				response, err = handleAgentMessagePostResponse(&map[string]interface{}{
 					"action": "post_response",
 					"responses": []map[string]interface{}{
@@ -453,6 +454,14 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 						delegateResponses = append(delegateResponses, newResponse)
 					}
 				}
+			}
+		}
+		if _, ok := decryptedMessage["alerts"]; ok {
+			alerts := []agentMessagePostResponseAlert{}
+			if err := mapstructure.Decode(decryptedMessage["alerts"], &alerts); err != nil {
+				logging.LogError(err, "Failed to parse alert messages")
+			} else {
+				go handleAgentMessagePostResponseAlerts(uuidInfo.OperationID, &alerts)
 			}
 		}
 		if _, ok := decryptedMessage[CALLBACK_PORT_TYPE_SOCKS]; ok {
@@ -916,6 +925,8 @@ func reflectBackOtherKeys(response *map[string]interface{}, other *map[string]in
 		"delegates": 1,
 		"responses": 1,
 		"action":    1,
+		"rpfwd":     1,
+		"alerts":    1,
 	}
 	//logging.LogInfo("other keys", "other", *other)
 	for key, val := range *other {

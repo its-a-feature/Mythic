@@ -43,6 +43,10 @@ type Query {
   ): ConfigCheckOutput
 }
 
+type Query {
+  consumingServicesList: consumingServicesListOutput
+}
+
 type Mutation {
   consumingServicesTestLog(
     service_type: String!
@@ -724,5 +728,10 @@ type C2SampleMessageOutput {
   status: String!
   error: String
   output: String
+}
+
+type consumingServicesListOutput {
+  webhooks: jsonb
+  loggers: jsonb
 }
 

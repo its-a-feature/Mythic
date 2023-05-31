@@ -164,3 +164,34 @@ func emitCallbackLog(callbackId int) {
 	}
 
 }
+func emitResponseLog(responseId int) {
+	response := databaseStructs.Response{}
+	if err := database.DB.Get(&response, `SELECT
+		response.*,
+		operation.name "operation.name",
+		task.id "task.id",
+		task.display_id "task.display_id",
+		operator.username "task.operator.username"
+		FROM response
+		JOIN operation on response.operation_id = operation.id
+		JOIN task on response.task_id = task.id
+		JOIN operator on task.operator_id = operator.id
+		WHERE response.id=$1`, responseId); err != nil {
+		logging.LogError(err, "Failed to get response data for log emit")
+	} else {
+		go RabbitMQConnection.EmitSiemMessage(LoggingMessage{
+			OperationID:   response.OperationID,
+			OperationName: response.Operation.Name,
+			OperatorName:  response.Task.Operator.Username,
+			Timestamp:     time.Now().UTC(),
+			Action:        LOG_TYPE_RESPONSE,
+			Data: map[string]interface{}{
+				"id":              response.ID,
+				"response":        response.Response,
+				"task_id":         response.TaskID,
+				"task_display_id": response.Task.DisplayID,
+				"timestamp":       response.Timestamp,
+			},
+		})
+	}
+}

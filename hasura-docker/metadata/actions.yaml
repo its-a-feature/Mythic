@@ -72,6 +72,17 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: consumingServicesList
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/consuming_services_list_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: consumingServicesTestLog
     definition:
       kind: synchronous
@@ -580,4 +591,5 @@ custom_types:
     - name: createOperationEventLogOutput
     - name: GetIOCOutput
     - name: C2SampleMessageOutput
+    - name: consumingServicesListOutput
   scalars: []

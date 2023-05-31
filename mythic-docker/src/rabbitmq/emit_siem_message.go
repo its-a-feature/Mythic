@@ -17,6 +17,7 @@ const (
 	LOG_TYPE_TASK                = "new_task"
 	LOG_TYPE_PAYLOAD             = "new_payload"
 	LOG_TYPE_KEYLOG              = "new_keylog"
+	LOG_TYPE_RESPONSE            = "new_response"
 )
 
 // LOG CONTAINER MESSAGE FORMAT STRUCTS

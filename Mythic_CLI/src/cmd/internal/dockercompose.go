@@ -287,7 +287,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"args":    buildArguments,
 		}
 		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         "rabbitmq-diagnostics -q status && rabbitmq-diagnostics -q check_local_alarms",
+			"test":         "rabbitmq-diagnostics -q check_port_connectivity",
 			"interval":     "60s",
 			"timeout":      "30s",
 			"retries":      5,

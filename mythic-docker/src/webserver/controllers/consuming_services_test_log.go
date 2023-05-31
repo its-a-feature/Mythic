@@ -39,6 +39,7 @@ func ConsumingServicesTestLog(c *gin.Context) {
 		case rabbitmq.LOG_TYPE_FILE:
 		case rabbitmq.LOG_TYPE_TASK:
 		case rabbitmq.LOG_TYPE_ARTIFACT:
+		case rabbitmq.LOG_TYPE_RESPONSE:
 		default:
 
 		}

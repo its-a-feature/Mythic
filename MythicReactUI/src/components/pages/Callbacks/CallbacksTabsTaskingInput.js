@@ -587,6 +587,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         let current_argument_type = "";
         for(let i = 0; i < argv.length; i++){
             let value = argv[i];
+            //console.log(argv[i], current_argument, current_argument_type)
             if(current_argument === ""){
                 // not currently processing the value for an argument
                 // check to see if this is the start of a new argument
@@ -596,6 +597,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     current_argument = value;
                 }else if(booleanArgs.includes(value)){
                     current_argument_type = "boolean";
+                    if(i === argv.length-1){
+                        // special case where somebody did -flag at the end of the command
+                        result[value.slice(1)] = true;
+                    }
                     current_argument = value;
                 }else if(arrayArgs.includes(value)){
                     current_argument_type = "array";
@@ -694,7 +699,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             let new_command_line = command_line;//.replaceAll("\\", "\\\\");
             //console.log("new_command_line", new_command_line);
             const argv = parseToArgv(new_command_line);
-            console.log("argv", argv);
+            console.log("argv", argv, "command_line", new_command_line);
             const yargs_parsed = parseArgvToDict(argv, cmd);
             console.log("yargs_parsed", yargs_parsed);
             return yargs_parsed;
@@ -747,13 +752,17 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if( key !== "_"){
                 // we don't care about positional arguments at the moment
                 let paramGroups = [];
+                let foundParamGroup = false;
                 for(let i = 0; i < cmd.commandparameters.length; i++){
-                    if(cmd.commandparameters[i]["cli_name"] === key){
+                    //console.log(cmd.commandparameters[i], key)
+                    if(cmd.commandparameters[i]["cli_name"] === key || cmd.commandparameters[i]["display_name"] === key || cmd.commandparameters[i]["name"] === key){
+                        foundParamGroup = true;
                         paramGroups.push(cmd.commandparameters[i]["parameter_group_name"])
                     }
                 }
                 // now paramGroups has all the group names associated with `key`
                 // we have some set of possible options, so we need to find the intersection with paramGroups and cmdGroupOptions
+                //console.log(cmdGroupOptions, paramGroups)
                 let intersection = cmdGroupOptions.reduce( (prev, cur) => {
                     if(paramGroups.includes(cur)){
                         return [...prev, cur];
@@ -761,10 +770,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     return [...prev];
                 }, [])
                 if(intersection.length === 0){
-                    // this is a bad thing, we did an intersection and there's no similar paramter groups, but parameters have been supplied
-                    return undefined;
+                    // this is a bad thing, we did an intersection and there's no similar parameter groups, but parameters have been supplied
+                    // account for the scenario where we essentially have "extra" parameters supplied - extra ones don't count against you
+                    if(foundParamGroup){
+                        return undefined;
+                    }
+                } else {
+                    cmdGroupOptions = [...intersection];
                 }
-                cmdGroupOptions = [...intersection];
+
             }
         }
         // now cmdGroupOptions is a list of all the matching parameter_group_names for the commandline arguments we've specified

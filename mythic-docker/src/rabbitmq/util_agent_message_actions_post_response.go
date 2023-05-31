@@ -33,7 +33,7 @@ type agentMessagePostResponseMessage struct {
 
 type agentMessagePostResponse struct {
 	TaskID          string                                    `json:"task_id" mapstructure:"task_id"`
-	SequenceNumber  *int64                                    `json:"sequence_num" mapstructure:"sequence_num"`
+	SequenceNumber  *int64                                    `json:"sequence_num,omitempty" mapstructure:"sequence_num,omitempty"`
 	Completed       *bool                                     `json:"completed,omitempty" mapstructure:"completed,omitempty"`
 	UserOutput      *string                                   `json:"user_output,omitempty" mapstructure:"user_output,omitempty"`
 	Status          *string                                   `json:"status,omitempty" mapstructure:"status,omitempty"`
@@ -50,6 +50,7 @@ type agentMessagePostResponse struct {
 	CallbackTokens  *[]agentMessagePostResponseCallbackTokens `json:"callback_tokens,omitempty" mapstructure:"callback_tokens,omitempty"`
 	Download        *agentMessagePostResponseDownload         `json:"download,omitempty" mapstructure:"download,omitempty"`
 	Upload          *agentMessagePostResponseUpload           `json:"upload,omitempty" mapstructure:"upload,omitempty"`
+	Alerts          *[]agentMessagePostResponseAlert          `json:"alerts,omitempty" mapstructure:"alerts,omitempty"`
 	Other           map[string]interface{}                    `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
 }
 
@@ -178,6 +179,10 @@ type agentMessagePostResponseUploadResponse struct {
 	TotalChunks int    `json:"total_chunks" mapstructure:"total_chunks"`
 	ChunkData   []byte `json:"chunk_data" mapstructure:"chunk_data"`
 	ChunkNum    int    `json:"chunk_num" mapstructure:"chunk_num"`
+}
+type agentMessagePostResponseAlert struct {
+	Source *string `json:"source,omitempty" mapstructure:"source,omitempty"`
+	Alert  string  `json:"alert" mapstructure:"alert"`
 }
 
 func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
@@ -310,6 +315,9 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 						logging.LogError(err, "Failed to decode mapstructure for agent upload response")
 					}
 				}
+				if agentResponse.Alerts != nil {
+					go handleAgentMessagePostResponseAlerts(currentTask.OperationID, agentResponse.Alerts)
+				}
 				reflectBackOtherKeys(&mythicResponse, &agentResponse.Other)
 				// always updating at least the timestamp for the last thing that happened
 				if _, err := database.DB.NamedExec(`UPDATE task SET
@@ -324,6 +332,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 					if currentTask.Completed && updatedToCompleted {
 						// use updatedToCompleted to try to make sure we only do this once per task
 						go CheckAndProcessTaskCompletionHandlers(currentTask.ID)
+						go emitTaskLog(currentTask.ID)
 					}
 				}
 			}
@@ -366,10 +375,15 @@ func handleAgentMessagePostResponseUserOutput(task databaseStructs.Task, agentRe
 			return
 		}
 	}
-	if _, err := database.DB.NamedExec(`INSERT INTO response
+	if statement, err := database.DB.PrepareNamed(`INSERT INTO response
 		("timestamp", task_id, response, sequence_number, operation_id)
-		VALUES (:timestamp, :task_id, :response, :sequence_number, :operation_id)`, responseOutput); err != nil {
+		VALUES (:timestamp, :task_id, :response, :sequence_number, :operation_id)
+		RETURNING id`); err != nil {
+		logging.LogError(err, "Failed to prepare new named statement for user_output", "task_id", responseOutput.TaskID)
+	} else if err := statement.Get(&responseOutput.ID, responseOutput); err != nil {
 		logging.LogError(err, "Failed to insert new user_output", "task_id", responseOutput.TaskID)
+	} else {
+		go emitResponseLog(responseOutput.ID)
 	}
 }
 func handleAgentMessagePostResponseRemovedFiles(task databaseStructs.Task, removedFiles *[]agentMessagePostResponseRemovedFiles) error {
@@ -380,9 +394,11 @@ func handleAgentMessagePostResponseRemovedFiles(task databaseStructs.Task, remov
 			host = strings.ToUpper(*rmData.Host)
 		}
 		likePath := rmData.Path + "%"
+		likePath = strings.ReplaceAll(likePath, "\\", "\\\\")
+		//logging.LogInfo("updating removal path", "path", likePath, "host", host)
 		if _, err := database.DB.Exec(`UPDATE mythictree SET
-	  deleted=true
-	  WHERE host=$1 AND full_path LIKE $2 AND operation_id=$3 AND "tree_type"=$4`,
+		  deleted=true
+		  WHERE host=$1 AND full_path LIKE $2 AND operation_id=$3 AND "tree_type"=$4`,
 			host, likePath, task.OperationID, databaseStructs.TREE_TYPE_FILE); err != nil {
 			logging.LogError(err, "Failed to mark file and children as deleted")
 			return err
@@ -1570,5 +1586,17 @@ func handleAgentMessagePostResponseEdges(edges *[]agentMessagePostResponseEdges)
 				callbackGraph.RemoveByAgentIds(edge.Source, edge.Destination, edge.C2Profile)
 			}
 		}
+	}
+}
+func handleAgentMessagePostResponseAlerts(operationID int, alerts *[]agentMessagePostResponseAlert) {
+	if alerts == nil {
+		return
+	}
+	for _, alert := range *alerts {
+		source := ""
+		if alert.Source != nil {
+			source = *alert.Source
+		}
+		SendAllOperationsMessage(alert.Alert, operationID, source, database.MESSAGE_LEVEL_WARNING)
 	}
 }

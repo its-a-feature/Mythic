@@ -30,7 +30,18 @@ mutation testWebhookWorks($service_type: String!){
     }
 }
 `;
-export function ConsumingServicesTable(props){
+const successColor = "#6BBE6C";
+const warningColor = "#EEAA62";
+const getBackgroundColor = (count) => {
+    if(count === undefined){
+        return "";
+    } else if(count > 0){
+        return successColor;
+    } else {
+        return warningColor;
+    }
+}
+export function ConsumingServicesTable({servicesList}){
     const theme = useTheme();
     const [testWebhook] = useMutation(testWebhookMutation, {
         onCompleted: data => {
@@ -46,7 +57,12 @@ export function ConsumingServicesTable(props){
         }
     });
     const issueTestWebook = (service_type) => {
-        testWebhook({variables: {service_type: service_type}})
+        if(servicesList?.webhooks?.[service_type]){
+            testWebhook({variables: {service_type: service_type}});
+        } else {
+            snackActions.warning("No available webhooks listening for that event");
+        }
+
     }
     const [testLog] = useMutation(testLogMutation, {
         onCompleted: data => {
@@ -62,7 +78,12 @@ export function ConsumingServicesTable(props){
         }
     });
     const issueTestLog = (service_type) => {
-        testLog({variables: {service_type: service_type}})
+        if(servicesList?.loggers?.[service_type]){
+            testLog({variables: {service_type: service_type}});
+        } else {
+            snackActions.warning("No available loggers listening for that event");
+        }
+
     }
     return (
         <React.Fragment>
@@ -78,50 +99,65 @@ export function ConsumingServicesTable(props){
                         <TableRow>
                             <TableCell >Logging Category</TableCell>
                             <TableCell >Test Log Data</TableCell>
+                            <TableCell >Consumers</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.loggers?.["new_callback"])}}>
                             <TableCell>New Callback Log</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestLog("new_callback")}}> <SyncAltIcon  /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.loggers?.["new_callback"] || 0}</TableCell>
                         </TableRow>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.loggers?.["new_credential"])}}>
                             <TableCell>New Credential Log</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestLog("new_credential")}}> <SyncAltIcon  /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.loggers?.["new_credential"] || 0}</TableCell>
                         </TableRow>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.loggers?.["new_file"])}}>
                             <TableCell>New File Log</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestLog("new_file")}}> <SyncAltIcon  /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.loggers?.["new_file"] || 0}</TableCell>
                         </TableRow>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.loggers?.["new_artifact"])}}>
                             <TableCell>New Artifact Log</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestLog("new_artifact")}}> <SyncAltIcon  /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.loggers?.["new_artifact"] || 0}</TableCell>
                         </TableRow>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.loggers?.["new_task"])}}>
                             <TableCell>New Task Log</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestLog("new_task")}}> <SyncAltIcon  /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.loggers?.["new_task"] || 0}</TableCell>
                         </TableRow>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.loggers?.["new_payload"])}}>
                             <TableCell>New Payload Log</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestLog("new_payload")}} > <SyncAltIcon /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.loggers?.["new_payload"] || 0}</TableCell>
                         </TableRow>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.loggers?.["new_keylog"])}}>
                             <TableCell>New Keylog Log</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestLog("new_keylog")}}> <SyncAltIcon  /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.loggers?.["new_keylog"] || 0}</TableCell>
+                        </TableRow>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.loggers?.["new_response"])}}>
+                            <TableCell>New Response Log</TableCell>
+                            <TableCell>
+                                <IconButton onClick={()=>{issueTestLog("new_response")}}> <SyncAltIcon  /></IconButton>
+                            </TableCell>
+                            <TableCell>{servicesList?.loggers?.["new_response"] || 0}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
@@ -132,38 +168,44 @@ export function ConsumingServicesTable(props){
                         <TableRow>
                             <TableCell >Webhook Category</TableCell>
                             <TableCell >Test Webhook</TableCell>
+                            <TableCell >Consumers</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.webhooks?.["new_feedback"])}}>
                             <TableCell>New Feedback Webhook</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestWebook("new_feedback")}}><PublicIcon /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.webhooks?.["new_feedback"] || 0}</TableCell>
                         </TableRow>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.webhooks?.["new_callback"])}}>
                             <TableCell>New Callback Webhook</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestWebook("new_callback")}}><PublicIcon /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.webhooks?.["new_callback"] || 0}</TableCell>
                         </TableRow>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.webhooks?.["new_startup"])}}>
                             <TableCell>New Startup Webhook</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestWebook("new_startup")}}><PublicIcon /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.webhooks?.["new_startup"] || 0}</TableCell>
                         </TableRow>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.webhooks?.["new_alert"])}}>
                             <TableCell>New Alert Webhook</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestWebook("new_alert")}}><PublicIcon /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.webhooks?.["new_alert"] || 0}</TableCell>
                         </TableRow>
-                        <TableRow hover>
+                        <TableRow hover style={{backgroundColor: getBackgroundColor(servicesList?.webhooks?.["new_custom"])}}>
                             <TableCell>New Custom Webhook</TableCell>
                             <TableCell>
                                 <IconButton onClick={()=>{issueTestWebook("new_custom")}}><PublicIcon /></IconButton>
                             </TableCell>
+                            <TableCell>{servicesList?.webhooks?.["new_custom"] || 0}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
