@@ -43,10 +43,6 @@ type Query {
   ): ConfigCheckOutput
 }
 
-type Query {
-  consumingServicesList: consumingServicesListOutput
-}
-
 type Mutation {
   consumingServicesTestLog(
     service_type: String!

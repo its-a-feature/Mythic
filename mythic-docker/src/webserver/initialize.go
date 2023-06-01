@@ -149,8 +149,6 @@ func setRoutes(r *gin.Engine) {
 			protected.POST("/api/v1.4/create_operator", webcontroller.CreateOperatorWebhook)
 			// operation
 			protected.POST("/api/v1.4/create_operation_webhook", webcontroller.CreateOperationWebhook)
-			// consuming services
-			protected.POST("/api/v1.4/consuming_services_list_webhook", webcontroller.ConsumingServicesListConsumers)
 			// following require you to have an operation set
 			allOperationMembers := protected.Group("/api/v1.4/")
 			allOperationMembers.Use(authentication.RBACMiddlewareAll())
