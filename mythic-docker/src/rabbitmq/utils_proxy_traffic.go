@@ -144,8 +144,8 @@ func (c *callbackPortsInUse) GetOtherCallbackIds(callbackId int) []int {
 	}
 	return callbackIds
 }
-func (c *callbackPortsInUse) GetDataForCallbackId(callbackId int) ([]proxyToAgentMessage, error) {
-	return c.GetDataForCallbackIdPortType(callbackId, CALLBACK_PORT_TYPE_SOCKS)
+func (c *callbackPortsInUse) GetDataForCallbackId(callbackId int, portType string) ([]proxyToAgentMessage, error) {
+	return c.GetDataForCallbackIdPortType(callbackId, portType)
 }
 func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, localPort int, remotePort int, remoteIP string, taskId int, operationId int) error {
 	newPort := callbackPortUsage{

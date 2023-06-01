@@ -41,7 +41,7 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, uUIDInfo *ca
 		1. check for direct tasks
 		2. check for delegate tasks
 	*/
-	agentMessage := agentMessageGetTasking{GetDelegateTasks: true}
+	agentMessage := agentMessageGetTasking{}
 	currentTasks := []databaseStructs.Task{}
 	if taskIDs := submittedTasksAwaitingFetching.getTasksForCallbackId(uUIDInfo.CallbackID); len(taskIDs) > 0 {
 		if query, args, err := sqlx.Named(`SELECT 
@@ -99,8 +99,6 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, uUIDInfo *ca
 		}
 		response := map[string]interface{}{}
 		response["tasks"] = tasksToIssue
-
-		delete(*incoming, "get_delegate_tasks")
 		delete(*incoming, "tasking_size")
 		reflectBackOtherKeys(&response, &agentMessage.Other)
 		//logging.LogDebug("agent asked for tasking", "tasks", response)
@@ -189,13 +187,31 @@ func getDelegateProxyMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []d
 		for _, targetCallbackId := range callbackIds {
 			if routablePath := callbackGraph.GetBFSPath(uUIDInfo.CallbackID, targetCallbackId); routablePath != nil {
 				// there's a route between our callback and the target callback for some sort of proxy data
-				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId); err != nil {
-					logging.LogError(err, "Failed to get proxy data for routable callback")
+				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_SOCKS); err != nil {
+					logging.LogError(err, "Failed to get socks proxy data for routable callback")
 				} else {
 					// now that we have a path, need to recursively encrypt and wrap
 					newTask := map[string]interface{}{
 						"action":                 "get_tasking",
 						CALLBACK_PORT_TYPE_SOCKS: messages,
+					}
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength); err != nil {
+						logging.LogError(err, "Failed to recursively encrypt message")
+					} else {
+						delegateMessages = append(delegateMessages, delegateMessageResponse{
+							Message:       string(wrappedMessage),
+							SuppliedUuid:  routablePath[len(routablePath)-1].DestinationAgentId,
+							C2ProfileName: routablePath[len(routablePath)-1].C2ProfileName,
+						})
+					}
+				}
+				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_RPORTFWD); err != nil {
+					logging.LogError(err, "Failed to get socks proxy data for routable callback")
+				} else {
+					// now that we have a path, need to recursively encrypt and wrap
+					newTask := map[string]interface{}{
+						"action":                    "get_tasking",
+						CALLBACK_PORT_TYPE_RPORTFWD: messages,
 					}
 					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength); err != nil {
 						logging.LogError(err, "Failed to recursively encrypt message")

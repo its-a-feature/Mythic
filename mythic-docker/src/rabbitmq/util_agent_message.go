@@ -331,6 +331,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 					// this means we should try to get some delegated tasks if they exist for our callback
 					delegateResponses = append(delegateResponses, getDelegateTaskMessages(uuidInfo, agentUUIDLength)...)
 				}
+				delete(decryptedMessage, "get_delegate_tasks")
 			}
 		case "upload":
 			{
@@ -483,7 +484,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 				go proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_RPORTFWD, rpfwdMessages)
 			}
 		}
-		// regardless of the message type, get proxy data if it exists
+		// regardless of the message type, get proxy data if it exists (for both socks and rpfwd)
 		delegateResponses = append(delegateResponses, getDelegateProxyMessages(uuidInfo, agentUUIDLength)...)
 		if len(delegateResponses) > 0 {
 			response["delegates"] = delegateResponses
@@ -717,14 +718,16 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage []byte) (map[string]i
 		if uuidInfo.TranslationContainerName == "" {
 			// we decrypt and return the JSON bytes
 			//logging.LogTrace("about to decrypt", "key", hex.EncodeToString(*uuidInfo.DecKey), "agentMessage", hex.EncodeToString(agentMessage))
-			if decrypted, err := uuidInfo.IterateAndAct(agentMessage, "decrypt"); err != nil {
-				//if decrypted, err := mythicCrypto.DecryptAES256HMAC(uuidInfo.getAllKeys(), agentMessage); err != nil {
+			decrypted, err := uuidInfo.IterateAndAct(agentMessage, "decrypt")
+			if err != nil {
 				return nil, err
-			} else if err := json.Unmarshal(decrypted, &jsonAgentMessage); err != nil {
-				return nil, err
-			} else {
-				return jsonAgentMessage, nil
 			}
+			err = json.Unmarshal(decrypted, &jsonAgentMessage)
+			if err != nil {
+				return nil, err
+			}
+			return jsonAgentMessage, nil
+
 		} else {
 			// we decrypt, but then need to pass to translation container
 			if decrypted, err := uuidInfo.IterateAndAct(agentMessage, "decrypt"); err != nil {
