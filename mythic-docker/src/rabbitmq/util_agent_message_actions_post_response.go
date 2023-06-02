@@ -1051,6 +1051,8 @@ func addFilePermissions(fileBrowser *agentMessagePostResponseFileBrowser) map[st
 		fileMetaData["permissions"] = x
 	case map[string]interface{}:
 		fileMetaData["permissions"] = []interface{}{x}
+	case nil:
+		fileMetaData["permissions"] = []interface{}{}
 	default:
 		fileMetaData["permissions"] = []interface{}{}
 		logging.LogError(nil, "Unknown permissions type", "data", fileBrowser.Permissions)
@@ -1068,6 +1070,8 @@ func addChildFilePermissions(fileBrowser *agentMessagePostResponseFileBrowserChi
 		fileMetaData["permissions"] = x
 	case map[string]interface{}:
 		fileMetaData["permissions"] = []interface{}{x}
+	case nil:
+		fileMetaData["permissions"] = []interface{}{}
 	default:
 		logging.LogError(nil, "Unknown permissions type", "data", fileBrowser.Permissions)
 	}
@@ -1088,13 +1092,13 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 		}
 		go resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
 		// now that the parents and all ancestors are resolved, process the current path and all children
-
+		realParentPath := strings.Join(pathData.PathPieces, pathData.PathSeparator)
 		fullPath := treeNodeGetFullPath(
-			[]byte(fileBrowser.ParentPath),
+			[]byte(realParentPath),
 			[]byte(fileBrowser.Name),
 			[]byte(pathData.PathSeparator),
 			databaseStructs.TREE_TYPE_FILE)
-		parentPath := treeNodeGetFullPath([]byte(fileBrowser.ParentPath), []byte(""), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
+		parentPath := treeNodeGetFullPath([]byte(realParentPath), []byte(""), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
 		name := treeNodeGetFullPath([]byte(""), []byte(fileBrowser.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
 		//logging.LogInfo("creating info for listed entry", "name", fileBrowser.Name, "parent", fileBrowser.ParentPath, "fullPath", fullPath, "adjustedParentPath", parentPath)
 		newTree := databaseStructs.MythicTree{
