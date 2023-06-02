@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.0.17 - 2023-06-02
+
+### Changed
+
+- Updated mythic_jupyter docker-compose entry to keep the `deploy` key and all sub keys 
+- Updated health check for mythic_nginx to use curl instead of wget
+
 ## v1.0.15 - 2023-05-17
 
 ### Changed
