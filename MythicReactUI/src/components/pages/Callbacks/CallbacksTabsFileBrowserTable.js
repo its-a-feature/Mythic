@@ -160,6 +160,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                             selectedFolderData={props.selectedFolderData} 
                                             rowData={props.treeRootData[props.selectedFolderData.host][row]} 
                                             cellData={row}
+                                            me={props.me}
                                             onTaskRowAction={props.onTaskRowAction} />;
                             case "Name":
                                 return <FileBrowserTableRowNameCell 
@@ -177,7 +178,10 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                             selectedFolderData={props.selectedFolderData} 
                                             me={props.me} />
                             case "Last Modify":
-                                return TableRowDateCell({ cellData: props.treeRootData[props.selectedFolderData.host][row]?.metadata?.modify_time, rowData: props.treeRootData[props.selectedFolderData.host][row] });
+                                return TableRowDateCell({ cellData: props.treeRootData[props.selectedFolderData.host][row]?.metadata?.modify_time,
+                                    rowData: props.treeRootData[props.selectedFolderData.host][row],
+                                    view_utc_time: props.me?.user?.view_utc_time
+                                });
                             case "Comment":
                                 return <FileBrowserTableRowStringCell cellData={row.comment} rowData={props.treeRootData[props.selectedFolderData.host][row]} />
                         }
@@ -342,16 +346,28 @@ const FileBrowserTableRowStringCell = ({ cellData }) => {
         </>
     )
 };
-export const TableRowDateCell = ({ cellData, rowData, view_utc_time=true }) => {
+export const TableRowDateCell = ({ cellData, rowData, view_utc_time }) => {
     
     try{
         let cellDataInt = parseInt(cellData)
         if(cellData === "" || cellData === undefined || cellDataInt <= 0){
-            return cellData;
+            return "";
+        }
+        let view_utc = true;
+        if(view_utc_time !== undefined){
+            view_utc = view_utc_time
         }
         // handle Unix epoch timestamps
-        const dateData = new Date(cellDataInt).toISOString();
-        return toLocalTime(dateData.slice(0, 10) + " " + dateData.slice(11,-1), view_utc_time);
+        if (view_utc) {
+            let init_date = new Date(cellDataInt);
+            return init_date.toDateString() + " " + init_date.toTimeString().substring(0, 8) + " UTC";
+        } else {
+            let timezoneDate = new Date(cellDataInt);
+            timezoneDate.setTime(timezoneDate.getTime() - (timezoneDate.getTimezoneOffset() *60*1000));
+            return timezoneDate.toLocaleDateString() + " " + timezoneDate.toLocaleString([], {hour12: true, hour: "2-digit", minute: "2-digit"});
+        }
+        //const dateData = new Date(cellDataInt).toISOString();
+        //return toLocalTime(dateData.slice(0, 10) + " " + dateData.slice(11,-1), view_utc_time);
     }catch(error){
         try{
             let cellDataInt = parseInt(cellData)
@@ -387,7 +403,7 @@ export const TableRowSizeCell = ({ cellData, rowData }) => {
     };
     return getStringSize(cellData);
 };
-const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, treeRootData, selectedFolderData }) => {
+const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, treeRootData, selectedFolderData, me }) => {
     const dropdownAnchorRef = React.useRef(null);
     const theme = useTheme();
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -399,16 +415,18 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
     const [getPermissions] = useLazyQuery(getPermissionsDataQuery, {
         onCompleted: (data) => {
             let newPermissions = {};
+            /*
             Object.keys(data.mythictree_by_pk.metadata).forEach( (key) => {
                 if( key.includes("time") ){
                     try{
-                        newPermissions[key] = TableRowDateCell({cellData: data.mythictree_by_pk.metadata[key]})
+                        newPermissions[key] = TableRowDateCell({cellData: data.mythictree_by_pk.metadata[key], view_utc_time: me?.user?.view_utc_time})
                     }catch(error){
                         console.log("failed to parse metadata as date", key, data.mythictree_by_pk.metadata[key]);
                         newPermissions[key] = data.mythictree_by_pk.metadata[key];
                     }
                 } else if( key.includes("size") ){
                     try{
+                        console.log(data.mythictree_by_pk.metadata, data.mythictree_by_pk.metadata[key])
                         newPermissions[key] = TableRowSizeCell({cellData: data.mythictree_by_pk.metadata[key]})
                     }catch(error){
                         console.log("failed to parse metadata as size", key, data.mythictree_by_pk.metadata[key]);
@@ -418,7 +436,9 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                     newPermissions[key] = data.mythictree_by_pk.metadata[key];
                 }
             });
-            setPermissionData(newPermissions);
+
+             */
+            setPermissionData(data.mythictree_by_pk.metadata);
             if (data.mythictree_by_pk.metadata !== '') {
                 setViewPermissionsDialogOpen(true);
             } else {
@@ -649,6 +669,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                             title='View Metadata'
                             leftColumn='Attribute'
                             rightColumn='Value'
+                            me={me}
                             value={permissionData}
                             onClose={() => {
                                 setViewPermissionsDialogOpen(false);

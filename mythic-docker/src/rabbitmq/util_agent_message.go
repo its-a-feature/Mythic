@@ -236,7 +236,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 				0, "debug", database.MESSAGE_LEVEL_INFO)
 		} else {
 			SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 1 (get data): \n%s",
-				string(*agentMessageInput.RawMessage)),
+				base64.StdEncoding.EncodeToString(*agentMessageInput.RawMessage)),
 				0, "debug", database.MESSAGE_LEVEL_INFO)
 		}
 

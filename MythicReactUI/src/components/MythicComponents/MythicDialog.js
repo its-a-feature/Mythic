@@ -91,7 +91,7 @@ export function MythicViewJSONAsTableDialog(props) {
               // potentially have a nested dictionary here or array to become a dictionary, mark it
               permissions.push({"name": key, "value": permissionDict[key], new_table: true, is_dictionary: true, headers: ["Name", "Value"]});
             } else if(permissionDict[key] && Array.isArray(permissionDict[key])) {
-              if (permissionDict[key].length == 1){
+              if (permissionDict[key].length === 1){
                 if(permissionDict[key][0].constructor === Object){
                   permissions.push({"name": key, "value": permissionDict[key][0], new_table: true, is_dictionary: true, headers: ["Name", "Value"]});
                   
@@ -170,14 +170,14 @@ export function MythicViewJSONAsTableDialog(props) {
                                           Object.keys(element.value).map( (key, dictIndex) => (
                                             <TableRow key={'element' + dictIndex + "dictheader"}>
                                               <TableCell  style={{width: "30%", wordBreak: "break-all"}}>{key}</TableCell>
-                                              <TableCell style={{wordBreak: "break-all"}}>{convertValueToContextValue(key, element.value[key])}</TableCell>
+                                              <TableCell style={{wordBreak: "break-all"}}>{convertValueToContextValue(key, element.value[key], props.me)}</TableCell>
                                             </TableRow>
                                           ))
                                         ): (
                                           element.value.map( (e, elementIndex) => (
                                             <TableRow>
                                               {element.headers.map( (header, headerIndex) => (
-                                                <TableCell key={'element' + elementIndex + "header" + headerIndex} style={headerIndex === 0 ? {width: "30%"} : {}}>{convertValueToContextValue(header, e[header])}</TableCell>
+                                                <TableCell key={'element' + elementIndex + "header" + headerIndex} style={headerIndex === 0 ? {width: "30%"} : {}}>{convertValueToContextValue(header, e[header], props.me)}</TableCell>
                                               ))}
                                             </TableRow>
                                           ))
@@ -187,7 +187,7 @@ export function MythicViewJSONAsTableDialog(props) {
                                 </TableContainer>
                             ) 
                             : 
-                            (<TableCell style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>{convertValueToContextValue(element.name, element.value) }</TableCell>)
+                            (<TableCell style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>{convertValueToContextValue(element.name, element.value, props.me) }</TableCell>)
                           }
                           
                         </TableRow>
@@ -196,7 +196,7 @@ export function MythicViewJSONAsTableDialog(props) {
                       comment.map( (row, index) => (
                         <TableRow key={'row' + index} hover>
                             {Object.keys(row).map( (key) => (
-                              <TableCell key={"row" + index + "cell" + key}>{convertValueToContextValue(key, row[key])}</TableCell>
+                              <TableCell key={"row" + index + "cell" + key}>{convertValueToContextValue(key, row[key], props.me)}</TableCell>
                             ))}
                         </TableRow>
                       ))
@@ -262,10 +262,10 @@ export function MythicViewObjectPropertiesAsTableDialog(props) {
     </React.Fragment>
   );
 }
-const convertValueToContextValue = (key, value) => {
+const convertValueToContextValue = (key, value, me) => {
   if( key.includes("time") ){
     try{
-        return TableRowDateCell({cellData: value})
+        return TableRowDateCell({cellData: value, view_utc_time: me?.user?.view_utc_time})
     }catch(error){
         console.log("failed to parse metadata as date", key, value);
         return value;
@@ -290,27 +290,39 @@ const convertValueToContextValue = (key, value) => {
   }
 }
 export const TableRowDateCell = ({ cellData, rowData, view_utc_time=true }) => {
-    
-  try{
-      let cellDataInt = parseInt(cellData)
-      if(cellData === "" || cellData === undefined || cellDataInt <= 0){
-          return cellData;
-      }
-      // handle Unix epoch timestamps
-      const dateData = new Date(cellDataInt).toISOString();
-      return toLocalTime(dateData.slice(0, 10) + " " + dateData.slice(11,-1), view_utc_time);
-  }catch(error){
-      try{
-          let cellDataInt = parseInt(cellData)
-          // handle windows FILETIME values
-          const dateData = new Date( ((cellDataInt / 10000000) - 11644473600) * 1000).toISOString();
-          return toLocalTime(dateData.slice(0, 10) + " " + dateData.slice(11,-1), view_utc_time);
-      }catch(error2){
-          console.log("error with timestamp: ", cellData);
-          return String(cellData);
-      }
-      
-  }
+
+    try{
+        let cellDataInt = parseInt(cellData)
+        if(cellData === "" || cellData === undefined || cellDataInt <= 0){
+            return "";
+        }
+        let view_utc = true;
+        if(view_utc_time !== undefined){
+            view_utc = view_utc_time
+        }
+        // handle Unix epoch timestamps
+        if (view_utc) {
+            let init_date = new Date(cellDataInt);
+            return init_date.toDateString() + " " + init_date.toTimeString().substring(0, 8) + " UTC";
+        } else {
+            let timezoneDate = new Date(cellDataInt);
+            timezoneDate.setTime(timezoneDate.getTime() - (timezoneDate.getTimezoneOffset() *60*1000));
+            return timezoneDate.toLocaleDateString() + " " + timezoneDate.toLocaleString([], {hour12: true, hour: "2-digit", minute: "2-digit"});
+        }
+        //const dateData = new Date(cellDataInt).toISOString();
+        //return toLocalTime(dateData.slice(0, 10) + " " + dateData.slice(11,-1), view_utc_time);
+    }catch(error){
+        try{
+            let cellDataInt = parseInt(cellData)
+            // handle windows FILETIME values
+            const dateData = new Date( ((cellDataInt / 10000000) - 11644473600) * 1000).toISOString();
+            return toLocalTime(dateData.slice(0, 10) + " " + dateData.slice(11,-1), view_utc_time);
+        }catch(error2){
+            console.log("error with timestamp: ", cellData);
+            return String(cellData);
+        }
+
+    }
   
 };
 export const TableRowSizeCell = ({ cellData, rowData }) => {

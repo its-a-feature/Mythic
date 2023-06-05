@@ -1093,6 +1093,16 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 		go resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
 		// now that the parents and all ancestors are resolved, process the current path and all children
 		realParentPath := strings.Join(pathData.PathPieces, pathData.PathSeparator)
+		// check for the instance of // as a leading path
+		if len(realParentPath) > 2 {
+			if realParentPath[0] == '/' && realParentPath[1] == '/' {
+				realParentPath = realParentPath[1:]
+			}
+		}
+		if fileBrowser.Name == "" {
+			logging.LogError(nil, "Can't create file browser entry with empty name")
+			return errors.New("can't make file browser entry with empty name")
+		}
 		fullPath := treeNodeGetFullPath(
 			[]byte(realParentPath),
 			[]byte(fileBrowser.Name),
@@ -1205,7 +1215,7 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 					Os:              newTree.Os,
 				}
 				newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
-				fileMetaData := addChildFilePermissions(&newEntry)
+				fileMetaData = addChildFilePermissions(&newEntry)
 				newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
 				createTreeNode(&newTreeChild)
 			}
@@ -1453,7 +1463,7 @@ func treeNodeGetFullPath(parentPath []byte, name []byte, pathSeparator []byte, t
 		//logging.LogInfo("getting full path", "fullPath", fullPath, "parentPath", parentPath, "name", name)
 		if len(fullPath) > 1 {
 			if fullPath[len(fullPath)-1] == pathSeparator[len(pathSeparator)-1] {
-				return fullPath[:len(fullPath)-1]
+				fullPath = fullPath[:len(fullPath)-1]
 			}
 		}
 		return fullPath
@@ -1503,7 +1513,7 @@ func getParentPathFullPathName(pathData utils.AnalyzedPath, endIndex int, treeTy
 }
 func updateTreeNode(treeNode databaseStructs.MythicTree) {
 	if _, err := database.DB.NamedExec(`UPDATE mythictree SET
-        success=:success, deleted=:deleted, metadata=:metadata
+        success=:success, deleted=:deleted, metadata=:metadata, task_id=:task_id
 		WHERE id=:id
 `, treeNode); err != nil {
 		logging.LogError(err, "Failed to update tree node")
@@ -1529,6 +1539,10 @@ func deleteTreeNode(treeNode databaseStructs.MythicTree, cascade bool) {
 	}
 }
 func createTreeNode(treeNode *databaseStructs.MythicTree) {
+	if len(treeNode.Name) == 0 {
+		logging.LogError(nil, "Can't create file browser entry with empty name")
+		return
+	}
 	if statement, err := database.DB.PrepareNamed(`INSERT INTO mythictree
 		(host, task_id, operation_id, "name", full_path, parent_path, tree_type, can_have_children, success, metadata, os) 
 		VALUES 
@@ -1536,7 +1550,7 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 		ON CONFLICT (host, operation_id, full_path, tree_type)
 		DO UPDATE SET
 		task_id=:task_id, "name"=:name, parent_path=:parent_path, can_have_children=:can_have_children,
-		    success=:success, metadata=:metadata, os=:os, "timestamp"=now()
+		    metadata=:metadata, os=:os, "timestamp"=now(), deleted=false
 		    RETURNING id`); err != nil {
 		logging.LogError(err, "Failed to create new mythictree statement")
 	} else if err = statement.Get(&treeNode.ID, treeNode); err != nil {

@@ -5,12 +5,13 @@ import DialogTitle from '@mui/material/DialogTitle';
 import {MythicDialog} from './MythicDialog';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogContent from '@mui/material/DialogContent';
-import {useTheme} from '@mui/material/styles';
 
 export function MythicConfirmDialog(props) {
-    const theme = useTheme();
     const handleSubmit = () => {
         props.onSubmit();
+        if(props.dontCloseOnSubmit){
+            return;
+        }
         props.onClose();
     }
 

@@ -228,9 +228,11 @@ export const TaskFromUIButton = ({callback_id, cmd, ui_feature, parameters, onTa
         }else {
             createTask({variables: {...taskingVariables, callback_id: callbackData.callback_by_pk.display_id}})
         }
+        setOpenConfirmDialog(false);
     }
     const onCancelConfirm = () => {
         setOpenConfirmDialog(false);
+        console.log("in onCancelConfirm")
         onTasked({tasked: false});
     }
     useEffect( () => {
@@ -282,7 +284,7 @@ export const TaskFromUIButton = ({callback_id, cmd, ui_feature, parameters, onTa
     return (
         <div>
             {openSelectCommandDialog && 
-                <MythicDialog fullWidth={true} maxWidth="sm" open={openSelectCommandDialog}
+                <MythicDialog fullWidth={true} maxWidth="md" open={openSelectCommandDialog}
                         onClose={()=>{setOpenSelectCommandDialog(false);onTasked({tasked: false});}} 
                         innerDialog={<MythicSelectFromListDialog onClose={()=>{setOpenSelectCommandDialog(false);}}
                                             onSubmit={onSubmitSelectedCommand} options={fileBrowserCommands} title={"Select Command"} 
@@ -298,15 +300,15 @@ export const TaskFromUIButton = ({callback_id, cmd, ui_feature, parameters, onTa
                 />
             }
             {openCallbackTokenSelectDialog &&
-                <MythicDialog fullWidth={true} maxWidth="sm" open={openCallbackTokenSelectDialog}
-                    onClose={()=>{setOpenCallbackTokenSelectDialog(false);onTasked({tasked: false});}} 
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openCallbackTokenSelectDialog}
+                    onClose={()=>{setOpenCallbackTokenSelectDialog(false);onTasked({tasked: false});}}
                     innerDialog={<MythicSelectFromListDialog onClose={()=>{setOpenCallbackTokenSelectDialog(false);onTasked({tasked: false});}}
                                         onSubmit={onSubmitSelectedToken} dontCloseOnSubmit={true} options={callbackTokenOptions} title={"Select Token"} 
                                         action={"select"} identifier={"id"} display={"display"}/>}
                 />
             }
             {openConfirmDialog && 
-                <MythicConfirmDialog onClose={onCancelConfirm} onSubmit={onSubmitConfirm} open={openConfirmDialog} acceptText={acceptText}/>
+                <MythicConfirmDialog onClose={onCancelConfirm} dontCloseOnSubmit={true} onSubmit={onSubmitConfirm} open={openConfirmDialog} acceptText={acceptText}/>
             }
         </div>
     )
