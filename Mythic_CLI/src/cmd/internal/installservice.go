@@ -2,12 +2,13 @@ package internal
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 func InstallFolder(installPath string, overWrite bool) error {
@@ -214,6 +215,44 @@ func InstallFolder(installPath string, overWrite bool) error {
 			fmt.Printf("[+] Successfully installed c2 documentation\n")
 		} else {
 			fmt.Printf("[*] Skipping over C2 Documentation\n")
+		}
+		if !config.GetBool("exclude_documentation_wrapper") {
+			// handle payload documentation copying here
+			files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-wrapper"))
+			if err != nil {
+				fmt.Printf("[-] Failed to list contents of documentation_wrapper folder from clone: %v\n", err)
+				return err
+			}
+			for _, f := range files {
+				if f.IsDir() {
+					fmt.Printf("[*] Processing Documentation for %s\n", f.Name())
+					if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name())) {
+						if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
+							fmt.Printf("[*] Removing current version\n")
+							err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
+							if err != nil {
+								fmt.Printf("[-] Failed to remove current version: %v\n", err)
+								fmt.Printf("[-] Continuing to the next wrapper documentation\n")
+								continue
+							} else {
+								fmt.Printf("[+] Successfully removed the current version\n")
+							}
+						} else {
+							fmt.Printf("[!] Skipping documentation for , %s\n", f.Name())
+							continue
+						}
+					}
+					fmt.Printf("[*] Copying new documentation into place\n")
+					err = copyDir(filepath.Join(installPath, "documentation-wrapper", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
+					if err != nil {
+						fmt.Printf("[-] Failed to copy directory over\n")
+						continue
+					}
+				}
+			}
+			fmt.Printf("[+] Successfully installed Wrapper documentation\n")
+		} else {
+			fmt.Printf("[*] Skipping over Wrapper Documentation\n")
 		}
 		if isServiceRunning("mythic_documentation") {
 			fmt.Printf("[*] Restarting mythic_documentation container to pull in changes\n")
