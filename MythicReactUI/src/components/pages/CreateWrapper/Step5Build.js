@@ -31,7 +31,7 @@ export function Step5Build(props){
                 if(!startSubscription){
                     setStartSubscription(true);
                 }
-                snackActions.info("Submitted payload to build pipeline");
+                snackActions.info("Submitted payload to build pipeline", {autoClose: 1000});
             }else{
                 snackActions.error(data.createPayload.error);
             }

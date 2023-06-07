@@ -25,7 +25,7 @@ export function Step5Build(props){
     const [createPayloadMutation] = useMutation(create_payload, {
         update: (cache, {data}) => {
             if(data.createPayload.status === "success"){
-                snackActions.info("Submitted payload to build pipeline");
+                snackActions.info("Submitted payload to build pipeline", {autoClose: 1000});
                 setSubscriptionID(data.createPayload.uuid);
                 if(!startSubscription){
                     setStartSubscription(true);
@@ -105,7 +105,7 @@ export function Step5Build(props){
             "c2_profiles": c2Profiles
             };
         //console.log("finishedPayload", finishedPayload)
-        snackActions.info("Submitted Creation to Mythic...");
+        //snackActions.info("Submitted Creation to Mythic...", {autoClose: 1000});
         createPayloadMutation({variables: {payload: JSON.stringify(finishedPayload)}}).catch( (e) => {console.log(e)} );
     }
     const canceled = () => {

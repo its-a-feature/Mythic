@@ -88,7 +88,7 @@ export function OperationTable(props){
       });
     const [newOperation] = useMutation(newOperationMutation, {
         onCompleted: (data) => {
-            console.log(data);
+            //console.log(data);
             if(data.createOperation.status === "success"){
                 snackActions.success("Successfully created operation!");
                 props.onNewOperation({name: data.createOperation.operation_name, id: data.createOperation.operation_id});
@@ -115,8 +115,10 @@ export function OperationTable(props){
             snackActions.error("Passwords don't match");
         }else if(passwordNew.length === 0){
             snackActions.error("Password must not be empty",);
-        }else if(username.length === 0){
+        }else if(username.length === 0) {
             snackActions.error("Username must not be empty",);
+        } else if(passwordNew.length < 12){
+            snackActions.error("Password must be at least 12 characters long");
         }else{
             newOperator({variables:{username:username, password:passwordNew}})
             setOpenNewOperatorDialog(false);

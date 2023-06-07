@@ -44,7 +44,7 @@ export function OperationTableRow(props){
           meState({...meState(), user: {...meState().user, current_operation_id: data.updateCurrentOperation.operation_id, current_operation: props.name}});
           localStorage.setItem("user", JSON.stringify(meState().user));
           snackActions.success("Updated current operation");
-          window.location.reload();
+          //window.location.reload();
         }else{
           snackActions.error(data.updateCurrentOperation.error);
         }

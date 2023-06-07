@@ -24,4 +24,7 @@ export const snackActions = {
   dismiss(){
     toast.dismiss();
   },
+  clearAll(){
+    toast.clearWaitingQueue();
+  }
 }
