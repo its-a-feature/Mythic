@@ -196,7 +196,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         setTabOptions([]);
         setTabOptionsIndex(0);
         setMessage(event.target.value);
-        if(event.target.value.length === 0){
+        if(event.target.value.length <= 1){
             setUnmodifiedHistoryValue("parsed_cli");
         }
     }
