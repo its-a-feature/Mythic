@@ -449,7 +449,12 @@ func addMythicServiceDockerComposeEntry(service string) {
 		}
 		dynamicPortPieces := strings.Split(mythicEnv.GetString("MYTHIC_SERVER_DYNAMIC_PORTS"), ",")
 		for _, val := range dynamicPortPieces {
-			mythicServerPorts = append(mythicServerPorts, fmt.Sprintf("%s:%s", val, val))
+			if mythicEnv.GetBool("MYTHIC_SERVER_BIND_LOCALHOST_ONLY") {
+				mythicServerPorts = append(mythicServerPorts, fmt.Sprintf("127.0.0.1:%s:%s", val, val))
+			} else {
+				mythicServerPorts = append(mythicServerPorts, fmt.Sprintf("%s:%s", val, val))
+			}
+
 		}
 		pStruct["ports"] = mythicServerPorts
 		if _, ok := pStruct["environment"]; ok {
