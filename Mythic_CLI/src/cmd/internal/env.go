@@ -77,6 +77,11 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("jupyter_token", "mythic")
 	mythicEnv.SetDefault("jupyter_cpus", "2")
 	mythicEnv.SetDefault("jupyter_bind_localhost_only", true)
+	// mlflow configuration
+	mythicEnv.SetDefault("mlflow_port", 5000)
+	mythicEnv.SetDefault("mlflow_host", "mythic_mlflow")
+	mythicEnv.SetDefault("mlflow_cpus", "2")
+	mythicEnv.SetDefault("mlflow_bind_localhost_only", true)
 	// debugging help
 	mythicEnv.SetDefault("postgres_debug", false)
 	mythicEnv.SetDefault("mythic_react_debug", false)
@@ -141,6 +146,10 @@ func parseMythicEnvironmentVariables() {
 		"MYTHIC_JUPYTER_HOST": {
 			"MYTHIC_JUPYTER_PORT",
 			"mythic_jupyter",
+		},
+		"MYTHIC_MLFLOW_HOST": {
+			"MYTHIC_MLFLOW_PORT",
+			"mythic_mlflow",
 		},
 	}
 	for key, val := range portChecks {

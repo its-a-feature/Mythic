@@ -256,6 +256,8 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"MYTHIC_REACT_PORT=${MYTHIC_REACT_PORT}",
 			"JUPYTER_HOST=${JUPYTER_HOST}",
 			"JUPYTER_PORT=${JUPYTER_PORT}",
+			"MLFLOW_HOST=${MLFLOW_HOST}",
+			"MLFLOW_PORT=${MLFLOW_PORT}",
 			fmt.Sprintf("NGINX_USE_SSL=%s", nginxUseSSL),
 		}
 		if _, ok := pStruct["environment"]; ok {
@@ -393,6 +395,36 @@ func addMythicServiceDockerComposeEntry(service string) {
 		}
 		pStruct["environment"] = []string{
 			"JUPYTER_TOKEN=${JUPYTER_TOKEN}",
+		}
+	case "mythic_mlflow":
+		pStruct["build"] = map[string]interface{}{
+			"context": "./mlflow-docker",
+			"args":    buildArguments,
+		}
+		pStruct["cpus"] = mythicEnv.GetInt("MLFLOW_CPUS")
+		pStruct["command"] = "mlflow server --host 0.0.0.0 --static-prefix=/mlflow -w 1"
+		if mythicEnv.GetBool("mlflow_bind_localhost_only") {
+			pStruct["ports"] = []string{
+				"127.0.0.1:${MLFLOW_PORT}:${MLFLOW_PORT}",
+			}
+		} else {
+			pStruct["ports"] = []string{
+				"${MLFLOW_PORT}:${MLFLOW_PORT}",
+			}
+		}
+		pStruct["volumes"] = []string{
+			"./mlflow-docker/mlflow:/projects",
+		}
+
+		pStruct["healthcheck"] = map[string]interface{}{
+			"test":         "wget -SqO - http://127.0.0.1:${MLFLOW_PORT}/health",
+			"interval":     "60s",
+			"timeout":      "10s",
+			"retries":      5,
+			"start_period": "20s",
+		}
+		pStruct["environment"] = []string{
+			"CUDA_NONE=true",
 		}
 	case "mythic_server":
 		pStruct["build"] = map[string]interface{}{

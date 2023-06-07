@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/d8a269f99d404d838b3b7a323423bbbb/artifacts
+end_time: 1686117168539
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: d8a269f99d404d838b3b7a323423bbbb
+run_name: bald-stoat-158
+run_uuid: d8a269f99d404d838b3b7a323423bbbb
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1686117167093
+status: 3
+tags: []
+user_id: jovyan

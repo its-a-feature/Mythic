@@ -26,6 +26,7 @@ var MythicPossibleServices = []string{
 	"mythic_grafana",
 	"mythic_prometheus",
 	"mythic_postgres_exporter",
+	"mythic_mlflow",
 }
 var buildArguments []string
 
@@ -88,6 +89,10 @@ func GetIntendedMythicServiceNames() ([]string, error) {
 			}
 		case "mythic_jupyter":
 			if mythicEnv.GetString("JUPYTER_HOST") == "127.0.0.1" || mythicEnv.GetString("JUPYTER_HOST") == "mythic_jupyter" {
+				containerList = append(containerList, service)
+			}
+		case "mythic_mlflow":
+			if mythicEnv.GetString("MLFLOW_HOST") == "127.0.0.1" || mythicEnv.GetString("MLFLOW_HOST") == "mythic_mlflow" {
 				containerList = append(containerList, service)
 			}
 		case "mythic_grafana":

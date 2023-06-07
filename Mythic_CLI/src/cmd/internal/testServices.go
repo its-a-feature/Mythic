@@ -166,6 +166,10 @@ func TestPorts() error {
 			"JUPYTER_PORT",
 			"mythic_jupyter",
 		},
+		"MLFLOW_HOST": {
+			"MLFLOW_PORT",
+			"mythic_mlflow",
+		},
 	}
 	var addServices []string
 	var removeServices []string
@@ -230,6 +234,11 @@ func PrintMythicConnectionInfo() {
 		fmt.Fprintln(w, "Internal Documentation\thttp://127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("DOCUMENTATION_PORT"))+"\t", mythicEnv.GetBool("documentation_bind_localhost_only"))
 	} else {
 		fmt.Fprintln(w, "Internal Documentation\thttp://"+mythicEnv.GetString("DOCUMENTATION_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("DOCUMENTATION_PORT"))+"\t", mythicEnv.GetBool("documentation_bind_localhost_only"))
+	}
+	if mythicEnv.GetString("MLFLOW_HOST") == "mythic_mlflow" {
+		fmt.Fprintln(w, "MLFlow\thttp://127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("MLFLOW_PORT"))+"\t", mythicEnv.GetBool("mlflow_bind_localhost_only"))
+	} else {
+		fmt.Fprintln(w, "MLFlow\thttp://"+mythicEnv.GetString("MLFLOW_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("MLFLOW_PORT"))+"\t", mythicEnv.GetBool("mlflow_bind_localhost_only"))
 	}
 	fmt.Fprintln(w, "\t\t\t\t")
 	fmt.Fprintln(w, "ADDITIONAL SERVICES\tIP\tPORT\tBOUND LOCALLY")
