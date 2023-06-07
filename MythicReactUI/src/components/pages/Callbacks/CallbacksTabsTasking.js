@@ -324,7 +324,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         }
         if(cmd.commandparameters.length === 0){
             // if there are no parameters, just send whatever the user types along
-            onCreateTask({callback_id: tabInfo.displayID, command: cmd.cmd, params: params, parameter_group_name: "Default"});
+            onCreateTask({callback_id: tabInfo.displayID, command: cmd.cmd, params: params, parameter_group_name: "Default", tasking_location: newTaskingLocation});
         }else{
             // check if there's a "file" component that needs to be displayed
             const fileParamExists = cmd.commandparameters.find(param => param.parameter_type === "File" && cmdGroupNames.includes(param.parameter_group_name));
