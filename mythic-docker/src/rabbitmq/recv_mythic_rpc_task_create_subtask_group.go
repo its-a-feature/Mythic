@@ -48,6 +48,7 @@ func MythicRPCTaskCreateSubtaskGroup(input MythicRPCTaskCreateSubtaskGroupMessag
 	}
 	createdSubTasks := []int{}
 	parentTask := databaseStructs.Task{}
+	taskingLocation := "mythic_rpc"
 	operatorOperation := databaseStructs.Operatoroperation{}
 	if err := database.DB.Get(&parentTask, `SELECT 
 	callback.id "callback.id",
@@ -85,6 +86,7 @@ func MythicRPCTaskCreateSubtaskGroup(input MythicRPCTaskCreateSubtaskGroupMessag
 				CallbackDisplayID:       parentTask.Callback.DisplayID,
 				CurrentOperationID:      parentTask.Callback.OperationID,
 				OperatorID:              parentTask.Operator.ID,
+				TaskingLocation:         &taskingLocation,
 			}
 			if operatorOperation.BaseDisabledCommandsID.Valid {
 				baseDisabledCommandsID := int(operatorOperation.BaseDisabledCommandsID.Int64)

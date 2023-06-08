@@ -39,6 +39,7 @@ func MythicRPCTaskCreateSubtask(input MythicRPCTaskCreateSubtaskMessage) MythicR
 	response := MythicRPCTaskCreateSubtaskMessageResponse{
 		Success: false,
 	}
+	taskingLocation := "mythic_rpc"
 	createTaskInput := CreateTaskInput{
 		ParentTaskID:            &input.TaskID,
 		CommandName:             input.CommandName,
@@ -46,6 +47,7 @@ func MythicRPCTaskCreateSubtask(input MythicRPCTaskCreateSubtaskMessage) MythicR
 		Token:                   input.Token,
 		ParameterGroupName:      input.ParameterGroupName,
 		SubtaskCallbackFunction: input.SubtaskCallbackFunction,
+		TaskingLocation:         &taskingLocation,
 	}
 	task := databaseStructs.Task{}
 	operatorOperation := databaseStructs.Operatoroperation{}
