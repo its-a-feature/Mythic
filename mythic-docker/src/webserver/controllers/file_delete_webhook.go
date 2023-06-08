@@ -53,9 +53,9 @@ func DeleteFileWebhook(c *gin.Context) {
 		path, is_payload, id
 		FROM filemeta 
 		WHERE
-		id=$1 and operation_id=$2 and deleted=false
+		id=$1 and operation_id=$2
 		`, input.Input.FileId, operatorOperation.CurrentOperation.ID); err != nil {
-			logging.LogError(err, "Failed to get file data from database")
+			logging.LogError(err, "Failed to get file data from database", "file_id", input.Input.FileId)
 			c.JSON(http.StatusOK, DeleteFileResponse{
 				Status: "error",
 				Error:  err.Error(),
