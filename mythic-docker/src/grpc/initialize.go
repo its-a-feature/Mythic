@@ -7,6 +7,7 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	"google.golang.org/grpc"
+	"math"
 	"net"
 	"sync"
 	"time"
@@ -170,7 +171,7 @@ func Initialize() {
 
 }
 func serveInBackground(connectString string) {
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpc.MaxSendMsgSize(math.MaxInt), grpc.MaxRecvMsgSize(math.MaxInt))
 	services.RegisterTranslationContainerServer(s, &TranslationContainerServer)
 	logging.LogInfo("Initializing grpc connections...")
 	for {
