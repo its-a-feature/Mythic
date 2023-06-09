@@ -501,6 +501,8 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			response[CALLBACK_PORT_TYPE_RPORTFWD] = proxyData
 		}
 		response["action"] = decryptedMessage["action"]
+		// reflect back any non-standard key at the top level
+		reflectBackOtherKeys(&response, &decryptedMessage)
 		if utils.MythicConfig.DebugAgentMessage {
 			if stringMsg, err := json.MarshalIndent(response, "", "  "); err != nil {
 				logging.LogError(err, "Failed to convert JSON to string for debug printing")
