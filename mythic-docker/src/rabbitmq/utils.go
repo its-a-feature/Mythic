@@ -124,7 +124,7 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 		switch v := defaultValue.(type) {
 		case string:
 			if len(choices) == 0 {
-				tmpErr := errors.New("Parameter type choose one has no choices available")
+				tmpErr := errors.New("parameter type choose one has no choices available")
 				logging.LogError(tmpErr, "default value not in choices because choices for *_PARAMETER_TYPE_CHOOSE_ONE is empty")
 				return "", tmpErr
 			} else if !utils.SliceContains(choices, v) {

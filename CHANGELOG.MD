@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1-rc24] - 2023-06-12
+
+### Changed
+
+- Updated the logic for tracking up/down containers to only notify after successful database update
+
 ## [3.0.1-rc23] - 2023-06-09
 
 ### Changed

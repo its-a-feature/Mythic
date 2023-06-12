@@ -72,27 +72,32 @@ func checkContainerStatus() {
 		for container := range payloadTypesToCheck {
 			//logging.LogDebug("checking container", "container", container)
 			// check that a container is online
-			if running, err := RabbitMQConnection.CheckPayloadTypeContainerExists(payloadTypesToCheck[container].Name); err != nil {
+			running, err := RabbitMQConnection.CheckPayloadTypeContainerExists(payloadTypesToCheck[container].Name)
+			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", payloadTypesToCheck[container].ContainerRunning)
+			if err != nil {
 				logging.LogError(err, "Failed to check for payloadtype container existence")
 			} else if running != payloadTypesToCheck[container].ContainerRunning {
 				if entry, ok := payloadTypesToCheck[container]; ok {
 					entry.ContainerRunning = running
-					payloadTypesToCheck[container] = entry
+					if _, err = database.DB.NamedExec(`UPDATE payloadtype SET 
+							container_running=:container_running, deleted=false 
+							WHERE id=:id`, entry,
+					); err != nil {
+						logging.LogError(err, "Failed to set container running status", "container_running", payloadTypesToCheck[container].ContainerRunning, "container", container)
+					} else {
+						payloadTypesToCheck[container] = entry
+						if !running {
+							SendAllOperationsMessage(
+								getDownContainerMessage(container),
+								0, fmt.Sprintf("%s_container_down", container), "warning")
+							go updateDownContainerBuildingPayloads(container)
+						}
+					}
+
 				} else {
 					logging.LogError(nil, "Failed to get payload type from map for updating running status")
 				}
-				if _, err = database.DB.NamedExec(`UPDATE payloadtype SET 
-							container_running=:container_running, deleted=false 
-							WHERE id=:id`, payloadTypesToCheck[container],
-				); err != nil {
-					logging.LogError(err, "Failed to set container running status", "container_running", payloadTypesToCheck[container].ContainerRunning, "container", container)
-				}
-				if !running {
-					SendAllOperationsMessage(
-						getDownContainerMessage(container),
-						0, fmt.Sprintf("%s_container_down", container), "warning")
-					go updateDownContainerBuildingPayloads(container)
-				}
+
 			}
 
 		}
@@ -100,26 +105,29 @@ func checkContainerStatus() {
 		for container := range c2profilesToCheck {
 			// check that a container is online
 			//logging.LogDebug("checking container", "container", container)
-			if running, err := RabbitMQConnection.CheckC2ProfileContainerExists(container); err != nil {
+			running, err := RabbitMQConnection.CheckC2ProfileContainerExists(container)
+			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", c2profilesToCheck[container].ContainerRunning)
+			if err != nil {
 				logging.LogError(err, "Failed to check for c2 container existence")
 			} else if running != c2profilesToCheck[container].ContainerRunning {
 				if entry, ok := c2profilesToCheck[container]; ok {
 					entry.ContainerRunning = running
-					c2profilesToCheck[container] = entry
+					if _, err = database.DB.NamedExec(`UPDATE c2profile SET 
+							container_running=:container_running, deleted=false 
+							WHERE id=:id`, entry,
+					); err != nil {
+						logging.LogError(err, "Failed to set container running status", "container_running", c2profilesToCheck[container].ContainerRunning, "container", container)
+					} else {
+						c2profilesToCheck[container] = entry
+						if !running {
+							UpdateC2ProfileRunningStatus(c2profilesToCheck[container], false)
+							SendAllOperationsMessage(
+								getDownContainerMessage(container),
+								0, fmt.Sprintf("%s_container_down", container), "warning")
+						}
+					}
 				} else {
 					logging.LogError(nil, "Failed to get c2 profile from map for updating running status")
-				}
-				if !running {
-					UpdateC2ProfileRunningStatus(c2profilesToCheck[container], false)
-					SendAllOperationsMessage(
-						getDownContainerMessage(container),
-						0, fmt.Sprintf("%s_container_down", container), "warning")
-				}
-				if _, err = database.DB.NamedExec(`UPDATE c2profile SET 
-							container_running=:container_running, deleted=false 
-							WHERE id=:id`, c2profilesToCheck[container],
-				); err != nil {
-					logging.LogError(err, "Failed to set container running status", "container_running", c2profilesToCheck[container].ContainerRunning, "container", container)
 				}
 
 			}
@@ -129,24 +137,27 @@ func checkContainerStatus() {
 			// check that a container is online
 			//logging.LogDebug("checking container", "container", container)
 			running := checkTranslationContainerGRPCOnline(container)
+			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", translationContainersToCheck[container].ContainerRunning)
 			if running != translationContainersToCheck[container].ContainerRunning {
 				if entry, ok := translationContainersToCheck[container]; ok {
 					entry.ContainerRunning = running
-					translationContainersToCheck[container] = entry
+					if _, err := database.DB.NamedExec(`UPDATE translationcontainer SET
+							container_running=:container_running, deleted=false
+							WHERE id=:id`, entry,
+					); err != nil {
+						logging.LogError(err, "Failed to set container running status", "container_running", translationContainersToCheck[container].ContainerRunning, "container", container)
+					} else {
+						translationContainersToCheck[container] = entry
+						if !running {
+							SendAllOperationsMessage(
+								getDownContainerMessage(container),
+								0, fmt.Sprintf("%s_container_down", container), "warning")
+						}
+					}
 				} else {
 					logging.LogError(nil, "Failed to get translation container from map for updating running status")
 				}
-				if !running {
-					SendAllOperationsMessage(
-						getDownContainerMessage(container),
-						0, fmt.Sprintf("%s_container_down", container), "warning")
-				}
-				if _, err := database.DB.NamedExec(`UPDATE translationcontainer SET
-							container_running=:container_running, deleted=false
-							WHERE id=:id`, translationContainersToCheck[container],
-				); err != nil {
-					logging.LogError(err, "Failed to set container running status", "container_running", translationContainersToCheck[container].ContainerRunning, "container", container)
-				}
+
 			}
 		}
 	}
