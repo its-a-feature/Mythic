@@ -409,8 +409,17 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
              })
              .on("mouseover", function(d) { node_events["mouseover"](parent, node, d) })
              .on("mouseout", function(d) { node_events["mouseout"](parent, node, d) })
-             .on("click", function(d) { d3.event.preventDefault(); node_events["click"](parent, node, d) })
-             .on("contextmenu", (d) => {setContextMenu(d3.event, g, node); d3.event.preventDefault();})
+             .on("click", function(d) {
+                 d3.event.preventDefault();
+                 node_events["click"](parent, node, d)
+             })
+             .on("contextmenu", function(d) {
+                 d3.event.preventDefault();
+                 if(node.node){
+                     setContextMenu(d3.event, g, node);
+                 }
+
+             })
          node.intersect = function(point) {
              //return dagreD3.intersect.circle(node, 25, point);
              //console.log(node, point, Math.max(node.width, node.label?.length))

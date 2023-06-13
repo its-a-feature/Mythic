@@ -269,31 +269,31 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
                     }},
                      {name: viewConfig["include_disconnected"] ? 'Show Only Active Edges' : "Show All Edges", click: () => {
                         const view = {...viewConfig, include_disconnected: !viewConfig["include_disconnected"]};
-                        drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
+                        drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme, setContextMenu);
                         setViewConfig(view);
                      }}, 
                      {name: viewConfig["show_all_nodes"] ? 'Hide inactive callbacks' : 'Show All Callbacks', click: () => {
                         const view = {...viewConfig, show_all_nodes: !viewConfig["show_all_nodes"]};
-                        drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
+                        drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme, setContextMenu);
                         setViewConfig(view);
                      }},
                      {name: 'Autosize', click: () => {
-                        drawC2PathElements([...callbackgraphedges], dagreRef, true, viewConfig, node_events, theme);
+                         drawC2PathElements([...callbackgraphedges], dagreRef, true, viewConfig, node_events, theme, setContextMenu);
                      }}, 
                      {name: viewConfig["rankDir"] === "LR" ? 'Change Layout to Top-Bottom' : "Change Layout to Left-Right", click: () => {
                         if(viewConfig["rankDir"] === "LR"){
                             const view = {...viewConfig, rankDir: "BT"};
-                            drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
+                            drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme, setContextMenu);
                             setViewConfig(view);
                         }else{
                             const view = {...viewConfig, rankDir: "LR"};
-                            drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
+                            drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme, setContextMenu);
                             setViewConfig(view);
                         }
                      }},
                      {name: viewConfig["packet_flow_view"] ? "View Connection Directions" : "View Egress Routes" , click: () => {
                         const view = {...viewConfig, packet_flow_view: !viewConfig["packet_flow_view"]};
-                        drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
+                        drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme, setContextMenu);
                         setViewConfig(view);
                      }},
                      {name: "Download Graph", click: () => {
@@ -315,7 +315,10 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges}){
     useEffect( () => {
         const allEdges = [...callbackgraphedges];
         drawC2PathElements(allEdges, dagreRef, true, viewConfig, node_events, theme, setContextMenu);
-        setReZoom(false);
+        if(reZoom){
+            setReZoom(false);
+        }
+
     }, [callbackgraphedges, reZoom, viewConfig, theme]) // eslint-disable-line react-hooks/exhaustive-deps
     return (
         <div style={{maxWidth: "100%", "overflow": "hidden", height: "100%"}}>
