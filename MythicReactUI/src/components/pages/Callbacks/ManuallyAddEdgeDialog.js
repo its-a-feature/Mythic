@@ -8,15 +8,15 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
 import Input from '@mui/material/Input';
-import {useQuery, useReactiveVar, gql } from '@apollo/client';
-import { meState } from '../../../cache';
+import {useQuery, gql } from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
 import makeStyles from '@mui/styles/makeStyles';
+import {snackActions} from "../../utilities/Snackbar";
 
 const getP2PProfilesAndCallbacks = gql`
-query getP2PProfilesAndCallbacks($operation_id: Int!){
+query getP2PProfilesAndCallbacks{
   c2profile(where: {is_p2p: {_eq: true}}) {
-    callbackc2profiles(where: {callback: {operation_id: {_eq: $operation_id}}}) {
+    callbackc2profiles(where: {callback: {active: {_eq: true}}}) {
       id
       callback {
         id
@@ -64,12 +64,14 @@ export function ManuallyAddEdgeDialog(props) {
       setSelectedDestination(event.target.value);
     };
     const handleSubmit = () => {
+        if(selectedDestination === ""){
+            snackActions.error("Must select a valid destination");
+            return;
+        }
         props.onSubmit(props.source.id, selectedProfile, selectedDestination.callback);
         props.onClose();
     }
-    const me = useReactiveVar(meState);
     const { loading, error } = useQuery(getP2PProfilesAndCallbacks, {
-        variables: {operation_id: me.user.current_operation_id},
         onCompleted: data => {
             setProfileOptions([...data.c2profile]);
             if(data.c2profile.length > 0){
@@ -137,7 +139,7 @@ export function ManuallyAddEdgeDialog(props) {
           <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
-          <Button onClick={handleSubmit} variant="contained" color="success">
+          <Button disabled={selectedDestination === ""} onClick={handleSubmit} variant="contained" color="success">
             Add
           </Button>
         </DialogActions>
