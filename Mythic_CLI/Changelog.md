@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.0.20 - 2023-06-14
+
+### Changed
+
+- Pulled in a PR to make sure documentation-wrapper information is pulled in on install for services
+- Updated the `./mythic-cli status` command to list out additional services installed but not present in docker-compose
+- Updated the `./mythic-cli config service` command to list out just configurations needed for remote agent development
+
 ## v1.0.19 - 2023-06-07
 
 ### Changed

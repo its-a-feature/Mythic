@@ -261,99 +261,113 @@ func Status() {
 		All: true,
 	})
 	if err != nil {
-		log.Fatalf("[-] Failed to get container list: %v", err)
+		log.Fatalf("[-] Failed to get container list: %v\n", err)
 	}
 	PrintMythicConnectionInfo()
-	if len(containers) > 0 {
-		w := new(tabwriter.Writer)
-		w.Init(os.Stdout, 0, 8, 2, '\t', 0)
-		var mythicLocalServices []string
-		var installedServices []string
-		sort.Slice(containers[:], func(i, j int) bool {
-			return containers[i].Labels["name"] < containers[j].Labels["name"]
-		})
-		for _, container := range containers {
-			if container.Labels["name"] == "" {
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 2, '\t', 0)
+	var mythicLocalServices []string
+	var installedServices []string
+	sort.Slice(containers[:], func(i, j int) bool {
+		return containers[i].Labels["name"] < containers[j].Labels["name"]
+	})
+	elementsOnDisk, err := getElementsOnDisk()
+	if err != nil {
+		log.Fatalf("[-] Failed to get list of installed services on disk: %v\n", err)
+	}
+	for _, container := range containers {
+		if container.Labels["name"] == "" {
+			continue
+		}
+		var portRanges []uint16
+		var portRangeMaps []string
+		info := fmt.Sprintf("%s\t%s\t%s\t", container.Labels["name"], container.State, container.Status)
+		if len(container.Ports) > 0 {
+			sort.Slice(container.Ports[:], func(i, j int) bool {
+				return container.Ports[i].PublicPort < container.Ports[j].PublicPort
+			})
+			for _, port := range container.Ports {
+				if port.PublicPort > 0 {
+					if port.PrivatePort == port.PublicPort && port.IP == "0.0.0.0" {
+						portRanges = append(portRanges, port.PrivatePort)
+					} else {
+						portRangeMaps = append(portRangeMaps, fmt.Sprintf("%d/%s -> %s:%d", port.PrivatePort, port.Type, port.IP, port.PublicPort))
+					}
+
+				}
+			}
+			if len(portRanges) > 0 {
+				sort.Slice(portRanges, func(i, j int) bool { return portRanges[i] < portRanges[j] })
+			}
+			portString := strings.Join(portRangeMaps[:], ", ")
+			var stringPortRanges []string
+			for _, val := range portRanges {
+				stringPortRanges = append(stringPortRanges, fmt.Sprintf("%d", val))
+			}
+			if len(stringPortRanges) > 0 && len(portString) > 0 {
+				portString = portString + ", "
+			}
+			portString = portString + strings.Join(stringPortRanges[:], ", ")
+
+			info = info + portString
+		}
+		if stringInSlice(container.Image, MythicPossibleServices) {
+			mythicLocalServices = append(mythicLocalServices, info)
+		} else {
+			installedServicesAbsPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder))
+			if err != nil {
+				fmt.Printf("[-] failed to get the absolute path to the InstalledServices folder")
 				continue
 			}
-			var portRanges []uint16
-			var portRangeMaps []string
-			info := fmt.Sprintf("%s\t%s\t%s\t", container.Labels["name"], container.State, container.Status)
-			if len(container.Ports) > 0 {
-				sort.Slice(container.Ports[:], func(i, j int) bool {
-					return container.Ports[i].PublicPort < container.Ports[j].PublicPort
-				})
-				for _, port := range container.Ports {
-					if port.PublicPort > 0 {
-						if port.PrivatePort == port.PublicPort && port.IP == "0.0.0.0" {
-							portRanges = append(portRanges, port.PrivatePort)
-						} else {
-							portRangeMaps = append(portRangeMaps, fmt.Sprintf("%d/%s -> %s:%d", port.PrivatePort, port.Type, port.IP, port.PublicPort))
-						}
 
-					}
-				}
-				if len(portRanges) > 0 {
-					sort.Slice(portRanges, func(i, j int) bool { return portRanges[i] < portRanges[j] })
-				}
-				portString := strings.Join(portRangeMaps[:], ", ")
-				var stringPortRanges []string
-				for _, val := range portRanges {
-					stringPortRanges = append(stringPortRanges, fmt.Sprintf("%d", val))
-				}
-				if len(stringPortRanges) > 0 && len(portString) > 0 {
-					portString = portString + ", "
-				}
-				portString = portString + strings.Join(stringPortRanges[:], ", ")
-
-				info = info + portString
-			}
-			if stringInSlice(container.Image, MythicPossibleServices) {
-				mythicLocalServices = append(mythicLocalServices, info)
-			} else {
-				installedServicesAbsPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder))
-				if err != nil {
-					fmt.Printf("[-] failed to get the absolute path to the Payload_Types folder")
-					continue
-				}
-
-				for _, mnt := range container.Mounts {
-					if strings.Contains(mnt.Source, installedServicesAbsPath) {
-						installedServices = append(installedServices, info)
-					}
+			for _, mnt := range container.Mounts {
+				if strings.Contains(mnt.Source, installedServicesAbsPath) {
+					installedServices = append(installedServices, info)
+					elementsOnDisk = RemoveStringFromSliceNoOrder(elementsOnDisk, container.Labels["name"])
 				}
 			}
 		}
-		fmt.Fprintln(w, "\t\t\t\t")
-		fmt.Fprintln(w, "Mythic Main Services")
-		fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tPORTS")
-		for _, line := range mythicLocalServices {
-			fmt.Fprintln(w, line)
+	}
+	fmt.Fprintln(w, "\t\t\t\t")
+	fmt.Fprintln(w, "Mythic Main Services")
+	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tPORTS")
+	for _, line := range mythicLocalServices {
+		fmt.Fprintln(w, line)
+	}
+	fmt.Fprintln(w, "\t\t\t\t")
+	w.Flush()
+	fmt.Fprintln(w, "Installed Services")
+	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tPORTS")
+	for _, line := range installedServices {
+		fmt.Fprintln(w, line)
+	}
+	fmt.Fprintln(w, "\t\t\t\t")
+	if len(elementsOnDisk) > 0 {
+		fmt.Fprintln(w, "Extra Services, Add to DockerCompose with: ./mythic-cli add [name]")
+		fmt.Fprintln(w, "NAME\t\t\t")
+		sort.Strings(elementsOnDisk)
+		for _, container := range elementsOnDisk {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t\t\t", container))
 		}
 		fmt.Fprintln(w, "\t\t\t\t")
-		w.Flush()
-		fmt.Fprintln(w, "Installed Services")
-		fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tPORTS")
-		for _, line := range installedServices {
-			fmt.Fprintln(w, line)
-		}
-		fmt.Fprintln(w, "\t\t\t\t")
-		w.Flush()
-		if len(installedServices) == 0 {
-			fmt.Printf("[*] There are no services installed\n")
-			fmt.Printf("    To install one, use \"sudo ./mythic-cli install github <url>\"\n")
-			fmt.Printf("    Agents can be found at: https://github.com/MythicAgents\n")
-			fmt.Printf("    C2 Profiles can be found at: https://github.com/MythicC2Profiles\n")
-		}
-	} else {
-		fmt.Println("There are no containers running")
+	}
+	w.Flush()
+	if len(installedServices) == 0 {
+		fmt.Printf("[*] There are no services installed\n")
+		fmt.Printf("    To install one, use \"sudo ./mythic-cli install github <url>\"\n")
+		fmt.Printf("    Agents can be found at: https://github.com/MythicAgents\n")
+		fmt.Printf("    C2 Profiles can be found at: https://github.com/MythicC2Profiles\n")
 	}
 	if mythicEnv.GetString("RABBITMQ_HOST") == "mythic_rabbitmq" && mythicEnv.GetBool("rabbitmq_bind_localhost_only") {
 		fmt.Printf("\n[*] RabbitMQ is currently listening on localhost. If you have a remote Service, they will be unable to connect (i.e. one running on another server)")
 		fmt.Printf("\n    Use 'sudo ./mythic-cli config set rabbitmq_bind_localhost_only false' and restart mythic ('sudo ./mythic-cli restart') to change this\n")
 	}
+	if mythicEnv.GetString("MYTHIC_SERVER_HOST") == "mythic_server" && mythicEnv.GetBool("mythic_server_bind_localhost_only") {
+		fmt.Printf("\n[*] MythicServer is currently listening on localhost. If you have a remote Service, they will be unable to connect (i.e. one running on another server)")
+		fmt.Printf("\n    Use 'sudo ./mythic-cli config set mythic_server_bind_localhost_only false' and restart mythic ('sudo ./mythic-cli restart') to change this\n")
+	}
 	fmt.Printf("[*] If you are using a remote PayloadType or C2Profile, they will need certain environment variables to properly connect to Mythic.\n")
-	fmt.Printf("    Use 'sudo ./mythic-cli config service' for easy-to-use configs for these services.\n")
+	fmt.Printf("    Use 'sudo ./mythic-cli config service' for configs for these services.\n")
 }
 func GetLogs(containerName string, numLogs string) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())

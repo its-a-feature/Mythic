@@ -35,6 +35,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("mythic_server_bind_localhost_only", true)
 	mythicEnv.SetDefault("mythic_server_cpus", "2")
 	mythicEnv.SetDefault("mythic_server_dynamic_ports", "7000-7010")
+	mythicEnv.SetDefault("mythic_server_dynamic_ports_bind_localhost_only", false)
 	mythicEnv.SetDefault("mythic_server_command", "")
 	mythicEnv.SetDefault("mythic_sync_cpus", "2")
 	// postgres configuration
@@ -149,23 +150,6 @@ func parseMythicEnvironmentVariables() {
 		}
 	}
 	writeMythicEnvironmentVariables()
-	/*
-		if !mythicEnv.GetBool("postgres_debug") {
-			// update the MythicPossibleServices to not include the two debugging services of grafana and postgres_exporter
-			MythicPossibleServices = []string{
-				"mythic_postgres",
-				"mythic_react",
-				"mythic_server",
-				"mythic_nginx",
-				"mythic_rabbitmq",
-				"mythic_graphql",
-				"mythic_documentation",
-				"mythic_jupyter",
-				"mythic_sync",
-			}
-		}
-
-	*/
 }
 func writeMythicEnvironmentVariables() {
 	c := mythicEnv.AllSettings()
