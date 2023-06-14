@@ -244,13 +244,14 @@ func (p *callbackPortUsage) Start() error {
 			return err
 		}
 	case CALLBACK_PORT_TYPE_RPORTFWD:
-		if canReachRemoteHost(p.RemoteIP, p.RemotePort) {
-			go p.manageConnections()
-		} else {
-			err := errors.New(fmt.Sprintf("Failed to reach remote host, %s:%d, unable to start rpfwd", p.RemoteIP, p.RemotePort))
-			logging.LogError(err, "Can't start listening")
+		// start managing incoming/outgoing connections
+		go p.manageConnections()
+		if !canReachRemoteHost(p.RemoteIP, p.RemotePort) {
+			err := errors.New(fmt.Sprintf("Testing remote connection for rpfwd:\nfailed to reach remote host, %s:%d", p.RemoteIP, p.RemotePort))
 			go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-			return err
+		} else {
+			go SendAllOperationsMessage(fmt.Sprintf("Testing remote connection for rpfwd:\nsuccessfully connected to remote host, %s:%d", p.RemoteIP, p.RemotePort),
+				p.OperationID, "", database.MESSAGE_LEVEL_INFO)
 		}
 	case CALLBACK_PORT_TYPE_INTERACTIVE:
 	default:
