@@ -308,6 +308,8 @@ func DockerRemoveImages() error {
 func DockerRemoveContainers(containers []string) error {
 	if err := runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, containers...)); err != nil {
 		return err
+	} else if _, err = runDocker(append([]string{"rm", "-f"}, containers...)); err != nil {
+		return err
 	} else {
 		return nil
 	}

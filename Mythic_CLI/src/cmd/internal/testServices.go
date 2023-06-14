@@ -275,6 +275,10 @@ func Status() {
 	if err != nil {
 		log.Fatalf("[-] Failed to get list of installed services on disk: %v\n", err)
 	}
+	elementsInCompose, err := GetAllExistingNonMythicServiceNames()
+	if err != nil {
+		log.Fatalf("[-] Failed to get list of installed services in docker-compose: %v\n", err)
+	}
 	for _, container := range containers {
 		if container.Labels["name"] == "" {
 			continue
@@ -324,6 +328,7 @@ func Status() {
 				if strings.Contains(mnt.Source, installedServicesAbsPath) {
 					installedServices = append(installedServices, info)
 					elementsOnDisk = RemoveStringFromSliceNoOrder(elementsOnDisk, container.Labels["name"])
+					elementsInCompose = RemoveStringFromSliceNoOrder(elementsInCompose, container.Labels["name"])
 				}
 			}
 		}
@@ -342,8 +347,21 @@ func Status() {
 		fmt.Fprintln(w, line)
 	}
 	fmt.Fprintln(w, "\t\t\t\t")
+	// remove all elementsInCompose from elementsOnDisk
+	for _, container := range elementsInCompose {
+		elementsOnDisk = RemoveStringFromSliceNoOrder(elementsOnDisk, container)
+	}
+	if len(elementsInCompose) > 0 {
+		fmt.Fprintln(w, "Docker Compose services not running, start with: ./mythic-cli start [name]")
+		fmt.Fprintln(w, "NAME\t\t\t")
+		sort.Strings(elementsInCompose)
+		for _, container := range elementsInCompose {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t\t\t", container))
+		}
+		fmt.Fprintln(w, "\t\t\t\t")
+	}
 	if len(elementsOnDisk) > 0 {
-		fmt.Fprintln(w, "Extra Services, Add to DockerCompose with: ./mythic-cli add [name]")
+		fmt.Fprintln(w, "Extra Services, add to docker compose with: ./mythic-cli add [name]")
 		fmt.Fprintln(w, "NAME\t\t\t")
 		sort.Strings(elementsOnDisk)
 		for _, container := range elementsOnDisk {
