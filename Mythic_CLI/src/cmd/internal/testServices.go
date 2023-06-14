@@ -81,7 +81,7 @@ func TestMythicConnection() {
 	fmt.Printf("[-] Failed to make connection to Mythic Server\n")
 	fmt.Printf("    This could be due to limited resources on the host (recommended at least 2CPU and 4GB RAM)\n")
 	fmt.Printf("    If there is an issue with Mythic server, use 'mythic-cli logs mythic_server' to view potential errors\n")
-	Status()
+	Status(false)
 	fmt.Printf("[*] Fetching logs from mythic_server now:\n")
 	GetLogs("mythic_server", "500")
 	os.Exit(1)
@@ -252,7 +252,7 @@ func PrintMythicConnectionInfo() {
 	w.Flush()
 }
 
-func Status() {
+func Status(verbose bool) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		log.Fatalf("[-] Failed to get client in Status check: %v", err)
@@ -333,7 +333,6 @@ func Status() {
 			}
 		}
 	}
-	fmt.Fprintln(w, "\t\t\t\t")
 	fmt.Fprintln(w, "Mythic Main Services")
 	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tPORTS")
 	for _, line := range mythicLocalServices {
@@ -351,7 +350,7 @@ func Status() {
 	for _, container := range elementsInCompose {
 		elementsOnDisk = RemoveStringFromSliceNoOrder(elementsOnDisk, container)
 	}
-	if len(elementsInCompose) > 0 {
+	if len(elementsInCompose) > 0 && verbose {
 		fmt.Fprintln(w, "Docker Compose services not running, start with: ./mythic-cli start [name]")
 		fmt.Fprintln(w, "NAME\t\t\t")
 		sort.Strings(elementsInCompose)
@@ -360,7 +359,7 @@ func Status() {
 		}
 		fmt.Fprintln(w, "\t\t\t\t")
 	}
-	if len(elementsOnDisk) > 0 {
+	if len(elementsOnDisk) > 0 && verbose {
 		fmt.Fprintln(w, "Extra Services, add to docker compose with: ./mythic-cli add [name]")
 		fmt.Fprintln(w, "NAME\t\t\t")
 		sort.Strings(elementsOnDisk)

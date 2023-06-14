@@ -233,7 +233,7 @@ func DockerStart(containers []string) error {
 		DockerRemoveImages()
 		TestMythicRabbitmqConnection()
 		TestMythicConnection()
-		Status()
+		Status(false)
 		return nil
 	}
 }
