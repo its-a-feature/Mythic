@@ -108,10 +108,12 @@ query GetMitreCommandAttack($payload_type: String!){
 }
 `;
 const getTaskTagsQuery = gql`
-query getTaskTags ($operation_id: Int!) {
-  tasktag(where: {operation_id: {_eq: $operation_id}}) {
+query getTaskTags {
+  tag(where: {task_id: {_is_null: false}}) {
     id
-    tag
+    tagtype {
+      name
+    }
     task_id
   }
 }
@@ -142,12 +144,12 @@ export function MitreAttack({me}){
     const [getTaskTags] = useLazyQuery(getTaskTagsQuery, {
       fetchPolicy: "network-only",
       onCompleted: (data) => {
-        setTaskTagOptions(data.tasktag);
-        const uniqueTags = data.tasktag.reduce( (prev, cur) => {
-          if(prev.includes(cur.tag)){
+        setTaskTagOptions(data.tag);
+        const uniqueTags = data.tag.reduce( (prev, cur) => {
+          if(prev.includes(cur.tagtype.name)){
             return [...prev];
           }else{
-            return [...prev, cur.tag];
+            return [...prev, cur.tagtype.name];
           }
         }, []);
         const uniqueTagObjects = uniqueTags.map(c => {return {cmd: c}});
@@ -161,7 +163,7 @@ export function MitreAttack({me}){
     });
     const onFilterByTags = () => {
       setBackdropOpen(true);
-      getTaskTags({variables: {operation_id: me?.user?.current_operation_id || 0}})
+      getTaskTags()
     }
     const [getCommands] = useLazyQuery(Get_CommandAttacks,{
       onError: data => {
@@ -356,7 +358,7 @@ export function MitreAttack({me}){
     const onSubmitSelectTag = (tag) => {
       setBackdropOpen(true);
       const taskIds = taskTagOptions.reduce( (prev, cur) => {
-        if(cur.tag === tag.cmd){
+        if(cur.tagtype.name === tag.cmd){
           return [...prev, cur.task_id];
         }else{
           return [...prev];

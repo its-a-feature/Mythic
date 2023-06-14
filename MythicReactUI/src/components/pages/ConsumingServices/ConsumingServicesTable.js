@@ -55,7 +55,8 @@ export function ConsumingServicesTable({servicesList}){
             if(data.consumingServicesTestLog.status === "success"){
                 snackActions.success("Successfully sent test message to service");
             } else {
-                snackActions.error(data.consumingServicesTestLog.error)
+                snackActions.error("No logger listening")
+                console.log(data.consumingServicesTestLog.error)
             }
             
         },
