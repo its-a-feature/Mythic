@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Pulled in a PR to make sure documentation-wrapper information is pulled in on install for services
 - Updated the `./mythic-cli status` command to list out additional services installed but not present in docker-compose
 - Updated the `./mythic-cli config service` command to list out just configurations needed for remote agent development
+- Added new variable, `mythic_server_dynamic_ports_bind_localhost_only`, specifically to control if dynamic ports are bound to localhost or not, separate from mythic_server
 
 ## v1.0.19 - 2023-06-07
 
