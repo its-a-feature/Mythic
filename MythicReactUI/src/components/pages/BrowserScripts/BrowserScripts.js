@@ -57,13 +57,6 @@ mutation insertNewBrowserScript($script: String!, $payload_type_id: Int!, $comma
   }
 }
 `;
-const deleteBrowserScriptMutation = gql`
-mutation deleteBrowserScriptMutation($browserscript_id: Int!){
-  delete_browserscript_by_pk(id: $browserscript_id){
-    id
-  }
-}
-`;
 
 
 export function BrowserScripts({me}){
@@ -123,14 +116,6 @@ export function BrowserScripts({me}){
         snackActions.error("Failed to create new script: " + data);
       }
     });
-    const [deleteBrowserScript] = useMutation(deleteBrowserScriptMutation, {
-      onCompleted: data => {
-        snackActions.success("Successfully deleted browser script");
-      },
-      onError: data => {
-        snackActions.error("Failed to delete browser script: " + data);
-      }
-    })
     const onToggleActive = ({browserscript_id, active}) => {
         toggleActive({variables: {browserscript_id, active}});
     }
@@ -142,9 +127,6 @@ export function BrowserScripts({me}){
     }
     const onSubmitCreateNewBrowserScript = ({script, payload_type_id, command_id}) => {
       createBrowserScript({variables: {author: me?.user?.username || "", script, payload_type_id, command_id}});
-    }
-    const onDelete = ({browserscript_id}) => {
-      deleteBrowserScript({variables: {browserscript_id}});
     }
     React.useRef( () => {
       return () => {
@@ -159,7 +141,7 @@ export function BrowserScripts({me}){
         <BrowserScriptsTable
             browserscripts={browserScripts} operation_id={me?.user?.current_operation_id || 0} onToggleActive={onToggleActive}
             me={me}
-            onSubmitEdit={onSubmitEdit} onRevert={onRevert} onSubmitNew={onSubmitCreateNewBrowserScript} onDelete={onDelete}
+            onSubmitEdit={onSubmitEdit} onRevert={onRevert} onSubmitNew={onSubmitCreateNewBrowserScript}
         />
 
     </React.Fragment>

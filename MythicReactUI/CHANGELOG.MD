@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.15-rc22] - 2023-06-15
+
+### Changed
+
+- Fixed the browser scripts page to not allow "delete"
+
 ## [0.1.15-rc21] - 2023-06-15
 
 ### Changed

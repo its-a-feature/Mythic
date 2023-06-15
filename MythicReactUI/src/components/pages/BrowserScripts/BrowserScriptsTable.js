@@ -38,25 +38,20 @@ export function BrowserScriptsTable(props){
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "5rem"}}>Delete</TableCell>
+                        <TableCell style={{width: "3rem"}}>Edit</TableCell>
                         <TableCell style={{width: "5rem"}}>Active</TableCell>
-                        <TableCell >Payload</TableCell>
-                        <TableCell >Command</TableCell>
-                        <TableCell> Author</TableCell>
-                        <TableCell style={{width: "15em"}}>User Modified?</TableCell>
-                        <TableCell style={{width: "8em"}}> Edit</TableCell>
+                        <TableCell style={{width: "15rem"}}>Payload</TableCell>
+                        <TableCell style={{width: "20rem"}}>Command</TableCell>
+                        <TableCell style={{width: "12rem"}}> Author</TableCell>
+                        <TableCell style={{textAlign: "left"}}>User Modified?</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
                 {props.browserscripts.map( (op) => (
                     <BrowserScriptsTableRow
                         me={props.me}
-                        onSubmitApplyToOperation={props.onSubmitApplyToOperation}
-                        onSubmitRemoveFromOperation={props.onSubmitRemoveFromOperation}
                         operation_id={props.operation_id} onToggleActive={props.onToggleActive}
                         onSubmitEdit={props.onSubmitEdit} onRevert={props.onRevert}
-                        onToggleOperation={props.onToggleOperation}
-                        onDelete={props.onDelete}
                         key={"script" + op.id}
                         {...op}
                     />
