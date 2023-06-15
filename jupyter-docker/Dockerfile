@@ -5,7 +5,7 @@ ARG PIP_INDEX
 ARG PIP_INDEX_URL
 ARG PIP_TRUSTED_HOST
 
-RUN pip3 install mythic==0.1.2
+RUN pip3 install mythic==0.1.4
 
 WORKDIR /projects
 

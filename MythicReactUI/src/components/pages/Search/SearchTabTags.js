@@ -100,7 +100,7 @@ query nameProcessQuery($source: String!, $offset: Int!, $fetchLimit: Int!) {
 `;
 const dataSearch = gql`
 ${tagFragment}
-query tagProcessQuery($data: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
+query tagProcessQuery($data: String!, $offset: Int!, $fetchLimit: Int!) {
     tag_aggregate(distinct_on: id, where: {data: {_cast: {String: {_ilike: $data}}}}) {
       aggregate {
         count

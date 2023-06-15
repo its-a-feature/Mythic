@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.15-rc20] - 2023-06-15
+
+### Changed
+
+- Fixed issue with extra parameter when searching tag data
+
 ## [0.1.15-rc19] - 2023-06-14
 
 ### Changed
