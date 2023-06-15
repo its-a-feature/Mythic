@@ -71,13 +71,13 @@ query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: 
 `;
 const tagSearch = gql`
 ${taskingDataFragment}
-query tagQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    tag_aggregate(distinct_on: id, order_by: {id: asc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}}, data: {_cast: {String: {_ilike: $search}}}}) {
+query tagSearchTaskQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
+    tag_aggregate(distinct_on: id, order_by: {id: asc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}}, data: {_cast: {String: {_ilike: $search}}}}) {
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
       task{
         ...taskData
       }
@@ -352,6 +352,13 @@ export const SearchTabTasksPanel = (props) =>{
             newTaskStatus = "_";
         }
         setSearch(search);
+        let search_variables = {variables:{
+                offset: offset,
+                fetchLimit: fetchLimit,
+                search: "%" + new_search + "%",
+                status: "%" + newTaskStatus + "%"
+            }}
+        console.log(search_variables)
         getTagSearch({variables:{
                 offset: offset,
                 fetchLimit: fetchLimit,

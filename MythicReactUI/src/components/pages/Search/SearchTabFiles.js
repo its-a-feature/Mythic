@@ -244,12 +244,12 @@ query commentFileMetaScreenshotQuery($operation_id: Int!, $comment: String!, $ho
 const tagFileMetaUploadSearch = gql`
 ${fileMetaFragment}
 query tagFileMetaUploadQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
+    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
       filemetum{
         ...filemetaData
       }
@@ -259,12 +259,12 @@ query tagFileMetaUploadQuery($tag: String!, $host: String!, $offset: Int!, $fetc
 const tagFileMetaDownloadSearch = gql`
 ${fileMetaFragment}
 query tagFileMetaDownloadQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
+    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
       filemetum {
         ...filemetaData
       }
@@ -275,12 +275,12 @@ query tagFileMetaDownloadQuery($tag: String!, $host: String!, $offset: Int!, $fe
 const tagFileBrowserSearch = gql`
 ${mythictreeFragment}
 query tagFileBrowserQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    tag_aggregate(distinct_on: id, where: {mythictree_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, mythictree: {host: {_ilike: $host}, tree_type: {_eq: "file"}}}) {
+    tag_aggregate(distinct_on: id, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, tree_type: {_eq: "file"}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {mythictree_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, mythictree: {host: {_ilike: $host}, tree_type: {_eq: "file"}}}) {
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, tree_type: {_eq: "file"}}}) {
       mythictree {
         ...mythictreeData
       }
@@ -291,12 +291,12 @@ query tagFileBrowserQuery($tag: String!, $host: String!, $offset: Int!, $fetchLi
 const tagFileMetaScreenshotSearch = gql`
 ${fileMetaFragment}
 query tagFileMetaScreenshotQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_screenshot: {_eq: true}}}) {
+    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_screenshot: {_eq: true}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_screenshot: {_eq: true}}}) {
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_screenshot: {_eq: true}}}) {
       filemetum{
         ...filemetaData
       }
@@ -637,6 +637,9 @@ export const SearchTabFilesPanel = (props) =>{
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
         setSearchHost(searchHost);
+        if(searchHost === ""){
+            searchHost = "_";
+        }
         if(adjustedSearchLocation === "FileBrowser"){
             getfilenameFileBrowserSearch({variables:{
                 operation_id: me?.user?.current_operation_id || 0,
@@ -675,6 +678,9 @@ export const SearchTabFilesPanel = (props) =>{
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
         setSearchHost(searchHost);
+        if(searchHost === ""){
+            searchHost = "_";
+        }
         if(adjustedSearchLocation === "FileBrowser"){
             snackActions.dismiss();
             snackActions.warning("FileBrowser doesn't currently track file hashes");
@@ -717,6 +723,9 @@ export const SearchTabFilesPanel = (props) =>{
         }
         setSearch(new_search);
         setSearchHost(searchHost);
+        if(searchHost === ""){
+            searchHost = "_";
+        }
         if(adjustedSearchLocation === "FileBrowser"){
             getcommentFileBrowserSearch({variables:{
                 operation_id: me?.user?.current_operation_id || 0,
@@ -759,6 +768,9 @@ export const SearchTabFilesPanel = (props) =>{
         }
         setSearch(new_search);
         setSearchHost(searchHost);
+        if(searchHost === ""){
+            searchHost = "_";
+        }
         if(adjustedSearchLocation === "FileBrowser"){
             gettagFileBrowserSearch({variables:{
                     offset: offset,
