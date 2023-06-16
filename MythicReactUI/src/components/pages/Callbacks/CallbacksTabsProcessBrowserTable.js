@@ -56,8 +56,8 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     const [filterOptions, setFilterOptions] = React.useState({});
     const [selectedColumn, setSelectedColumn] = React.useState({});
     const [columnVisibility, setColumnVisibility] = React.useState({
-        "visible": ["Info","PID", "PPID", "Name", "Tags", "Comment"],
-        "hidden": [ ]
+        "visible": ["Info","PID", "PPID", "Name", "User", "Arch", "Tags", "Comment"],
+        "hidden": [ "Session" ]
     })
     const [singleTreeData, setSingleTreeData] = React.useState({});
     const [viewSingleTreeData, setViewSingleTreeData] = React.useState(false);
@@ -148,8 +148,11 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         { name: 'PID', type: 'number', key: 'process_id', inMetadata: true, width: 100},
         { name: 'PPID', type: 'number', key: 'parent_process_id', inMetadata: true, width: 100},
         { name: 'Name', type: 'string', disableSort: false, key: 'name_text', fillWidth: true },
+        { name: "User", type: 'string', key: 'user', inMetadata: true, fillWidth: true},
+        { name: "Arch", type: 'string', key: 'architecture', inMetadata: true, width: 100},
         { name: 'Tags', type: 'tags', disableSort: true, disableFilterMenu: true, width: 220 },
         { name: 'Comment', type: 'string', key: 'comment', disableSort: false, width: 200 },
+        { name: 'Session', type: 'number', key: 'session_id', inMetadata: true, width: 100}
     ];
     const columns = React.useMemo(
         () => 
@@ -414,6 +417,24 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             children={updatedTreeAdjMatrix[host][row.full_path_text]}
                                             handleOnClickButton={handleOnClickButton}
                                             rowData={row} />;
+                            case "User":
+                                return <FileBrowserTableRowStringCell
+                                    treeRootData={treeRootData}
+                                    host={host}
+                                    cellData={treeRootData[host][row.full_path_text]?.metadata?.user || ''}
+                                    rowData={row} />;
+                            case "Arch":
+                                return <FileBrowserTableRowStringCell
+                                    treeRootData={treeRootData}
+                                    host={host}
+                                    cellData={treeRootData[host][row.full_path_text]?.metadata?.architecture || ''}
+                                    rowData={row} />;
+                            case "Session":
+                                return <FileBrowserTableRowStringCell
+                                    treeRootData={treeRootData}
+                                    host={host}
+                                    cellData={treeRootData[host][row.full_path_text]?.metadata?.session_id || ''}
+                                    rowData={row} />;
                             case "PID":
                                 return <FileBrowserTableRowStringCell 
                                             treeRootData={treeRootData} 
