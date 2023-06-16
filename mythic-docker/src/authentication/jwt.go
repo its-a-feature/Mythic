@@ -28,6 +28,17 @@ var (
 	AUTH_METHOD_USER  = "user"
 	AUTH_METHOD_API   = "api"
 )
+var (
+	ErrUnexpectedSigningMethod         = errors.New("Unexpected signing method")
+	ErrGetApiTokenOrBearer             = errors.New("Failed to get apitoken or bearer token")
+	ErrBearerInvalidValue              = errors.New("Authorization bearer value is invalid")
+	ErrMissingAuthorizationBearerToken = errors.New("Missing Authorization Bearer token")
+	ErrMissingAuthorizationHeader      = errors.New("Missing Authorization header")
+	ErrMissingCookieValue              = errors.New("Missing cookie value")
+	ErrMissingJWTToken                 = errors.New("Missing JWT header")
+	ErrFailedToFindRefreshToken        = errors.New("Failed to find refresh token for specified access token")
+	ErrRefreshTokenMissmatch           = errors.New("Refresh token doesn't match for the given access token")
+)
 
 func GetClaims(c *gin.Context) (*CustomClaims, error) {
 	// just get the claims out of the JWT used for the request
@@ -39,19 +50,21 @@ func GetClaims(c *gin.Context) (*CustomClaims, error) {
 				return nil, err
 			}
 			if len(tokenString) == 0 {
-				return nil, errors.New("Failed to get apitoken or bearer token")
+				return nil, ErrGetApiTokenOrBearer
 			}
 		}
 	}
+
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, &CustomClaims{})
 	if err != nil {
 		return nil, err
 	}
+
 	if claims, ok := token.Claims.(*CustomClaims); ok {
 		return claims, nil
-	} else {
-		return nil, err
 	}
+
+	return nil, err
 }
 
 func TokenValid(c *gin.Context) error {
@@ -60,21 +73,21 @@ func TokenValid(c *gin.Context) error {
 		if tokenString, err = ExtractAPIToken(c); err != nil {
 			logging.LogError(err, "Failed to extract apitoken")
 			return err
-		} else {
-			// we have an apitoken to process
-			databaseApiToken := databaseStructs.Apitokens{}
-			if err := database.DB.Get(&databaseApiToken, "SELECT id FROM apitokens WHERE token_value=$1 and active=true", tokenString); err != nil {
-				logging.LogError(err, "Failed to get apitoken from database", "apitoken", tokenString)
-				return err
-			} else {
-				return nil
-			}
 		}
-	} else if len(tokenString) > 0 {
+		// we have an apitoken to process
+		databaseApiToken := databaseStructs.Apitokens{}
+		if err := database.DB.Get(&databaseApiToken, "SELECT id FROM apitokens WHERE token_value=$1 and active=true", tokenString); err != nil {
+			logging.LogError(err, "Failed to get apitoken from database", "apitoken", tokenString)
+			return err
+		}
+		return nil
+	}
+
+	if len(tokenString) > 0 {
 		_, err = jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				logging.LogError(errors.New("Unexpected signing method"), "signing method", token.Header["alg"])
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+				logging.LogError(ErrUnexpectedSigningMethod, "signing method", token.Header["alg"])
+				return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
 			}
 			return utils.MythicConfig.JWTSecret, nil
 		})
@@ -94,14 +107,12 @@ func ExtractToken(c *gin.Context) (string, error) {
 		if len(bearerPieces) == 2 {
 			if len(bearerPieces[1]) > 10 {
 				return bearerPieces[1], nil
-			} else {
-				return "", errors.New("Authorization bearer value is invalid")
 			}
-		} else {
-			return "", errors.New("Missing Authoriztion Bearer token")
+			return "", ErrBearerInvalidValue
 		}
+		return "", ErrMissingAuthorizationBearerToken
 	}
-	return "", errors.New("No Authorization header with valid value")
+	return "", ErrMissingAuthorizationHeader
 }
 
 func ExtractAPIToken(c *gin.Context) (string, error) {
@@ -109,40 +120,41 @@ func ExtractAPIToken(c *gin.Context) (string, error) {
 	if len(token) > 0 {
 		logging.LogTrace("got apitoken header", "apitoken", token)
 		return token, nil
-	} else {
-		logging.LogError(nil, "[-] No 'apitoken` or 'Authorization: Bearer' token values supplied")
-		return "", errors.New("Missing JWT header")
 	}
+	logging.LogError(nil, "[-] No 'apitoken` or 'Authorization: Bearer' token values supplied")
+	return "", ErrMissingJWTToken
 }
 
 func CookieTokenValid(c *gin.Context) error {
-	if tokenString, err := ExtractCookieToken(c); err != nil {
+	tokenString, err := ExtractCookieToken(c)
+	if err != nil {
 		return err
-	} else if _, err = jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+	}
+	if _, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			logging.LogError(errors.New("Unexpected signing method"), "signing method", token.Header["alg"])
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			logging.LogError(ErrUnexpectedSigningMethod, "signing method", token.Header["alg"])
+			return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
 		}
 		return utils.MythicConfig.JWTSecret, nil
 	}); err != nil {
 		logging.LogError(err, "Failed to parse JWT with claims", "JWT", tokenString)
 		return err
-	} else {
-		c.Request.Header.Add("Authorization", fmt.Sprintf("Bearer: %s", tokenString))
-		return nil
 	}
+	c.Request.Header.Add("Authorization", fmt.Sprintf("Bearer: %s", tokenString))
+	return nil
 }
 
 func ExtractCookieToken(c *gin.Context) (string, error) {
-	if token, err := c.Cookie("mythic"); err != nil {
-		return "", errors.New("Missing cookie value")
-	} else if len(token) > 0 {
+	token, err := c.Cookie("mythic")
+	if err != nil {
+		return "", ErrMissingCookieValue
+	}
+	if len(token) > 0 {
 		logging.LogTrace("got cookie header", "cookie", token)
 		return token, nil
-	} else {
-		logging.LogDebug("Failed to find cookie value")
-		return "", errors.New("Missing Cookie Value")
 	}
+	logging.LogDebug("Failed to find cookie value")
+	return "", ErrMissingCookieValue
 }
 
 func generateRandomPassword(pw_length int) (string, error) {
@@ -160,40 +172,44 @@ func generateRandomPassword(pw_length int) (string, error) {
 }
 
 func RefreshJWT(access_token string, refresh_token string) (string, string, int, error) {
-	if storedRefresh, ok := RefreshTokenCache[access_token]; !ok {
-		err := errors.New("Failed to find refresh token for specified access token")
+	storedRefresh, ok := RefreshTokenCache[access_token]
+	if !ok {
+		err := ErrFailedToFindRefreshToken
 		logging.LogError(err, "access_token", access_token)
 		return "", "", 0, err
-	} else {
-		if storedRefresh != refresh_token {
-			err := errors.New("Refresh token doesn't match for the given access token")
-			logging.LogError(err, "refresh_token", refresh_token, "storedRefreshToken", storedRefresh)
-			return "", "", 0, err
-		} else {
-			user := databaseStructs.Operator{}
-			token, err := jwt.ParseWithClaims(access_token, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					logging.LogError(errors.New("Unexpected signing method"), "signing method", token.Header["alg"])
-					return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-				}
-				return utils.MythicConfig.JWTSecret, nil
-			})
-			if err != nil {
-				logging.LogError(err, "Failed to parse access_token while refreshing")
-				return "", "", 0, err
-			} else {
-				user.ID = token.Claims.(*CustomClaims).UserID
-				if newAccessToken, newRefreshToken, userID, err := GenerateJWT(user, AUTH_METHOD_USER); err != nil {
-					logging.LogError(err, "Failed to generate new access_token and refresh_token")
-					return "", "", 0, err
-				} else {
-					delete(RefreshTokenCache, access_token)
-					RefreshTokenCache[newAccessToken] = newRefreshToken
-					return newAccessToken, newRefreshToken, userID, nil
-				}
-			}
-		}
 	}
+
+	if storedRefresh != refresh_token {
+		err := ErrRefreshTokenMissmatch
+		logging.LogError(err, "refresh_token", refresh_token, "storedRefreshToken", storedRefresh)
+		return "", "", 0, err
+	}
+
+	user := databaseStructs.Operator{}
+	token, err := jwt.ParseWithClaims(access_token, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			logging.LogError(ErrUnexpectedSigningMethod, "signing method", token.Header["alg"])
+			return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
+		}
+		return utils.MythicConfig.JWTSecret, nil
+	})
+
+	if err != nil {
+		logging.LogError(err, "Failed to parse access_token while refreshing")
+		return "", "", 0, err
+	}
+
+	user.ID = token.Claims.(*CustomClaims).UserID
+	newAccessToken, newRefreshToken, userID, err := GenerateJWT(user, AUTH_METHOD_USER)
+	if err != nil {
+		logging.LogError(err, "Failed to generate new access_token and refresh_token")
+		return "", "", 0, err
+	}
+
+	delete(RefreshTokenCache, access_token)
+	RefreshTokenCache[newAccessToken] = newRefreshToken
+
+	return newAccessToken, newRefreshToken, userID, nil
 }
 
 func GenerateJWT(user databaseStructs.Operator, authMethod string) (string, string, int, error) {
@@ -205,17 +221,20 @@ func GenerateJWT(user databaseStructs.Operator, authMethod string) (string, stri
 		user.ID,
 		authMethod,
 	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	if access_token, err := token.SignedString(utils.MythicConfig.JWTSecret); err != nil {
+	access_token, err := token.SignedString(utils.MythicConfig.JWTSecret)
+	if err != nil {
 		logging.LogError(err, "Failed to generate JWT")
 		return "", "", 0, err
-	} else {
-		if refresh_token, err := generateRandomPassword(20); err != nil {
-			logging.LogError(err, "Failed to generate refresh token")
-			return "", "", 0, err
-		} else {
-			RefreshTokenCache[access_token] = refresh_token
-			return access_token, refresh_token, user.ID, nil
-		}
 	}
+
+	refresh_token, err := generateRandomPassword(20)
+	if err != nil {
+		logging.LogError(err, "Failed to generate refresh token")
+		return "", "", 0, err
+	}
+
+	RefreshTokenCache[access_token] = refresh_token
+	return access_token, refresh_token, user.ID, nil
 }
