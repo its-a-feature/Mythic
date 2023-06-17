@@ -19,3 +19,4 @@ jobs:
 
       - name: Test
         run: go test -v ./...
+        working-directory: mythic-docker/src
