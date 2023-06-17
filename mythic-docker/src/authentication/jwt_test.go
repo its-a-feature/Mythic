@@ -100,7 +100,7 @@ func TestGetClaims(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Valid Claim",
+			name: "Valid bearer Claim",
 			args: args{
 				header: map[string][]string{
 					"Authorization": {"Bearer " + access_token},
@@ -117,10 +117,37 @@ func TestGetClaims(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Bad claim format",
+			name: "Bad bearer claim format",
 			args: args{
 				header: map[string][]string{
 					"Authorization": {"Bearer " + "invalid_preffix" + access_token},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Valid apitoken Claim",
+			args: args{
+				header: map[string][]string{
+					"Apitoken": {access_token}, // Apitoken and not apitoken here because Go uses the canonical form (first letter of the word and after hyphens as uppercase)
+				},
+			},
+			want: &CustomClaims{
+				UserID:     123,
+				AuthMethod: AUTH_METHOD_USER,
+				StandardClaims: jwt.StandardClaims{
+					IssuedAt:  time.Now().Unix(),
+					ExpiresAt: time.Now().Add(JWTTimespan).UTC().Unix(),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Empty apitoken",
+			args: args{
+				header: map[string][]string{
+					"Apitoken": {""},
 				},
 			},
 			want:    nil,
@@ -131,7 +158,7 @@ func TestGetClaims(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // shadowing
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			req := &http.Request{
 				Header: make(http.Header),
 			}

@@ -28,6 +28,7 @@ var (
 	AUTH_METHOD_USER  = "user"
 	AUTH_METHOD_API   = "api"
 )
+
 var (
 	ErrUnexpectedSigningMethod         = errors.New("Unexpected signing method")
 	ErrGetApiTokenOrBearer             = errors.New("Failed to get apitoken or bearer token")
