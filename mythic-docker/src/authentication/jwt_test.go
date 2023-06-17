@@ -130,7 +130,7 @@ func TestGetClaims(t *testing.T) {
 			name: "Valid apitoken Claim",
 			args: args{
 				header: map[string][]string{
-					"Apitoken": {access_token}, // Apitoken and not apitoken here because Go uses the canonical form (first letter of the word and after hyphens as uppercase)
+					"Apitoken": {access_token}, // "Apitoken" and not "apitoken" here because Go uses the canonical form (first letter of the word and after hyphens as uppercase)
 				},
 			},
 			want: &CustomClaims{
@@ -148,6 +148,25 @@ func TestGetClaims(t *testing.T) {
 			args: args{
 				header: map[string][]string{
 					"Apitoken": {""},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "No auth",
+			args: args{
+				header: map[string][]string{},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Both token bad",
+			args: args{
+				header: map[string][]string{
+					"Apitoken":      {"badtoken"},
+					"Authorization": {"Bearer bad"},
 				},
 			},
 			want:    nil,
@@ -171,6 +190,87 @@ func TestGetClaims(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetClaims() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRefreshJWT(t *testing.T) {
+	type args struct {
+		access_token  string
+		refresh_token string
+	}
+	userID := 42
+	user := databaseStructs.Operator{ID: userID}
+	access_token, refresh_token, _, _ := GenerateJWT(user, AUTH_METHOD_USER)
+
+	tests := []struct {
+		name                     string
+		args                     args
+		new_access_token_min_len int
+		new_refresh_token_len    int
+		user                     int
+		wantErr                  bool
+	}{
+		{
+			name: "refresh valid token",
+			args: args{
+				access_token:  access_token,
+				refresh_token: refresh_token,
+			},
+			new_access_token_min_len: 30,
+			new_refresh_token_len:    20,
+			user:                     userID,
+			wantErr:                  false,
+		},
+		{
+			name: "refresh unknown token",
+			args: args{
+				access_token:  "invalidToken",
+				refresh_token: refresh_token,
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty access token",
+			args: args{
+				access_token:  "",
+				refresh_token: refresh_token,
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty refresh token",
+			args: args{
+				access_token:  access_token,
+				refresh_token: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid refresh token",
+			args: args{
+				access_token:  access_token,
+				refresh_token: "invalid_token",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			access_token, refresh_token, user, err := RefreshJWT(tt.args.access_token, tt.args.refresh_token)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RefreshJWT() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if len(access_token) < tt.new_access_token_min_len {
+				t.Errorf("RefreshJWT() len(access_token) = %v, want %v", len(access_token), tt.new_access_token_min_len)
+			}
+			if len(refresh_token) != tt.new_refresh_token_len {
+				t.Errorf("RefreshJWT() len(refresh_token) = %v, want %v", len(refresh_token), tt.new_refresh_token_len)
+			}
+			if user != tt.user {
+				t.Errorf("RefreshJWT() user = %v, want %v", user, tt.user)
 			}
 		})
 	}

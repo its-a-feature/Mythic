@@ -41,6 +41,10 @@ var (
 	ErrRefreshTokenMissmatch           = errors.New("Refresh token doesn't match for the given access token")
 )
 
+var (
+	SQLGetIDForActiveToken = "SELECT id FROM apitokens WHERE token_value=$1 and active=true"
+)
+
 func GetClaims(c *gin.Context) (*CustomClaims, error) {
 	// just get the claims out of the JWT used for the request
 	tokenString, err := ExtractToken(c)
@@ -71,13 +75,14 @@ func GetClaims(c *gin.Context) (*CustomClaims, error) {
 func TokenValid(c *gin.Context) error {
 	tokenString, err := ExtractToken(c)
 	if err != nil {
-		if tokenString, err = ExtractAPIToken(c); err != nil {
+		tokenString, err = ExtractAPIToken(c)
+		if err != nil {
 			logging.LogError(err, "Failed to extract apitoken")
 			return err
 		}
 		// we have an apitoken to process
 		databaseApiToken := databaseStructs.Apitokens{}
-		if err := database.DB.Get(&databaseApiToken, "SELECT id FROM apitokens WHERE token_value=$1 and active=true", tokenString); err != nil {
+		if err := database.DB.Get(&databaseApiToken, SQLGetIDForActiveToken, tokenString); err != nil {
 			logging.LogError(err, "Failed to get apitoken from database", "apitoken", tokenString)
 			return err
 		}
@@ -103,27 +108,30 @@ func TokenValid(c *gin.Context) error {
 func ExtractToken(c *gin.Context) (string, error) {
 	token := c.Request.Header.Get("Authorization")
 	//logging.LogDebug("got Authorization header", "Authorization", token)
-	if len(token) > 0 {
-		bearerPieces := strings.Split(token, " ")
-		if len(bearerPieces) == 2 {
-			if len(bearerPieces[1]) > 10 {
-				return bearerPieces[1], nil
-			}
-			return "", ErrBearerInvalidValue
-		}
+	if len(token) == 0 {
+		return "", ErrMissingAuthorizationHeader
+	}
+
+	bearerPieces := strings.Split(token, " ")
+	if len(bearerPieces) != 2 {
 		return "", ErrMissingAuthorizationBearerToken
 	}
-	return "", ErrMissingAuthorizationHeader
+	if len(bearerPieces[1]) > 10 {
+		return bearerPieces[1], nil
+	}
+
+	return "", ErrBearerInvalidValue
 }
 
 func ExtractAPIToken(c *gin.Context) (string, error) {
 	token := c.Request.Header.Get("apitoken")
-	if len(token) > 0 {
-		logging.LogTrace("got apitoken header", "apitoken", token)
-		return token, nil
+	if len(token) == 0 {
+		logging.LogError(nil, "[-] No 'apitoken` or 'Authorization: Bearer' token values supplied")
+		return "", ErrMissingJWTToken
 	}
-	logging.LogError(nil, "[-] No 'apitoken` or 'Authorization: Bearer' token values supplied")
-	return "", ErrMissingJWTToken
+
+	logging.LogTrace("got apitoken header", "apitoken", token)
+	return token, nil
 }
 
 func CookieTokenValid(c *gin.Context) error {
@@ -131,13 +139,14 @@ func CookieTokenValid(c *gin.Context) error {
 	if err != nil {
 		return err
 	}
-	if _, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+	_, err = jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			logging.LogError(ErrUnexpectedSigningMethod, "signing method", token.Header["alg"])
 			return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
 		}
 		return utils.MythicConfig.JWTSecret, nil
-	}); err != nil {
+	})
+	if err != nil {
 		logging.LogError(err, "Failed to parse JWT with claims", "JWT", tokenString)
 		return err
 	}
