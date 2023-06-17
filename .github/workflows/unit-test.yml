@@ -15,6 +15,7 @@ jobs:
 
       - name: Build
         run: go build -v ./...
+        working-directory: mythic-docker/src
 
       - name: Test
         run: go test -v ./...
