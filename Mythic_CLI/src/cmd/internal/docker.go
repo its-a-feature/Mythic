@@ -226,8 +226,10 @@ func DockerStart(containers []string) error {
 					return err
 				}
 			}
-			if err := runDockerCompose(append([]string{"up", "-d"}, alreadyBuilt...)); err != nil {
-				return err
+			if len(alreadyBuilt) > 0 {
+				if err := runDockerCompose(append([]string{"up", "-d"}, alreadyBuilt...)); err != nil {
+					return err
+				}
 			}
 		}
 		DockerRemoveImages()
