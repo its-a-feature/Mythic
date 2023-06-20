@@ -145,36 +145,37 @@ func InstallFolder(installPath string, overWrite bool) error {
 			files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-payload"))
 			if err != nil {
 				fmt.Printf("[-] Failed to list contents of documentation_payload folder from clone: %v\n", err)
-				return err
-			}
-			for _, f := range files {
-				if f.IsDir() {
-					fmt.Printf("[*] Processing Documentation for %s\n", f.Name())
-					if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name())) {
-						if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
-							fmt.Printf("[*] Removing current version\n")
-							err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name()))
-							if err != nil {
-								fmt.Printf("[-] Failed to remove current version: %v\n", err)
-								fmt.Printf("[-] Continuing to the next payload documentation\n")
-								continue
+			} else {
+				for _, f := range files {
+					if f.IsDir() {
+						fmt.Printf("[*] Processing Documentation for %s\n", f.Name())
+						if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name())) {
+							if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
+								fmt.Printf("[*] Removing current version\n")
+								err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name()))
+								if err != nil {
+									fmt.Printf("[-] Failed to remove current version: %v\n", err)
+									fmt.Printf("[-] Continuing to the next payload documentation\n")
+									continue
+								} else {
+									fmt.Printf("[+] Successfully removed the current version\n")
+								}
 							} else {
-								fmt.Printf("[+] Successfully removed the current version\n")
+								fmt.Printf("[!] Skipping documentation for , %s\n", f.Name())
+								continue
 							}
-						} else {
-							fmt.Printf("[!] Skipping documentation for , %s\n", f.Name())
+						}
+						fmt.Printf("[*] Copying new documentation into place\n")
+						err = copyDir(filepath.Join(installPath, "documentation-payload", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name()))
+						if err != nil {
+							fmt.Printf("[-] Failed to copy directory over\n")
 							continue
 						}
 					}
-					fmt.Printf("[*] Copying new documentation into place\n")
-					err = copyDir(filepath.Join(installPath, "documentation-payload", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name()))
-					if err != nil {
-						fmt.Printf("[-] Failed to copy directory over\n")
-						continue
-					}
 				}
+				fmt.Printf("[+] Successfully installed Payload documentation\n")
 			}
-			fmt.Printf("[+] Successfully installed Payload documentation\n")
+
 		} else {
 			fmt.Printf("[*] Skipping over Payload Documentation\n")
 		}
@@ -183,36 +184,37 @@ func InstallFolder(installPath string, overWrite bool) error {
 			files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-c2"))
 			if err != nil {
 				fmt.Printf("[-] Failed to list contents of documentation_payload folder from clone")
-				return err
-			}
-			for _, f := range files {
-				if f.IsDir() {
-					fmt.Printf("[*] Processing Documentation for %s\n", f.Name())
-					if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name())) {
-						if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
-							fmt.Printf("[*] Removing current version\n")
-							err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
-							if err != nil {
-								fmt.Printf("[-] Failed to remove current version: %v\n", err)
-								fmt.Printf("[-] Continuing to the next c2 documentation\n")
-								continue
+			} else {
+				for _, f := range files {
+					if f.IsDir() {
+						fmt.Printf("[*] Processing Documentation for %s\n", f.Name())
+						if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name())) {
+							if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
+								fmt.Printf("[*] Removing current version\n")
+								err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
+								if err != nil {
+									fmt.Printf("[-] Failed to remove current version: %v\n", err)
+									fmt.Printf("[-] Continuing to the next c2 documentation\n")
+									continue
+								} else {
+									fmt.Printf("[+] Successfully removed the current version\n")
+								}
 							} else {
-								fmt.Printf("[+] Successfully removed the current version\n")
+								fmt.Printf("[!] Skipping documentation for %s\n", f.Name())
+								continue
 							}
-						} else {
-							fmt.Printf("[!] Skipping documentation for %s\n", f.Name())
+						}
+						fmt.Printf("[*] Copying new documentation version into place\n")
+						err = copyDir(filepath.Join(installPath, "documentation-c2", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
+						if err != nil {
+							fmt.Printf("[-] Failed to copy directory over\n")
 							continue
 						}
 					}
-					fmt.Printf("[*] Copying new documentation version into place\n")
-					err = copyDir(filepath.Join(installPath, "documentation-c2", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
-					if err != nil {
-						fmt.Printf("[-] Failed to copy directory over\n")
-						continue
-					}
 				}
+				fmt.Printf("[+] Successfully installed c2 documentation\n")
 			}
-			fmt.Printf("[+] Successfully installed c2 documentation\n")
+
 		} else {
 			fmt.Printf("[*] Skipping over C2 Documentation\n")
 		}
@@ -220,37 +222,37 @@ func InstallFolder(installPath string, overWrite bool) error {
 			// handle payload documentation copying here
 			files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-wrapper"))
 			if err != nil {
-				fmt.Printf("[-] Failed to list contents of documentation_wrapper folder from clone: %v\n", err)
-				return err
-			}
-			for _, f := range files {
-				if f.IsDir() {
-					fmt.Printf("[*] Processing Documentation for %s\n", f.Name())
-					if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name())) {
-						if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
-							fmt.Printf("[*] Removing current version\n")
-							err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
-							if err != nil {
-								fmt.Printf("[-] Failed to remove current version: %v\n", err)
-								fmt.Printf("[-] Continuing to the next wrapper documentation\n")
-								continue
+				fmt.Printf("[-] Failed to list contents of documentation-wrapper folder from clone: %v\n", err)
+			} else {
+				for _, f := range files {
+					if f.IsDir() {
+						fmt.Printf("[*] Processing Documentation for %s\n", f.Name())
+						if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name())) {
+							if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
+								fmt.Printf("[*] Removing current version\n")
+								err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
+								if err != nil {
+									fmt.Printf("[-] Failed to remove current version: %v\n", err)
+									fmt.Printf("[-] Continuing to the next wrapper documentation\n")
+									continue
+								} else {
+									fmt.Printf("[+] Successfully removed the current version\n")
+								}
 							} else {
-								fmt.Printf("[+] Successfully removed the current version\n")
+								fmt.Printf("[!] Skipping documentation for , %s\n", f.Name())
+								continue
 							}
-						} else {
-							fmt.Printf("[!] Skipping documentation for , %s\n", f.Name())
+						}
+						fmt.Printf("[*] Copying new documentation into place\n")
+						err = copyDir(filepath.Join(installPath, "documentation-wrapper", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
+						if err != nil {
+							fmt.Printf("[-] Failed to copy directory over\n")
 							continue
 						}
 					}
-					fmt.Printf("[*] Copying new documentation into place\n")
-					err = copyDir(filepath.Join(installPath, "documentation-wrapper", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
-					if err != nil {
-						fmt.Printf("[-] Failed to copy directory over\n")
-						continue
-					}
 				}
+				fmt.Printf("[+] Successfully installed Wrapper documentation\n")
 			}
-			fmt.Printf("[+] Successfully installed Wrapper documentation\n")
 		} else {
 			fmt.Printf("[*] Skipping over Wrapper Documentation\n")
 		}
