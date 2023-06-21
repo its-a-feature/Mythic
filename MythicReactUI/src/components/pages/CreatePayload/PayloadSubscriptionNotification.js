@@ -99,9 +99,9 @@ const SnackMessage = (props) => {
                         <React.Fragment>
                             <Typography gutterBottom>Agent ready for download</Typography>
                             
-                            <Link download={true} href={"/direct/download/" + props.file_id} target="_blank">
+                            <a href={"/direct/download/" + props.file_id} >
                                 Download here
-                            </Link>
+                            </a>
                         </React.Fragment>
                     }
         </React.Fragment>

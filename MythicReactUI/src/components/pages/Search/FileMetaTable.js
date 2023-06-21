@@ -73,7 +73,7 @@ const SnackMessage = (props) => {
             <Typography variant="subtitle2" >
                     Zip Created! This is available at any time via the "Uploads" page.
             </Typography>
-            <Link download={true} href={"/direct/download/" + props.file_id} target="_blank">
+            <Link href={"/direct/download/" + props.file_id} >
                 Download here
             </Link>
                 
@@ -277,7 +277,7 @@ function FileMetaDownloadTableRow(props){
                     {props.deleted ? (
                         <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</Typography>
                         ) : (
-                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={window.location.origin + "/api/v1.4/files/download/" + props.agent_file_id}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</Link>
+                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</Link>
                         )
                     }
                     {props.complete ? (
@@ -577,7 +577,7 @@ function FileMetaUploadTableRow(props){
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" download underline="always" target="_blank" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</Link>
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell  style={{wordBreak: "break-all"}}>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>
@@ -587,7 +587,7 @@ function FileMetaUploadTableRow(props){
                     </Typography>
                     {props.deleted ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text}</Typography>) : (
                         props.complete ? (
-                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/direct/download/" +  props.agent_file_id}>{props.full_remote_path_text}</Link>
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" +  props.agent_file_id}>{props.full_remote_path_text}</Link>
                         ) : (
                             <React.Fragment>
                                 <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text}</Typography> <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.chunks_received} / {props.total_chunks} Chunks Received</Typography>

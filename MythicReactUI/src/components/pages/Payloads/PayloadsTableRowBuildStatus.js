@@ -19,12 +19,9 @@ export function PayloadsTableRowBuildStatus(props){
         <React.Fragment>
             {props.build_phase === "success" ?
                 ( <MythicStyledTooltip title="Download payload">
-                    <Link
-                        target="_blank"
-                        href={"/direct/download/" + props.filemetum.agent_file_id}
-                        download={true}>
+                    <a href={"/direct/download/" + props.filemetum.agent_file_id} >
                         <GetAppIcon color="success" style={{marginLeft: "12px"}} />
-                    </Link>
+                    </a>
                   </MythicStyledTooltip>
                     
                 )
