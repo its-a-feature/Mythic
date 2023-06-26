@@ -237,7 +237,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		task.GroupCallbackFunction = *createTaskInput.GroupCallbackFunction
 	}
 	task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_PRE
-	if createTaskInput.Token != nil {
+	if createTaskInput.Token != nil && *createTaskInput.Token > 0 {
 		token := databaseStructs.Token{}
 		if err := database.DB.Get(&token, `SELECT id FROM token WHERE "token_id"=$1`, *createTaskInput.Token); err != nil {
 			logging.LogError(err, "Failed to get token information")
