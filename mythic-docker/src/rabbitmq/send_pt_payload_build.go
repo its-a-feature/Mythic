@@ -175,7 +175,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 			// now that we have the databasePayload.WrappedPayloadID value
 			// we need to get the corresponding file path and read the contents of the file
 			if err := database.DB.Get(&wrappedPayload, `SELECT
-			payload.id,
+			payload.id, payload.uuid,
 			filemeta.path "filemeta.path"
 			FROM payload
 			JOIN filemeta on payload.file_id = filemeta.id
@@ -190,15 +190,16 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 			} else {
 				// to pass along as part of the wrapper build process
 				rabbitmqPayloadBuildMsg := PayloadBuildMessage{
-					PayloadType:     payloadtype.Name,
-					WrappedPayload:  &wrappedPayloadBytes,
-					BuildParameters: buildParameters,
-					SelectedOS:      databasePayload.Os,
-					PayloadUUID:     databasePayload.UuID,
-					OperationID:     operatorOperation.CurrentOperation.ID,
-					OperatorID:      operatorOperation.CurrentOperator.ID,
-					PayloadFileUUID: fileMeta.AgentFileID,
-					Filename:        string(fileMeta.Filename),
+					PayloadType:        payloadtype.Name,
+					WrappedPayload:     &wrappedPayloadBytes,
+					WrappedPayloadUUID: &wrappedPayload.UuID,
+					BuildParameters:    buildParameters,
+					SelectedOS:         databasePayload.Os,
+					PayloadUUID:        databasePayload.UuID,
+					OperationID:        operatorOperation.CurrentOperation.ID,
+					OperatorID:         operatorOperation.CurrentOperator.ID,
+					PayloadFileUUID:    fileMeta.AgentFileID,
+					Filename:           string(fileMeta.Filename),
 				}
 				SendPayloadBuildMessage(databasePayload, rabbitmqPayloadBuildMsg)
 				return databasePayload.UuID, databasePayload.ID, nil

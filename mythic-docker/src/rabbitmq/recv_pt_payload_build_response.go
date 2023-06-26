@@ -15,15 +15,16 @@ type PayloadBuildMessage struct {
 	PayloadType string   `json:"payload_type"`
 	CommandList []string `json:"commands"`
 	// build param name : build value
-	Filename        string                  `json:"filename"`
-	BuildParameters map[string]interface{}  `json:"build_parameters"`
-	C2Profiles      []PayloadBuildC2Profile `json:"c2profiles"`
-	WrappedPayload  *[]byte                 `json:"wrapped_payload,omitempty"`
-	SelectedOS      string                  `json:"selected_os"`
-	PayloadUUID     string                  `json:"uuid"`
-	OperationID     int                     `json:"operation_id"`
-	OperatorID      int                     `json:"operator_id"`
-	PayloadFileUUID string                  `json:"payload_file_uuid"`
+	Filename           string                  `json:"filename"`
+	BuildParameters    map[string]interface{}  `json:"build_parameters"`
+	C2Profiles         []PayloadBuildC2Profile `json:"c2profiles"`
+	WrappedPayload     *[]byte                 `json:"wrapped_payload,omitempty"`
+	WrappedPayloadUUID *string                 `json:"wrapped_payload_uuid,omitempty"`
+	SelectedOS         string                  `json:"selected_os"`
+	PayloadUUID        string                  `json:"uuid"`
+	OperationID        int                     `json:"operation_id"`
+	OperatorID         int                     `json:"operator_id"`
+	PayloadFileUUID    string                  `json:"payload_file_uuid"`
 }
 
 type PayloadBuildC2Profile struct {
