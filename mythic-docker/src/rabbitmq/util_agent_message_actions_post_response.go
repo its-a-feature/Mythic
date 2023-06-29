@@ -597,9 +597,17 @@ func handleAgentMessagePostResponseCallbackTokens(task databaseStructs.Task, cal
 			databaseToken.Host = strings.ToUpper(*callbackToken.Host)
 		}
 		if callbackToken.Action == "remove" {
-			if _, err := database.DB.Exec(`UPDATE callbacktoken SET deleted=true WHERE
-				callback_id=$1 AND host=$2 AND token_id=$3`,
+			// first we need to fetch the associated token
+			currentCallbackToken := databaseStructs.Callbacktoken{}
+			if err := database.DB.Get(&currentCallbackToken, `SELECT callbacktoken.id 
+				FROM callbacktoken
+          		JOIN token ON callbacktoken.token_id = token.id
+          		WHERE callbacktoken.callback_id=$1 AND callbacktoken.host=$2 AND token.token_id=$3`,
 				task.Callback.ID, databaseToken.Host, databaseToken.TokenID); err != nil {
+				logging.LogError(err, "Failed to find callback token to remove it")
+			} else if _, err := database.DB.Exec(`UPDATE callbacktoken SET deleted=true WHERE
+				callback_id=$1 AND host=$2 AND token_id=$3`,
+				task.Callback.ID, databaseToken.Host, currentCallbackToken.ID); err != nil {
 				logging.LogError(err, "Failed to remove token from callback")
 				return err
 			} else {
