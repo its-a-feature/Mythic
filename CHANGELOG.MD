@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1-rc31] - 2023-06-29
+
+### Changed
+
+- Added `file_name` field to Downloads so that you can report back a filename without necessarily returning a full_remote_path. This is particularly useful for screenshots or downloading things in memory.
+
 ## [3.0.1-rc30] - 2023-06-29
 
 ### Changed

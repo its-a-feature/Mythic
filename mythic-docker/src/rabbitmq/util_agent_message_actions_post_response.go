@@ -160,6 +160,7 @@ type agentMessagePostResponseDownload struct {
 	ChunkData    *string                `json:"chunk_data,omitempty" mapstructure:"chunk_data,omitempty"`
 	ChunkNum     *int                   `json:"chunk_num,omitempty" mapstructure:"chunk_num,omitempty"`
 	FullPath     *string                `json:"full_path,omitempty" mapstructure:"full_path,omitempty"`
+	FileName     *string                `json:"filename,omitempty" mapstructure:"filename,omitempty"`
 	FileID       *string                `json:"file_id,omitempty" mapstructure:"file_id,omitempty"`
 	Host         *string                `json:"host,omitempty" mapstructure:"host,omitempty"`
 	IsScreenshot *bool                  `json:"is_screenshot,omitempty" mapstructure:"is_screenshot,omitempty"`
@@ -727,6 +728,8 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 					fileMeta.Filename = []byte(pathPieces.PathPieces[len(pathPieces.PathPieces)-1])
 				}
 
+			} else if agentResponse.Download.FileName != nil && *agentResponse.Download.FileName != "" {
+				fileMeta.Filename = []byte(*agentResponse.Download.FileName)
 			}
 			if agentResponse.Download.IsScreenshot != nil {
 				fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
@@ -836,6 +839,8 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 			} else {
 				fileMeta.Filename = []byte(pathPieces.PathPieces[len(pathPieces.PathPieces)-1])
 			}
+		} else if agentResponse.Download.FileName != nil && *agentResponse.Download.FileName != "" {
+			fileMeta.Filename = []byte(*agentResponse.Download.FileName)
 		} else {
 			fileMeta.Filename = []byte(time.Now().UTC().Format(TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS))
 		}
