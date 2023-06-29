@@ -36,8 +36,8 @@ import InfoIcon from '@mui/icons-material/Info';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import {CallbacksTabsTaskMultipleDialog} from './CallbacksTabsTaskMultipleDialog';
-import {CallbacksTabsHideMultipleDialog} from './CallbacksTabsHideMultipleDialog';
 import { MythicSelectFromRawListDialog } from '../../MythicComponents/MythicSelectFromListDialog';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 
 // callback_stream(batch_size: 1, cursor: {initial_value: {last_checkin: "1970-01-01"}}, where: {id: {_eq: $callback_id}}){
     // still have some issues with the stream unfortunately
@@ -377,7 +377,14 @@ export const CallbacksTableIPCell = ({cellData, rowData, callback_id, updateIPs}
     }, [cellData]);
     return (
         <>
-            <div onContextMenu={onClick}>{displayIP}</div>
+            <div style={{display: "flex", alignItems: "center"}}>
+                {options.length > 1 &&
+                    <MythicStyledTooltip title={"Adjust Displayed"}>
+                        <UnfoldMoreIcon onClick={onClick} style={{paddingTop: "5px", cursor: "pointer"}} />
+                    </MythicStyledTooltip>
+                }
+                {displayIP}
+            </div>
             {openPickIP && 
                 <MythicDialog fullWidth={true} open={openPickIP}  onClose={() => {setOpenPickIP(false);}}
                 innerDialog={

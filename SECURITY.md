@@ -5,8 +5,10 @@
 The following the table details the supported versions of Mythic.
 
 | Version | Supported          |
-| ------- | ------------------ |
-| 2.3.7   | :white_check_mark: |
+|---------| ------------------ |
+| 3.0.0   | :white_check_mark: |
+| 2.3.13  | :x:                |
+| 2.3.9   | :x:                |
 | < 2.3.0 | :x:                |
 
 

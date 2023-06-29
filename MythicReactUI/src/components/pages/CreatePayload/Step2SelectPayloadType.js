@@ -87,7 +87,9 @@ export function Step2SelectPayloadType(props){
     const [fileExtension, setFileExtension] = React.useState('');
     const [supportsDynamicLoading, setSupportsDynamicLoading] = React.useState(false);
     const [payloadTypeParameters, setSelectedPayloadTypeParameters] = React.useState([]);
-    const { loading, error, data } = useQuery(GET_Payload_Types, {variables:{os: props.buildOptions },
+    const { loading, error, data } = useQuery(GET_Payload_Types,
+        {variables:{os: props.buildOptions },
+        fetchPolicy: "no-cache",
         onCompleted: data => {
             if(data.payloadtype.length > 0){
                 if(props.prevData !== undefined && props.prevData.os === props.buildOptions){

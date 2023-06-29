@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.15-rc25] - 2023-06-29
+
+### Changed
+
+- Updated payload building page to not cache query for payload types
+- Updated active callbacks table to have a button for adjusting IP instead of right clicking
+- Updated c2 profile page's stdout viewer to not cache queries
+
 ## [0.1.15-rc24] - 2023-06-21
 
 ### Changed

@@ -1,8 +1,13 @@
 package rabbitmq
 
 import (
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"github.com/its-a-feature/Mythic/grpc"
+	"github.com/its-a-feature/Mythic/utils"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -61,27 +66,91 @@ func initializeContainers() {
 		}
 	}
 }
+
+var tr = &http.Transport{
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	MaxIdleConns:    10,
+	MaxConnsPerHost: 10,
+	//IdleConnTimeout: 1 * time.Nanosecond,
+}
+var httpClient = &http.Client{
+	Timeout:   5 * time.Second,
+	Transport: tr,
+}
+
+type rabbitmqAPIQuery struct {
+	FilteredCount int                      `json:"filtered_count" mapstructure:"filtered_count"`
+	ItemCount     int                      `json:"item_count" mapstructure:"item_count"`
+	Items         []map[string]interface{} `json:"items" mapstructure:"items"`
+	Page          int                      `json:"page" mapstructure:"page"`
+	PageCount     int                      `json:"page_count" mapstructure:"page_count"`
+	PageSize      int                      `json:"page_size" mapstructure:"page_size"`
+	TotalCount    int                      `json:"total_count" mapstructure:"total_count"`
+}
+
 func checkContainerStatus() {
+	// get all queues from rabbitmq
+	// http://rabbitmq_user:rabbitmq_password@rabbitmq_host:15672/rabbitmq/api/queues/mythic_vhost
+	rabbitmqReqURL := fmt.Sprintf("http://%s:%s@%s:15672/api/queues/mythic_vhost?use_regex=true&page=1&page_size=500&name=%s",
+		utils.MythicConfig.RabbitmqUser, utils.MythicConfig.RabbitmqPassword, utils.MythicConfig.RabbitmqHost,
+		fmt.Sprintf("(.%%2A_%s|.%%2A_%s)", PT_BUILD_ROUTING_KEY, C2_RPC_START_SERVER_ROUTING_KEY))
 	go checkContainerStatusAddPT()
 	go checkContainerStatusAddC2()
 	go checkContainerStatusAddTR()
 	go initializeContainers()
 	for {
 		time.Sleep(CHECK_CONTAINER_STATUS_DELAY)
+		rabbitmqReq, err := http.NewRequest("GET", rabbitmqReqURL, nil)
+		if err != nil {
+			logging.LogError(err, "Failed to generate http request to fetch queues from rabbitmq")
+			continue
+		}
+		rabbitmqResponse, err := httpClient.Do(rabbitmqReq)
+		if err != nil {
+			logging.LogError(err, "Failed to fetch queues from rabbitmq")
+			continue
+		}
+		if rabbitmqResponse.StatusCode != 200 {
+			logging.LogError(nil, "Failed to get a good status code from rabbitmq",
+				"status_code", rabbitmqResponse.StatusCode, "status", rabbitmqResponse.Status)
+			continue
+		}
+		rabbitmqBody, err := io.ReadAll(rabbitmqResponse.Body)
+		if err != nil {
+			logging.LogError(err, "Failed to read body of message from rabbitmq")
+			rabbitmqResponse.Body.Close()
+			continue
+		}
+		rabbitmqResponse.Body.Close()
+
+		rabbitmqQueues := rabbitmqAPIQuery{}
+		err = json.Unmarshal(rabbitmqBody, &rabbitmqQueues)
+		if err != nil {
+			logging.LogError(err, "Failed to convert rabbitmq response into list of dictionaries")
+			continue
+		}
+		//logging.LogInfo("got message from rabbitmq", "queue body", rabbitmqQueues)
+		existingQueues := make([]string, len(rabbitmqQueues.Items))
+		for index, queue := range rabbitmqQueues.Items {
+			if queueName, ok := queue["name"]; !ok {
+				logging.LogError(nil, "no 'name' field in queue information from rabbitmq")
+			} else {
+				existingQueues[index] = queueName.(string)
+				//logging.LogInfo("found queue", "queue", queueName)
+			}
+		}
+
 		// loop through payload types
 		for container := range payloadTypesToCheck {
 			//logging.LogDebug("checking container", "container", container)
 			// check that a container is online
-			running, err := RabbitMQConnection.CheckPayloadTypeContainerExists(payloadTypesToCheck[container].Name)
-			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", payloadTypesToCheck[container].ContainerRunning)
-			if err != nil {
-				logging.LogError(err, "Failed to check for payloadtype container existence")
-			} else if running != payloadTypesToCheck[container].ContainerRunning {
+			running := utils.SliceContains(existingQueues, GetPtBuildRoutingKey(payloadTypesToCheck[container].Name))
+			if running != payloadTypesToCheck[container].ContainerRunning {
 				if entry, ok := payloadTypesToCheck[container]; ok {
 					entry.ContainerRunning = running
-					if _, err = database.DB.NamedExec(`UPDATE payloadtype SET 
-							container_running=:container_running, deleted=false 
-							WHERE id=:id`, entry,
+					if _, err = database.DB.NamedExec(`UPDATE payloadtype SET
+								container_running=:container_running, deleted=false
+								WHERE id=:id`, entry,
 					); err != nil {
 						logging.LogError(err, "Failed to set container running status", "container_running", payloadTypesToCheck[container].ContainerRunning, "container", container)
 					} else {
@@ -97,19 +166,15 @@ func checkContainerStatus() {
 				} else {
 					logging.LogError(nil, "Failed to get payload type from map for updating running status")
 				}
-
 			}
-
 		}
 		// loop through c2 profiles
 		for container := range c2profilesToCheck {
 			// check that a container is online
 			//logging.LogDebug("checking container", "container", container)
-			running, err := RabbitMQConnection.CheckC2ProfileContainerExists(container)
+			running := utils.SliceContains(existingQueues, GetC2RPCStartServerRoutingKey(c2profilesToCheck[container].Name))
 			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", c2profilesToCheck[container].ContainerRunning)
-			if err != nil {
-				logging.LogError(err, "Failed to check for c2 container existence")
-			} else if running != c2profilesToCheck[container].ContainerRunning {
+			if running != c2profilesToCheck[container].ContainerRunning {
 				if entry, ok := c2profilesToCheck[container]; ok {
 					entry.ContainerRunning = running
 					if _, err = database.DB.NamedExec(`UPDATE c2profile SET 
@@ -129,7 +194,6 @@ func checkContainerStatus() {
 				} else {
 					logging.LogError(nil, "Failed to get c2 profile from map for updating running status")
 				}
-
 			}
 		}
 		// loop through translation containers

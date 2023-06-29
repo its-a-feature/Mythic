@@ -5,12 +5,12 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql} from '@apollo/client';
-import LinearProgress from '@mui/material/LinearProgress';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
 import {useTheme} from '@mui/material/styles';
+import {snackActions} from "../../utilities/Snackbar";
 
 const getProfileOutputQuery = gql`
 query getProfileOutput($id: Int!) {
@@ -24,20 +24,29 @@ query getProfileOutput($id: Int!) {
 
 export function C2ProfileOutputDialog(props) {
     const theme = useTheme();
-    const { loading, error, data } = useQuery(getProfileOutputQuery, {
+    const [outputData, setOutputData] = React.useState("Waiting 3s for data...");
+    useQuery(getProfileOutputQuery, {
         variables: {id: props.profile_id},
         onCompleted: data => {
-          //console.log("completed", data.getProfileOutput.output)
+            console.log("completed")
+            if(data.getProfileOutput.status === "success"){
+                if(data.getProfileOutput.output.length === 0){
+                    setOutputData("No data from server");
+                } else {
+                    setOutputData(data.getProfileOutput.output);
+                }
+
+            } else {
+                snackActions.error(data.getProfileOutput.error);
+            }
+
         },
-        fetchPolicy: "network-only"
+        onError: data => {
+            snackActions.error(data.message);
+            console.log(data);
+        },
+        fetchPolicy: "no-cache"
     });
-    if (loading) {
-     return <LinearProgress />;
-    }
-    if (error) {
-     console.error(error);
-     return <div>Error! {error.message}</div>;
-    }
   
   return (
     <React.Fragment>
@@ -53,7 +62,7 @@ export function C2ProfileOutputDialog(props) {
               showGutter={true}
               height={"100px"}
               highlightActiveLine={true}
-              value={data.getProfileOutput.output}
+              value={outputData}
               width={"100%"}
               minLines={2}
               maxLines={50}
