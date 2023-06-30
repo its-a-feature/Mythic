@@ -197,7 +197,7 @@ func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload
 					Value:            finalBuildParameters[databaseBuildParameter.Name],
 				}
 				if databaseBuildParameter.IsCryptoType {
-					if databasePayload.Payloadtype.TranslationContainerID.Valid {
+					if databasePayload.Payloadtype.TranslationContainerID.Valid && !databasePayload.Payloadtype.MythicEncrypts {
 						if cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
 							TranslationContainerName: databasePayload.Payloadtype.Translationcontainer.Name,
 							C2Name:                   "",
@@ -340,7 +340,7 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 					c2ParameterInstance.OperationID.Valid = true
 					c2ParameterInstance.OperationID.Int64 = int64(databasePayload.OperationID)
 					if databaseC2ProfileParameter.IsCryptoType {
-						if databasePayload.Payloadtype.TranslationContainerID.Valid {
+						if databasePayload.Payloadtype.TranslationContainerID.Valid && !databasePayload.Payloadtype.MythicEncrypts {
 							if cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
 								TranslationContainerName: databasePayload.Payloadtype.Translationcontainer.Name,
 								C2Name:                   "",

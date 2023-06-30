@@ -18,7 +18,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 	payloadtype := databaseStructs.Payloadtype{}
 	var err error
 	if err := database.DB.Get(&payloadtype, `SELECT 
-		payloadtype.id, payloadtype."name", "wrapper", supported_os, supports_dynamic_loading, translation_container_id
+		payloadtype.id, payloadtype."name", "wrapper", supported_os, supports_dynamic_loading, translation_container_id, mythic_encrypts
 		FROM payloadtype 
 		WHERE payloadtype."name"=$1`, payloadDefinition.PayloadType); err != nil {
 		logging.LogError(err, "Failed to find payload type to create payload")
