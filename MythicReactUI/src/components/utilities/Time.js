@@ -10,7 +10,7 @@ export function toLocalTime(date, view_utc) {
           return init_date.toDateString() + " " + init_date.toTimeString().substring(0, 8) + " UTC";
         } else {
           let timezoneDate = new Date(date + "Z");
-          return timezoneDate.toDateString() + " " + timezoneDate.toLocaleString([], {hour12: true, hour: "2-digit", minute: "2-digit"});
+          return timezoneDate.toDateString() + " " + timezoneDate.toLocaleString(['en-us'], {hour12: true, hour: "2-digit", minute: "2-digit"});
         }
         
     } catch (error) {
