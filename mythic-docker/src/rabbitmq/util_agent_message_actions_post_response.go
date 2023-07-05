@@ -1055,9 +1055,10 @@ func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta datab
 }
 func addFilePermissions(fileBrowser *agentMessagePostResponseFileBrowser) map[string]interface{} {
 	fileMetaData := map[string]interface{}{
-		"access_time": fileBrowser.AccessTime,
-		"modify_time": fileBrowser.ModifyTime,
-		"size":        fileBrowser.Size,
+		"access_time":  fileBrowser.AccessTime,
+		"modify_time":  fileBrowser.ModifyTime,
+		"size":         fileBrowser.Size,
+		"has_children": fileBrowser.Files != nil && len(*fileBrowser.Files) > 0,
 	}
 	switch x := fileBrowser.Permissions.(type) {
 	case []interface{}:
@@ -1445,6 +1446,10 @@ func resolveAndCreateParentPathsForTreeNode(pathData utils.AnalyzedPath, task da
 			CanHaveChildren: true,
 			Deleted:         false,
 		}
+		metadata := map[string]interface{}{
+			"has_children": true,
+		}
+		newTree.Metadata = GetMythicJSONTextFromStruct(metadata)
 		newTree.Os = getOSTypeBasedOnPathSeparator(pathData.PathSeparator, treeType)
 		createTreeNode(&newTree)
 	}
@@ -1526,7 +1531,7 @@ func getParentPathFullPathName(pathData utils.AnalyzedPath, endIndex int, treeTy
 }
 func updateTreeNode(treeNode databaseStructs.MythicTree) {
 	if _, err := database.DB.NamedExec(`UPDATE mythictree SET
-        success=:success, deleted=:deleted, metadata=:metadata, task_id=:task_id
+        success=:success, deleted=:deleted, metadata=mythictree.metadata || :metadata, task_id=:task_id
 		WHERE id=:id
 `, treeNode); err != nil {
 		logging.LogError(err, "Failed to update tree node")
@@ -1563,7 +1568,7 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 		ON CONFLICT (host, operation_id, full_path, tree_type)
 		DO UPDATE SET
 		task_id=:task_id, "name"=:name, parent_path=:parent_path, can_have_children=:can_have_children,
-		    metadata=:metadata, os=:os, "timestamp"=now(), deleted=false
+		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false
 		    RETURNING id`); err != nil {
 		logging.LogError(err, "Failed to create new mythictree statement")
 	} else if err = statement.Get(&treeNode.ID, treeNode); err != nil {

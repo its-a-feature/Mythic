@@ -213,18 +213,19 @@ const VirtualTreeRow = ({
               style={{
                 marginLeft: '3px',
                 marginRight: '5px',
-                color: theme.folderColor
+                color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary,
               }} 
               size={"1x"}
               onClick={handleOnClickButton} />
           ) : (
               <FontAwesomeIcon 
-                style={{ paddingTop: '5px', marginLeft: '3px', marginRight: '5px', color: theme.folderColor }} size={"lg"} icon={faFolder} onClick={handleOnClickButton} />
+                style={{ paddingTop: '5px', marginLeft: '3px', marginRight: '5px', color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary, }}
+                    size={"lg"} icon={faFolder} onClick={handleOnClickButton} />
           )}
           <Typography
               style={{
                   color:
-                  itemTreeData.children.length > 0 ||
+                      item?.metadata?.has_children ||
                       item.success !== null
                           ? theme.palette.text.primary
                           : theme.palette.text.secondary,

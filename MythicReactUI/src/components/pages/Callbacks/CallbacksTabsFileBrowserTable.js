@@ -303,7 +303,7 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
                     style={{
                         marginRight: '5px',
                         color:
-                        treeRootData[selectedFolderData.host][cellData]?.success !== null
+                        treeRootData[selectedFolderData.host][cellData]?.success || treeRootData[selectedFolderData.host][cellData]?.metadata?.has_children
                                 ? theme.folderColor
                                 : 'grey',
                     }}
