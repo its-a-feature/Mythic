@@ -427,3 +427,67 @@ func GetLogs(containerName string, numLogs string) {
 		fmt.Println("[-] No containers running")
 	}
 }
+func ListServices() {
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatalf("[-] Failed to get client in List Services: %v", err)
+	}
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+		All: true,
+	})
+	if err != nil {
+		log.Fatalf("[-] Failed to get container list: %v\n", err)
+	}
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 2, '\t', 0)
+	var installedServices []string
+	sort.Slice(containers[:], func(i, j int) bool {
+		return containers[i].Labels["name"] < containers[j].Labels["name"]
+	})
+	elementsOnDisk, err := getElementsOnDisk()
+	if err != nil {
+		log.Fatalf("[-] Failed to get list of installed services on disk: %v\n", err)
+	}
+	elementsInCompose, err := GetAllExistingNonMythicServiceNames()
+	if err != nil {
+		log.Fatalf("[-] Failed to get list of installed services in docker-compose: %v\n", err)
+	}
+	for _, container := range containers {
+		if container.Labels["name"] == "" {
+			continue
+		}
+		installedServicesAbsPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder))
+		if err != nil {
+			fmt.Printf("[-] failed to get the absolute path to the InstalledServices folder")
+			continue
+		}
+		for _, mnt := range container.Mounts {
+			if strings.Contains(mnt.Source, installedServicesAbsPath) {
+				info := fmt.Sprintf("%s\t%s\t%v\t%v", container.Labels["name"], container.Status, true, true)
+				installedServices = append(installedServices, info)
+				elementsOnDisk = RemoveStringFromSliceNoOrder(elementsOnDisk, container.Labels["name"])
+				elementsInCompose = RemoveStringFromSliceNoOrder(elementsInCompose, container.Labels["name"])
+			}
+		}
+	}
+	for _, container := range elementsInCompose {
+		elementsOnDisk = RemoveStringFromSliceNoOrder(elementsOnDisk, container)
+	}
+	fmt.Fprintln(w, "Name\tContainerStatus\tImageBuilt\tDockerComposeEntry")
+	for _, line := range installedServices {
+		fmt.Fprintln(w, line)
+	}
+	if len(elementsInCompose) > 0 {
+		sort.Strings(elementsInCompose)
+		for _, container := range elementsInCompose {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t%s\t%v\t%v", container, "N/A", imageExists(container), true))
+		}
+	}
+	if len(elementsOnDisk) > 0 {
+		sort.Strings(elementsOnDisk)
+		for _, container := range elementsOnDisk {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t%s\t%v\t%v", container, "N/A", imageExists(container), false))
+		}
+	}
+	w.Flush()
+}

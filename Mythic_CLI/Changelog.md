@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 1.0.25 - 2023-07-05
+
+### Changed
+
+- Added `services` command to list out container status, image build status, and dockercompose entry status for all folders in InstalledServices
+
 ## 1.0.24 - 2023-06-20
 
 ### Changed

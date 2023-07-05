@@ -133,7 +133,6 @@ func getElementsOnDisk() ([]string, error) {
 	}
 	return agentsOnDisk, nil
 }
-
 func DockerStart(containers []string) error {
 	// first stop everything that's currently running
 	buildArguments = getBuildArguments()
@@ -311,7 +310,7 @@ func DockerRemoveContainers(containers []string) error {
 	if err := runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, containers...)); err != nil {
 		return err
 	} else if _, err = runDocker(append([]string{"rm", "-f"}, containers...)); err != nil {
-		return err
+		return nil
 	} else {
 		return nil
 	}

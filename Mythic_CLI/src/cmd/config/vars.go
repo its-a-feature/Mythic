@@ -4,5 +4,5 @@ package config
 
 var (
 	// Version Mythic CLI version
-	Version = "v0.1.24"
+	Version = "v0.1.25"
 )
