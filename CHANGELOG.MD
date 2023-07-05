@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.1-rc33] - 2023-07-05
+## [3.0.1-rc34] - 2023-07-05
 
 ### Changed
 
--  Updated file browser data to track if a folder `has_children` or not so that it's easier to track in the UI
+- Updated file browser data to track if a folder `has_children` or not so that it's easier to track in the UI
+- Updated file download to not un-set `is_screenshot` tag based on default values from agents
 
 ## [3.0.1-rc32] - 2023-06-30
 

@@ -731,7 +731,7 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 			} else if agentResponse.Download.FileName != nil && *agentResponse.Download.FileName != "" {
 				fileMeta.Filename = []byte(*agentResponse.Download.FileName)
 			}
-			if agentResponse.Download.IsScreenshot != nil {
+			if agentResponse.Download.IsScreenshot != nil && *agentResponse.Download.IsScreenshot {
 				fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
 			}
 			if !fileMeta.Complete {
@@ -823,7 +823,7 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 			logging.LogError(err, "Failed to create new save file on disk for agent download")
 			return "", err
 		}
-		if agentResponse.Download.IsScreenshot != nil {
+		if agentResponse.Download.IsScreenshot != nil && *agentResponse.Download.IsScreenshot {
 			fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
 		}
 		if agentResponse.Download.Host != nil && *agentResponse.Download.Host != "" {
