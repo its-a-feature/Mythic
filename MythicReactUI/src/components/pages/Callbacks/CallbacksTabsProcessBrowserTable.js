@@ -273,25 +273,57 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         if (sortData.sortKey === null || sortData.sortType === null) {
             return allData;
         }
-        const tempData = [...allData];
+        let tempData = [...allData];
 
         if (sortData.sortType === 'number' || sortData.sortType === 'size' || sortData.sortType === 'date') {
             tempData.sort((a, b) => {
-                if(a.root){return -1}
-                else if(b.root){return 1}
+                if(a.root){
+                    if(b.root){return 0}
+                    return 1
+                }
+                else if(b.root){return -1}
                 else if(sortData.inMetadata){
-                    return parseInt(treeRootData[host][a.full_path_text]?.metadata[sortData.sortKey] || a.full_path_text) > 
-                    parseInt(treeRootData[host][b.full_path_text]?.metadata[sortData.sortKey] || b.full_path_text) ? 1 : -1
+                    let aData = parseInt(treeRootData[host][a.full_path_text]?.metadata[sortData.sortKey] || a.full_path_text);
+                    let bData = parseInt(treeRootData[host][b.full_path_text]?.metadata[sortData.sortKey] || b.full_path_text);
+                    return aData > bData ? 1 : bData > aData ? -1 : 0;
                 } else {
-                    return parseInt(treeRootData[host][a.full_path_text][sortData.sortKey]) > parseInt(treeRootData[host][b.full_path_text][sortData.sortKey]) ? 1 : -1
+                    let aData = parseInt(treeRootData[host][a.full_path_text][sortData.sortKey]);
+                    let bData = parseInt(treeRootData[host][b.full_path_text][sortData.sortKey]);
+                    return aData > bData ? 1 : bData > aData ? -1 : 0;
                 }
                 
             });
         } else if (sortData.sortType === 'string') {
             tempData.sort((a, b) => {
-                if(treeRootData[host][a.full_path_text] === undefined){return -1}
-                if(treeRootData[host][b.full_path_text] === undefined){return 1}
-                return treeRootData[host][a.full_path_text][sortData.sortKey].toLowerCase() > treeRootData[host][b.full_path_text][sortData.sortKey].toLowerCase() ? 1 : -1
+                //console.log(treeRootData[host][a.full_path_text], treeRootData[host][b.full_path_text])
+                if(treeRootData[host][a.full_path_text] === undefined){
+                    if(treeRootData[host][b.full_path_text] === undefined){
+                        return 0;
+                    }
+                    return -1;
+                }
+                if(treeRootData[host][b.full_path_text] === undefined){
+                    return 1
+                }
+                let aData = treeRootData[host][a.full_path_text][sortData.sortKey];
+                let bData = treeRootData[host][b.full_path_text][sortData.sortKey];
+                if(sortData.inMetadata){
+                    aData = treeRootData[host][a.full_path_text]?.metadata[sortData.sortKey];
+                    bData = treeRootData[host][b.full_path_text]?.metadata[sortData.sortKey];
+                }
+                if(aData === undefined){
+                    if(bData === undefined){
+                        return 0;
+                    }
+                    return -1
+                }
+                if(bData === undefined){
+                    return 1
+                }
+                aData = aData.toLowerCase();
+                bData = bData.toLowerCase();
+                //console.log(aData, bData)
+                return aData > bData ? 1 : bData > aData ? -1 : 0
             });
         }
         if (sortData.sortDirection === 'DESC') {
@@ -558,7 +590,7 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
         <div style={{ alignItems: 'center', display: 'flex', flexGrow: 1, width: "100%", textDecoration: treeRootData[host][rowData["full_path_text"]]?.deleted ? 'line-through' : '' }}>
             {[...Array(rowData.depth-1)].map((o, i) => (
                 i === rowData.depth-2 && children ? (
-                    i === 0 ? (<div style={{marginLeft: 10, paddingRight: 10}}></div>) : (null)
+                    i === 0 ? (<div key={'folder' + rowData.full_path_text + i} style={{marginLeft: 10, paddingRight: 10}}></div>) : (null)
                 ) : (
                     <div
                     key={'folder' + rowData.full_path_text + 'lines' + i}

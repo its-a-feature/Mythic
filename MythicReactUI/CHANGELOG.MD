@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.15-rc27] - 2023-07-05
+## [0.1.15-rc28] - 2023-07-05
 
 ### Changed
 
 - Updated local time displays to use `en-us` when interpreting a 12 clock to prevent weird 00:12pm issues
+- Fixed an issue with process browsing sort functions that didn't properly look up data in process metadata
 
 ## [0.1.15-rc26] - 2023-07-05
 
