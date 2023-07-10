@@ -42,7 +42,7 @@ func MythicRPCAgentstorageSearch(input MythicRPCAgentstorageSearchMessage) Mythi
 	if err := database.DB.Select(&agentStorageMessages, `SELECT
 	*
 	FROM agentstorage
-	WHERE unique_id ILIKE %$1%`, input.SearchUniqueID); err != nil {
+	WHERE unique_id ILIKE '%' || $1 || '%'`, input.SearchUniqueID); err != nil {
 		logging.LogError(err, "Failed to save agentstorage data to database")
 		response.Error = err.Error()
 		return response
