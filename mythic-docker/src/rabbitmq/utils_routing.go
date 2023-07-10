@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"net"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -100,8 +102,8 @@ func (r *rabbitMQConnection) GetConnection() (*amqp.Connection, error) {
 	// use a mutex lock around getting the connection because we don't want to accidentally have leaking connections
 	//	in case two functions try to instantiate new connections at the same time
 	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.conn != nil && !r.conn.IsClosed() {
-		r.mutex.Unlock()
 		return r.conn, nil
 	} else {
 		for {
@@ -124,10 +126,82 @@ func (r *rabbitMQConnection) GetConnection() (*amqp.Connection, error) {
 				continue
 			}
 			r.conn = conn
-			r.mutex.Unlock()
 			return conn, nil
 		}
 	}
+}
+func (r *rabbitMQConnection) SendMessageMutexChannel(queue string, exchange string, correlationId string, body []byte, ignoreErrormessage bool) error {
+	// lock overall to make sure we don't double-create the entry
+	r.channelMutex.Lock()
+	if _, ok := r.channelMutexMap[exchange+queue]; !ok {
+		newMutex := sync.RWMutex{}
+		r.channelMutexMap[exchange+queue] = &channelMutex{
+			Mutex: &newMutex,
+		}
+	}
+	r.channelMutex.Unlock()
+	// lock the new entry to make sure we don't double-create the channel
+	r.channelMutexMap[exchange+queue].Mutex.Lock()
+	defer r.channelMutexMap[exchange+queue].Mutex.Unlock()
+	if r.channelMutexMap[exchange+queue].Channel == nil || r.channelMutexMap[exchange+queue].Channel.IsClosed() {
+		conn, err := r.GetConnection()
+		if err != nil {
+			logging.LogError(err, "Failed to get rabbitmq connection")
+			return err
+		}
+		ch, err := conn.Channel()
+		if err != nil {
+			logging.LogError(err, "Failed to get new channel")
+			return err
+		}
+		err = ch.Confirm(false)
+		if err != nil {
+			logging.LogError(err, "Failed to set confirm status on new channel")
+			return err
+		}
+		r.channelMutexMap[exchange+queue].Channel = ch
+		r.channelMutexMap[exchange+queue].NotifyPublish = r.channelMutexMap[exchange+queue].Channel.NotifyPublish(make(chan amqp.Confirmation, 1))
+		r.channelMutexMap[exchange+queue].NotifyReturn = r.channelMutexMap[exchange+queue].Channel.NotifyReturn(make(chan amqp.Return, 1))
+	}
+	msg := amqp.Publishing{
+		DeliveryMode:  amqp.Persistent,
+		ContentType:   "application/json",
+		CorrelationId: correlationId,
+		Body:          body,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), RPC_TIMEOUT)
+	defer cancel()
+	if err := r.channelMutexMap[exchange+queue].Channel.PublishWithContext(
+		ctx,
+		exchange, // exchange
+		queue,    // routing key
+		true,     // mandatory
+		false,    // immediate
+		msg,      // publishing
+	); err != nil {
+		logging.LogError(err, "there was an error publishing a message", "queue", queue)
+		return err
+	}
+	select {
+	case ntf := <-r.channelMutexMap[exchange+queue].NotifyPublish:
+		if !ntf.Ack {
+			err := errors.New("failed to deliver message, not ACK-ed by receiver")
+			logging.LogError(err, "failed to deliver message to exchange/queue, notifyPublish")
+			return err
+		}
+	case ret := <-r.channelMutexMap[exchange+queue].NotifyReturn:
+		err := errors.New(getMeaningfulRabbitmqError(ret))
+		if !ignoreErrormessage {
+			logging.LogError(err, "NotifyReturn error")
+			return err
+		}
+
+	case <-time.After(RPC_TIMEOUT):
+		err := errors.New("message delivery confirmation timed out")
+		logging.LogError(err, "no notify publish or notify return, assuming success and continuing", "queue", queue)
+		return nil
+	}
+	return nil
 }
 func (r *rabbitMQConnection) SendStructMessage(exchange string, queue string, correlationId string, body interface{}, ignoreErrorMessage bool) error {
 	if jsonBody, err := json.Marshal(body); err != nil {
@@ -149,54 +223,21 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 	// exchange: MYTHIC_EXCHANGE
 	// queue: which routing key is listening (this is the direct name)
 	// correlation_id: empty string
-	if conn, err := r.GetConnection(); err != nil {
-		return err
-	} else if ch, err := conn.Channel(); err != nil {
-		logging.LogError(err, "Failed to open rabbitmq channel")
-		return err
-	} else if err := ch.Confirm(false); err != nil {
-		logging.LogError(err, "Channel could not be put into confirm mode")
-		ch.Close()
-		return err
-	} else {
-		defer ch.Close()
-		msg := amqp.Publishing{
-			ContentType:   "application/json",
-			CorrelationId: correlationId,
-			Body:          body,
-		}
-		if err = ch.Publish(
-			exchange, // exchange
-			queue,    // routing key
-			true,     // mandatory
-			false,    // immediate
-			msg,      // publishing
-		); err != nil {
-			logging.LogError(err, "there was an error publishing a message", "queue", queue)
-			return err
-		}
-
-		select {
-		case ntf := <-ch.NotifyPublish(make(chan amqp.Confirmation, 1)):
-			if !ntf.Ack {
-				err := errors.New("Failed to deliver message, not ACK-ed by receiver")
-				logging.LogError(err, "failed to deliver message to exchange/queue, notifyPublish")
-				return err
-			}
-		case ret := <-ch.NotifyReturn(make(chan amqp.Return)):
-			err := errors.New(getMeaningfulRabbitmqError(ret))
-			if !ignoreErrormessage {
-				logging.LogError(err, "failed to deliver message to exchange/queue, NotifyReturn", "errorCode", ret.ReplyCode, "errorText", ret.ReplyText)
-			}
-			return err
-		case <-time.After(RPC_TIMEOUT):
-			err := errors.New("message delivery confirmation timed out")
-			logging.LogError(err, "no notify publish or notify return, assuming success and continuing", "queue", queue)
+	retryLimit := 5
+	var finalError error
+	//logging.LogDebug("sending direct message", "queue", queue, "msg", body)
+	for i := 0; i < retryLimit; i++ {
+		err := r.SendMessageMutexChannel(queue, exchange, correlationId, body, ignoreErrormessage)
+		if err != nil && exchange == MYTHIC_EXCHANGE {
+			finalError = err
+			continue
+		} else {
 			return nil
 		}
-
-		return nil
 	}
+	logging.LogError(finalError, "Final error, couldn't send rabbitmq message")
+	return finalError
+
 }
 func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body []byte, exclusiveQueue bool) ([]byte, error) {
 	if conn, err := r.GetConnection(); err != nil {
@@ -354,6 +395,7 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 			forever := make(chan bool)
 			go func() {
 				for d := range msgs {
+					logging.LogDebug("got direct message", "queue", q.Name, "msg", d.Body)
 					go handler(d)
 					if err = ch.Ack(d.DeliveryTag, false); err != nil {
 						logging.LogError(err, "Failed to Ack message")

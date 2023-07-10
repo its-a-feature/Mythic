@@ -118,7 +118,9 @@ export function App(props) {
             <ThemeProvider theme={theme}>
                 <GlobalStyles theme={theme} />
                 <CssBaseline />
-                <ToastContainer limit={2} autoClose={3000} hideProgressBar={true} newestOnTop={true} theme={themeMode} style={{maxWidth: "100%"}} />
+                <ToastContainer limit={2} autoClose={3000}
+                                theme={themeMode}
+                                style={{maxWidth: "100%", width: "60%"}} pauseOnFocusLoss={false} />
                     <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ minHeight: '56px', flexGrow: 0 }}>
                             {me.loggedIn && me.user !== undefined && me.user !== null ? (

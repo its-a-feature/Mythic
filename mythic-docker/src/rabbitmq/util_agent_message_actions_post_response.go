@@ -208,7 +208,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				"task_id": agentResponse.TaskID,
 				"status":  "success",
 			}
-			logging.LogDebug("Got response data from agent", "response data", agentResponse, "extra keys", agentResponse.Other)
+			//logging.LogDebug("Got response data from agent", "response data", agentResponse, "extra keys", agentResponse.Other)
 			// every response should be tied to some task
 			currentTask := databaseStructs.Task{AgentTaskID: agentResponse.TaskID}
 			if err := database.DB.Get(&currentTask, `SELECT

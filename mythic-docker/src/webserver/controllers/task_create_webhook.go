@@ -1,6 +1,8 @@
 package webcontroller
 
 import (
+	"fmt"
+	"github.com/its-a-feature/Mythic/database"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +16,8 @@ type CreateTaskInput struct {
 }
 
 type CreateTask struct {
-	CallbackDisplayID  int      `json:"callback_id" binding:"required"`
+	CallbackDisplayID  *int     `json:"callback_id,omitempty"`
+	CallbackDisplayIDs *[]int   `json:"callback_ids,omitempty"`
 	Command            string   `json:"command" binding:"required"`
 	Params             string   `json:"params"`
 	Files              []string `json:"files"`
@@ -43,10 +46,26 @@ func CreateTaskWebhook(c *gin.Context) {
 		})
 		return
 	} else {
-
+		var callbacks []int
+		if input.Input.CallbackDisplayIDs != nil {
+			callbacks = *input.Input.CallbackDisplayIDs
+		} else if input.Input.CallbackDisplayID != nil {
+			callbacks = []int{*input.Input.CallbackDisplayID}
+		} else {
+			logging.LogError(nil, "Must supply callback_display_id or callback_display_ids when creating a task")
+			c.JSON(http.StatusOK, UpdateCallbackResponse{
+				Status: "error",
+				Error:  "Must supply callback_display_id or callback_display_ids when creating a task",
+			})
+			return
+		}
 		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+		if len(callbacks) > 1 {
+			rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Starting to task %d callbacks with \"%s\"", len(callbacks), input.Input.Command),
+				operatorOperation.CurrentOperation.ID, "mass_tasking", database.MESSAGE_LEVEL_INFO)
+		}
 		createTaskInput := rabbitmq.CreateTaskInput{
-			CallbackDisplayID:  input.Input.CallbackDisplayID,
+			CallbackDisplayID:  callbacks[0],
 			CurrentOperationID: operatorOperation.CurrentOperation.ID,
 			OperatorID:         operatorOperation.CurrentOperator.ID,
 			IsOperatorAdmin:    operatorOperation.CurrentOperator.Admin,
@@ -64,6 +83,35 @@ func CreateTaskWebhook(c *gin.Context) {
 		}
 		logging.LogDebug("got creating tasking from web", "createTasking", createTaskInput)
 		c.JSON(http.StatusOK, rabbitmq.CreateTask(createTaskInput))
+		if len(callbacks) > 1 {
+			go issueMassTasking(input, callbacks[1:], operatorOperation)
+		}
 		return
 	}
+}
+func issueMassTasking(input CreateTaskInput, callbacks []int, operatorOperation *databaseStructs.Operatoroperation) {
+	for indx, callbackDisplayID := range callbacks {
+		logging.LogInfo("Creating mass tasking", "task num", indx+2, "total tasks", len(callbacks))
+		createTaskInput := rabbitmq.CreateTaskInput{
+			CallbackDisplayID:  callbackDisplayID,
+			CurrentOperationID: operatorOperation.CurrentOperation.ID,
+			OperatorID:         operatorOperation.CurrentOperator.ID,
+			IsOperatorAdmin:    operatorOperation.CurrentOperator.Admin,
+			CommandName:        input.Input.Command,
+			Params:             input.Input.Params,
+			TaskingLocation:    input.Input.TaskingLocation,
+			OriginalParams:     input.Input.OriginalParams,
+			ParameterGroupName: input.Input.ParameterGroupName,
+			FileIDs:            input.Input.Files,
+			Token:              input.Input.Token,
+		}
+		if operatorOperation.BaseDisabledCommandsID.Valid {
+			baseDisabledCommandsId := int(operatorOperation.BaseDisabledCommandsID.Int64)
+			createTaskInput.DisabledCommandID = &baseDisabledCommandsId
+		}
+		logging.LogDebug("got creating tasking from web", "createTasking", createTaskInput)
+		rabbitmq.CreateTask(createTaskInput)
+	}
+	rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Finished tasking %d callbacks with \"%s\"", len(callbacks)+1, input.Input.Command),
+		operatorOperation.CurrentOperation.ID, "mass_tasking", database.MESSAGE_LEVEL_INFO)
 }

@@ -293,8 +293,19 @@ func associateUploadedFilesWithTask(task *databaseStructs.Task, files []string) 
 }
 func addTaskToDatabase(task *databaseStructs.Task) error {
 	// create the task in the database
-	logging.LogInfo("adding task to database", "task", task)
-	if statement, err := database.DB.PrepareNamed(`INSERT INTO task 
+	//logging.LogInfo("adding task to database", "task", task)
+	transaction, err := database.DB.Beginx()
+	if err != nil {
+		logging.LogError(err, "Failed to begin transaction")
+		return err
+	}
+	defer transaction.Rollback()
+	_, err = transaction.Exec(`LOCK TABLE task`)
+	if err != nil {
+		logging.LogError(err, "Failed to lock callback table")
+		return err
+	}
+	if statement, err := transaction.PrepareNamed(`INSERT INTO task 
 	(agent_task_id,command_name,callback_id,operator_id,command_id,token_id,params,
 		original_params,display_params,status,tasking_location,parameter_group_name,
 		parent_task_id,subtask_callback_function,group_callback_function,subtask_group_name,operation_id)
@@ -306,6 +317,9 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 		return err
 	} else if err := statement.Get(&task.ID, task); err != nil {
 		logging.LogError(err, "Failed to create new task in database")
+		return err
+	} else if err = transaction.Commit(); err != nil {
+		logging.LogError(err, "Failed to commit transaction of creating new callback")
 		return err
 	} else {
 		go emitTaskLog(task.ID)

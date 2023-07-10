@@ -94,7 +94,7 @@ export function SearchTabTasksLabel(props){
 const SearchTabTasksSearchPanel = (props) => {
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
-    const [searchField, setSearchField] = React.useState("Output");
+    const [searchField, setSearchField] = React.useState("Command");
     const searchFieldOptions = ["Output","Command", "Parameters", "Comment", "Tag"];
     const [filterTaskStatus, setFilterTaskStatus] = React.useState("");
     const handleSearchFieldChange = (event) => {
@@ -140,7 +140,7 @@ const SearchTabTasksSearchPanel = (props) => {
         if(props.value === props.index){
             let queryParams = new URLSearchParams(window.location.search);
             let adjustedSearch = "";
-            let adjustedSearchField = "Output";
+            let adjustedSearchField = "Command";
             let adjustedTaskStatus = "";
             if(queryParams.has("search")){
                 setSearch(queryParams.get("search"));
@@ -151,9 +151,9 @@ const SearchTabTasksSearchPanel = (props) => {
                 props.onChangeSearchField(queryParams.get("searchField"));
                 adjustedSearchField = queryParams.get("searchField");
             }else{
-                setSearchField("Output");
-                props.onChangeSearchField("Output");
-                props.changeSearchParam("searchField", "Output");
+                setSearchField("Command");
+                props.onChangeSearchField("Command");
+                props.changeSearchParam("searchField", "Command");
             }
             if(queryParams.has("taskStatus")){
                 setFilterTaskStatus(queryParams.get("taskStatus"));
@@ -201,7 +201,7 @@ export const SearchTabTasksPanel = (props) =>{
     const [taskingData, setTaskingData] = React.useState({task: []});
     const [totalCount, setTotalCount] = React.useState(0);
     const [search, setSearch] = React.useState("");
-    const [searchField, setSearchField] = React.useState("Output");
+    const [searchField, setSearchField] = React.useState("Command");
     const [taskStatus, setTaskStatus] = React.useState("");
     const onChangeSearchField = (field) => {
         setSearchField(field);

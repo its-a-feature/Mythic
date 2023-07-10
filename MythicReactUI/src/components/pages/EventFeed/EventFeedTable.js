@@ -14,12 +14,11 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Pagination from '@mui/material/Pagination';
 
 
-const EventList = ({onUpdateDeleted, onUpdateLevel, onUpdateResolution, operationeventlog}) => {
+const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
    return (
     <div style={{overflowY: "auto", flexGrow: 1}}>
         {operationeventlog.map( o => <EventFeedTableEvents {...o} 
             key={o.id}
-            onUpdateDeleted={onUpdateDeleted}
             onUpdateLevel={onUpdateLevel}
             onUpdateResolution={onUpdateResolution}
             />)}
@@ -32,10 +31,6 @@ export function EventFeedTable(props){
     const dropdownAnchorRef = React.useRef(null);
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const dropDownOptions = [
-        {
-            name: "Load All Errors",
-            click: props.loadNextError
-        },
         {
             name: "Resolve Viewable Errors",
             click: props.resolveViewableErrors
@@ -94,8 +89,6 @@ export function EventFeedTable(props){
                     <EventList 
                         onUpdateResolution={props.onUpdateResolution}
                         onUpdateLevel={props.onUpdateLevel}
-                        onUpdateDeleted={props.onUpdateDeleted}
-                        getSurroundingEvents={props.getSurroundingEvents}
                         operationeventlog={props.operationeventlog}/>
                 </Paper>
                 

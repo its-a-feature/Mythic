@@ -111,7 +111,7 @@ export function SettingsOperatorTableRow(props){
                   <>
                     <IconButton size="small" onClick={()=>{setOpenUIConfig(true);}} color="info" variant='contained'><SettingsIcon /></IconButton>
                     {openUIConfig &&
-                      <MythicDialog open={openUIConfig} onClose={()=>{setOpenUIConfig(false)}} width={"60%"} fullWidth
+                      <MythicDialog open={openUIConfig} onClose={()=>{setOpenUIConfig(false)}} maxWidth={"lg"} fullWidth
                       innerDialog={<SettingsOperatorUIConfigDialog onAccept={onAcceptUIChange} onClose={()=>{setOpenUIConfig(false);}} {...props} />} 
                       />
                     }

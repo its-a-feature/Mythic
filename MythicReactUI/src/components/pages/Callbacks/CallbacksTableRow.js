@@ -35,7 +35,6 @@ import {DetailedCallbackTable} from './DetailedCallbackTable';
 import InfoIcon from '@mui/icons-material/Info';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import {TaskFromUIButton} from './TaskFromUIButton';
-import {CallbacksTabsTaskMultipleDialog} from './CallbacksTabsTaskMultipleDialog';
 import { MythicSelectFromRawListDialog } from '../../MythicComponents/MythicSelectFromListDialog';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 
@@ -51,7 +50,7 @@ subscription CallbacksSubscription ($callback_id: Int!){
     }
 }
  `;
-export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDescription, setOpenHideMultipleDialog}) =>{
+export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDescription, setOpenHideMultipleDialog, setOpenTaskMultipleDialog}) =>{
     const dropdownAnchorRef = React.useRef(null);
     const theme = useTheme();
     const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
@@ -59,8 +58,6 @@ export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDesc
     const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
     const taskingData = React.useRef({"parameters": "", "ui_feature": "callback_table:exit"});
-    const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState(false);
-
     const [rowDataStatic, setRowDataStatic] = React.useState(rowData);
     React.useEffect( () => {
         let update = false;
@@ -150,7 +147,7 @@ export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDesc
         },
         {
             name: "Task Multiple", icon: <FontAwesomeIcon icon={faList} style={{cursor: "pointer", marginRight: "10px"}} />, click: (evt) => {
-                setOpenTaskMultipleDialog(true);
+                setOpenTaskMultipleDialog({open: true, data: rowDataStatic});
             }
         },
         {name: 'File Browser', icon: <FontAwesomeIcon icon={faFolderOpen} style={{cursor: "pointer", marginRight: "10px"}} />, click: (evt) => {
@@ -257,17 +254,7 @@ export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDesc
                     }
                 />
             }
-            {openTaskMultipleDialog &&
-                <MythicDialog 
-                    fullWidth={true} 
-                    maxWidth="lg"
-                    open={openTaskMultipleDialog}  
-                    onClose={() => {setOpenTaskMultipleDialog(false);}}
-                    innerDialog={
-                        <CallbacksTabsTaskMultipleDialog callback={rowDataStatic} onClose={() => {setOpenTaskMultipleDialog(false);}} />
-                    }
-                />
-            }
+
     </div>
     )
 }

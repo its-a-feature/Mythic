@@ -598,7 +598,7 @@ func GetPayloadCommandInformation(payload databaseStructs.Payload) []string {
 // Helper functions for getting information for sending Task data to a container
 func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	// check if this task has a completion function
-	logging.LogInfo("kicking off CheckAndProcessTaskCompletionHandlers", "taskId", taskId)
+	//logging.LogInfo("kicking off CheckAndProcessTaskCompletionHandlers", "taskId", taskId)
 	task := databaseStructs.Task{}
 	parentTask := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT

@@ -128,16 +128,7 @@ export function EventFeed(props){
         let newEventLog = [...data.operationeventlog];
         newEventLog.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
         setOperationEventLog(newEventLog);
-        snackActions.success("Successfully fetched more events");
       }
-  });
-  const [updateDeleted] = useMutation(Update_Deleted, {
-    update: (cache, {data}) => {
-        const removedMessage = data.update_operationeventlog.returning[0];
-        const newMessages = operationeventlog.filter(op => (op.id !== removedMessage.id));
-        setOperationEventLog(newMessages);
-        snackActions.success("Successfully deleted event log");
-    }
   });
   const [updateResolution] = useMutation(Update_Resolution, {
     update: (cache, {data}) => {
@@ -203,10 +194,6 @@ export function EventFeed(props){
       
     }
   });
-  const onUpdateDeleted = useCallback( ({id}) => {
-      snackActions.info("Deleting event log...");
-      updateDeleted({variables: {id}});
-  }, [])
   const onUpdateResolution = useCallback( ({id, resolved}) => {
     updateResolution({variables: {id, resolved}});
   }, []);
@@ -237,9 +224,10 @@ export function EventFeed(props){
   }, []);
   return (
       <EventFeedTable operationeventlog={operationeventlog}
-                      onUpdateDeleted={onUpdateDeleted} onUpdateResolution={onUpdateResolution}
+                      onUpdateResolution={onUpdateResolution}
                       onUpdateLevel={onUpdateLevel}
-                      resolveViewableErrors={resolveViewableErrors} resolveAllErrors={resolveAllErrors}
+                      resolveViewableErrors={resolveViewableErrors}
+                      resolveAllErrors={resolveAllErrors}
                       pageData={pageData} onChangePage={onChangePage}
       />
   );

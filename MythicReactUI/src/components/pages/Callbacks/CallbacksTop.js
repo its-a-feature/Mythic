@@ -164,7 +164,9 @@ export function CallbacksTop(props){
                   Active Callbacks
               </Typography>
             </Paper>
-            <CallbacksTable key={"callbackstable"} onOpenTab={onOpenTabLocal} callbacks={callbacks} callbackgraphedges={callbackEdges} parentMountedRef={mountedRef}/>
+            <CallbacksTable key={"callbackstable"} onOpenTab={onOpenTabLocal}
+                            callbacks={callbacks} callbackgraphedges={callbackEdges}
+                            parentMountedRef={mountedRef} me={me}/>
           </Paper>
           )}
         </div>

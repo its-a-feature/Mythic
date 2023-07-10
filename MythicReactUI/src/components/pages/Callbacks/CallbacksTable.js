@@ -22,6 +22,7 @@ import {
 import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
 import {TableFilterDialog} from './TableFilterDialog';
 import {CallbacksTabsHideMultipleDialog} from "./CallbacksTabsHideMultipleDialog";
+import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog";
 
 function CallbacksTablePreMemo(props){
     
@@ -30,6 +31,7 @@ function CallbacksTablePreMemo(props){
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [openAdjustColumnsDialog, setOpenAdjustColumnsDialog] = React.useState(false);
     const [openHideMultipleDialog, setOpenHideMultipleDialog] = React.useState(false);
+    const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState({open: false, data: {}});
     const [filterOptions, setFilterOptions] = React.useState({});
     const [selectedColumn, setSelectedColumn] = React.useState({});
     const [columnVisibility, setColumnVisibility] = React.useState({
@@ -268,6 +270,7 @@ function CallbacksTablePreMemo(props){
                                 toggleLock={toggleLock}
                                 updateDescription={updateDescriptionSubmit}
                                 setOpenHideMultipleDialog={setOpenHideMultipleDialog}
+                                setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
                                 />;
                           case "IP":
                               return <CallbacksTableIPCell cellData={row.ip} rowData={row} callback_id={row.id} updateIPs={updateIPsInfo} />;
@@ -349,6 +352,19 @@ function CallbacksTablePreMemo(props){
                     onClose={() => {setOpenHideMultipleDialog(false);}}
                     innerDialog={
                         <CallbacksTabsHideMultipleDialog onClose={() => {setOpenHideMultipleDialog(false);}} />
+                    }
+                />
+            }
+            {openTaskMultipleDialog.open &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="lg"
+                    open={openTaskMultipleDialog.open}
+                    onClose={() => {setOpenTaskMultipleDialog({open: false, data: {}});}}
+                    innerDialog={
+                        <CallbacksTabsTaskMultipleDialog callback={openTaskMultipleDialog.data}
+                                                         onClose={() => {setOpenTaskMultipleDialog({open: false, data: {}});}}
+                                                         me={props.me}/>
                     }
                 />
             }

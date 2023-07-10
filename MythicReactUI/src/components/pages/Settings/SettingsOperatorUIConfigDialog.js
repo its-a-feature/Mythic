@@ -39,6 +39,7 @@ export function SettingsOperatorUIConfigDialog(props) {
     const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
     const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() === "false" ? false : true);
     const [hideUsernames, setHideUsernames] = React.useState(initialHideUsernameValue);
+    const [resumeNotifications, setResumeNotifications] = React.useState(false);
     const onChangeFontSize = (name, value, error) => {
       setFontSize(value);
     }
@@ -46,8 +47,10 @@ export function SettingsOperatorUIConfigDialog(props) {
       setFontFamily(value);
     }
     const onHideUsernamesChanged = (evt) => {
-      
       setHideUsernames(!hideUsernames);
+    }
+    const onResumeNotifications = (evt) => {
+        setResumeNotifications(!resumeNotifications);
     }
     const onAccept = () => {
       props.onAccept({
@@ -56,6 +59,13 @@ export function SettingsOperatorUIConfigDialog(props) {
         topColor,
         hideUsernames
       });
+      if(resumeNotifications){
+          localStorage.setItem("dnd", JSON.stringify({
+              "doNotDisturb": false,
+              "doNotDisturbTimeStart": new Date(),
+              "doNotDisturbMinutes": 0
+          }))
+      }
       props.onClose();
     }
     const setDefaults = () => {
@@ -83,7 +93,7 @@ export function SettingsOperatorUIConfigDialog(props) {
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
-                  <TableCell>Font Size</TableCell>
+                  <TableCell style={{width: "20%"}}>Font Size</TableCell>
                   <TableCell>
                     <MythicTextField type="number" value={fontSize} onChange={onChangeFontSize} showLabel={false} />
                   </TableCell>
@@ -106,6 +116,18 @@ export function SettingsOperatorUIConfigDialog(props) {
                     />
                   </TableCell>
                 </TableRow>
+                <TableRow hover>
+                      <TableCell>Resume Info/Warning Notifications</TableCell>
+                      <TableCell>
+                          <Switch
+                              checked={resumeNotifications}
+                              onChange={onResumeNotifications}
+                              color="primary"
+                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                              name="resumeNotifications"
+                          />
+                      </TableCell>
+                  </TableRow>
                 <TableRow hover>
                   <TableCell>Top App Bar Color</TableCell>
                   <TableCell>

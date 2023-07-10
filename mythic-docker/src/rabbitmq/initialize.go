@@ -28,10 +28,19 @@ type DirectQueueStruct struct {
 	Handler    QueueHandler
 }
 
+type channelMutex struct {
+	Channel       *amqp.Channel
+	Mutex         *sync.RWMutex
+	NotifyPublish chan amqp.Confirmation
+	NotifyReturn  chan amqp.Return
+}
+
 type rabbitMQConnection struct {
 	conn             *amqp.Connection
 	mutex            sync.RWMutex
 	addListenerMutex sync.RWMutex
+	channelMutexMap  map[string]*channelMutex
+	channelMutex     sync.RWMutex
 	RPCQueues        []RPCQueueStruct
 	DirectQueues     []DirectQueueStruct
 }
@@ -70,7 +79,7 @@ func (r *rabbitMQConnection) startListeners() {
 }
 
 func Initialize() {
-
+	RabbitMQConnection.channelMutexMap = make(map[string]*channelMutex)
 	for {
 		if _, err := RabbitMQConnection.GetConnection(); err == nil {
 			// periodically check to make sure containers are online

@@ -20,21 +20,22 @@ type UpdateCallbackInput struct {
 }
 
 type UpdateCallback struct {
-	CallbackDisplayID int       `json:"callback_display_id" binding:"required"`
-	Active            *bool     `json:"active,omitempty"`
-	Locked            *bool     `json:"locked,omitempty"`
-	Description       *string   `json:"description,omitempty"`
-	IPs               *[]string `json:"ips,omitempty"`
-	Host              *string   `json:"host,omitempty"`
-	User              *string   `json:"user,omitempty"`
-	OS                *string   `json:"os,omitempty"`
-	Architecture      *string   `json:"architecture,omitempty"`
-	ExtraInfo         *string   `json:"extra_info,omitempty"`
-	SleepInfo         *string   `json:"sleep_info,omitempty"`
-	PID               *int      `json:"pid,omitempty"`
-	ProcessName       *string   `json:"process_name,omitempty"`
-	IntegrityLevel    *int      `json:"integrity_level,omitempty"`
-	Domain            *string   `json:"domain,omitempty"`
+	CallbackDisplayID  *int      `json:"callback_display_id,omitempty"`
+	CallbackDisplayIDs *[]int    `json:"callback_display_ids,omitempty"`
+	Active             *bool     `json:"active,omitempty"`
+	Locked             *bool     `json:"locked,omitempty"`
+	Description        *string   `json:"description,omitempty"`
+	IPs                *[]string `json:"ips,omitempty"`
+	Host               *string   `json:"host,omitempty"`
+	User               *string   `json:"user,omitempty"`
+	OS                 *string   `json:"os,omitempty"`
+	Architecture       *string   `json:"architecture,omitempty"`
+	ExtraInfo          *string   `json:"extra_info,omitempty"`
+	SleepInfo          *string   `json:"sleep_info,omitempty"`
+	PID                *int      `json:"pid,omitempty"`
+	ProcessName        *string   `json:"process_name,omitempty"`
+	IntegrityLevel     *int      `json:"integrity_level,omitempty"`
+	Domain             *string   `json:"domain,omitempty"`
 }
 
 type UpdateCallbackResponse struct {
@@ -62,92 +63,106 @@ func UpdateCallbackWebhook(c *gin.Context) {
 	} else {
 		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 		callback := databaseStructs.Callback{}
-		if err := database.DB.Get(&callback, `SELECT 
-			*
-			FROM callback
-			WHERE display_id=$1 and operation_id=$2`, input.Input.Input.CallbackDisplayID,
-			operatorOperation.CurrentOperation.ID); err != nil {
-			logging.LogError(err, "Failed to get callback")
+		var callbacks []int
+		if input.Input.Input.CallbackDisplayIDs != nil {
+			callbacks = *input.Input.Input.CallbackDisplayIDs
+		} else if input.Input.Input.CallbackDisplayID != nil {
+			callbacks = []int{*input.Input.Input.CallbackDisplayID}
+		} else {
+			logging.LogError(nil, "Must supply callback_display_id or callback_display_ids when updating callbacks")
 			c.JSON(http.StatusOK, UpdateCallbackResponse{
 				Status: "error",
-				Error:  "Failed to get callback",
+				Error:  "Must supply callback_display_id or callback_display_ids when updating callbacks",
 			})
 			return
-		} else {
-			if input.Input.Input.Description != nil {
-				if err := updateCallbackDescription(callback, *input.Input.Input.Description); err != nil {
-					c.JSON(http.StatusOK, UpdateCallbackResponse{
-						Status: "error",
-						Error:  err.Error(),
-					})
-					return
+		}
+		for _, currentCallbackDisplayID := range callbacks {
+			if err := database.DB.Get(&callback, `SELECT 
+			*
+			FROM callback
+			WHERE display_id=$1 and operation_id=$2`, currentCallbackDisplayID,
+				operatorOperation.CurrentOperation.ID); err != nil {
+				logging.LogError(err, "Failed to get callback")
+				c.JSON(http.StatusOK, UpdateCallbackResponse{
+					Status: "error",
+					Error:  "Failed to get callback",
+				})
+				return
+			} else {
+				if input.Input.Input.Description != nil {
+					if err := updateCallbackDescription(callback, *input.Input.Input.Description); err != nil {
+						c.JSON(http.StatusOK, UpdateCallbackResponse{
+							Status: "error",
+							Error:  err.Error(),
+						})
+						return
+					}
 				}
-			}
-			if input.Input.Input.Active != nil {
-				if err := updateCallbackActiveStatus(callback, *input.Input.Input.Active); err != nil {
-					c.JSON(http.StatusOK, UpdateCallbackResponse{
-						Status: "error",
-						Error:  err.Error(),
-					})
-					return
+				if input.Input.Input.Active != nil {
+					if err := updateCallbackActiveStatus(callback, *input.Input.Input.Active); err != nil {
+						c.JSON(http.StatusOK, UpdateCallbackResponse{
+							Status: "error",
+							Error:  err.Error(),
+						})
+						return
+					}
 				}
-			}
-			if input.Input.Input.Locked != nil {
-				if err := updateCallbackLock(callback, *operatorOperation, *input.Input.Input.Locked); err != nil {
-					c.JSON(http.StatusOK, UpdateCallbackResponse{
-						Status: "error",
-						Error:  err.Error(),
-					})
-					return
+				if input.Input.Input.Locked != nil {
+					if err := updateCallbackLock(callback, *operatorOperation, *input.Input.Input.Locked); err != nil {
+						c.JSON(http.StatusOK, UpdateCallbackResponse{
+							Status: "error",
+							Error:  err.Error(),
+						})
+						return
+					}
 				}
-			}
-			if input.Input.Input.IPs != nil {
-				if err := updateCallbackIPs(callback, *input.Input.Input.IPs); err != nil {
+				if input.Input.Input.IPs != nil {
+					if err := updateCallbackIPs(callback, *input.Input.Input.IPs); err != nil {
 
+					}
 				}
-			}
-			if input.Input.Input.Host != nil {
-				callback.Host = *input.Input.Input.Host
-			}
-			if input.Input.Input.User != nil {
-				callback.User = *input.Input.Input.User
-			}
-			if input.Input.Input.OS != nil {
-				callback.Os = *input.Input.Input.OS
-			}
-			if input.Input.Input.Architecture != nil {
-				callback.Architecture = *input.Input.Input.Architecture
-			}
-			if input.Input.Input.ExtraInfo != nil {
-				callback.ExtraInfo = *input.Input.Input.ExtraInfo
-			}
-			if input.Input.Input.SleepInfo != nil {
-				callback.SleepInfo = *input.Input.Input.SleepInfo
-			}
-			if input.Input.Input.PID != nil {
-				callback.PID = *input.Input.Input.PID
-			}
-			if input.Input.Input.ProcessName != nil {
-				callback.ProcessName = *input.Input.Input.ProcessName
-			}
-			if input.Input.Input.IntegrityLevel != nil {
-				callback.IntegrityLevel = *input.Input.Input.IntegrityLevel
-			}
-			if input.Input.Input.Domain != nil {
-				callback.Domain = *input.Input.Input.Domain
-			}
-			if _, err := database.DB.NamedExec(`UPDATE callback SET 
+				if input.Input.Input.Host != nil {
+					callback.Host = *input.Input.Input.Host
+				}
+				if input.Input.Input.User != nil {
+					callback.User = *input.Input.Input.User
+				}
+				if input.Input.Input.OS != nil {
+					callback.Os = *input.Input.Input.OS
+				}
+				if input.Input.Input.Architecture != nil {
+					callback.Architecture = *input.Input.Input.Architecture
+				}
+				if input.Input.Input.ExtraInfo != nil {
+					callback.ExtraInfo = *input.Input.Input.ExtraInfo
+				}
+				if input.Input.Input.SleepInfo != nil {
+					callback.SleepInfo = *input.Input.Input.SleepInfo
+				}
+				if input.Input.Input.PID != nil {
+					callback.PID = *input.Input.Input.PID
+				}
+				if input.Input.Input.ProcessName != nil {
+					callback.ProcessName = *input.Input.Input.ProcessName
+				}
+				if input.Input.Input.IntegrityLevel != nil {
+					callback.IntegrityLevel = *input.Input.Input.IntegrityLevel
+				}
+				if input.Input.Input.Domain != nil {
+					callback.Domain = *input.Input.Input.Domain
+				}
+				if _, err := database.DB.NamedExec(`UPDATE callback SET 
 				host=:host, "user"=:user, os=:os, architecture=:architecture, extra_info=:extra_info,
 				sleep_info=:sleep_info, pid=:pid, process_name=:process_name, integrity_level=:integrity_level,
 				"domain"=:domain WHERE id=:id`, callback); err != nil {
-				logging.LogError(err, "failed to update callback information")
-				c.JSON(http.StatusOK, UpdateCallbackResponse{
-					Status: "error",
-					Error:  err.Error(),
-				})
+					logging.LogError(err, "failed to update callback information")
+					c.JSON(http.StatusOK, UpdateCallbackResponse{
+						Status: "error",
+						Error:  err.Error(),
+					})
+				}
 			}
 		}
-
 	}
 	c.JSON(http.StatusOK, UpdateCallbackResponse{
 		Status: "success",

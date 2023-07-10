@@ -13,7 +13,7 @@ import ListItemText from '@mui/material/ListItemText';
 import makeStyles from '@mui/styles/makeStyles';
 import {useQuery, gql } from '@apollo/client';
 import {useMutation} from '@apollo/client';
-import {hideCallbackMutation} from './CallbackMutations';
+import {hideCallbacksMutation} from './CallbackMutations';
 import { CardContent } from '@mui/material';
 import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
@@ -67,18 +67,15 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
     const [right, setRight] = React.useState([]);
     const leftChecked = intersection(checked, left);
     const rightChecked = intersection(checked, right);
-    const [openProgressIndicator, setOpenProgressIndicator] = React.useState(false);
-    const [progress, setProgress] = React.useState(0);
-    const totalToTask = React.useRef(1);
-    const leftToTask = React.useRef([]);
-    const normalize = (value) => ((value - 0) * 100) / (totalToTask.current - 0);
-    const [hideCallback] = useMutation(hideCallbackMutation, {
+    const [hideCallback] = useMutation(hideCallbacksMutation, {
         onCompleted: data => {
-            setProgress(progress + 1);
-            issueNextTasking();
+            snackActions.success("Successfully hid callbacks!")
+            onClose();
         },
         onError: data => {
             console.log(data);
+            snackActions.error(data.message);
+            onClose();
         }
     });
     useQuery(callbacksAndFeaturesQuery,{
@@ -104,51 +101,34 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
 
       setChecked(newChecked);
     };
-
     const handleAllRight = () => {
       setRight(right.concat(left));
       setLeft([]);
     };
-
     const handleCheckedRight = () => {
       setRight(right.concat(leftChecked));
       setLeft(not(left, leftChecked));
       setChecked(not(checked, leftChecked));
     };
-
     const handleCheckedLeft = () => {
       setLeft(left.concat(rightChecked));
       setRight(not(right, rightChecked));
       setChecked(not(checked, rightChecked));
     };
-
     const handleAllLeft = () => {
       setLeft(left.concat(right));
       setRight([]);
     };
-    const issueNextTasking = () => {
-        let callback = leftToTask.current.shift(1);
-        if(callback){
-            hideCallback({variables: {callback_display_id: callback.display_id}});
-        }else{
-            snackActions.success("Finished!")
-        }
-    }
     const submitTasking = () => {
       if(right.length === 0){
         onClose();
         return;
       }
-      leftToTask.current = [...right];
-      totalToTask.current = right.length;
-      setOpenProgressIndicator(true);
-      issueNextTasking();
+      let callbackIDs = right.map(c => c.display_id);
+      snackActions.info("Hiding callbacks...");
+      hideCallback({variables: {callback_display_ids: callbackIDs}});
     }
-    React.useEffect( () => {
-        if(!openProgressIndicator){
-            setProgress(0);
-        }
-    }, [openProgressIndicator])
+
     const customList = (title, items) => (
       <React.Fragment>
           <CardHeader
@@ -236,31 +216,7 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
             </div>
         </div>
         </DialogContent>
-        {openProgressIndicator &&
-            <Dialog
-                open={openProgressIndicator}
-                onClose={() => {setOpenProgressIndicator(false)}}
-                scroll="paper"
-                fullWidth={true}
-                aria-labelledby="scroll-dialog-title"
-                aria-describedby="scroll-dialog-description"
-            >
-                <DialogContent>
-                    {progress === totalToTask.current ? (
-                        "Complete!"
-                    ) : (
-                        "Hiding Callbacks..."
-                    )}
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Box sx={{ width: '100%', mr: 1 }}>
-                            <LinearProgress variant="determinate" value={normalize(progress)} valueBuffer={progress + 1} />
-                        </Box>
-                        <Typography style={{width: "5rem"}} variant="body2" color="text.secondary">{progress} / {totalToTask.current} </Typography>
-                    </Box>
-                </DialogContent>
-            </Dialog>
 
-        }
         <DialogActions>
           <Button onClick={onClose} variant="contained" color="primary">
             Close

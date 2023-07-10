@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -164,13 +165,19 @@ func (cache *cachedUUIDInfo) IterateAndAct(agentMessage []byte, action string) (
 	return modified, err
 }
 
+var cachedUUIDInfoMapMutex = &sync.Mutex{}
+
 func InvalidateAllCachedUUIDInfo() {
+	cachedUUIDInfoMapMutex.Lock()
+	defer cachedUUIDInfoMapMutex.Unlock()
 	cachedUUIDInfoMap = make(map[string]*cachedUUIDInfo)
 }
 
 var cachedUUIDInfoMap = make(map[string]*cachedUUIDInfo)
 
 func MarkCallbackInfoInactive(callbackID int) {
+	cachedUUIDInfoMapMutex.Lock()
+	defer cachedUUIDInfoMapMutex.Unlock()
 	for k, _ := range cachedUUIDInfoMap {
 		if cachedUUIDInfoMap[k].CallbackID == callbackID {
 			cachedUUIDInfoMap[k].Active = false
@@ -539,6 +546,8 @@ func ProcessAgentMessage(agentMessageInput AgentMessageRawInput) ([]byte, error)
 func LookupEncryptionData(c2profile string, messageUUID string) (*cachedUUIDInfo, error) {
 	//logging.LogTrace("Looking up information for new message", "uuid", messageUUID)
 	//logging.LogDebug("Getting encryption data", "cachemap", cachedUUIDInfoMap)
+	cachedUUIDInfoMapMutex.Lock()
+	defer cachedUUIDInfoMapMutex.Unlock()
 	if _, ok := cachedUUIDInfoMap[messageUUID+c2profile]; ok {
 		// we found an instance of the cache info with c2 profile encryption data
 		if cachedUUIDInfoMap[messageUUID+c2profile].UUIDType == "callback" {

@@ -20,7 +20,7 @@ func init() {
 }
 
 func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
-	logging.LogInfo("got message", "routingKey", msg.RoutingKey)
+	//logging.LogInfo("got message", "routingKey", msg.RoutingKey)
 	task := databaseStructs.Task{}
 	parentTask := databaseStructs.Task{}
 	payloadMsg := PTTaskCompletionFunctionMessageResponse{}

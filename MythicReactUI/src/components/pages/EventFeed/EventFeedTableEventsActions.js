@@ -1,6 +1,5 @@
 import React from 'react';
 import IconButton from '@mui/material/IconButton';
-import DeleteIcon from '@mui/icons-material/Delete';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
@@ -20,10 +19,6 @@ export function EventFeedTableEventsActions(props){
     const handleClose = () => {
         setAnchorEl(null);
       };
-    const onUpdateDeleted = () => {
-        handleClose();
-        props.onUpdateDeleted({id:props.id});
-    }
     const handleClick = React.useCallback((e) => {
         setAnchorEl(e.currentTarget)
     }, []);
@@ -45,7 +40,6 @@ export function EventFeedTableEventsActions(props){
                             )
                         )
                     }
-                    <MenuItem onClick={onUpdateDeleted}><DeleteIcon/>Delete</MenuItem>
                 </Menu>
             </ListItemSecondaryAction>
     );

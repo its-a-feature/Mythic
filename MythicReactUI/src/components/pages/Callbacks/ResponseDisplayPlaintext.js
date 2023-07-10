@@ -33,7 +33,7 @@ export const ResponseDisplayPlaintext = (props) =>{
         value={plaintextView}
         width={"100%"}
         minLines={2}
-        maxLines={50}
+        maxLines={20}
         setOptions={{
           showLineNumbers: true,
           tabSize: 4,

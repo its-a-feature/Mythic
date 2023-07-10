@@ -11,14 +11,14 @@ const useStyles = makeStyles((theme) => ({
     },
     arrow: {
       color: theme.palette.background.contrast,
-    }
+    },
   }));
 
 export function MythicStyledTooltip(props){
     const { children, title, style, ...other} = props;
     const classes = useStyles();
     return (
-        <Tooltip title={title} arrow classes={{tooltip: classes.tooltip, arrow: classes.arrow}} {...other}>
+        <Tooltip title={title} arrow classes={{tooltip: classes.tooltip, arrow: classes.arrow}} style={{zIndex: 1000}} {...other}>
             {<span style={{...style, display: "inline-block"}}>{children}</span>}
         </Tooltip>
     );

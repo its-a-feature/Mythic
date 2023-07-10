@@ -1,5 +1,13 @@
 import {gql } from '@apollo/client';
 
+export const hideCallbacksMutation = gql`
+mutation hideCallbacks ($callback_display_ids: [Int]!){
+  updateCallback(input: {callback_display_ids: $callback_display_ids, active: false}) {
+    status
+    error
+  }
+}
+`;
 export const hideCallbackMutation = gql`
 mutation hideCallback ($callback_display_id: Int!){
   updateCallback(input: {callback_display_id: $callback_display_id, active: false}) {

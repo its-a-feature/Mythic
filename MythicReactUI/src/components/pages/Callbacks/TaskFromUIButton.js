@@ -58,47 +58,7 @@ const getLoadedCommandsBasedOnInput = ({cmd, ui_feature}) => {
     }
     `;
 }
-const getLoadedCommandsQuery = gql`
-query GetLoadedCommandsQuery($callback_id: Int!, $ui_feature: jsonb, $cmd: String) {
-    callback_by_pk(id: $callback_id){
-        operation_id
-        active
-        payload {
-            payloadtype {
-                id
-            }
-        }
-        loadedcommands(where: {command: {supported_ui_features: {_contains: $ui_feature}}}) {
-            id
-            command {
-              cmd
-              help_cmd
-              description
-              id
-              needs_admin
-              payload_type_id
-              attributes
-              commandparameters {
-                id
-                type 
-              }
-              supported_ui_features
-            }
-        }
-        callbacktokens(where: {deleted: {_eq: false}}) {
-            token {
-              token_id
-              id
-              user
-              description
-            }
-            id
-        }
-    }
-}
-`;
-
-export const TaskFromUIButton = ({callback_id, cmd, ui_feature, parameters, onTasked, tasking_location, getConfirmation, openDialog, acceptText, dontShowSuccessDialog}) =>{
+export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, parameters, onTasked, tasking_location, getConfirmation, openDialog, acceptText, dontShowSuccessDialog}) =>{
     const [fileBrowserCommands, setFileBrowserCommands] = React.useState([]);
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
@@ -117,7 +77,12 @@ export const TaskFromUIButton = ({callback_id, cmd, ui_feature, parameters, onTa
             }else if(dontShowSuccessDialog){
                 onTasked({tasked: true, variables: savedFinalVariables.current});
             }else {
-                snackActions.success("Issued \"" + selectedCommand["cmd"] + "\" to Callback " + callback_id);
+                if(callback_ids === undefined){
+                    snackActions.success("Issued \"" + selectedCommand["cmd"] + "\" to Callback " + callback_id);
+                } else {
+                    snackActions.success("Issued \"" + selectedCommand["cmd"] + "\" to " + callback_ids.length + " callbacks.\nThis might take a while to process.");
+                }
+
                 onTasked({tasked: true, variables: savedFinalVariables.current});
             }
         },
@@ -201,7 +166,9 @@ export const TaskFromUIButton = ({callback_id, cmd, ui_feature, parameters, onTa
         if(callbackTokenOptions.length > 0){
             setOpenCallbackTokenSelectDialog(true);
             setTaskingVariables(variables);
-        }else {
+        }else if(callback_ids){
+            createTask({variables: {...variables, callback_ids: callback_ids}})
+        } else {
             createTask({variables: {...variables, callback_id: callbackData.callback_by_pk.display_id}})
         }
     }
@@ -225,7 +192,9 @@ export const TaskFromUIButton = ({callback_id, cmd, ui_feature, parameters, onTa
     const onSubmitConfirm = () => {
         if(callbackTokenOptions.length > 0){
             setOpenCallbackTokenSelectDialog(true);
-        }else {
+        }else if(callback_ids) {
+            createTask({variables: {...taskingVariables, callback_ids: callback_ids}})
+        } else {
             createTask({variables: {...taskingVariables, callback_id: callbackData.callback_by_pk.display_id}})
         }
         setOpenConfirmDialog(false);
@@ -238,10 +207,20 @@ export const TaskFromUIButton = ({callback_id, cmd, ui_feature, parameters, onTa
     useEffect( () => {
         if(selectedCallbackToken === ""){
             // we selected the default token to use
-            createTask({variables: {...taskingVariables, callback_id: callbackData.callback_by_pk.display_id}});
+            if(callback_ids){
+                createTask({variables: {...taskingVariables, callback_ids: callback_ids}});
+            } else {
+                createTask({variables: {...taskingVariables, callback_id: callbackData.callback_by_pk.display_id}});
+            }
+
         }
         if(selectedCallbackToken.token_id){
-            createTask({variables: {...taskingVariables, callback_id: callbackData.callback_by_pk.display_id, token_id: selectedCallbackToken.token_id}});
+            if(callback_ids){
+                createTask({variables: {...taskingVariables, callback_ids: callback_ids, token_id: selectedCallbackToken.token_id}});
+            } else {
+                createTask({variables: {...taskingVariables, callback_id: callbackData.callback_by_pk.display_id, token_id: selectedCallbackToken.token_id}});
+            }
+
         }
         
     }, [selectedCallbackToken])

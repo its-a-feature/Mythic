@@ -46,9 +46,6 @@ export const SearchTabSocksPanel = (props) =>{
         fetchPolicy: "network-only",
         onCompleted: (data) => {
             snackActions.dismiss();
-            if(data.callbackport.length === 0){
-                snackActions.info("No proxies Running");
-            }
             setCallbackData(data.callbackport);
         },
         onError: (data) => {

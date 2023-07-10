@@ -463,7 +463,7 @@ func ListServices() {
 		}
 		for _, mnt := range container.Mounts {
 			if strings.Contains(mnt.Source, installedServicesAbsPath) {
-				info := fmt.Sprintf("%s\t%s\t%v\t%v", container.Labels["name"], container.Status, true, true)
+				info := fmt.Sprintf("%s\t%s\t%v\t%v", container.Labels["name"], container.Status, true, stringInSlice(container.Labels["name"], elementsInCompose))
 				installedServices = append(installedServices, info)
 				elementsOnDisk = RemoveStringFromSliceNoOrder(elementsOnDisk, container.Labels["name"])
 				elementsInCompose = RemoveStringFromSliceNoOrder(elementsInCompose, container.Labels["name"])

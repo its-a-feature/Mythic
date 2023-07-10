@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1-rc35] - 2023-07-10
+
+### Changed
+
+- Fixed how Mythic leveraged rabbitMQ channels to reduce the channel churn rate and increase throughput dramatically
+- Updated Mythic's tasking to support mass-tasking natively without requiring all tasks to happen in sequence
+- Fixed an issue with a high volume of new callbacks causing issues with Postgres connections
+- Fixed an issue with a high volume of new callbacks resulting in duplicated callback identifiers
+- Updated the sqlx connection information to limit the number of concurrent postgres connections
+
 ## [3.0.1-rc34] - 2023-07-05
 
 ### Changed

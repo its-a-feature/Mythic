@@ -155,6 +155,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     const applyFilteringToTasks = (task) => {
+        if(!props.filterTasks){return false}
         if(task.display_params.includes("help") && task.operator.username !== me.user.username){
             return false;
           }
@@ -1126,12 +1127,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         variant="contained"
                         onClick={onSubmitCommandLine}
                         size="large"><SendIcon/></IconButton>
-                    <IconButton
-                        color="secondary"
-                        variant="contained"
-                        onClick={onClickFilter}
-                        size="large"><TuneIcon/></IconButton>
-                    </React.Fragment>,
+                    {props.filterTasks &&
+                        <IconButton
+                            color="secondary"
+                            variant="contained"
+                            onClick={onClickFilter}
+                            size="large"><TuneIcon/></IconButton>
+                            }
+                    </React.Fragment>
+                    ,
                     startAdornment: <React.Fragment>
                         {tokenOptions.length > 0 ? (
                             <CallbacksTabsTaskingInputTokenSelect options={tokenOptions} changeSelectedToken={props.changeSelectedToken}/>

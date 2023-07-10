@@ -13,34 +13,23 @@ import Divider from '@mui/material/Divider';
 import ListItemText from '@mui/material/ListItemText';
 import makeStyles from '@mui/styles/makeStyles';
 import {useQuery, gql } from '@apollo/client';
-import MenuItem from '@mui/material/MenuItem';
 import {TaskFromUIButton} from './TaskFromUIButton';
-import Select from '@mui/material/Select';
-import InputLabel from '@mui/material/InputLabel';
-import Input from '@mui/material/Input';
 import { CardContent } from '@mui/material';
-import LinearProgress from '@mui/material/LinearProgress';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import Dialog from '@mui/material/Dialog';
+import {CallbacksTabsTaskingInput} from "./CallbacksTabsTaskingInput";
+import {snackActions} from "../../utilities/Snackbar";
 
 
 const callbacksAndFeaturesQuery = gql`
 query callbacksAndFeatures($payloadtype_id: Int!) {
   callback(where: {active: {_eq: true}, payload: {payloadtype: { id: {_eq: $payloadtype_id}}}}, order_by: {id: asc}) {
-    loadedcommands {
-      command {
-        cmd
-        description
-        id
-      }
-      id
-    }
     id
     host
     user
     process_name
+    description
+    integrity_level
     pid
+    display_id
   }
 }`;
 
@@ -60,295 +49,317 @@ const useStyles = makeStyles((theme) => ({
     border: "2px solid rgba(100, 170, 204)"
   }
 }));
-
-function not(a, b) {
-  return a.filter((value) => b.indexOf(value) === -1);
+const CustomListElement = ({value, onClick}) => {
+    const labelId = `transfer-list-item-${value.id}-label`;
+    return (
+        <ListItem style={{padding:0}} key={value.id} role="listitem" button onClick={() => onClick(value)}>
+            <ListItemIcon>
+                <Checkbox
+                    checked={value.checked}
+                    tabIndex={-1}
+                    disableRipple
+                    inputProps={{ 'aria-labelledby': labelId }}
+                />
+            </ListItemIcon>
+            <ListItemText id={labelId} primary={value.display} />
+        </ListItem>
+    );
 }
-
-function intersection(a, b) {
-  return a.filter((value) => b.indexOf(value) !== -1);
-}
-
-export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
-    const [featureOptions, setFeatureOptions] = React.useState([]);
-    const [selectedFeature, setSelectedFeature] = React.useState("");
+const CustomList = ({title, items, left, onClick}) => {
     const classes = useStyles();
-    const [checked, setChecked] = React.useState([]);
-    const [left, setLeft] = React.useState([]);
-    const [right, setRight] = React.useState([]);
-    const leftChecked = intersection(checked, left);
-    const rightChecked = intersection(checked, right);
-    const inputRef = React.useRef(null); 
+    return (
+        <React.Fragment>
+            <CardHeader title={title} />
+            <Divider classes={{root: classes.divider}}/>
+            <CardContent style={{flexGrow: 1, height: "100%", width: "100%", overflowY: "auto", padding: 0}}>
+                <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
+                    {items.map((value) => (
+                        <>
+                            {
+                                left && value.left &&
+                                <CustomListElement value={value} onClick={onClick}/>
+                            }
+                            {
+                                !left && value.right &&
+                                <CustomListElement value={value} onClick={onClick} />
+                            }
+                        </>
+
+                        ))}
+                </List>
+            </CardContent>
+        </React.Fragment>
+    )
+}
+const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
+    const classes = useStyles();
+    const [data, setData] = React.useState(initialData);
+    const handleToggle = (value)  => {
+        const updatedData = data.map(d => {
+            if(value.id === d.id){
+                return {...d, checked: !d.checked}
+            } else {
+                return {...d}
+            }
+        });
+        setData(updatedData);
+    };
+    const handleAllRight = () => {
+        const updatedData = data.map( d => {
+            return {...d, checked: false, left: false, right: true}
+        })
+        setData(updatedData);
+    };
+    const handleCheckedRight = () => {
+        const updatedData = data.map( d => {
+            if(d.checked && d.left){
+                return {...d, checked: false, left: false, right: true};
+            } else {
+                return {...d};
+            }
+        })
+        setData(updatedData);
+    };
+    const handleCheckedLeft = () => {
+        const updatedData = data.map( d => {
+            if(d.checked && d.right){
+                return {...d, checked: false, left: true, right: false};
+            } else {
+                return {...d};
+            }
+        })
+        setData(updatedData);
+    };
+    const handleAllLeft =() => {
+        const updatedData = data.map( d => {
+            return {...d, checked: false, left: true, right: false}
+        })
+        setData(updatedData);
+    };
+    React.useEffect( () => {
+        parentLeftData.current = data.reduce( (prev, cur) => {
+            if(cur.left){return [...prev, cur]}
+            return [...prev];
+        }, []);
+        parentRightData.current = data.reduce( (prev, cur) => {
+            if(cur.right){return [...prev, cur]}
+            return [...prev];
+        }, []);
+    }, [data]);
+    React.useEffect( () => {
+        setData(initialData.map(c => {
+            return {...c, left: true, checked: false, right: false}
+        }));
+    }, [initialData]);
+    return (
+        <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
+            <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
+                <CustomList title={"Callbacks Not Being Tasked"} left={true} items={data} onClick={handleToggle} />
+            </div>
+            <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
+                <Button
+                    variant="outlined"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleAllRight}
+                    aria-label="move all right"
+                >
+                    &gt;&gt;
+                </Button>
+                <Button
+                    variant="outlined"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleCheckedRight}
+                    aria-label="move selected right"
+                >
+                    &gt;
+                </Button>
+                <Button
+                    variant="outlined"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleCheckedLeft}
+                    aria-label="move selected left"
+                >
+                    &lt;
+                </Button>
+                <Button
+                    variant="outlined"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleAllLeft}
+                    aria-label="move all left"
+                >
+                    &lt;&lt;
+                </Button>
+
+            </div>
+            <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>
+                <CustomList title={"Callbacks To Task"} left={false} items={data} onClick={handleToggle} />
+            </div>
+        </div>
+    )
+}
+export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
+    const mountedRef = React.useRef(true);
+    const [selectedToken, setSelectedToken] = React.useState({});
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
     const taskingData = React.useRef({});
-    const leftToTask = React.useRef([]);
-    const startTasking = React.useRef(false);
     const finalTaskedParameters = React.useRef(null);
-    const [openProgressIndicator, setOpenProgressIndicator] = React.useState(false);
-    const [progress, setProgress] = React.useState(0);
-    const totalToTask = React.useRef(1);
-    const normalize = (value) => ((value - 0) * 100) / (totalToTask.current - 0);
+    const [initialData, setInitialData] = React.useState([]);
+    const leftData = React.useRef([]);
+    const rightData = React.useRef([]);
     useQuery(callbacksAndFeaturesQuery, {variables: {payloadtype_id: callback.payload.payloadtype.id},
       fetchPolicy: "no-cache",
       onCompleted: (data) => {
-        const callbackData = data.callback.map( c => {
-          const display = `${c.id} - ${c.user}@${c.host} (${c.pid})`;
+          setInitialData(data.callback.map( c => {
+          const display = `${c.id} - ${c.user}${c.integrity_level > 2 ? "*" : ""}@${c.host} (${c.pid}) - ${c.description}`;
           return {...c, display};
-        });
-        setLeft(callbackData);
+        }));
       }
     });
-    React.useEffect( () =>{
-      //based on what's in the `right` variable, we can update the featureOptions to be the intersection of those values
-      let allCommands = [];
-      if(right.length >= 1){
-        allCommands = [...right[0].loadedcommands];
-        for(let i = 1; i < right.length; i++){
-          let intersection = [];
-          for(let j = 0; j < allCommands.length; j++){
-            if(right[i].loadedcommands.findIndex( x => x.command.cmd === allCommands[j].command.cmd) >= 0){
-              intersection.push(allCommands[j]);
-            }
-          }
-          allCommands = [...intersection];
-        }
-      }
-      allCommands.sort( (a,b) => a.command.cmd < b.command.cmd ? -1 : a.command.cmd > b.command.cmd ? 1 : 0)
-      setFeatureOptions(allCommands);
-      if(allCommands.length > 0){
-        setSelectedFeature(allCommands[0]);
-      }else{
-        setSelectedFeature('');
-      }
-    }, [right]);
-    const handleToggle = (value) => () => {
-      const currentIndex = checked.indexOf(value);
-      const newChecked = [...checked];
-
-      if (currentIndex === -1) {
-        newChecked.push(value);
-      } else {
-        newChecked.splice(currentIndex, 1);
-      }
-
-      setChecked(newChecked);
-    };
-
-    const handleAllRight = () => {
-      setRight(right.concat(left));
-      setLeft([]);
-    };
-
-    const handleCheckedRight = () => {
-      setRight(right.concat(leftChecked));
-      setLeft(not(left, leftChecked));
-      setChecked(not(checked, leftChecked));
-    };
-
-    const handleCheckedLeft = () => {
-      setLeft(left.concat(rightChecked));
-      setRight(not(right, rightChecked));
-      setChecked(not(checked, rightChecked));
-    };
-
-    const handleAllLeft = () => {
-      setLeft(left.concat(right));
-      setRight([]);
-    };
-    const issueNextTasking = () => {
-      let callback = leftToTask.current.shift(1);
-      
-      if(callback){
-        if(finalTaskedParameters.current){
-          taskingData.current = {cmd: selectedFeature.command.cmd, callback_id: callback.id, openDialog: false, parameters: finalTaskedParameters.current, tasking_location: "modal", dontShowSuccessDialog: true};
-        }else{
-          taskingData.current = {cmd: selectedFeature.command.cmd, callback_id: callback.id, openDialog: true, parameters: "", tasking_location: "modal", dontShowSuccessDialog: true};
-        }
-        setOpenTaskingButton(true);
-      }else{
-        //setOpenProgressIndicator(false);
-        //onClose();
-        return;
-      }
-    }
     const submitTasking = () => {
       //console.log("selectedFeature", selectedFeature)
-      if(right.length === 0 || selectedFeature === ""){
+      if(rightData.current.length === 0){
         onClose();
+        console.log("rightData.current.length === 0")
         return;
       }
-      startTasking.current = true;
-      leftToTask.current = [...right];
-      totalToTask.current = right.length;
-      
-      //console.log("calling issueNextTasking")
-      issueNextTasking();
+        const callbacks = rightData.current.map( c => c.display_id)
+        if(callbacks.length > 0){
+            if(finalTaskedParameters.current){
+                taskingData.current = {...taskingData.current, callback_ids: callbacks, openDialog: false, parameters: finalTaskedParameters.current};
+            }else{
+                taskingData.current = {...taskingData.current, callback_ids: callbacks, openDialog: true};
+            }
+            setOpenTaskingButton(true);
+        }else{
+            //setOpenProgressIndicator(false);
+            //onClose();
+            return;
+        }
     }
     const onTasked = ({tasked, variables}) => {
-      if(tasked){
-        //console.log("setting finalTaskedParameters to", variables);
-        finalTaskedParameters.current = variables;
-        setProgress(progress + 1);
-        setOpenProgressIndicator(true);
-        setOpenTaskingButton(false);
-      }else{
-        onClose()
-        return;
-      }
-      
+        onClose();
     }
-    React.useEffect( () => {
-      if(startTasking.current){
-        if(!openTaskingButton){
-          issueNextTasking();
+    const onSubmitCommandLine = (message, cmd, parsed, force_parsed_popup, cmdGroupNames, previousTaskingLocation) => {
+        //console.log(message, cmd, parsed);
+        let params = message.split(" ");
+        delete params[0];
+        params = params.join(" ").trim();
+        let newTaskingLocation = "parsed_cli";
+        if(previousTaskingLocation.includes("modal")){
+            newTaskingLocation = "modal_modified"
+        }else if(previousTaskingLocation.includes("browserscript")){
+            newTaskingLocation = "browserscript_modified";
         }
-      }
-    }, [openTaskingButton, startTasking])
-    React.useEffect( () => {
-      if(!openProgressIndicator){
-        setProgress(0);
-      }
-    }, [openProgressIndicator])
-    const customList = (title, items) => (
-      <React.Fragment>
-          <CardHeader title={title} />
-          <Divider classes={{root: classes.divider}}/>
-          <CardContent style={{flexGrow: 1, overflowY: "auto", padding: 0}}>
-            <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
-              {items.map((value) => {
-                const labelId = `transfer-list-item-${value.id}-label`;
-                return (
-                  <ListItem style={{padding:0}} key={value.id} role="listitem" button onClick={handleToggle(value)}>
-                    <ListItemIcon>
-                      <Checkbox
-                        checked={checked.indexOf(value) !== -1}
-                        tabIndex={-1}
-                        disableRipple
-                        inputProps={{ 'aria-labelledby': labelId }}
-                      />
-                    </ListItemIcon>
-                    <ListItemText id={labelId} primary={value.display} />
-                  </ListItem>
-                );
-              })}
-              <ListItem />
-            </List>
-          </CardContent>
-      </React.Fragment>
-    );
-    const handleChange = (event) => {
-      setSelectedFeature(event.target.value);
-    };
+        if(cmd.commandparameters.length === 0){
+            // if there are no parameters, just send whatever the user types along
+            finalTaskedParameters.current = params;
+            taskingData.current = {
+                cmd: cmd.cmd,
+                callback_id: callback.id,
+                openDialog: false,
+                parameters: params,
+                tasking_location: newTaskingLocation,
+                dontShowSuccessDialog: false
+            };
+            submitTasking();
+            return;
+        }else{
+            // check if there's a "file" component that needs to be displayed
+            const fileParamExists = cmd.commandparameters.find(param => param.parameter_type === "File" && cmdGroupNames.includes(param.parameter_group_name));
+            //console.log("missing File for group? ", fileParamExists, cmdGroupNames);
+            let missingRequiredPrams = false;
+            if(cmdGroupNames.length === 1){
+                const missingParams = cmd.commandparameters.filter(param => param.required && param.parameter_group_name === cmdGroupNames[0] && !(param.cli_name in parsed || param.name in parsed || param.display_name in parsed));
+                if(missingParams.length > 0){
+                    missingRequiredPrams = true;
+                    console.log("missing required params", missingParams,parsed);
+                }
+            }else if(cmdGroupNames > 1 && !force_parsed_popup){
+                // need to force a popup because the tasking is ambiguous
+                console.log("command is ambiguous");
+                force_parsed_popup = true;
+            }
+            if(fileParamExists || force_parsed_popup || missingRequiredPrams){
+                //need to do a popup
+                if(cmdGroupNames.length > 0){
+                    finalTaskedParameters.current = undefined;
+                    taskingData.current = {
+                        cmd: cmd.cmd,
+                        callback_id: callback.id,
+                        openDialog: true,
+                        parsedParameters: parsed,
+                        groupName: cmdGroupNames[0],
+                        parameters: params,
+                        tasking_location: newTaskingLocation,
+                        dontShowSuccessDialog: false
+                    };
+                }else{
+                    finalTaskedParameters.current = undefined;
+                    taskingData.current = {
+                        cmd: cmd.cmd,
+                        callback_id: callback.id,
+                        openDialog: true,
+                        parsedParameters: parsed,
+                        parameters: params,
+                        tasking_location: newTaskingLocation,
+                        dontShowSuccessDialog: false
+                    };
+                }
+                submitTasking();
+                return;
+            }else{
+                delete parsed["_"];
+                finalTaskedParameters.current = JSON.stringify(parsed);
+                taskingData.current = {
+                    cmd: cmd.cmd,
+                    callback_id: callback.id,
+                    openDialog: false,
+                    parameters: finalTaskedParameters.current,
+                    original_params: params,
+                    parsedParameters: parsed,
+                    tasking_location: newTaskingLocation,
+                    dontShowSuccessDialog: false,
+                    parameter_group_name: cmdGroupNames[0]
+                };
+                submitTasking();
+            }
+        }
+    }
+    const changeSelectedToken = (token) => {
+        if(token === "Default Token"){
+            setSelectedToken("Default Token");
+            return;
+        }
+        if(token.token_id !== selectedToken.token_id){
+            setSelectedToken(token);
+        }
+    }
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Task Multiple {callback.payload.payloadtype.name} Callbacks at Once</DialogTitle>
         <DialogContent dividers={true} style={{height: "100%", display: "flex", flexDirection: "column", position: "relative",  maxHeight: "100%"}}>
-        <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
-          <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
-            {customList("Callbacks Not Being Tasked", left)}
-          </div>
-            <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-              <Button
-                variant="outlined"
-                size="small"
-                className={classes.button}
-                onClick={handleAllRight}
-                disabled={left.length === 0}
-                aria-label="move all right"
-              >
-                &gt;&gt;
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                className={classes.button}
-                onClick={handleCheckedRight}
-                disabled={leftChecked.length === 0}
-                aria-label="move selected right"
-              >
-                &gt;
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                className={classes.button}
-                onClick={handleCheckedLeft}
-                disabled={rightChecked.length === 0}
-                aria-label="move selected left"
-              >
-                &lt;
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                className={classes.button}
-                onClick={handleAllLeft}
-                disabled={right.length === 0}
-                aria-label="move all left"
-              >
-                &lt;&lt;
-              </Button>
- 
-          </div>
-          <div  style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>
-            {customList("Callbacks To Task", right)}
-          </div>
-        </div>
-        
+            <CustomTransferList initialData={initialData}
+                            parentLeftData={leftData}
+                            parentRightData={rightData}  />
         <Grid item xs={12} >
-            <pre>
-              {"The following capabilities are loaded into all of the selected callbacks. Select one to issue mass tasking."}
-            </pre>
-            <InputLabel ref={inputRef}>Supported Commands</InputLabel>
-            <Select
-              labelId="demo-dialog-select-label"
-              id="demo-dialog-select"
-              value={selectedFeature}
-              onChange={handleChange}
-              disabled={featureOptions.length === 0}
-              variant="filled"
-              input={<Input style={{maxWidth: "100%"}}/>}
-            >
-              {featureOptions.map( (opt) => (
-                  <MenuItem value={opt} key={opt.id}><b>{opt.command.cmd}</b> - {opt.command.description}</MenuItem>
-              ) )}
-            </Select>
-          
+            <CallbacksTabsTaskingInput filterTasks={false} onSubmitFilter={()=>{}} onSubmitCommandLine={onSubmitCommandLine}
+                                       changeSelectedToken={changeSelectedToken}
+                                       filterOptions={{}} callback_id={callback.id} callback_os={callback.payload.os} parentMountedRef={mountedRef} />
         </Grid>
         </DialogContent>
         {openTaskingButton && 
             <TaskFromUIButton cmd={taskingData.current?.cmd} 
-                callback_id={taskingData?.current?.callback_id || 0} 
+                callback_id={taskingData?.current?.callback_id || 0}
+                callback_ids={taskingData?.current?.callback_ids || undefined}
                 parameters={taskingData.current?.parameters || ""}
                 openDialog={taskingData.current?.openDialog || false}
                 tasking_location={taskingData.current?.tasking_location || "command_line"}
                 dontShowSuccessDialog={taskingData.current?.dontShowSuccessDialog || false}
                 onTasked={onTasked}/>
-        }  
-        {openProgressIndicator &&
-          <Dialog
-            open={openProgressIndicator}
-            onClose={() => {setOpenProgressIndicator(false)}}
-            scroll="paper"
-            fullWidth={true}
-            aria-labelledby="scroll-dialog-title"
-            aria-describedby="scroll-dialog-description"
-          >
-              <DialogContent>
-                {progress === totalToTask.current ? (
-                  "Complete!"
-                ) : (
-                  "Issuing tasks..."
-                )}
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box sx={{ width: '100%', mr: 1 }}>
-                    <LinearProgress variant="determinate" value={normalize(progress)} valueBuffer={progress + 1} />
-                  </Box>
-                    <Typography style={{width: "5rem"}} variant="body2" color="text.secondary">{progress} / {totalToTask.current} </Typography>
-                </Box>
-              </DialogContent>
-          </Dialog>
-          
         }
         <DialogActions>
           <Button onClick={onClose} variant="contained" color="primary">

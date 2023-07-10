@@ -68,7 +68,9 @@ export function EventFeedNotifications(props) {
                 if (data.operationeventlog_stream[0].level === "warning") {
                     snackActions.warning(data.operationeventlog_stream[0].message, {autoClose: 3000});
                 } else {
-                    snackActions.info(data.operationeventlog_stream[0].message, {autoClose: 3000});
+                    snackActions.info(
+                        <div style={{width: "100%", whiteSpace: "pre"}}>{data.operationeventlog_stream[0].message}</div>,
+                    {autoClose: 3000});
                 }
 
             }

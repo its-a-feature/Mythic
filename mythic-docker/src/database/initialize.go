@@ -122,6 +122,10 @@ func getNewDbConnection() *sqlx.DB {
 			logging.LogError(err, "Failed to connect to database", "host", utils.MythicConfig.PostgresHost, "port", utils.MythicConfig.PostgresPort)
 			time.Sleep(RETRY_CONNECT_DELAY)
 		} else {
+			conn.SetMaxOpenConns(40)
+			conn.SetMaxIdleConns(10)
+			conn.SetConnMaxLifetime(0)
+			conn.SetConnMaxIdleTime(0)
 			return conn
 		}
 	}

@@ -62,8 +62,7 @@ export function EventFeedTableEvents(props){
                             {props.message}</pre>
                     }
                 />
-                <EventFeedTableEventsActions id={props.id} level={props.level} 
-                  onUpdateDeleted={props.onUpdateDeleted}
+                <EventFeedTableEventsActions id={props.id} level={props.level}
                   onUpdateResolution={props.onUpdateResolution} 
                   onUpdateLevel={props.onUpdateLevel}
                   resolved={props.resolved}/>

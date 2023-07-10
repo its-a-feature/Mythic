@@ -115,7 +115,8 @@ type Mutation {
     command: String!
     params: String!
     files: [String]
-    callback_id: Int!
+    callback_id: Int
+    callback_ids: [Int]
     token_id: Int
     tasking_location: String
     original_params: String
@@ -346,7 +347,8 @@ input CreatePayloadInput {
 }
 
 input updateCallbackInput {
-  callback_display_id: Int!
+  callback_display_id: Int
+  callback_display_ids: [Int]
   active: Boolean
   locked: Boolean
   description: String
