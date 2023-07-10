@@ -363,10 +363,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
         }
         <DialogActions>
           <Button onClick={onClose} variant="contained" color="primary">
-            Close
-          </Button>
-          <Button onClick={submitTasking} variant="contained" color="warning">
-            Task
+            Cancel
           </Button>
         </DialogActions>
   </React.Fragment>
