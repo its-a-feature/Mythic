@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -10,7 +11,7 @@ import (
 )
 
 type MythicRPCAgentstorageSearchMessage struct {
-	SearchUniqueID string `json:"unique_id"` // required
+	SearchUniqueID string `json:"unique_id" db:"unique_id"` // required
 }
 type MythicRPCAgentstorageSearchMessageResponse struct {
 	Success              bool                                `json:"success"`
@@ -33,17 +34,17 @@ func init() {
 }
 
 // Endpoint: MYTHIC_RPC_AGENTSTORAGE_SEARCH
-//
 func MythicRPCAgentstorageSearch(input MythicRPCAgentstorageSearchMessage) MythicRPCAgentstorageSearchMessageResponse {
 	response := MythicRPCAgentstorageSearchMessageResponse{
 		Success: false,
 	}
 	agentStorageMessages := []databaseStructs.Agentstorage{}
+	searchUniqueID := fmt.Sprintf("%%%s%%", input.SearchUniqueID)
 	if err := database.DB.Select(&agentStorageMessages, `SELECT
 	*
 	FROM agentstorage
-	WHERE unique_id ILIKE %$1%`, input.SearchUniqueID); err != nil {
-		logging.LogError(err, "Failed to save agentstorage data to database")
+	WHERE unique_id ILIKE $1`, searchUniqueID); err != nil {
+		logging.LogError(err, "Failed to search agentstorage data")
 		response.Error = err.Error()
 		return response
 	} else {

@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -45,7 +46,8 @@ func init() {
 // Endpoint: MYTHIC_RPC_PROCESS_SEARCH
 func MythicRPCProcessSearch(input MythicRPCProcessSearchMessage) MythicRPCProcessSearchMessageResponse {
 	response := MythicRPCProcessSearchMessageResponse{
-		Success: false,
+		Success:   false,
+		Processes: []MythicRPCProcessSearchProcessData{},
 	}
 	paramDict := make(map[string]interface{})
 	task := databaseStructs.Task{}
@@ -58,12 +60,11 @@ func MythicRPCProcessSearch(input MythicRPCProcessSearchMessage) MythicRPCProces
 		response.Error = err.Error()
 		return response
 	} else {
-		processes := []databaseStructs.MythicTree{}
 		paramDict["operation_id"] = task.Callback.OperationID
 		searchString := `SELECT * FROM mythictree WHERE operation_id=:operation_id AND tree_type='process' `
 		if input.SearchProcess.Host != nil {
-			paramDict["host"] = *input.SearchProcess.Host
-			searchString += "AND host ILIKE %:host% "
+			paramDict["host"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.Host)
+			searchString += "AND host ILIKE :host "
 		}
 		if input.SearchProcess.ProcessID != nil {
 			paramDict["process_id"] = *input.SearchProcess.ProcessID
@@ -78,52 +79,56 @@ func MythicRPCProcessSearch(input MythicRPCProcessSearchMessage) MythicRPCProces
 			searchString += "AND metadata->>'parent_process_id'=:parent_process_id "
 		}
 		if input.SearchProcess.BinPath != nil {
-			paramDict["bin_path"] = *input.SearchProcess.BinPath
-			searchString += "AND metadata->>'bin_path' ILIKE %:bin_path% "
+			paramDict["bin_path"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.BinPath)
+			searchString += "AND metadata->>'bin_path' ILIKE :bin_path "
 		}
 		if input.SearchProcess.Name != nil {
-			paramDict["name"] = *input.SearchProcess.Name
-			searchString += "AND name ILIKE %:name% "
+			paramDict["name"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.Name)
+			searchString += "AND name ILIKE :name "
 		}
 		if input.SearchProcess.User != nil {
-			paramDict["user"] = *input.SearchProcess.User
-			searchString += "AND metadata->>\"user\" ILIKE %:user% "
+			paramDict["user"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.User)
+			searchString += "AND metadata->>\"user\" ILIKE :user "
 		}
 		if input.SearchProcess.CommandLine != nil {
-			paramDict["command_line"] = *input.SearchProcess.CommandLine
-			searchString += "AND metadata->>'command_line' ILIKE %:command_line% "
+			paramDict["command_line"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.CommandLine)
+			searchString += "AND metadata->>'command_line' ILIKE :command_line "
 		}
 		if input.SearchProcess.IntegrityLevel != nil {
 			paramDict["integrity_level"] = *input.SearchProcess.IntegrityLevel
 			searchString += "AND metadata->>'integrity_level'=:integrity_level "
 		}
 		if input.SearchProcess.Description != nil {
-			paramDict["description"] = *input.SearchProcess.Description
-			searchString += "AND metadata->>'description' ILIKE %:description% "
+			paramDict["description"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.Description)
+			searchString += "AND metadata->>'description' ILIKE :description "
 		}
 		if input.SearchProcess.Signer != nil {
-			paramDict["signer"] = *input.SearchProcess.Signer
-			searchString += "AND metadata->>'signer' ILIKE %:signer% "
+			paramDict["signer"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.Signer)
+			searchString += "AND metadata->>'signer' ILIKE :signer "
 		}
-		if err := database.DB.Select(&processes, searchString, paramDict); err != nil {
+		if rows, err := database.DB.NamedQuery(searchString, paramDict); err != nil {
+			logging.LogError(err, "Failed to search artifact information")
 			response.Error = err.Error()
 			return response
 		} else {
-			returnedProcesses := make([]MythicRPCProcessSearchProcessData, len(processes))
-			for i := 0; i < len(processes); i++ {
-				if err := mapstructure.Decode(processes[i].Metadata.StructValue(), &returnedProcesses[i]); err != nil {
-					logging.LogError(err, "Failed to decode process search result to struct")
+			for rows.Next() {
+				searchResult := databaseStructs.MythicTree{}
+				if err = rows.StructScan(&searchResult); err != nil {
+					logging.LogError(err, "Failed to get row from artifacts for search")
 				} else {
-					returnedProcesses[i].Host = &processes[i].Host
-					nm := string(processes[i].Name)
-					returnedProcesses[i].Name = &nm
+					returnedProcess := MythicRPCProcessSearchProcessData{}
+					if err := mapstructure.Decode(searchResult.Metadata.StructValue(), &returnedProcess); err != nil {
+						logging.LogError(err, "Failed to decode process search result to struct")
+					} else {
+						returnedProcess.Host = &searchResult.Host
+						nm := string(searchResult.Name)
+						returnedProcess.Name = &nm
+						response.Processes = append(response.Processes, returnedProcess)
+					}
 				}
 			}
-
 			response.Success = true
-			response.Processes = returnedProcesses
 			return response
-
 		}
 	}
 }

@@ -168,7 +168,7 @@ export function PayloadSubscriptionNotification(props) {
             if(payloadData.build_phase === "success" || payloadData.build_phase === "building"){
                 snackActions.dismiss();
                 snackActions.clearAll();
-                snackActions.info(getSnackMessage(), {toastId: payloadData.uuid, autoClose: false, onClose: handleDismiss, closeOnClick: false});
+                snackActions.info(getSnackMessage(), {toastId: payloadData.uuid, autoClose: false, onClose: handleDismiss, closeOnClick: false, closeButton: undefined});
             }
             displayingToast.current = true;
             
