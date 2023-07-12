@@ -179,6 +179,8 @@ func (r *rabbitMQConnection) SendMessageMutexChannel(queue string, exchange stri
 		false,    // immediate
 		msg,      // publishing
 	); err != nil {
+		r.channelMutexMap[exchange+queue].Channel.Close()
+		r.channelMutexMap[exchange+queue].Channel = nil
 		logging.LogError(err, "there was an error publishing a message", "queue", queue)
 		return err
 	}
@@ -187,10 +189,15 @@ func (r *rabbitMQConnection) SendMessageMutexChannel(queue string, exchange stri
 		if !ntf.Ack {
 			err := errors.New("failed to deliver message, not ACK-ed by receiver")
 			logging.LogError(err, "failed to deliver message to exchange/queue, notifyPublish")
+			r.channelMutexMap[exchange+queue].Channel.Close()
+			r.channelMutexMap[exchange+queue].Channel = nil
 			return err
 		}
+
 	case ret := <-r.channelMutexMap[exchange+queue].NotifyReturn:
 		err := errors.New(getMeaningfulRabbitmqError(ret))
+		r.channelMutexMap[exchange+queue].Channel.Close()
+		r.channelMutexMap[exchange+queue].Channel = nil
 		if !ignoreErrormessage {
 			logging.LogError(err, "NotifyReturn error")
 			return err
@@ -199,6 +206,8 @@ func (r *rabbitMQConnection) SendMessageMutexChannel(queue string, exchange stri
 	case <-time.After(RPC_TIMEOUT):
 		err := errors.New("message delivery confirmation timed out")
 		logging.LogError(err, "no notify publish or notify return, assuming success and continuing", "queue", queue)
+		r.channelMutexMap[exchange+queue].Channel.Close()
+		r.channelMutexMap[exchange+queue].Channel = nil
 		return nil
 	}
 	return nil
@@ -223,20 +232,12 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 	// exchange: MYTHIC_EXCHANGE
 	// queue: which routing key is listening (this is the direct name)
 	// correlation_id: empty string
-	retryLimit := 5
-	var finalError error
-	//logging.LogDebug("sending direct message", "queue", queue, "msg", body)
-	for i := 0; i < retryLimit; i++ {
-		err := r.SendMessageMutexChannel(queue, exchange, correlationId, body, ignoreErrormessage)
-		if err != nil && exchange == MYTHIC_EXCHANGE {
-			finalError = err
-			continue
-		} else {
-			return nil
-		}
+	err := r.SendMessageMutexChannel(queue, exchange, correlationId, body, ignoreErrormessage)
+	if err != nil && exchange == MYTHIC_TOPIC_EXCHANGE {
+		return nil
+	} else {
+		return err
 	}
-	logging.LogError(finalError, "Final error, couldn't send rabbitmq message")
-	return finalError
 
 }
 func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body []byte, exclusiveQueue bool) ([]byte, error) {
