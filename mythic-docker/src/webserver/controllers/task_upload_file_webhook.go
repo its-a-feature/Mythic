@@ -20,6 +20,7 @@ func TaskUploadFileWebhook(c *gin.Context) {
 			"status": "error",
 			"error":  "Missing current operation",
 		})
+		return
 	}
 	currentOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	file, err := c.FormFile("file")
@@ -28,6 +29,7 @@ func TaskUploadFileWebhook(c *gin.Context) {
 			"status": "error",
 			"error":  "Missing file in form",
 		})
+		return
 	}
 	fileUUID, filePath, err := rabbitmq.GetSaveFilePath()
 	if err != nil {
@@ -35,6 +37,7 @@ func TaskUploadFileWebhook(c *gin.Context) {
 			"status": "error",
 			"error":  err.Error(),
 		})
+		return
 	}
 	if err := c.SaveUploadedFile(file, filePath); err != nil {
 		logging.LogError(err, "Failed to save uploaded file to disk")

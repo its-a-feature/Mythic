@@ -120,7 +120,7 @@ export function App(props) {
                 <CssBaseline />
                 <ToastContainer limit={2} autoClose={3000}
                                 theme={themeMode}
-                                style={{maxWidth: "100%", width: "60%"}} pauseOnFocusLoss={false} />
+                                style={{maxWidth: "100%", width: "40%", marginTop: "20px"}} pauseOnFocusLoss={false} />
                     <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ minHeight: '56px', flexGrow: 0 }}>
                             {me.loggedIn && me.user !== undefined && me.user !== null ? (
