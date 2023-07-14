@@ -261,13 +261,30 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	} else {
 		totalBase64Bytes = len(*agentMessageInput.RawMessage)
 	}
-	if len(base64DecodedMessage) <= 36 {
-		errorMessage := "Message length too short\n"
-		errorMessage += fmt.Sprintf("message: %s\n", string(base64DecodedMessage))
-		go SendAllOperationsMessage(errorMessage, 0, "agent_message_length", database.MESSAGE_LEVEL_WARNING)
-		logging.LogError(nil, "Message length too short")
-		instanceResponse.Err = errors.New("message too short")
-		return instanceResponse
+	// 36 is the length of a UUID string and 16 is the length of a UUID in raw bytes
+	base64DecodedMessageLength := len(base64DecodedMessage)
+	if base64DecodedMessageLength <= 36 {
+		if base64DecodedMessageLength <= 16 {
+			// if a message is less than 16 bytes, then it can't possibly have a UUID in it
+			errorMessage := "Message length too short\n"
+			errorMessage += fmt.Sprintf("message: %s\n", string(base64DecodedMessage))
+			go SendAllOperationsMessage(errorMessage, 0, "agent_message_length", database.MESSAGE_LEVEL_WARNING)
+			logging.LogError(nil, "Message length too short")
+			instanceResponse.Err = errors.New("message too short")
+			return instanceResponse
+		}
+		// if a message is between 16 and 36 bytes, then it might have a 16 byte UUID
+		if messageUUID, err = uuid.FromBytes(base64DecodedMessage[:16]); err != nil {
+			logging.LogError(err, "Failed to parse UUID from beginning of message")
+			errorMessage := fmt.Sprintf("Failed to parse a valid UUID from the beginning of an agent message\n")
+			errorMessage += "This likely happens if somme sort of traffic came through your C2 profile (ports too open) that isn't actually an agent message\n"
+			errorMessage += fmt.Sprintf("Connection from %s\n", agentMessageInput.RemoteIP)
+			go SendAllOperationsMessage(errorMessage, 0, "agent_message_uuid", database.MESSAGE_LEVEL_WARNING)
+			instanceResponse.Err = err
+			return instanceResponse
+		} else {
+			agentUUIDLength = 16
+		}
 		// 3. Parse out UUID and body
 	} else if messageUUID, err = uuid.Parse(string(base64DecodedMessage[:36])); err != nil {
 		if messageUUID, err = uuid.FromBytes(base64DecodedMessage[:16]); err != nil {
