@@ -909,7 +909,8 @@ func RecursivelyEncryptMessage(path []cbGraphAdjMatrixEntry, message map[string]
 	// recursively craft all of the delegate messages and encrypt them except for the last one
 	// for a path of 1 -> 2 -> 4, where we're 1 and the task is for 4, we should encrypt for 4 and 2
 	currentMessage := message
-	for i := 0; i < len(path)-2; i++ {
+	logging.LogDebug("recursively encrypting message", "path", path)
+	for i := 0; i < len(path)-1; i++ {
 		logging.LogDebug("Recursively encrypting and prepping tasks for delegates", "target_id", path[i].DestinationId, "c2", path[i].C2ProfileName)
 		if targetUuidInfo, err := LookupEncryptionData(path[i].C2ProfileName, path[i].DestinationAgentId); err != nil {
 			logging.LogError(err, "Failed to lookup encryption data for target", "target", path[i].DestinationAgentId, "target_id", path[i].DestinationId)

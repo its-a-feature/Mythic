@@ -122,7 +122,7 @@ func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []de
 				currentTasks := []databaseStructs.Task{}
 				if taskIDs := submittedTasksAwaitingFetching.getTasksForCallbackId(targetCallbackId); len(taskIDs) > 0 {
 					if query, args, err := sqlx.Named(`SELECT 
-						agent_task_id, "timestamp", command_name, params, id
+						agent_task_id, "timestamp", command_name, params, id, token_id
 						FROM task WHERE id IN (:ids) ORDER BY id ASC`, map[string]interface{}{
 						"ids": taskIDs,
 					}); err != nil {
@@ -140,6 +140,12 @@ func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []de
 					}
 					for i := 0; i < len(currentTasks); i++ {
 						// now that we have a path, need to recursively encrypt and wrap
+						var tokenID int
+						if currentTasks[i].TokenID.Valid {
+							if err := database.DB.Get(&tokenID, `SELECT token_id FROM token WHERE id=$1`, currentTasks[i].TokenID.Int64); err != nil {
+								logging.LogError(err, "failed to get token information")
+							}
+						}
 						newTask := map[string]interface{}{
 							"action": "get_tasking",
 							"tasks": []agentMessageGetTaskingTask{
@@ -148,9 +154,11 @@ func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []de
 									Parameters: currentTasks[i].Params,
 									ID:         currentTasks[i].AgentTaskID,
 									Timestamp:  currentTasks[i].Timestamp.Unix(),
+									Token:      &tokenID,
 								},
 							},
 						}
+
 						if _, err := database.DB.Exec(`UPDATE task SET
 							status=$2, status_timestamp_processing=$3
 							WHERE id=$1`, currentTasks[i].ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC()); err != nil {

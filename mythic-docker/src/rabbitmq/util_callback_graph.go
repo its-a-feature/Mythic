@@ -113,7 +113,7 @@ func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName
 	} else if err := database.DB.Get(&destinationCallback, `SELECT 
     	id, operation_id, agent_callback_id 
 		FROM callback WHERE agent_callback_id=$1`, destination); err != nil {
-		logging.LogError(err, "Failed to find destination callback for implicit P2P link")
+		logging.LogError(err, "Failed to find destination callback for implicit P2P link", "destination", destination)
 		return
 	}
 	edge := databaseStructs.Callbackgraphedge{}
