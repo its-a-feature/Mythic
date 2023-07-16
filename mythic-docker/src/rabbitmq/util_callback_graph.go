@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -124,12 +125,19 @@ func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName
 	// only add / talk to database if the in-memory piece gets updated
 	g.Add(sourceCallback, destinationCallback, c2profileName)
 	g.Add(destinationCallback, sourceCallback, c2profileName)
-
-	if _, err := database.DB.NamedExec(`INSERT INTO callbackgraphedge
+	// can't have a unique constraint with a NULL value, NULL != NULL
+	if err := database.DB.Get(&edge.ID, `SELECT id FROM callbackgraphedge
+		WHERE operation_id=:operation_id AND source_id=:source_id AND destination_id=:destination_id AND
+		c2_profile_id=:c2_profile_id AND end_timestamp IS NULL`); err == sql.ErrNoRows {
+		// this specific combination didn't yield any results, so add it
+		if _, err := database.DB.NamedExec(`INSERT INTO callbackgraphedge
 			(operation_id, source_id, destination_id, c2_profile_id)
-			VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id)
-			ON CONFLICT DO NOTHING`, edge); err != nil {
-		logging.LogError(err, "Failed to insert new edge for P2P connection")
+			VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id)`, edge); err != nil {
+			logging.LogError(err, "Failed to insert new edge for P2P connection")
+		}
+	} else if err != nil {
+		// ran into an error doing the query
+		logging.LogError(err, "Failed to query for existing P2P connection")
 	}
 
 }
