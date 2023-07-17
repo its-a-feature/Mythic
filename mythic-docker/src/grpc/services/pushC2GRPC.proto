@@ -1,0 +1,62 @@
+syntax = "proto3";
+option go_package = "github.com/its-a-feature/Mythic/grpc/services";
+package translationContainerServices;
+
+
+service TranslationContainer {
+  // rpc function(messageFromClient) messageToClient
+  // all of these functions start off by sending messageToClient and getting the result back
+  rpc TranslateFromCustomToMythicFormat (stream TrCustomMessageToMythicC2FormatMessageResponse) returns (stream TrCustomMessageToMythicC2FormatMessage) {}
+  rpc TranslateFromMythicToCustomFormat (stream TrMythicC2ToCustomMessageFormatMessageResponse) returns (stream TrMythicC2ToCustomMessageFormatMessage) {}
+  rpc GenerateEncryptionKeys (stream TrGenerateEncryptionKeysMessageResponse) returns (stream TrGenerateEncryptionKeysMessage) {}
+
+}
+
+message TrCustomMessageToMythicC2FormatMessage {
+  string                    TranslationContainerName = 1;
+  string                    C2Name = 2;
+  bytes                     Message = 3;
+  string                    UUID = 4;
+  bool                      MythicEncrypts = 5;
+  repeated CryptoKeysFormat CryptoKeys = 6;
+}
+message CryptoKeysFormat {
+  bytes  EncKey   = 1;
+  bytes  DecKey   = 2;
+  string Value    = 3;
+}
+message TrCustomMessageToMythicC2FormatMessageResponse  {
+bool Success  =1;
+string    Error   =2;
+bytes Message = 3;
+  string                    TranslationContainerName = 4;
+}
+
+message TrMythicC2ToCustomMessageFormatMessage {
+string TranslationContainerName =1;
+string    C2Name =2;
+bytes    Message = 3;
+string    UUID        =4;
+bool    MythicEncrypts =5;
+repeated CryptoKeysFormat    CryptoKeys   =6;
+}
+message TrMythicC2ToCustomMessageFormatMessageResponse {
+bool Success  =1;
+string    Error   =2;
+bytes    Message =3;
+  string                    TranslationContainerName = 4;
+}
+
+message TrGenerateEncryptionKeysMessage {
+string TranslationContainerName =1;
+string    C2Name    =2;
+string    CryptoParamValue   =3;
+string    CryptoParamName    =4;
+}
+message TrGenerateEncryptionKeysMessageResponse  {
+bool Success  =1;
+string    Error    =2;
+bytes    EncryptionKey =3;
+bytes    DecryptionKey =4;
+  string                    TranslationContainerName = 5;
+}

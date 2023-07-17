@@ -72,17 +72,14 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 			return response
 		}
 	} else if input.TaskID != nil {
-		task := databaseStructs.Task{}
-		if err := database.DB.Get(&task, `SELECT 
+		if err := database.DB.Get(&callback, `SELECT 
 			callback.*
-			FROM task
-			JOIN callback on task.callback_id = callback.id
+			FROM callback
+			JOIN task on task.callback_id = callback.id
 			WHERE task.id=$1`, *input.TaskID); err != nil {
 			logging.LogError(err, "failed to get callback information from task")
 			response.Error = err.Error()
 			return response
-		} else {
-			callback = task.Callback
 		}
 	} else {
 		logging.LogError(nil, "Must supply task or callback information to update callback")
