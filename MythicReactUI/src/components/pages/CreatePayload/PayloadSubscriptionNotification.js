@@ -141,6 +141,7 @@ export function PayloadSubscriptionNotification(props) {
     const displayingToast = React.useRef(false);
     const [displayErrorDialog, setDisplayErrorDialog] = React.useState(false);
     const dismissedUUIDs = React.useRef([]);
+    const mountedRef = React.useRef(true);
     const getSnackMessage = () => {
         return <SnackMessage
             file_id={payloadData.filemetum.agent_file_id} 
@@ -156,7 +157,15 @@ export function PayloadSubscriptionNotification(props) {
         dismissedUUIDs.current.push(payloadData.uuid);
         setDisplayErrorDialog(false);
     }
-    
+
+    React.useEffect(() => {
+        return () => {
+            if(displayingToast.current){
+                snackActions.dismiss();
+            }
+            mountedRef.current = false;
+        }
+    }, []);
     React.useEffect( () => {
         if(payloadData.uuid === undefined){
             return;
@@ -186,6 +195,9 @@ export function PayloadSubscriptionNotification(props) {
     const {  } = useSubscription(subscribe_payloads, {variables: {fromNow: props.fromNow},
     onSubscriptionData: ({subscriptionData}) => {
         if(subscriptionData.data.payload_stream[0].uuid === props.subscriptionID){
+            if(!mountedRef.current){
+                return;
+            }
             setPayloadData({...subscriptionData.data.payload_stream[0]});
         } else {
             console.log(subscriptionData.data.payload_stream[0])
