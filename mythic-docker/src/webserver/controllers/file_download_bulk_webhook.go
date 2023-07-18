@@ -2,10 +2,12 @@ package webcontroller
 
 import (
 	"archive/zip"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -58,33 +60,45 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 		zipWriter := zip.NewWriter(archive)
 		for _, fileUUID := range input.Input.Files {
 			filemeta := databaseStructs.Filemeta{}
-			if err := database.DB.Get(&filemeta,
+			err = database.DB.Get(&filemeta,
 				`SELECT * FROM filemeta WHERE 
 				filemeta.agent_file_id=$1 AND 
 				filemeta.deleted=false AND
 				filemeta.operation_id=$2`,
-				fileUUID, operatorOperation.CurrentOperation.ID); err != nil {
+				fileUUID, operatorOperation.CurrentOperation.ID)
+			if err != nil {
 				logging.LogError(err, "Failed to get file from database")
 				c.JSON(http.StatusOK, DownloadBulkFilesResponse{
 					Status: "error",
 					Error:  "Failed to get database information on specified files",
 				})
 				return
-			} else if file, err := os.Open(filemeta.Path); err != nil {
+			}
+			file, err := os.Open(filemeta.Path)
+			if err != nil {
 				logging.LogError(err, "Failed to open file", "path", filemeta.Path)
 				c.JSON(http.StatusOK, DownloadBulkFilesResponse{
 					Status: "error",
 					Error:  "Failed to get read file from disk",
 				})
 				return
-			} else if fileWriter, err := zipWriter.Create(string(filemeta.Filename)); err != nil {
+			}
+			// construct a new filename that's HOST_filename_uuid.extension to help with unique-ness
+			stringFileName := string(filemeta.Filename)
+			justFileName := strings.TrimSuffix(stringFileName, filepath.Ext(stringFileName))
+			justFileExtension := filepath.Ext(stringFileName)
+			newFileName := fmt.Sprintf("%s_%s_%s.%s", filemeta.Host, justFileName, filemeta.AgentFileID, justFileExtension)
+			fileWriter, err := zipWriter.Create(newFileName)
+			if err != nil {
 				logging.LogError(err, "Failed to create file entry in zip")
 				c.JSON(http.StatusOK, DownloadBulkFilesResponse{
 					Status: "error",
 					Error:  "Failed to create file entry in zip",
 				})
 				return
-			} else if _, err := io.Copy(fileWriter, file); err != nil {
+			}
+			_, err = io.Copy(fileWriter, file)
+			if err != nil {
 				logging.LogError(err, "Failed to write file entry in zip")
 				c.JSON(http.StatusOK, DownloadBulkFilesResponse{
 					Status: "error",

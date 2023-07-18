@@ -13,7 +13,6 @@ import {useTheme} from '@mui/material/styles';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { toLocalTime } from '../../utilities/Time';
 import DeleteIcon from '@mui/icons-material/Delete';
-import Switch from '@mui/material/Switch';
 import IconButton from '@mui/material/IconButton';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -31,6 +30,7 @@ import {PreviewFileHexDialog} from './PreviewFileHexDialog';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
+import Checkbox from '@mui/material/Checkbox';
 
 const downloadBulkQuery = gql`
 mutation downloadBulkMutation($files: [String!]!){
@@ -84,8 +84,22 @@ const SnackMessage = (props) => {
 export function FileMetaDownloadTable(props){
     const [selected, setSelected] = React.useState({});
     const [files, setFiles] = React.useState([]);
+    const [checkAll, setCheckAll] = React.useState(false);
     const onToggleSelection = (id, checked) => {
         setSelected({...selected, [id]: checked});
+    }
+    const onToggleCheckAll = () => {
+        if(checkAll){
+            // it's currently checked and clicked again, untoggle it all
+            setCheckAll(false);
+            setSelected({});
+        } else {
+            setCheckAll(true);
+            const newSelected = files.reduce( (prev, cur) => {
+                return {...prev, [cur.id]: true};
+            }, {});
+            setSelected(newSelected);
+        }
     }
     useEffect( () => {
         const initialSelected = props.files.reduce( (prev, file) => {
@@ -154,7 +168,10 @@ export function FileMetaDownloadTable(props){
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "3rem"}}></TableCell>
+                        <TableCell style={{width: "3rem"}}>
+                            <Checkbox checked={checkAll} onChange={onToggleCheckAll}
+                                      inputProps={{ 'aria-label': 'controlled' }} />
+                        </TableCell>
                         <TableCell style={{width: "5rem"}}>Delete</TableCell>
                         <TableCell >File</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
@@ -256,13 +273,9 @@ function FileMetaDownloadTableRow(props){
                 <MythicStyledTableCell>
                     {props.deleted ? (null) : (
                         <MythicStyledTooltip title="Toggle to download multiple files at once">
-                            <Switch
-                                checked={props.selected[props.id] === undefined ? false : props.selected[props.id]}
-                                onChange={onSelectChanged}
-                                color="primary"
-                                inputProps={{ 'aria-label': 'primary checkbox' }}
-                                name="select_multiple"
-                                />
+                            <Checkbox checked={props.selected[props.id] === undefined ? false : props.selected[props.id]}
+                                      onChange={onSelectChanged}
+                                      inputProps={{ 'aria-label': 'controlled' }} />
                         </MythicStyledTooltip>
                     )}
                     
@@ -390,8 +403,22 @@ function FileMetaDownloadTableRow(props){
 export function FileMetaUploadTable(props){
     const [selected, setSelected] = React.useState({});
     const [files, setFiles] = React.useState([]);
+    const [checkAll, setCheckAll] = React.useState(false);
     const onToggleSelection = (id, checked) => {
         setSelected({...selected, [id]: checked});
+    }
+    const onToggleCheckAll = () => {
+        if(checkAll){
+            // it's currently checked and clicked again, untoggle it all
+            setCheckAll(false);
+            setSelected({});
+        } else {
+            setCheckAll(true);
+            const newSelected = files.reduce( (prev, cur) => {
+                return {...prev, [cur.id]: true};
+            }, {});
+            setSelected(newSelected);
+        }
     }
     useEffect( () => {
         const initialSelected = props.files.reduce( (prev, file) => {
@@ -457,7 +484,10 @@ export function FileMetaUploadTable(props){
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "3rem"}}></TableCell>
+                        <TableCell style={{width: "3rem"}}>
+                            <Checkbox checked={checkAll} onChange={onToggleCheckAll}
+                                      inputProps={{ 'aria-label': 'controlled' }} />
+                        </TableCell>
                         <TableCell style={{width: "4rem"}}>Delete</TableCell>
                         <TableCell style={{width: "16rem"}}>Source</TableCell>
                         <TableCell >Destination</TableCell>
@@ -560,13 +590,9 @@ function FileMetaUploadTableRow(props){
                 <MythicStyledTableCell>
                     {props.deleted ? (null) : (
                         <MythicStyledTooltip title="Toggle to download multiple files at once">
-                            <Switch
-                                checked={props.selected[props.id] === undefined ? false : props.selected[props.id]}
-                                onChange={onSelectChanged}
-                                color="primary"
-                                inputProps={{ 'aria-label': 'primary checkbox' }}
-                                name="select_multiple"
-                                />
+                            <Checkbox checked={props.selected[props.id] === undefined ? false : props.selected[props.id]}
+                                      onChange={onSelectChanged}
+                                      inputProps={{ 'aria-label': 'controlled' }} />
                         </MythicStyledTooltip>
                     )}
                     
