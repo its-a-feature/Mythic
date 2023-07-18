@@ -1007,15 +1007,14 @@ func CheckDockerCompose() {
 			} else {
 				if err := groupNameConfig.ReadInConfig(); err != nil {
 					fmt.Printf("[-] Failed to read in new docker-compose.yml file: %v\n", err)
-					os.Exit(1)
 				} else {
 					fmt.Printf("[+] Successfully created new docker-compose.yml file. Populating it now...\n")
-					intendedMythicContainers, _ := GetIntendedMythicServiceNames()
-					for _, container := range intendedMythicContainers {
-						addMythicServiceDockerComposeEntry(container)
-					}
-					return
 				}
+				intendedMythicContainers, _ := GetIntendedMythicServiceNames()
+				for _, container := range intendedMythicContainers {
+					addMythicServiceDockerComposeEntry(container)
+				}
+				return
 			}
 
 		} else {
