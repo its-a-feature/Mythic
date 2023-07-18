@@ -3,16 +3,22 @@ LOCAL_PATH=$(shell pwd)/src
 .PHONY: default
 default: build_all_linux ;
 
+# pull in build and env options from global settings
+-include ../build.env
+-include ../.env
+
+export
+
 build_container:
-	docker build -t mythic-cli .
+	docker build -t mythic-cli --build-arg GOPROXY --build-arg GO111MODULE .
 
 build_binary:
-	docker run --name mythic-cli-builder --rm -v ${LOCAL_PATH}:/usr/src/app mythic-cli make build_linux
+	docker run --env GOPROXY --env GO111MODULE --name mythic-cli-builder --rm -v ${LOCAL_PATH}:/usr/src/app mythic-cli make build_linux
 	mv src/${BINARY_NAME} .
 	chmod +x ${BINARY_NAME}
 
 build_binary_macos:
-	docker run --name mythic-cli-builder --rm -v ${LOCAL_PATH}:/usr/src/app mythic-cli make build_macos
+	docker run --env GOPROXY --env GO111MODULE  --name mythic-cli-builder --rm -v ${LOCAL_PATH}:/usr/src/app mythic-cli make build_macos
 	mv src/${BINARY_NAME} .
 	chmod +x ${BINARY_NAME}
 

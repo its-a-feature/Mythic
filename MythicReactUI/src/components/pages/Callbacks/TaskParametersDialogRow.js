@@ -62,6 +62,7 @@ mutation createCredential($comment: String!, $account: String!, $realm: String!,
 export function TaskParametersDialogRow(props){
     const [value, setValue] = React.useState('');
     const theme = useTheme();
+    const currentParameterGroup = React.useRef(props.parameterGroupName);
     const [ChoiceOptions, setChoiceOptions] = React.useState([]);
     const [boolValue, setBoolValue] = React.useState(false);
     const [arrayValue, setArrayValue] = React.useState([""]);
@@ -139,17 +140,22 @@ export function TaskParametersDialogRow(props){
             if(value === ""){
                 setBoolValue(props.value);
                 setValue(props.value);
+            } else if (currentParameterGroup.current !== props.parameterGroupName){
+                setBoolValue(props.value);
+                setValue(props.value);
             }
        }else if(props.type === "Array"){
-            if(arrayValue.length === 0 && props.value.length > 0){
-                setArrayValue(props.value);
-            }
+            setArrayValue(props.value);
        }else if(props.type === "ChooseMultiple" && props.dynamic_query_function === null){
            if(value === ""){
                //console.log(props.value);
                 setChoiceMultipleValue(props.value);
                 setValue(props.value);
                 setChoiceOptions(props.choices);
+           } else if (currentParameterGroup.current !== props.parameterGroupName){
+               setChoiceMultipleValue(props.value);
+               setValue(props.value);
+               setChoiceOptions(props.choices);
            }
        }
        else if(props.type === "AgentConnect"){
@@ -412,7 +418,7 @@ export function TaskParametersDialogRow(props){
                 )
             case "Array":
                 return (
-                    <TableContainer component={Paper} className="mythicElement">
+                    <TableContainer >
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {arrayValue.map( (a, i) => (

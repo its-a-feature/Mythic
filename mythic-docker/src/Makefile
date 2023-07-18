@@ -14,6 +14,8 @@ MYTHIC_ADMIN_PASSWORD?="mythic_password"
 MYTHIC_DEFAULT_OPERATION?="Operation Chimera"
 MYTHIC_DEBUG_AGENT_MESSAGE?=false
 
+export
+
 build:
 	CGO_ENABLED=0 go build -o ${BINARY_NAME} -tags="nomsgpack" .
 copy_to_final:

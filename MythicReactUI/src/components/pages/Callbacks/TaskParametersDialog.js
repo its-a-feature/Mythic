@@ -752,7 +752,14 @@ export function TaskParametersDialog(props) {
             if(sorted.length > 0){
                 sorted[0]["autoFocus"] = true;
             }
-
+            // go through to set matching values between old and new
+            for(let i = 0; i < sorted.length; i++){
+                for(let j = 0; j < parameters.length; j++){
+                    if(sorted[i].name === parameters[j].name){
+                        sorted[i].value = parameters[j].value
+                    }
+                }
+            }
             //console.log("updated params in useEffect of taskparametersdialog", sorted)
             setParameters(sorted);
         }
@@ -872,10 +879,14 @@ export function TaskParametersDialog(props) {
                     </TableHead>
                     <TableBody>
                         {parameters.map( (op) => (
-                            <TaskParametersDialogRow onSubmit={onSubmit} key={"taskparameterrow" + op.id} onChange={onChange} commandInfo={commandInfo} {...op} 
-                                callback_id={props.callback_id} onAgentConnectAddNewPayloadOnHost={onAgentConnectAddNewPayloadOnHost}
-                                onAgentConnectRemovePayloadOnHost={onAgentConnectRemovePayloadOnHost} addedCredential={addedCredential}
-                                                     setSubmenuOpenPreventTasking={setSubmenuOpenPreventTasking}
+                            <TaskParametersDialogRow onSubmit={onSubmit} key={"taskparameterrow" + op.id}
+                                onChange={onChange} commandInfo={commandInfo} {...op}
+                                parameterGroupName={selectedParameterGroup}
+                                callback_id={props.callback_id}
+                                onAgentConnectAddNewPayloadOnHost={onAgentConnectAddNewPayloadOnHost}
+                                onAgentConnectRemovePayloadOnHost={onAgentConnectRemovePayloadOnHost}
+                                addedCredential={addedCredential}
+                                setSubmenuOpenPreventTasking={setSubmenuOpenPreventTasking}
                                 />
                         ))}
                     </TableBody>

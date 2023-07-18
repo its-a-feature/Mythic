@@ -1,5 +1,7 @@
 BINARY_NAME=mythic-cli
 
+export
+
 build:
 	go build -o ${BINARY_NAME} .
 	
