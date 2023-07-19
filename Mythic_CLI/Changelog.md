@@ -4,36 +4,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## 1.0.26 - 2023-07-18
+## 0.2.0 - 2023-07-19
+
+### Changed
+
+- Removed the hard-coded mythic docker network subnet of 172.100.0.0/16. With this update you need to tear down all containers and rebuild so that the new networking applies.
+
+## 0.1.26 - 2023-07-18
 
 ### Changed
 
 - Updated the docker-compose creation process to not exit on failing to read in a newly created yaml file
 
-## 1.0.25 - 2023-07-05
+## 0.1.25 - 2023-07-05
 
 ### Changed
 
 - Added `services` command to list out container status, image build status, and dockercompose entry status for all folders in InstalledServices
 
-## 1.0.24 - 2023-06-20
+## 0.1.24 - 2023-06-20
 
 ### Changed
 
 - Adjusted installs to not error out if documentation folders fail to install
 
-## 1.0.23 - 2023-06-20
+## 0.1.23 - 2023-06-20
 
 ### Changed
 
 - Fixed a control flow bug that would restart all containers if building a new single container
 
-## v1.0.21 - 2023-06-14
+## v0.1.21 - 2023-06-14
 
 ### Changed
 - Updated the `./mythic-cli status` command to break out a distinction between services in docker compose that aren't running and those not in docker compose
 
-## v1.0.20 - 2023-06-14
+## v0.1.20 - 2023-06-14
 
 ### Changed
 
@@ -42,20 +48,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Updated the `./mythic-cli config service` command to list out just configurations needed for remote agent development
 - Added new variable, `mythic_server_dynamic_ports_bind_localhost_only`, specifically to control if dynamic ports are bound to localhost or not, separate from mythic_server
 
-## v1.0.19 - 2023-06-07
+## v0.1.19 - 2023-06-07
 
 ### Changed
 
 - Updated docker-compose to bind the Dynamic ports for Mythic to localhost if `mythic_server_bind_localhost_only` is set to true
 
-## v1.0.17 - 2023-06-02
+## v0.1.17 - 2023-06-02
 
 ### Changed
 
 - Updated mythic_jupyter docker-compose entry to keep the `deploy` key and all sub keys 
 - Updated health check for mythic_nginx to use curl instead of wget
 
-## v1.0.15 - 2023-05-17
+## v0.1.15 - 2023-05-17
 
 ### Changed
 
@@ -65,13 +71,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Added a command to remove containers
 
-## 1.0.14 - 2023-05-10
+## 0.1.14 - 2023-05-10
 
 ### Changed
 
 - Fixed an issue where installing another services after mythic_sync would uninstall mythic_sync
 
-## 1.0.13 - 2023-05-10
+## 0.1.13 - 2023-05-10
 
 ### Changed
 

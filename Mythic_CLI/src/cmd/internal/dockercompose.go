@@ -54,14 +54,6 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"driver_opts": map[string]string{
 				"com.docker.network.bridge.name": "mythic_if",
 			},
-			"ipam": map[string]interface{}{
-				"config": []map[string]interface{}{
-					{
-						"subnet": "172.100.0.0/16",
-					},
-				},
-				"driver": "default",
-			},
 			"labels": []string{
 				"mythic_network",
 				"default_network",
@@ -580,14 +572,6 @@ func removeMythicServiceDockerComposeEntry(service string) {
 			"driver_opts": map[string]string{
 				"com.docker.network.bridge.name": "mythic_if",
 			},
-			"ipam": map[string]interface{}{
-				"config": []map[string]interface{}{
-					{
-						"subnet": "172.100.0.0/16",
-					},
-				},
-				"driver": "default",
-			},
 			"labels": []string{
 				"mythic_network",
 				"default_network",
@@ -644,14 +628,6 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 			"driver": "bridge",
 			"driver_opts": map[string]string{
 				"com.docker.network.bridge.name": "mythic_if",
-			},
-			"ipam": map[string]interface{}{
-				"config": []map[string]interface{}{
-					{
-						"subnet": "172.100.0.0/16",
-					},
-				},
-				"driver": "default",
 			},
 			"labels": []string{
 				"mythic_network",
@@ -764,14 +740,6 @@ func RemoveDockerComposeEntry(service string) error {
 			"driver": "bridge",
 			"driver_opts": map[string]string{
 				"com.docker.network.bridge.name": "mythic_if",
-			},
-			"ipam": map[string]interface{}{
-				"config": []map[string]interface{}{
-					{
-						"subnet": "172.100.0.0/16",
-					},
-				},
-				"driver": "default",
 			},
 			"labels": []string{
 				"mythic_network",
