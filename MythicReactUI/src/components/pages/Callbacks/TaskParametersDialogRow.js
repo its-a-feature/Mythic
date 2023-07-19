@@ -90,8 +90,13 @@ export function TaskParametersDialogRow(props){
                     usingDynamicParamChoices.current = true;
                     if(props.type === "ChooseOne"){
                         if(data.dynamic_query_function.choices.length > 0){
-                            setValue(data.dynamic_query_function.choices[0]);
-                            props.onChange(props.name, data.dynamic_query_function.choices[0], false);
+                            if(data.dynamic_query_function.choices.includes(props.value)){
+                                setValue(props.value);
+                                props.onChange(props.name, props.value, false);
+                            } else {
+                                setValue(data.dynamic_query_function.choices[0]);
+                                props.onChange(props.name, data.dynamic_query_function.choices[0], false);
+                            }
                         }
                     }
                 }catch(error){
@@ -125,7 +130,7 @@ export function TaskParametersDialogRow(props){
     })
     useEffect( () => {
         if(props.dynamic_query_function !== ""){
-            if(ChoiceOptions.length === 0){
+            if(ChoiceOptions.length === 0 && !usingDynamicParamChoices.current){
                 setBackdropOpen(true);
                 snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
                 getDynamicParams({variables:{
@@ -135,6 +140,7 @@ export function TaskParametersDialogRow(props){
                     payload_type: props.commandInfo.payloadtype.name
                 }})
             }
+            usingDynamicParamChoices.current = true;
         }
        if(props.type === "Boolean"){
             if(value === ""){
