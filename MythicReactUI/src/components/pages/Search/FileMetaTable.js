@@ -96,7 +96,12 @@ export function FileMetaDownloadTable(props){
         } else {
             setCheckAll(true);
             const newSelected = files.reduce( (prev, cur) => {
-                return {...prev, [cur.id]: true};
+                if(!cur.deleted){
+                    return {...prev, [cur.id]: true};
+                } else {
+                    return {...prev}
+                }
+
             }, {});
             setSelected(newSelected);
         }
@@ -415,7 +420,12 @@ export function FileMetaUploadTable(props){
         } else {
             setCheckAll(true);
             const newSelected = files.reduce( (prev, cur) => {
-                return {...prev, [cur.id]: true};
+                if(!cur.deleted){
+                    return {...prev, [cur.id]: true};
+                } else {
+                    return {...prev}
+                }
+
             }, {});
             setSelected(newSelected);
         }
@@ -489,7 +499,7 @@ export function FileMetaUploadTable(props){
                                       inputProps={{ 'aria-label': 'controlled' }} />
                         </TableCell>
                         <TableCell style={{width: "4rem"}}>Delete</TableCell>
-                        <TableCell style={{width: "16rem"}}>Source</TableCell>
+                        <TableCell style={{width: "20rem"}}>Source</TableCell>
                         <TableCell >Destination</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
                         <TableCell style={{width: "15rem"}}>Tags</TableCell>

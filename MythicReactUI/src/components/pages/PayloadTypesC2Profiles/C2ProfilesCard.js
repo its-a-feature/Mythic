@@ -21,7 +21,6 @@ import {C2ProfileConfigDialog} from './C2ProfileConfigDialog';
 import {C2ProfileStartStopOutputDialog} from './C2ProfileStartStopOutputDialog';
 import {snackActions} from '../../utilities/Snackbar';
 import {useTheme} from '@mui/material/styles';
-import BookmarkIcon from '@mui/icons-material/Bookmark';
 import {C2ProfileSavedInstancesDialog} from './C2ProfileSavedInstancesDialog';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faLink } from '@fortawesome/free-solid-svg-icons';
@@ -29,7 +28,11 @@ import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
 import {C2ProfileListFilesDialog} from './C2ProfileListFilesDialog';
-import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import IconButton from '@mui/material/IconButton';
+import BuildIcon from '@mui/icons-material/Build';
+import SaveIcon from '@mui/icons-material/Save';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -37,23 +40,11 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     marginBottom: "10px"
   },
-  expand: {
-    transform: 'rotate(0deg)',
-    marginLeft: 'auto',
-    transition: theme.transitions.create('transform', {
-      duration: theme.transitions.duration.shortest,
-    }),
-  },
-  expandOpen: {
-    transform: 'rotate(180deg)',
-  },
-  running: {
-    
-  },
-  notrunning: {
-    backgroundColor: 'red',
-    color: 'red',
-  },
+    cardContent: {
+        textAlign: "left",
+        paddingBottom: "5px",
+        paddingTop: "0",
+    }
 }));
 const toggleDeleteStatus = gql`
 mutation toggleC2ProfileDeleteStatus($c2profile_id: Int!, $deleted: Boolean!){
@@ -170,7 +161,7 @@ export function C2ProfilesCard(props) {
             }
         <div style={{maxWidth: "60%"}}>
           <Typography variant="h4" component="h1" style={{textAlign:"left", marginLeft: "10px", display: "inline-block"}}>{props.name}</Typography>
-          <CardContent style={{textAlign:"left"}}>
+          <CardContent className={classes.cardContent}>
               <Typography variant="body1" component="p">
                 <b>Author:</b> {props.author}
               </Typography>
@@ -205,110 +196,131 @@ export function C2ProfilesCard(props) {
                     <b>{"Not Accepting Connection"}</b>
                   </Typography>
                 </React.Fragment>
-                
               }
+              <div >
+                  {props.container_running ? (
+                      props.running ?
+                          (
+                              <ButtonGroup variant="contained" color={"secondary"} ref={dropdownAnchorRef} aria-label="split button" >
+                                  <Button size="small" color={props.running ? "success" : "error"} onClick={onStartStopProfile} style={{width: "100%"}}>Stop Profile</Button>
+                                  <Button
+                                      size="small"
+                                      aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
+                                      aria-expanded={dropdownOpen ? 'true' : undefined}
+                                      aria-label="select merge strategy"
+                                      aria-haspopup="menu"
+                                      color={props.running ? "success" : "error"}
+                                      onClick={handleDropdownToggle}
+                                  >
+                                      <ArrowDropDownIcon />
+                                  </Button>
+                              </ButtonGroup>
+                          )
+                          :
+                          (
+                              props.is_p2p ? (
+                                  null
+                              ) : (
+                                  <ButtonGroup size="small" variant="contained" ref={dropdownAnchorRef} aria-label="split button" color={props.running ? "success" : "error"} >
+                                      <Button size="small" onClick={onStartStopProfile} color={props.running ? "success" : "error"} style={{width: "100%"}}>Start Profile</Button>
+                                      <Button
+                                          size="small"
+                                          aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
+                                          aria-expanded={dropdownOpen ? 'true' : undefined}
+                                          aria-label="select merge strategy"
+                                          aria-haspopup="menu"
+                                          color={props.running ? "success" : "error"}
+                                          onClick={handleDropdownToggle}
+                                      >
+                                          <ArrowDropDownIcon />
+                                      </Button>
+                                  </ButtonGroup>
+                              )
+
+                          )
+                  ) : (
+                      <Button disabled color="secondary">Container Offline</Button>
+                  )}
+              </div>
           </CardContent>
         </div>
-        <div style={{display: "inline-flex", paddingRight: "10px", marginLeft: "auto", justifyContent: "space-evenly", alignItems: "stretch", flexDirection: "column", alignContent: "flex-end"}}>
-            <Button size="small" variant="contained" color="primary" href={"/docs/c2-profiles/" + props.name.toLowerCase()} target="_blank">
-              Docs
-            </Button>
-            <Button size="small" onClick={()=>{setOpenBuildingDialog(true);}} color="info" variant="contained">Build Info</Button>
-            {openBuildingDialog &&
-              <MythicDialog fullWidth={true} maxWidth="lg" open={openBuildingDialog} 
-                onClose={()=>{setOpenBuildingDialog(false);}} 
-                innerDialog={<C2ProfileBuildDialog {...props} onClose={()=>{setOpenBuildingDialog(false);}} payload_name={props.name} />}
-            />
-            }
-            {openProfileStartStopDialog &&
-              <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileStartStopDialog} 
-                onClose={()=>{setOpenProfileStartStopDialog(false);}} 
-                innerDialog={<C2ProfileStartStopOutputDialog output={output} onClose={()=>{setOpenProfileStartStopDialog(false);}} payload_name={props.name} />}
-            />
-            }
-            
-            {props.container_running ? (
-                   props.running ?
-                   (
-                    <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" color={props.running ? "success" : "error"} >
-                       <Button size="small" color={props.running ? "success" : "error"} onClick={onStartStopProfile} style={{width: "100%"}}>Stop Profile</Button>
-                       <Button
-                          size="small"
-                          aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
-                          aria-expanded={dropdownOpen ? 'true' : undefined}
-                          aria-label="select merge strategy"
-                          aria-haspopup="menu"
-                          color={props.running ? "success" : "error"}
-                          onClick={handleDropdownToggle}
-                        >
-                          <ArrowDropDownIcon />
-                        </Button>
-                      </ButtonGroup>
-                   )
-                   :
-                   (
-                     props.is_p2p ? (
-                      null
-                     ) : (
-                      <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" color={props.running ? "success" : "error"} >
-                        <Button size="small" onClick={onStartStopProfile} color={props.running ? "success" : "error"} style={{width: "100%"}}>Start Profile</Button>
-                        <Button
-                          size="small"
-                          aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
-                          aria-expanded={dropdownOpen ? 'true' : undefined}
-                          aria-label="select merge strategy"
-                          aria-haspopup="menu"
-                          color={props.running ? "success" : "error"}
-                          onClick={handleDropdownToggle}
-                        >
-                          <ArrowDropDownIcon />
-                        </Button>
-                      </ButtonGroup>
-                     )
-                      
-                   )
-            ) : (
-              <Button disabled color="secondary">Container Offline</Button>
-            )}
-             <Button size="small" variant="contained" color="primary" onClick={() => {setOpenProfileSavedInstancesDialog(true);}}><BookmarkIcon /> Saved Instances</Button>
-             {props.deleted ? (
-              <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" variant="contained"><RestoreFromTrashOutlinedIcon/> Restore</Button>
-            ) : (
-              <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/> Delete</Button>
-            )}
-            {props.container_running && 
-              <Button size="small" color="primary" variant="contained" onClick={()=>{setOpenListFilesDialog(true);}}><FormatListBulletedIcon /> Manage Files</Button>
-            }
-            {openDelete && 
-              <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} 
-                open={openDelete} 
-                acceptText={props.deleted ? "Restore" : "Remove"} 
-                acceptColor={props.deleted ? "success": "error"} />
-            }
-             {openProfileDialog &&
-              <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileDialog} 
-                onClose={()=>{setOpenProfileDialog(false);}} 
-                innerDialog={<C2ProfileOutputDialog {...props}  payload_name={props.name} onClose={()=>{setOpenProfileDialog(false);}} profile_id={props.id} />}
-              />
-             }
-            {openProfileConfigDialog &&
-            <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileConfigDialog} 
-              onClose={()=>{setOpenProfileConfigDialog(false);}} 
-              innerDialog={<C2ProfileConfigDialog filename={"config.json"} onConfigSubmit={onConfigSubmit} payload_name={props.name} onClose={()=>{setOpenProfileConfigDialog(false);}} profile_id={props.id} />}
-            />
-            }
-            {openProfileSavedInstancesDialog &&
-              <MythicDialog fullWidth={true} maxWidth="xl" open={openProfileSavedInstancesDialog} 
-                onClose={()=>{setOpenProfileSavedInstancesDialog(false);}} 
-                innerDialog={<C2ProfileSavedInstancesDialog {...props} onClose={()=>{setOpenProfileSavedInstancesDialog(false);}} />}
-            />
-            }
-            {openListFilesDialog &&
-              <MythicDialog fullWidth={true} maxWidth="md" open={openListFilesDialog} 
-                onClose={()=>{setOpenListFilesDialog(false);}} 
-                innerDialog={<C2ProfileListFilesDialog {...props} onClose={()=>{setOpenListFilesDialog(false);}} />}
-            />
-            }
+
+            <div style={{
+                display: "inline-flex",
+                paddingRight: "10px",
+                marginLeft: "auto",
+                justifyContent: "space-evenly",
+                flexDirection: "column",
+                alignContent: "flex-end",
+                backgroundColor: theme.palette.textBackgroundColor,
+            }}>
+                <IconButton color={"secondary"} href={"/docs/c2-profiles/" + props.name.toLowerCase()} target="_blank">
+                  <MenuBookIcon />
+                </IconButton>
+                <IconButton color={"secondary"} onClick={()=>{setOpenBuildingDialog(true);}} >
+                    <BuildIcon />
+                </IconButton>
+                {openBuildingDialog &&
+                  <MythicDialog fullWidth={true} maxWidth="lg" open={openBuildingDialog}
+                    onClose={()=>{setOpenBuildingDialog(false);}}
+                    innerDialog={<C2ProfileBuildDialog {...props} onClose={()=>{setOpenBuildingDialog(false);}} payload_name={props.name} />}
+                />
+                }
+                {openProfileStartStopDialog &&
+                  <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileStartStopDialog}
+                    onClose={()=>{setOpenProfileStartStopDialog(false);}}
+                    innerDialog={<C2ProfileStartStopOutputDialog output={output} onClose={()=>{setOpenProfileStartStopDialog(false);}} payload_name={props.name} />}
+                />
+                }
+
+                 <IconButton onClick={() => {setOpenProfileSavedInstancesDialog(true);}} color={"success"}>
+                     <SaveIcon />
+                 </IconButton>
+                 {props.deleted ? (
+                  <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="success" >
+                      <RestoreFromTrashOutlinedIcon/>
+                  </IconButton>
+                ) : (
+                  <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="error">
+                      <DeleteIcon/>
+                  </IconButton>
+                )}
+                {props.container_running &&
+                  <IconButton color={"secondary"} onClick={()=>{setOpenListFilesDialog(true);}}>
+                      <AttachFileIcon />
+                  </IconButton>
+                }
+                {openDelete &&
+                  <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete}
+                    open={openDelete}
+                    acceptText={props.deleted ? "Restore" : "Remove"}
+                    acceptColor={props.deleted ? "success": "error"} />
+                }
+                 {openProfileDialog &&
+                  <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileDialog}
+                    onClose={()=>{setOpenProfileDialog(false);}}
+                    innerDialog={<C2ProfileOutputDialog {...props}  payload_name={props.name} onClose={()=>{setOpenProfileDialog(false);}} profile_id={props.id} />}
+                  />
+                 }
+                {openProfileConfigDialog &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileConfigDialog}
+                  onClose={()=>{setOpenProfileConfigDialog(false);}}
+                  innerDialog={<C2ProfileConfigDialog filename={"config.json"} onConfigSubmit={onConfigSubmit} payload_name={props.name} onClose={()=>{setOpenProfileConfigDialog(false);}} profile_id={props.id} />}
+                />
+                }
+                {openProfileSavedInstancesDialog &&
+                  <MythicDialog fullWidth={true} maxWidth="xl" open={openProfileSavedInstancesDialog}
+                    onClose={()=>{setOpenProfileSavedInstancesDialog(false);}}
+                    innerDialog={<C2ProfileSavedInstancesDialog {...props} onClose={()=>{setOpenProfileSavedInstancesDialog(false);}} />}
+                />
+                }
+                {openListFilesDialog &&
+                  <MythicDialog fullWidth={true} maxWidth="md" open={openListFilesDialog}
+                    onClose={()=>{setOpenListFilesDialog(false);}}
+                    innerDialog={<C2ProfileListFilesDialog {...props} onClose={()=>{setOpenListFilesDialog(false);}} />}
+                />
+                }
+            </div>
             <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
               {({ TransitionProps, placement }) => (
                 <Grow
@@ -332,7 +344,6 @@ export function C2ProfilesCard(props) {
                 </Grow>
               )}
             </Popper>
-          </div>
     </Card>
   );
 }

@@ -123,7 +123,7 @@ export function C2ProfileListFilesDialog(props) {
                 </TableHead>
                 <TableBody>
                   {data.c2profileListFiles.files && data.c2profileListFiles.files.map( f => (
-                    <C2ProfileListFilesDialogTableRow id={props.id} name={props.name} filename={f} />
+                    <C2ProfileListFilesDialogTableRow key={"file" + f} id={props.id} name={props.name} filename={f} />
                   ))}
                 </TableBody>
             </Table>

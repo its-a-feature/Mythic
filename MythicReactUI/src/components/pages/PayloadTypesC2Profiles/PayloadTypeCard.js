@@ -11,6 +11,9 @@ import {PayloadTypeBuildDialog} from './PayloadTypeBuildDialog';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import IconButton from '@mui/material/IconButton';
+import BuildIcon from '@mui/icons-material/Build';
 
 import {gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
@@ -20,24 +23,6 @@ const useStyles = makeStyles((theme) => ({
     width: "100%",
     display: "flex",
     marginBottom: "10px"
-  },
-  expand: {
-    transform: 'rotate(0deg)',
-    marginLeft: 'auto',
-    transition: theme.transitions.create('transform', {
-      duration: theme.transitions.duration.shortest,
-    }),
-  },
-  expandOpen: {
-    transform: 'rotate(180deg)',
-  },
-  running: {
-    backgroundColor: '#44b700',
-    color: '#44b700',
-  },
-  notrunning: {
-    backgroundColor: 'red',
-    color: 'red',
   },
 }));
 
@@ -89,7 +74,7 @@ export function PayloadTypeCard(props) {
           <CardMedia
             className={classes.media}
             component="img"
-            style={{width: "125px", height: "125", padding: "10px", objectFit: "unset"}}
+            style={{width: "125px", padding: "10px", objectFit: "unset"}}
             src={"/static/" + props.name + ".svg"}
           />
         <div style={{maxWidth: "60%"}}>
@@ -117,15 +102,26 @@ export function PayloadTypeCard(props) {
               </Typography>
           </CardContent>
         </div>
-        <div style={{display: "inline-flex", paddingRight: "10px", marginLeft: "auto", justifyContent: "space-evenly", alignItems: "stretch", flexDirection: "column", alignContent: "flex-end"}}>
-            <Button size="small" variant="contained" color="primary" href={props.wrapper ? "/docs/wrappers/" + props.name : "/docs/agents/" + props.name} target="_blank">
-              Docs
-            </Button>
-            <Button size="small" onClick={()=>{setOpenBuildingDialog(true);}} color="info" variant="contained">Build Info</Button>
+        <div style={{display: "inline-flex",
+            paddingRight: "10px", marginLeft: "auto",
+            justifyContent: "space-evenly", alignItems: "stretch",
+            flexDirection: "column", alignContent: "flex-end",
+            backgroundColor: theme.palette.textBackgroundColor,
+        }}>
+            <IconButton color="secondary" href={props.wrapper ? "/docs/wrappers/" + props.name : "/docs/agents/" + props.name} target="_blank">
+                <MenuBookIcon />
+            </IconButton>
+            <IconButton onClick={()=>{setOpenBuildingDialog(true);}} color="secondary" >
+                <BuildIcon />
+            </IconButton>
             {props.deleted ? (
-              <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" variant="contained"><RestoreFromTrashOutlinedIcon/> Restore</Button>
+              <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" >
+                  <RestoreFromTrashOutlinedIcon/>
+              </IconButton>
             ) : (
-              <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/> Delete</Button>
+              <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" >
+                  <DeleteIcon/>
+              </IconButton>
             )}
             
             {openDelete && 

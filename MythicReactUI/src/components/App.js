@@ -60,7 +60,19 @@ export function App(props) {
             createTheme({
                 palette: {
                     primary: {
-                        main: '#7f93c0',
+                        main: themeMode === "dark" ? "#465a79" : "#566d93",
+                    },
+                    error: {
+                        main: themeMode === "dark" ? '#da3237' : '#c42c32',
+                    },
+                    success: {
+                        main: themeMode === 'dark' ? '#44b636' : '#0e7004',
+                    },
+                    secondary: {
+                        main: themeMode === 'dark' ? '#bebebe' : '#a6a5a5',
+                    },
+                    info: {
+                        main: themeMode === 'dark' ? '#2574b4' : '#2574b4',
                     },
                     mode: themeMode,
                     background: {
@@ -73,7 +85,7 @@ export function App(props) {
                     text: {
                         contrast: themeMode === 'dark' ? '#000' : '#fff',
                     },
-                    textBackgroundColor: themeMode === 'dark' ? '#74828b' : '#d9dbdc',
+                    textBackgroundColor: themeMode === 'dark' ? '#272c2f' : '#e9eaea',
                     textBackgroundColorMythic: themeMode === 'dark' ? '#436b9f' : '#aadcf5',
                     textBackgroundColorSuccess: themeMode === 'dark' ? '#09a21a' : '#70e373',
                     textBackgroundColorError: themeMode === 'dark' ? '#9f1616' : '#f19da3',
