@@ -127,8 +127,9 @@ func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName
 	g.Add(destinationCallback, sourceCallback, c2profileName)
 	// can't have a unique constraint with a NULL value, NULL != NULL
 	if err := database.DB.Get(&edge.ID, `SELECT id FROM callbackgraphedge
-		WHERE operation_id=:operation_id AND source_id=:source_id AND destination_id=:destination_id AND
-		c2_profile_id=:c2_profile_id AND end_timestamp IS NULL`); err == sql.ErrNoRows {
+		WHERE operation_id=$1 AND source_id=$2 AND destination_id=$3 AND
+		c2_profile_id=$4 AND end_timestamp IS NULL`,
+		edge.OperationID, edge.SourceID, edge.DestinationID, edge.C2ProfileID); err == sql.ErrNoRows {
 		// this specific combination didn't yield any results, so add it
 		if _, err := database.DB.NamedExec(`INSERT INTO callbackgraphedge
 			(operation_id, source_id, destination_id, c2_profile_id)
