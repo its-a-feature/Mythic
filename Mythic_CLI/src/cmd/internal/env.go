@@ -34,10 +34,12 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("mythic_server_host", "mythic_server")
 	mythicEnv.SetDefault("mythic_server_bind_localhost_only", true)
 	mythicEnv.SetDefault("mythic_server_cpus", "2")
+	mythicEnv.SetDefault("mythic_server_mem_limit", "")
 	mythicEnv.SetDefault("mythic_server_dynamic_ports", "7000-7010")
 	mythicEnv.SetDefault("mythic_server_dynamic_ports_bind_localhost_only", false)
 	mythicEnv.SetDefault("mythic_server_command", "")
 	mythicEnv.SetDefault("mythic_sync_cpus", "2")
+	mythicEnv.SetDefault("mythic_sync_mem_limit", "")
 	// postgres configuration
 	mythicEnv.SetDefault("postgres_host", "mythic_postgres")
 	mythicEnv.SetDefault("postgres_port", 5432)
@@ -46,6 +48,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("postgres_user", "mythic_user")
 	mythicEnv.SetDefault("postgres_password", generateRandomPassword(30))
 	mythicEnv.SetDefault("postgres_cpus", "2")
+	mythicEnv.SetDefault("postgres_mem_limit", "")
 	// rabbitmq configuration
 	mythicEnv.SetDefault("rabbitmq_host", "mythic_rabbitmq")
 	mythicEnv.SetDefault("rabbitmq_port", 5672)
@@ -54,6 +57,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("rabbitmq_password", generateRandomPassword(30))
 	mythicEnv.SetDefault("rabbitmq_vhost", "mythic_vhost")
 	mythicEnv.SetDefault("rabbitmq_cpus", "2")
+	mythicEnv.SetDefault("rabbitmq_mem_limit", "")
 	// jwt configuration
 	mythicEnv.SetDefault("jwt_secret", generateRandomPassword(30))
 	// hasura configuration
@@ -62,6 +66,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("hasura_bind_localhost_only", true)
 	mythicEnv.SetDefault("hasura_secret", generateRandomPassword(30))
 	mythicEnv.SetDefault("hasura_cpus", "2")
+	mythicEnv.SetDefault("hasura_mem_limit", "2gb")
 	// docker-compose configuration
 	mythicEnv.SetDefault("COMPOSE_PROJECT_NAME", "mythic")
 	mythicEnv.SetDefault("REBUILD_ON_START", true)
@@ -77,12 +82,14 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("jupyter_host", "mythic_jupyter")
 	mythicEnv.SetDefault("jupyter_token", "mythic")
 	mythicEnv.SetDefault("jupyter_cpus", "2")
+	mythicEnv.SetDefault("jupyter_mem_limit", "")
 	mythicEnv.SetDefault("jupyter_bind_localhost_only", true)
 	// debugging help
 	mythicEnv.SetDefault("postgres_debug", false)
 	mythicEnv.SetDefault("mythic_react_debug", false)
 	// installed service configuration
 	mythicEnv.SetDefault("installed_service_cpus", "1")
+	mythicEnv.SetDefault("installed_service_mem_limit", "")
 	mythicEnv.SetDefault("webhook_default_url", "")
 	mythicEnv.SetDefault("webhook_default_callback_channel", "")
 	mythicEnv.SetDefault("webhook_default_feedback_channel", "")

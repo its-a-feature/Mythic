@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 0.2.1 - 2023-07-20
+
+### Changed
+
+- Updated environment variables to support *_mem_limit to restrict the memory usage by the various containers.
+This applies to all containers that also support setting their cpu limits. To restrict to 2GB, set "2gb", to restrict to 512MB, set "512mb"
+
 ## 0.2.0 - 2023-07-19
 
 ### Changed

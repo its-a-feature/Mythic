@@ -128,6 +128,9 @@ func addMythicServiceDockerComposeEntry(service string) {
 			}
 		}
 		pStruct["cpus"] = mythicEnv.GetInt("POSTGRES_CPUS")
+		if mythicEnv.GetString("postgres_mem_limit") != "" {
+			pStruct["mem_limit"] = mythicEnv.GetString("postgres_mem_limit")
+		}
 		if mythicEnv.GetBool("postgres_bind_localhost_only") {
 			pStruct["ports"] = []string{
 				"127.0.0.1:${POSTGRES_PORT}:${POSTGRES_PORT}",
@@ -182,6 +185,9 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"args":    buildArguments,
 		}
 		pStruct["cpus"] = mythicEnv.GetInt("HASURA_CPUS")
+		if mythicEnv.GetString("hasura_mem_limit") != "" {
+			pStruct["mem_limit"] = mythicEnv.GetString("hasura_mem_limit")
+		}
 		environment := []string{
 			"HASURA_GRAPHQL_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}",
 			"HASURA_GRAPHQL_METADATA_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}",
@@ -286,6 +292,9 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"start_period": "15s",
 		}
 		pStruct["cpus"] = mythicEnv.GetInt("RABBITMQ_CPUS")
+		if mythicEnv.GetString("rabbitmq_mem_limit") != "" {
+			pStruct["mem_limit"] = mythicEnv.GetString("rabbitmq_mem_limit")
+		}
 		pStruct["command"] = "/bin/sh -c \"chmod +x /generate_config.sh && /generate_config.sh && rabbitmq-server\""
 		if mythicEnv.GetBool("rabbitmq_bind_localhost_only") {
 			pStruct["ports"] = []string{
@@ -370,6 +379,9 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"args":    buildArguments,
 		}
 		pStruct["cpus"] = mythicEnv.GetInt("JUPYTER_CPUS")
+		if mythicEnv.GetString("jupyter_mem_limit") != "" {
+			pStruct["mem_limit"] = mythicEnv.GetString("jupyter_mem_limit")
+		}
 		pStruct["command"] = "start.sh jupyter lab --ServerApp.open_browser=false --IdentityProvider.token='${JUPYTER_TOKEN}' --ServerApp.base_url=\"/jupyter\" --ServerApp.default_url=\"/jupyter\""
 		if mythicEnv.GetBool("jupyter_bind_localhost_only") {
 			pStruct["ports"] = []string{
@@ -395,6 +407,9 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"args":    buildArguments,
 		}
 		pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SERVER_CPUS")
+		if mythicEnv.GetString("mythic_server_mem_limit") != "" {
+			pStruct["mem_limit"] = mythicEnv.GetString("mythic_server_mem_limit")
+		}
 		pStruct["volumes"] = []string{
 			"./mythic-docker/src:/usr/src/app",
 		}
@@ -464,6 +479,9 @@ func addMythicServiceDockerComposeEntry(service string) {
 				"args":    buildArguments,
 			}
 			pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SYNC_CPUS")
+			if mythicEnv.GetString("mythic_sync_mem_limit") != "" {
+				pStruct["mem_limit"] = mythicEnv.GetString("mythic_sync_mem_limit")
+			}
 			pStruct["environment"] = []string{
 				"MYTHIC_IP=${NGINX_HOST}",
 				"MYTHIC_PORT=${NGINX_PORT}",
@@ -672,6 +690,9 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 			//	"default_network",
 			//},
 			"cpus": mythicEnv.GetInt("INSTALLED_SERVICE_CPUS"),
+		}
+		if mythicEnv.GetString("installed_service_mem_limit") != "" {
+			pStruct["mem_limit"] = mythicEnv.GetString("installed_service_mem_limit")
 		}
 		for key, element := range additionalConfigs {
 			pStruct[key] = element
