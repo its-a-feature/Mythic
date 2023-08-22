@@ -47,8 +47,8 @@ func MythicRPCTaskSearch(input MythicRPCTaskSearchMessage) MythicRPCTaskSearchMe
 	setAnySearchValues := false
 	searchString := `SELECT task.id FROM task `
 	if input.SearchHost != nil {
-		searchString += `JOIN callback ON task.callback_id = callback.id WHERE task.id=:id `
-		searchString += `AND callback.host=:host `
+		searchString += `JOIN callback ON task.callback_id = callback.id `
+		searchString += `WHERE callback.host=:host `
 		paramDict["host"] = *input.SearchHost
 		paramDict["id"] = input.TaskID
 		setAnySearchValues = true

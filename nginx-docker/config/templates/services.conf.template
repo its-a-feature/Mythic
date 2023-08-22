@@ -5,6 +5,7 @@ server {
     ssl_certificate_key  /etc/ssl/private/mythic-ssl.key;
     client_max_body_size 500M; # allows file uploads up to 500 megabytes
     ssl_session_timeout 1d;
+    absolute_redirect off;
     # proxy connections to the new mythic_server
     rewrite ^/login$ /new/login permanent;
     rewrite ^/$ /new/login permanent;
