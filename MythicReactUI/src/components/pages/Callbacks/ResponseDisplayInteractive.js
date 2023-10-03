@@ -167,6 +167,8 @@ export const ResponseDisplayInteractive = (props) =>{
     const [totalCount, setTotalCount] = React.useState(0);
     const messagesEndRef = React.useRef();
     const page = React.useRef(1);
+    const taskIDRef = React.useRef(props.task.id);
+    const taskIDTaskingRef = React.useRef(props.task.id);
     const [useASNIColor, setUseANSIColor] = React.useState(true);
     const [showTaskStatus, setShowTaskStatus] = React.useState(true);
     const [wrapText, setWrapText] = React.useState(true);
@@ -178,30 +180,52 @@ export const ResponseDisplayInteractive = (props) =>{
       },
       fetchPolicy: "no-cache",
       onData: ({data}) => {
-          const newTaskData = data.data.task_stream.reduce( (prev, cur) => {
-              let taskIndex = prev.findIndex(t => t.id === cur.id);
-              if(taskIndex >= 0){
-                  prev[taskIndex] = {...cur}
-                  return prev
-              }
-              return [...prev, cur]
-          }, [...taskData]);
-          setTaskData(newTaskData)
+          if(props.task.id !== taskIDTaskingRef.current){
+              const newTaskData = data.data.task_stream;
+              setTaskData(newTaskData);
+              taskIDTaskingRef.current = props.task.id;
+          } else {
+              const newTaskData = data.data.task_stream.reduce( (prev, cur) => {
+                  let taskIndex = prev.findIndex(t => t.id === cur.id);
+                  if(taskIndex >= 0){
+                      prev[taskIndex] = {...cur}
+                      return prev
+                  }
+                  return [...prev, cur]
+              }, [...taskData]);
+              setTaskData(newTaskData);
+          }
       }
   })
     const subscriptionDataCallback = React.useCallback( ({data}) => {
         // we still have some room to view more, but only room for fetchLimit - totalFetched.current
-        const newResponses = data.data.response_stream.filter( r => r.id > highestFetched.current);
-        const newerResponses = newResponses.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
-        newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
-        let rawResponseArray = [...rawResponses];
-        let highestFetchedId = highestFetched.current;
-        for(let i = 0; i < newerResponses.length; i++){
+        if(props.task.id !== taskIDRef.current){
+            const newResponses = data.data.response_stream;
+            const newerResponses = newResponses.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
+            newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
+            let rawResponseArray = [...rawResponses];
+            let highestFetchedId = 0;
+            for(let i = 0; i < newerResponses.length; i++){
                 rawResponseArray.push(newerResponses[i]);
                 highestFetchedId = newerResponses[i]["id"];
+            }
+            setRawResponses(rawResponseArray);
+            highestFetched.current = highestFetchedId;
+            taskIDRef.current = props.task.id;
+        } else {
+            const newResponses = data.data.response_stream.filter( r => r.id > highestFetched.current);
+            const newerResponses = newResponses.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
+            newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
+            let rawResponseArray = [...rawResponses];
+            let highestFetchedId = highestFetched.current;
+            for(let i = 0; i < newerResponses.length; i++){
+                rawResponseArray.push(newerResponses[i]);
+                highestFetchedId = newerResponses[i]["id"];
+            }
+            setRawResponses(rawResponseArray);
+            highestFetched.current = highestFetchedId;
         }
-        setRawResponses(rawResponseArray);
-        highestFetched.current = highestFetchedId;
+
     }, [highestFetched.current, rawResponses, props.task.id]);
     useSubscription(subResponsesQuery, {
         variables: {task_id: props.task.id},
@@ -433,7 +457,7 @@ const InteractiveTaskingBar = ({task, taskData, useASNIColor, toggleANSIColor,
     }
     return (
         <>
-            <FormControl style={{width: "10%", marginTop: "2px"}} >
+            <FormControl style={{width: "10rem", marginTop: "2px"}} >
                 <InputLabel id="control-label" style={{}}>Controls</InputLabel>
                 <Select
                     labelId="control-label"
