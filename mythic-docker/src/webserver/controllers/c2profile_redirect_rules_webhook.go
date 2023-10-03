@@ -86,11 +86,11 @@ func C2ProfileRedirectRulesWebhook(c *gin.Context) {
 			Parameters: parametersValueDictionary,
 		}); err != nil {
 			logging.LogError(err, "Failed to send RPC call to c2 profile in C2ProfileRedirectRulesWebhook", "c2_profile", c2ProfileName)
-			output += fmt.Sprintf("Failed Redirect Rules Check for %s\n%s\n", c2ProfileName, err.Error())
+			output += fmt.Sprintf("#Failed Redirect Rules Check for %s\n#%s\n", c2ProfileName, err.Error())
 		} else if !c2RedirectRuleResponse.Success {
-			output += fmt.Sprintf("Failed Redirect Rules for %s\n%s\n", c2ProfileName, c2RedirectRuleResponse.Error)
+			output += fmt.Sprintf("#Failed Redirect Rules for %s\n#%s\n", c2ProfileName, c2RedirectRuleResponse.Error)
 		} else {
-			output += fmt.Sprintf("Redirect Rules Check for %s\n%s\n", c2ProfileName, c2RedirectRuleResponse.Message)
+			output += fmt.Sprintf("#Redirect Rules Check for %s\n%s\n", c2ProfileName, c2RedirectRuleResponse.Message)
 		}
 	}
 	c.JSON(http.StatusOK, GetC2RedirectRulesResponse{

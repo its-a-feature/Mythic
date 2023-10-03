@@ -702,8 +702,8 @@ func (r *rabbitMQConnection) CheckC2ProfileContainerExists(name string) (bool, e
 func getMeaningfulRabbitmqError(ret amqp.Return) string {
 	switch ret.ReplyCode {
 	case 312:
-		return fmt.Sprintf("No RabbitMQ Route for %s. Is the container online (./mythic-cli status)?\nIf the container is online, there might be an issue within the container processing the request (./mythic-cli logs [container name]). ", ret.RoutingKey)
+		return fmt.Sprintf("#No RabbitMQ Route for %s. Is the container online (./mythic-cli status)?\n#If the container is online, there might be an issue within the container processing the request (./mythic-cli logs [container name]). ", ret.RoutingKey)
 	default:
-		return fmt.Sprintf("Failed to deliver message to exchange/queue. Error code: %d, Error Text: %s", ret.ReplyCode, ret.ReplyText)
+		return fmt.Sprintf("#Failed to deliver message to exchange/queue. Error code: %d, Error Text: %s", ret.ReplyCode, ret.ReplyText)
 	}
 }
