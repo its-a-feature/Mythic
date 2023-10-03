@@ -3423,13 +3423,6 @@ CREATE INDEX mythictree_host ON public.mythictree USING btree (host);
 
 
 --
--- Name: mythictree_metadata; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX mythictree_metadata ON public.mythictree USING btree (metadata);
-
-
---
 -- Name: mythictree_name; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3756,14 +3749,6 @@ CREATE UNIQUE INDEX staginginfo_staging_uuid ON public.staginginfo USING btree (
 --
 
 CREATE INDEX start_timestamp ON public.callbackgraphedge USING btree (start_timestamp);
-
-
---
--- Name: supported_ui_features; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX supported_ui_features ON public.command USING btree (supported_ui_features);
-
 
 --
 -- Name: tag_filemeta_id; Type: INDEX; Schema: public; Owner: -

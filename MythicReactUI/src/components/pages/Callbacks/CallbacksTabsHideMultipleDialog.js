@@ -15,11 +15,8 @@ import {useQuery, gql } from '@apollo/client';
 import {useMutation} from '@apollo/client';
 import {hideCallbacksMutation} from './CallbackMutations';
 import { CardContent } from '@mui/material';
-import LinearProgress from '@mui/material/LinearProgress';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import Dialog from '@mui/material/Dialog';
 import {snackActions} from "../../utilities/Snackbar";
+import {CallbacksTableLastCheckinCell} from "./CallbacksTableRow";
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -32,6 +29,7 @@ query callbacksAndFeatures{
     process_name
     pid
     description
+    last_checkin
   }
 }`;
 
@@ -150,7 +148,15 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
                         inputProps={{ 'aria-labelledby': labelId }}
                       />
                     </ListItemIcon>
-                    <ListItemText id={labelId} primary={value.display} />
+                      <div style={{display: "inline-flex", flexDirection: "column"}} >
+                          <ListItemText primary={value.display} />
+                          <div style={{display: "inline-flex"}}>
+                              {"Last Checkin: "}&nbsp;
+                              <CallbacksTableLastCheckinCell rowData={value} />
+                          </div>
+
+                      </div>
+
                   </ListItem>
                 );
               })}
@@ -170,8 +176,9 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
             </div>
             <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
+                color={"primary"}
                 className={classes.button}
                 onClick={handleAllRight}
                 disabled={left.length === 0}
@@ -180,8 +187,9 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
                 &gt;&gt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
+                color={"primary"}
                 className={classes.button}
                 onClick={handleCheckedRight}
                 disabled={leftChecked.length === 0}
@@ -190,8 +198,9 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
                 &gt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
+                color={"primary"}
                 className={classes.button}
                 onClick={handleCheckedLeft}
                 disabled={rightChecked.length === 0}
@@ -200,8 +209,9 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
                 &lt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
+                color={"primary"}
                 className={classes.button}
                 onClick={handleAllLeft}
                 disabled={right.length === 0}

@@ -251,7 +251,7 @@ func DockerStop(containers []string) error {
 			if mythicEnv.GetBool("mythic_react_debug") {
 				// only need to remove the container if we're switching between debug and regular
 				if err = runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, "mythic_react")); err != nil {
-					fmt.Printf("[-] Failed to remove mythic_react")
+					fmt.Printf("[-] Failed to remove mythic_react\n")
 					return err
 				}
 			}

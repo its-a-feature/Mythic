@@ -108,10 +108,17 @@ export function PayloadTypeCard(props) {
             flexDirection: "column", alignContent: "flex-end",
             backgroundColor: theme.palette.textBackgroundColor,
         }}>
-            <IconButton color="secondary" href={props.wrapper ? "/docs/wrappers/" + props.name : "/docs/agents/" + props.name} target="_blank">
+            <IconButton
+              color="secondary"
+              href={props.wrapper ? "/docs/wrappers/" + props.name : "/docs/agents/" + props.name}
+              target="_blank"
+              size="large">
                 <MenuBookIcon />
             </IconButton>
-            <IconButton onClick={()=>{setOpenBuildingDialog(true);}} color="secondary" >
+            <IconButton
+              onClick={()=>{setOpenBuildingDialog(true);}}
+              color="secondary"
+              size="large">
                 <BuildIcon />
             </IconButton>
             {props.deleted ? (

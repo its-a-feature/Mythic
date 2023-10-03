@@ -41,9 +41,6 @@ export function CreatePayload(props){
       const cancelStep = () => {
         handleBack();
       }
-      React.useEffect( () => {
-        startOver();
-      }, [props.location.key])
       const steps = getSteps();
 
       const handleNext = () => {

@@ -230,7 +230,7 @@ export function PayloadsTableRow(props){
                           <MenuList id="split-button-menu"  >
                             {options.map((option, index) => (
                               <MenuItem
-                                key={option.name + props.uuid}
+                                key={index + props.uuid}
                                 onClick={(event) => handleMenuItemClick(event, index)}
                               >
                                 {option.name}

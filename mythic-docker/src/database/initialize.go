@@ -9,9 +9,11 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	"github.com/jmoiron/sqlx"
+	migrate "github.com/rubenv/sql-migrate"
 )
 
 var DB *sqlx.DB
+var currentMigrationVersion int64 = 3001000
 
 // initial structs made with './tables-to-go -u mythic_user -p [password here] -h [ip here] -v -d mythic_db -of output -pn database_structs'
 // package pulled from https://github.com/fraenky8/tables-to-go
@@ -92,6 +94,45 @@ func Initialize() {
 	}
 	// background process to reconnect to the database if we lose connection
 	go checkDBConnection()
+	migrations := &migrate.FileMigrationSource{
+		Dir: "database/migrations",
+	}
+	migrationList, err := migrations.FindMigrations()
+	if err != nil {
+		logging.LogFatalError(err, "Failed to find migrations")
+	}
+	currentMigrationVersionID := ""
+	for i, _ := range migrationList {
+		logging.LogInfo("migration info", "NumberPrefixMatches", migrationList[i].NumberPrefixMatches(),
+			"version", migrationList[i].VersionInt(), "id", migrationList[i].Id)
+		if migrationList[i].VersionInt() == currentMigrationVersion {
+			currentMigrationVersionID = migrationList[i].Id
+		}
+	}
+	if currentMigrationVersionID == "" {
+		logging.LogFatalError(nil, "Current migration version set to a non-existing file", "version", currentMigrationVersion)
+	}
+	// Migrations generated via https://github.com/djrobstep/migra/blob/master/docs/options.md
+	migrate.SetSchema("public")
+	migrate.SetTable("mythic_server_migration_tracking")
+	n, err := migrate.ExecVersion(DB.DB, "postgres", migrations, migrate.Up, currentMigrationVersion)
+	if err != nil {
+		//logging.LogError(err, "Error from migrate.ExecVersion")
+		appliedMigrations := []migrate.MigrationRecord{}
+		if err2 := DB.Select(&appliedMigrations, `SELECT * FROM mythic_server_migration_tracking`); err2 != nil {
+			logging.LogFatalError(err2, "Failed to get applied migrations from database")
+		}
+		successfullyAppliedMigrations := false
+		for i, _ := range appliedMigrations {
+			if appliedMigrations[i].Id == currentMigrationVersionID && !appliedMigrations[i].AppliedAt.IsZero() {
+				successfullyAppliedMigrations = true
+			}
+		}
+		if !successfullyAppliedMigrations {
+			logging.LogFatalError(err, "Failed to apply all necessary migrations for specified version", "version", currentMigrationVersion)
+		}
+	}
+	logging.LogInfo("Applied migrations up to current version", "version", currentMigrationVersion, "applied", n)
 	initializeMitreAttack()
 	logging.LogInfo("Database Initialized")
 }

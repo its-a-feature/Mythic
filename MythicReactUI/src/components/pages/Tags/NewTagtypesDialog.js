@@ -15,7 +15,7 @@ import Paper from '@mui/material/Paper';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {HexColorInput, HexColorPicker} from 'react-colorful';
 import {Typography, Box} from '@mui/material';
-import { createTheme } from '@mui/material/styles';
+import { createTheme, adaptV4Theme } from '@mui/material/styles';
 import {useTheme} from '@mui/material/styles';
 
 const newTagtypeMutation = gql`
@@ -42,8 +42,8 @@ export function NewTagtypesDialog(props) {
   const [lightColor, setLightColor] = React.useState(theme.palette.text.primary)
   const [darkColor, setDarkColor] = React.useState(theme.palette.text.primary);
   React.useEffect( () => {
-    let lightTheme = createTheme({palette: {mode: "light",}});
-    let darkTheme = createTheme({palette: {mode: "dark",}});
+    let lightTheme = createTheme(adaptV4Theme({palette: {mode: "light",}}));
+    let darkTheme = createTheme(adaptV4Theme({palette: {mode: "dark",}}));
     setLightColor(lightTheme.palette.text.primary);
     setDarkColor(darkTheme.palette.text.primary);
     if(props.currentTag !== undefined){

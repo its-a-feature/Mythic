@@ -19,7 +19,7 @@ import Popper from '@mui/material/Popper';
 import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
-import {useHistory} from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import Pagination from '@mui/material/Pagination';
 
 
@@ -29,7 +29,7 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
     const [openPayloadImport, setOpenPayloadImport] = React.useState(false);
     const dropdownAnchorRef = React.useRef(null);
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
-    const history = useHistory();
+    const navigate = useNavigate();
     const toggleShowDeleted = () => {
         setShowDeleted(!showDeleted);
         onChangeShowDeleted(!showDeleted);
@@ -38,13 +38,13 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
         {
             name: "Generate New Payload",
             click: () => {
-                history.push("/new/createpayload");
+                navigate("/new/createpayload");
             }
         },
         {
             name: "Generate New Wrapper Payload",
             click: () => {
-                history.push("/new/createwrapper");
+                navigate("/new/createwrapper");
             }
         },
         {

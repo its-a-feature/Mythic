@@ -48,6 +48,8 @@ export const getDefaultValueForType = (parameter) => {
             return JSON.parse(parameter.default_value);
         case "Array":
             return JSON.parse(parameter.default_value);
+        case "TypedArray":
+            return JSON.parse(parameter.default_value);
         case "Boolean":
             return parameter.default_value === "true";
         case "Dictionary":

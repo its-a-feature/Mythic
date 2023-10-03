@@ -27,8 +27,11 @@ query portsQuery{
         remote_port
         remote_ip
         port_type
-        task_id
+        task {
+            display_id
+        }
         id
+        deleted
     }
 }
 `;

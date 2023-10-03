@@ -140,7 +140,7 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 				// process the additional UpdatedCommands
 				if err := updateLoadedCommandsFromPayloadBuild(databasePayload, payloadBuildResponse.UpdatedCommandList); err != nil {
 					database.UpdatePayloadWithError(databasePayload, err)
-					database.UpdateRemainingBuildSteps(databasePayload)
+					//database.UpdateRemainingBuildSteps(databasePayload)
 					return
 				}
 			}

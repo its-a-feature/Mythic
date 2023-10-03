@@ -35,6 +35,7 @@ func handleAgentMessageCheckin(incoming *map[string]interface{}, uUIDInfo *cache
 		  "action": "checkin"
 		}
 	*/
+	//logging.LogInfo("got a checkin message", "uuidtype", uUIDInfo.UUIDType, "uuid", uUIDInfo.UUID)
 	if uUIDInfo.UUIDType == UUIDTYPECALLBACK {
 		// this means we got a new `checkin` message from an existing callback
 		// use this to simply update the callback information rather than creating a new callback

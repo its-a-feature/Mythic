@@ -25,7 +25,12 @@ export function MythicDialog(props) {
       }
     }
   }, [props.open]);
-
+    const dialogOnClick = (e) => {
+        e.stopPropagation();
+        if(e.target.classList.length > 0 && e.target.classList.contains("MuiDialog-container")){
+            props.onClose();
+        }
+    }
   return (
       <Dialog
         open={props.open}
@@ -33,8 +38,10 @@ export function MythicDialog(props) {
         scroll="paper"
         maxWidth={props.maxWidth}
         fullWidth={props.fullWidth}
+        style={props.style}
         aria-labelledby="scroll-dialog-title"
         aria-describedby="scroll-dialog-description"
+        onClick={dialogOnClick}
       >
         {props.innerDialog}
       </Dialog>
@@ -161,7 +168,7 @@ export function MythicViewJSONAsTableDialog(props) {
                                       <TableHead>
                                           <TableRow>
                                               {element.headers.map( (header, index) => (
-                                                <TableCell key={'eheader' + index} style={index === 0 ? {width: "30%"} : {}}>{header}</TableCell>
+                                                <TableCell key={'eheader' + header + index} style={index === 0 ? {width: "30%"} : {}}>{header}</TableCell>
                                               ))}
                                           </TableRow>
                                       </TableHead>

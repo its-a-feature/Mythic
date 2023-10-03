@@ -5,6 +5,7 @@ import Tabs from '@mui/material/Tabs';
 import { CallbacksTabsTaskingLabel, CallbacksTabsTaskingPanel } from './CallbacksTabsTasking';
 import { CallbacksTabsFileBrowserLabel, CallbacksTabsFileBrowserPanel } from './CallbacksTabsFileBrowser';
 import { CallbacksTabsProcessBrowserLabel, CallbacksTabsProcessBrowserPanel } from './CallbacksTabsProcessBrowser';
+import { CallbacksTabsTaskingSplitLabel, CallbacksTabsTaskingSplitPanel} from "./CallbacksTabsTaskingSplit";
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -72,6 +73,19 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, o
                                         contextMenuOptions={contextMenuOptions}
                                     />
                                 );
+                            case 'interactSplit':
+                                return (
+                                    <CallbacksTabsTaskingSplitLabel
+                                        onEditTabDescription={onEditTabDescription}
+                                        onCloseTab={onCloseTabLocal}
+                                        key={'tablabel' + tab.tabID + tab.tabType}
+                                        tabInfo={tab}
+                                        index={index}
+                                        me={me}
+                                        onDragTab={onDragTab}
+                                        contextMenuOptions={contextMenuOptions}
+                                    />
+                                )
                             case 'fileBrowser':
                                 return (
                                     <CallbacksTabsFileBrowserLabel
@@ -125,6 +139,24 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, o
                                 parentMountedRef={mountedRef}
                             />
                         );
+                    case 'interactSplit':
+                        return (
+                            <CallbacksTabsTaskingSplitPanel
+                                style={{
+                                    position: 'relative',
+                                    height: '100%',
+                                    maxHeight: '100%',
+                                    overflow: 'auto',
+                                }}
+                                key={'tabpanel' + tab.tabID + tab.tabType}
+                                onCloseTab={onCloseTabLocal}
+                                tabInfo={tab}
+                                value={value}
+                                index={index}
+                                me={me}
+                                parentMountedRef={mountedRef}
+                            />
+                        )
                     case 'fileBrowser':
                         return (
                             <CallbacksTabsFileBrowserPanel

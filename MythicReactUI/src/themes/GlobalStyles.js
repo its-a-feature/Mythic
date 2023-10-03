@@ -110,4 +110,75 @@ tspan {
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
   cursor: row-resize;
 }
+.resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 5px;
+  background: rgba(0, 0, 0, 0.5);
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.resizer.isResizing {
+  background: blue;
+  opacity: 1;
+}
+.groupNode {
+    border: 1px solid #eee;
+    padding: 5px;
+    border-radius: 5px;
+    background: ${(props) => props.theme.palette.graphGroupRGBA} !important;
+}
+.circleImageNode {
+     height: 50px;
+     display: block;
+     border-radius: 0%;
+}
+.context-menu {
+    background-color: ${(props) => props.theme.palette.primary.main};
+    border: 1px solid #eee;
+    border-radius: 5px;
+    box-shadow: 10px 19px 20px rgba(0, 0, 0, 10%);
+    position: absolute;
+    z-index: 10;
+}
+.context-menu-button {
+    border: none;
+    display: block;
+    padding: 0.5em;
+    text-align: left;
+    width: 100%;
+}
+
+.selectedTask {
+    animation: linearGradientMove .5s infinite linear;
+    padding: 3px 2px 6px 3px;
+    background: 
+        linear-gradient(90deg, ${(props) => props.theme.palette.info.main} 50%, transparent 0) repeat-x,
+        linear-gradient(90deg, ${(props) => props.theme.palette.info.main} 50%, transparent 0) repeat-x,
+        linear-gradient(0deg, ${(props) => props.theme.palette.info.main} 50%, transparent 0) repeat-y,
+        linear-gradient(0deg, ${(props) => props.theme.palette.info.main} 50%, transparent 0) repeat-y;
+    background-size: 8px 3px, 8px 3px, 3px 8px, 3px 8px;
+    background-position: 0 0, 0 100%, 0 0, 100% 0; // top bottom left right
+}
+
+@keyframes linearGradientMove {
+    100% {
+        background-position: 4px 0, -4px 100%, 0 -4px, 100% 4px;
+    }
+}
+
+*::-webkit-scrollbar {
+  width: 0.4em;
+  height: 0.4em;
+}
+*::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.00);
+}
+*::-webkit-scrollbar-thumb {
+  background-color: ${(props) => props.theme.palette.primary.main};
+}
 `

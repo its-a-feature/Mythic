@@ -32,13 +32,16 @@ class MythicTextField extends React.Component {
         onEnter: PropTypes.func,
         autoFocus: PropTypes.bool,
         autoComplete: PropTypes.bool,
-        showLabel: PropTypes.bool
+        showLabel: PropTypes.bool,
+        variant: PropTypes.string,
+        inline: PropTypes.bool,
+        marginBottom: PropTypes.string,
     }
     onChange = evt => {
         const name = this.props.name;
         const value = evt.target.value;
         const error = this.props.validate ? this.props.validate(value) : false;
-        this.props.onChange(name, value, error);
+        this.props.onChange(name, value, error, evt);
     }
     checkError = () => {
         return this.props.validate ? this.props.validate(this.props.value) : false
@@ -54,16 +57,16 @@ class MythicTextField extends React.Component {
     }
     render(){
         return (
-            <div style={{width:  this.props.width ? this.props.width + "rem" : "100%"}}>
+            <div style={{width:  this.props.width ? this.props.width + "rem" : "100%", display: this.props.inline ? "inline-block": "",}}>
                 <ValidationTextField 
                     fullWidth={true} 
                     placeholder={this.props.placeholder} 
                     value={this.props.value} 
                     onChange={this.onChange}
-                    onKeyPress={this.onKeyPress} 
+                    onKeyDown={this.onKeyPress}
                     label={this.props.showLabel === undefined ? this.props.name : this.props.showLabel ? this.props.name : undefined} 
                     autoFocus={this.props.autoFocus}
-                    variant="outlined" 
+                    variant={this.props.variant === undefined ? "outlined" : this.props.variant}
                     data-lpignore={true}
                     autoComplete={this.props.autoComplete === undefined ? "off" : (this.props.autoComplete ? "on" : "off")}
                     disabled={this.props.disabled === undefined ? false : this.props.disabled}
@@ -78,7 +81,8 @@ class MythicTextField extends React.Component {
                     helperText={this.checkError() ? this.props.errorText : this.props.helperText}
                     style={{
                         padding:0,
-                        marginBottom: this.props.marginBottom ? this.props.marginBottom : "10px"
+                        marginBottom: this.props.marginBottom ? this.props.marginBottom : "10px",
+                        display: this.props.inline ? "inline-block": "",
                     }}/>
             </div>
         )

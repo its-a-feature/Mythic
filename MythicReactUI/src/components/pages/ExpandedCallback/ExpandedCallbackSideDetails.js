@@ -62,6 +62,13 @@ export function ExpandedCallbackSideDetailsTable(props){
         }
     });
     const updateDisplayTime = () => {
+        if(lastCheckinDifference.current === 0){
+            if(displayTime === "0s"){
+                return
+            }
+            setDisplayTime("0s");
+            return
+        }
         let newTimeDifference = getTimeDifference(lastCheckinDifference.current);
         if(newTimeDifference.includes("m")){
             if(newTimeDifference.includes("m0s")){
@@ -70,6 +77,9 @@ export function ExpandedCallbackSideDetailsTable(props){
             }else if(displayTime === ""){
                 lastCheckinTimestamp.current = toLocalTime(lastCheckinTimestampFromMythic.current, false);
                 setDisplayTime(newTimeDifference.slice(0, newTimeDifference.indexOf("m")+1));
+            } else {
+                lastCheckinTimestamp.current = toLocalTime(lastCheckinTimestampFromMythic.current, false);
+                setDisplayTime(newTimeDifference);
             }
         } else {
             lastCheckinTimestamp.current = toLocalTime(lastCheckinTimestampFromMythic.current, false);
@@ -82,6 +92,9 @@ export function ExpandedCallbackSideDetailsTable(props){
         let timeskew = (new Date()) - currentMythic;
         lastCheckinDifference.current = last - timeskew;
         lastCheckinTimestampFromMythic.current = props.last_checkin;
+        if(last.getFullYear() === 1970){
+            lastCheckinDifference.current = 0;
+        }
         updateDisplayTime();
     }, 1000);
     useEffect( () => {

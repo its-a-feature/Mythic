@@ -132,10 +132,10 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 			}
 		} else {
 			intPort, err := strconv.Atoi(port)
-			if err != nil {
+			if err == nil {
 				MythicConfig.ServerDynamicPorts = append(MythicConfig.ServerDynamicPorts, uint32(intPort))
 			} else {
-				log.Printf("[-] Failed to parse port for mythic_server_dynamic_ports: %v\n", port)
+				log.Printf("[-] Failed to parse port for mythic_server_dynamic_ports: %v - %v\n", port, err)
 			}
 
 		}

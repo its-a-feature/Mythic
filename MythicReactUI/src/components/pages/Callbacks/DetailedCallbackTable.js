@@ -49,6 +49,7 @@ query GetCallbackDetails($callback_id: Int!) {
         step_success
         step_stdout
         step_stderr
+        step_skip
         step_description
         start_time
         end_time

@@ -3,8 +3,8 @@ import useStyles from './styles';
 import Draggable from 'react-draggable';
 
 const DraggableHandles = React.forwardRef(({ height, rowHeight, width, minColumnWidth, columnWidths, onStop }, ref) => {
-    const classes = useStyles();
     const [isDragging, setIsDragging] = useState(false);
+    const classes = useStyles();
     return (
         <div
             ref={ref}

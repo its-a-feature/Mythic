@@ -12,7 +12,7 @@ import {useTheme} from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Button from '@mui/material/Button';
+import {Button, Link} from '@mui/material';
 import { toLocalTime } from '../../utilities/Time';
 import {PayloadsTableRowBuildProcessPerStep} from './PayloadsTableRowBuildProgress';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
@@ -21,6 +21,9 @@ import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { snackActions } from '../../utilities/Snackbar';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
+import PublicIcon from '@mui/icons-material/Public';
+import {HostFileDialog} from "./HostFileDialog";
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 const GET_Payload_Details = gql`
 query GetPayloadDetails($payload_id: Int!, $operation_id: Int!) {
@@ -53,6 +56,7 @@ query GetPayloadDetails($payload_id: Int!, $operation_id: Int!) {
       step_success
       step_stdout
       step_stderr
+      step_skip
       step_description
       start_time
       end_time
@@ -131,6 +135,7 @@ function DetailedPayloadInnerTable(props){
     const [openAddRemoveCommandsDialog, setOpenAddRemoveCommandsDialog] = React.useState(false);
     const [openProgressIndicator, setOpenProgressIndicator] = React.useState(false);
     const [addProgress, setAddProgress] = React.useState(0);
+    const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const addTotal = React.useRef(0);
     const [removeProgress, setRemoveProgress] = React.useState(0);
     const removeTotal = React.useRef(0);
@@ -214,10 +219,10 @@ function DetailedPayloadInnerTable(props){
         if(commandMods.current.remove >= removeTotal.current) {
           snackActions.success("Finished adjusting commands");
         } else {
-          removeCommandMutation({variables: {command_id: commandMods.current.commandsToRemove[commandMods.current.remove].command.id, payload_id: props.id}})
+          removeCommandMutation({variables: {command_id: commandMods.current.commandsToRemove[commandMods.current.remove].command.id, payload_id: props.payload_id}})
         }
       } else {
-        addCommandMutation({variables: {command_id: commandMods.current.commandsToAdd[commandMods.current.add].id, payload_id: props.id}})
+        addCommandMutation({variables: {command_id: commandMods.current.commandsToAdd[commandMods.current.add].id, payload_id: props.payload_id}})
       }
     }
     const addRemoveCommandsSubmit = ({commandsToAdd, commandsToRemove}) => {
@@ -291,7 +296,22 @@ function DetailedPayloadInnerTable(props){
 
                     <TableRow hover>
                         <TableCell>Download URL</TableCell>
-                        <TableCell>{window.location.origin + "/direct/download/" + data.payload[0].filemetum.agent_file_id}</TableCell>
+                        <TableCell>
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + data.payload[0].filemetum.agent_file_id}>
+                                {window.location.origin + "/direct/download/" + data.payload[0].filemetum.agent_file_id}
+                            </Link>
+                            <MythicStyledTooltip title={"Host Payload Through C2"} >
+                                <PublicIcon color={"info"} style={{marginLeft: "20px", cursor: "pointer"}} onClick={()=>{setOpenHostDialog(true);}}  />
+                            </MythicStyledTooltip>
+                            {openHostDialog &&
+                                <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
+                                              onClose={()=>{setOpenHostDialog(false);}}
+                                              innerDialog={<HostFileDialog file_uuid={data.payload[0].filemetum.agent_file_id}
+                                                                           file_name={b64DecodeUnicode(data.payload[0].filemetum.filename_text)}
+                                                                           onClose={()=>{setOpenHostDialog(false);}} />}
+                                />
+                            }
+                        </TableCell>
                     </TableRow>
                     <TableRow hover>
                         <TableCell>SHA1</TableCell>
@@ -330,10 +350,10 @@ function DetailedPayloadInnerTable(props){
                                   ): (cmd.value)
                                 )
                               }
-                                  {cmd.enc_key === null ? (null) : (<React.Fragment>
+                                  {cmd.enc_key === null ? null : (<React.Fragment>
                                     <br/><b>Encryption Key: </b> {cmd.enc_key}
                                   </React.Fragment>) }
-                                {cmd.dec_key === null ? (null) : (<React.Fragment>
+                                {cmd.dec_key === null ? null : (<React.Fragment>
                                     <br/><b>Decryption Key: </b> {cmd.dec_key}
                                 </React.Fragment>) }
                             </TableCell>
@@ -456,7 +476,7 @@ function DetailedPayloadInnerTable(props){
                 {openAddRemoveCommandsDialog &&
                   <MythicDialog fullWidth={true} maxWidth="md" open={openAddRemoveCommandsDialog} 
                       onClose={()=>{setOpenAddRemoveCommandsDialog(false);}} 
-                      innerDialog={<AddRemoveCommandsDialog uuid={props.uuid} filename={b64DecodeUnicode(data.payload[0].filemetum.filename_text)} onClose={()=>{setOpenAddRemoveCommandsDialog(false);}} onSubmit={addRemoveCommandsSubmit} />}
+                      innerDialog={<AddRemoveCommandsDialog uuid={data.payload[0].uuid} filename={b64DecodeUnicode(data.payload[0].filemetum.filename_text)} onClose={()=>{setOpenAddRemoveCommandsDialog(false);}} onSubmit={addRemoveCommandsSubmit} />}
                   />
                 }
                 {openProgressIndicator &&
@@ -497,7 +517,7 @@ function DetailedPayloadInnerTable(props){
                   }
               {data.payload[0].wrapped_payload_id !== null &&
                 <React.Fragment>
-                  <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+                  <Paper elevation={5} style={{backgroundColor: theme.pageHeaderSecondary.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                       <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
                           Wrapped Payload Information
                       </Typography>

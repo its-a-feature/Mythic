@@ -170,15 +170,15 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
     useSubscription(fileDataSubscription, {
         variables: {now: fromNow},
         fetchPolicy: "no-cache",
-        onSubscriptionData: ({subscriptionData}) => {
-            for(let i = 0; i < subscriptionData.data.mythictree_stream.length; i++){
-                if( treeRootDataRef.current[subscriptionData.data.mythictree_stream[i]["host"]] === undefined) {
+        onData: ({data}) => {
+            for(let i = 0; i < data.data.mythictree_stream.length; i++){
+                if( treeRootDataRef.current[data.data.mythictree_stream[i]["host"]] === undefined) {
                     // new host discovered 
-                    treeRootDataRef.current[subscriptionData.data.mythictree_stream[i]["host"]] = {};
+                    treeRootDataRef.current[data.data.mythictree_stream[i]["host"]] = {};
                 }
-                treeRootDataRef.current[subscriptionData.data.mythictree_stream[i]["host"]][subscriptionData.data.mythictree_stream[i]["full_path_text"]] = {...subscriptionData.data.mythictree_stream[i]}
+                treeRootDataRef.current[data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]}
             }
-            const newMatrix = subscriptionData.data.mythictree_stream.reduce( (prev, cur) => {
+            const newMatrix = data.data.mythictree_stream.reduce( (prev, cur) => {
                     if( prev[cur["host"]] === undefined) {
                         // the current host isn't tracked in the adjacency matrix, so add it
                         prev[cur["host"]] = {}

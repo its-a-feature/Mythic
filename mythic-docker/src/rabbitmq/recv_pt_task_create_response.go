@@ -38,7 +38,7 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_WARNING)
 			return
 		}
-		logging.LogInfo("got response back from create message", "resp", payloadMsg, "original", string(msg.Body))
+		//logging.LogInfo("got response back from create message", "resp", payloadMsg, "original", string(msg.Body))
 
 		var updateColumns []string
 		if payloadMsg.CommandName != nil {

@@ -1877,14 +1877,15 @@
     - role: developer
       permission:
         columns:
+          - deleted
           - callback_id
           - id
           - local_port
           - operation_id
-          - port_type
-          - remote_ip
           - remote_port
           - task_id
+          - port_type
+          - remote_ip
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -1892,14 +1893,15 @@
     - role: mythic_admin
       permission:
         columns:
+          - deleted
           - callback_id
           - id
           - local_port
           - operation_id
-          - port_type
-          - remote_ip
           - remote_port
           - task_id
+          - port_type
+          - remote_ip
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -1908,6 +1910,7 @@
       permission:
         columns:
           - callback_id
+          - deleted
           - id
           - local_port
           - operation_id
@@ -1923,6 +1926,7 @@
       permission:
         columns:
           - callback_id
+          - deleted
           - id
           - local_port
           - operation_id
@@ -1938,6 +1942,7 @@
       permission:
         columns:
           - callback_id
+          - deleted
           - id
           - local_port
           - operation_id
@@ -3363,6 +3368,9 @@
             operation_id:
               _eq: X-Hasura-current-operation-id
 - table:
+    name: mythic_server_migration_tracking
+    schema: public
+- table:
     name: mythictree
     schema: public
   object_relationships:
@@ -4501,17 +4509,18 @@
     - role: developer
       permission:
         columns:
-          - step_success
+          - end_time
           - id
           - payload_id
           - payloadtype_id
-          - step_number
+          - start_time
           - step_description
           - step_name
+          - step_number
+          - step_skip
           - step_stderr
           - step_stdout
-          - end_time
-          - start_time
+          - step_success
         filter:
           _or:
             - payloadtype_id:
@@ -4522,17 +4531,18 @@
     - role: mythic_admin
       permission:
         columns:
-          - step_success
+          - end_time
           - id
           - payload_id
           - payloadtype_id
-          - step_number
+          - start_time
           - step_description
           - step_name
+          - step_number
+          - step_skip
           - step_stderr
           - step_stdout
-          - end_time
-          - start_time
+          - step_success
         filter:
           _or:
             - payloadtype_id:
@@ -4543,17 +4553,18 @@
     - role: operation_admin
       permission:
         columns:
-          - step_success
+          - end_time
           - id
           - payload_id
           - payloadtype_id
-          - step_number
+          - start_time
           - step_description
           - step_name
+          - step_number
+          - step_skip
           - step_stderr
           - step_stdout
-          - end_time
-          - start_time
+          - step_success
         filter:
           _or:
             - payloadtype_id:
@@ -4564,17 +4575,18 @@
     - role: operator
       permission:
         columns:
-          - step_success
+          - end_time
           - id
           - payload_id
           - payloadtype_id
-          - step_number
+          - start_time
           - step_description
           - step_name
+          - step_number
+          - step_skip
           - step_stderr
           - step_stdout
-          - end_time
-          - start_time
+          - step_success
         filter:
           _or:
             - payloadtype_id:
@@ -4585,17 +4597,18 @@
     - role: spectator
       permission:
         columns:
-          - step_success
+          - end_time
           - id
           - payload_id
           - payloadtype_id
-          - step_number
+          - start_time
           - step_description
           - step_name
+          - step_number
+          - step_skip
           - step_stderr
           - step_stdout
-          - end_time
-          - start_time
+          - step_success
         filter:
           _or:
             - payloadtype_id:
@@ -5226,6 +5239,7 @@
         set:
           operation_id: x-hasura-current-operation-id
         columns:
+          - is_error
           - operation_id
           - response
           - task_id
@@ -5237,6 +5251,7 @@
         set:
           operation_id: x-hasura-current-operation-id
         columns:
+          - is_error
           - operation_id
           - response
           - task_id
@@ -5248,6 +5263,7 @@
         set:
           operation_id: x-hasura-current-operation-id
         columns:
+          - is_error
           - operation_id
           - response
           - task_id
@@ -5259,6 +5275,7 @@
         set:
           operation_id: x-hasura-current-operation-id
         columns:
+          - is_error
           - operation_id
           - response
           - task_id
@@ -5267,6 +5284,7 @@
       permission:
         columns:
           - id
+          - is_error
           - operation_id
           - response
           - sequence_number
@@ -5283,6 +5301,7 @@
       permission:
         columns:
           - id
+          - is_error
           - operation_id
           - response
           - sequence_number
@@ -5299,6 +5318,7 @@
       permission:
         columns:
           - id
+          - is_error
           - operation_id
           - response
           - sequence_number
@@ -5315,6 +5335,7 @@
       permission:
         columns:
           - id
+          - is_error
           - operation_id
           - response
           - sequence_number
@@ -5331,6 +5352,7 @@
       permission:
         columns:
           - id
+          - is_error
           - operation_id
           - response
           - sequence_number
@@ -5989,50 +6011,52 @@
     - role: developer
       permission:
         columns:
-          - id
           - agent_task_id
-          - display_id
-          - operation_id
+          - callback_id
           - command_id
           - command_name
-          - params
-          - status_timestamp_preprocessing
-          - status_timestamp_submitted
-          - status_timestamp_processing
-          - status_timestamp_processed
-          - timestamp
-          - callback_id
-          - operator_id
-          - status
-          - original_params
-          - display_params
           - comment
           - comment_operator_id
-          - stdout
-          - stderr
           - completed
-          - opsec_pre_blocked
-          - opsec_pre_message
-          - opsec_pre_bypassed
-          - opsec_pre_bypass_role
-          - opsec_pre_bypass_user_id
-          - opsec_post_blocked
-          - opsec_post_message
-          - opsec_post_bypassed
-          - opsec_post_bypass_role
-          - opsec_post_bypass_user_id
-          - parent_task_id
-          - subtask_callback_function
-          - subtask_callback_function_completed
-          - group_callback_function
-          - group_callback_function_completed
           - completed_callback_function
           - completed_callback_function_completed
+          - display_id
+          - display_params
+          - group_callback_function
+          - group_callback_function_completed
+          - id
+          - interactive_task_type
+          - is_interactive_task
+          - operation_id
+          - operator_id
+          - opsec_post_blocked
+          - opsec_post_bypass_role
+          - opsec_post_bypass_user_id
+          - opsec_post_bypassed
+          - opsec_post_message
+          - opsec_pre_blocked
+          - opsec_pre_bypass_role
+          - opsec_pre_bypass_user_id
+          - opsec_pre_bypassed
+          - opsec_pre_message
+          - original_params
+          - parameter_group_name
+          - params
+          - parent_task_id
+          - response_count
+          - status
+          - status_timestamp_preprocessing
+          - status_timestamp_processed
+          - status_timestamp_processing
+          - status_timestamp_submitted
+          - stderr
+          - stdout
+          - subtask_callback_function
+          - subtask_callback_function_completed
           - subtask_group_name
           - tasking_location
-          - parameter_group_name
+          - timestamp
           - token_id
-          - response_count
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -6040,50 +6064,52 @@
     - role: mythic_admin
       permission:
         columns:
-          - id
           - agent_task_id
-          - display_id
-          - operation_id
+          - callback_id
           - command_id
           - command_name
-          - params
-          - status_timestamp_preprocessing
-          - status_timestamp_submitted
-          - status_timestamp_processing
-          - status_timestamp_processed
-          - timestamp
-          - callback_id
-          - operator_id
-          - status
-          - original_params
-          - display_params
           - comment
           - comment_operator_id
-          - stdout
-          - stderr
           - completed
-          - opsec_pre_blocked
-          - opsec_pre_message
-          - opsec_pre_bypassed
-          - opsec_pre_bypass_role
-          - opsec_pre_bypass_user_id
-          - opsec_post_blocked
-          - opsec_post_message
-          - opsec_post_bypassed
-          - opsec_post_bypass_role
-          - opsec_post_bypass_user_id
-          - parent_task_id
-          - subtask_callback_function
-          - subtask_callback_function_completed
-          - group_callback_function
-          - group_callback_function_completed
           - completed_callback_function
           - completed_callback_function_completed
+          - display_id
+          - display_params
+          - group_callback_function
+          - group_callback_function_completed
+          - id
+          - interactive_task_type
+          - is_interactive_task
+          - operation_id
+          - operator_id
+          - opsec_post_blocked
+          - opsec_post_bypass_role
+          - opsec_post_bypass_user_id
+          - opsec_post_bypassed
+          - opsec_post_message
+          - opsec_pre_blocked
+          - opsec_pre_bypass_role
+          - opsec_pre_bypass_user_id
+          - opsec_pre_bypassed
+          - opsec_pre_message
+          - original_params
+          - parameter_group_name
+          - params
+          - parent_task_id
+          - response_count
+          - status
+          - status_timestamp_preprocessing
+          - status_timestamp_processed
+          - status_timestamp_processing
+          - status_timestamp_submitted
+          - stderr
+          - stdout
+          - subtask_callback_function
+          - subtask_callback_function_completed
           - subtask_group_name
           - tasking_location
-          - parameter_group_name
+          - timestamp
           - token_id
-          - response_count
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -6091,50 +6117,52 @@
     - role: operation_admin
       permission:
         columns:
-          - id
-          - agent_task_id
-          - display_id
-          - operation_id
-          - command_id
-          - command_name
-          - params
-          - status_timestamp_preprocessing
-          - status_timestamp_submitted
-          - status_timestamp_processing
-          - status_timestamp_processed
-          - timestamp
-          - callback_id
-          - operator_id
-          - status
-          - original_params
-          - display_params
-          - comment
-          - comment_operator_id
-          - stdout
-          - stderr
           - completed
-          - opsec_pre_blocked
-          - opsec_pre_message
-          - opsec_pre_bypassed
-          - opsec_pre_bypass_role
-          - opsec_pre_bypass_user_id
-          - opsec_post_blocked
-          - opsec_post_message
-          - opsec_post_bypassed
-          - opsec_post_bypass_role
-          - opsec_post_bypass_user_id
-          - parent_task_id
-          - subtask_callback_function
-          - subtask_callback_function_completed
-          - group_callback_function
-          - group_callback_function_completed
-          - completed_callback_function
           - completed_callback_function_completed
+          - group_callback_function_completed
+          - is_interactive_task
+          - opsec_post_blocked
+          - opsec_post_bypassed
+          - opsec_pre_blocked
+          - opsec_pre_bypassed
+          - subtask_callback_function_completed
+          - callback_id
+          - command_id
+          - comment_operator_id
+          - display_id
+          - id
+          - interactive_task_type
+          - operation_id
+          - operator_id
+          - opsec_post_bypass_user_id
+          - opsec_pre_bypass_user_id
+          - parent_task_id
+          - response_count
+          - token_id
+          - agent_task_id
+          - command_name
+          - comment
+          - completed_callback_function
+          - display_params
+          - group_callback_function
+          - opsec_post_bypass_role
+          - opsec_post_message
+          - opsec_pre_bypass_role
+          - opsec_pre_message
+          - original_params
+          - parameter_group_name
+          - params
+          - status
+          - stderr
+          - stdout
+          - subtask_callback_function
           - subtask_group_name
           - tasking_location
-          - parameter_group_name
-          - token_id
-          - response_count
+          - status_timestamp_preprocessing
+          - status_timestamp_processed
+          - status_timestamp_processing
+          - status_timestamp_submitted
+          - timestamp
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -6142,50 +6170,52 @@
     - role: operator
       permission:
         columns:
-          - id
-          - agent_task_id
-          - display_id
-          - operation_id
-          - command_id
-          - command_name
-          - params
-          - status_timestamp_preprocessing
-          - status_timestamp_submitted
-          - status_timestamp_processing
-          - status_timestamp_processed
-          - timestamp
-          - callback_id
-          - operator_id
-          - status
-          - original_params
-          - display_params
-          - comment
-          - comment_operator_id
-          - stdout
-          - stderr
           - completed
-          - opsec_pre_blocked
-          - opsec_pre_message
-          - opsec_pre_bypassed
-          - opsec_pre_bypass_role
-          - opsec_pre_bypass_user_id
-          - opsec_post_blocked
-          - opsec_post_message
-          - opsec_post_bypassed
-          - opsec_post_bypass_role
-          - opsec_post_bypass_user_id
-          - parent_task_id
-          - subtask_callback_function
-          - subtask_callback_function_completed
-          - group_callback_function
-          - group_callback_function_completed
-          - completed_callback_function
           - completed_callback_function_completed
+          - group_callback_function_completed
+          - is_interactive_task
+          - opsec_post_blocked
+          - opsec_post_bypassed
+          - opsec_pre_blocked
+          - opsec_pre_bypassed
+          - subtask_callback_function_completed
+          - callback_id
+          - command_id
+          - comment_operator_id
+          - display_id
+          - id
+          - interactive_task_type
+          - operation_id
+          - operator_id
+          - opsec_post_bypass_user_id
+          - opsec_pre_bypass_user_id
+          - parent_task_id
+          - response_count
+          - token_id
+          - agent_task_id
+          - command_name
+          - comment
+          - completed_callback_function
+          - display_params
+          - group_callback_function
+          - opsec_post_bypass_role
+          - opsec_post_message
+          - opsec_pre_bypass_role
+          - opsec_pre_message
+          - original_params
+          - parameter_group_name
+          - params
+          - status
+          - stderr
+          - stdout
+          - subtask_callback_function
           - subtask_group_name
           - tasking_location
-          - parameter_group_name
-          - token_id
-          - response_count
+          - status_timestamp_preprocessing
+          - status_timestamp_processed
+          - status_timestamp_processing
+          - status_timestamp_submitted
+          - timestamp
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -6193,50 +6223,52 @@
     - role: spectator
       permission:
         columns:
-          - id
-          - agent_task_id
-          - display_id
-          - operation_id
-          - command_id
-          - command_name
-          - params
-          - status_timestamp_preprocessing
-          - status_timestamp_submitted
-          - status_timestamp_processing
-          - status_timestamp_processed
-          - timestamp
-          - callback_id
-          - operator_id
-          - status
-          - original_params
-          - display_params
-          - comment
-          - comment_operator_id
-          - stdout
-          - stderr
           - completed
-          - opsec_pre_blocked
-          - opsec_pre_message
-          - opsec_pre_bypassed
-          - opsec_pre_bypass_role
-          - opsec_pre_bypass_user_id
-          - opsec_post_blocked
-          - opsec_post_message
-          - opsec_post_bypassed
-          - opsec_post_bypass_role
-          - opsec_post_bypass_user_id
-          - parent_task_id
-          - subtask_callback_function
-          - subtask_callback_function_completed
-          - group_callback_function
-          - group_callback_function_completed
-          - completed_callback_function
           - completed_callback_function_completed
+          - group_callback_function_completed
+          - is_interactive_task
+          - opsec_post_blocked
+          - opsec_post_bypassed
+          - opsec_pre_blocked
+          - opsec_pre_bypassed
+          - subtask_callback_function_completed
+          - callback_id
+          - command_id
+          - comment_operator_id
+          - display_id
+          - id
+          - interactive_task_type
+          - operation_id
+          - operator_id
+          - opsec_post_bypass_user_id
+          - opsec_pre_bypass_user_id
+          - parent_task_id
+          - response_count
+          - token_id
+          - agent_task_id
+          - command_name
+          - comment
+          - completed_callback_function
+          - display_params
+          - group_callback_function
+          - opsec_post_bypass_role
+          - opsec_post_message
+          - opsec_pre_bypass_role
+          - opsec_pre_message
+          - original_params
+          - parameter_group_name
+          - params
+          - status
+          - stderr
+          - stdout
+          - subtask_callback_function
           - subtask_group_name
           - tasking_location
-          - parameter_group_name
-          - token_id
-          - response_count
+          - status_timestamp_preprocessing
+          - status_timestamp_processed
+          - status_timestamp_processing
+          - status_timestamp_submitted
+          - timestamp
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id

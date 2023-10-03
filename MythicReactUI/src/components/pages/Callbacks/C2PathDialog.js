@@ -1,9 +1,8 @@
-import React, {useRef, useEffect, useState} from 'react';
+import React, {useEffect, useCallback} from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import * as d3 from 'd3';
-import dagreD3 from 'dagre-d3';
+import ELK from 'elkjs/lib/elk.bundled.js';
 import {useTheme} from '@mui/material/styles';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputLabel from '@mui/material/InputLabel';
@@ -11,6 +10,18 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import { Typography } from '@mui/material';
+import ReactFlow, {
+    applyEdgeChanges, applyNodeChanges,
+    Handle, Position, useReactFlow, ReactFlowProvider, Panel,
+    MiniMap, Controls, ControlButton, useUpdateNodeInternals
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import { toPng, toSvg } from 'html-to-image';
+import InsertPhotoIcon from '@mui/icons-material/InsertPhoto';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import SwapCallsIcon from '@mui/icons-material/SwapCalls';
+import {snackActions} from "../../utilities/Snackbar";
+import {TaskLabelFlat, getLabelText} from './TaskDisplay';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -31,15 +42,12 @@ function getStyles(name, selectedOptions, theme) {
           : theme.typography.fontWeightMedium,
     };
   }
-
 export function C2PathDialog(props) {
-    const dagreRef = useRef(null);   
-    const [reZoom, setReZoom] = useState(true);
     const theme = useTheme();
     const labelComponentOptions = ["id", "user", "host", "ip", "domain", "os", "process_name"];
     const [selectedComponentOptions, setSelectedComponentOptions] = React.useState(["id", "user"]);
-    const [selectedGroupBy, setSelectedGroupBy] = React.useState("host");
-    const groupByOptions = ["host", "user", "ip", "domain", "os", "process_name", "extra_info"];
+    const [selectedGroupBy, setSelectedGroupBy] = React.useState("None");
+    const groupByOptions = ["host", "user", "ip", "domain", "os", "process_name", "None"];
     const [viewConfig, setViewConfig] = React.useState({
         rankDir: "LR",
         label_components: selectedComponentOptions,
@@ -66,19 +74,9 @@ export function C2PathDialog(props) {
     useEffect( () => {
         setViewConfig({...viewConfig, group_by: selectedGroupBy});
     }, [selectedGroupBy])
-    useEffect( () => {
-        
-        const node_events = {
-            "mouseover": (parent, node, d) => {return},
-            "mouseout": (parent, node, d) => {return},
-            "click": (parent, node, d) => {return},
-            "contextmenu": []
-        }
-        drawC2PathElements(props.callbackgraphedges, dagreRef, true, viewConfig, node_events, theme);
-        setReZoom(false);
-    }, [props.callbackgraphedges, reZoom, theme, viewConfig])
+
   return (
-    <React.Fragment>
+    <>
         <div style={{padding: "10px"}}>
             <Typography variant='h4' style={{display:"inline-block", marginTop: "10px"}}>
             Callback {props.callback.display_id}'s Egress Path
@@ -128,356 +126,1221 @@ export function C2PathDialog(props) {
                 </FormControl>
             </div>
         </div>
-        <DialogContent dividers={true}>
-            <React.Fragment>
-                <svg ref={dagreRef} id="nodeTree" style={{width: "100%", height: "calc(75vh)", marginTop: "10px"}}></svg>
-            </React.Fragment>
+        <DialogContent dividers={true} style={{height: "calc(70vh)"}}>
+            <DrawC2PathElementsFlowWithProvider edges={props.callbackgraphedges} view_config={viewConfig} theme={theme} />
         </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
         </DialogActions>
-  </React.Fragment>
+    </>
   );
 }
-
-
-export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_events, theme, setContextMenu) =>{
-    const disconnected = `stroke: ${theme.palette.warning.main}; stroke-width: 3px; stroke-dasharray: 5, 5; fill:none`;
-    const disconnectedArrow = `fill: ${theme.palette.warning.main}`;
-    const connected = `stroke: ${theme.palette.info.main}; fill: none; stroke-width: 1.5px;`;
-    const connectedArrow = `stroke: ${theme.palette.info.main}; fill: ${theme.palette.info.main}; stroke-width: 1.5px;`
-    const nodeColor = `fill: ${theme.palette.success.main},`;
-    const nodeLabelStyle = `labelStyle: "font-size: 2em"; fill: ${theme.palette.text.primary}`;
-    const edgeLabelStyle = `labelStyle: "font-size: 2em"; fill: ${theme.palette.text.primary}`;
-    const add_edge_to_mythic = (g, edge, view_config) => {
-        if(!edge.source.active && !view_config["show_all_nodes"]){return}
-        add_node(g, edge.source, view_config);
-        g.setEdge(edge.source.id, "Mythic",  {label: edge.c2profile.name, edge_id: edge.id, end_timestamp: edge.end_timestamp,
-            style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
-            arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
+const getSourcePosition = (direction) => {
+    if(direction === "RIGHT"){
+        return Position.Right
+    } else if(direction === "LEFT"){
+        return Position.Left
+    } else if(direction === "UP" || direction === "TOP"){
+        return Position.Top
+    } else if(direction === "DOWN" || direction === "BOTTOM"){
+        return Position.Bottom
+    } else {
+        return Position.Top
     }
-    const getGroupBy = (node, view_config) => {
-        if(node[view_config.group_by].length === 0){
-            return " ";
-        } else if(view_config.group_by === "ip") {
+}
+const getTargetPosition = (direction) => {
+    if(direction === "RIGHT"){
+        return Position.Left
+    } else if(direction === "LEFT"){
+        return Position.Right
+    } else if(direction === "UP" || direction === "TOP"){
+        return Position.Bottom
+    } else if(direction === "DOWN" || direction === "BOTTOM"){
+        return Position.Top
+    } else {
+        return Position.Bottom
+    }
+}
+function AgentNode({data}) {
+    const sourcePosition = getSourcePosition(data["elk.direction"]);
+    const targetPosition = getTargetPosition(data["elk.direction"]);
+    const getOffset = (index) => {
+        let offsetComponents = {location: "top", size: data.height};
+        if(sourcePosition === Position.Top || sourcePosition === Position.Bottom){
+            offsetComponents = {location: "left", size: data.width};
+        }
+        let size = (offsetComponents.size / data.sourceCount);
+        return {[offsetComponents.location]: (size * index) + (size / 2)}
+
+    }
+    return (
+        <div style={{padding: 0, margin: 0}}>
+            {
+                [...Array(data.sourceCount)].map((e, i) => (
+                    <Handle type={"source"} id={`${i+1}`} key={`${i+1}`} style={data.sourceCount > 1 ? getOffset(i) : {}} position={sourcePosition} />
+                ))
+
+            }
+            <img alt={data.img} style={{margin: "auto"}} src={data.img}  className={"circleImageNode"} />
+            <Handle type={"target"} position={targetPosition} />
+            <Typography style={{textAlign: "center", margin: 0, padding: 0}} >{data.label}</Typography>
+        </div>
+    )
+}
+function TaskNode({data}) {
+    const sourcePosition = getSourcePosition(data["elk.direction"]);
+    const targetPosition = getTargetPosition(data["elk.direction"]);
+    return (
+        <div >
+            <Handle type={"source"} position={sourcePosition} />
+            {data.id > 0 &&
+                <TaskLabelFlat task={data} showOnSelectTask={!data.selected} onSelectTask={() => {data.onSelectTask(data)}}
+                               graphView={true}
+                />
+            }
+            <Handle type={"target"} position={targetPosition} />
+        </div>
+    )
+}
+function GroupNode({data}) {
+    const sourcePosition = getSourcePosition(data["elk.direction"]);
+    const targetPosition = getTargetPosition(data["elk.direction"]);
+    return (
+        <>
+            <Handle hidden type={"source"} position={sourcePosition} />
+            <div className={"groupNode"} style={{width: data.width, height: data.height, margin: "auto"}}>
+                <Typography style={{textAlign: "center", margin: 0, padding: 0}} >{data.label}</Typography>
+            </div>
+            <Handle type={"target"} hidden position={targetPosition} />
+        </>
+
+
+    )
+}
+const nodeTypes = { "agentNode": AgentNode, "groupNode": GroupNode, "taskNode": TaskNode };
+
+const elk = new ELK();
+const getWidth = (node) => {
+    if(node.type === "taskNode"){
+        return getTaskWidth(node);
+    }
+    return Math.max(100, node.data.label.length * 7);
+}
+const getTaskWidth = (node) => {
+    let nodeText = " ";
+    if(node?.data?.command_name){
+        nodeText = getLabelText(node.data, true);
+    }
+    return Math.max(325, (nodeText.length * 8) + 10)
+}
+const getHeight = (node) => {
+    if(node.hidden){
+        return 0;
+    }
+    return 80;
+}
+export default async function createLayout({initialGroups, initialNodes, initialEdges, alignment}) {
+    let elkAlignment = {
+        "elk.alignment": "RIGHT" , //LEFT, RIGHT, TOP, BOTTOM, CENTER
+        "elk.direction": "RIGHT" , //DOWN, LEFT, RIGHT, UP
+    }
+    if(alignment === "TB"){
+        elkAlignment = {
+            "elk.alignment": "TOP", //LEFT, RIGHT, TOP, BOTTOM, CENTER
+            "elk.direction":  "UP", //DOWN, LEFT, RIGHT, UP
+        }
+    }else if(alignment === "BT"){
+        elkAlignment = {
+            "elk.alignment": "BOTTOM", //LEFT, RIGHT, TOP, BOTTOM, CENTER
+            "elk.direction": "DOWN", //DOWN, LEFT, RIGHT, UP
+        }
+    }
+    const options = {
+        "elk.algorithm": "layered",
+        // TOP / UP
+        // RIGHT / RIGHT
+        ...elkAlignment,
+        //"elk.topdownLayout": true,
+        "elk.padding": '[top=30,left=10,right=10]',
+        "elk.separateConnectedComponents": false,
+        "elk.layered.compaction.connectedComponents": false,
+        "elk.spacing.nodeNode": 40, // spacing between each node
+        "elk.layered.spacing.nodeNodeBetweenLayers": 100, // spacing between nodes _within_ a group
+        "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED", // centers them within a group, good
+        //"elk.layered.compaction.postCompaction.strategy": "LEFT_RIGHT_CONNECTION_LOCKING",
+        "elk.alg.layered.p4nodes.NodePlacementStrategy": "BRANDES_KOEPF",
+        "elk.layered.spacing.edgeEdgeBetweenLayers": 20,
+        "elk.layered.spacing.edgeNodeBetweenLayers": 40,
+        "elk.layered.spacing.baseValue": 40,
+    }
+    const graph = {
+        id: "root",
+        layoutOptions: {
+            ...options,
+        },
+        children: [...initialGroups.map((group) => ({
+            ...group,
+            id: group.id,
+            width: getWidth(group),
+            height: getHeight(group),
+            layoutOptions: {
+                ...options,
+            },
+            children: initialNodes
+                .filter((node) => node.group === group.id)
+                .map((node) => ({
+                    ...node,
+                    id: node.id,
+                    width: getWidth(node),
+                    height: getHeight(node),
+                    layoutOptions: {
+                        ...options,
+                    }
+                }))
+        })), ...initialNodes.reduce( (prev, cur) => {
+            if(cur.group){return [...prev]}
+            return [...prev, {...cur,
+                id: cur.id,
+                width: getWidth(cur),
+                height: getHeight(cur),
+                layoutOptions: {
+                    ...options,
+                },
+                children: []
+            }]
+        }, [])],
+        edges: initialEdges.map((edge) => ({
+            ...edge,
+            id: edge.id,
+            sources: [edge.source],
+            targets: [edge.target],
+            layoutOptions: {
+                ...options,
+            },
+        }))
+    };
+    const layout = await elk.layout(graph);
+    const nodes = layout.children.reduce((result, current) => {
+        result.push({
+            ...current,
+            id: current.id,
+            position: { x: current.x, y: current.y },
+            data: {  label: current.id, ...current.data, width: current.width, height: current.height, ...options },
+            style: { width: current.width, height: current.height }
+        });
+
+        current.children.forEach((child) =>
+            result.push({
+                ...child,
+                id: child.id,
+                position: { x: child.x, y: child.y },
+                data: { label: child.id, ...child.data, width: child.width, height: child.height, ...options },
+                style: { width: child.width, height: child.height },
+                parentNode: current.id
+            })
+        );
+
+        return result;
+    }, []);
+
+    return {
+        newNodes: nodes,
+        newEdges: initialEdges
+    };
+}
+const getLabel = (edge, label_components) => {
+    return label_components.map( (name) => {
+        if(name === "ip"){
             try{
-                let parts = JSON.parse(node[view_config.group_by]);
+                let parts = JSON.parse(edge[name]);
+                //console.log("ip parts", parts)
                 if(parts.length > 0 && parts[0].length > 0){
                     return parts[0]
                 }
+                //console.log("no ip parts for the following",edge[name])
                 return "127.0.0.1";
             }catch(error){
-                if(!node[view_config.group_by] || node[view_config.group_by].length === 0){
+                console.log(error)
+                if(!edge[name] || edge[name].length === 0){
                     return "127.0.0.1"
                 }
-                return node[view_config.group_by];
+                return edge[name];
             }
-        } else if(view_config.group_by === "user"){
-            if(node["integrity_level"] > 2){
-                return node[view_config.group_by] + "*";
+        } else if(name === "user") {
+            if(edge["integrity_level"] > 2){
+                return edge[name] + "*";
             }else{
-                return node[view_config.group_by];
+                return edge[name];
             }
-        } else{
+        } else {
+            return edge[name]
+        }
+
+    }).join(", ");
+}
+const getGroupBy = (node, view_config) => {
+    if(!node){return ""}
+    if(view_config.group_by === "None"){
+        return "";
+    }
+    if(node[view_config.group_by].length === 0){
+        return " ";
+    } else if(view_config.group_by === "ip") {
+        try{
+            let parts = JSON.parse(node[view_config.group_by]);
+            if(parts.length > 0 && parts[0].length > 0){
+                return parts[0]
+            }
+            return "127.0.0.1";
+        }catch(error){
+            if(!node[view_config.group_by] || node[view_config.group_by].length === 0){
+                return "127.0.0.1"
+            }
             return node[view_config.group_by];
         }
+    } else if(view_config.group_by === "user"){
+        if(node["integrity_level"] > 2){
+            return node[view_config.group_by] + "*";
+        }else{
+            return node[view_config.group_by];
+        }
+    } else{
+        return node[view_config.group_by];
     }
-    const add_node = (g, node, view_config) => {
-        g.setNode(node.id, {label: getLabel(node, view_config["label_components"]),  node: node, style: nodeColor, labelStyle: nodeLabelStyle, shape: 'rect', isParent:false});
-        g.setNode(getGroupBy(node, view_config), {label:  getGroupBy(node, view_config), clusterLabelPos: 'top', style: `fill:${theme.palette.graphGroup}`, node: null, labelStyle: nodeLabelStyle, isParent: true});
-        g.setParent(node.id, getGroupBy(node, view_config));
-        g.setNode(getGroupBy(node, view_config) + "mythic_expander", {label:"", shape: "square", node: node, isParent: false})
-        g.setParent(getGroupBy(node, view_config) + "mythic_expander", getGroupBy(node, view_config))
+}
+const shouldUseGroups = (view_config) => {
+    if(view_config["packet_flow_view"] && view_config.group_by !== "None"){
+        return true;
     }
-    const getLabel = (edge, label_components) => {
-        return label_components.map( (name) => {
-            if(name === "ip"){
-                try{
-                    let parts = JSON.parse(edge[name]);
-                    console.log("ip parts", parts)
-                    if(parts.length > 0 && parts[0].length > 0){
-                        return parts[0]
-                    }
-                    console.log("no ip parts for the following",edge[name])
-                    return "127.0.0.1";
-                }catch(error){
-                    console.log(error)
-                    if(!edge[name] || edge[name].length === 0){
-                        return "127.0.0.1"
-                    }
-                    return edge[name];
-                }
-            } else if(name === "user") {
-                if(edge["integrity_level"] > 2){
-                    return edge[name] + "*";
-                }else{
-                    return edge[name];
-                }
-            } else {
-                return edge[name]
-            }
-            
-        }).join(", ");
-    }
-    const add_edge_p2p = (g, edge, view_config) => {
-        if(!edge.source.active && !edge.destination.active && !view_config["show_all_nodes"]){
+    return false;
+}
+export const DrawC2PathElementsFlowWithProvider = (props) => {
+    return (
+        <ReactFlowProvider>
+            <DrawC2PathElementsFlow {...props} />
+        </ReactFlowProvider>
+    )
+}
+export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contextMenu}) =>{
+    const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: []});
+    const [nodes, setNodes] = React.useState();
+    const [edgeFlow, setEdgeFlow] = React.useState([]);
+    const [openContextMenu, setOpenContextMenu] = React.useState(false);
+    const [contextMenuCoord, setContextMenuCord] = React.useState({});
+    const viewportRef = React.useRef(null);
+    const contextMenuNode = React.useRef(null);
+    const {fitView} = useReactFlow()
+    const updateNodeInternals = useUpdateNodeInternals();
+    const onNodesChange = useCallback(
+        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+        []
+    );
+    const onEdgesChange = useCallback(
+        (changes) => setEdgeFlow((eds) => applyEdgeChanges(changes, eds)),
+        []
+    );
+    const onDownloadImageClickSvg = () => {
+        // we calculate a transform for the nodes so that all nodes are visible
+        // we then overwrite the transform of the `.react-flow__viewport` element
+        // with the style option of the html-to-image library
+        snackActions.info("Saving image to svg...");
+        toSvg(document.querySelector('.react-flow__viewport'), {
+            width: viewportRef.current.offsetWidth,
+            height: viewportRef.current.offsetHeight,
+            style: {
+                width: viewportRef.current.clientWidth,
+                height: viewportRef.current.clientHeight,
+            },
+        }).then((dataUrl) => {
+            const a = document.createElement('a');
+            a.setAttribute('download', 'c2_graph.svg');
+            a.setAttribute('href', dataUrl);
+            a.click();
+        });
+    };
+    const onDownloadImageClickPng = () => {
+        // we calculate a transform for the nodes so that all nodes are visible
+        // we then overwrite the transform of the `.react-flow__viewport` element
+        // with the style option of the html-to-image library
+        snackActions.info("Saving image to png...");
+        toPng(document.querySelector('.react-flow__viewport'), {
+            width: viewportRef.current.offsetWidth,
+            height: viewportRef.current.offsetHeight,
+            style: {
+                width: viewportRef.current.clientWidth,
+                height: viewportRef.current.clientHeight,
+            },
+        }).then((dataUrl) => {
+            const a = document.createElement('a');
+            a.setAttribute('download', 'c2_graph.png');
+            a.setAttribute('href', dataUrl);
+            a.click();
+        });
+    };
+    const onNodeContextMenu = useCallback( (event, node) => {
+        if(!contextMenu){return}
+        if(node.type === "groupNode"){
             return;
-        }else if(!view_config["show_all_nodes"]){
-            //at least one of the two nodes is active and we don't want to show all the nodes
-            if(edge.source.active){add_node(g, edge.source, view_config)}
-            if(edge.destination.active){add_node(g, edge.destination, view_config)}
-            // not adding an edge because one of the nodes could be non-existent
-            if(!edge.source.active || !edge.destination.active){
-                return;
-            }
-        }else{
-            add_node(g, edge.source, view_config);
-            add_node(g, edge.destination, view_config);
         }
-        if(view_config["packet_flow_view"]){
-            createEdge(g, edge, true);
-        }else{
-            createEdge(g, edge, false);
-        }
-    }
-    const createEdge = (g, edge, egress_flow) =>{
-        if(egress_flow){
-            if(edge.source.to_mythic){
-                g.setEdge(edge.destination.id, edge.source.id,  {label: edge.c2profile.name, edge_id: edge.id,end_timestamp: edge.end_timestamp,
-                    style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
-                    arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
-            } else {
-                g.setEdge(edge.source.id, edge.destination.id,  {label: edge.c2profile.name, edge_id: edge.id,end_timestamp: edge.end_timestamp,
-                    style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
-                    arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
+        event.preventDefault();
+        contextMenuNode.current = {...node.data, id: node.data.callback_id};
+        setContextMenuCord({
+            top:  event.clientY,
+            left:  event.clientX,
+        });
+        setOpenContextMenu(true);
+    }, [contextMenu])
+    const onPaneClick = useCallback( () => {
+        setOpenContextMenu(false);
+    }, [setOpenContextMenu])
+    React.useEffect( () => {
+        let tempNodes = [{
+            id: "Mythic",
+            position: { x: 0, y: 0 },
+            type: "agentNode",
+            height: 100,
+            width: 50,
+            data: {label: "Mythic", img: "/static/mythic.svg", isMythic: true}
+        }];
+        let tempEdges = [];
+        let parentNodes = [];
+
+        const add_edge_to_mythic = (edge, view_config) => {
+            if(!edge.source.active && !view_config["show_all_nodes"]){return}
+            add_node(edge.source, view_config);
+            let found = false;
+            let edgeID = `e${edge.source.id}-${edge.destination.id}-${edge.c2profile.name}`;
+            for(let i = 0; i < tempEdges.length; i++){
+                if(tempEdges[i].id === edgeID){
+                    found = true;
+                    if(edge.id >= tempEdges[i].mythic_id){
+                        tempEdges[i].data.end_timestamp = edge.end_timestamp;
+                    }
+                    break;
+                }
             }
-            
-        }else{
-            g.setEdge(edge.source.id, edge.destination.id,  {label: edge.c2profile.name, edge_id: edge.id,end_timestamp: edge.end_timestamp,
+            if(!found){
+                tempEdges.push(
+                    {
+                        id: `e${edge.source.id}-${edge.destination.id}-${edge.c2profile.name}`,
+                        mythic_id: edge.id,
+                        source: `${edge.source.id}`,
+                        target: "Mythic",
+                        label: edge.c2profile.name,
+                        animated: true,
+                        data: {
+                            source: {...edge.source, parentNode: getGroupBy(edge.source, view_config)},
+                            target: {parentNode: "Mythic"},
+                            end_timestamp: edge.end_timestamp,
+                        }
+                    },
+                )
+            }
+
+            /*
+            g.setEdge(edge.source.id, "Mythic",  {label: edge.c2profile.name, edge_id: edge.id, end_timestamp: edge.end_timestamp,
                 style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
                 arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
+
+             */
         }
-            
-        
-    }
-    var g = new dagreD3.graphlib.Graph({ compound: true, multigraph: true, directed: true}).setGraph({rankdir: view_config["rankDir"]}).setDefaultEdgeLabel(function() {return {}; });
-    var svg = d3.select(dagreRef.current);
-    var svgGroup;
-    var test = svg.select("g")._groups[0][0];
-    if(test){
-        svgGroup = svg.select("g");
-    }else{
-        svgGroup = svg.append("g");
-    }
-    var zoom = d3.zoom().on("zoom", function() {
-          svgGroup.attr("transform", d3.event.transform);
-        });
-    if(reZoom){
-        svg.select('g.output').remove();
-        svg.call(zoom);
-    }
-    g.setNode("Mythic", {label: "Mythic", style: nodeColor, shape: 'rect', node: null, labelStyle: nodeLabelStyle});
-    const createNewEdges = () => {
-        // loop through until all edges have one side marked as "toward_mythic"
-        let edgesToUpdate = edges.length;
-        if (edgesToUpdate === 0) {return []}
-        let edgesUpdated = 0;
-        let tempEdges = [...edges];
-        let toMythicIds = new Set();
-        let loop_count = 0;
-        while(edgesUpdated < edgesToUpdate){
-            //console.log(edges, tempEdges, edgesToUpdate, edgesUpdated)
-            
-            tempEdges = tempEdges.map( e => {
-                //console.log(e)
-                if(!e.source.to_mythic && !e.destination.to_mythic){
-                    if(e.source.id === e.destination.id){
-                        e.source.to_mythic = true;
-                        e.destination.to_mythic = true;
-                        toMythicIds.add(e.source.id);
-                        
-                        edgesUpdated += 1;
-                    } else if(toMythicIds.has(e.source.id)){
-                        e.source.to_mythic = true;
-                        e.destination.to_mythic = false;
-                        edgesUpdated += 1;
-                    } else if(toMythicIds.has(e.destination.id)){
-                        e.destination.to_mythic = true;
-                        e.source.to_mythic = false;
-                        edgesUpdated += 1;
-                    } else {
-                        // check if either source/destination has any edges that identify
-                        tempEdges.forEach( e2 => {
-                            if(e2.source.id === e.source.id){
-                                // only look at edges that contain our source
-                                if(e2.destination.to_mythic){
-                                    e.source.to_mythic = true;
-                                    edgesUpdated += 1;
-                                }
-                            } else if(e2.destination.id === e.source.id){
-                                if(e2.source.to_mythic){
-                                    e.source.to_mythic = true;
-                                    edgesUpdated += 1;
-                                }
-                            }
-                        })
-                    }
-                } else {
-                    edgesUpdated += 1;
+        const add_node = (node, view_config) => {
+            let groupByValue = getGroupBy(node, view_config);
+            let nodeID = `${node.id}`;
+            let found = false;
+            for(let i = 0; i < tempNodes.length; i++){
+                if(tempNodes[i].id === nodeID){
+                    found = true;
+                    break;
                 }
-                //edgesUpdated += 1;
-                return e;
-            })
-            loop_count += 1;
-            if (loop_count > 2 * edgesToUpdate){
-                console.log("aborting early", tempEdges, edgesUpdated)
-                edgesUpdated = edgesToUpdate;
-                
+            }
+            if(!found){
+                tempNodes.push(
+                    {
+                        id: `${node.id}`,
+                        position: { x: 0, y: 0 },
+                        type: "agentNode",
+                        height: 50,
+                        width: 100,
+                        parentNode: shouldUseGroups(view_config) ? groupByValue : null,
+                        group: shouldUseGroups(view_config) ? groupByValue : null,
+                        extent: shouldUseGroups(view_config) ? "parent" : null,
+                        data: {
+                            label: getLabel(node, view_config["label_components"]),
+                            img: "/static/" + node.payload.payloadtype.name + ".svg",
+                            isMythic: false,
+                            callback_id: node.id,
+                            display_id: node.display_id,
+                        }
+                    }
+                )
+            }
+            found = false;
+            for(let i = 0; i < parentNodes.length; i++){
+                if(parentNodes[i].id === groupByValue){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                parentNodes.push({
+                    id: groupByValue,
+                    position: { x: 110, y: 110 },
+                    type: "groupNode",
+                    width: 200,
+                    height: 200,
+
+                    data: {
+                        label: groupByValue,
+                    },
+
+                });
             }
         }
-        return tempEdges
-    }
-    const updatedEdges = createNewEdges();
-    updatedEdges.forEach( (edge) => {
-        if(!view_config["include_disconnected"] && edge.end_timestamp !== null){return}
-        if(edge.destination.id === edge.source.id){
-            if(g.hasEdge(edge.source.id, "Mythic", edge.c2profile.name)){
-                // we already have an edge to Mythic from our source id, check if this edge is newer or not
-                if(edge.id > g.edge(edge.source.id, "Mythic", edge.c2profile.name).edge_id){
-                    add_edge_to_mythic(g, edge, view_config);
+        const add_edge_p2p = (edge, view_config) => {
+            if(!edge.source.active && !edge.destination.active && !view_config["show_all_nodes"]){
+                return;
+            }else if(!view_config["show_all_nodes"]){
+                //at least one of the two nodes is active and we don't want to show all the nodes
+                if(edge.source.active){add_node(edge.source, view_config)}
+                if(edge.destination.active){add_node(edge.destination, view_config)}
+                // not adding an edge because one of the nodes could be non-existent
+                if(!edge.source.active || !edge.destination.active){
+                    return;
                 }
             }else{
-                //this is a new edge to mythic
-                add_edge_to_mythic(g, edge, view_config);
+                add_node(edge.source, view_config);
+                add_node(edge.destination, view_config);
             }
-        }else{
-            let source_str_id = `${edge.source.id}`;
-            let destination_str_id = `${edge.destination.id}`
             if(view_config["packet_flow_view"]){
-                // destination -> source
-                if(g.hasEdge(destination_str_id, source_str_id, edge.c2profile.name)){
-                    //we've seen an edge between these two before
-                    if(edge.id > g.edge(destination_str_id, source_str_id, edge.c2profile.name).edge_id){
-                        add_edge_p2p(g, edge, view_config);
-                    }else{
-                        console.log("doing nothing, dropping data");
+                createEdge(edge, true);
+            }else{
+                createEdge(edge, false);
+            }
+        }
+        const createEdge = (edge, egress_flow) =>{
+            let found = false;
+            let edgeID = `e${edge.source.id}-${edge.destination.id}-${edge.c2profile.name}`;
+            if(egress_flow){
+                if(edge.source.to_mythic){
+                    edgeID = `e${edge.destination.id}-${edge.source.id}-${edge.c2profile.name}`;
+                    for(let i = 0; i < tempEdges.length; i++){
+                        if(tempEdges[i].id === edgeID ){
+                            found = true;
+                            if(edge.id >= tempEdges[i].mythic_id){
+                                tempEdges[i].data.end_timestamp = edge.end_timestamp;
+                            }
+                            break;
+                        }
                     }
-                }else{
-                    //this is a new edge
-                    add_edge_p2p(g, edge, view_config);
+                    if(!found){
+                        tempEdges.push(
+                            {
+                                id: `e${edge.destination.id}-${edge.source.id}-${edge.c2profile.name}`,
+                                mythic_id: edge.id,
+                                source: `${edge.destination.id}`,
+                                target: `${edge.source.id}`,
+                                label: edge.c2profile.name,
+                                animated: true,
+                                data: {
+                                    end_timestamp: edge.end_timestamp,
+                                    source: {...edge.destination, parentNode: getGroupBy(edge.destination, view_config)},
+                                    target: {...edge.source, parentNode: getGroupBy(edge.source, view_config)},
+                                }
+                            },
+                        )
+                    }
+
+                    /*
+                    g.setEdge(edge.destination.id, edge.source.id,  {label: edge.c2profile.name, edge_id: edge.id,end_timestamp: edge.end_timestamp,
+                        style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
+                        arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
+
+                     */
+                } else {
+                    for(let i = 0; i < tempEdges.length; i++){
+                        if(tempEdges[i].id === edgeID){
+                            found = true;
+                            if(edge.id >= tempEdges[i].mythic_id){
+                                tempEdges[i].data.end_timestamp = edge.end_timestamp;
+                            }
+                            break;
+                        }
+                    }
+                    if(!found){
+                        tempEdges.push(
+                            {
+                                id: `e${edge.source.id}-${edge.destination.id}-${edge.c2profile.name}`,
+                                mythic_id: edge.id,
+                                source: `${edge.source.id}`,
+                                target: `${edge.destination.id}`,
+                                label: edge.c2profile.name,
+                                animated: true,
+                                data: {
+                                    end_timestamp: edge.end_timestamp,
+                                    source: {...edge.source, parentNode: getGroupBy(edge.source, view_config)},
+                                    target: {...edge.target, parentNode: getGroupBy(edge.target, view_config)},
+                                }
+                            },
+                        )
+                    }
+
+                    /*
+                    g.setEdge(edge.source.id, edge.destination.id,  {label: edge.c2profile.name, edge_id: edge.id,end_timestamp: edge.end_timestamp,
+                        style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
+                        arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
+
+                     */
                 }
 
-            } else {
-                // source -> destination
-                if(g.hasEdge(source_str_id, destination_str_id, edge.c2profile.name)){
-                    //we've seen an edge between these two before
-                    if(edge.id > g.edge(source_str_id, destination_str_id, edge.c2profile.name).edge_id){
-                        add_edge_p2p(g, edge, view_config);
-                    }else{
-                        console.log("doing nothing, dropping data");
+            }else{
+                for(let i = 0; i < tempEdges.length; i++){
+                    if(tempEdges[i].id === edgeID){
+                        found = true;
+                        if(edge.id >= tempEdges[i].mythic_id){
+                            tempEdges[i].data.end_timestamp = edge.end_timestamp;
+                        }
+                        break;
                     }
-                }else{
-                    //this is a new edge
-                    add_edge_p2p(g, edge, view_config);
+                }
+                if(!found){
+                    tempEdges.push(
+                        {
+                            id: `e${edge.source.id}-${edge.destination.id}-${edge.c2profile.name}`,
+                            mythic_id: edge.id,
+                            source: `${edge.source.id}`,
+                            target: `${edge.destination.id}`,
+                            label: edge.c2profile.name,
+                            animated: true,
+                            data: {
+                                end_timestamp: edge.end_timestamp,
+                                source: {...edge.source, parentNode: getGroupBy(edge.source, view_config)},
+                                target: {...edge.target, parentNode: getGroupBy(edge.destination, view_config)},
+                            }
+                        },
+                    )
                 }
             }
         }
-    });
-    var render = new dagreD3.render();
-    var width = svg.node().getBoundingClientRect().width;
-    var height = svg.node().getBoundingClientRect().height;
-    render.shapes().rect = function rect(parent, bbox, node) {
-         var shapeSvg = parent.insert("image")
-             .attr("class", "nodeImage")
-             .attr("xlink:href", function(d) {
-                 if (node.node) {
-                    return "/static/" + node.node.payload.payloadtype.name + ".svg";
-                 }else{
-                    return "/static/mythic.svg";
-                 }
-             }).attr("x", function(d){
-                return (-1 * bbox.width)/2 + "px";
-             })
-             .attr("y", "-20px")
-             .attr("width", function(d) {
-                return Math.max(40, bbox.width);
-             })
-             .attr("height", function(d){
-                return 40;
-             })
-             .on("mouseover", function(d) { node_events["mouseover"](parent, node, d) })
-             .on("mouseout", function(d) { node_events["mouseout"](parent, node, d) })
-             .on("click", function(d) {
-                 d3.event.preventDefault();
-                 node_events["click"](parent, node, d)
-             })
-             .on("contextmenu", function(d) {
-                 d3.event.preventDefault();
-                 if(node.node){
-                     setContextMenu(d3.event, g, node);
-                 }
-
-             })
-         node.intersect = function(point) {
-             //return dagreD3.intersect.circle(node, 25, point);
-             //console.log(node, point, Math.max(node.width, node.label?.length))
-             return dagreD3.intersect.rect({...node, height: 75}, point)
-         };
-         return shapeSvg;
-     };
-    render.shapes().square = function square(parent, bbox, node){
-         var shapeSvg = parent.insert("rect")
-            .attr("width", function(d) {
-                let candidates = g.children(getGroupBy(node.node, view_config));
-                let longest = getGroupBy(node.node, view_config).length;
-                if(candidates !== undefined){
-                    candidates.forEach( (x) => {
-                        if(g.node(x).label.length > longest){
-                            longest = g.node(x).label.length;
-                        }
-                    });
+        const hasEdge = (sourceId, destinationId, c2ProfileName) => {
+            for(let i = 0; i < tempEdges.length; i++){
+                if(tempEdges[i].source === sourceId &&
+                    tempEdges[i].destination === destinationId &&
+                    tempEdges[i].data.label === c2ProfileName){
+                    return true;
                 }
-                if(view_config["rankDir"] === "LR"){
-                    // need a box at least as long as the host name or longest label with matching parent
-                    return longest * 9 + "px";
+            }
+            return false;
+        }
+        const hasFakeEdge = (sourceID) => {
+            for(let i = 0; i < tempEdges.length; i++){
+                if(tempEdges[i].data.source.parentNode === sourceID &&
+                    tempEdges[i].data.label === ""
+                ){
+                    return true;
+                }
+            }
+            return false;
+        }
+        const getEdge = (sourceId, destinationId, c2ProfileName) => {
+            for(let i = 0; i < tempEdges.length; i++){
+                if(tempEdges[i].source === sourceId &&
+                    tempEdges[i].destination === destinationId &&
+                    tempEdges[i].data.label === c2ProfileName){
+                    return tempEdges[i];
+                }
+            }
+            return false;
+        }
+        const createNewEdges = () => {
+            // loop through until all edges have one side marked as "toward_mythic"
+            let edgesToUpdate = edges.length;
+            if (edgesToUpdate === 0) {return []}
+            let edgesUpdated = 0;
+            let tempNewEdges = [...edges];
+            let toMythicIds = new Set();
+            let loop_count = 0;
+            while(edgesUpdated < edgesToUpdate){
+                //console.log(edges, tempEdges, edgesToUpdate, edgesUpdated)
+
+                tempNewEdges = tempNewEdges.map( e => {
+                    //console.log(e)
+                    if(!e.source.to_mythic && !e.destination.to_mythic){
+                        if(e.source.id === e.destination.id){
+                            e.source.to_mythic = true;
+                            e.destination.to_mythic = true;
+                            toMythicIds.add(e.source.id);
+
+                            edgesUpdated += 1;
+                        } else if(toMythicIds.has(e.source.id)){
+                            e.source.to_mythic = true;
+                            e.destination.to_mythic = false;
+                            edgesUpdated += 1;
+                        } else if(toMythicIds.has(e.destination.id)){
+                            e.destination.to_mythic = true;
+                            e.source.to_mythic = false;
+                            edgesUpdated += 1;
+                        } else {
+                            // check if either source/destination has any edges that identify
+                            tempNewEdges.forEach( e2 => {
+                                if(e2.source.id === e.source.id){
+                                    // only look at edges that contain our source
+                                    if(e2.destination.to_mythic){
+                                        e.source.to_mythic = true;
+                                        edgesUpdated += 1;
+                                    }
+                                } else if(e2.destination.id === e.source.id){
+                                    if(e2.source.to_mythic){
+                                        e.source.to_mythic = true;
+                                        edgesUpdated += 1;
+                                    }
+                                }
+                            })
+                        }
+                    } else {
+                        edgesUpdated += 1;
+                    }
+                    //edgesUpdated += 1;
+                    return e;
+                })
+                loop_count += 1;
+                if (loop_count > 2 * edgesToUpdate){
+                    //console.log("aborting early", tempEdges, edgesUpdated)
+                    edgesUpdated = edgesToUpdate;
+
+                }
+            }
+            return tempNewEdges
+        }
+        let updatedEdges = createNewEdges();
+        // need to add fake edges between parent groups and Mythic so that rendering will be preserved
+        updatedEdges.forEach( (edge) => {
+            if(!view_config["include_disconnected"] && edge.end_timestamp !== null){return}
+            if(edge.destination.id === edge.source.id){
+                if(hasEdge(edge.source.id, "Mythic", edge.c2profile.name)){
+                    // we already have an edge to Mythic from our source id, check if this edge is newer or not
+                    if(edge.id > getEdge(edge.source.id, "Mythic", edge.c2profile.name).mythic_id){
+                        add_edge_to_mythic(edge, view_config);
+                    }
                 }else{
-                    // need a box at least as long as the hostname or longest label with matching parent
-                    //   need to also subtract width of elements for everything with an edge to Mythic
-                    if(candidates !== undefined){
-                        let count = 0;
-                        candidates.forEach( (x) => {
-                            if(g.outEdges(x, "Mythic").length > 0){
-                                count += 1;
-                            }
-                        });
-                        longest = (longest * 9) - (count * 100);
-                        if(longest < 0){ return 0}
-                        return longest + "px";
+                    //this is a new edge to mythic
+                    add_edge_to_mythic(edge, view_config);
+                }
+            }else{
+                let source_str_id = `${edge.source.id}`;
+                let destination_str_id = `${edge.destination.id}`
+                if(view_config["packet_flow_view"]){
+                    // destination -> source
+                    if(hasEdge(destination_str_id, source_str_id, edge.c2profile.name)){
+                        //we've seen an edge between these two before
+                        if(edge.id > getEdge(destination_str_id, source_str_id, edge.c2profile.name).mythic_id){
+                            add_edge_p2p(edge, view_config);
+                        }else{
+                            //console.log("doing nothing, dropping data");
+                        }
                     }else{
-                        console.log("candidates were undefined");
+                        //this is a new edge
+                        add_edge_p2p(edge, view_config);
+                    }
+
+                } else {
+                    // source -> destination
+                    if(hasEdge(source_str_id, destination_str_id, edge.c2profile.name)){
+                        //we've seen an edge between these two before
+                        if(edge.id > getEdge(source_str_id, destination_str_id, edge.c2profile.name).mythic_id){
+                            add_edge_p2p(edge, view_config);
+                        }else{
+                            //console.log("doing nothing, dropping data");
+                        }
+                    }else{
+                        //this is a new edge
+                        add_edge_p2p(edge, view_config);
                     }
                 }
-            })
-            .attr("height", 0);
-        return shapeSvg;
-     }
-     // if a parent has no children then it should be removed
-    render(svgGroup, g);
-    if(reZoom){
-        var graphWidth = g.graph().width + 40;
-        var graphHeight = g.graph().height + 40;
-        var zoomScale = Math.min(width / graphWidth, height / graphHeight);
-        var translateX = (width / 2) - ((graphWidth * zoomScale) / 2)
-        var translateY = (height / 2) - ((graphHeight * zoomScale) / 2);
-        var svgZoom = svg.transition().duration(500);
-        svgZoom.call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(zoomScale));
-    }
-    svgGroup.selectAll("g.nodes g.label")
-        .attr("transform", "translate(0,30)");
+            }
+        });
+        for(let i = 0; i < tempEdges.length; i++){
+            if(tempEdges[i].data.end_timestamp === null){
+                tempEdges[i].markerEnd = {
+                    color: theme.palette.info.main,
+                }
+                tempEdges[i].style = {
+                    stroke: theme.palette.info.main,
+                    strokeWidth: 2,
+                }
+            } else {
+                tempEdges[i].markerEnd = {
+                    color: theme.palette.warning.main,
+                }
+                tempEdges[i].style = {
+                    stroke: theme.palette.warning.main,
+                    strokeWidth: 2,
+                }
+            }
+            tempEdges[i].markerEnd.type = "arrowclosed"
+            tempEdges[i].labelBgStyle = {
+                fill: theme.tableHover,
+                fillOpacity: 0.6,
+            }
+            tempEdges[i].labelStyle = {
+                fill: theme.palette.background.contrast,
+            }
+            tempEdges[i].labelShowBg = true
+            tempEdges[i].zIndex = 20;
+            tempEdges[i].animated = tempEdges[i].data.end_timestamp === null;
+        }
+        if(shouldUseGroups(view_config)){
+            // only add in edges from parents to parents/mythic if we're doing egress flow
+            for(let i = 0; i < parentNodes.length; i++){
+                // every parentNode needs a connection to _something_ - either to Mythic or another parentNode
+                for(let j = 0; j < tempEdges.length; j++){
+                    //console.log("checking", parentNodes[i].id, tempEdges[j].data.source.parentNode, tempEdges[j].data.target.parentNode)
+                    if(tempEdges[j].data.source.parentNode === parentNodes[i].id){
+                        // don't process where source.parentNode == target.parentNode
+                        if(parentNodes[i].id === tempEdges[j].data.target.parentNode){
+                            //console.log("skipping")
+                            continue
+                        }
+                        if(!hasFakeEdge(`${parentNodes[i].id}`)){
+                            //console.log("adding new fake edge")
+                            tempEdges.push(
+                                {
+                                    id: `e${parentNodes[i].id}-${tempEdges[j].data.target.parentNode}`,
+                                    mythic_id: 0,
+                                    source: `${parentNodes[i].id}`,
+                                    target: tempEdges[j].data.target.parentNode,
+                                    label: "",
+                                    hidden: true,
+                                    data: {
+                                        source: {parentNode: parentNodes[i].id},
+                                        target: tempEdges[j].data.target,
+                                        label: "",
+                                        end_timestamp: null
+                                    }
+                                },
+                            )
+                        } else if(tempEdges[j].data.target.parentNode === "Mythic") {
+                            //console.log("fake edge is for Mythic, and one exists already - update it")
+                            for(let k = tempEdges.length-1; k >= 0 ; k--){
+                                if(tempEdges[k].source === parentNodes[i].id){
+                                    tempEdges[k] = {
+                                        id: `e${parentNodes[i].id}-${tempEdges[j].data.target.parentNode}`,
+                                        mythic_id: 0,
+                                        source: `${parentNodes[i].id}`,
+                                        target: tempEdges[j].data.target.parentNode,
+                                        label: "",
+                                        hidden: true,
+                                        data: {
+                                            source: {parentNode: parentNodes[i].id},
+                                            target: tempEdges[j].data.target,
+                                            label: "",
+                                            end_timestamp: null
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        } else {
+                            //console.log("already have fake edge added, skipping")
+                        }
+                    }
+                }
+
+                tempNodes.push({
+                    id: `${parentNodes[i].id}-widthAdjuster`,
+                    position: { x: 0, y: 0 },
+                    type: "agentNode",
+                    height: 100,
+                    width: 50,
+                    parentNode: `${parentNodes[i].id}`,
+                    group: `${parentNodes[i].id}`,
+                    hidden: true,
+                    data: {label: `${parentNodes[i].id}`}
+                })
+            }
+        }
+        for(let i = 0; i < tempNodes.length; i++){
+            let sourceCount = 0;
+            for(let j = 0; j < tempEdges.length; j++){
+                if(tempEdges[j].source === tempNodes[i].id){
+                    sourceCount += 1;
+                    tempEdges[j].sourceHandle = `${sourceCount}`;
+                }
+            }
+            tempNodes[i].data.sourceCount = sourceCount;
+        }
+        //console.log([...parentNodes, ...tempNodes], tempEdges);
+        setGraphData({
+            groups: shouldUseGroups(view_config) ? parentNodes : [],
+            nodes: tempNodes,
+            edges: tempEdges
+        })
+    }, [edges, view_config, theme]);
+    React.useEffect( () => {
+        (async () => {
+            if(graphData.nodes.length > 0){
+                const {newNodes, newEdges} = await createLayout({
+                    initialGroups: graphData.groups,
+                    initialNodes: graphData.nodes,
+                    initialEdges: graphData.edges,
+                    alignment: view_config["rankDir"]
+                });
+                setNodes(newNodes);
+                setEdgeFlow(newEdges);
+                window.requestAnimationFrame(() => {
+                    for(let i = 0; i < newNodes.length; i++){
+                        updateNodeInternals(newNodes[i].id);
+                    }
+                    fitView();
+                });
+            }
+        })();
+    }, [graphData, view_config]);
+    return (
+        <div style={{height: "100%", width: "100%"}} ref={viewportRef}>
+                <ReactFlow
+                    fitView
+                    onlyRenderVisibleElements={false}
+                    panOnScrollSpeed={30}
+                    maxZoom={100}
+                    minZoom={0}
+                    nodes={nodes}
+                    edges={edgeFlow}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    nodeTypes={nodeTypes}
+                    onPaneClick={onPaneClick}
+                    onNodeContextMenu={onNodeContextMenu}
+                >
+                    <Panel position={"top-left"} >{panel}</Panel>
+                    <Controls showInteractive={false} >
+                        <ControlButton onClick={onDownloadImageClickPng} title={"Download PNG"}>
+                            <CameraAltIcon />
+                        </ControlButton>
+                        <ControlButton onClick={onDownloadImageClickSvg} title={"Download SVG"}>
+                            <InsertPhotoIcon />
+                        </ControlButton>
+                    </Controls>
+                    <MiniMap pannable={true} />
+                </ReactFlow>
+            {openContextMenu &&
+            <div style={{...contextMenuCoord}} className="context-menu">
+                {contextMenu.map( (m) => (
+                    <Button key={m.title} variant={"contained"} className="context-menu-button" onClick={() => {
+                        m.onClick(contextMenuNode.current);
+                        setOpenContextMenu(false);
+                    }}>{m.title}</Button>
+                    ))}
+            </div>
+            }
+        </div>
+
+    )
 }
-export const getNodeEdges = (g, node) =>{
-    return g.nodeEdges(node);
+
+export const DrawTaskElementsFlowWithProvider = (props) => {
+    return (
+        <ReactFlowProvider>
+            <DrawTaskElementsFlow {...props} />
+        </ReactFlowProvider>
+    )
+}
+const shouldUseTaskGroups = (view_config) => {
+    if(view_config.group_by !== "None"){
+        return true;
+    }
+    return false;
+}
+const getGroupTaskBy = (node, view_config) => {
+    if(view_config.group_by === "None"){
+        return "";
+    }
+    if(view_config.group_by === "name") {
+        try{
+            return node?.subtask_group_name || "";
+        }catch(error){
+            console.log("bad group by", node);
+            return "";
+        }
+    }
+}
+export const DrawTaskElementsFlow = ({edges, panel, view_config, theme, contextMenu}) =>{
+    const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: [], view_config});
+    const [nodes, setNodes] = React.useState();
+    const [edgeFlow, setEdgeFlow] = React.useState([]);
+    const [openContextMenu, setOpenContextMenu] = React.useState(false);
+    const [contextMenuCoord, setContextMenuCord] = React.useState({});
+    const viewportRef = React.useRef(null);
+    const contextMenuNode = React.useRef(null);
+    const [localViewConfig, setLocalViewConfig] = React.useState(view_config);
+    const {fitView} = useReactFlow();
+    const updateNodeInternals = useUpdateNodeInternals();
+    const onNodesChange = useCallback(
+        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+        []
+    );
+    const onEdgesChange = useCallback(
+        (changes) => setEdgeFlow((eds) => applyEdgeChanges(changes, eds)),
+        []
+    );
+    const onNodeContextMenu = useCallback( (event, node) => {
+        if(!contextMenu){return}
+        if(node.type === "groupNode"){
+            return;
+        }
+        event.preventDefault();
+        contextMenuNode.current = {...node.data, id: node.data.callback_id};
+        setContextMenuCord({
+            top:  event.clientY,
+            left:  event.clientX,
+        });
+        setOpenContextMenu(true);
+    }, [contextMenu])
+    const onPaneClick = useCallback( () => {
+        setOpenContextMenu(false);
+    }, [setOpenContextMenu])
+    React.useEffect( () => {
+        let tempNodes = [];
+        let tempEdges = [];
+        let parentNodes = [];
+
+        const add_node = (node, localViewConfig) => {
+
+            let groupByValue = getGroupTaskBy(node, localViewConfig);
+            let nodeID = `${node.id}`;
+            let found = false;
+            for(let i = 0; i < tempNodes.length; i++){
+                if(tempNodes[i].id === nodeID){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                //console.log("adding node", node)
+                tempNodes.push(
+                    {
+                        id: `${node.id}`,
+                        position: { x: 0, y: 0 },
+                        type: "taskNode",
+                        height: 50,
+                        width: 100,
+                        parentNode: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? groupByValue : null,
+                        group: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? groupByValue : null,
+                        extent: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? "parent" : null,
+                        data: {
+                            ...node,
+                            parentNode: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? groupByValue : null,
+                            label: "",
+                        }
+                    }
+                )
+            }
+            found = false;
+            for(let i = 0; i < parentNodes.length; i++){
+                if(parentNodes[i].id === groupByValue){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found && groupByValue !== ""){
+                //console.log("adding parent", node)
+                parentNodes.push({
+                    id: groupByValue,
+                    position: { x: 110, y: 110 },
+                    type: "groupNode",
+                    width: 200,
+                    height: 200,
+                    data: {
+                        label: groupByValue,
+                    },
+
+                });
+            }
+        }
+        const add_edge_p2p = (edge, localViewConfig) => {
+            add_node(edge.source, localViewConfig);
+            add_node(edge.destination, localViewConfig);
+            if(edge.source.id === edge.destination.id){
+                return
+            }
+            createEdge(edge, localViewConfig);
+        }
+        const createEdge = (edge, localViewConfig) =>{
+            let edgeID = `e${edge.source.id}-${edge.destination.id}`;
+            //console.log("adding edge", edge);
+            let groupByValueSource = getGroupTaskBy(edge.source, localViewConfig);
+            let groupByValueDestination = getGroupTaskBy(edge.destination, localViewConfig);
+            tempEdges.push(
+                {
+                    id: edgeID,
+                    source: `${edge.source.id}`,
+                    target: `${edge.destination.id}`,
+                    animated: true,
+                    label: "subtask",
+                    data: {
+                        label: "subtask",
+                        source: {...edge.source, parentNode: shouldUseTaskGroups(localViewConfig) && groupByValueSource !== "" ? groupByValueSource : null},
+                        target: {...edge.destination, parentNode: shouldUseTaskGroups(localViewConfig) && groupByValueDestination !== "" ? groupByValueDestination : null},
+                    }
+                },
+            )
+        }
+        const hasFakeEdge = (sourceID) => {
+            for(let i = 0; i < tempEdges.length; i++){
+                if(tempEdges[i].data.source.parentNode === sourceID &&
+                    tempEdges[i].data.label === ""
+                ){
+                    return true;
+                }
+            }
+            return false;
+        }
+        edges.forEach( (edge) => {
+            add_edge_p2p(edge, localViewConfig);
+        });
+        for(let i = 0; i < tempEdges.length; i++){
+            tempEdges[i].markerEnd = {
+                color: theme.palette.info.main,
+            }
+            tempEdges[i].style = {
+                stroke: theme.palette.info.main,
+                strokeWidth: 2,
+            }
+
+            tempEdges[i].markerEnd.type = "arrowclosed"
+            tempEdges[i].labelBgStyle = {
+                fill: theme.tableHover,
+                fillOpacity: 0.6,
+            }
+            tempEdges[i].labelStyle = {
+                fill: theme.palette.background.contrast,
+            }
+            tempEdges[i].labelShowBg = true
+            tempEdges[i].zIndex = 20;
+        }
+        if(shouldUseTaskGroups(localViewConfig)){
+            // only add in edges from parents to parents/mythic if we're doing egress flow
+            for(let i = 0; i < parentNodes.length; i++){
+                // every parentNode needs a connection to _something_ - either to Mythic or another parentNode
+                for(let j = 0; j < tempEdges.length; j++){
+                    //console.log("checking", parentNodes[i].id, tempEdges[j].data.target.parentNode, tempEdges[j].data.source.id)
+                    if(tempEdges[j].data.target.parentNode === parentNodes[i].id){
+                        // don't process where source.parentNode == target.parentNode
+                        //console.log("found match")
+                        if(parentNodes[i].id === tempEdges[j].data.source.parentNode){
+                            //console.log("skipping")
+                            continue
+                        }
+                        if(!hasFakeEdge(`${parentNodes[i].id}`)){
+                            //console.log("adding new fake edge")
+                            tempEdges.push(
+                                {
+                                    id: `e${parentNodes[i].id}-${tempEdges[j].data.source.id}`,
+                                    target: `${parentNodes[i].id}`,
+                                    source: `${tempEdges[j].data.source.id}`,
+                                    label: "",
+                                    hidden: true,
+                                    data: {
+                                        source: {...parentNodes[i], parentNode: `${parentNodes[i].id}`},
+                                        target: tempEdges[j].data.target,
+                                        label: "",
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+
+                tempNodes.push({
+                    id: `${parentNodes[i].id}-widthAdjuster`,
+                    position: { x: 0, y: 0 },
+                    type: "agentNode",
+                    height: 100,
+                    width: 50,
+                    parentNode: `${parentNodes[i].id}`,
+                    group: `${parentNodes[i].id}`,
+                    hidden: true,
+                    data: {label: `${parentNodes[i].id}`}
+                })
+            }
+        }
+
+        //console.log("parent groups", shouldUseTaskGroups(view_config), [...parentNodes, ...tempNodes], tempEdges);
+        setGraphData({
+            groups: shouldUseTaskGroups(localViewConfig) ? parentNodes : [],
+            nodes: tempNodes,
+            edges: tempEdges,
+            view_config: {...localViewConfig},
+        });
+    }, [edges, localViewConfig, theme]);
+    React.useEffect( () => {
+        (async () => {
+            if(graphData.nodes.length > 0){
+                const {newNodes, newEdges} = await createLayout({
+                    initialGroups: graphData.groups,
+                    initialNodes: graphData.nodes,
+                    initialEdges: graphData.edges,
+                    alignment: graphData.view_config.rankDir
+                });
+                setNodes(newNodes);
+                setEdgeFlow(newEdges);
+                for(let i = 0; i < newNodes.length; i++){
+                    updateNodeInternals(newNodes[i].id);
+                }
+                //console.log("new graph data", newNodes, newEdges)
+                window.requestAnimationFrame(() => {
+                    for(let i = 0; i < newNodes.length; i++){
+                        updateNodeInternals(newNodes[i].id);
+                    }
+                    fitView();
+                });
+            }
+        })();
+    }, [graphData]);
+    const toggleViewConfig = () => {
+        if(localViewConfig.rankDir === "LR"){
+            setLocalViewConfig({...localViewConfig, rankDir: "BT", group_by: "name"});
+        } else {
+            setLocalViewConfig({...localViewConfig, rankDir: "LR", group_by: "name"});
+        }
+    }
+    return (
+        <div style={{height: "100%", width: "100%"}} ref={viewportRef}>
+            <ReactFlow
+                fitView
+                onlyRenderVisibleElements={false}
+                panOnScrollSpeed={50}
+                maxZoom={100}
+                minZoom={0}
+                nodes={nodes}
+                edges={edgeFlow}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                nodeTypes={nodeTypes}
+                onPaneClick={onPaneClick}
+                onNodeContextMenu={onNodeContextMenu}
+            >
+                <Panel position={"top-left"} >{panel}</Panel>
+                <Controls showInteractive={false} >
+                    <ControlButton onClick={toggleViewConfig} title={"Toggle View"}>
+                        <SwapCallsIcon />
+                    </ControlButton>
+                </Controls>
+            </ReactFlow>
+            {openContextMenu &&
+                <div style={{...contextMenuCoord}} className="context-menu">
+                    {contextMenu.map( (m) => (
+                        <Button key={m.title} variant={"contained"} className="context-menu-button" onClick={() => {
+                            m.onClick(contextMenuNode.current);
+                            setOpenContextMenu(false);
+                        }}>{m.title}</Button>
+                    ))}
+                </div>
+            }
+        </div>
+
+    )
 }
 

@@ -39,6 +39,7 @@ const (
 	BUILD_PARAMETER_TYPE_ARRAY                              = "Array"
 	BUILD_PARAMETER_TYPE_NUMBER                             = "Number"
 	BUILD_PARAMETER_TYPE_FILE                               = "File"
+	BUILD_PARAMETER_TYPE_TYPED_ARRAY                        = "TypedArray"
 )
 
 type BuildParameter struct {
@@ -107,6 +108,7 @@ const (
 	COMMAND_PARAMETER_TYPE_PAYLOAD_LIST                         = "PayloadList"
 	COMMAND_PARAMETER_TYPE_CONNECTION_INFO                      = "AgentConnect"
 	COMMAND_PARAMETER_TYPE_LINK_INFO                            = "LinkInfo"
+	COMMAND_PARAMETER_TYPE_TYPED_ARRAY                          = "TypedArray"
 )
 
 type CommandParameter struct {

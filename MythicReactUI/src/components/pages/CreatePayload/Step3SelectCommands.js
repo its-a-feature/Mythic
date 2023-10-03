@@ -53,9 +53,8 @@ export function Step3SelectCommands(props){
     const [commands, setCommands] = React.useState([]);
     const [commandOptions, setCommandOptions] = React.useState([]);
     const [openConfirmDialog, setOpenConfirmDialog] = React.useState(false);
-    const { data } = useQuery(GET_Payload_Types, {fetchPolicy: "network-only", variables: {payloadType: props.buildOptions["payload_type"]},
-        onCompleted: () => {
-          
+    useQuery(GET_Payload_Types, {fetchPolicy: "network-only", variables: {payloadType: props.buildOptions["payload_type"]},
+        onCompleted: ( data ) => {
           if(!props.buildOptions["supports_dynamic_loading"]){
               
               const allCommands = data.command.map( c => {
@@ -314,11 +313,13 @@ function CommandTransferSelect(props) {
 return (
   <React.Fragment>
       <Grid container spacing={2} justifyContent="center" alignItems="center" className={classes.root}>
-        <Grid item xs={5}>{customList("Available Commands", left)}</Grid>
+        <Grid item xs={5}>
+          {customList("Available Commands", left)}
+        </Grid>
         <Grid item>
           <Grid container direction="column" alignItems="center">
             <Button
-              variant="outlined"
+              variant="contained"
               size="small"
               className={classes.button}
               onClick={handleAllRight}
@@ -328,7 +329,7 @@ return (
               &gt;&gt;
             </Button>
             <Button
-              variant="outlined"
+              variant="contained"
               size="small"
               className={classes.button}
               onClick={handleCheckedRight}
@@ -338,7 +339,7 @@ return (
               &gt;
             </Button>
             <Button
-              variant="outlined"
+              variant="contained"
               size="small"
               className={classes.button}
               onClick={handleCheckedLeft}
@@ -348,7 +349,7 @@ return (
               &lt;
             </Button>
             <Button
-              variant="outlined"
+              variant="contained"
               size="small"
               className={classes.button}
               onClick={handleAllLeft}
@@ -359,7 +360,9 @@ return (
             </Button>
           </Grid>
         </Grid>
-        <Grid item xs={5}>{customList("Commands Included", right)}</Grid>
+        <Grid item xs={5}>
+          {customList("Commands Included", right)}
+        </Grid>
       </Grid>
       <Grid container justifyContent="center" alignItems="flex-start" className={classes.root}>
         <Grid item xs={12} style={{height: "100%", marginBottom: "10px"}}>

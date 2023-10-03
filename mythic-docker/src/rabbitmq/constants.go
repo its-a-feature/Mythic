@@ -69,6 +69,8 @@ const (
 	//
 	PT_RPC_COMMAND_DYNAMIC_QUERY_FUNCTION = "pt_command_dynamic_query_function"
 	//
+	PT_RPC_COMMAND_TYPEDARRAY_PARSE = "pt_command_typedarray_parse"
+	//
 	PT_TASK_COMPLETION_FUNCTION = "pt_task_completion_function"
 	//
 	PT_TASK_PROCESS_RESPONSE = "pt_task_process_response"
@@ -97,7 +99,7 @@ const (
 	//
 	C2_RPC_GET_SERVER_DEBUG_OUTPUT = "c2_rpc_get_server_debug_output"
 	//
-	C2_RPC_GET_AVAILABLE_UI_FUNCTIONS = "c2_rpc_get_ui_functions"
+	C2_RPC_HOST_FILE = "c2_rpc_host_file"
 	//
 	C2_RPC_GET_FILE = "c2_rpc_get_file"
 	//

@@ -3,12 +3,14 @@ package webcontroller
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
+	"time"
 )
 
 type UpdateCallbackInputInput struct {
@@ -247,6 +249,11 @@ func updateCallbackActiveStatus(callback databaseStructs.Callback, active bool) 
 	// when making something inactive, mark all of its edges as dead
 	// when making something active, just change the active status
 	associatedC2Profiles := []databaseStructs.Callbackc2profiles{}
+	if callback.LastCheckin.Unix() == time.UnixMicro(0).Unix() && !active {
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Not hiding callback %d, it has an active PushC2 connection", callback.DisplayID),
+			callback.OperationID, "", database.MESSAGE_LEVEL_INFO)
+		return nil
+	}
 	if err := database.DB.Select(&associatedC2Profiles, `SELECT
     	c2profile.id "c2profile.id",
     	c2profile.name "c2profile.name"

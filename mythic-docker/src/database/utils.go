@@ -3,8 +3,6 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"time"
-
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -114,27 +112,30 @@ func UpdatePayloadWithError(databasePayload databaseStructs.Payload, err error) 
 func UpdateRemainingBuildSteps(databasePayload databaseStructs.Payload) {
 	buildSteps := []databaseStructs.PayloadBuildStep{}
 	if err := DB.Select(&buildSteps, `SELECT
-	id, start_time, end_time, step_success, step_stdout
+	id, start_time, end_time, step_success, step_stdout, step_skip
 	FROM payload_build_step
 	WHERE payload_id=$1`, databasePayload.ID); err == nil {
-		stepNow := time.Now().UTC()
 		for _, step := range buildSteps {
-			if !step.StartTime.Valid {
-				step.StartTime.Valid = true
-				step.StartTime.Time = stepNow
-			}
-			if !step.EndTime.Valid {
-				step.EndTime.Valid = true
-				step.EndTime.Time = stepNow
-				if databasePayload.BuildPhase == "success" {
-					step.Success = true
+			/*
+				if !step.StartTime.Valid {
+					step.StartTime.Valid = true
+					step.StartTime.Time = stepNow
 				}
+
+			*/
+			// payload is done, we started a step, but never reported a status, it must be skipped
+			if step.StartTime.Valid && !step.EndTime.Valid {
+				step.StartTime = sql.NullTime{Valid: false}
+				step.StepSkip = true
+			} else if !step.StartTime.Valid {
+				step.StepSkip = true
 			}
 			if step.StepStdout == "" {
 				step.StepStdout = "Automatically updated when payload finished building"
 			}
 			if _, err := DB.NamedExec(`UPDATE payload_build_step SET
-			end_time=:end_time, step_success=:step_success, step_stdout=:step_stdout, start_time=:start_time 
+			end_time=:end_time, step_success=:step_success, step_stdout=:step_stdout, start_time=:start_time,
+			step_skip=:step_skip 
 			WHERE id=:id`, step); err != nil {
 				logging.LogError(err, "Failed to automatically update step when payload finished building")
 			}

@@ -4,6 +4,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] 
+
+### Changed
+
+- Added new build step option for skipped steps (useful if you have conditional builds)
+- Added new "Split Tasking view" as a callback dropdown option for viewing tasking
+- Updated Graphing library (react-flow)
+- Updated UI to React18
+- Can now sort by last checkin time on active callbacks page
+- New "PushC2" style available for egress C2 Profiles
+  - Updated with Websocket C2 profile
+  - Uses gRPC connections between C2 Docker container and Mythic
+- New `TypedArray` parameter type available for commands, build parameters, and c2 profile parameters
+  - Useful for generic BoF/COFF style tasking where you need data and a type associated with it
+  - Data passed down as an array of tuples: `[ [type, value], [type, value] ]`
+  - PayloadType Commands need to supply a TypedArray Parsing Function to handle freeform input for typed array values
+    - ex: `my_bof -bof_args int:5 char*:testing wstring:"this is my string"` into proper array of arrays
+- New "Host File Through C2" option available for all payloads and files via globe icon
+  - Up to the C2 profile to support the RPC call from Mythic and make the file available though
+  - Updated with `http` and `websocket` C2 profiles
+- Shift+Tab will cycle backwards through options on the tasking CLI
+- Event feed format changed and is now also searchable
+- "alerts" keyword in responses from agents now allow setting a source, level (info, warning, debug)
+  - New `send_webhook` boolean field to indicate sending a custom webhook notification (even if the level isn't warning)
+  - New `webhook_alert` dictionary field for custom data to your webhook that's _not_ displayed to the user in the event log
+  - `alert` string field is what's displayed to the user in the event log
+- Mythic-cli updated to allow options for setting the main UI to listen on IPv4, IPv6, or both
+- Agents can now more easily support multiple C2 profiles and have it reflected in the UI
+  - Still only one instance of each c2 profile, but that will change in future releases
+- Updated callback's "update_info" and "checkin" actions so that callbacks can update their own metadata
+- New "Interactive" tasking type available to allow follow-on input in a PTY format
+  - Browser view has limitations compared to a full PTY/TTY since it's still in your browser (supports ASNI colors)
+    - Non-ANSI color sequence control sequences are ignored in the browser
+  - Use the new supported_ui_feature `SupportedUIFeatures:       []string{"task_response:interactive"},` to enable this for your task in the UI
+  - With MythicRPC you can open an "interactive" port with your task which you can connect to with a terminal for full PTY support
+    - *NOTE* _ALL_ output is still captured and stored in Mythic and viewable in the UI for the task, so be careful about long-running jobs that dump out a lot of data
+    - Inputs from the Web UI will appear as "tasks" that you can search. Inputs via the opened port will _not_ appear as tasks.
+- Your issued tasks will auto-expand, so it should reduce a click for tasks that finish immediately (help, clear, script_only)
+- File Search page updated to have `Bin` and `Strings` views available without needing to expand the dropdown
+- Updated `github.com/MythicMeta/MythicContainer` golang package and `mythic_container` PyPi packages
+- New database migrations so that you don't have to blow away the database between updates
+- Updated user login notification to be debug level (no UI popup)
+- Allow dynamic port binding with MythicRPCProxyStart
+  - specify a LocalPort of 0 for Socks/Interactive ports and the next lowest available port will be used and returned
+- Allow dynamic port closing with MythicRPCProxyStop
+  - specify a LocalPort of 0 for Socks/Interactive ports and Mythic will look up the port based on taskID and port type
+- Updated ProxyPorts to track "deleted" status so that they're never actually deleted and can be restarted if needed
+  - Allows for a better tracking of which callbacks had/have which ports open
+  
 ## [3.0.1-rc46] - 2023-08-22
 
 ### Changed

@@ -50,9 +50,9 @@ build_protobuf_go:
 `pwd`/grpc/services/*.proto
 
 build_protobuf_python:
-	python3 -m grpc_tools.protoc --python_out=`pwd`/../../MythicContainerPyPi/mythic_container/grpc \
---pyi_out=`pwd`/../../MythicContainerPyPi/mythic_container/grpc \
---grpc_python_out=`pwd`/../../MythicContainerPyPi/mythic_container/grpc \
+	python3 -m grpc_tools.protoc --python_out=`pwd`/../../../MythicMeta/MythicContainerPyPi/mythic_container/grpc \
+--pyi_out=`pwd`/../../../MythicMeta/MythicContainerPyPi/mythic_container/grpc \
+--grpc_python_out=`pwd`/../../../MythicMeta/MythicContainerPyPi/mythic_container/grpc \
 --proto_path=`pwd`/grpc/services \
 `pwd`/grpc/services/*.proto
 

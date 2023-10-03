@@ -398,7 +398,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
   );
 }
 
-export const ResponseDisplayTable = ({table, callback_id}) =>{
+export const ResponseDisplayTable = ({table, callback_id, expand}) =>{
   const theme = useTheme();
   const rowHeight = 35;
   const headerHeight = 45;
@@ -554,17 +554,20 @@ export const ResponseDisplayTable = ({table, callback_id}) =>{
     
   }, [table.rows])
   const sortColumn = table.headers.findIndex((column) => column.plaintext === sortData.sortKey);
+  const tableStyle = React.useMemo( () => {
+    return expand ? {flexGrow: 1, width: "99%",} : {height: dataHeight}
+  }, [expand, dataHeight]);
   return (
-      <React.Fragment>
-        {table?.title ? (
-          <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
-              <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                  {table.title}
-              </Typography>
-          </Paper>
-        ) : (null)}
-          
-          <div style={{height: dataHeight, width: "100%"}}>
+        <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative"}}>
+            {table?.title ? (
+                <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+                  <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+                    {table.title}
+                  </Typography>
+                </Paper>
+            ) : null}
+
+          <div style={tableStyle}>
             <MythicResizableGrid
                   columns={table.headers}
                   sortIndicatorIndex={sortColumn}
@@ -577,9 +580,8 @@ export const ResponseDisplayTable = ({table, callback_id}) =>{
                   onClickHeader={onClickHeader}
                   rowContextMenuOptions={contextMenuOptions}
               />
-            
           </div>
-      </React.Fragment>
+        </div>
     
   )   
 }

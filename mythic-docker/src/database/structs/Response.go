@@ -14,4 +14,5 @@ type Response struct {
 	SequenceNumber sql.NullInt64 `db:"sequence_number"`
 	OperationID    int           `db:"operation_id"`
 	Operation      Operation     `db:"operation"`
+	IsError        bool          `db:"is_error"`
 }

@@ -4,7 +4,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import makeStyles from '@mui/styles/makeStyles';
-import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -24,7 +23,6 @@ const useStyles = makeStyles((theme) => ({
   },
   paper: {
     width: 200,
-    height: 230,
     overflow: 'auto',
   },
   button: {
@@ -139,34 +137,32 @@ export function AddRemoveCommandsDialog(props) {
       setRight([]);
     };
     const customList = (title, items) => (
-      <Paper className={classes.paper} style={{width:"100%", height: "calc(50vh)", display: "flex", flexDirection: "column", alignItems: "stretch"}}>
-        <Card style={{flexDirection: "column", display: "flex"}}>
+      <>
           <CardHeader className={classes.cardHeader} title={title} />
           <Divider classes={{root: classes.divider}}/>
           <CardContent style={{display: "flex", flexGrow: 1, overflow: "auto"}}>
-            <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
-              {items.map((valueObj) => {
-                const value = valueObj.cmd;
-                const labelId = `transfer-list-item-${value}-label`;
-                return (
-                  <ListItem style={{padding:0}} key={value} role="listitem" button onClick={handleToggle(valueObj)}>
-                    <ListItemIcon>
-                      <Checkbox
-                        checked={checked.findIndex( (element) => element.cmd === value) !== -1}
-                        tabIndex={-1}
-                        disableRipple
-                        inputProps={{ 'aria-labelledby': labelId }}
-                      />
-                    </ListItemIcon>
-                    <ListItemText id={labelId} primary={value} />
-                  </ListItem>
-                );
-              })}
-              <ListItem />
-            </List>
+              <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
+                  {items.map((valueObj) => {
+                      const value = valueObj.cmd;
+                      const labelId = `transfer-list-item-${value}-label`;
+                      return (
+                          <ListItem style={{padding:0}} key={value} role="listitem" button onClick={handleToggle(valueObj)}>
+                              <ListItemIcon>
+                                  <Checkbox
+                                      checked={checked.findIndex( (element) => element.cmd === value) !== -1}
+                                      tabIndex={-1}
+                                      disableRipple
+                                      inputProps={{ 'aria-labelledby': labelId }}
+                                  />
+                              </ListItemIcon>
+                              <ListItemText id={labelId} primary={value} />
+                          </ListItem>
+                      );
+                  })}
+                  <ListItem />
+              </List>
           </CardContent>
-          </Card>
-      </Paper>
+      </>
     );
     const setFinalTags = () => {
       // things to add are in the `right` now but weren't for `originalRight`
@@ -191,7 +187,7 @@ export function AddRemoveCommandsDialog(props) {
           </div>
             <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleAllRight}
@@ -201,7 +197,7 @@ export function AddRemoveCommandsDialog(props) {
                 &gt;&gt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleCheckedRight}
@@ -211,7 +207,7 @@ export function AddRemoveCommandsDialog(props) {
                 &gt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleCheckedLeft}
@@ -221,7 +217,7 @@ export function AddRemoveCommandsDialog(props) {
                 &lt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleAllLeft}

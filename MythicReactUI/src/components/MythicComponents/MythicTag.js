@@ -102,14 +102,18 @@ export const TagsDisplay = ({tags}) => {
 }
 const TagChipDisplay = ({tag}) => {
   const [openTagDisplay, setOpenTagDisplay] = React.useState(false);
-  const onSelectTag = (evt, tag) => {
-    evt.preventDefault();
-    evt.stopPropagation();
+  const onSelectTag = (event, tag) => {
+    if(event){
+      event.preventDefault();
+      event.stopPropagation();
+    }
     setOpenTagDisplay(true);
   }
-  const onClose = (evt) => {
-    evt.preventDefault();
-    evt.stopPropagation();
+  const onClose = (event) => {
+    if(event){
+      event.preventDefault();
+      event.stopPropagation();
+    }
     setOpenTagDisplay(false);
   }
   return (
@@ -117,7 +121,7 @@ const TagChipDisplay = ({tag}) => {
       <Chip label={tag.tagtype.name} size="small" onClick={(e) => onSelectTag(e)} style={{float: "right", backgroundColor:tag.tagtype.color}} />
       {openTagDisplay && 
         <MythicDialog fullWidth={true} maxWidth="md" open={openTagDisplay}
-          onClose={onClose} 
+          onClose={onClose}
           innerDialog={<ViewTagDialog onClose={onClose} target_object_id={tag.id}/>}
       />}
     </React.Fragment>
@@ -145,9 +149,12 @@ function ViewTagDialog(props) {
     },
     fetchPolicy: "network-only"
   })
-  const onClose = (e) => {
-    e.stopPropagation();
-    props.onClose(e);
+  const onClose = (event) => {
+    if(event){
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    props.onClose(event);
   }
 
 return (
@@ -213,7 +220,7 @@ return (
                     ) : (
                       <AceEditor 
                         mode="json"
-                        theme={theme.palette.type === "dark" ? "monokai" : "xcode"}
+                        theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
                         fontSize={14}
                         showGutter={true}
                         maxLines={20}
@@ -341,7 +348,7 @@ return (
             target_object_id={props.target_object_id} 
             onClose={()=>{setOpenNewDialog(false);}} 
             onSubmit={handleNewTagCreate} />}
-      />) : (null)}
+      />) : null}
         <TableContainer component={Paper} className="mythicElement">
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
@@ -389,7 +396,7 @@ return (
                   <TableCell>
                   <AceEditor 
                     mode="json"
-                    theme={theme.palette.type === "dark" ? "monokai" : "xcode"}
+                    theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
                     onChange={onEditorChange}
                     fontSize={14}
                     showGutter={true}
@@ -508,7 +515,7 @@ export function NewTagDialog(props) {
                     <TableCell>
                     <AceEditor 
                       mode="json"
-                      theme={theme.palette.type === "dark" ? "monokai" : "xcode"}
+                      theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
                       onChange={onEditorChange}
                       fontSize={14}
                       showGutter={true}
@@ -540,14 +547,21 @@ export function NewTagDialog(props) {
 }
 export const ViewEditTags = ({target_object, target_object_id, me}) => {
   const [openTagDialog, setOpenTagDialog] = React.useState(false);
+  const toggleTagDialog = (event, open) => {
+    if(event){
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    setOpenTagDialog(open);
+  }
   return(
     <React.Fragment>
-    <IconButton onClick={() => setOpenTagDialog(true)} size="small" style={{display: "inline-block", float: "right"}}><LocalOfferOutlinedIcon /></IconButton>
+    <IconButton onClick={(e) => toggleTagDialog(e, true)} size="small" style={{display: "inline-block", float: "right"}}><LocalOfferOutlinedIcon /></IconButton>
     {openTagDialog ?
       (<MythicDialog fullWidth={true} maxWidth="md" open={openTagDialog} 
-        onClose={()=>{setOpenTagDialog(false);}} 
-        innerDialog={<ViewEditTagsDialog me={me} target_object={target_object} target_object_id={target_object_id} onClose={()=>{setOpenTagDialog(false);}} />}
-    />) : (null)}
+        onClose={(e)=>{toggleTagDialog(e, false)}}
+        innerDialog={<ViewEditTagsDialog me={me} target_object={target_object} target_object_id={target_object_id} onClose={(e)=>{toggleTagDialog(e, false)}} />}
+    />) : null}
     </React.Fragment>
   )
   

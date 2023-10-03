@@ -103,37 +103,47 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const [reverseSearchIndex, setReverseSearchIndex] = React.useState(-1);
     const mountedRef = React.useRef(true);
     const me = useReactiveVar(meState);
-
+    const forwardOrBackwardTabIndex = (event, currentIndex, options) => {
+        if(event.shiftKey){
+            let newIndex = currentIndex - 1;
+            if (newIndex < 0 ){
+                newIndex = options.length - 1;
+            }
+            return newIndex;
+        } else {
+            return (currentIndex + 1) % options.length;
+        }
+    }
     useSubscription(subscriptionCallbackTokens, {
         variables: {callback_id: props.callback_id}, fetchPolicy: "network-only",
         shouldResubscribe: true,
-        onSubscriptionData: ({subscriptionData}) => {
+        onData: ({data}) => {
             if(!mountedRef.current || !props.parentMountedRef.current){
                 return;
             }
-            setTokenOptions(subscriptionData.data.callbacktoken);
+            setTokenOptions(data.data.callbacktoken);
         }
       });
     useSubscription(subscriptionTask, {
         variables: {callback_id: props.callback_id}, fetchPolicy: "network-only",
         shouldResubscribe: true,
-        onSubscriptionData: ({subscriptionData}) => {
+        onData: ({data}) => {
             if(!mountedRef.current || !props.parentMountedRef.current){
                 return;
             }
-            setTaskOptions(subscriptionData.data.task);
-            const filteredOptions = subscriptionData.data.task.filter( c => applyFilteringToTasks(c));
+            setTaskOptions(data.data.task);
+            const filteredOptions = data.data.task.filter( c => applyFilteringToTasks(c));
             setFilteredTaskOptions(filteredOptions);
         }
     });
     useSubscription(GetLoadedCommandsSubscription, {
         variables: {callback_id: props.callback_id}, fetchPolicy: "network-only",
         shouldResubscribe: true,
-        onSubscriptionData: ({subscriptionData}) => {
+        onData: ({data}) => {
             if(!mountedRef.current || !props.parentMountedRef.current){
                 return;
             }
-            const cmds = subscriptionData.data.loadedcommands.map( c => {
+            const cmds = data.data.loadedcommands.map( c => {
                 let cmdData = {...c.command};
                 return cmdData;
             })
@@ -221,6 +231,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 // this means we're not trying to help with the initial command since there's already a space in what the user typed
                 // first find the command in question
                 let cmd = loadedOptions.find( l => l.cmd === message.split(" ")[0]);
+                if(!cmd){
+                    snackActions.warning("unknown command");
+                    return
+                }
                 if(cmd.commandparameters.length > 0){
                     if(message[message.length -1] === " "){
                         // somebody hit tab after a parameter name or after a parameter value
@@ -289,7 +303,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         // so, we should check if the last word is a -CommandParameterName and if so, determine other parameters to replace it
                         // if we're looking at the first option, do nothing until they hit space
                         if(tabOptions.length > 0){
-                            const newIndex = (tabOptionsIndex + 1) % tabOptions.length;
+                            let newIndex = forwardOrBackwardTabIndex(event, tabOptionsIndex, tabOptions);
+                            //const newIndex = (tabOptionsIndex + 1) % tabOptions.length;
                             setTabOptionsIndex(newIndex);
                             let newMessage = message.split(" ").slice(0, -1).join(" ") + " -" + tabOptions[newIndex];
                             setMessage(newMessage);
@@ -386,8 +401,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         setMessage(opts[0].cmd);
                     }
                 }else{
-                    setTabOptionsIndex( (tabOptionsIndex + 1) % tabOptions.length );
-                    setMessage(tabOptions[(tabOptionsIndex + 1) % tabOptions.length].cmd)
+                    let newIndex = forwardOrBackwardTabIndex(event, tabOptionsIndex, tabOptions);
+                    setTabOptionsIndex(newIndex);
+                    setMessage(tabOptions[newIndex].cmd);
+                    //setTabOptionsIndex( (tabOptionsIndex + 1) % tabOptions.length );
+                    //setMessage(tabOptions[(tabOptionsIndex + 1) % tabOptions.length].cmd)
                 }
             }
         }else if(event.key === "Enter"){
@@ -398,6 +416,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }
             
         }else if(event.key === "ArrowUp"){
+            event.preventDefault();
+            event.stopPropagation();
             if(filteredTaskOptions.length === 0){
                 snackActions.warning("No previous tasks", snackMessageStyles);
                 return;
@@ -428,7 +448,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 setUnmodifiedHistoryValue(filteredTaskOptions[newIndex].tasking_location);
                 //setMessage(taskOptions[newIndex].command_name + " " + taskOptions[newIndex].display_params);
             }
-        }else{
+        }else if(!event.shiftKey){
             setTabOptions([]);
             setTabOptionsIndex(0);
             if(taskOptionsIndex !== -1){
@@ -562,6 +582,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         let stringArgs = [];
         let booleanArgs = [];
         let arrayArgs = [];
+        let typedArrayArgs = [];
         let numberArgs = [];
         for(let i = 0; i < cmd.commandparameters.length; i++){
             switch(cmd.commandparameters[i].parameter_type){
@@ -578,6 +599,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 case "Array":
                 case "ChoiceMultiple":
                     arrayArgs.push("-" + cmd.commandparameters[i].cli_name);
+                    break;
+                case "TypedArray":
+                    typedArrayArgs.push("-" + cmd.commandparameters[i].cli_name);
                     break;
                 default:
                     stringArgs.push("-" + cmd.commandparameters[i].cli_name);
@@ -603,8 +627,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         result[value.slice(1)] = true;
                     }
                     current_argument = value;
-                }else if(arrayArgs.includes(value)){
+                }else if(arrayArgs.includes(value)) {
                     current_argument_type = "array";
+                    current_argument = value;
+                } else if(typedArrayArgs.includes(value)){
+                    current_argument_type = "typedArray";
                     current_argument = value;
                 }else if(numberArgs.includes(value)){
                     current_argument_type = "number";
@@ -649,6 +676,29 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         }
                         current_argument = "";
                         current_argument_type = "";
+                        break;
+                    case "typedArray":
+                        // in this case, it's not as easy as just parsing a single value
+                        // this will be a greedy match until the value matches another named argument
+                        if(stringArgs.includes(value)){
+                            current_argument_type = "string";
+                            current_argument = value;
+                        }else if(booleanArgs.includes(value)){
+                            current_argument_type = "boolean";
+                            current_argument = value;
+                        }else if(arrayArgs.includes(value)){
+                            current_argument_type = "typedArray";
+                            current_argument = value;
+                        }else if(numberArgs.includes(value)){
+                            current_argument_type = "number";
+                            current_argument = value;
+                        } else {
+                            if(result[current_argument.slice(1)] === undefined){
+                                result[current_argument.slice(1)] = [["",value]];
+                            } else {
+                                result[current_argument.slice(1)].push( ["", value]);
+                            }
+                        }
                         break;
                     case "array":
                         // in this case, it's not as easy as just parsing a single value

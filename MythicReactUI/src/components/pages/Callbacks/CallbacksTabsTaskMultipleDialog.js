@@ -16,7 +16,6 @@ import {useQuery, gql } from '@apollo/client';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import { CardContent } from '@mui/material';
 import {CallbacksTabsTaskingInput} from "./CallbacksTabsTaskingInput";
-import {snackActions} from "../../utilities/Snackbar";
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -158,7 +157,7 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
             </div>
             <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
                 <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
                     className={classes.button}
                     onClick={handleAllRight}
@@ -167,7 +166,7 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                     &gt;&gt;
                 </Button>
                 <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
                     className={classes.button}
                     onClick={handleCheckedRight}
@@ -176,7 +175,7 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                     &gt;
                 </Button>
                 <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
                     className={classes.button}
                     onClick={handleCheckedLeft}
@@ -185,7 +184,7 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                     &lt;
                 </Button>
                 <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
                     className={classes.button}
                     onClick={handleAllLeft}
@@ -195,7 +194,7 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                 </Button>
 
             </div>
-            <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>
+            <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", overflowY: "auto", flexDirection: "column" }}>
                 <CustomList title={"Callbacks To Task"} left={false} items={data} onClick={handleToggle} />
             </div>
         </div>

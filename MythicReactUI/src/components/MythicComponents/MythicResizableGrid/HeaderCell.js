@@ -20,7 +20,7 @@ const HeaderCell = ({
     sortIndicatorIndex,
     sortDirection,
     headerNameKey = "name",
-    VariableSizeGridProps: { style, rowIndex, columnIndex, data, ...other },
+    VariableSizeGridProps: { style, rowIndex, columnIndex, data },
 }) => {
     const classes = useStyles();
     const dropdownAnchorRef = React.useRef(null);
@@ -66,17 +66,13 @@ const HeaderCell = ({
       };
     const handleClicks = useSingleAndDoubleClick(handleClick, handleDoubleClick);
 
-    
-
     return (
         <div style={style} className={classes.headerCell} onClick={handleClicks} onContextMenu={handleContextClick} ref={dropdownAnchorRef}>
             <Box display='flex' alignItems='center' justifyContent='space-between' width='100%'>
                 <Typography className={classes.cellInner} variant='body1'>
                     {item[headerNameKey].toUpperCase()}
                 </Typography>
-                {isFiltered ? (
-                    <FontAwesomeIcon icon={faFilter} />
-                ) : (null)}
+                {isFiltered && <FontAwesomeIcon icon={faFilter} />}
                 {sortIndicatorIndex === columnIndex && (sortDirection === 'ASC' ? <div>↑</div> : <div>↓</div>)}
                 <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
                   {({ TransitionProps, placement }) => (

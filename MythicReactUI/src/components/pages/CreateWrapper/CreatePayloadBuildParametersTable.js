@@ -21,7 +21,7 @@ export function CreatePayloadBuildParametersTable(props){
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell>Build Parameter</TableCell>
+                        <TableCell style={{width: "20%"}}>Build Parameter</TableCell>
                         <TableCell>Value</TableCell>
                     </TableRow>
                 </TableHead>

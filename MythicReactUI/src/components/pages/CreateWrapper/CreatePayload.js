@@ -52,9 +52,6 @@ export function CreatePayloadWrapper(props){
         setActiveStep(0);
       }
       React.useEffect( () => {
-        startOver();
-      }, [props.location.key]);
-      React.useEffect( () => {
         if(noOperation){
           snackActions.error("No current operation set! Set a current operation to continue");
         }

@@ -17,4 +17,5 @@ type PayloadBuildStep struct {
 	StartTime       sql.NullTime  `db:"start_time"`
 	EndTime         sql.NullTime  `db:"end_time"`
 	Success         bool          `db:"step_success"`
+	StepSkip        bool          `db:"step_skip"`
 }

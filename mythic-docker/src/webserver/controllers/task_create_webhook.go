@@ -16,15 +16,18 @@ type CreateTaskInput struct {
 }
 
 type CreateTask struct {
-	CallbackDisplayID  *int     `json:"callback_id,omitempty"`
-	CallbackDisplayIDs *[]int   `json:"callback_ids,omitempty"`
-	Command            string   `json:"command" binding:"required"`
-	Params             string   `json:"params"`
-	Files              []string `json:"files"`
-	Token              *int     `json:"token_id,omitempty"`
-	TaskingLocation    *string  `json:"tasking_location,omitempty"`
-	OriginalParams     *string  `json:"original_params,omitempty"`
-	ParameterGroupName *string  `json:"parameter_group_name,omitempty"`
+	CallbackDisplayID   *int     `json:"callback_id,omitempty"`
+	CallbackDisplayIDs  *[]int   `json:"callback_ids,omitempty"`
+	Command             string   `json:"command" binding:"required"`
+	Params              string   `json:"params"`
+	Files               []string `json:"files"`
+	Token               *int     `json:"token_id,omitempty"`
+	TaskingLocation     *string  `json:"tasking_location,omitempty"`
+	OriginalParams      *string  `json:"original_params,omitempty"`
+	ParameterGroupName  *string  `json:"parameter_group_name,omitempty"`
+	ParentTaskId        *int     `json:"parent_task_id,omitempty"`
+	IsInteractiveTask   bool     `json:"is_interactive_task"`
+	InteractiveTaskType *int     `json:"interactive_task_type,omitempty"`
 }
 
 func CreateTaskWebhook(c *gin.Context) {
@@ -65,17 +68,20 @@ func CreateTaskWebhook(c *gin.Context) {
 				operatorOperation.CurrentOperation.ID, "mass_tasking", database.MESSAGE_LEVEL_INFO)
 		}
 		createTaskInput := rabbitmq.CreateTaskInput{
-			CallbackDisplayID:  callbacks[0],
-			CurrentOperationID: operatorOperation.CurrentOperation.ID,
-			OperatorID:         operatorOperation.CurrentOperator.ID,
-			IsOperatorAdmin:    operatorOperation.CurrentOperator.Admin,
-			CommandName:        input.Input.Command,
-			Params:             input.Input.Params,
-			TaskingLocation:    input.Input.TaskingLocation,
-			OriginalParams:     input.Input.OriginalParams,
-			ParameterGroupName: input.Input.ParameterGroupName,
-			FileIDs:            input.Input.Files,
-			Token:              input.Input.Token,
+			CallbackDisplayID:   callbacks[0],
+			CurrentOperationID:  operatorOperation.CurrentOperation.ID,
+			OperatorID:          operatorOperation.CurrentOperator.ID,
+			IsOperatorAdmin:     operatorOperation.CurrentOperator.Admin,
+			CommandName:         input.Input.Command,
+			Params:              input.Input.Params,
+			TaskingLocation:     input.Input.TaskingLocation,
+			OriginalParams:      input.Input.OriginalParams,
+			ParameterGroupName:  input.Input.ParameterGroupName,
+			FileIDs:             input.Input.Files,
+			Token:               input.Input.Token,
+			ParentTaskID:        input.Input.ParentTaskId,
+			IsInteractiveTask:   input.Input.IsInteractiveTask,
+			InteractiveTaskType: input.Input.InteractiveTaskType,
 		}
 		if operatorOperation.BaseDisabledCommandsID.Valid {
 			baseDisabledCommandsId := int(operatorOperation.BaseDisabledCommandsID.Int64)
@@ -93,17 +99,20 @@ func issueMassTasking(input CreateTaskInput, callbacks []int, operatorOperation 
 	for indx, callbackDisplayID := range callbacks {
 		logging.LogInfo("Creating mass tasking", "task num", indx+2, "total tasks", len(callbacks))
 		createTaskInput := rabbitmq.CreateTaskInput{
-			CallbackDisplayID:  callbackDisplayID,
-			CurrentOperationID: operatorOperation.CurrentOperation.ID,
-			OperatorID:         operatorOperation.CurrentOperator.ID,
-			IsOperatorAdmin:    operatorOperation.CurrentOperator.Admin,
-			CommandName:        input.Input.Command,
-			Params:             input.Input.Params,
-			TaskingLocation:    input.Input.TaskingLocation,
-			OriginalParams:     input.Input.OriginalParams,
-			ParameterGroupName: input.Input.ParameterGroupName,
-			FileIDs:            input.Input.Files,
-			Token:              input.Input.Token,
+			CallbackDisplayID:   callbackDisplayID,
+			CurrentOperationID:  operatorOperation.CurrentOperation.ID,
+			OperatorID:          operatorOperation.CurrentOperator.ID,
+			IsOperatorAdmin:     operatorOperation.CurrentOperator.Admin,
+			CommandName:         input.Input.Command,
+			Params:              input.Input.Params,
+			TaskingLocation:     input.Input.TaskingLocation,
+			OriginalParams:      input.Input.OriginalParams,
+			ParameterGroupName:  input.Input.ParameterGroupName,
+			FileIDs:             input.Input.Files,
+			Token:               input.Input.Token,
+			ParentTaskID:        input.Input.ParentTaskId,
+			IsInteractiveTask:   input.Input.IsInteractiveTask,
+			InteractiveTaskType: input.Input.InteractiveTaskType,
 		}
 		if operatorOperation.BaseDisabledCommandsID.Valid {
 			baseDisabledCommandsId := int(operatorOperation.BaseDisabledCommandsID.Int64)

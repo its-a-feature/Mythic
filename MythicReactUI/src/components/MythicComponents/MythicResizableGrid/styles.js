@@ -1,4 +1,4 @@
-import makeStyles from '@mui/styles/makeStyles';
+import { makeStyles } from '@mui/styles';
 
 export default makeStyles((theme) => ({
     headerCellRow: {
@@ -54,7 +54,6 @@ export default makeStyles((theme) => ({
     },
     draggableHandlesClickArea: {
         position: 'absolute',
-        top: 0,
         width: '16px',
         cursor: 'col-resize',
         pointerEvents: 'initial',

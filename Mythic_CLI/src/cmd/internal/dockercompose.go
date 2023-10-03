@@ -242,6 +242,14 @@ func addMythicServiceDockerComposeEntry(service string) {
 				"start_period": "15s",
 			}
 		}
+		nginxUseIPV4 := ""
+		if !mythicEnv.GetBool("NGINX_USE_IPV4") {
+			nginxUseIPV4 = "#"
+		}
+		nginxUseIPV6 := ""
+		if !mythicEnv.GetBool("NGINX_USE_IPV6") {
+			nginxUseIPV6 = "#"
+		}
 		environment := []string{
 			"DOCUMENTATION_HOST=${DOCUMENTATION_HOST}",
 			"DOCUMENTATION_PORT=${DOCUMENTATION_PORT}",
@@ -255,6 +263,8 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"JUPYTER_HOST=${JUPYTER_HOST}",
 			"JUPYTER_PORT=${JUPYTER_PORT}",
 			fmt.Sprintf("NGINX_USE_SSL=%s", nginxUseSSL),
+			fmt.Sprintf("NGINX_USE_IPV4=%s", nginxUseIPV4),
+			fmt.Sprintf("NGINX_USE_IPV6=%s", nginxUseIPV6),
 		}
 		if _, ok := pStruct["environment"]; ok {
 			environment = updateEnvironmentVariables(curConfig.GetStringSlice("services."+strings.ToLower(service)+".environment"), environment)
@@ -471,7 +481,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 		}
 	case "mythic_sync":
 		if absPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder, service)); err != nil {
-			fmt.Printf("[-] Failed to get abs path for mythic_sync")
+			fmt.Printf("[-] Failed to get abs path for mythic_sync\n")
 			return
 		} else {
 			pStruct["build"] = map[string]interface{}{
@@ -636,9 +646,9 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 	curConfig.AddConfigPath(getCwdFromExe())
 	if err := curConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatalf("[-] Error while reading in docker-compose file: %s", err)
+			log.Fatalf("[-] Error while reading in docker-compose file: %s\n", err)
 		} else {
-			log.Fatalf("[-] Error while parsing docker-compose file: %s", err)
+			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
 		}
 	}
 	networkInfo := map[string]interface{}{
@@ -661,8 +671,8 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 		})
 	}
 	if absPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder, service)); err != nil {
-		fmt.Printf("[-] Failed to get the absolute path to the %s folder, does the folder exist?", InstalledServicesFolder)
-		fmt.Printf("[*] If the service doesn't exist, you might need to install with 'mythic-cli install'")
+		fmt.Printf("[-] Failed to get the absolute path to the %s folder, does the folder exist?\n", InstalledServicesFolder)
+		fmt.Printf("[*] If the service doesn't exist, you might need to install with 'mythic-cli install'\n")
 		os.Exit(1)
 	} else if !dirExists(absPath) {
 		fmt.Printf("[-] %s does not exist, not adding to Mythic\n", absPath)
@@ -751,9 +761,9 @@ func RemoveDockerComposeEntry(service string) error {
 	curConfig.AddConfigPath(getCwdFromExe())
 	if err := curConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatalf("[-] Error while reading in docker-compose file: %s", err)
+			log.Fatalf("[-] Error while reading in docker-compose file: %s\n", err)
 		} else {
-			log.Fatalf("[-] Error while parsing docker-compose file: %s", err)
+			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
 		}
 	}
 	networkInfo := map[string]interface{}{
@@ -795,7 +805,7 @@ func runDockerCompose(args []string) error {
 	if err != nil {
 		lookPath, err = exec.LookPath("docker")
 		if err != nil {
-			log.Fatalf("[-] docker-compose and docker are not installed or available in the current PATH")
+			log.Fatalf("[-] docker-compose and docker are not installed or available in the current PATH\n")
 		} else {
 			// adjust the current args for docker compose subcommand
 			args = append([]string{"compose"}, args...)
@@ -803,7 +813,7 @@ func runDockerCompose(args []string) error {
 	}
 	exe, err := os.Executable()
 	if err != nil {
-		log.Fatalf("[-] Failed to get lookPath to current executable")
+		log.Fatalf("[-] Failed to get lookPath to current executable\n")
 	}
 	exePath := filepath.Dir(exe)
 	command := exec.Command(lookPath, args...)
@@ -812,11 +822,11 @@ func runDockerCompose(args []string) error {
 
 	stdout, err := command.StdoutPipe()
 	if err != nil {
-		log.Fatalf("[-] Failed to get stdout pipe for running docker-compose")
+		log.Fatalf("[-] Failed to get stdout pipe for running docker-compose\n")
 	}
 	stderr, err := command.StderrPipe()
 	if err != nil {
-		log.Fatalf("[-] Failed to get stderr pipe for running docker-compose")
+		log.Fatalf("[-] Failed to get stderr pipe for running docker-compose\n")
 	}
 
 	stdoutScanner := bufio.NewScanner(stdout)
@@ -845,9 +855,9 @@ func runDockerCompose(args []string) error {
 }
 func runDocker(args []string) (string, error) {
 	if lookPath, err := exec.LookPath("docker"); err != nil {
-		log.Fatalf("[-] docker is not installed or available in the current PATH")
+		log.Fatalf("[-] docker is not installed or available in the current PATH\n")
 	} else if exe, err := os.Executable(); err != nil {
-		log.Fatalf("[-] Failed to get lookPath to current executable")
+		log.Fatalf("[-] Failed to get lookPath to current executable\n")
 	} else {
 		exePath := filepath.Dir(exe)
 		command := exec.Command(lookPath, args...)
@@ -855,11 +865,11 @@ func runDocker(args []string) (string, error) {
 		command.Env = getMythicEnvList()
 		stdout, err := command.StdoutPipe()
 		if err != nil {
-			log.Fatalf("[-] Failed to get stdout pipe for running docker-compose")
+			log.Fatalf("[-] Failed to get stdout pipe for running docker-compose\n")
 		}
 		stderr, err := command.StderrPipe()
 		if err != nil {
-			log.Fatalf("[-] Failed to get stderr pipe for running docker-compose")
+			log.Fatalf("[-] Failed to get stderr pipe for running docker-compose\n")
 		}
 		stdoutScanner := bufio.NewScanner(stdout)
 		stderrScanner := bufio.NewScanner(stderr)
@@ -894,10 +904,10 @@ func GetAllExistingNonMythicServiceNames() ([]string, error) {
 	groupNameConfig.AddConfigPath(getCwdFromExe())
 	if err := groupNameConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			fmt.Printf("[-] Error while reading in docker-compose file: %s", err)
+			fmt.Printf("[-] Error while reading in docker-compose file: %s\n", err)
 			return []string{}, err
 		} else {
-			fmt.Printf("[-] Error while parsing docker-compose file: %s", err)
+			fmt.Printf("[-] Error while parsing docker-compose file: %s\n", err)
 			return []string{}, err
 		}
 	}
@@ -918,10 +928,10 @@ func GetCurrentMythicServiceNames() ([]string, error) {
 	groupNameConfig.AddConfigPath(getCwdFromExe())
 	if err := groupNameConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			fmt.Printf("[-] Error while reading in docker-compose file: %s", err)
+			fmt.Printf("[-] Error while reading in docker-compose file: %s\n", err)
 			return []string{}, err
 		} else {
-			fmt.Printf("[-] Error while parsing docker-compose file: %s", err)
+			fmt.Printf("[-] Error while parsing docker-compose file: %s\n", err)
 			return []string{}, err
 		}
 	}
@@ -949,9 +959,9 @@ func getBuildArguments() []string {
 	}
 	if err := buildEnv.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatalf("[-] Error while reading in build.env file: %s", err)
+			log.Fatalf("[-] Error while reading in build.env file: %s\n", err)
 		} else {
-			log.Fatalf("[-]Error while parsing build.env file: %s", err)
+			log.Fatalf("[-]Error while parsing build.env file: %s\n", err)
 		}
 	}
 	c := buildEnv.AllSettings()

@@ -8,6 +8,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { MythicDialog, MythicModifyStringDialog } from '../../MythicComponents/MythicDialog';
+import {MythicSelectFromRawListDialog} from '../../MythicComponents/MythicSelectFromListDialog';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
@@ -53,6 +54,17 @@ const updateCredentialRealm = gql`
 mutation updateAccountMutation($credential_id: Int!, $realm: String!){
     update_credential_by_pk(pk_columns: {id: $credential_id}, _set: {realm: $realm}) {
         realm
+        id
+        operator {
+            username
+        }
+    }
+}
+`;
+const updateCredentialType = gql`
+mutation updateAccountMutation($credential_id: Int!, $type: String!){
+    update_credential_by_pk(pk_columns: {id: $credential_id}, _set: {type: $type}) {
+        type
         id
         operator {
             username
@@ -118,6 +130,16 @@ export function CredentialTable(props){
         });
         setCredentials(updates);
     }
+    const onEditType = ({id, type, operator}) => {
+        const updates = credentials.map( (cred) => {
+            if(cred.id === id){
+                return {...cred, type, operator}
+            }else{
+                return {...cred}
+            }
+        });
+        setCredentials(updates);
+    }
     const onEditCredential = ({id, credential_text, operator}) => {
         const updates = credentials.map( (cred) => {
             if(cred.id === id){
@@ -164,6 +186,7 @@ export function CredentialTable(props){
                         onEditRealm={onEditRealm}
                         onEditCredential={onEditCredential}
                         onEditDeleted={onEditDeleted}
+                        onEditType={onEditType}
                         {...op}
                     />
                 ))}
@@ -181,6 +204,7 @@ function CredentialTableRow(props){
     const [editAccountDialogOpen, setEditAccountDialogOpen] = React.useState(false);
     const [editRealmDialogOpen, setEditRealmDialogOpen] = React.useState(false);
     const [editCredentialDialogOpen, setEditCredentialDialogOpen] = React.useState(false);
+    const [editTypeDialogOpen, setEditTypeDialogOpen] = React.useState(false);
     const dropdownAnchorRef = React.useRef(null);
     const [openDropdownButton, setOpenDropdownButton] = React.useState(false);
     const maxDisplayLength = 400;
@@ -195,6 +219,12 @@ function CredentialTableRow(props){
         onCompleted: (data) => {
             snackActions.success("updated account");
             props.onEditAccount(data.update_credential_by_pk);
+        }
+    });
+    const [updateType] = useMutation(updateCredentialType, {
+        onCompleted: (data) => {
+            snackActions.success("updated credential type");
+            props.onEditType(data.update_credential_by_pk);
         }
     });
     const [updateRealm] = useMutation(updateCredentialRealm, {
@@ -220,6 +250,9 @@ function CredentialTableRow(props){
     }
     const onSubmitUpdatedAccount = (account) => {
         updateAccount({variables: {credential_id: props.id, account: account}})
+    }
+    const onSubmitUpdatedType = (type) => {
+        updateType({variables: {credential_id: props.id, type: type}})
     }
     const onSubmitUpdatedRealm = (realm) => {
         updateRealm({variables: {credential_id: props.id, realm: realm}})
@@ -260,6 +293,11 @@ function CredentialTableRow(props){
                 setEditCommentDialogOpen(true);
             }
         },
+        {
+            name: 'Edit Type', click: (evt) => {
+                setEditTypeDialogOpen(true);
+            }
+        },
     ];
     const handleMenuItemClick = (event, index) => {
         options[index].click(event);
@@ -271,6 +309,9 @@ function CredentialTableRow(props){
         }
         setOpenDropdownButton(false);
       };
+    const credentialTypeOptions = [
+        "certificate", "hash","hex", "key", "plaintext",  "ticket",
+    ]
     return (
         <React.Fragment>
             <TableRow hover>
@@ -286,6 +327,14 @@ function CredentialTableRow(props){
                     <MythicDialog fullWidth={true} maxWidth="md" open={editAccountDialogOpen} 
                         onClose={()=>{setEditAccountDialogOpen(false);}} 
                         innerDialog={<MythicModifyStringDialog title="Edit Credential Account" onSubmit={onSubmitUpdatedAccount} value={props.account} onClose={()=>{setEditAccountDialogOpen(false);}} />}
+                    />
+                }
+                {editTypeDialogOpen &&
+                    <MythicDialog fullWidth={true} maxWidth="sm" open={editTypeDialogOpen}
+                                  onClose={()=>{setEditTypeDialogOpen(false);}}
+                                  innerDialog={<MythicSelectFromRawListDialog title="Edit Credential Type" onSubmit={onSubmitUpdatedType}
+                                                                           options={credentialTypeOptions}
+                                                                           onClose={()=>{setEditTypeDialogOpen(false);}} />}
                     />
                 }
                 {editRealmDialogOpen &&

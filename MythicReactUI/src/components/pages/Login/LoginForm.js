@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import {Button} from '@mui/material';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import logo from '../../../assets/mythic.svg';
-import { Redirect } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { meState, successfulLogin, FailedRefresh } from '../../../cache';
 import { useReactiveVar } from '@apollo/client';
 import {restartWebsockets, isJWTValid} from '../../../index';
@@ -57,7 +57,7 @@ export function LoginForm(props){
         setPassword(value);
     }
     const redirectPath = () => {
-        const locationState = props.location.state;
+        const locationState = props.state;
         return locationState && locationState.from ? locationState.from.pathname : '/new/';
     }
     return (
@@ -65,7 +65,7 @@ export function LoginForm(props){
         { 
             me.loggedIn ?
                 (
-                    <Redirect to={redirectPath()}/>
+                    <Navigate replace to={redirectPath()}/>
                 )
                : (
                     <div>

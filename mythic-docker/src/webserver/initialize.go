@@ -185,6 +185,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("task_upload_file_webhook", webcontroller.TaskUploadFileWebhook)
 				noSpectators.POST("create_task_webhook", webcontroller.CreateTaskWebhook)
 				noSpectators.POST("dynamic_query_webhook", webcontroller.PayloadTypeDynamicQueryFunctionWebhook)
+				noSpectators.POST("typedarray_parse_webhook", webcontroller.PayloadTypeDynamicTypedArrayParseWebhook)
 				noSpectators.POST("add_attack_to_task_webhook", webcontroller.AddAttackToTaskWebhook)
 				noSpectators.POST("reissue_task_webhook", blank)
 				noSpectators.POST("reissue_task_handler_webhook", blank)
@@ -194,6 +195,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("c2profile_upload_file_webhook", webcontroller.C2ProfileWriteFileWebhook)
 				noSpectators.POST("c2profile_remove_file_webhook", webcontroller.C2ProfileRemoveFileWebhook)
 				noSpectators.POST("start_stop_profile_webhook", webcontroller.StartStopC2ProfileWebhook)
+				noSpectators.POST("c2profile_host_file_webhook", webcontroller.C2HostFileMessageWebhook)
 				// payload
 				noSpectators.POST("rebuild_webhook", webcontroller.PayloadRebuildWebhook)
 				// operation
@@ -202,7 +204,7 @@ func setRoutes(r *gin.Engine) {
 				// file
 				noSpectators.POST("delete_file_webhook", webcontroller.DeleteFileWebhook)
 				// callback
-				noSpectators.POST("stop_proxy_webhook", webcontroller.ProxyStopWebhook)
+				noSpectators.POST("toggle_proxy_webhook", webcontroller.ProxyToggleWebhook)
 				noSpectators.POST("update_callback_webhook", webcontroller.UpdateCallbackWebhook)
 				// reporting
 				noSpectators.POST("reporting_webhook", webcontroller.ReportingWebhook)

@@ -76,7 +76,7 @@ export const CloseButton = ({ closeToast }) => {
                         e.stopPropagation();
                         setDropdownOpen(!dropdownOpen)
                       }}>
-                <NotificationsPausedIcon color={"error"} /> Silence <ArrowDropDownIcon />
+                <NotificationsPausedIcon color={"error"} /> <ArrowDropDownIcon />
               </Button>
             </ButtonGroup>
             <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 10000}}>

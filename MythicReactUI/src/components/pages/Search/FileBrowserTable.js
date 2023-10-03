@@ -69,23 +69,6 @@ export function FileBrowserTable(props){
         </TableContainer>
     )
 }
-const convertTime = (timestamp) => {
-    try{
-        // handle Unix epoch timestamps
-        const dateData = new Date(parseInt(timestamp)).toISOString();
-        return dateData.slice(0, 10) + " " + dateData.slice(11,-1);
-    }catch(error){
-        try{
-            // handle windows FILETIME values
-            const dateData = new Date( ((parseInt(timestamp) / 10000000) - 11644473600) * 1000).toISOString();
-            return dateData.slice(0, 10) + " " + dateData.slice(11,-1);
-        }catch(error2){
-            console.log("error with timestamp: ", timestamp);
-            return String(timestamp);
-        }
-        
-    }
-}
 function FileBrowserTableRow(props){
     const me = props.me;
     const [viewPermissionsDialogOpen, setViewPermissionsDialogOpen] = React.useState(false);

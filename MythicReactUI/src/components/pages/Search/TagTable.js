@@ -24,6 +24,10 @@ export function TagTable(props){
     useEffect( () => {
         setTags([...props.tags]);
     }, [props.tags]);
+    const onDelete = (tagID) => {
+        const newTags = tags.filter(t => t.id !== tagID);
+        setTags(newTags);
+    }
     return (
         <TableContainer component={Paper} className="mythicElement" >
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
@@ -36,10 +40,11 @@ export function TagTable(props){
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                
+
                 {tags.map( (op) => (
                     <TagTableRow
                         key={"tag" + op.id}
+                        onDelete={onDelete}
                         {...op}
                     />
                 ))}
@@ -53,10 +58,11 @@ function TagTableRow(props){
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [deleteTag] = useMutation(deleteTagMutation, {
         onCompleted: (data) => {
-            snackActions.success("Successfully deleted tag")
+            snackActions.success("Successfully deleted tag");
+            props.onDelete(props.id);
         },
         onError: (data) => {
-            snackActions.error("Failed to delete tag")
+            snackActions.error("Failed to delete tag");
         }
     })
     const onAcceptDelete = () => {

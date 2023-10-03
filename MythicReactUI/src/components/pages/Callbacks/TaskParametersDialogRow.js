@@ -34,6 +34,15 @@ mutation getDynamicParamsMutation($callback: Int!, $command: String!, $payload_t
     }
 }
 `;
+const parseTypedArrayMutation = gql`
+mutation parseTypedArrayMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $input_array: [String!]!){
+    typedarray_parse_function(callback: $callback, command: $command, payload_type: $payload_type, parameter_name: $parameter_name, input_array: $input_array){
+        status
+        error
+        typed_array
+    }
+}
+`;
 const credentialFragment = gql`
 fragment credentialData on credential{
     account
@@ -66,6 +75,7 @@ export function TaskParametersDialogRow(props){
     const [ChoiceOptions, setChoiceOptions] = React.useState([]);
     const [boolValue, setBoolValue] = React.useState(false);
     const [arrayValue, setArrayValue] = React.useState([""]);
+    const [typedArrayValue, setTypedArrayValue] = React.useState([]);
     const [choiceMultipleValue, setChoiceMultipleValue] = React.useState([]);
     const [agentConnectNewHost, setAgentConnectNewHost] = React.useState("");
     const [agentConnectHostOptions, setAgentConnectHostOptions] = React.useState([]);
@@ -80,6 +90,7 @@ export function TaskParametersDialogRow(props){
     const [fileValue, setFileValue] = React.useState({name: ""});
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const usingDynamicParamChoices = React.useRef(false);
+    const usingParsedTypedArray = React.useRef(true);
     const updateToLatestCredential = React.useRef(false);
     const [getDynamicParams] = useMutation(getDynamicQueryParams, {
         onCompleted: (data) => {
@@ -112,6 +123,36 @@ export function TaskParametersDialogRow(props){
         },
         onError: (data) => {
             snackActions.warning("Failed to perform dynamic parameter query");
+            console.log(data);
+            setBackdropOpen(false);
+        }
+    });
+    const [parseTypedArray] = useMutation(parseTypedArrayMutation, {
+        onCompleted: (data) => {
+            if(data.typedarray_parse_function.status === "success"){
+                try{
+                    let newTypedArrayValue = [...data.typedarray_parse_function.typed_array.reduce( (prev, cur) => {
+                        if(cur){
+                            return [...prev, cur];
+                        }
+                        return [...prev];
+                    }, [])];
+                    setTypedArrayValue(newTypedArrayValue)
+                    usingParsedTypedArray.current = true;
+                    props.onChange(props.name, newTypedArrayValue, false);
+                }catch(error){
+                    setBackdropOpen(false);
+                    snackActions.warning("Failed to parse typed array function results");
+                    setTypedArrayValue([]);
+                }
+
+            }else{
+                snackActions.warning(data.typedarray_parse_function.error);
+            }
+            setBackdropOpen(false);
+        },
+        onError: (data) => {
+            snackActions.warning("Failed to perform parse typed array function");
             console.log(data);
             setBackdropOpen(false);
         }
@@ -150,8 +191,33 @@ export function TaskParametersDialogRow(props){
                 setBoolValue(props.value);
                 setValue(props.value);
             }
-       }else if(props.type === "Array"){
-            setArrayValue(props.value);
+       }else if(props.type === "Array") {
+           setArrayValue(props.value);
+       }else if(props.type === "TypedArray"){
+           if(value === ""){
+               //console.log(props.value);
+               if(props.value.length > 0 && props.value[0][0] === ""){
+                   setBackdropOpen(true);
+                   snackActions.info("PayloadType Container parsing TypedArray values...",  {autoClose: 1000});
+                   parseTypedArray({variables:{
+                           callback: props.callback_id,
+                           parameter_name: props.name,
+                           command: props.commandInfo.cmd,
+                           payload_type: props.commandInfo.payloadtype.name,
+                           input_array: props.value.reduce( (prev, cur) => {
+                               return [...prev, cur[1]];
+                           }, [])
+                       }})
+               } else {
+                   setTypedArrayValue(props.value);
+                   setValue(props.value);
+               }
+               setChoiceOptions(props.choices);
+           } else if (currentParameterGroup.current !== props.parameterGroupName){
+               setTypedArrayValue(props.value);
+               setValue(props.value);
+               setChoiceOptions(props.choices);
+           }
        }else if(props.type === "ChooseMultiple" && props.dynamic_query_function === null){
            if(value === ""){
                //console.log(props.value);
@@ -391,6 +457,36 @@ export function TaskParametersDialogRow(props){
         setArrayValue(values);
         props.onChange(props.name, values, false);
     }
+    const addNewTypedArrayValue = () => {
+        const newTypedArray = [...typedArrayValue, [props.default_value, ""]];
+        setTypedArrayValue(newTypedArray);
+        props.onChange(props.name, newTypedArray, false);
+    }
+    const removeTypedArrayValue = (index) => {
+        let removed = [...typedArrayValue];
+        removed.splice(index, 1);
+        setTypedArrayValue(removed);
+        props.onChange(props.name, removed, false);
+    }
+    const onChangeTypedArrayText = (value, error, index) => {
+        let values = [...typedArrayValue];
+        if(value.includes("\n")){
+            let new_values = value.split("\n");
+            values = [...values, [props.default_value, ...new_values.slice(1)]];
+            values[index][1] = new_values[0];
+        }else{
+            values[index][1] = value;
+        }
+
+        setTypedArrayValue(values);
+        props.onChange(props.name, values, false);
+    }
+    const onChangeTypedArrayChoice = (evt, index) => {
+        let values = [...typedArrayValue];
+        values[index][0] = evt.target.value;
+        setTypedArrayValue(values);
+        props.onChange(props.name, values, false);
+    }
     const onCreateCredential = ({type, account, realm, comment, credential}) => {
         createCredential({variables: {type, account, realm, comment, credential}})
     }
@@ -443,6 +539,52 @@ export function TaskParametersDialogRow(props){
                                 <TableRow >
                                     <MythicStyledTableCell style={{width: "5rem", paddingLeft:"0"}}>
                                         <IconButton onClick={addNewArrayValue} size="large"> <AddCircleIcon color="success"  /> </IconButton>
+                                    </MythicStyledTableCell>
+                                    <MythicStyledTableCell></MythicStyledTableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                )
+            case "TypedArray":
+                return (
+                    <TableContainer >
+                        <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
+                            <TableBody>
+                                {typedArrayValue.map( (a, i) => (
+                                    <TableRow key={'typedarray' + props.name + i} >
+                                        <MythicStyledTableCell style={{width: "2rem", paddingLeft:"0"}}>
+                                            <IconButton onClick={(e) => {removeTypedArrayValue(i)}} size="large"><DeleteIcon color="error" /> </IconButton>
+                                        </MythicStyledTableCell>
+                                        <MythicStyledTableCell>
+                                            <div style={{display: "inline-flex", alignItems: "center", width: "100%"}}>
+                                                <FormControl style={{width: "30%"}}>
+                                                    <Select
+                                                        native
+                                                        autoFocus={props.autoFocus}
+                                                        value={a[0]}
+                                                        onChange={(e) => onChangeTypedArrayChoice(e, i)}
+                                                        input={<Input />}
+                                                    >
+                                                        {
+                                                            ChoiceOptions.map((opt, i) => (
+                                                                <option key={props.name + i} value={opt}>{opt}</option>
+                                                            ))
+                                                        }
+                                                    </Select>
+                                                </FormControl>
+                                                <MythicTextField required={props.required} fullWidth={true} placeholder={""} value={a[1]} multiline={true} autoFocus={props.autoFocus || i > 0}
+                                                                 onChange={(n,v,e) => onChangeTypedArrayText(v, e, i)} display="inline-block" maxRows={5}
+                                                                 validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
+                                                />
+                                            </div>
+
+                                        </MythicStyledTableCell>
+                                    </TableRow>
+                                ))}
+                                <TableRow >
+                                    <MythicStyledTableCell style={{width: "5rem", paddingLeft:"0"}}>
+                                        <IconButton onClick={addNewTypedArrayValue} size="large"> <AddCircleIcon color="success"  /> </IconButton>
                                     </MythicStyledTableCell>
                                     <MythicStyledTableCell></MythicStyledTableCell>
                                 </TableRow>

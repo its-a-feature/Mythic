@@ -20,6 +20,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: c2HostFile
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_host_file_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: c2SampleMessage
     definition:
       kind: ""
@@ -422,10 +432,20 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
-  - name: stop_socks
+  - name: toggleProxy
     definition:
       kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/stop_proxy_webhook'
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/toggle_proxy_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: typedarray_parse_function
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/typedarray_parse_webhook'
       forward_client_headers: true
     permissions:
       - role: operator
@@ -581,4 +601,8 @@ custom_types:
     - name: GetIOCOutput
     - name: C2SampleMessageOutput
     - name: consumingServicesListOutput
+    - name: c2HostFileOutput
+    - name: typedarrayParseOutput
+    - name: ToggleProxyOutput
+    - name: toggleProxyOutput
   scalars: []

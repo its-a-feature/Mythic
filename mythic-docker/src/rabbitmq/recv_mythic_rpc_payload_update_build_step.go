@@ -16,6 +16,7 @@ type MythicRPCPayloadUpdateBuildStepMessage struct {
 	StepStdout  string `json:"step_stdout"`
 	StepStderr  string `json:"step_stderr"`
 	StepSuccess bool   `json:"step_success"`
+	StepSkip    bool   `json:"step_skip"`
 }
 
 // Every mythicRPC function call must return a response that includes the following two values
@@ -33,7 +34,7 @@ func init() {
 	})
 }
 
-//MYTHIC_RPC_OBJECT_ACTION - Say what the function does
+// MYTHIC_RPC_OBJECT_ACTION - Say what the function does
 func MythicRPCPayloadUpdateBuildStep(input MythicRPCPayloadUpdateBuildStepMessage) MythicRPCPayloadUpdateBuildStepMessageResponse {
 	response := MythicRPCPayloadUpdateBuildStepMessageResponse{
 		Success: false,
@@ -81,6 +82,7 @@ func MythicRPCPayloadUpdateBuildStep(input MythicRPCPayloadUpdateBuildStepMessag
 					step.StepStdout = input.StepStdout
 					step.StepStderr = input.StepStderr
 					step.Success = input.StepSuccess
+					step.StepSkip = input.StepSkip
 					step.EndTime.Valid = true
 					step.EndTime.Time = stepNow
 					if !step.StartTime.Valid {
@@ -89,7 +91,7 @@ func MythicRPCPayloadUpdateBuildStep(input MythicRPCPayloadUpdateBuildStepMessag
 					}
 					if _, err := database.DB.NamedExec(`UPDATE payload_build_step SET
 						step_stdout=:step_stdout, step_stderr=:step_stderr, 
-						step_success=:step_success, end_time=:end_time, start_time=:start_time
+						step_success=:step_success, end_time=:end_time, start_time=:start_time, step_skip=:step_skip
 						WHERE id=:id`, step); err != nil {
 						logging.LogError(err, "Failed to update payload build step")
 						response.Error = err.Error()
@@ -111,10 +113,12 @@ func MythicRPCPayloadUpdateBuildStep(input MythicRPCPayloadUpdateBuildStepMessag
 					step.EndTime.Valid = true
 					step.EndTime.Time = stepNow
 				}
+				step.StepSkip = input.StepSkip
 				step.Success = input.StepSuccess
 				step.StepStdout = step.StepStdout + "\nAutomatically marked as done due to future step completing"
 				if _, err := database.DB.NamedExec(`UPDATE payload_build_step SET
-						step_stdout=:step_stdout, step_success=:step_success, end_time=:end_time, start_time=:start_time
+						step_stdout=:step_stdout, step_success=:step_success, end_time=:end_time, start_time=:start_time,
+						step_skip=:step_skip
 						WHERE id=:id`, step); err != nil {
 					logging.LogError(err, "Failed to update payload build step")
 					response.Error = err.Error()

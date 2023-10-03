@@ -24,13 +24,16 @@ import { ResponseDisplayScreenshotModal } from '../Callbacks/ResponseDisplayScre
 import { MythicDialog, MythicModifyStringDialog } from '../../MythicComponents/MythicDialog';
 import EditIcon from '@mui/icons-material/Edit';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import {PreviewFileStringDialog} from './PreviewFileStringDialog';
 import {PreviewFileHexDialog} from './PreviewFileHexDialog';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 import Checkbox from '@mui/material/Checkbox';
+import txtFile from '../../../assets/file_txt.png';
+import hexFile from '../../../assets/file_bin.png';
+import {HostFileDialog} from "../Payloads/HostFileDialog";
+import PublicIcon from '@mui/icons-material/Public';
 
 const downloadBulkQuery = gql`
 mutation downloadBulkMutation($files: [String!]!){
@@ -177,7 +180,7 @@ export function FileMetaDownloadTable(props){
                             <Checkbox checked={checkAll} onChange={onToggleCheckAll}
                                       inputProps={{ 'aria-label': 'controlled' }} />
                         </TableCell>
-                        <TableCell style={{width: "5rem"}}>Delete</TableCell>
+                        <TableCell style={{width: "7rem"}}>Actions</TableCell>
                         <TableCell >File</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
                         <TableCell style={{width: "10rem"}}>Tags</TableCell>
@@ -210,8 +213,8 @@ function FileMetaDownloadTableRow(props){
     const [openPreviewStringsDialog, setOpenPreviewStringsDialog] = React.useState(false);
     const [openPreviewHexDialog, setOpenPreviewHexDialog] = React.useState(false);
     const [fileContents, setFileContents] = React.useState('');
+    const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const me = props.me;
-    const theme = useTheme();
     const [deleteFile] = useMutation(updateFileDeleted, {
         onCompleted: (data) => {
             snackActions.dismiss();
@@ -265,18 +268,36 @@ function FileMetaDownloadTableRow(props){
     const onSubmitUpdatedComment = (comment) => {
         updateComment({variables: {file_id: props.id, comment: comment}})
     }
-    const onPreviewStrings = () => {
+    const onPreviewStrings = (event) => {
+        if(event){
+            event.preventDefault();
+            event.stopPropagation();
+        }
         previewFileString({variables: {file_id: props.agent_file_id}})
     }
-    const onPreviewHex = () => {
+    const onPreviewHex = (event) => {
+        if(event){
+            event.preventDefault();
+            event.stopPropagation();
+        }
         previewFileHex({variables: {file_id: props.agent_file_id}})
+    }
+    const expandRow = (event) => {
+        setOpenDetails(!openDetails);
+    }
+    const onOpenCloseComment = (event, open) => {
+        if(event){
+            event.stopPropagation();
+        }
+
+        setEditCommentDialogOpen(open);
     }
     return (
         <React.Fragment>
-            <TableRow hover>
+            <TableRow hover onClick={expandRow}>
                 <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                 <MythicStyledTableCell>
-                    {props.deleted ? (null) : (
+                    {props.deleted ? null : (
                         <MythicStyledTooltip title="Toggle to download multiple files at once">
                             <Checkbox checked={props.selected[props.id] === undefined ? false : props.selected[props.id]}
                                       onChange={onSelectChanged}
@@ -286,8 +307,19 @@ function FileMetaDownloadTableRow(props){
                     
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    {props.deleted ? (null) : (
-                        <IconButton size="small" onClick={()=>{setOpenDelete(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
+                    {props.deleted ? null : (
+                        <>
+                            <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
+                                        onClick={()=>{setOpenDelete(true);}}/>
+                            <MythicStyledTooltip title={"Preview HEX XXD"}>
+                                <img src={hexFile} alt={"preview hex"} style={{height: "35px", cursor: "pointer"}}
+                                     onClick={onPreviewHex}/>
+                            </MythicStyledTooltip>
+                            <MythicStyledTooltip title={"Preview Strings"}>
+                                <img src={txtFile} alt={"preview strings"} style={{height: "35px", cursor: "pointer"}}
+                                     onClick={onPreviewStrings} />
+                            </MythicStyledTooltip>
+                        </>
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -298,26 +330,26 @@ function FileMetaDownloadTableRow(props){
                         <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</Link>
                         )
                     }
-                    {props.complete ? (
-                            null
-                        ) : (
+                    {props.complete ? null : (
                             <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.chunks_received} / {props.total_chunks} Chunks Received</Typography>
                         )
                     }
                 </MythicStyledTableCell>
-                
-                <MythicStyledTableCell>{props.comment}<IconButton onClick={() => setEditCommentDialogOpen(true)} size="small" style={{display: "inline-block"}}><EditIcon /></IconButton>
-                    <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen} 
-                        onClose={()=>{setEditCommentDialogOpen(false);}} 
-                        innerDialog={<MythicModifyStringDialog title="Edit File Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={()=>{setEditCommentDialogOpen(false);}} />}
-                    />
+                <MythicStyledTableCell>{props.comment}<IconButton onClick={(e) => onOpenCloseComment(e, true)} size="small" style={{display: "inline-block"}}><EditIcon /></IconButton>
+                    {editCommentDialogOpen &&
+                        <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen}
+                                      onClose={(e)=>{onOpenCloseComment(e, false);}}
+                                      innerDialog={<MythicModifyStringDialog title="Edit File Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={(e)=>{onOpenCloseComment(e, false);}} />}
+                        />
+                    }
+
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <ViewEditTags target_object={"filemeta_id"} target_object_id={props.id} me={me} />
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton size="small" aria-label="expand row" onClick={() => setOpenDetails(!openDetails)}>
+                    <IconButton size="small" aria-label="expand row" onClick={expandRow}>
                             {openDetails ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
                         </IconButton>
                 </MythicStyledTableCell>
@@ -336,7 +368,7 @@ function FileMetaDownloadTableRow(props){
                                                 <MythicStyledTableCell style={{width: "6rem"}}>Task</MythicStyledTableCell>
                                                 <MythicStyledTableCell>Time</MythicStyledTableCell>
                                                 <MythicStyledTableCell>Command</MythicStyledTableCell>
-                                                <MythicStyledTableCell>Preview</MythicStyledTableCell>
+                                                <MythicStyledTableCell>Host File</MythicStyledTableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -348,9 +380,8 @@ function FileMetaDownloadTableRow(props){
                                                 </MythicStyledTableCell>
                                                 <MythicStyledTableCell ><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.operator.username}</Typography></MythicStyledTableCell>
                                                 <MythicStyledTableCell>
-                                                    {props.task === null ? (
-                                                        null
-                                                    ) : (<>
+                                                    {props.task === null ? null : (
+                                                        <>
                                                             <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
                                                             <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
                                                             <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.comment}</Typography>
@@ -363,32 +394,21 @@ function FileMetaDownloadTableRow(props){
                                                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me.user.view_utc_time)}</Typography>
                                                 </MythicStyledTableCell>
                                                 <MythicStyledTableCell>
-                                                    {props.task === null ? (null) : (
+                                                    {props.task === null ? null : (
                                                         <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.command.cmd}</Typography>
                                                     )}
                                                     
                                                 </MythicStyledTableCell>
                                                 <MythicStyledTableCell>
-                                                    <div style={{display: "block"}}>
-                                                        <Button variant="contained" style={{marginBottom: "5px"}} color="info" startIcon={<VisibilityIcon />} onClick={onPreviewStrings}>Strings</Button>
-                                                    </div>
-                                                    <div>
-                                                        <Button variant="contained" color="info" startIcon={<VisibilityIcon />} onClick={onPreviewHex}>HEX XXD</Button>
-                                                    </div>
-                                                    {openPreviewStringsDialog &&
-                                                        <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewStringsDialog} 
-                                                            onClose={()=>{setOpenPreviewStringsDialog(false);}} 
-                                                            innerDialog={<PreviewFileStringDialog onClose={()=>{setOpenPreviewStringsDialog(false);}} 
-                                                                filename={props.filename_text} contents={fileContents}
-                                                            />}
-                                                        />
-                                                    }
-                                                    {openPreviewHexDialog &&
-                                                        <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewHexDialog} 
-                                                            onClose={()=>{setOpenPreviewHexDialog(false);}} 
-                                                            innerDialog={<PreviewFileHexDialog onClose={()=>{setOpenPreviewHexDialog(false);}} 
-                                                                filename={props.filename_text} contents={fileContents}
-                                                            />}
+                                                    <MythicStyledTooltip title={"Host Payload Through C2"} >
+                                                        <PublicIcon color={"info"} style={{marginLeft: "20px", cursor: "pointer"}} onClick={()=>{setOpenHostDialog(true);}}  />
+                                                    </MythicStyledTooltip>
+                                                    {openHostDialog &&
+                                                        <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
+                                                                      onClose={()=>{setOpenHostDialog(false);}}
+                                                                      innerDialog={<HostFileDialog file_uuid={props.agent_file_id}
+                                                                                                   file_name={props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}
+                                                                                                   onClose={()=>{setOpenHostDialog(false);}} />}
                                                         />
                                                     }
                                                 </MythicStyledTableCell>
@@ -400,7 +420,23 @@ function FileMetaDownloadTableRow(props){
                             </Collapse>
                         </MythicStyledTableCell>
                     </TableRow>
-            ) : (null) }
+            ) : null }
+            {openPreviewStringsDialog &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewStringsDialog}
+                              onClose={()=>{setOpenPreviewStringsDialog(false);}}
+                              innerDialog={<PreviewFileStringDialog onClose={()=>{setOpenPreviewStringsDialog(false);}}
+                                                                    filename={props.filename_text} contents={fileContents}
+                              />}
+                />
+            }
+            {openPreviewHexDialog &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewHexDialog}
+                              onClose={()=>{setOpenPreviewHexDialog(false);}}
+                              innerDialog={<PreviewFileHexDialog onClose={()=>{setOpenPreviewHexDialog(false);}}
+                                                                 filename={props.filename_text} contents={fileContents}
+                              />}
+                />
+            }
         </React.Fragment>
     )
 }
@@ -498,7 +534,7 @@ export function FileMetaUploadTable(props){
                             <Checkbox checked={checkAll} onChange={onToggleCheckAll}
                                       inputProps={{ 'aria-label': 'controlled' }} />
                         </TableCell>
-                        <TableCell style={{width: "4rem"}}>Delete</TableCell>
+                        <TableCell style={{width: "7rem"}}>Actions</TableCell>
                         <TableCell style={{width: "20rem"}}>Source</TableCell>
                         <TableCell >Destination</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
@@ -532,8 +568,8 @@ function FileMetaUploadTableRow(props){
     const [openPreviewStringsDialog, setOpenPreviewStringsDialog] = React.useState(false);
     const [openPreviewHexDialog, setOpenPreviewHexDialog] = React.useState(false);
     const [fileContents, setFileContents] = React.useState('');
+    const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const me = props.me;
-    const theme = useTheme();
     const [deleteFile] = useMutation(updateFileDeleted, {
         onCompleted: (data) => {
             snackActions.dismiss();
@@ -587,18 +623,40 @@ function FileMetaUploadTableRow(props){
             snackActions.error(data);
         }
     });
-    const onPreviewStrings = () => {
+    const onPreviewStrings = (event) => {
+        if(event){
+            event.stopPropagation();
+        }
         previewFileString({variables: {file_id: props.agent_file_id}})
     }
-    const onPreviewHex = () => {
+    const onPreviewHex = (event) => {
+        if(event){
+            event.stopPropagation();
+        }
         previewFileHex({variables: {file_id: props.agent_file_id}})
+    }
+    const expandRow = (event) => {
+        if(event.target.nodeName === 'INPUT'){
+            return
+        }
+        if(event){
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        setOpenDetails(!openDetails);
+    }
+    const onOpenCloseComment = (event, open) => {
+        if(event){
+            event.stopPropagation();
+        }
+        setEditCommentDialogOpen(open);
     }
     return (
         <React.Fragment>
-            <TableRow hover>
+            <TableRow hover onClick={expandRow}>
                 {openDelete && <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>}
                 <MythicStyledTableCell>
-                    {props.deleted ? (null) : (
+                    {props.deleted ? null : (
                         <MythicStyledTooltip title="Toggle to download multiple files at once">
                             <Checkbox checked={props.selected[props.id] === undefined ? false : props.selected[props.id]}
                                       onChange={onSelectChanged}
@@ -608,8 +666,19 @@ function FileMetaUploadTableRow(props){
                     
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    {props.deleted ? (null) : (
-                        <IconButton size="small" onClick={()=>{setOpenDelete(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
+                    {props.deleted ? null : (
+                        <>
+                            <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
+                                        onClick={()=>{setOpenDelete(true);}}/>
+                            <MythicStyledTooltip title={"Preview HEX XXD"}>
+                                <img src={hexFile} alt={"preview hex"} style={{height: "35px", cursor: "pointer"}}
+                                     onClick={onPreviewHex}/>
+                            </MythicStyledTooltip>
+                            <MythicStyledTooltip title={"Preview Strings"}>
+                                <img src={txtFile} alt={"preview strings"} style={{height: "35px", cursor: "pointer"}}
+                                     onClick={onPreviewStrings} />
+                            </MythicStyledTooltip>
+                        </>
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -632,10 +701,10 @@ function FileMetaUploadTableRow(props){
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    {props.comment}<IconButton onClick={() => setEditCommentDialogOpen(true)} size="small" style={{display: "inline-block"}}><EditIcon /></IconButton>
+                    {props.comment}<IconButton onClick={(e) => onOpenCloseComment(e, true)} size="small" style={{display: "inline-block"}}><EditIcon /></IconButton>
                     <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen} 
-                        onClose={()=>{setEditCommentDialogOpen(false);}} 
-                        innerDialog={<MythicModifyStringDialog title="Edit File Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={()=>{setEditCommentDialogOpen(false);}} />}
+                        onClose={(e)=>{onOpenCloseComment(e, false)}}
+                        innerDialog={<MythicModifyStringDialog title="Edit File Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={(e)=>{onOpenCloseComment(e, false)}} />}
                     />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -643,7 +712,7 @@ function FileMetaUploadTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton size="small" aria-label="expand row" onClick={() => setOpenDetails(!openDetails)}>
+                    <IconButton size="small" aria-label="expand row" onClick={expandRow}>
                             {openDetails ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
                         </IconButton>
                 </MythicStyledTableCell>
@@ -662,7 +731,7 @@ function FileMetaUploadTableRow(props){
                                                 <TableCell style={{width: "6rem"}}>Task</TableCell>
                                                 <TableCell>Timestamp</TableCell>
                                                 <TableCell>Command</TableCell>
-                                                <TableCell>Preview</TableCell>
+                                                <TableCell>Host File</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -693,26 +762,15 @@ function FileMetaUploadTableRow(props){
                                                     )}
                                                 </MythicStyledTableCell>
                                                 <MythicStyledTableCell>
-                                                    <div style={{display: "block"}}>
-                                                        <Button variant="contained" style={{marginBottom: "5px"}} color="info" startIcon={<VisibilityIcon />} onClick={onPreviewStrings}>Strings</Button>
-                                                    </div>
-                                                    <div>
-                                                        <Button variant="contained" color="info" startIcon={<VisibilityIcon />} onClick={onPreviewHex}>HEX XXD</Button>
-                                                    </div>
-                                                    {openPreviewStringsDialog &&
-                                                        <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewStringsDialog} 
-                                                            onClose={()=>{setOpenPreviewStringsDialog(false);}} 
-                                                            innerDialog={<PreviewFileStringDialog onClose={()=>{setOpenPreviewStringsDialog(false);}} 
-                                                                filename={props.filename_text} contents={fileContents}
-                                                            />}
-                                                        />
-                                                    }
-                                                    {openPreviewHexDialog &&
-                                                        <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewHexDialog} 
-                                                            onClose={()=>{setOpenPreviewHexDialog(false);}} 
-                                                            innerDialog={<PreviewFileHexDialog onClose={()=>{setOpenPreviewHexDialog(false);}} 
-                                                                filename={props.filename_text} contents={fileContents}
-                                                            />}
+                                                    <MythicStyledTooltip title={"Host Payload Through C2"} >
+                                                        <PublicIcon color={"info"} style={{marginLeft: "20px", cursor: "pointer"}} onClick={()=>{setOpenHostDialog(true);}}  />
+                                                    </MythicStyledTooltip>
+                                                    {openHostDialog &&
+                                                        <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
+                                                                      onClose={()=>{setOpenHostDialog(false);}}
+                                                                      innerDialog={<HostFileDialog file_uuid={props.agent_file_id}
+                                                                                                   file_name={props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}
+                                                                                                   onClose={()=>{setOpenHostDialog(false);}} />}
                                                         />
                                                     }
                                                 </MythicStyledTableCell>
@@ -725,6 +783,22 @@ function FileMetaUploadTableRow(props){
                         </MythicStyledTableCell>
                     </TableRow>
             ) : null }
+            {openPreviewStringsDialog &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewStringsDialog}
+                              onClose={()=>{setOpenPreviewStringsDialog(false);}}
+                              innerDialog={<PreviewFileStringDialog onClose={()=>{setOpenPreviewStringsDialog(false);}}
+                                                                    filename={props.filename_text} contents={fileContents}
+                              />}
+                />
+            }
+            {openPreviewHexDialog &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewHexDialog}
+                              onClose={()=>{setOpenPreviewHexDialog(false);}}
+                              innerDialog={<PreviewFileHexDialog onClose={()=>{setOpenPreviewHexDialog(false);}}
+                                                                 filename={props.filename_text} contents={fileContents}
+                              />}
+                />
+            }
         </React.Fragment>
     )
 }

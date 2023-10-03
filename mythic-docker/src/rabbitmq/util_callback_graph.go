@@ -7,6 +7,7 @@ import (
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
+	"sync"
 	"time"
 )
 
@@ -15,6 +16,7 @@ import (
 type cbGraph struct {
 	// map callback_id -> array of adjacent callback_ids
 	adjMatrix map[int][]cbGraphAdjMatrixEntry
+	lock      sync.RWMutex
 }
 type cbGraphAdjMatrixEntry struct {
 	DestinationId      int
@@ -41,6 +43,74 @@ type idAndOpId struct {
 
 var uuidToIdAndOpId map[string]idAndOpId
 
+type bfsCache struct {
+	// source -> destination -> path
+	cache map[int]map[int][][]cbGraphAdjMatrixEntry
+	lock  sync.RWMutex
+}
+
+var BFSCache bfsCache
+
+func (c *bfsCache) GetPath(sourceId int, destinationId int) []cbGraphAdjMatrixEntry {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	if _, sourceExists := c.cache[sourceId]; sourceExists {
+		if _, destinationExists := c.cache[sourceId][destinationId]; destinationExists {
+			if len(c.cache[sourceId][destinationId]) > 0 {
+				return c.cache[sourceId][destinationId][0]
+			}
+			return nil
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
+}
+func (c *bfsCache) Remove(sourceId int, destinationId int, c2ProfileName string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if _, sourceExists := c.cache[sourceId]; sourceExists {
+		if _, destinationExists := c.cache[sourceId][destinationId]; destinationExists {
+			removalIndex := -1
+			for index, _ := range c.cache[sourceId][destinationId] {
+				if c.cache[sourceId][destinationId][index][0].C2ProfileName == c2ProfileName {
+					removalIndex = index
+					break
+				}
+			}
+			if removalIndex >= 0 {
+				for index, _ := range c.cache[sourceId][destinationId] {
+					if index == removalIndex {
+						c.cache[sourceId][destinationId][index] = c.cache[sourceId][destinationId][len(c.cache[sourceId][destinationId])-1]
+						c.cache[sourceId][destinationId][len(c.cache[sourceId][destinationId])-1] = nil
+						c.cache[sourceId][destinationId] = c.cache[sourceId][destinationId][:len(c.cache[sourceId][destinationId])-1]
+						break
+					}
+				}
+			}
+			if len(c.cache[sourceId][destinationId]) == 0 {
+				delete(c.cache[sourceId], destinationId)
+			}
+			return
+		}
+	}
+}
+func (c *bfsCache) Add(sourceId int, destinationId int, bfsPath []cbGraphAdjMatrixEntry) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if _, sourceExists := c.cache[sourceId]; !sourceExists {
+		c.cache[sourceId] = make(map[int][][]cbGraphAdjMatrixEntry)
+	}
+	if _, destinationExists := c.cache[sourceId][destinationId]; !destinationExists {
+		c.cache[sourceId][destinationId] = [][]cbGraphAdjMatrixEntry{
+			bfsPath,
+		}
+	} else {
+		c.cache[sourceId][destinationId] = append(c.cache[sourceId][destinationId], bfsPath)
+	}
+}
+
 func (g *cbGraph) Initialize() {
 	edges := []databaseStructs.Callbackgraphedge{}
 	g.adjMatrix = make(map[int][]cbGraphAdjMatrixEntry, 0)
@@ -65,8 +135,11 @@ func (g *cbGraph) Initialize() {
 			g.Add(edge.Destination, edge.Source, edge.C2Profile.Name)
 		}
 	}
+	BFSCache.cache = make(map[int]map[int][][]cbGraphAdjMatrixEntry)
 }
 func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStructs.Callback, c2profileName string) {
+	g.lock.Lock()
+	defer g.lock.Unlock()
 	if _, ok := g.adjMatrix[source.ID]; !ok {
 		// add it
 		g.adjMatrix[source.ID] = append(g.adjMatrix[source.ID], cbGraphAdjMatrixEntry{
@@ -135,6 +208,8 @@ func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName
 			(operation_id, source_id, destination_id, c2_profile_id)
 			VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id)`, edge); err != nil {
 			logging.LogError(err, "Failed to insert new edge for P2P connection")
+		} else {
+			logging.LogInfo("added new callbackgraph edge when updating graph by agent ids")
 		}
 	} else if err != nil {
 		// ran into an error doing the query
@@ -162,7 +237,7 @@ func (g *cbGraph) RemoveByAgentIds(source string, destination string, c2profileN
 	} else if err := database.DB.Get(&destinationCallback, `SELECT 
     	id, operation_id, agent_callback_id 
 		FROM callback WHERE agent_callback_id=$1`, destination); err != nil {
-		logging.LogError(err, "Failed to find destination callback for implicit P2P link")
+		logging.LogError(err, "Failed to find destination callback for implicit P2P link", "destination", destination, "source", source, "c2", c2profileName)
 		return
 	}
 	if err := RemoveEdgeByIds(sourceCallback.ID, destinationCallback.ID, c2profileName); err != nil {
@@ -171,6 +246,8 @@ func (g *cbGraph) RemoveByAgentIds(source string, destination string, c2profileN
 
 }
 func (g *cbGraph) Remove(sourceId int, destinationId int, c2profileName string) {
+	g.lock.Lock()
+	defer g.lock.Unlock()
 	if _, ok := g.adjMatrix[sourceId]; ok {
 		foundIndex := -1
 		for i, edge := range g.adjMatrix[sourceId] {
@@ -179,7 +256,11 @@ func (g *cbGraph) Remove(sourceId int, destinationId int, c2profileName string) 
 			}
 		}
 		if foundIndex >= 0 {
-			g.adjMatrix[sourceId] = append(g.adjMatrix[sourceId][:foundIndex], g.adjMatrix[sourceId][foundIndex:]...)
+			g.adjMatrix[sourceId][foundIndex] = g.adjMatrix[sourceId][len(g.adjMatrix[sourceId])-1]
+			g.adjMatrix[sourceId][len(g.adjMatrix[sourceId])-1] = cbGraphAdjMatrixEntry{}
+			g.adjMatrix[sourceId] = g.adjMatrix[sourceId][:len(g.adjMatrix[sourceId])-1]
+			//g.adjMatrix[sourceId] = append(g.adjMatrix[sourceId][:foundIndex], g.adjMatrix[sourceId][foundIndex:]...)
+			BFSCache.Remove(sourceId, destinationId, c2profileName)
 		}
 	}
 }
@@ -197,8 +278,14 @@ func (g *cbGraph) GetBFSPath(sourceId int, destinationId int) []cbGraphAdjMatrix
 	if sourceId == destinationId {
 		return nil
 	}
+	if existingBFSpath := BFSCache.GetPath(sourceId, destinationId); existingBFSpath != nil {
+		logging.LogDebug("returning a cachedBFS path", "sourceID", sourceId, "destinationID", destinationId)
+		return existingBFSpath
+	}
 	// start with a fake-ish entry that we won't include in the final path
 	options := []cbGraphBFSEntry{{ID: sourceId, ParentBFS: nil}}
+	g.lock.RLock()
+	defer g.lock.RUnlock()
 	for index := 0; index < len(options); index++ {
 		visitedIDs = append(visitedIDs, options[index].ID)
 		if options[index].ID == destinationId {
@@ -210,6 +297,7 @@ func (g *cbGraph) GetBFSPath(sourceId int, destinationId int) []cbGraphAdjMatrix
 				finalPath = append(finalPath, parent.MatrixEntry)
 				parent = parent.ParentBFS
 			}
+			BFSCache.Add(sourceId, destinationId, finalPath)
 			return finalPath
 		}
 		// look through cbGraph.adjMatrix[options[index].ID] to see if we have our destination
@@ -232,6 +320,8 @@ func (g *cbGraph) GetBFSPath(sourceId int, destinationId int) []cbGraphAdjMatrix
 	return nil
 }
 func (g *cbGraph) Print() {
+	g.lock.RLock()
+	defer g.lock.RUnlock()
 	for key, val := range g.adjMatrix {
 		for _, entry := range val {
 			fmt.Printf("%d --%s--> %d\n", key, entry.C2ProfileName, entry.DestinationId)
@@ -286,6 +376,7 @@ func AddEdgeById(sourceId int, destinationId int, c2profileName string) error {
 			logging.LogError(err, "Failed to insert new edge for P2P connection")
 			return err
 		} else {
+			logging.LogInfo("added new callbackgraph edge in addEdgeById", "c2", c2profileName, "callback", sourceId)
 			callbackGraph.Add(sourceCallback, destinationCallback, c2profileName)
 		}
 	}

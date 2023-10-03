@@ -26,7 +26,7 @@ type agentMessageGetTaskingTask struct {
 	Token      *int   `json:"token,omitempty"`
 }
 
-func handleAgentMessageGetTasking(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
+func handleAgentMessageGetTasking(incoming *map[string]interface{}, callbackID int) (map[string]interface{}, error) {
 	// got message:
 	/*
 		{
@@ -43,7 +43,7 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, uUIDInfo *ca
 	*/
 	agentMessage := agentMessageGetTasking{}
 	currentTasks := []databaseStructs.Task{}
-	if taskIDs := submittedTasksAwaitingFetching.getTasksForCallbackId(uUIDInfo.CallbackID); len(taskIDs) > 0 {
+	if taskIDs := submittedTasksAwaitingFetching.getTasksForCallbackId(callbackID); len(taskIDs) > 0 {
 		if query, args, err := sqlx.Named(`SELECT 
     		agent_task_id, "timestamp", command_name, params, id, token_id
 			FROM task WHERE id IN (:ids) ORDER BY id ASC`, map[string]interface{}{
@@ -106,17 +106,17 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, uUIDInfo *ca
 	}
 }
 
-func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []delegateMessageResponse {
+func getDelegateTaskMessages(callbackID int, agentUUIDLength int, updateCheckinTime bool) []delegateMessageResponse {
 	// check to see if there's other submitted tasking that is routable through our callback
-	if !callbackGraph.CanHaveDelegates(uUIDInfo.CallbackID) {
+	if !callbackGraph.CanHaveDelegates(callbackID) {
 		return nil
 	}
 	delegateMessages := []delegateMessageResponse{}
 	// get a list of all the other callbacks with tasks waiting to be processed
-	if callbackIds := submittedTasksAwaitingFetching.getOtherCallbackIds(uUIDInfo.CallbackID); len(callbackIds) > 0 {
+	if callbackIds := submittedTasksAwaitingFetching.getOtherCallbackIds(callbackID); len(callbackIds) > 0 {
 		// check if there's a route between our callback and the callback with a task
 		for _, targetCallbackId := range callbackIds {
-			if routablePath := callbackGraph.GetBFSPath(uUIDInfo.CallbackID, targetCallbackId); routablePath != nil {
+			if routablePath := callbackGraph.GetBFSPath(callbackID, targetCallbackId); routablePath != nil {
 				// there's a route between our callback and the target callback for some sort of task
 				logging.LogDebug("task exists for callback we can route to")
 				currentTasks := []databaseStructs.Task{}
@@ -163,7 +163,7 @@ func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []de
 							status=$2, status_timestamp_processing=$3
 							WHERE id=$1`, currentTasks[i].ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC()); err != nil {
 							logging.LogError(err, "Failed to update task status to processing")
-						} else if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength); err != nil {
+						} else if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
 							logging.LogError(err, "Failed to recursively encrypt message")
 						} else {
 							submittedTasksAwaitingFetching.removeTask(currentTasks[i].ID)
@@ -183,17 +183,17 @@ func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []de
 	return delegateMessages
 }
 
-func getDelegateProxyMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []delegateMessageResponse {
+func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckinTime bool) []delegateMessageResponse {
 	// check to see if there's other submitted tasking that is routable through our callback
-	if !callbackGraph.CanHaveDelegates(uUIDInfo.CallbackID) {
+	if !callbackGraph.CanHaveDelegates(callbackID) {
 		return nil
 	}
 	delegateMessages := []delegateMessageResponse{}
 	// get a list of all the other callbacks with proxy ports open
-	if callbackIds := proxyPorts.GetOtherCallbackIds(uUIDInfo.CallbackID); len(callbackIds) > 0 {
+	if callbackIds := proxyPorts.GetOtherCallbackIds(callbackID); len(callbackIds) > 0 {
 		// check if there's a route between our callback and the callback with a task
 		for _, targetCallbackId := range callbackIds {
-			if routablePath := callbackGraph.GetBFSPath(uUIDInfo.CallbackID, targetCallbackId); routablePath != nil {
+			if routablePath := callbackGraph.GetBFSPath(callbackID, targetCallbackId); routablePath != nil {
 				// there's a route between our callback and the target callback for some sort of proxy data
 				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_SOCKS); err != nil {
 					logging.LogError(err, "Failed to get socks proxy data for routable callback")
@@ -203,7 +203,7 @@ func getDelegateProxyMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []d
 						"action":                 "get_tasking",
 						CALLBACK_PORT_TYPE_SOCKS: messages,
 					}
-					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength); err != nil {
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
 						logging.LogError(err, "Failed to recursively encrypt message")
 					} else {
 						delegateMessages = append(delegateMessages, delegateMessageResponse{
@@ -214,14 +214,14 @@ func getDelegateProxyMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []d
 					}
 				}
 				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_RPORTFWD); err != nil {
-					logging.LogError(err, "Failed to get socks proxy data for routable callback")
+					logging.LogError(err, "Failed to get rpfwd proxy data for routable callback")
 				} else {
 					// now that we have a path, need to recursively encrypt and wrap
 					newTask := map[string]interface{}{
 						"action":                    "get_tasking",
 						CALLBACK_PORT_TYPE_RPORTFWD: messages,
 					}
-					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength); err != nil {
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
 						logging.LogError(err, "Failed to recursively encrypt message")
 					} else {
 						delegateMessages = append(delegateMessages, delegateMessageResponse{
@@ -231,7 +231,24 @@ func getDelegateProxyMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []d
 						})
 					}
 				}
-
+				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_INTERACTIVE); err != nil {
+					logging.LogError(err, "Failed to get interactive proxy data for routable callback")
+				} else {
+					// now that we have a path, need to recursively encrypt and wrap
+					newTask := map[string]interface{}{
+						"action":                       "get_tasking",
+						CALLBACK_PORT_TYPE_INTERACTIVE: messages,
+					}
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
+						logging.LogError(err, "Failed to recursively encrypt message")
+					} else {
+						delegateMessages = append(delegateMessages, delegateMessageResponse{
+							Message:       string(wrappedMessage),
+							SuppliedUuid:  routablePath[len(routablePath)-1].DestinationAgentId,
+							C2ProfileName: routablePath[len(routablePath)-1].C2ProfileName,
+						})
+					}
+				}
 			}
 		}
 	}

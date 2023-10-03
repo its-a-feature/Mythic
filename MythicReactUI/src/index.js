@@ -1,23 +1,21 @@
-//import './wdyr';
 import React from 'react';
-import ReactDOM from 'react-dom';
+import {createRoot} from 'react-dom/client';
 import { App } from './components/App';
 import {BrowserRouter as Router} from 'react-router-dom'
 import { ApolloProvider, ApolloClient, InMemoryCache, from, split, HttpLink } from '@apollo/client';
-import { WebSocketLink } from "@apollo/client/link/ws";
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+import { createClient } from 'graphql-ws';
 import { successfulRefresh, FailedRefresh} from './cache';
 import { onError } from "@apollo/client/link/error";
 import { RetryLink } from "@apollo/client/link/retry";
-import { SubscriptionClient } from 'subscriptions-transport-ws'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { setContext } from '@apollo/client/link/context';
 import {snackActions} from './components/utilities/Snackbar';
-import MessageTypes from 'subscriptions-transport-ws/dist/message-types';
 import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 
-export const mythicVersion = "3.0.1-rc44";
-export const mythicUIVersion = "0.1.15-rc38";
+export const mythicVersion = "3.1.0";
+export const mythicUIVersion = "0.1.16";
 
 let fetchingNewToken = false;
 
@@ -98,22 +96,31 @@ const authLink = setContext( async (_, {headers}) => {
       let diff = (decoded_token.exp * 1000) - Date.now();
       let twoHours = 7200000; // 2 hours in miliseconds, this is half the JWT lifetime
       // we want to make sure we try to get a new access_token while the current one is still active or it'll fail
-      if(diff < twoHours || !isJWTValid()){
-        console.log("token is at its half life or less, try to get a new token");
-        const updated = await GetNewToken();
-        //console.log("updated?", updated);
-        if(updated){
-          return{
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-            }
+      if(!isJWTValid()){
+          console.log("token is no longer valid, try to get a new token");
+          const updated = await GetNewToken();
+          //console.log("updated?", updated);
+          if(updated){
+              return{
+                  headers: {
+                      Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+                  }
+              }
+          } else {
+              console.log("JWT is no longer valid and failed to get new tokens");
+              FailedRefresh();
           }
-        }else{
-          console.log("update failed!");
-          FailedRefresh();
-        }
-      }else{
-        //console.log("No update needed, access_token still valid");
+      } else if(diff < twoHours){
+          console.log("token is at its half life or less, try to get a new token");
+          const updated = await GetNewToken();
+          //console.log("updated?", updated);
+          if(updated){
+              return{
+                  headers: {
+                      Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+                  }
+              }
+          }
       }
     }else{
       console.log("no access token");
@@ -215,7 +222,8 @@ export const GetNewToken = async () =>{
         "access_token": localStorage.getItem("access_token")})
   };
   const response = await fetch('/refresh', requestOptions);
-  const json = response.json().then(data => {
+  if (response.ok) {
+      return response.json().then(data => {
           //console.log(data)
           if("access_token" in data){
               successfulRefresh(data);
@@ -235,38 +243,30 @@ export const GetNewToken = async () =>{
           fetchingNewToken = false;
           return false;
       });
-  return json;
+  } else if(response.status === 403) {
+      FailedRefresh();
+      fetchingNewToken = false;
+      return false;
+  } else {
+      return true
+  }
+
 }
 const websocketAddress = () =>{
     return window.location.protocol === "https:" ? "wss://" + window.location.host + "/graphql/" : "ws://" + window.location.host + "/graphql/";
 }
-const websocketClient = new SubscriptionClient(websocketAddress(), {
-  reconnect: true,
-  reconnectionAttempts: 10,
-  connectionParams: () => {
-    return {
-      Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
+const wsLink = new GraphQLWsLink(createClient({
+    url: websocketAddress(),
+    reconnectionAttempts: 10,
+    connectionParams: () => {
+        return {
+            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('access_token')}`
+            }
+        }
     }
-  }
-})
-const wsLink = new WebSocketLink(websocketClient);
-/*
-const websocketLink = new WebSocketLink({
-     uri: websocketAddress(),
-     options: {
-       reconnect: true,
-       lazy: true,
-       connectionParams: async () => ({
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`
-          }
-       })
-     }
-    });
-  */
+}));
 const splitLink = split(
   ({ query }) => {
     const definition = getMainDefinition(query)
@@ -284,22 +284,7 @@ export const apolloClient = new ApolloClient({
   });
 export function restartWebsockets () {
     // Copy current operations
-    const operations = Object.assign({}, websocketClient.operations)
-  
-    // Close connection
-    websocketClient.close(true)
-  
-    // Open a new one
-    websocketClient.connect()
-  
-    // Push all current operations to the new connection
-    Object.keys(operations).forEach(id => {
-      websocketClient.sendMessage(
-        id,
-        MessageTypes.GQL_START,
-        operations[id].options
-      )
-    })
+
   }
   // if the user refreshes the page, we lose all react tracking, so try to reload from localstorage first
 if(localStorage.getItem("access_token") !== null){
@@ -319,13 +304,13 @@ if(localStorage.getItem("access_token") !== null){
       localStorage.removeItem("user");
   }
 }
-ReactDOM.render(
-  <React.StrictMode>
+const container = document.getElementById('root');
+const root = createRoot(container);
+
+root.render(
         <ApolloProvider client={apolloClient}>
             <Router>
                 <App key="App"/>
             </Router>
         </ApolloProvider>
-  </React.StrictMode>,
-  document.getElementById('root')
 );

@@ -25,6 +25,9 @@ const useStyles = makeStyles((theme) => ({
             right: theme.spacing(2),
         },
     },
+    speedDialAction: {
+      backgroundColor: theme.palette.speedDialAction,
+    },
     tooltip: {
         backgroundColor: theme.palette.background.contrast,
         color: theme.palette.text.contrast,
@@ -156,7 +159,7 @@ export function Callbacks({me}) {
 
         <React.Fragment>
             <SpeedDialWrapper setTopDisplay={setTopDisplay} />
-            <Split direction="vertical" sizes={[30, 70]} style={{ height: `calc(100vh - 4rem)` }}>
+            <Split direction="vertical" sizes={[30, 70]} minSize={[0,0]} style={{ height: "100%" }}>
                 <div className="bg-gray-base">
                     <CallbacksTop topDisplay={topDisplay} onOpenTab={onOpenTab.current} me={me}/>
                 </div>
@@ -203,7 +206,7 @@ export function Callbacks({me}) {
             </React.Fragment>
         </div>
  */
-function SpeedDialWrapperPreMemo({ setTopDisplay, onSubmitHeights, heights }) {
+function SpeedDialWrapperPreMemo({ setTopDisplay }) {
     const [open, setOpen] = React.useState(false);
     const classes = useStyles();
     const actions = React.useMemo(
@@ -237,13 +240,14 @@ function SpeedDialWrapperPreMemo({ setTopDisplay, onSubmitHeights, heights }) {
                 onOpen={() => {
                     setOpen(true);
                 }}
-                FabProps={{ color: 'info' }}
+                FabProps={{ color: 'info', size: "small", variant: "extended" }}
                 open={open}
                 style={{ marginTop: '35px' }}
                 direction='down'>
                 {actions.map((action) => (
                     <SpeedDialAction
                         arrow
+                        className={classes.speedDialAction}
                         key={action.name}
                         TooltipClasses={{ tooltip: classes.tooltip, arrow: classes.arrow }}
                         icon={action.icon}

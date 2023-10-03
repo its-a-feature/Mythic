@@ -52,6 +52,9 @@ export function CallbacksTabsTaskingLabel(props){
 export const taskingDataFragment = gql`
     fragment taskData on task {
         comment
+        callback {
+            display_id
+        }
         callback_id
         commentOperator{
             username
@@ -68,6 +71,7 @@ export const taskingDataFragment = gql`
         timestamp
         command {
           cmd
+          supported_ui_features
           id
         }
         command_name
@@ -75,8 +79,41 @@ export const taskingDataFragment = gql`
         opsec_pre_bypassed
         opsec_post_blocked
         opsec_post_bypassed
-        tasks {
+        interactive_task_type
+        tasks(where: {is_interactive_task: {_eq: false}}, order_by: {id: asc}) {
             id
+            comment
+            commentOperator{
+                username
+            }
+            completed
+            subtask_group_name
+            display_id
+            operator{
+                username
+            }
+            original_params
+            display_params
+            status
+            timestamp
+            command {
+              cmd
+              supported_ui_features
+              id
+            }
+            command_name
+            response_count
+            tags {
+                tagtype {
+                    name
+                    color
+                    id
+                  }
+                id
+            }
+            tasks(order_by: {id: asc}) {
+                id
+            }
         }
         response_count
         tags {
@@ -93,15 +130,15 @@ export const taskingDataFragment = gql`
     }
 `;
 export const createTaskingMutation = gql`
-mutation createTasking($callback_id: Int, $callback_ids: [Int], $command: String!, $params: String!, $files: [String], $token_id: Int, $tasking_location: String, $original_params: String, $parameter_group_name: String) {
-  createTask(callback_id: $callback_id, callback_ids: $callback_ids, command: $command, params: $params, files: $files, token_id: $token_id, tasking_location: $tasking_location, original_params: $original_params, parameter_group_name: $parameter_group_name) {
+mutation createTasking($callback_id: Int, $callback_ids: [Int], $command: String!, $params: String!, $files: [String], $token_id: Int, $tasking_location: String, $original_params: String, $parameter_group_name: String, $parent_task_id: Int, $is_interactive_task: Boolean, $interactive_task_type: Int) {
+  createTask(callback_id: $callback_id, callback_ids: $callback_ids, command: $command, params: $params, files: $files, token_id: $token_id, tasking_location: $tasking_location, original_params: $original_params, parameter_group_name: $parameter_group_name, parent_task_id: $parent_task_id, is_interactive_task: $is_interactive_task, interactive_task_type: $interactive_task_type) {
     status
     id
     error
   }
 }
 `;
-// this is to listen for the latest taskings
+// this is to listen for the latest tasking
 const fetchLimit = 10;
 const getTaskingQuery = gql`
 ${taskingDataFragment}
@@ -145,11 +182,13 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
     const [fetched, setFetched] = React.useState(false);
     const [fetchedAllTasks, setFetchedAllTasks] = React.useState(false);
     const messagesEndRef = useRef(null);
+    const newlyIssuedTasks = useRef([]);
     const [createTask] = useMutation(createTaskingMutation, {
         update: (cache, {data}) => {
             if(data.createTask.status === "error"){
                 snackActions.error(data.createTask.error);
             }else{
+                newlyIssuedTasks.current.push(data.createTask.id);
                 //snackActions.success("Task created", {autoClose: 1000});
             }
         },
@@ -204,7 +243,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         }
         return true;
     }
-    const subscriptionDataCallback =  ({subscriptionData}) => {
+    const subscriptionDataCallback =  ({data}) => {
         if((mountedRef && !mountedRef.current) || (parentMountedRef && !parentMountedRef.current)){
             return null;
         }
@@ -213,7 +252,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         }
         //console.log("new subscription data in CallbacksTabsTasking", subscriptionData);
         const oldLength = taskingDataRef.current.task.length;
-        const mergedData = subscriptionData.data.task.reduce( (prev, cur) => {
+        const mergedData = data.data.task.reduce( (prev, cur) => {
             const index = prev.findIndex(element => element.id === cur.id);
             if(index > -1){
                 // need to update an element
@@ -247,7 +286,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             console.error(data)
         },
         fetchPolicy: "no-cache",
-        onSubscriptionData: subscriptionDataCallback});
+        onData: subscriptionDataCallback});
     const scrollToBottom = useCallback( () => {
         if(taskingData && messagesEndRef.current){
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -402,7 +441,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             {
                 taskingData.task.map( (task) => (
                     <TaskDisplay key={"taskinteractdisplay" + task.id} me={me} task={task} command_id={task.command == null ? 0 : task.command.id} 
-                        filterOptions={filterOptions}/>
+                        filterOptions={filterOptions} newlyIssuedTasks={newlyIssuedTasks.current}/>
                 ))
             }
             </div>

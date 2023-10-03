@@ -6,12 +6,9 @@ import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons'
 import {CreatePayloadC2ProfileParametersTable} from './CreatePayloadC2ProfileParametersTable';
 import Typography from '@mui/material/Typography';
 import Switch from '@mui/material/Switch';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
-import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import {getDefaultValueForType, getDefaultChoices} from './Step2SelectPayloadType';
 import Table from '@mui/material/Table';
@@ -191,7 +188,7 @@ export function Step4C2Profiles(props){
         onCompleted: (data) => {
           const updates = data.c2profileparametersinstance.map( (cur) => {
             let inst = {...cur, ...cur.c2profileparameter};
-            if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple"){
+            if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple" || inst.parameter_type === "TypedArray"){
                 inst["value"] = JSON.parse(inst["value"]);
                 inst["initialValue"] = getDefaultValueForType(inst);
                 inst["trackedValue"] = JSON.parse(inst["value"]);
@@ -336,7 +333,7 @@ export function Step4C2Profiles(props){
                                                 ))
                                             }
                                             </Select>
-                                    ) : (null)}
+                                    ) : null}
                                 </MythicStyledTableCell>
                                 <MythicStyledTableCell>
                                     <Typography variant="body1" align="left" id="selectc2profiles" component="div" key={"step4desc" + c2.id}
@@ -350,7 +347,7 @@ export function Step4C2Profiles(props){
                                         <CreatePayloadC2ProfileParametersTable key={"step4table" + c2.id} returnAllDictValues={false} {...c2} onChange={updateC2Parameter} />
                                     </MythicStyledTableCell></TableRow>
                                     
-                                    ):(null)
+                                    ):null
                                 }
                         </TableBody>
                         ))

@@ -4,26 +4,21 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import makeStyles from '@mui/styles/makeStyles';
-import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
-import Paper from '@mui/material/Paper';
-import Card from '@mui/material/Card';
+import { CardContent } from '@mui/material';
 import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
 
 const useStyles = makeStyles((theme) => ({
   root: {
     margin: 'auto',
-    paddingBottom: "10px"
   },
   paper: {
     width: 200,
-    height: 230,
-    overflow: 'auto',
   },
   button: {
     margin: theme.spacing(0.5, 0),
@@ -119,13 +114,13 @@ export function MythicTransferListDialog(props) {
       setRightTitle(props.rightTitle);
     }, [props.left, props.right, props.leftTitle, props.rightTitle, props.itemKey]);
     const customList = (title, items) => (
-      <Paper className={classes.paper} style={{width:"100%", height: "calc(50vh)"}}>
-        <Card>
+      <>
           <CardHeader
             className={classes.cardHeader}
             title={title}
           />
           <Divider classes={{root: classes.divider}}/>
+          <CardContent style={{flexGrow: 1, height: "100%", width: "100%", overflowY: "auto", padding: 0}}>
           <List dense component="div" role="list" style={{padding:0}}>
             {items.map((valueObj) => {
               const value = props.itemKey === undefined ? valueObj : valueObj[props.itemKey];
@@ -146,8 +141,8 @@ export function MythicTransferListDialog(props) {
             })}
             <ListItem />
           </List>
-          </Card>
-      </Paper>
+          </CardContent>
+          </>
     );
     const setFinalTags = () => {
       props.onSubmit({left, right});
@@ -157,12 +152,13 @@ export function MythicTransferListDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.dialogTitle}</DialogTitle>
         <DialogContent dividers={true}>
-        <Grid container spacing={0} justifyContent="center" alignItems="center" className={classes.root}>
-          <Grid item xs={5} style={{paddingLeft: 0, marginLeft: 0}}>{customList(leftTitle, left)}</Grid>
-          <Grid item>
-            <Grid container direction="column" alignItems="center">
+        <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
+            <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
+            {customList(leftTitle, left)}
+            </div>
+            <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleAllRight}
@@ -172,7 +168,7 @@ export function MythicTransferListDialog(props) {
                 &gt;&gt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleCheckedRight}
@@ -182,7 +178,7 @@ export function MythicTransferListDialog(props) {
                 &gt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleCheckedLeft}
@@ -192,7 +188,7 @@ export function MythicTransferListDialog(props) {
                 &lt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleAllLeft}
@@ -201,10 +197,11 @@ export function MythicTransferListDialog(props) {
               >
                 &lt;&lt;
               </Button>
-            </Grid>
-          </Grid>
-          <Grid item xs={5}>{customList(rightTitle, right)}</Grid>
-        </Grid>
+            </div>
+            <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", overflowY: "auto", flexDirection: "column" }}>
+                {customList(rightTitle, right)}
+            </div>
+        </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">

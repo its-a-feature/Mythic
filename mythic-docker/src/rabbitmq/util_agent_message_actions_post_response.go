@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
 	"github.com/mitchellh/mapstructure"
 	"io"
 	"math"
@@ -182,8 +183,17 @@ type agentMessagePostResponseUploadResponse struct {
 	ChunkNum    int    `json:"chunk_num" mapstructure:"chunk_num"`
 }
 type agentMessagePostResponseAlert struct {
-	Source *string `json:"source,omitempty" mapstructure:"source,omitempty"`
-	Alert  string  `json:"alert" mapstructure:"alert"`
+	Source       *string                 `json:"source,omitempty" mapstructure:"source,omitempty"`
+	Alert        string                  `json:"alert" mapstructure:"alert"`
+	WebhookAlert *map[string]interface{} `json:"webhook_alert,omitempty" mapstructure:"webhook_alert"`
+	Level        *string                 `json:"level,omitempty" mapstructure:"level"`
+	SendWebhook  bool                    `json:"send_webhook" mapstructure:"send_webhook"`
+}
+
+type agentMessagePostResponseInteractive struct {
+	TaskUUID    string                      `json:"task_id" mapstructure:"task_id"`
+	Data        string                      `json:"data" mapstructure:"data"`
+	MessageType InteractiveTask.MessageType `json:"message_type" mapstructure:"message_type"`
 }
 
 func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
@@ -295,7 +305,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 					go handleAgentMessagePostResponseCommands(currentTask, agentResponse.Commands)
 				}
 				if agentResponse.Edges != nil {
-					go handleAgentMessagePostResponseEdges(agentResponse.Edges)
+					go handleAgentMessagePostResponseEdges(uUIDInfo, agentResponse.Edges)
 				}
 				if agentResponse.Download != nil {
 					if newFileID, err := handleAgentMessagePostResponseDownload(currentTask, agentResponse); err != nil {
@@ -317,7 +327,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 					}
 				}
 				if agentResponse.Alerts != nil {
-					go handleAgentMessagePostResponseAlerts(currentTask.OperationID, agentResponse.Alerts)
+					go handleAgentMessagePostResponseAlerts(currentTask.OperationID, uUIDInfo.CallbackID, agentResponse.Alerts)
 				}
 				reflectBackOtherKeys(&mythicResponse, &agentResponse.Other)
 				// always updating at least the timestamp for the last thing that happened
@@ -387,6 +397,46 @@ func handleAgentMessagePostResponseUserOutput(task databaseStructs.Task, agentRe
 		go emitResponseLog(responseOutput.ID)
 	}
 }
+func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMessagePostResponseInteractive) {
+	//logging.LogInfo("Got interactive responses", "responses", agentResponses)
+	for _, agentResponse := range *agentResponses {
+		task := databaseStructs.Task{}
+		if len(agentResponse.Data) == 0 {
+			continue
+		}
+		err := database.DB.Get(&task, `SELECT
+    		id, operation_id
+    		FROM task
+    		WHERE agent_task_id=$1`, agentResponse.TaskUUID)
+		if err != nil {
+			logging.LogError(err, "Failed to find task")
+			continue
+		}
+		base64Decoded, err := base64.StdEncoding.DecodeString(agentResponse.Data)
+		if err != nil {
+			logging.LogError(err, "Failed to decode interactive task output")
+			continue
+		}
+		responseOutput := databaseStructs.Response{
+			Timestamp:   time.Now().UTC(),
+			TaskID:      task.ID,
+			IsError:     agentResponse.MessageType == InteractiveTask.Error,
+			Response:    base64Decoded,
+			OperationID: task.OperationID,
+		}
+		if statement, err := database.DB.PrepareNamed(`INSERT INTO response
+		("timestamp", task_id, response, is_error, operation_id)
+		VALUES (:timestamp, :task_id, :response, :is_error, :operation_id)
+		RETURNING id`); err != nil {
+			logging.LogError(err, "Failed to prepare new named statement for interactive task output", "response", agentResponse)
+		} else if err := statement.Get(&responseOutput.ID, responseOutput); err != nil {
+			logging.LogError(err, "Failed to insert new interactive task output", "task_id", responseOutput.TaskID)
+		} else {
+			go emitResponseLog(responseOutput.ID)
+		}
+	}
+}
+
 func handleAgentMessagePostResponseRemovedFiles(task databaseStructs.Task, removedFiles *[]agentMessagePostResponseRemovedFiles) error {
 	// mark the file / folder as removed and recursively mark all children as deleted too
 	for _, rmData := range *removedFiles {
@@ -1613,18 +1663,22 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 		logging.LogError(err, "failed to search for file browser data")
 	}
 }
-func handleAgentMessagePostResponseEdges(edges *[]agentMessagePostResponseEdges) {
+func handleAgentMessagePostResponseEdges(uuidInfo *cachedUUIDInfo, edges *[]agentMessagePostResponseEdges) {
 	if edges != nil {
 		for _, edge := range *edges {
 			if edge.Action == "add" {
 				callbackGraph.AddByAgentIds(edge.Source, edge.Destination, edge.C2Profile)
-			} else {
+			} else if edge.Action == "remove" {
 				callbackGraph.RemoveByAgentIds(edge.Source, edge.Destination, edge.C2Profile)
+				if edge.Source == edge.Destination && edge.Source == uuidInfo.UUID {
+					logging.LogInfo("updating our own edge id")
+					MarkCallbackInfoInactive(uuidInfo.CallbackID)
+				}
 			}
 		}
 	}
 }
-func handleAgentMessagePostResponseAlerts(operationID int, alerts *[]agentMessagePostResponseAlert) {
+func handleAgentMessagePostResponseAlerts(operationID int, callbackID int, alerts *[]agentMessagePostResponseAlert) {
 	if alerts == nil {
 		return
 	}
@@ -1633,6 +1687,46 @@ func handleAgentMessagePostResponseAlerts(operationID int, alerts *[]agentMessag
 		if alert.Source != nil {
 			source = *alert.Source
 		}
-		SendAllOperationsMessage(alert.Alert, operationID, source, database.MESSAGE_LEVEL_WARNING)
+		level := database.MESSAGE_LEVEL_WARNING
+		if alert.Level != nil {
+			switch *alert.Level {
+			case database.MESSAGE_LEVEL_INFO:
+				level = database.MESSAGE_LEVEL_INFO
+			case database.MESSAGE_LEVEL_WARNING:
+				level = database.MESSAGE_LEVEL_WARNING
+			case database.MESSAGE_LEVEL_DEBUG:
+				level = database.MESSAGE_LEVEL_DEBUG
+			default:
+
+			}
+		}
+		go SendAllOperationsMessage(alert.Alert, operationID, source, level)
+		if level != database.MESSAGE_LEVEL_WARNING && alert.SendWebhook {
+			// send this as a custom webhook message
+			go submitAgentAlertToWebhook(operationID, callbackID, alert)
+		}
+	}
+}
+func submitAgentAlertToWebhook(operationID int, callbackID int, alert agentMessagePostResponseAlert) {
+	operationInfo := databaseStructs.Operation{}
+	if err := database.DB.Get(&operationInfo, `SELECT * FROM operation WHERE id=$1`, operationID); err != nil {
+		logging.LogError(err, "Failed to find operation information when sending custom webhook")
+		return
+	}
+	if err := RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
+		OperationID:      operationInfo.ID,
+		OperationName:    operationInfo.Name,
+		OperationWebhook: operationInfo.Webhook,
+		OperationChannel: operationInfo.Channel,
+		OperatorUsername: "",
+		Action:           WEBHOOK_TYPE_CUSTOM,
+		Data: map[string]interface{}{
+			"callback_id":   callbackID,
+			"alert":         alert.Alert,
+			"webhook_alert": alert.WebhookAlert,
+			"source":        alert.Source,
+		},
+	}); err != nil {
+		logging.LogError(err, "Failed to send webhook")
 	}
 }

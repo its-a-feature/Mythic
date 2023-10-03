@@ -62,8 +62,8 @@ query getWrappablePayloads($payloadType: Int!) {
 
 export function Step3SelectPayload(props){
     const [payloadOptions, setPayloadOptions] = React.useState([]);
-    const { data } = useQuery(GET_Payload_Types, {fetchPolicy: "network-only", variables: {payloadType: props.buildOptions["payload_type_id"]},
-        onCompleted: () => {
+    useQuery(GET_Payload_Types, {fetchPolicy: "network-only", variables: {payloadType: props.buildOptions["payload_type_id"]},
+        onCompleted: (data) => {
           if(data.payloadtype_by_pk.wrap_these_payload_types.length > 0){
             let options = [];
             for(let i = 0; i < data.payloadtype_by_pk.wrap_these_payload_types.length; i++){
@@ -162,9 +162,9 @@ export function PayloadsTableRow(props){
           {openDetailedView ? (
             <MythicDialog fullWidth={true} maxWidth="md" open={openDetailedView} me={me}
                 onClose={()=>{setOpenDetailedView(false);}} 
-                innerDialog={<DetailedPayloadTable {...props} me={me} payload_id={props.payload.id} onClose={()=>{setOpenDetailedView(false);}} />}
+                innerDialog={<DetailedPayloadTable {...props.payload} me={me} payload_id={props.payload.id} onClose={()=>{setOpenDetailedView(false);}} />}
             />
-          ) : (null) }
+          ) : null }
         </TableRow>
       </React.Fragment>
       )

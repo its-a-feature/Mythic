@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
+	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/grpc"
+	"github.com/its-a-feature/Mythic/grpc/services"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	"github.com/mitchellh/mapstructure"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -35,6 +39,8 @@ type CreateTaskInput struct {
 	SubtaskCallbackFunction *string
 	GroupCallbackFunction   *string
 	FileIDs                 []string
+	IsInteractiveTask       bool
+	InteractiveTaskType     *int
 }
 
 type CreateTaskResponse struct {
@@ -45,9 +51,12 @@ type CreateTaskResponse struct {
 }
 
 type submittedTask struct {
-	TaskID      int
-	CallbackID  int
-	OperationID int
+	TaskID              int
+	IsInteractiveTask   bool
+	InteractiveTaskType int
+	ParentTaskID        int
+	CallbackID          int
+	OperationID         int
 }
 type submittedTasksForAgents struct {
 	Tasks *[]submittedTask
@@ -61,35 +70,113 @@ func (s *submittedTasksForAgents) Initialize() {
 	taskArray := make([]submittedTask, 0)
 	s.Tasks = &taskArray
 	if err := database.DB.Select(&currentTasks, `SELECT
-	id, callback_id, operation_id
+	id, callback_id, operation_id, is_interactive_task, interactive_task_type, parent_task_id
 	FROM task
 	WHERE status='submitted'`); err != nil {
 		logging.LogError(err, "Failed to search for tasks")
 	} else {
 		s.Lock()
-
 		for _, t := range currentTasks {
 			*s.Tasks = append(*s.Tasks, submittedTask{
-				TaskID:      t.ID,
-				CallbackID:  t.CallbackID,
-				OperationID: t.OperationID,
+				TaskID:              t.ID,
+				CallbackID:          t.CallbackID,
+				OperationID:         t.OperationID,
+				IsInteractiveTask:   t.IsInteractiveTask,
+				InteractiveTaskType: int(t.InteractiveTaskType.Int64),
+				ParentTaskID:        int(t.ParentTaskID.Int64),
 			})
 		}
 		s.Unlock()
 	}
 }
 func (s *submittedTasksForAgents) addTask(task databaseStructs.Task) {
+	// before we add this for agents to pick up, see if this task can go to a pushC2 connected callback
+	if grpc.PushC2Server.CheckClientConnected(task.CallbackID) {
+		// we have a task directly for a pushC2 connected callback
+		newTaskMsg, err := pushC2AgentMessageGetTasking(task.ID)
+		if err != nil {
+			logging.LogError(err, "failed to generate pushc2 task message")
+		}
+		err = sendMessageToDirectPushC2(task.CallbackID, newTaskMsg, false)
+		if err != nil {
+			logging.LogError(err, "failed to send pushc2 task message")
+		} else {
+			_, err = database.DB.Exec(`UPDATE callback SET last_checkin=$1
+			WHERE id=$2`, time.UnixMicro(0), task.CallbackID)
+			if err != nil {
+				logging.LogError(err, "Failed to update callback last checkin time")
+			}
+			return
+		}
+	} else {
+		// check if the task is for a linked agent of a push c2 style client
+		connectedPushClient := grpc.PushC2Server.GetConnectedClients()
+		for _, clientID := range connectedPushClient {
+			if routablePath := callbackGraph.GetBFSPath(clientID, task.CallbackID); routablePath != nil {
+				// we have a p2p path from callbackID to task.CallbackID
+				delegateMessages := pushC2AgentGetDelegateTaskMessages(task.ID, task.CallbackID, routablePath)
+				if delegateMessages != nil {
+					newTaskMsg := map[string]interface{}{
+						"action":    "get_tasking",
+						"delegates": delegateMessages,
+					}
+					/*
+						err := sendMessageToDirectPushC2(clientID, newTaskMsg, false)
+						if err != nil {
+							logging.LogError(err, "failed to send pushc2 delegate task message")
+						} else {
+							return
+						}
+
+					*/
+
+					responseChan, callbackUUID, base64Encoded, c2ProfileName, err := grpc.PushC2Server.GetPushC2ClientInfo(clientID)
+					logging.LogDebug("new msg for push c2", "task", newTaskMsg)
+					uUIDInfo, err := LookupEncryptionData(c2ProfileName, callbackUUID, false)
+					if err != nil {
+						logging.LogError(err, "Failed to find encryption data for callback")
+						break
+					}
+					responseBytes, err := EncryptMessage(uUIDInfo, callbackUUID, newTaskMsg, 36, base64Encoded)
+					if err != nil {
+						logging.LogError(err, "Failed to encrypt message")
+						break
+					}
+					//logging.LogDebug("new encrypted msg for push c2", "enc", string(responseBytes))
+					select {
+					case responseChan <- services.PushC2MessageFromMythic{
+						Message: responseBytes,
+						Success: true,
+						Error:   "",
+					}:
+						// everything went ok, return from this
+						logging.LogDebug("Sent message back to responseChan")
+						return
+					case <-time.After(grpc.PushC2Server.GetChannelTimeout()):
+						logging.LogError(nil, "timeout trying to send to responseChannel")
+						return
+					}
+
+				}
+			}
+		}
+	}
 	s.Lock()
+	defer s.Unlock()
+	logging.LogInfo("adding task to SubmittedTasks")
 	*s.Tasks = append(*s.Tasks, submittedTask{
-		TaskID:      task.ID,
-		CallbackID:  task.CallbackID,
-		OperationID: task.OperationID,
+		TaskID:              task.ID,
+		CallbackID:          task.CallbackID,
+		OperationID:         task.OperationID,
+		IsInteractiveTask:   task.IsInteractiveTask,
+		InteractiveTaskType: int(task.InteractiveTaskType.Int64),
+		ParentTaskID:        int(task.ParentTaskID.Int64),
 	})
-	s.Unlock()
 }
 func (s *submittedTasksForAgents) addTaskById(taskId int) {
 	task := databaseStructs.Task{ID: taskId}
-	if err := database.DB.Get(&task, `SELECT id, callback_id, operation_id FROM task
+	if err := database.DB.Get(&task, `SELECT id, callback_id, operation_id, is_interactive_task, 
+       interactive_task_type, parent_task_id FROM task
 		WHERE id=$1`, task.ID); err != nil {
 		logging.LogError(err, "Failed to find task to add for submitted tasks")
 	} else {
@@ -98,37 +185,60 @@ func (s *submittedTasksForAgents) addTaskById(taskId int) {
 }
 func (s *submittedTasksForAgents) removeTask(taskId int) {
 	s.Lock()
+	defer s.Unlock()
 	for i := 0; i < len(*s.Tasks); i++ {
 		if (*s.Tasks)[i].TaskID == taskId {
 			*s.Tasks = append((*s.Tasks)[:i], (*s.Tasks)[i+1:]...)
-			s.Unlock()
 			return
 		}
 	}
-	s.Unlock()
 }
 func (s *submittedTasksForAgents) getTasksForCallbackId(callbackId int) []int {
 	tasks := []int{}
 	s.RLock()
+	defer s.RUnlock()
 	for i := 0; i < len(*s.Tasks); i++ {
-		if (*s.Tasks)[i].CallbackID == callbackId {
+		if (*s.Tasks)[i].CallbackID == callbackId && !(*s.Tasks)[i].IsInteractiveTask {
 			tasks = append(tasks, (*s.Tasks)[i].TaskID)
 		}
 	}
-	s.RUnlock()
+	return tasks
+}
+func (s *submittedTasksForAgents) getInteractiveTasksForCallbackId(callbackId int) []int {
+	tasks := []int{}
+	s.RLock()
+	defer s.RUnlock()
+	for i := 0; i < len(*s.Tasks); i++ {
+		if (*s.Tasks)[i].CallbackID == callbackId && (*s.Tasks)[i].IsInteractiveTask {
+			tasks = append(tasks, (*s.Tasks)[i].TaskID)
+		}
+	}
 	return tasks
 }
 func (s *submittedTasksForAgents) getOtherCallbackIds(callbackId int) []int {
 	callbacks := []int{}
 	s.RLock()
+	defer s.RUnlock()
 	for i := 0; i < len(*s.Tasks); i++ {
-		if (*s.Tasks)[i].CallbackID != callbackId {
+		if (*s.Tasks)[i].CallbackID != callbackId && !(*s.Tasks)[i].IsInteractiveTask {
 			if !utils.SliceContains(callbacks, (*s.Tasks)[i].CallbackID) {
 				callbacks = append(callbacks, (*s.Tasks)[i].CallbackID)
 			}
 		}
 	}
-	s.RUnlock()
+	return callbacks
+}
+func (s *submittedTasksForAgents) getInteractiveTasksOtherCallbackIds(callbackId int) []int {
+	callbacks := []int{}
+	s.RLock()
+	defer s.RUnlock()
+	for i := 0; i < len(*s.Tasks); i++ {
+		if (*s.Tasks)[i].CallbackID != callbackId && (*s.Tasks)[i].IsInteractiveTask {
+			if !utils.SliceContains(callbacks, (*s.Tasks)[i].CallbackID) {
+				callbacks = append(callbacks, (*s.Tasks)[i].CallbackID)
+			}
+		}
+	}
 	return callbacks
 }
 
@@ -218,6 +328,21 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	task.Params = createTaskInput.Params
 	task.OriginalParams = *createTaskInput.OriginalParams
 	task.DisplayParams = createTaskInput.Params
+	task.IsInteractiveTask = createTaskInput.IsInteractiveTask
+	if task.IsInteractiveTask {
+		if createTaskInput.InteractiveTaskType == nil {
+			logging.LogError(nil, "Missing a task type for an interactive task")
+			response.Error = "Missing task type for interactive task"
+			return response
+		} else if InteractiveTask.IsValid(*createTaskInput.InteractiveTaskType) {
+			task.InteractiveTaskType.Valid = true
+			task.InteractiveTaskType.Int64 = int64(*createTaskInput.InteractiveTaskType)
+		} else {
+			logging.LogError(nil, "Invalid task type for interactive task")
+			response.Error = "Invalid task type for interactive task"
+			return response
+		}
+	}
 	if createTaskInput.TaskingLocation == nil {
 		task.TaskingLocation = "command_line"
 	} else {
@@ -236,7 +361,11 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	if createTaskInput.GroupCallbackFunction != nil {
 		task.GroupCallbackFunction = *createTaskInput.GroupCallbackFunction
 	}
-	task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_PRE
+	if task.IsInteractiveTask {
+		task.Status = PT_TASK_FUNCTION_STATUS_SUBMITTED
+	} else {
+		task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_PRE
+	}
 	if createTaskInput.Token != nil && *createTaskInput.Token > 0 {
 		token := databaseStructs.Token{}
 		if err := database.DB.Get(&token, `SELECT id FROM token WHERE "token_id"=$1`, *createTaskInput.Token); err != nil {
@@ -278,7 +407,17 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		return response
 	}
 	associateUploadedFilesWithTask(&task, createTaskInput.FileIDs)
-	return submitTaskToContainer(task.ID)
+	if task.IsInteractiveTask {
+		go submittedTasksAwaitingFetching.addTask(task)
+		return CreateTaskResponse{
+			Status:        "success",
+			TaskID:        task.ID,
+			TaskDisplayID: task.DisplayID,
+		}
+	} else {
+		return submitTaskToContainer(task.ID)
+	}
+
 }
 
 func associateUploadedFilesWithTask(task *databaseStructs.Task, files []string) {
@@ -308,10 +447,12 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 	if statement, err := transaction.PrepareNamed(`INSERT INTO task 
 	(agent_task_id,command_name,callback_id,operator_id,command_id,token_id,params,
 		original_params,display_params,status,tasking_location,parameter_group_name,
-		parent_task_id,subtask_callback_function,group_callback_function,subtask_group_name,operation_id)
+		parent_task_id,subtask_callback_function,group_callback_function,subtask_group_name,operation_id,
+	    is_interactive_task, interactive_task_type)
 		VALUES (:agent_task_id, :command_name, :callback_id, :operator_id, :command_id, :token_id, :params,
 			:original_params, :display_params, :status, :tasking_location, :parameter_group_name,
-			:parent_task_id, :subtask_callback_function, :group_callback_function, :subtask_group_name, :operation_id)
+			:parent_task_id, :subtask_callback_function, :group_callback_function, :subtask_group_name, :operation_id,
+		        :is_interactive_task, :interactive_task_type)
 			RETURNING id`); err != nil {
 		logging.LogError(err, "Failed to make a prepared statement for new task creation")
 		return err
@@ -408,6 +549,8 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		output.Error = err.Error()
 		return output
 	}
+	output.TaskID = task.ID
+	output.TaskDisplayID = task.DisplayID
 	if task.Params == "" {
 		// looking for help about all loaded commands
 		loadedCommands := []databaseStructs.Loadedcommands{}
@@ -418,7 +561,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		command.help_cmd "command.help_cmd"
 		FROM loadedcommands
 		JOIN command ON command_id=command.id
-		WHERE loadedcommands.callback_id=$1`, callback.ID); err != nil {
+		WHERE loadedcommands.callback_id=$1 ORDER BY command.cmd ASC`, callback.ID); err != nil {
 			logging.LogError(err, "Failed to fetch loaded commands")
 			go updateTaskStatus(task.ID, "error", true)
 			go addErrToTask(task.ID, fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error()))

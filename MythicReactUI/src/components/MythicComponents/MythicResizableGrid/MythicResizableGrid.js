@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, createContext, useContext } from 'react';
 import PropTypes from 'prop-types';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import useScrollbarSize from 'react-scrollbar-size';
@@ -7,13 +7,63 @@ import HeaderCell from './HeaderCell';
 import Cell from './Cell';
 import DraggableHandles from './DraggableHandles';
 import useStyles from './styles';
+const HeaderCellContext = createContext({});
 
 const MIN_COLUMN_WIDTH = 100;
 
 const CellRenderer = (VariableSizeGridProps) => {
     return VariableSizeGridProps.rowIndex === 0 ? null : <Cell VariableSizeGridProps={VariableSizeGridProps} />;
 };
+const innerElementType = React.forwardRef(({ children, ...rest }, ref) => {
+    const classes = useStyles();
+    const HeaderCellData = useContext(HeaderCellContext);
+    return (
+        <div ref={ref} {...rest}>
+            {/* always render header cells */}
+            <div
+                className={classes.headerCellRow}
+                style={{
+                    height: HeaderCellData.getRowHeight(0),
+                }}>
+                {HeaderCellData.columns.map((column, i) => {
+                    const leftOffset = HeaderCellData.columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
+                    return (
+                        <HeaderCell
+                            key={i}
+                            headerNameKey={HeaderCellData.headerNameKey}
+                            onClick={HeaderCellData.onClickHeader}
+                            onDoubleClick={(e, columnIndex) => {
+                                if (column.disableAutosize) return;
+                                HeaderCellData.autosizeColumn({columnIndex});
+                            }}
+                            contextMenuOptions={HeaderCellData.contextMenuOptions}
+                            sortIndicatorIndex={HeaderCellData.sortIndicatorIndex}
+                            sortDirection={HeaderCellData.sortDirection}
+                            VariableSizeGridProps={{
+                                style: {
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: leftOffset,
+                                    height: HeaderCellData.getRowHeight(0),
+                                    width: HeaderCellData.getColumnWidth(i),
+                                },
+                                rowIndex: 0,
+                                columnIndex: i,
+                                data: { items: HeaderCellData.itemsWithHeader },
+                            }}
+                        />
+                    );
+                })}
+            </div>
+            {/* render other cells as usual */}
+            {children}
+        </div>
+    );
+});
 
+const getShortRandomString = () => {
+    return (Math.random() + 1).toString(36).substring(2);
+}
 const ResizableGridWrapper = ({
     columns,
     sortIndicatorIndex,
@@ -32,21 +82,15 @@ const ResizableGridWrapper = ({
     const { width: scrollbarWidth } = useScrollbarSize();
 
     const [columnWidths, setColumnWidths] = useState(columns.map((column) => column.width || MIN_COLUMN_WIDTH));
-
+    const gridUUID = React.useMemo( () => getShortRandomString(), []);
     const gridRef = useRef(null);
-
     const dragHandlesRef = useRef(null);
-
     const getColumnWidth = useCallback(
         (index) => {
             return columnWidths[index] || MIN_COLUMN_WIDTH;
         },
         [columnWidths]
     );
-    const getShortRandomString = () => {
-        return (Math.random() + 1).toString(36).substring(2);
-    }
-    const gridUUID = React.useMemo( () => getShortRandomString(), []);
     const getRowHeight = useCallback(
         (index) => {
             return rowHeight;
@@ -93,8 +137,16 @@ const ResizableGridWrapper = ({
         setColumnWidths(updatedWidths);
     };
 
-    const autosizeColumn = (columnIndex) => {
+    const autosizeColumn =  ({columnIndex}) => {
         const longestElementInColumn = Math.max(...items.map((itemRow) => {
+            if(!columns[columnIndex].key){
+                if(columns[columnIndex].plaintext){
+                    columns[columnIndex].key = columns[columnIndex].plaintext;
+                } else {
+                    return 30;
+                }
+
+            }
             if(columns[columnIndex].key){
                 if(columns[columnIndex].key.includes("time")){
                     return 30;
@@ -105,9 +157,18 @@ const ResizableGridWrapper = ({
                         return String(items[0]).length;
                     }
                 }catch(error){
-                    return String(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]).length || -1;
+                    //console.log(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key])
                 }
-                return String(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]).length || -1;
+                let data = itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key];
+                if(!data){
+                    return 3;
+                }
+                if(data.plaintext){
+                    return String(data.plaintext).length || -1;
+                } else {
+                    return String(data).length || -1;
+                }
+                //return String(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]).length || -1;
             } else if(typeof(itemRow[columnIndex]?.props?.cellData) === "string"){
                 try{
                     items = JSON.parse(itemRow[columnIndex]?.props?.cellData);
@@ -121,7 +182,7 @@ const ResizableGridWrapper = ({
             }else {
                 return itemRow[columnIndex]?.props?.cellData?.length || -1;
             }
-            
+
         }));
         const updatedWidths = columnWidths.map((columnWidth, index) => {
             if (columnIndex === index) {
@@ -133,83 +194,52 @@ const ResizableGridWrapper = ({
     };
 
     const itemsWithHeader = [columns, ...items];
-
-    const innerElementType = React.forwardRef(({ children, ...rest }, ref) => {
-        const classes = useStyles();
-        return (
-            <div ref={ref} {...rest}>
-                {/* always render header cells */}
-                <div
-                    className={classes.headerCellRow}
-                    style={{
-                        height: getRowHeight(0),
-                    }}>
-                    {columns.map((column, i) => {
-                        const leftOffset = columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
-                        return (
-                            <HeaderCell
-                                key={i}
-                                headerNameKey={headerNameKey}
-                                onClick={onClickHeader}
-                                onDoubleClick={(e, columnIndex) => {
-                                    if (column.disableAutosize) return;
-                                    autosizeColumn(columnIndex);
-                                }}
-                                contextMenuOptions={contextMenuOptions}
-                                sortIndicatorIndex={sortIndicatorIndex}
-                                sortDirection={sortDirection}
-                                VariableSizeGridProps={{
-                                    style: {
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: leftOffset,
-                                        height: getRowHeight(0),
-                                        width: getColumnWidth(i),
-                                    },
-                                    rowIndex: 0,
-                                    columnIndex: i,
-                                    data: { items: itemsWithHeader },
-                                }}
-                            />
-                        );
-                    })}
-                </div>
-                {/* render other cells as usual */}
-                {children}
-            </div>
-        );
-    });
-
+    const headerCellData = {
+        "getRowHeight": getRowHeight,
+        "columns": columns,
+        "columnWidths": columnWidths,
+        "headerNameKey": headerNameKey,
+        "onClickHeader": onClickHeader,
+        "autosizeColumn": autosizeColumn,
+        "contextMenuOptions": contextMenuOptions,
+        "sortIndicatorIndex": sortIndicatorIndex,
+        "sortDirection": sortDirection,
+        "getColumnWidth": getColumnWidth,
+        "itemsWithHeader": itemsWithHeader,
+    }
     return (
         <>
-            <VariableSizeGrid
-                height={AutoSizerProps.height}
-                width={AutoSizerProps.width}
-                columnCount={columns.length}
-                columnWidth={getColumnWidth}
-                headerNameKey={headerNameKey}
-                rowCount={itemsWithHeader.length}
-                rowHeight={getRowHeight}
-                itemData={{ items: itemsWithHeader, onDoubleClickRow, gridUUID, rowContextMenuOptions}}
-                innerElementType={innerElementType}
-                overscanRowCount={0}
-                onScroll={({ scrollLeft }) => {
-                    if (dragHandlesRef.current) {
-                        dragHandlesRef.current.scrollTo({ left: scrollLeft });
-                    }
-                }}
-                ref={gridRef}>
-                {CellRenderer}
-            </VariableSizeGrid>
-            <DraggableHandles
-                height={AutoSizerProps.height}
-                rowHeight={getRowHeight(0)}
-                width={AutoSizerProps.width}
-                minColumnWidth={MIN_COLUMN_WIDTH}
-                columnWidths={columnWidths}
-                onStop={resizeColumn}
-                ref={dragHandlesRef}
-            />
+            <HeaderCellContext.Provider value={headerCellData}>
+                <VariableSizeGrid
+                    height={Math.max(1, AutoSizerProps.height)}
+                    width={AutoSizerProps.width}
+                    columnCount={columns.length}
+                    columnWidth={getColumnWidth}
+                    headerNameKey={headerNameKey}
+                    rowCount={itemsWithHeader.length}
+                    rowHeight={getRowHeight}
+                    itemData={{ items: itemsWithHeader, onDoubleClickRow, gridUUID, rowContextMenuOptions}}
+                    innerElementType={innerElementType}
+                    overscanRowCount={0}
+                    onScroll={({ scrollLeft }) => {
+                        if (dragHandlesRef.current) {
+                            dragHandlesRef.current.scrollTo({ left: scrollLeft });
+                        }
+                    }}
+                    ref={gridRef}>
+                    {CellRenderer}
+                </VariableSizeGrid>
+                <DraggableHandles
+                    height={AutoSizerProps.height}
+                    rowHeight={getRowHeight(0)}
+                    width={AutoSizerProps.width}
+                    minColumnWidth={MIN_COLUMN_WIDTH}
+                    columnWidths={columnWidths}
+                    onStop={resizeColumn}
+                    ref={dragHandlesRef}
+                />
+            </HeaderCellContext.Provider>
+
         </>
     );
 };
@@ -228,7 +258,7 @@ const MythicResizableGrid = ({
     rowHeight = 32,
 }) => {
     return (
-        <AutoSizer>
+        <AutoSizer style={{height: "100%"}}>
             {(AutoSizerProps) => (
                 <ResizableGridWrapper
                     columns={columns}

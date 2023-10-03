@@ -12,7 +12,7 @@ func addMitreAttackTaskMapping(taskId int) {
 		command_id
 		FROM task
 		WHERE id=$1`, taskId); err != nil {
-		logging.LogError(err, "Failed to fetch command data for task")
+		logging.LogError(err, "Failed to fetch command data for task", "task_id", taskId)
 	} else {
 		mappedIDs := []databaseStructs.Attackcommand{}
 		if err := database.DB.Select(&mappedIDs, `SELECT

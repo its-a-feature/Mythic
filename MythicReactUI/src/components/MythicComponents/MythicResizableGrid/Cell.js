@@ -73,7 +73,9 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
             onContextMenu={handleContextClick} 
             ref={dropdownAnchorRef}
             >
-            <div className={classes.cellInner}>{item}</div>
+            <div className={classes.cellInner}>
+                {item}
+            </div>
             <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
                 {({ TransitionProps, placement }) => (
                 <Grow

@@ -33,11 +33,30 @@ mutation toggleOperationDeleted($operation_id: Int!, $deleted: Boolean!){
   }
 }
 `;
+const addUserToOperation = gql`
+mutation addNewOperators($operation_id: Int!, $add_users: [Int]) {
+    updateOperatorOperation(operation_id: $operation_id, add_users: $add_users) {
+        status
+        error
+    }
+}
+`;
 export function OperationTableRow(props){
     const [openUpdateNotifications, setOpenUpdateNotifications] = React.useState(false);
     const [openUpdateOperators, setOpenUpdateOperators] = React.useState(false);
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const me = props.me;
+    const [addUserToOperationMutation] = useMutation(addUserToOperation, {
+        variables: {operation_id: props.id, add_users: [me.user.id]},
+        onCompleted: (data) => {
+            if(data.updateOperatorOperation.status === "success"){
+                snackActions.success("Added to operation, updating current...");
+                updateCurrentOperation({variables: {operator_id: me.user.user_id, operation_id: props.id}})
+            } else {
+                snackActions.error(data.updateOperatorOperation.error);
+            }
+        }
+    })
     const [updateCurrentOperation] = useMutation(updateCurrentOpertionMutation, {
       onCompleted: (data) => {
         if(data.updateCurrentOperation.status === "success"){
@@ -45,8 +64,11 @@ export function OperationTableRow(props){
           localStorage.setItem("user", JSON.stringify(meState().user));
           snackActions.success("Updated current operation");
           //window.location.reload();
-        }else{
-          snackActions.error(data.updateCurrentOperation.error);
+        }else if(data.updateCurrentOperation.error.includes("not a member")){
+          // add ourselves as a member and try again
+            addUserToOperationMutation();
+        } else {
+            snackActions.error(data.updateCurrentOperation.error);
         }
       },
       onError: (data) => {

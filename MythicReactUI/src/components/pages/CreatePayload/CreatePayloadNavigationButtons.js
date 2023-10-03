@@ -11,7 +11,7 @@ import { meState } from '../../../cache';
 */
 export function CreatePayloadNavigationButtons(props){
   const me = useReactiveVar(meState);
-  const disabledButtons = (me?.user?.current_operation_id || 0) > 0 ? false : true;
+  const disabledButtons = (me?.user?.current_operation_id || 0) <= 0;
     return (
       
         <div >

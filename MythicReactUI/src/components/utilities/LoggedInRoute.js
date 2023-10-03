@@ -1,23 +1,16 @@
-import { Route, Redirect } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import React from 'react';
-import { useReactiveVar } from '@apollo/client';
-import { meState } from '../../cache';
 
 
-export function LoggedInRoute({component, ...rest}){
-    const me = useReactiveVar(meState);
+export function LoggedInRoute({children, me}){
+    const location = useLocation()
     return (
-        <Route {...rest} render={(props) => (
-            me.loggedIn && me.user ? (
+            me?.loggedIn && me?.user ? (
                 //logged in
-                React.createElement(component, {...props, me: me})
+                children
             ) : (
                 //not logged in
-                <Redirect to={{ 
-                    pathname: '/new/login',
-                    state: { from: props.location }
-                }} />
+                <Navigate to={'/new/login'} state={{ from: location }} />
             )
-        )} />
     )
 }

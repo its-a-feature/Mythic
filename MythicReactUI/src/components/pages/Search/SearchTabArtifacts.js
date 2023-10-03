@@ -151,7 +151,6 @@ const SearchTabArtifactsSearchPanel = (props) => {
     }
     const handleSearchValueChange = (name, value, error) => {
         setSearch(value);
-        
     }
     const submitSearch = (event, querySearch, querySearchField) => {
         let adjustedSearchField = querySearchField ? querySearchField : searchField;

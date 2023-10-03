@@ -26,6 +26,7 @@ fragment payloadData on payload {
     step_name
     step_number
     step_success
+    step_skip
     start_time
     end_time
     step_stdout
@@ -104,15 +105,15 @@ export function Payloads(props){
       "showDeleted": false
     });
     const mountedRef = React.useRef(true);
-    const {loading} = useSubscription(SUB_Payloads, {
+    useSubscription(SUB_Payloads, {
       variables: {now:  fromNow},
       fetchPolicy: "no-cache",
-      onSubscriptionData: ({subscriptionData}) => {
+      onData: ({data}) => {
         //console.log("got data", subscriptionData.data.payload_stream)
         if(!mountedRef.current){
           return  null;
         }
-        const updated = subscriptionData.data.payload_stream.reduce( (prev, cur) => {
+        const updated = data.data.payload_stream.reduce( (prev, cur) => {
           const index = prev.findIndex( (p) => p.id === cur.id );
           if(index > -1){
             prev[index] = {...cur};

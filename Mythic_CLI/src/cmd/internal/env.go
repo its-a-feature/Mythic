@@ -19,6 +19,8 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("nginx_host", "mythic_nginx")
 	mythicEnv.SetDefault("nginx_bind_localhost_only", false)
 	mythicEnv.SetDefault("nginx_use_ssl", true)
+	mythicEnv.SetDefault("nginx_use_ipv4", true)
+	mythicEnv.SetDefault("nginx_use_ipv6", true)
 	// mythic react UI configuration
 	mythicEnv.SetDefault("mythic_react_host", "mythic_react")
 	mythicEnv.SetDefault("mythic_react_port", 3000)
@@ -107,14 +109,14 @@ func parseMythicEnvironmentVariables() {
 	if !fileExists(filepath.Join(getCwdFromExe(), ".env")) {
 		_, err := os.Create(filepath.Join(getCwdFromExe(), ".env"))
 		if err != nil {
-			log.Fatalf("[-] .env doesn't exist and couldn't be created")
+			log.Fatalf("[-] .env doesn't exist and couldn't be created\n")
 		}
 	}
 	if err := mythicEnv.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatalf("[-] Error while reading in .env file: %s", err)
+			log.Fatalf("[-] Error while reading in .env file: %s\n", err)
 		} else {
-			log.Fatalf("[-]Error while parsing .env file: %s", err)
+			log.Fatalf("[-]Error while parsing .env file: %s\n", err)
 		}
 	}
 	portChecks := map[string][]string{

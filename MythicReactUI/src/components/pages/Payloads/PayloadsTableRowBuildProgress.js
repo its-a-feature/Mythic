@@ -2,6 +2,7 @@ import React from 'react';
 import TimelapseIcon from '@mui/icons-material/Timelapse';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import HideSourceIcon from '@mui/icons-material/HideSource';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import Button from '@mui/material/Button';
@@ -87,15 +88,21 @@ export function PayloadsTableRowBuildProgress(props){
         setOpenStatusDialog(true);
     }
     const getButton = (step) => {
+        if(step.step_skip){
+            return <HideSourceIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
+        }
         if(step.end_time === null){
             // this will either be the current step or a future step
             if(step.start_time === null){
-                // this means a previous step errored out, so no more processing
+                // this we have no info on it, so it's just waiting
                 return <PanoramaFishEyeIcon style={{cursor: "pointer"}} onClick={() => buildStepClick(step)} />
             } else {
-                return <TimelapseIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
+                if(props.build_status === "building"){
+                    return <TimelapseIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
+                } else {
+                    return <HideSourceIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
+                }
             }
-            
         } else if(step.step_success === true) {
             return <CheckCircleOutlineIcon style={{cursor: "pointer"}} color="success" onClick={() => buildStepClick(step)}/>
         } else {
@@ -112,7 +119,7 @@ export function PayloadsTableRowBuildProgress(props){
                         </MythicStyledTooltip>
                     ))}
                 </React.Fragment>
-                ) : (null)}
+                ) : null}
                 {openStatusDialog &&
                     <MythicDialog fullWidth={true} maxWidth="lg" open={openStatusDialog} 
                         onClose={()=>{setOpenStatusDialog(false);}} 
@@ -145,6 +152,19 @@ export function PayloadBuildStepStatusDialog(props) {
             setDuration(result);
         }
     }, [props.step.start_time, props.step.end_time]);
+    const getStatusMessage = () => {
+        if(props.step.step_skip){
+            return "Skipped"
+        } else if (props.step.current_step === props.step.step_number) {
+            return "Running...";
+        } else if(props.step.end_time === null) {
+            return "Waiting to run...";
+        } else if(props.step.step_success === "Success"){
+            return "Success";
+        } else {
+            return "Error";
+        }
+    }
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Step {props.step.step_number + 1} - {props.step.step_name}</DialogTitle>
@@ -171,11 +191,7 @@ export function PayloadBuildStepStatusDialog(props) {
                         </TableRow>
                         <TableRow hover>
                             <TableCell>Status</TableCell>
-                            <TableCell>{props.step.current_step === props.step.step_number ? ("Running...") : (
-                                props.step.end_time === null ? ("Waiting to run...") : (
-                                    props.step.step_success ? "Success" : "Error"
-                                )
-                            )}
+                            <TableCell> {getStatusMessage()}
                             </TableCell>
                         </TableRow>
                         <TableRow hover>
@@ -270,15 +286,21 @@ export function PayloadsTableRowBuildProcessPerStep(props){
         setOpenStatusDialog(true);
     }
     const getButton = (step) => {
+        if(step.step_skip){
+            return <HideSourceIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
+        }
         if(step.end_time === null){
             // this will either be the current step or a future step
             if(step.start_time === null){
-                // this means a previous step errored out, so no more processing
+                // this we have no info on it, so it's just waiting
                 return <PanoramaFishEyeIcon style={{cursor: "pointer"}} onClick={() => buildStepClick(step)} />
             } else {
-                return <TimelapseIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
+                if(props.build_status === "building"){
+                    return <TimelapseIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
+                } else {
+                    return <HideSourceIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
+                }
             }
-            
         } else if(step.step_success === true) {
             return <CheckCircleOutlineIcon style={{cursor: "pointer"}} color="success" onClick={() => buildStepClick(step)}/>
         } else {
@@ -292,11 +314,11 @@ export function PayloadsTableRowBuildProcessPerStep(props){
                     {props.payload_build_steps.map( step => (
                         step.step_number === props.step_number ? (
                             <React.Fragment key={"buildstep" + step.step_number}>{getButton(step)}</React.Fragment>
-                        ) : (null)
+                        ) : null
                         
                     ))}
                 </React.Fragment>
-                ) : (null)}
+                ) : null}
             {openStatusDialog &&
                     <MythicDialog fullWidth={true} maxWidth="lg" open={openStatusDialog} 
                         onClose={()=>{setOpenStatusDialog(false);}} 

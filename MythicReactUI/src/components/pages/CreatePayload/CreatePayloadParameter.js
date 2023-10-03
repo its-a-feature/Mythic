@@ -32,6 +32,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const [chooseOptions, setChooseOptions] = React.useState([]);
     const [dateValue, setDateValue] = React.useState(new Date());
     const [arrayValue, setArrayValue] = React.useState([""]);
+    const [typedArrayValue, setTypedArrayValue] = React.useState([]);
     const [fileValue, setFileValue] = React.useState({name: ""});
     const submitDictChange = (list) => {
         onChange(name, list, false);
@@ -92,8 +93,10 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             
         }else if(parameter_type === "Boolean"){
             setValue( trackedValue );
-        }else if(parameter_type === "Array"){
+        }else if(parameter_type === "Array") {
             setArrayValue(trackedValue);
+        }else if(parameter_type === "TypedArray"){
+            setTypedArrayValue(trackedValue);
         }else{
             console.log("hit an unknown parameter type")
         }
@@ -240,6 +243,36 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         setArrayValue(values);
         onChange(name, values, false);
     }
+    const addNewTypedArrayValue = () => {
+        const newTypedArray = [...typedArrayValue, [default_value, ""]];
+        setTypedArrayValue(newTypedArray);
+        onChange(name, newTypedArray, false);
+    }
+    const removeTypedArrayValue = (index) => {
+        let removed = [...typedArrayValue];
+        removed.splice(index, 1);
+        setTypedArrayValue(removed);
+        onChange(name, removed, false);
+    }
+    const onChangeTypedArrayText = (value, error, index) => {
+        let values = [...typedArrayValue];
+        if(value.includes("\n")){
+            let new_values = value.split("\n");
+            values = [...values, [default_value, ...new_values.slice(1)]];
+            values[index][1] = new_values[0];
+        }else{
+            values[index][1] = value;
+        }
+
+        setTypedArrayValue(values);
+        onChange(name, values, false);
+    }
+    const onChangeTypedArrayChoice = (evt, index) => {
+        let values = [...typedArrayValue];
+        values[index][0] = evt.target.value;
+        setTypedArrayValue(values);
+        onChange(name, values, false);
+    }
     const getParameterObject = () => {
         switch(parameter_type){
             case "Date":
@@ -325,6 +358,51 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         </Table>
                     </TableContainer>
                 );
+            case "TypedArray":
+                return (
+                    <TableContainer >
+                        <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
+                            <TableBody>
+                                {typedArrayValue.map( (a, i) => (
+                                    <TableRow key={'typedarray' + name + i} >
+                                        <MythicStyledTableCell style={{width: "2rem", paddingLeft:"0"}}>
+                                            <IconButton onClick={(e) => {removeTypedArrayValue(i)}} size="large"><DeleteIcon color="error" /> </IconButton>
+                                        </MythicStyledTableCell>
+                                        <MythicStyledTableCell>
+                                            <div style={{display: "inline-flex", alignItems: "center", width: "100%"}}>
+                                                <FormControl style={{width: "30%"}}>
+                                                    <Select
+                                                        native
+                                                        value={a[0]}
+                                                        onChange={(e) => onChangeTypedArrayChoice(e, i)}
+                                                        input={<Input />}
+                                                    >
+                                                        {
+                                                            choices.map((opt, i) => (
+                                                                <option key={name + i} value={opt}>{opt}</option>
+                                                            ))
+                                                        }
+                                                    </Select>
+                                                </FormControl>
+                                                <MythicTextField required={required} fullWidth={true} placeholder={""} value={a[1]} multiline={true}
+                                                                 onChange={(n,v,e) => onChangeTypedArrayText(v, e, i)} display="inline-block" maxRows={5}
+                                                                 validate={testParameterValues} errorText={"Must match: " + verifier_regex}
+                                                />
+                                            </div>
+
+                                        </MythicStyledTableCell>
+                                    </TableRow>
+                                ))}
+                                <TableRow >
+                                    <MythicStyledTableCell style={{width: "5rem", paddingLeft:"0"}}>
+                                        <IconButton onClick={addNewTypedArrayValue} size="large"> <AddCircleIcon color="success"  /> </IconButton>
+                                    </MythicStyledTableCell>
+                                    <MythicStyledTableCell></MythicStyledTableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                )
             case "Dictionary":
                 return (
                     <React.Fragment>

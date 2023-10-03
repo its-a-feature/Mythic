@@ -54,7 +54,8 @@ export function TaskViewStdoutStderrDialog(props) {
               width={"100%"}
               setOptions={{
                 showLineNumbers: true,
-                tabSize: 4
+                tabSize: 4,
+                  useWorker: false,
               }}/>
         </DialogContent>
         <DialogActions>

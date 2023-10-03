@@ -12,8 +12,10 @@ const useSingleAndDoubleClick = (onSingleClick, onDoubleClick, delay = 250) => {
 
         // the duration between this click and the previous one
         // is less than the value of delay = double-click
-        if (click === 2) onDoubleClick();
-
+        if (click === 2){
+            onDoubleClick();
+            setClick(0);
+        }
         return () => clearTimeout(timer);
     }, [delay, onSingleClick, onDoubleClick, click]);
 

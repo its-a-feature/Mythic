@@ -428,7 +428,7 @@ export function TaskParametersDialog(props) {
                 if(cmd.parameter_group_name !== selectedParameterGroup){
                     return [...prev];
                 }
-                console.log(props.command);
+                //console.log(props.command);
                 switch(cmd.type){
                     case "Boolean":
                         if(cmd.name in props.command.parsedParameters){
@@ -452,6 +452,14 @@ export function TaskParametersDialog(props) {
                             return [...prev, {...cmd, value: cmd.default_value === "" ? 0 : parseInt(cmd.default_value)}];
                         }
                     case "Array":
+                        if(cmd.name in props.command.parsedParameters){
+                            return [...prev, {...cmd, value: props.command.parsedParameters[cmd.name]}];
+                        }else if(cmd.default_value.length > 0){
+                            return [...prev, {...cmd, value: JSON.parse(cmd.default_value)}];
+                        }else{
+                            return [...prev, {...cmd, value: []}];
+                        }
+                    case "TypedArray":
                         if(cmd.name in props.command.parsedParameters){
                             return [...prev, {...cmd, value: props.command.parsedParameters[cmd.name]}];
                         }else if(cmd.default_value.length > 0){
@@ -735,10 +743,21 @@ export function TaskParametersDialog(props) {
                             return [...prev, {...cmd, choices: payloads, value: null}];
                         }
                     case "LinkInfo":
-                        const edge_choices = loadedAllEdgesLoading.callbackgraphedge.reduce( (prevn, edge) => {
+                        const edge_active_choices = loadedAllEdgesLoading.callbackgraphedge.reduce( (prevn, edge) => {
                             if(edge.source.id === edge.destination.id) {return prevn}
-                            return [...prevn, {...edge, display: "Callback " + edge.source.id + " --" + edge.c2profile.name + "--> Callback " + edge.destination.id + (edge.end_timestamp === null? "(Active)" : "(Dead at " + edge.end_timestamp + ")")}];
+                            if(edge.end_timestamp === null){
+                                return [...prevn, {...edge, display: "Callback " + edge.source.id + " --" + edge.c2profile.name + "--> Callback " + edge.destination.id + (edge.end_timestamp === null? "(Active)" : "(Dead at " + edge.end_timestamp + ")")}];
+                            }
+                            return prevn;
                         }, []);
+                        const edge_dead_choices = loadedAllEdgesLoading.callbackgraphedge.reduce( (prevn, edge) => {
+                            if(edge.source.id === edge.destination.id) {return prevn}
+                            if(edge.end_timestamp !== null){
+                                return [...prevn, {...edge, display: "Callback " + edge.source.id + " --" + edge.c2profile.name + "--> Callback " + edge.destination.id + (edge.end_timestamp === null? "(Active)" : "(Dead at " + edge.end_timestamp + ")")}];
+                            }
+                            return prevn;
+                        }, []);
+                        let edge_choices = [...edge_active_choices, ...edge_dead_choices];
                         if(edge_choices.length > 0){
                             return [...prev, {...cmd, choices: edge_choices, value: getLinkInfoValue(edge_choices)}];
                         }else{
@@ -776,6 +795,7 @@ export function TaskParametersDialog(props) {
                 case "ChooseMultiple":
                 case "PayloadList":
                 case "Array":
+                case "TypedArray":
                 case "LinkInfo":
                     //console.log("submit param", param)
                     collapsedParameters[param.name] = param.value;

@@ -6,7 +6,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {Typography} from '@mui/material';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
-import {useTheme} from '@mui/material/styles';
+import { useTheme, adaptV4Theme } from '@mui/material/styles';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import { createTheme } from '@mui/material/styles';
@@ -27,8 +27,8 @@ export function TagtypesTableRow(props){
         setOpenDeleteDialog(false);
     }
     React.useEffect( () => {
-      let lightTheme = createTheme({palette: {mode: "light",}});
-      let darkTheme = createTheme({palette: {mode: "dark",}});
+      let lightTheme = createTheme(adaptV4Theme({palette: {mode: "light",}}));
+      let darkTheme = createTheme(adaptV4Theme({palette: {mode: "dark",}}));
       setLightColor(lightTheme.palette.text.primary);
       setDarkColor(darkTheme.palette.text.primary);
     }, [])

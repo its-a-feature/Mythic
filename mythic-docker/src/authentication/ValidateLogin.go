@@ -65,9 +65,9 @@ func ValidateLogin(username string, password string, scriptingVersion string, fr
 			user.FailedLoginCount = 0
 			updateUserLoginStatus(user)
 			if scriptingVersion == "" {
-				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s logged in from %s", username, fromIP), 0, "", "info")
+				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s logged in from %s", username, fromIP), 0, "", database.MESSAGE_LEVEL_DEBUG)
 			} else {
-				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s connected via Mythic Scripting (v%s) from %s", username, scriptingVersion, fromIP), 0, "", "info")
+				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s connected via Mythic Scripting (v%s) from %s", username, scriptingVersion, fromIP), 0, "", database.MESSAGE_LEVEL_DEBUG)
 			}
 			return GenerateJWT(user, AUTH_METHOD_USER)
 		}

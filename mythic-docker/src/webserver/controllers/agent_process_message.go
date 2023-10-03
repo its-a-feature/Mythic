@@ -34,6 +34,7 @@ func AgentMessageWebhook(c *gin.Context) {
 		requestUrl = forwardedURL
 	}
 	requestIp := c.ClientIP()
+	defer c.Request.Body.Close()
 	if agentMessage, err := io.ReadAll(c.Request.Body); err != nil {
 		logging.LogError(err, "Failed to read body of agent message")
 		errorMessage := "Error! Failed to read body of agent message. Check the following details for more information about the request:\nConnection to: "
@@ -50,9 +51,11 @@ func AgentMessageWebhook(c *gin.Context) {
 		c.Status(http.StatusNotFound)
 		return
 	} else if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
-		C2Profile:     c2Header,
-		Base64Message: &agentMessage,
-		RemoteIP:      requestIp,
+		C2Profile:         c2Header,
+		Base64Message:     &agentMessage,
+		RemoteIP:          requestIp,
+		Base64Response:    true,
+		UpdateCheckinTime: true,
 	}); err != nil {
 		c.Status(http.StatusNotFound)
 		return
@@ -83,6 +86,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 	} else {
 		params := c.Request.URL.Query()
 		cookies := c.Request.Cookies()
+		defer c.Request.Body.Close()
 		if len(params) > 0 {
 			for key, _ := range params {
 				agentMessage := params.Get(key)
@@ -90,14 +94,16 @@ func AgentMessageGetWebhook(c *gin.Context) {
 					errorMessage := "Error! Failed to base64 decode url encoded query parameter. Check the following details for more information about the request:\nConnection to: "
 					errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
 					logging.LogError(err, "Failed to base64 decode url encoded query parameter", "param key", key)
-					go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_mythic_header", database.MESSAGE_LEVEL_WARNING)
+					go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "base64_decode_error", database.MESSAGE_LEVEL_WARNING)
 					c.Status(http.StatusNotFound)
 					return
 				} else {
 					if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
-						C2Profile:  c2Header,
-						RawMessage: &base64Bytes,
-						RemoteIP:   requestIp,
+						C2Profile:         c2Header,
+						RawMessage:        &base64Bytes,
+						RemoteIP:          requestIp,
+						Base64Response:    true,
+						UpdateCheckinTime: true,
 					}); err != nil {
 						logging.LogError(err, "Failed to process url encoded agent message")
 						c.Status(http.StatusNotFound)
@@ -119,9 +125,11 @@ func AgentMessageGetWebhook(c *gin.Context) {
 				return
 			} else {
 				if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
-					C2Profile:  c2Header,
-					RawMessage: &base64Bytes,
-					RemoteIP:   requestIp,
+					C2Profile:         c2Header,
+					RawMessage:        &base64Bytes,
+					RemoteIP:          requestIp,
+					Base64Response:    true,
+					UpdateCheckinTime: true,
 				}); err != nil {
 					logging.LogError(err, "Failed to process agent message from cookie")
 					c.Status(http.StatusNotFound)
@@ -133,9 +141,11 @@ func AgentMessageGetWebhook(c *gin.Context) {
 			}
 		} else if agentMessage, err := io.ReadAll(c.Request.Body); err != nil {
 			if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
-				C2Profile:     c2Header,
-				Base64Message: &agentMessage,
-				RemoteIP:      requestIp,
+				C2Profile:         c2Header,
+				Base64Message:     &agentMessage,
+				RemoteIP:          requestIp,
+				Base64Response:    true,
+				UpdateCheckinTime: true,
 			}); err != nil {
 				errorMessage := "Error! Failed to find message in body of get request. Check the following details for more information about the request:\nConnection to: "
 				errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)

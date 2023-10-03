@@ -209,7 +209,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 			response.Error = err.Error()
 			return response
 		}
-		if !pc2p.C2profile.IsP2p {
+		if !pc2p.C2profile.IsP2p && pc2p.C2profile.Name == input.C2ProfileName {
 			edge := databaseStructs.Callbackgraphedge{
 				SourceID:      callback.ID,
 				DestinationID: callback.ID,
@@ -224,6 +224,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 				response.Error = err.Error()
 				return response
 			} else {
+				logging.LogInfo("Created new callbackgraph edge", "c2", input.C2ProfileName, "callback", callback.ID)
 				callbackGraph.Add(callback, callback, pc2p.C2profile.Name)
 			}
 		}

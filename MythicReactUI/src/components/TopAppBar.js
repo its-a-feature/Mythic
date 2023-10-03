@@ -116,8 +116,8 @@ export function TopAppBar(props) {
   const feedbackRef = React.useRef(null);
   const settingsRef = React.useRef(null);
   const documentationRef = React.useRef(null);
-  const [anchorEl, setAnchorEl] = React.useState(false);
-  const [documentationAnchorEl, setDocumentationAnchorEl] = React.useState(false);
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const [documentationAnchorEl, setDocumentationAnchorEl] = React.useState(null);
   const me = props.me;
   const isOpen = useReactiveVar(menuOpen);
   const [openGlobal, setOpenGlobal] = React.useState(false);
@@ -134,17 +134,17 @@ export function TopAppBar(props) {
   };
 
   const handleMenu = (event) => {
-    setAnchorEl(true);
+    setAnchorEl(event.currentTarget);
   };
 
   const handleClose = (evt) => {
-    setAnchorEl(false);
+    setAnchorEl(null);
   };
   const handleDocumentationMenu = (event) => {
-    setDocumentationAnchorEl(true);
+    setDocumentationAnchorEl(event.currentTarget);
   };
   const handleDocumentationClose = (evt) => {
-    setDocumentationAnchorEl(false);
+    setDocumentationAnchorEl(null);
   };
 
   const handleToggleGlobal = () => {
@@ -264,18 +264,16 @@ export function TopAppBar(props) {
                 </Link>
                 <Menu
                     id="menu-appbar"
-                    nodeRef={settingsRef}
-                    anchorEl={()=>settingsRef.current}
+                    anchorEl={anchorEl}
                     anchorOrigin={{
                       vertical: 'bottom',
                       horizontal: 'right',
                     }}
-                    getContentAnchorEl={null}
                     transformOrigin={{
                       vertical: 'top',
                       horizontal: 'center',
                     }}
-                    open={anchorEl}
+                    open={Boolean(anchorEl)}
                     onClose={handleClose}
                     MenuListProps={{style: {backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}}
                 >
@@ -322,18 +320,16 @@ export function TopAppBar(props) {
                 </IconButton>
                 <Menu
                     id="menu-appbar"
-                    nodeRef={documentationRef}
-                    anchorEl={()=>documentationRef.current}
+                    anchorEl={documentationAnchorEl}
                     anchorOrigin={{
                       vertical: 'bottom',
                       horizontal: 'right',
                     }}
-                    getContentAnchorEl={null}
                     transformOrigin={{
                       vertical: 'top',
                       horizontal: 'center',
                     }}
-                    open={documentationAnchorEl}
+                    open={Boolean(documentationAnchorEl)}
                     onClose={handleDocumentationClose}
                     MenuListProps={{style: {backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}}
                 >
@@ -505,7 +501,7 @@ export function TopAppBar(props) {
               <Switch
             checked={props.theme === 'dark'}
             onChange={props.toggleTheme}
-            color="primary"
+            color="info"
             inputProps={{ 'aria-label': 'primary checkbox' }}
             name="darkMode"
           />

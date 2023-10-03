@@ -109,7 +109,7 @@ query filenameFileMetaUploadQuery($operation_id: Int!, $filename: String!, $host
     filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
-  }
+}
 `;
 const filenameFileMetaDownloadSearch = gql`
 ${fileMetaFragment}
@@ -637,9 +637,6 @@ export const SearchTabFilesPanel = (props) =>{
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
         setSearchHost(searchHost);
-        if(searchHost === ""){
-            searchHost = "_";
-        }
         if(adjustedSearchLocation === "FileBrowser"){
             getfilenameFileBrowserSearch({variables:{
                 operation_id: me?.user?.current_operation_id || 0,
@@ -678,9 +675,6 @@ export const SearchTabFilesPanel = (props) =>{
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
         setSearchHost(searchHost);
-        if(searchHost === ""){
-            searchHost = "_";
-        }
         if(adjustedSearchLocation === "FileBrowser"){
             snackActions.dismiss();
             snackActions.warning("FileBrowser doesn't currently track file hashes");
@@ -723,9 +717,6 @@ export const SearchTabFilesPanel = (props) =>{
         }
         setSearch(new_search);
         setSearchHost(searchHost);
-        if(searchHost === ""){
-            searchHost = "_";
-        }
         if(adjustedSearchLocation === "FileBrowser"){
             getcommentFileBrowserSearch({variables:{
                 operation_id: me?.user?.current_operation_id || 0,
@@ -768,9 +759,6 @@ export const SearchTabFilesPanel = (props) =>{
         }
         setSearch(new_search);
         setSearchHost(searchHost);
-        if(searchHost === ""){
-            searchHost = "_";
-        }
         if(adjustedSearchLocation === "FileBrowser"){
             gettagFileBrowserSearch({variables:{
                     offset: offset,

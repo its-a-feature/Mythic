@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -15,8 +16,9 @@ type MythicRPCProxyStopMessage struct {
 	PortType string `json:"port_type"`
 }
 type MythicRPCProxyStopMessageResponse struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error"`
+	Success   bool   `json:"success"`
+	Error     string `json:"error"`
+	LocalPort int    `json:"local_port"`
 }
 
 func init() {
@@ -41,6 +43,22 @@ func MythicRPCProxyStop(input MythicRPCProxyStopMessage) MythicRPCProxyStopMessa
 		response.Error = err.Error()
 		return response
 	} else {
+		switch input.PortType {
+		case CALLBACK_PORT_TYPE_RPORTFWD:
+			fallthrough
+		case CALLBACK_PORT_TYPE_SOCKS:
+			fallthrough
+		case CALLBACK_PORT_TYPE_INTERACTIVE:
+			if input.Port == 0 {
+				// lookup the port that might need to be closed for this PortType and CallbackID
+				input.Port = proxyPorts.GetPortForTypeAndCallback(task.ID, task.CallbackID, input.PortType)
+				if input.Port == 0 {
+					response.Error = fmt.Sprintf("Failed to find port for type, %s, and task, %d", input.PortType, task.ID)
+					return response
+				}
+			}
+		}
+		response.LocalPort = input.Port
 		if err := proxyPorts.Remove(task.CallbackID, input.PortType, input.Port, task.OperationID); err != nil {
 			logging.LogError(err, "Failed to stop callback port")
 			response.Error = err.Error()

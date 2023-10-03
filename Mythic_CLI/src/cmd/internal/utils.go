@@ -36,7 +36,7 @@ func generateRandomPassword(pwLength int) string {
 func getCwdFromExe() string {
 	exe, err := os.Executable()
 	if err != nil {
-		log.Fatalf("[-] Failed to get path to current executable")
+		log.Fatalf("[-] Failed to get path to current executable\n")
 	}
 	return filepath.Dir(exe)
 }
@@ -269,7 +269,7 @@ func updateNginxBlockLists() {
 	outputString += "deny all;"
 	ipFilePath := filepath.Join(getCwdFromExe(), "nginx-docker", "config", "blockips.conf")
 	if err := os.WriteFile(ipFilePath, []byte(outputString), 0600); err != nil {
-		fmt.Printf("[-] Failed to write out block list file")
+		fmt.Printf("[-] Failed to write out block list file\n")
 		os.Exit(1)
 	}
 }
@@ -277,7 +277,7 @@ func updateNginxBlockLists() {
 // check docker version to make sure it's high enough for Mythic's features
 func checkDockerVersion() bool {
 	if outputString, err := runDocker([]string{"version", "--format", "{{.Server.Version}}"}); err != nil {
-		fmt.Printf("[-] Failed to get docker version")
+		fmt.Printf("[-] Failed to get docker version\n")
 		return false
 	} else if !semver.IsValid("v" + outputString) {
 		fmt.Printf("[-] Invalid version string: %s\n", outputString)

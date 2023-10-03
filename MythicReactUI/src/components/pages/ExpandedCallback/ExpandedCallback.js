@@ -9,7 +9,7 @@ import Split from 'react-split';
 
 const SUB_Callbacks = gql`
 subscription CallbacksSubscription ($callback_display_id: Int!){
-  callback_stream(batch_size: 1, cursor: {initial_value: {last_checkin: "1970-01-01"}}, where: {display_id: {_eq: $callback_display_id}}) {
+  callback_stream(batch_size: 1, cursor: {initial_value: {timestamp: "1969-01-01"}}, where: {display_id: {_eq: $callback_display_id}}) {
     architecture
     description
     display_id
@@ -68,20 +68,20 @@ export function ExpandedCallback(props){
     useSubscription(SUB_Callbacks, {
         variables: {callback_display_id: tabInfo.displayID}, fetchPolicy: "network-only",
         shouldResubscribe: true,
-        onSubscriptionData: ({subscriptionData}) => {
-          if(subscriptionData.data.callback_stream.length === 0){
+        onData: ({data}) => {
+          if(data.data.callback_stream.length === 0){
             snackActions.error("Unknown Callback");
             return;
           }
-          setCallbacks(subscriptionData.data.callback_stream[0]);
+          setCallbacks(data.data.callback_stream[0]);
           setTabInfo({tabID: "interact", tabType: "interact",
-          displayID: subscriptionData.data.callback_stream[0]["display_id"],
-          callbackID: subscriptionData.data.callback_stream[0]["id"],
-          payloadtype: subscriptionData.data.callback_stream[0]["payload"]["payloadtype"]["name"],
-          payloadDescription: subscriptionData.data.callback_stream[0]["payload"]["description"],
-          callbackDescription: subscriptionData.data.callback_stream[0]["description"],
-          operation_id: subscriptionData.data.callback_stream[0]["operation_id"],
-          os: subscriptionData.data.callback_stream[0]["payload"]["os"]});
+          displayID: data.data.callback_stream[0]["display_id"],
+          callbackID: data.data.callback_stream[0]["id"],
+          payloadtype: data.data.callback_stream[0]["payload"]["payloadtype"]["name"],
+          payloadDescription: data.data.callback_stream[0]["payload"]["description"],
+          callbackDescription: data.data.callback_stream[0]["description"],
+          operation_id: data.data.callback_stream[0]["operation_id"],
+          os: data.data.callback_stream[0]["payload"]["os"]});
         }
     });
 

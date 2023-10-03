@@ -90,7 +90,11 @@ func Initialize() {
 			proxyPorts.Initialize()
 			// start tracking tasks wait to be fetched
 			submittedTasksAwaitingFetching.Initialize()
+			updatePushC2CallbackTime()
 			grpc.Initialize()
+			// start listening for new messages from push c2 profiles, needs gRPC initialized first
+			go processAgentMessageFromPushC2()
+			go interceptProxyDataToAgentForPushC2()
 			go func() {
 				// wait 20s for things to stabilize a bit, then send a startup message
 				time.Sleep(time.Second * 30)
@@ -100,6 +104,14 @@ func Initialize() {
 			return
 		}
 		logging.LogInfo("Waiting for RabbitMQ...")
+	}
+}
+
+func updatePushC2CallbackTime() {
+	_, err := database.DB.Exec(`UPDATE callback SET last_checkin=$2 WHERE last_checkin=$1`,
+		time.UnixMicro(0), time.Now().UTC())
+	if err != nil {
+		logging.LogError(err, "Failed to update last checkin time of existing push_c2 callbacks")
 	}
 }
 

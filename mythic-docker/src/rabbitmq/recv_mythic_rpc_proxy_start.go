@@ -2,7 +2,6 @@ package rabbitmq
 
 import (
 	"encoding/json"
-
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -17,8 +16,9 @@ type MythicRPCProxyStartMessage struct {
 	PortType   string `json:"port_type"`
 }
 type MythicRPCProxyStartMessageResponse struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error"`
+	Success   bool   `json:"success"`
+	LocalPort int    `json:"local_port"`
+	Error     string `json:"error"`
 }
 
 func init() {
@@ -43,6 +43,20 @@ func MythicRPCProxyStart(input MythicRPCProxyStartMessage) MythicRPCProxyStartMe
 		response.Error = err.Error()
 		return response
 	} else {
+		switch input.PortType {
+		case CALLBACK_PORT_TYPE_RPORTFWD:
+		case CALLBACK_PORT_TYPE_SOCKS:
+			fallthrough
+		case CALLBACK_PORT_TYPE_INTERACTIVE:
+			if input.LocalPort == 0 {
+				input.LocalPort = int(proxyPorts.GetNextAvailableLocalPort())
+				if input.LocalPort == 0 {
+					response.Error = "No more ports available through docker, please modify your .env's configuration and restart Mythic"
+					return response
+				}
+			}
+		}
+		response.LocalPort = input.LocalPort
 		if err := proxyPorts.Add(task.CallbackID, input.PortType, input.LocalPort, input.RemotePort, input.RemoteIP, task.ID, task.OperationID); err != nil {
 			logging.LogError(err, "Failed to add new callback port")
 			response.Error = err.Error()

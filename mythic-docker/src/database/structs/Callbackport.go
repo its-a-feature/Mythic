@@ -9,4 +9,5 @@ type Callbackport struct {
 	PortType    string `db:"port_type"`
 	RemotePort  int    `db:"remote_port"`
 	RemoteIP    string `db:"remote_ip"`
+	Deleted     bool   `db:"deleted"`
 }

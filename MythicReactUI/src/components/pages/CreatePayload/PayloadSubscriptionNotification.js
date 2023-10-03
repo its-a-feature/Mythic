@@ -11,7 +11,6 @@ import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
 import {PayloadsTableRowBuildProgress} from '../Payloads/PayloadsTableRowBuildProgress';
 import { toast } from 'react-toastify';
-import { Link } from '@mui/material';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
@@ -125,6 +124,7 @@ const SnackMessageError = (props) => {
                 width={"100%"}
                 setOptions={{
                     showLineNumbers: true,
+                    useWorker: false,
                     tabSize: 4
                 }}/>
         <DialogActions>
@@ -192,15 +192,15 @@ export function PayloadSubscriptionNotification(props) {
         }
         
     }, [payloadData, getSnackMessage]);
-    const {  } = useSubscription(subscribe_payloads, {variables: {fromNow: props.fromNow},
-    onSubscriptionData: ({subscriptionData}) => {
-        if(subscriptionData.data.payload_stream[0].uuid === props.subscriptionID){
+    useSubscription(subscribe_payloads, {variables: {fromNow: props.fromNow},
+    onData: ({data}) => {
+        if(data.data.payload_stream[0].uuid === props.subscriptionID){
             if(!mountedRef.current){
                 return;
             }
-            setPayloadData({...subscriptionData.data.payload_stream[0]});
+            setPayloadData({...data.data.payload_stream[0]});
         } else {
-            console.log(subscriptionData.data.payload_stream[0])
+            console.log(data.data.payload_stream[0])
         }
     }
     });

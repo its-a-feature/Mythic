@@ -13,10 +13,11 @@ import {snackActions} from '../../utilities/Snackbar';
 import {useTheme} from '@mui/material/styles';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Tooltip from '@mui/material/Tooltip';
+import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 
-const stopSocks = gql`
-mutation StopSocksMutation($callback_id: Int!, $port: Int!, $port_type: String!){
-    stop_socks(callback_id: $callback_id, port: $port, port_type: $port_type){
+const toggleProxy = gql`
+mutation ToggleProxyMutation($callbackport_id: Int!, $action: String!){
+    toggleProxy(callbackport_id: $callbackport_id, action: $action){
         status
         error
     }
@@ -29,10 +30,10 @@ export function SocksSearchTable(props){
         setCallbacks([...props.callbacks]);
     }, [props.callbacks]);
 
-    const onEditDeleted = ({id, port, port_type}) => {
+    const onEditDeleted = ({id, deleted}) => {
         const updates = callbacks.map( (cred) => {
-            if(cred.id === id && cred.local_port === port && cred.port_type === port_type){
-                return {...cred, local_port: null}
+            if(cred.id === id){
+                return {...cred, deleted: deleted}
             }else{
                 return {...cred}
             }
@@ -45,11 +46,11 @@ export function SocksSearchTable(props){
             <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "5rem"}}>Stop</TableCell>
+                        <TableCell style={{width: "5rem"}}>Action</TableCell>
                         <TableCell >User</TableCell>
                         <TableCell >Host</TableCell>
                         <TableCell >Description</TableCell>
-                        <TableCell >Callback</TableCell>
+                        <TableCell >Callback / Task</TableCell>
                         <TableCell >Local Port</TableCell>
                         <TableCell >Remote Connection</TableCell>
                         <TableCell >Proxy Type</TableCell>
@@ -74,39 +75,69 @@ function CallbackSearchTableRow(props){
     const theme = useTheme();
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
 
-    const [updateDeleted] = useMutation(stopSocks, {
+    const [updateDeleted] = useMutation(toggleProxy, {
         onCompleted: (data) => {
-            snackActions.success("Stopped proxy on that Port");
-            props.onEditDeleted({id: props.id, port: props.local_port, port_type: props.port_type});
+            if (data.toggleProxy.status === "success"){
+                if(props.deleted){
+                    snackActions.success("Started proxy on that Port");
+                    props.onEditDeleted({id: props.id, deleted: false});
+                } else {
+                    snackActions.success("Stopped proxy on that Port");
+                    props.onEditDeleted({id: props.id, deleted: true});
+                }
+            } else {
+                snackActions.error(data.toggleProxy.error);
+            }
         },
         onError: (data) => {
             snackActions.error("Operation not allowed");
         }
     });
     const onAcceptDelete = () => {
-        updateDeleted({variables: {callback_id: props.callback.id, port: props.local_port, port_type: props.port_type}})
+        let action = "start";
+        if(props.deleted){
+            action = "start";
+        } else {
+            action = "stop";
+        }
+        updateDeleted({variables: {callbackport_id: props.id, action: action}})
     }
     return (
         <React.Fragment>
             <TableRow hover>
-                <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={"Stop Proxy"}/>
+                {openDeleteDialog &&
+                    <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete}
+                                         open={openDeleteDialog} acceptText={props.deleted ? "Restart Proxy" : "Stop Proxy"}
+                                         acceptColor={props.deleted ? "success" : "error"}
+                    />
+                }
+
                 
-                <TableCell>{props.local_port ? (
-                    <Tooltip title="Stop Proxy Port on Mythic Server">
+                <TableCell>{props.deleted ? (
+                    <Tooltip title="Start Proxy Port on Mythic Server">
+                        <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.success.main}} variant="contained"><RestoreFromTrashIcon/></IconButton>
+                    </Tooltip>
+                ) :
+                    (<Tooltip title="Stop Proxy Port on Mythic Server">
                         <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
                     </Tooltip>
-                ) : null} </TableCell>
+                    )} </TableCell>
                 <TableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.callback.user}</Typography>
                 </TableCell>
-                <TableCell>{props.host}</TableCell>
+                <TableCell>{props.callback.host}</TableCell>
                 <TableCell >
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.callback.description}</Typography>
                 </TableCell>
                 <TableCell>
-                <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                         href={"/new/callbacks/" + props.callback.display_id}>
                             {props.callback.display_id}
+                    </Link>
+                    /
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                          href={"/new/tasks/" + props.task.display_id}>
+                        {props.task.display_id}
                     </Link>
                 </TableCell>
                 <TableCell>

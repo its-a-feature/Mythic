@@ -69,6 +69,7 @@ export function C2ProfileConfigDialog(props) {
               width={"100%"}
               setOptions={{
                 showLineNumbers: true,
+                  useWorker: false,
                 tabSize: 4
               }}/>
         </DialogContent>

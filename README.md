@@ -146,3 +146,7 @@ This is an open source project meant to be used with authorization to assess the
 * BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.com/playlist?list=PLHVFedjbv6sOz8OGuLdomdkr6-7VdMRQ9)
 * Objective By the Sea 2019 talk on JXA: https://objectivebythesea.com/v2/talks/OBTS_v2_Thomas.pdf
 * Objective By the sea 2019 Video: https://www.youtube.com/watch?v=E-QEsGsq3uI&list=PLliknDIoYszvTDaWyTh6SYiTccmwOsws8&index=17  
+
+## File Icon Attribution
+
+* [bin/txt file icons](https://www.flaticon.com/packs/file-types-31?word=file%20extension) - created by Icon home - Flaticon

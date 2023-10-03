@@ -87,49 +87,49 @@ export function ConsumingServicesTable({servicesList}){
                         <TableRow hover >
                             <TableCell>New Callback Log</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestLog("new_callback")}}> <SyncAltIcon  /></IconButton>
+                                <IconButton onClick={()=>{issueTestLog("new_callback")}} size="large"> <SyncAltIcon  /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover >
                             <TableCell>New Credential Log</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestLog("new_credential")}}> <SyncAltIcon  /></IconButton>
+                                <IconButton onClick={()=>{issueTestLog("new_credential")}} size="large"> <SyncAltIcon  /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover >
                             <TableCell>New File Log</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestLog("new_file")}}> <SyncAltIcon  /></IconButton>
+                                <IconButton onClick={()=>{issueTestLog("new_file")}} size="large"> <SyncAltIcon  /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover>
                             <TableCell>New Artifact Log</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestLog("new_artifact")}}> <SyncAltIcon  /></IconButton>
+                                <IconButton onClick={()=>{issueTestLog("new_artifact")}} size="large"> <SyncAltIcon  /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover>
                             <TableCell>New Task Log</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestLog("new_task")}}> <SyncAltIcon  /></IconButton>
+                                <IconButton onClick={()=>{issueTestLog("new_task")}} size="large"> <SyncAltIcon  /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover >
                             <TableCell>New Payload Log</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestLog("new_payload")}} > <SyncAltIcon /></IconButton>
+                                <IconButton onClick={()=>{issueTestLog("new_payload")}} size="large"> <SyncAltIcon /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover >
                             <TableCell>New Keylog Log</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestLog("new_keylog")}}> <SyncAltIcon  /></IconButton>
+                                <IconButton onClick={()=>{issueTestLog("new_keylog")}} size="large"> <SyncAltIcon  /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover >
                             <TableCell>New Response Log</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestLog("new_response")}}> <SyncAltIcon  /></IconButton>
+                                <IconButton onClick={()=>{issueTestLog("new_response")}} size="large"> <SyncAltIcon  /></IconButton>
                             </TableCell>
                         </TableRow>
                     </TableBody>
@@ -147,31 +147,31 @@ export function ConsumingServicesTable({servicesList}){
                         <TableRow hover >
                             <TableCell>New Feedback Webhook</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestWebook("new_feedback")}}><PublicIcon /></IconButton>
+                                <IconButton onClick={()=>{issueTestWebook("new_feedback")}} size="large"><PublicIcon /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover >
                             <TableCell>New Callback Webhook</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestWebook("new_callback")}}><PublicIcon /></IconButton>
+                                <IconButton onClick={()=>{issueTestWebook("new_callback")}} size="large"><PublicIcon /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover>
                             <TableCell>New Startup Webhook</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestWebook("new_startup")}}><PublicIcon /></IconButton>
+                                <IconButton onClick={()=>{issueTestWebook("new_startup")}} size="large"><PublicIcon /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover >
                             <TableCell>New Alert Webhook</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestWebook("new_alert")}}><PublicIcon /></IconButton>
+                                <IconButton onClick={()=>{issueTestWebook("new_alert")}} size="large"><PublicIcon /></IconButton>
                             </TableCell>
                         </TableRow>
                         <TableRow hover >
                             <TableCell>New Custom Webhook</TableCell>
                             <TableCell>
-                                <IconButton onClick={()=>{issueTestWebook("new_custom")}}><PublicIcon /></IconButton>
+                                <IconButton onClick={()=>{issueTestWebook("new_custom")}} size="large"><PublicIcon /></IconButton>
                             </TableCell>
                         </TableRow>
                     </TableBody>
@@ -179,6 +179,6 @@ export function ConsumingServicesTable({servicesList}){
             </TableContainer>
         </div>
     </React.Fragment>
-    )
+    );
 }
 

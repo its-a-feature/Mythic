@@ -56,4 +56,6 @@ type Task struct {
 	ParameterGroupName                 string            `db:"parameter_group_name" json:"parameter_group_name"`
 	TokenID                            structs.NullInt64 `db:"token_id" json:"token_id"`
 	ResponseCount                      int               `db:"response_count" json:"response_count"`
+	IsInteractiveTask                  bool              `db:"is_interactive_task" json:"is_interactive_task"`
+	InteractiveTaskType                structs.NullInt64 `db:"interactive_task_type" json:"interactive_task_type"`
 }

@@ -192,7 +192,7 @@ export function AddRemoveCallbackCommandsDialog(props) {
           </div>
             <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleAllRight}
@@ -202,7 +202,7 @@ export function AddRemoveCallbackCommandsDialog(props) {
                 &gt;&gt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleCheckedRight}
@@ -212,7 +212,7 @@ export function AddRemoveCallbackCommandsDialog(props) {
                 &gt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleCheckedLeft}
@@ -222,7 +222,7 @@ export function AddRemoveCallbackCommandsDialog(props) {
                 &lt;
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 className={classes.button}
                 onClick={handleAllLeft}

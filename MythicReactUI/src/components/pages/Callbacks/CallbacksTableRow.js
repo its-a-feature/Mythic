@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect} from 'react';
+import React, {useCallback, useEffect, useContext} from 'react';
 import {Button} from '@mui/material';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { MythicDisplayTextDialog} from '../../MythicComponents/MythicDisplayTextDialog';
@@ -7,7 +7,6 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 import LockIcon from '@mui/icons-material/Lock';
-import {getTimeDifference, useInterval, toLocalTime } from '../../utilities/Time';
 import WifiIcon from '@mui/icons-material/Wifi';
 import InsertLinkTwoToneIcon from '@mui/icons-material/InsertLinkTwoTone';
 import {C2PathDialog} from './C2PathDialog';
@@ -19,7 +18,12 @@ import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import {hideCallbackMutation} from './CallbackMutations';
+import {
+    hideCallbackMutation,
+    lockCallbackMutation,
+    unlockCallbackMutation,
+    updateIPsCallbackMutation
+} from './CallbackMutations';
 import {useMutation } from '@apollo/client';
 import SnoozeIcon from '@mui/icons-material/Snooze';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
@@ -30,27 +34,18 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {faQuestion, faSkullCrossbones, faFolderOpen, faList} from '@fortawesome/free-solid-svg-icons';
 import {faLinux, faApple, faWindows, faChrome, faAndroid} from '@fortawesome/free-brands-svg-icons';
-import {useSubscription, gql } from '@apollo/client';
 import {DetailedCallbackTable} from './DetailedCallbackTable';
 import InfoIcon from '@mui/icons-material/Info';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import { MythicSelectFromRawListDialog } from '../../MythicComponents/MythicSelectFromListDialog';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import { areEqual } from 'react-window';
+import {CallbackGraphEdgesContext} from './CallbacksTop';
+import Moment from 'react-moment';
+import moment from 'moment';
 
-// callback_stream(batch_size: 1, cursor: {initial_value: {last_checkin: "1970-01-01"}}, where: {id: {_eq: $callback_id}}){
-    // still have some issues with the stream unfortunately
-const SUB_Callbacks = gql`
-subscription CallbacksSubscription ($callback_id: Int!){
-    callback_stream(batch_size: 1, cursor: {initial_value: {last_checkin: "1970-01-01"}}, where: {id: {_eq: $callback_id}}){
-        id
-        display_id
-        current_time
-        last_checkin
-    }
-}
- `;
-export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDescription, setOpenHideMultipleDialog, setOpenTaskMultipleDialog}) =>{
+export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock, updateDescription, setOpenHideMultipleDialog, setOpenTaskMultipleDialog}) =>{
     const dropdownAnchorRef = React.useRef(null);
     const theme = useTheme();
     const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
@@ -80,6 +75,34 @@ export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDesc
             setRowDataStatic(rowData);
         }
     }, [rowData]);
+    const [lockCallback] = useMutation(lockCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Locked callback");
+            }else{
+                snackActions.warning(data.updateCallback.error);
+            }
+
+        },
+        onError: data => {
+            console.log(data);
+            snackActions.warning(data);
+        }
+    });
+    const [unlockCallback] = useMutation(unlockCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Unlocked callback");
+            }else{
+                snackActions.warning(data.updateCallback.error);
+            }
+
+        },
+        onError: data => {
+            console.log(data);
+            snackActions.warning(data);
+        }
+    });
     const editDescriptionSubmit = (description) => {
         if(description === ""){
             updateDescription({description: rowDataStatic.payload.description, callback_display_id: rowDataStatic.display_id});
@@ -127,7 +150,11 @@ export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDesc
         }
     });
     const localToggleLock = () => {
-        toggleLock({callback_display_id: rowDataStatic.display_id, locked: rowDataStatic.locked})
+        if(rowDataStatic.locked){
+            unlockCallback({variables: {callback_display_id: rowDataStatic.display_id}})
+        }else{
+            lockCallback({variables: {callback_display_id: rowDataStatic.display_id}})
+        }
     }
     const options =  [
         {name: 'Hide Callback', icon: <VisibilityOffIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
@@ -158,6 +185,10 @@ export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDesc
             evt.stopPropagation();
             localOnOpenTab("processBrowser");
         }},
+        {name: 'Split Tasking', icon: <KeyboardIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
+                evt.stopPropagation();
+                localOnOpenTab("interactSplit");
+            }},
         {name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback', icon: rowDataStatic.locked ? (<LockOpenIcon style={{paddingRight: "5px"}}/>) : (<LockIcon style={{paddingRight: "5px"}} />), click: (evt) => {
             evt.stopPropagation();
             localToggleLock();
@@ -257,79 +288,38 @@ export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDesc
 
     </div>
     )
-}
-export const CallbacksTableStringCell = ({rowData, cellData}) => {
+},
+    areEqual)
+export const CallbacksTableStringCell = React.memo(({rowData, cellData}) => {
     return (
         <div>{cellData}</div>
     )
-}
-export const CallbacksTableLastCheckinCell = React.memo( (props) => {
-    const [displayTime, setDisplayTime] = React.useState("");
-    const lastCheckinDifference = React.useRef(-1);
-    const lastCheckinTimestampFromMythic = React.useRef("");
-    const mountedRef = React.useRef(true);
-    const lastCheckinTimestamp = React.useRef("");
-
-    useSubscription(SUB_Callbacks, {
-        variables: {callback_id: props.rowData.id}, fetchPolicy: "network-only", shouldResubscribe: true,
-        onSubscriptionData: ({subscriptionData}) => {
-            if(!mountedRef.current || !props.parentMountedRef.current){
-                return null;
-            }
-            //console.log(subscriptionData.data.callback_stream[0].display_id, subscriptionData.data.callback_stream)
-            let last = new Date(subscriptionData.data.callback_stream[0].last_checkin);
-            lastCheckinTimestampFromMythic.current = subscriptionData.data.callback_stream[0].last_checkin;
-            let currentMythic = new Date(subscriptionData.data.callback_stream[0].current_time);
-            let timeskew = (new Date()) - currentMythic;
-            lastCheckinDifference.current = last - timeskew;
-            updateDisplayTime();
+}, areEqual)
+export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData}) => {
+    const adjustOutput = (newTime) => {
+        if(newTime.includes("54 years")){
+            return "Streaming Now"
+        }else if(newTime === "a few seconds"){
+            moment.relativeTimeThreshold('s', 60);
+            moment.relativeTimeThreshold('ss', 0);
+            return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").fromNow(true)
         }
-    });
-    const updateDisplayTime = () => {
-        let newTimeDifference = getTimeDifference(lastCheckinDifference.current);
-        if(newTimeDifference.includes("m")){
-            if(newTimeDifference.includes("m0s")){
-                lastCheckinTimestamp.current = toLocalTime(lastCheckinTimestampFromMythic.current, false);
-                setDisplayTime(newTimeDifference.slice(0, newTimeDifference.length-2));
-            }else if(displayTime === ""){
-                lastCheckinTimestamp.current = toLocalTime(lastCheckinTimestampFromMythic.current, false);
-                setDisplayTime(newTimeDifference.slice(0, newTimeDifference.indexOf("m")+1));
-            } else {
-                lastCheckinTimestamp.current = toLocalTime(lastCheckinTimestampFromMythic.current, false);
-                setDisplayTime(newTimeDifference);
-            }
-        } else {
-            lastCheckinTimestamp.current = toLocalTime(lastCheckinTimestampFromMythic.current, false);
-            setDisplayTime(newTimeDifference);
-        }
+        return newTime;
     }
-    useInterval( () => {
-        if(!mountedRef.current || !props.parentMountedRef.current){
-            return null;
-        }
-        if(lastCheckinDifference.current === -1){
-            setDisplayTime("Loading...");
-            return;
-        }
-        updateDisplayTime();
-        
-    }, 1000, mountedRef, props.parentMountedRef);
-    React.useEffect( () => {
-        return() => {
-            mountedRef.current = false;
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
     return (
         <div>
-            <MythicStyledTooltip title={lastCheckinTimestamp.current}>
-                {displayTime}
-            </MythicStyledTooltip>
+                <Moment filter={adjustOutput} interval={500} parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
+                    withTitle
+                    titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                    fromNow ago
+                >
+                    {rowData.last_checkin + "Z"}
+                </Moment>
         </div>
         
     )
 });
-export const CallbacksTablePayloadTypeCell = ({rowData}) => {
+export const CallbacksTablePayloadTypeCell = React.memo( ({rowData}) => {
     const payloadTypeName = React.useRef(rowData.payload.payloadtype.name)
     return (
         <MythicStyledTooltip title={payloadTypeName.current}>
@@ -339,11 +329,28 @@ export const CallbacksTablePayloadTypeCell = ({rowData}) => {
             />
         </MythicStyledTooltip>
     )
-}
-export const CallbacksTableIPCell = ({cellData, rowData, callback_id, updateIPs}) => {
+}, areEqual)
+export const CallbacksTableIPCell = React.memo(({cellData, rowData}) => {
     const [displayIP, setDisplayIP] = React.useState("");
     const [openPickIP, setOpenPickIP] = React.useState(false);
     const [options, setOptions] = React.useState([]);
+    const [updateIPs] = useMutation(updateIPsCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Updated Callback");
+            } else {
+                snackActions.warning(data.updateCallback.error);
+            }
+
+        },
+        onError: data => {
+            console.log(data)
+            snackActions.warning(data);
+        }
+    });
+    const updateIPsInfo = React.useCallback( ({callback_display_id, ips}) => {
+        updateIPs({variables: {callback_display_id: callback_display_id, ips}})
+    }, []);
     const onClick = () => {
         setOpenPickIP(true);
     }
@@ -352,7 +359,7 @@ export const CallbacksTableIPCell = ({cellData, rowData, callback_id, updateIPs}
         const ipArray = JSON.parse(cellData).filter( c => c !== selected_ip);
         const newIPArray = [selected_ip, ...ipArray];
         //const newIPString = JSON.stringify( newIPArray);
-        updateIPs({callback_display_id: rowData.display_id, ips: newIPArray});
+        updateIPsInfo({callback_display_id: rowData.display_id, ips: newIPArray});
         //console.log(newIPString)
     }
     React.useEffect( () => {
@@ -386,11 +393,12 @@ export const CallbacksTableIPCell = ({cellData, rowData, callback_id, updateIPs}
         </>
         
     )
-}
-export const CallbacksTableC2Cell = ({initialCallbackGraphEdges, rowData}) => {
+}, areEqual)
+export const CallbacksTableC2Cell = React.memo(({rowData}) => {
     const theme = useTheme();
+    const [localRowData, setLocalRowData] = React.useState(rowData);
+    const initialCallbackGraphEdges = useContext(CallbackGraphEdgesContext);
     const [activeEgress, setActiveEgress] = React.useState(theme.palette.success.main);
-    const [activeEgressBool, setActiveEgressBool] = React.useState(true);
     const [hasEgressRoute, setHasEgressRoute] = React.useState(true);
     const [openC2Dialog, setOpenC2Dialog] = React.useState(false);
     const [callbackgraphedges, setCallbackgraphedges] = React.useState([]);
@@ -401,7 +409,7 @@ export const CallbacksTableC2Cell = ({initialCallbackGraphEdges, rowData}) => {
     }
     useEffect( () => {
         const routes = callbackgraphedgesAll.filter( (edge) => {
-            if(!edge.c2profile.is_p2p && edge.source.id === rowData.id && edge.destination.id === rowData.id){
+            if(!edge.c2profile.is_p2p && edge.source.id === localRowData.id && edge.destination.id === localRowData.id){
                 return true;
             }
             return false;
@@ -416,7 +424,7 @@ export const CallbacksTableC2Cell = ({initialCallbackGraphEdges, rowData}) => {
         const getEdges = (activeOnly) => {
             //update our aggregate of callbackgraphedges for both src and dst that involve us
             let myEdges = initialCallbackGraphEdges?.filter( (edge) =>{
-                if(edge.source.id === rowData.id || edge.destination.id === rowData.id){
+                if(edge.source.id === localRowData.id || edge.destination.id === localRowData.id){
                     if(activeOnly){
                         if(edge.end_timestamp === null){
                             return true;
@@ -457,13 +465,10 @@ export const CallbacksTableC2Cell = ({initialCallbackGraphEdges, rowData}) => {
         }
         const myActiveEdges = getEdges(true);
         const myEdges = getEdges(false);
-        if(callbackgraphedges.length !== myActiveEdges.length){
-            setCallbackgraphedges(myActiveEdges);
-        }
-        if(callbackgraphedgesAll.length !== myEdges.length){
-            setCallbackgraphedgesAll(myEdges);
-        }
-    }, [initialCallbackGraphEdges, rowData]);
+        setCallbackgraphedges(myActiveEdges);
+        setCallbackgraphedgesAll(myEdges);
+
+    }, [initialCallbackGraphEdges]);
     useEffect( () => {
         //determine if there are any active routes left at all
         const activeRoutes = callbackgraphedges.filter( (edge) => {
@@ -474,10 +479,8 @@ export const CallbacksTableC2Cell = ({initialCallbackGraphEdges, rowData}) => {
         });
         if(activeRoutes.length === 0){
             setActiveEgress(theme.palette.error.main);
-            setActiveEgressBool(false);
         }else{
             setActiveEgress(theme.palette.success.main);
-            setActiveEgressBool(true);
         }
     }, [callbackgraphedges, theme.palette.success.main, theme.palette.error.main]);
     return (
@@ -495,8 +498,8 @@ export const CallbacksTableC2Cell = ({initialCallbackGraphEdges, rowData}) => {
                     innerDialog={
                         <C2PathDialog 
                             onClose={()=>{setOpenC2Dialog(false);}}  
-                            callback={rowData}
-                            callbackgraphedges={activeEgressBool ? callbackgraphedges : callbackgraphedgesAll} 
+                            callback={localRowData}
+                            callbackgraphedges={callbackgraphedgesAll}
                         />
                     }
                 />
@@ -505,7 +508,7 @@ export const CallbacksTableC2Cell = ({initialCallbackGraphEdges, rowData}) => {
         </div>
         
     )
-}
+}, areEqual)
 export const CallbacksTableOSCell = React.memo( ({rowData, cellData}) => {
     const [openOSDialog, setOpenOSDialog] = React.useState(false);
     const getOSIcon = useCallback( () => {
@@ -550,7 +553,7 @@ export const CallbacksTableOSCell = React.memo( ({rowData, cellData}) => {
                 
     )
 });
-export const CallbacksTableSleepCell = ({rowData, cellData, updateSleepInfo}) => {
+export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSleepInfo}) => {
     const theme = useTheme();
     const [openSleepDialog, setOpenSleepDialog] = React.useState(false);
     const editSleepSubmit = (sleep) => {
@@ -579,4 +582,4 @@ export const CallbacksTableSleepCell = ({rowData, cellData, updateSleepInfo}) =>
         
             
     )
-}
+}, areEqual)

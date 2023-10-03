@@ -26,6 +26,8 @@ func getSyncToDatabaseValueForChoices(parameterType string, choices []string, di
 		fallthrough
 	case BUILD_PARAMETER_TYPE_ARRAY:
 		fallthrough
+	case BUILD_PARAMETER_TYPE_TYPED_ARRAY:
+		fallthrough
 	case BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE:
 		return GetMythicJSONArrayFromStruct(choices), nil
 	case BUILD_PARAMETER_TYPE_DICTIONARY:
@@ -52,6 +54,9 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 		case string:
 			return v, nil
 		case nil:
+			if len(choices) > 0 {
+				return choices[0], nil
+			}
 			return "", nil
 		default:
 			tmpErr := errors.New(fmt.Sprintf("bad type for *_PARAMETER_TYPE_STRING: %T", v))
@@ -59,6 +64,8 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 			return "", tmpErr
 		}
 	case BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE:
+		fallthrough
+	case BUILD_PARAMETER_TYPE_TYPED_ARRAY:
 		fallthrough
 	case BUILD_PARAMETER_TYPE_ARRAY:
 		switch v := defaultValue.(type) {
@@ -215,6 +222,22 @@ func getFinalStringForDatabaseInstanceValueFromUserSuppliedValue(parameterType s
 		default:
 			tmpErr := errors.New(fmt.Sprintf("bad type for *_PARAMETER_TYPE_ARRAY: %T", v))
 			logging.LogError(tmpErr, "bad type of value for parameter type *_PARAMETER_TYPE_ARRAY", "value", v)
+			return "", tmpErr
+		}
+	case BUILD_PARAMETER_TYPE_TYPED_ARRAY:
+		switch v := userSuppliedValue.(type) {
+		case [][]interface{}:
+			if defaultBytes, err := json.Marshal(v); err != nil {
+				logging.LogError(err, "Failed to marshal array value", "value", userSuppliedValue)
+				return "", errors.New("Failed to marshal array value")
+			} else {
+				return string(defaultBytes), nil
+			}
+		case nil:
+			return "[]", nil
+		default:
+			tmpErr := errors.New(fmt.Sprintf("bad type for *_PARAMETER_TYPE_TYPED_ARRAY: %T", v))
+			logging.LogError(tmpErr, "bad type of value for parameter type *_PARAMETER_TYPE_TYPED_ARRAY", "value", v)
 			return "", tmpErr
 		}
 	case BUILD_PARAMETER_TYPE_BOOLEAN:
@@ -378,6 +401,8 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 	case BUILD_PARAMETER_TYPE_ARRAY:
 		// default value synced to database should be a json string
 		return strings.TrimSpace(defaultValue), nil
+	case BUILD_PARAMETER_TYPE_TYPED_ARRAY:
+		return "[]", nil
 	case BUILD_PARAMETER_TYPE_BOOLEAN:
 		return strings.TrimSpace(defaultValue), nil
 	case BUILD_PARAMETER_TYPE_NUMBER:
@@ -443,6 +468,14 @@ func GetInterfaceValueForContainer(parameterType string, finalString string, enc
 		var arrayValues []interface{}
 		if err := json.Unmarshal([]byte(finalString), &arrayValues); err != nil {
 			logging.LogError(err, "Failed to convert final string back to array for container")
+			return "[]", err
+		} else {
+			return arrayValues, nil
+		}
+	case BUILD_PARAMETER_TYPE_TYPED_ARRAY:
+		var arrayValues [][]interface{}
+		if err := json.Unmarshal([]byte(finalString), &arrayValues); err != nil {
+			logging.LogError(err, "Failed to convert final string back to an array of tuples for container")
 			return "[]", err
 		} else {
 			return arrayValues, nil
@@ -568,6 +601,15 @@ func GetBuildParameterInformation(payloadID int) *[]PayloadConfigurationBuildPar
 					return nil
 				} else {
 					buildValues[index].Value = dictionaryInitialValues
+				}
+			} else if parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_TYPED_ARRAY {
+				// we need to parse the value into [][]interface{}
+				var arrayValues [][]interface{}
+				if err := json.Unmarshal([]byte(parameter.Value), &arrayValues); err != nil {
+					logging.LogError(err, "Failed to unmarshal build parameter typed array values")
+					return nil
+				} else {
+					buildValues[index].Value = arrayValues
 				}
 			} else {
 				buildValues[index].Value = parameter.Value

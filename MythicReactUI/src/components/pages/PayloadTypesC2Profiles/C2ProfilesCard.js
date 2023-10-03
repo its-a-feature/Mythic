@@ -254,10 +254,17 @@ export function C2ProfilesCard(props) {
                 alignContent: "flex-end",
                 backgroundColor: theme.palette.textBackgroundColor,
             }}>
-                <IconButton color={"secondary"} href={"/docs/c2-profiles/" + props.name.toLowerCase()} target="_blank">
+                <IconButton
+                  color={"secondary"}
+                  href={"/docs/c2-profiles/" + props.name.toLowerCase()}
+                  target="_blank"
+                  size="large">
                   <MenuBookIcon />
                 </IconButton>
-                <IconButton color={"secondary"} onClick={()=>{setOpenBuildingDialog(true);}} >
+                <IconButton
+                  color={"secondary"}
+                  onClick={()=>{setOpenBuildingDialog(true);}}
+                  size="large">
                     <BuildIcon />
                 </IconButton>
                 {openBuildingDialog &&
@@ -273,20 +280,26 @@ export function C2ProfilesCard(props) {
                 />
                 }
 
-                 <IconButton onClick={() => {setOpenProfileSavedInstancesDialog(true);}} color={"success"}>
+                 <IconButton
+                   onClick={() => {setOpenProfileSavedInstancesDialog(true);}}
+                   color={"success"}
+                   size="large">
                      <SaveIcon />
                  </IconButton>
                  {props.deleted ? (
-                  <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="success" >
+                  <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="success" size="large">
                       <RestoreFromTrashOutlinedIcon/>
                   </IconButton>
                 ) : (
-                  <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="error">
+                  <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="error" size="large">
                       <DeleteIcon/>
                   </IconButton>
                 )}
                 {props.container_running &&
-                  <IconButton color={"secondary"} onClick={()=>{setOpenListFilesDialog(true);}}>
+                  <IconButton
+                    color={"secondary"}
+                    onClick={()=>{setOpenListFilesDialog(true);}}
+                    size="large">
                       <AttachFileIcon />
                   </IconButton>
                 }

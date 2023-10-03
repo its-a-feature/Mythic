@@ -143,6 +143,7 @@ const SearchTabCredentialsSearchPanel = (props) => {
         onCompleted: (data) => {
             if(data.createCredential.status === "success"){
                 snackActions.success("Successfully created new credential");
+                props.onNewCredential()
             } else {
                 snackActions.error(data.createCredential.error);
             }
@@ -418,13 +419,16 @@ export const SearchTabCredentialsPanel = (props) =>{
             
         }
     }
+    const onNewCredential = () => {
+        onChangePage(null, 1);
+    }
     return (
         <MythicTabPanel {...props} >
             <SearchTabCredentialsSearchPanel me={me} onChangeSearchField={onChangeSearchField}
                                              onAccountSearch={onAccountSearch} value={props.value} index={props.index}
                                              onRealmSearch={onRealmSearch} onCredentialSearch={onCredentialSearch}
                                              onCommentSearch={onCommentSearch} changeSearchParam={props.changeSearchParam}
-                                             onTagSearch={onTagSearch}
+                                             onTagSearch={onTagSearch} onNewCredential={onNewCredential}
                 />
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 {credentialaData.length > 0 ? (
