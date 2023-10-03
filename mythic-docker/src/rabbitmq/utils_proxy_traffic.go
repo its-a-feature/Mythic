@@ -474,7 +474,7 @@ func (p *callbackPortUsage) manageConnections() {
 				closeIDs := []uint32{}
 				for serverID, _ := range connectionMap {
 					if connectionMap[serverID].TaskUUID != nil && connectionMap[serverID].TaskUUID == removeCon.TaskUUID {
-						connectionMap[serverID].shouldClose <- true
+						//connectionMap[serverID].shouldClose <- true
 						close(connectionMap[serverID].interactiveMessagesFromAgent)
 						connectionMap[serverID].conn.Close()
 						closeIDs = append(closeIDs, serverID)
@@ -576,7 +576,12 @@ func (p *callbackPortUsage) manageConnections() {
 
 		case <-p.stopAllConnections:
 			for _, rmProxyData := range connectionMap {
-				close(rmProxyData.messagesFromAgent)
+				if rmProxyData.TaskUUID != nil {
+					close(rmProxyData.interactiveMessagesFromAgent)
+				} else {
+					close(rmProxyData.messagesFromAgent)
+				}
+
 				rmProxyData.conn.Close()
 				delete(connectionMap, rmProxyData.ServerID)
 			}
