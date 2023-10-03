@@ -1,8 +1,10 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
+    directory: "/"
     schedule:
       interval: "weekly"
   - package-ecosystem: "gomod"
+    directory: "/"
     schedule:
       interval: "weekly"
