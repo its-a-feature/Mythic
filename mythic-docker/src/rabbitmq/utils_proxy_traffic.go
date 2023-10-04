@@ -207,11 +207,34 @@ func (c *callbackPortsInUse) GetPortForTypeAndCallback(taskId int, callbackId in
 	return 0
 }
 func (c *callbackPortsInUse) GetDataForCallbackIdPortType(callbackId int, portType CallbackPortType) (interface{}, error) {
+	var interactiveData []agentMessagePostResponseInteractive
+	var socksData []proxyToAgentMessage
 	for i := 0; i < len(c.ports); i++ {
 		if c.ports[i].CallbackID == callbackId && c.ports[i].PortType == portType {
-			return c.ports[i].GetData(), nil
+			switch portType {
+			case CALLBACK_PORT_TYPE_INTERACTIVE:
+				interactiveData = append(interactiveData, c.ports[i].GetData().([]agentMessagePostResponseInteractive)...)
+			case CALLBACK_PORT_TYPE_SOCKS:
+				fallthrough
+			case CALLBACK_PORT_TYPE_RPORTFWD:
+				socksData = append(socksData, c.ports[i].GetData().([]proxyToAgentMessage)...)
+			}
+
 		}
 	}
+	switch portType {
+	case CALLBACK_PORT_TYPE_INTERACTIVE:
+		if len(interactiveData) > 0 {
+			return interactiveData, nil
+		}
+	case CALLBACK_PORT_TYPE_SOCKS:
+		fallthrough
+	case CALLBACK_PORT_TYPE_RPORTFWD:
+		if len(socksData) > 0 {
+			return socksData, nil
+		}
+	}
+
 	return nil, nil
 }
 func (c *callbackPortsInUse) SendDataToCallbackIdPortType(callbackId int, portType CallbackPortType, messages []proxyFromAgentMessage) {
@@ -446,7 +469,7 @@ func (p *callbackPortUsage) GetInteractiveData() []agentMessagePostResponseInter
 	for i := 0; i < len(messagesToSendToAgent); i++ {
 		select {
 		case messagesToSendToAgent[i] = <-p.interactiveMessagesToAgent:
-			//logging.LogDebug("Got message from Mythic to agent", "serverID", messagesToSendToAgent[i].ServerID)
+			//logging.LogDebug("Got message from Mythic to agent", "TaskID", messagesToSendToAgent[i].TaskUUID)
 		default:
 			//logging.LogDebug("returning set of messages to agent from Mythic", "msgs", messagesToSendToAgent)
 			// this is in case we run out of messages for some reason

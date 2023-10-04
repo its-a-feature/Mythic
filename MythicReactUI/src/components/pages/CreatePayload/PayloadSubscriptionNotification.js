@@ -34,6 +34,7 @@ subscription NewPayloadsSubscription($fromNow: timestamp!) {
         step_name
         step_number
         step_success
+        step_skip
         start_time
         end_time
         step_stdout

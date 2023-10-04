@@ -97,7 +97,7 @@ export function PayloadsTableRowBuildProgress(props){
                 // this we have no info on it, so it's just waiting
                 return <PanoramaFishEyeIcon style={{cursor: "pointer"}} onClick={() => buildStepClick(step)} />
             } else {
-                if(props.build_status === "building"){
+                if(props.build_phase === "building"){
                     return <TimelapseIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
                 } else {
                     return <HideSourceIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>

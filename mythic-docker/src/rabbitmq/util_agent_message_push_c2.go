@@ -97,7 +97,7 @@ func interceptProxyDataToAgentForPushC2() {
 	for {
 		attemptedToSend := false
 		msg := <-interceptProxyToAgentMessageChan
-		//logging.LogInfo("got proxy message", "data", msg.Message)
+		//logging.LogInfo("got proxy message", "data", msg.Message, "other data", msg.InteractiveMessage)
 		if grpc.PushC2Server.CheckClientConnected(msg.CallbackID) {
 			//logging.LogInfo("sending directly to callback")
 			switch msg.ProxyType {
@@ -143,10 +143,12 @@ func interceptProxyDataToAgentForPushC2() {
 		}
 		// if we attempted to send a message but failed, drop it, socks traffic won't generally accept it anyway if it's late
 		if !attemptedToSend {
+			//logging.LogInfo("Couldn't send to push c2, saving to msg")
 			// we don't have a PushC2 client available, so save it like normal
 			switch msg.ProxyType {
 			case CALLBACK_PORT_TYPE_INTERACTIVE:
 				msg.InteractiveMessagesToAgent <- msg.InteractiveMessage
+				//.LogInfo("saved to msg")
 			case CALLBACK_PORT_TYPE_SOCKS:
 				fallthrough
 			case CALLBACK_PORT_TYPE_RPORTFWD:
