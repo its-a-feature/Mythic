@@ -47,9 +47,9 @@ query getPayloadTypesC2ProfilesQuery($payloadType: String!, $operation_id: Int!)
   }
 }
  `;
- const getProfileInstanceQuery = gql`
-query getProfileInstanceQuery($name: String!, $operation_id: Int!) {
-  c2profileparametersinstance(where: {instance_name: {_eq: $name}, operation_id: {_eq: $operation_id}}) {
+const getProfileInstanceQuery = gql`
+query getProfileInstanceQuery($name: String!, $operation_id: Int!, $c2_profile_id: Int!) {
+  c2profileparametersinstance(where: {instance_name: {_eq: $name}, operation_id: {_eq: $operation_id}, c2_profile_id: {_eq: $c2_profile_id}}) {
     c2profileparameter {
       default_value
       description
@@ -273,7 +273,7 @@ export function Step4C2Profiles(props){
         });
         setC2Profiles(updatedc2);
         if(evt.target.value !== "None"){
-            getInstanceValues({variables: {name: evt.target.value, operation_id: me?.user?.current_operation_id || 0}});
+            getInstanceValues({variables: {name: evt.target.value, operation_id: me?.user?.current_operation_id || 0, c2_profile_id: c2.id}});
         } else {
             getIDefaultValues({variables: {c2profile_id: c2.id}});
         }

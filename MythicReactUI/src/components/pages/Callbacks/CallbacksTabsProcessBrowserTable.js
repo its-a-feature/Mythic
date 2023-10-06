@@ -197,7 +197,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
             }, []).flat()
             ];
           }
-          //rconsole.log("openNodes", openNodes, "node", node, "nodeid", treeRootData[host][node])
+          //console.log("openNodes", openNodes, "node", node, "nodeid", treeRootData[host][node])
           //if (openNodes[treeRootData[host][node]?.id] === true) {
             if(openNodes[parseInt(node)] === true){
             return [
@@ -265,7 +265,6 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         full_path_text: host,
         });
         finalData.push(...Object.keys(treeToUse[host][""] === undefined ? {} : treeToUse[host][""]).map(c => flattenNode(c, host, 1)).flat())
-    
         return finalData;
     },[flattenNode, treeRootData, host, updatedTreeAdjMatrix, openNodes, singleTreeData, viewSingleTreeData],
     );

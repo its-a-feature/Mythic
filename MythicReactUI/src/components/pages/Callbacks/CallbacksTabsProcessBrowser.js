@@ -115,7 +115,6 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         variables: { operation_id: me?.user?.current_operation_id ||0},
         onCompleted: (data) => {
            // use an adjacency matrix but only for full_path_text -> children, not both directions
-           
            for(let i = 0; i < data.mythictree.length; i++){
                 if(selectedHost === ""){
                     setSelectedHost(data.mythictree[i]["host"]);

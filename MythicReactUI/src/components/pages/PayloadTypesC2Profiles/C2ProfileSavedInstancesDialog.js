@@ -38,9 +38,9 @@ query getProfileParameters($id: Int!) {
   }
 }
 `;
-const getProfileInstaceQuery = gql`
-query getProfileInstanceQuery($name: String!) {
-  c2profileparametersinstance(where: {instance_name: {_eq: $name}}) {
+const getProfileInstanceQuery = gql`
+query getProfileInstanceQuery($name: String!, $c2_profile_id: Int!) {
+  c2profileparametersinstance(where: {instance_name: {_eq: $name}, c2_profile_id: {_eq: $c2_profile_id}}) {
     c2profileparameter {
       default_value
       description
@@ -59,8 +59,8 @@ query getProfileInstanceQuery($name: String!) {
 }
 `;
 const deleteInstanceMutation = gql`
-mutation deleteSavedInstance($name: String!){
-  delete_c2profileparametersinstance(where: {instance_name: {_eq: $name}}){
+mutation deleteSavedInstance($name: String!, $c2_profile_id: Int!){
+  delete_c2profileparametersinstance(where: {instance_name: {_eq: $name}, c2_profile_id: {_eq: $c2_profile_id}}){
     affected_rows
   }
 }
@@ -101,7 +101,7 @@ export function C2ProfileSavedInstancesDialog(props) {
         },
         fetchPolicy: "network-only"
     });
-    const [getInstanceValues] = useLazyQuery(getProfileInstaceQuery, {
+    const [getInstanceValues] = useLazyQuery(getProfileInstanceQuery, {
       onCompleted: (data) => {
         const updates = data.c2profileparametersinstance.map( (cur) => {
           let inst = {...cur, ...cur.c2profileparameter};
@@ -220,12 +220,12 @@ export function C2ProfileSavedInstancesDialog(props) {
         setCurrentParameters([...baseParameters]);
       }else{
         setCurrentParameters([]);
-        getInstanceValues({variables: {name: evt.target.value}});
+        getInstanceValues({variables: {name: evt.target.value, c2_profile_id: props.id}});
       }
     }
     const deleteInstanceButton = () => {
       setCurrentParameters([]);
-      deleteInstance({variables: {name: selectedInstance}})
+      deleteInstance({variables: {name: selectedInstance, c2_profile_id: props.id}})
     }
   return (
     <React.Fragment>
@@ -257,10 +257,10 @@ export function C2ProfileSavedInstancesDialog(props) {
                 <Grid item xs={6}>
                   {selectedInstance.length > 0 ? (
                     <Button style={{backgroundColor: theme.palette.error.main, color: "white"}} variant="contained" onClick={deleteInstanceButton}> Delete Instance</Button>
-                  ) : (null)}
+                  ) : null}
                 </Grid>
             </Grid>
-            ) : (null)}
+            ) : null}
             <MythicTextField name="Instance Name" onChange={onChange} value={instanceName} style={{paddingTop: "10px"}}/>
             <CreatePayloadC2ProfileParametersTable {...props} returnAllDictValues={true} c2profileparameters={currentParameters} onChange={updateC2Parameter} />
         </DialogContent>
