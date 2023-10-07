@@ -50,7 +50,7 @@ export function EventFeedNotifications(props) {
     useEffect( () => {
         //console.log(data, loading, error, fromNow.current);
         if(!loading && !error && data && data.operationeventlog_stream.length > 0){
-            if(data.operationeventlog_stream[0].source === "debug"){
+            if(data.operationeventlog_stream[0].source === "debug" || data.operationeventlog_stream[0].level === "debug" ){
                 return;
             }
             if(data.operationeventlog_stream[0].resolved){
