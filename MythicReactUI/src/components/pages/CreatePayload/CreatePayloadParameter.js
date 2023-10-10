@@ -10,10 +10,10 @@ import MythicTextField from '../../MythicComponents/MythicTextField';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {IconButton, Input, Button, MenuItem, Grid} from '@mui/material';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import AdapterDateFns from '@mui/lab/AdapterDateFns';
-import DesktopDatePicker from '@mui/lab/DesktopDatePicker';
-import LocalizationProvider from '@mui/lab/LocalizationProvider';
-import 'date-fns';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
+import dayjs from 'dayjs';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
@@ -30,7 +30,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const [dictSelectOptions, setDictSelectOptions] = React.useState([]);
     const [dictSelectOptionsChoice, setDictSelectOptionsChoice] = React.useState("");
     const [chooseOptions, setChooseOptions] = React.useState([]);
-    const [dateValue, setDateValue] = React.useState(new Date());
+    const [dateValue, setDateValue] = React.useState(dayjs(new Date()));
     const [arrayValue, setArrayValue] = React.useState([""]);
     const [typedArrayValue, setTypedArrayValue] = React.useState([]);
     const [fileValue, setFileValue] = React.useState({name: ""});
@@ -56,7 +56,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         }else if(parameter_type === "File") {
             setFileValue({name: ""});
         }else if(parameter_type === "Date"){
-            setDateValue(trackedValue);
+            setDateValue(dayjs(trackedValue));
             onChange(name, trackedValue, "");
         }else if(parameter_type === "Dictionary" ){
                 setDictOptions(choices);
@@ -277,16 +277,13 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         switch(parameter_type){
             case "Date":
                 return (
-                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
                         <Grid container justifyContent="flex-start">
                             <DesktopDatePicker
-                            disableToolbar
-                            variant="inline"
-                            inputFormat="MM/dd/yyyy"
+                            format="MM/DD/YYYY"
                             margin="normal"
                             value={dateValue}
                             onChange={onChangeDate}
-                            renderInput={(params) => <TextField {...params}/>}
                             />
                         </Grid>
                     </LocalizationProvider>
