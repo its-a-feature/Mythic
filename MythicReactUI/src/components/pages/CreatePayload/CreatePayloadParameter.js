@@ -211,7 +211,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         setDictSelectOptionsChoice(dictSelectOptionsInitial[0]);
     }
     const onChangeDate = (date) => {
-        setDateValue(date)
+        setDateValue(dayjs(date))
         onChange(name, date.toISOString().slice(0,10), "");
     }
     const toggleSwitchValue = (evt) => {
