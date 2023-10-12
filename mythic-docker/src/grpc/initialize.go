@@ -64,7 +64,6 @@ var PushC2Server pushC2Server
 
 func (t *translationContainerServer) addNewGenerateKeysClient(translationContainerName string) (chan services.TrGenerateEncryptionKeysMessage, chan services.TrGenerateEncryptionKeysMessageResponse, error) {
 	t.Lock()
-	defer t.Unlock()
 	if _, ok := t.clients[translationContainerName]; !ok {
 		t.clients[translationContainerName] = &grpcTranslationContainerClientConnections{}
 		t.clients[translationContainerName].generateKeysMessage = make(chan services.TrGenerateEncryptionKeysMessage)
@@ -77,11 +76,11 @@ func (t *translationContainerServer) addNewGenerateKeysClient(translationContain
 	msg := t.clients[translationContainerName].generateKeysMessage
 	rsp := t.clients[translationContainerName].generateKeysMessageResponse
 	t.clients[translationContainerName].connectedGenerateKeys = true
+	t.Unlock()
 	return msg, rsp, nil
 }
 func (t *translationContainerServer) addNewCustomToMythicClient(translationContainerName string) (chan services.TrCustomMessageToMythicC2FormatMessage, chan services.TrCustomMessageToMythicC2FormatMessageResponse, error) {
 	t.Lock()
-	defer t.Unlock()
 	if _, ok := t.clients[translationContainerName]; !ok {
 		t.clients[translationContainerName] = &grpcTranslationContainerClientConnections{}
 		t.clients[translationContainerName].generateKeysMessage = make(chan services.TrGenerateEncryptionKeysMessage)
@@ -94,11 +93,11 @@ func (t *translationContainerServer) addNewCustomToMythicClient(translationConta
 	msg := t.clients[translationContainerName].translateCustomToMythicFormatMessage
 	rsp := t.clients[translationContainerName].translateCustomToMythicFormatMessageResponse
 	t.clients[translationContainerName].connectedCustomToMythic = true
+	t.Unlock()
 	return msg, rsp, nil
 }
 func (t *translationContainerServer) addNewMythicToCustomClient(translationContainerName string) (chan services.TrMythicC2ToCustomMessageFormatMessage, chan services.TrMythicC2ToCustomMessageFormatMessageResponse, error) {
 	t.Lock()
-	defer t.Unlock()
 	if _, ok := t.clients[translationContainerName]; !ok {
 		t.clients[translationContainerName] = &grpcTranslationContainerClientConnections{}
 		t.clients[translationContainerName].generateKeysMessage = make(chan services.TrGenerateEncryptionKeysMessage)
@@ -111,6 +110,7 @@ func (t *translationContainerServer) addNewMythicToCustomClient(translationConta
 	msg := t.clients[translationContainerName].translateMythicToCustomFormatMessage
 	rsp := t.clients[translationContainerName].translateMythicToCustomFormatMessageResponse
 	t.clients[translationContainerName].connectedMythicToCustom = true
+	t.Unlock()
 	return msg, rsp, nil
 }
 func (t *translationContainerServer) GetGenerateKeysChannels(translationContainerName string) (chan services.TrGenerateEncryptionKeysMessage, chan services.TrGenerateEncryptionKeysMessageResponse, error) {
@@ -124,8 +124,8 @@ func (t *translationContainerServer) GetGenerateKeysChannels(translationContaine
 	return nil, nil, errors.New("no translation container by that name currently connected")
 }
 func (t *translationContainerServer) SetGenerateKeysChannelExited(translationContainerName string) {
-	t.Lock()
-	defer t.Unlock()
+	t.RLock()
+	defer t.RUnlock()
 	if _, ok := t.clients[translationContainerName]; ok {
 		t.clients[translationContainerName].connectedGenerateKeys = false
 	}
@@ -141,8 +141,8 @@ func (t *translationContainerServer) GetCustomToMythicChannels(translationContai
 	return nil, nil, errors.New("no translation container by that name currently connected")
 }
 func (t *translationContainerServer) SetCustomToMythicChannelExited(translationContainerName string) {
-	t.Lock()
-	defer t.Unlock()
+	t.RLock()
+	defer t.RUnlock()
 	if _, ok := t.clients[translationContainerName]; ok {
 		t.clients[translationContainerName].connectedCustomToMythic = false
 	}
@@ -158,20 +158,21 @@ func (t *translationContainerServer) GetMythicToCustomChannels(translationContai
 	return nil, nil, errors.New("no translation container by that name currently connected")
 }
 func (t *translationContainerServer) SetMythicToCustomChannelExited(translationContainerName string) {
-	t.Lock()
-	defer t.Lock()
+	t.RLock()
 	if _, ok := t.clients[translationContainerName]; ok {
 		t.clients[translationContainerName].connectedMythicToCustom = false
 	}
+	t.RUnlock()
 }
 func (t *translationContainerServer) CheckClientConnected(translationContainerName string) bool {
 	t.RLock()
-	defer t.RUnlock()
 	if _, ok := t.clients[translationContainerName]; ok {
+		t.RUnlock()
 		return t.clients[translationContainerName].connectedMythicToCustom &&
 			t.clients[translationContainerName].connectedGenerateKeys &&
 			t.clients[translationContainerName].connectedCustomToMythic
 	} else {
+		t.RUnlock()
 		return false
 	}
 }
@@ -190,7 +191,6 @@ func (t *pushC2Server) GetRabbitMqProcessAgentMessageChannel() chan RabbitMQProc
 }
 func (t *pushC2Server) addNewPushC2Client(CallbackAgentID int, callbackUUID string, base64Encoded bool, c2ProfileName string) (chan services.PushC2MessageFromMythic, error) {
 	t.Lock()
-	defer t.Unlock()
 	if _, ok := t.clients[CallbackAgentID]; !ok {
 		t.clients[CallbackAgentID] = &grpcPushC2ClientConnections{}
 		t.clients[CallbackAgentID].pushC2MessageFromMythic = make(chan services.PushC2MessageFromMythic, 100)
@@ -200,6 +200,7 @@ func (t *pushC2Server) addNewPushC2Client(CallbackAgentID int, callbackUUID stri
 	t.clients[CallbackAgentID].callbackUUID = callbackUUID
 	t.clients[CallbackAgentID].base64Encoded = base64Encoded
 	t.clients[CallbackAgentID].c2ProfileName = c2ProfileName
+	t.Unlock()
 	return fromMythic, nil
 }
 func (t *pushC2Server) GetPushC2ClientInfo(CallbackAgentID int) (chan services.PushC2MessageFromMythic, string, bool, string, error) {
@@ -220,8 +221,8 @@ func (t *pushC2Server) GetPushC2ClientInfo(CallbackAgentID int) (chan services.P
 	return nil, "", false, "", errors.New("no push c2 channel for that callback available")
 }
 func (t *pushC2Server) SetPushC2ChannelExited(CallbackAgentID int) {
-	t.Lock()
-	defer t.Unlock()
+	t.RLock()
+	defer t.RUnlock()
 	if _, ok := t.clients[CallbackAgentID]; ok {
 		t.clients[CallbackAgentID].connected = false
 	}
