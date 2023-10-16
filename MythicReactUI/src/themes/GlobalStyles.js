@@ -154,7 +154,6 @@ tspan {
 }
 
 .selectedTask {
-    animation: linearGradientMove .5s infinite linear;
     padding: 3px 2px 6px 3px;
     background: 
         linear-gradient(90deg, ${(props) => props.theme.palette.info.main} 50%, transparent 0) repeat-x,
@@ -163,12 +162,6 @@ tspan {
         linear-gradient(0deg, ${(props) => props.theme.palette.info.main} 50%, transparent 0) repeat-y;
     background-size: 8px 3px, 8px 3px, 3px 8px, 3px 8px;
     background-position: 0 0, 0 100%, 0 0, 100% 0; // top bottom left right
-}
-
-@keyframes linearGradientMove {
-    100% {
-        background-position: 4px 0, -4px 100%, 0 -4px, 100% 4px;
-    }
 }
 
 *::-webkit-scrollbar {
