@@ -17,30 +17,38 @@ func processAgentMessageFromPushC2() {
 	agentMessageChannel := grpc.PushC2Server.GetRabbitMqProcessAgentMessageChannel()
 	for {
 		agentMessageToProcess := <-agentMessageChannel
-		//logging.LogDebug("got new message from pushC2 channel")
-		// spin off a goroutine to handle this message and send the result back so that we can process multiple messages at once
-		go func(agentMessage grpc.RabbitMQProcessAgentMessageFromPushC2) {
-			//logging.LogDebug("about to recursively process agent message")
-			messageResponse := recursiveProcessAgentMessage(AgentMessageRawInput{
-				C2Profile:         agentMessage.C2Profile,
-				RemoteIP:          agentMessage.RemoteIP,
-				RawMessage:        agentMessage.RawMessage,
-				Base64Message:     agentMessage.Base64Message,
-				Base64Response:    agentMessage.Base64Message != nil,
-				UpdateCheckinTime: agentMessage.UpdateCheckinTime,
-			})
-			//logging.LogDebug("finished processing message, about to send response back to grpc")
-			select {
-			case agentMessageToProcess.ResponseChannel <- grpc.RabbitMQProcessAgentMessageFromPushC2Response{
-				Message:             messageResponse.Message,
-				NewCallbackUUID:     messageResponse.NewCallbackUUID,
-				OuterUuid:           messageResponse.OuterUuid,
-				OuterUuidIsCallback: messageResponse.OuterUuidIsCallback,
-				Err:                 messageResponse.Err,
-			}:
-			case <-time.After(grpc.PushC2Server.GetChannelTimeout()):
-				err := errors.New("timeout sending agent message response back to agentMessageToProcess.ResponseChannel")
-				logging.LogError(err, "not sending response back")
+		//logging.LogDebug("got new connected pushC2 channel")
+		// spin off a goroutine to handle this connection
+		go func(newConnection grpc.PushC2ServerConnected) {
+			for {
+				select {
+				case agentMessage := <-newConnection.PushC2MessagesToMythic:
+					//logging.LogDebug("about to recursively process agent message")
+					messageResponse := recursiveProcessAgentMessage(AgentMessageRawInput{
+						C2Profile:         agentMessage.C2Profile,
+						RemoteIP:          agentMessage.RemoteIP,
+						RawMessage:        agentMessage.RawMessage,
+						Base64Message:     agentMessage.Base64Message,
+						Base64Response:    agentMessage.Base64Message != nil,
+						UpdateCheckinTime: agentMessage.UpdateCheckinTime,
+					})
+					//logging.LogDebug("finished processing message, about to send response back to grpc")
+					select {
+					case agentMessage.ResponseChannel <- grpc.RabbitMQProcessAgentMessageFromPushC2Response{
+						Message:             messageResponse.Message,
+						NewCallbackUUID:     messageResponse.NewCallbackUUID,
+						OuterUuid:           messageResponse.OuterUuid,
+						OuterUuidIsCallback: messageResponse.OuterUuidIsCallback,
+						Err:                 messageResponse.Err,
+					}:
+					case <-time.After(grpc.PushC2Server.GetChannelTimeout()):
+						err := errors.New("timeout sending agent message response back to agentMessageToProcess.ResponseChannel")
+						logging.LogError(err, "not sending response back")
+					}
+				case <-newConnection.DisconnectProcessingChan:
+					logging.LogInfo("PushC2 client disconnected, exiting routine processing messages")
+					return
+				}
 			}
 			//logging.LogDebug("sent message back to grpc")
 		}(agentMessageToProcess)

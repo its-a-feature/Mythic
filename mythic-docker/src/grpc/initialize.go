@@ -27,15 +27,19 @@ type translationContainerServer struct {
 	listening          bool
 	latestError        string
 }
+type PushC2ServerConnected struct {
+	PushC2MessagesToMythic   chan RabbitMQProcessAgentMessageFromPushC2
+	DisconnectProcessingChan chan bool
+}
 type pushC2Server struct {
 	services.UnimplementedPushC2Server
 	sync.RWMutex
-	clients                     map[int]*grpcPushC2ClientConnections
-	connectionTimeout           time.Duration
-	channelSendTimeout          time.Duration
-	rabbitmqProcessAgentMessage chan RabbitMQProcessAgentMessageFromPushC2
-	listening                   bool
-	latestError                 string
+	clients                              map[int]*grpcPushC2ClientConnections
+	connectionTimeout                    time.Duration
+	channelSendTimeout                   time.Duration
+	rabbitmqProcessPushC2AgentConnection chan PushC2ServerConnected
+	listening                            bool
+	latestError                          string
 }
 
 type grpcTranslationContainerClientConnections struct {
@@ -186,8 +190,8 @@ func (t *translationContainerServer) GetChannelTimeout() time.Duration {
 	return t.channelSendTimeout
 }
 
-func (t *pushC2Server) GetRabbitMqProcessAgentMessageChannel() chan RabbitMQProcessAgentMessageFromPushC2 {
-	return t.rabbitmqProcessAgentMessage
+func (t *pushC2Server) GetRabbitMqProcessAgentMessageChannel() chan PushC2ServerConnected {
+	return t.rabbitmqProcessPushC2AgentConnection
 }
 func (t *pushC2Server) addNewPushC2Client(CallbackAgentID int, callbackUUID string, base64Encoded bool, c2ProfileName string) (chan services.PushC2MessageFromMythic, error) {
 	t.Lock()
@@ -205,27 +209,29 @@ func (t *pushC2Server) addNewPushC2Client(CallbackAgentID int, callbackUUID stri
 }
 func (t *pushC2Server) GetPushC2ClientInfo(CallbackAgentID int) (chan services.PushC2MessageFromMythic, string, bool, string, error) {
 	t.RLock()
-	defer t.RUnlock()
 	if _, ok := t.clients[CallbackAgentID]; ok {
 		if t.clients[CallbackAgentID].connected {
+			t.RUnlock()
 			return t.clients[CallbackAgentID].pushC2MessageFromMythic,
 				t.clients[CallbackAgentID].callbackUUID,
 				t.clients[CallbackAgentID].base64Encoded,
 				t.clients[CallbackAgentID].c2ProfileName,
 				nil
 		} else {
+			t.RUnlock()
 			return nil, "", false, "", errors.New("push c2 channel for that callback is no longer available")
 		}
 
 	}
+	t.RUnlock()
 	return nil, "", false, "", errors.New("no push c2 channel for that callback available")
 }
 func (t *pushC2Server) SetPushC2ChannelExited(CallbackAgentID int) {
 	t.RLock()
-	defer t.RUnlock()
 	if _, ok := t.clients[CallbackAgentID]; ok {
 		t.clients[CallbackAgentID].connected = false
 	}
+	t.RUnlock()
 }
 func (t *pushC2Server) CheckListening() (listening bool, latestError string) {
 	return t.listening, t.latestError
@@ -268,7 +274,7 @@ func Initialize() {
 	TranslationContainerServer.channelSendTimeout = channelSendTimeoutSeconds * time.Second
 	// initial for push c2 servers
 	PushC2Server.clients = make(map[int]*grpcPushC2ClientConnections)
-	PushC2Server.rabbitmqProcessAgentMessage = make(chan RabbitMQProcessAgentMessageFromPushC2, 20)
+	PushC2Server.rabbitmqProcessPushC2AgentConnection = make(chan PushC2ServerConnected, 20)
 	PushC2Server.connectionTimeout = connectionTimeoutSeconds * time.Second
 	PushC2Server.channelSendTimeout = channelSendTimeoutSeconds * time.Second
 	connectString = fmt.Sprintf("0.0.0.0:%d", utils.MythicConfig.ServerGRPCPort)

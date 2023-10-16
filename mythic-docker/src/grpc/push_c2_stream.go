@@ -33,6 +33,19 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 	var c2ProfileName string
 	var rawMessage *[]byte
 	var base64Message *[]byte
+	rabbitmqProcessAgentMessageResponseChannel := make(chan RabbitMQProcessAgentMessageFromPushC2Response, 2)
+	rabbitmqProcessAgentMessageToMythicChannel := make(chan RabbitMQProcessAgentMessageFromPushC2, 1)
+	disconnectChannel := make(chan bool)
+	newPushConnectionChannel := t.GetRabbitMqProcessAgentMessageChannel()
+	// make channel with 2 in case something happens and disconnects the client before mythic responds
+	// don't want to block mythic accidentally
+	newPushConnectionChannel <- PushC2ServerConnected{
+		PushC2MessagesToMythic:   rabbitmqProcessAgentMessageToMythicChannel,
+		DisconnectProcessingChan: disconnectChannel,
+	}
+	defer func() {
+		disconnectChannel <- true
+	}()
 	for {
 		// first get a message from stream, process it, and see what we're dealing with
 		fromAgent, err := stream.Recv()
@@ -48,10 +61,6 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 			logging.LogError(nil, "failed to get c2 profile name from c2 connection")
 			return errors.New("failed to get c2 profile name from connection")
 		}
-		rabbitmqProcessAgentMessageChannel := t.GetRabbitMqProcessAgentMessageChannel()
-		// make channel with 2 in case something happens and disconnects the client before mythic responds
-		// don't want to block mythic accidentally
-		rabbitmqProcessAgentMessageResponseChannel := make(chan RabbitMQProcessAgentMessageFromPushC2Response, 2)
 		if len(fromAgent.Message) > 0 {
 			rawMessage = &fromAgent.Message
 		} else {
@@ -62,9 +71,10 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 		} else {
 			base64Message = nil
 		}
+
 		// send the agent message along to Mythic for processing and catch response
 		select {
-		case rabbitmqProcessAgentMessageChannel <- RabbitMQProcessAgentMessageFromPushC2{
+		case rabbitmqProcessAgentMessageToMythicChannel <- RabbitMQProcessAgentMessageFromPushC2{
 			C2Profile:         c2ProfileName,
 			ResponseChannel:   rabbitmqProcessAgentMessageResponseChannel,
 			RawMessage:        rawMessage,
@@ -173,7 +183,7 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 				}
 				// send the agent message along to Mythic for processing and catch response
 				select {
-				case rabbitmqProcessAgentMessageChannel <- RabbitMQProcessAgentMessageFromPushC2{
+				case rabbitmqProcessAgentMessageToMythicChannel <- RabbitMQProcessAgentMessageFromPushC2{
 					C2Profile:       c2ProfileName,
 					ResponseChannel: rabbitmqProcessAgentMessageResponseChannel,
 					RawMessage:      rawMessage,

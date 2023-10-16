@@ -505,7 +505,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 				logging.LogError(err, "Failed to convert agent socks message to proxyFromAgentMessage struct")
 			} else {
 				//logging.LogDebug("got socks data from agent mapped into struct", "data", socksMessages)
-				go proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_SOCKS, socksMessages)
+				proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_SOCKS, socksMessages)
 			}
 		}
 		if _, ok := decryptedMessage[CALLBACK_PORT_TYPE_RPORTFWD]; ok {
@@ -514,7 +514,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 				logging.LogError(err, "Failed to convert agent socks message to proxyFromAgentMessage struct")
 			} else {
 				//logging.LogDebug("got rpfwd data from agent mapped into struct", "data", socksMessages)
-				go proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_RPORTFWD, rpfwdMessages)
+				proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_RPORTFWD, rpfwdMessages)
 			}
 		}
 		if _, ok := decryptedMessage[CALLBACK_PORT_TYPE_INTERACTIVE]; ok {
@@ -522,7 +522,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			if err = mapstructure.Decode(decryptedMessage[CALLBACK_PORT_TYPE_INTERACTIVE], &interactiveMessages); err != nil {
 				logging.LogError(err, "Failed to convert agent interactive message to agentMessagePostResponseInteractive")
 			} else {
-				go proxyPorts.SendInteractiveDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_INTERACTIVE, interactiveMessages)
+				proxyPorts.SendInteractiveDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_INTERACTIVE, interactiveMessages)
 			}
 		}
 		// regardless of the message type, get proxy data if it exists (for both socks and rpfwd)

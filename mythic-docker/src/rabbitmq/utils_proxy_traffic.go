@@ -65,7 +65,8 @@ type callbackPortUsage struct {
 }
 
 type callbackPortsInUse struct {
-	ports []*callbackPortUsage
+	ports                        []*callbackPortUsage
+	proxyFromAgentMessageChannel chan ProxyFromAgentMessageForMythic
 }
 
 var proxyPorts callbackPortsInUse
@@ -78,6 +79,12 @@ type ProxyStop struct {
 	CallbackPortId    int
 	Action            string
 	OperatorOperation databaseStructs.Operatoroperation
+}
+type ProxyFromAgentMessageForMythic struct {
+	CallbackID          int
+	PortType            CallbackPortType
+	Messages            []proxyFromAgentMessage
+	InteractiveMessages []agentMessagePostResponseInteractive
 }
 
 func ManuallyToggleProxy(input ProxyStop) ProxyStopResponse {
@@ -130,6 +137,8 @@ func ManuallyToggleProxy(input ProxyStop) ProxyStopResponse {
 func (c *callbackPortsInUse) Initialize() {
 	callbackPorts := []databaseStructs.Callbackport{}
 	c.ports = make([]*callbackPortUsage, 0)
+	c.proxyFromAgentMessageChannel = make(chan ProxyFromAgentMessageForMythic, 100)
+	go c.ListenForProxyFromAgentMessage()
 	if err := database.DB.Select(&callbackPorts, `SELECT * FROM callbackport WHERE deleted=false`); err != nil {
 		logging.LogError(err, "Failed to load callback ports from database")
 	} else {
@@ -156,6 +165,31 @@ func (c *callbackPortsInUse) Initialize() {
 				logging.LogError(err, "Failed to start listening", "port info", &newPort)
 			} else {
 				c.ports = append(c.ports, &newPort)
+			}
+		}
+	}
+}
+func (c *callbackPortsInUse) ListenForProxyFromAgentMessage() {
+	for {
+		agentMessage := <-c.proxyFromAgentMessageChannel
+		for i := 0; i < len(c.ports); i++ {
+			if c.ports[i].CallbackID == agentMessage.CallbackID && c.ports[i].PortType == agentMessage.PortType {
+				switch agentMessage.PortType {
+				case CALLBACK_PORT_TYPE_RPORTFWD:
+					fallthrough
+				case CALLBACK_PORT_TYPE_SOCKS:
+					for j := 0; j < len(agentMessage.Messages); j++ {
+						//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
+						c.ports[i].messagesFromAgent <- agentMessage.Messages[j]
+					}
+				case CALLBACK_PORT_TYPE_INTERACTIVE:
+					for j := 0; j < len(agentMessage.InteractiveMessages); j++ {
+						//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
+						c.ports[i].interactiveMessagesFromAgent <- agentMessage.InteractiveMessages[j]
+					}
+					handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
+				}
+
 			}
 		}
 	}
@@ -238,25 +272,30 @@ func (c *callbackPortsInUse) GetDataForCallbackIdPortType(callbackId int, portTy
 	return nil, nil
 }
 func (c *callbackPortsInUse) SendDataToCallbackIdPortType(callbackId int, portType CallbackPortType, messages []proxyFromAgentMessage) {
-	for i := 0; i < len(c.ports); i++ {
-		if c.ports[i].CallbackID == callbackId && c.ports[i].PortType == portType {
-			for j := 0; j < len(messages); j++ {
-				//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
-				c.ports[i].messagesFromAgent <- messages[j]
-			}
-		}
+	c.proxyFromAgentMessageChannel <- ProxyFromAgentMessageForMythic{
+		CallbackID: callbackId,
+		PortType:   portType,
+		Messages:   messages,
 	}
 }
 func (c *callbackPortsInUse) SendInteractiveDataToCallbackIdPortType(callbackId int, portType CallbackPortType, messages []agentMessagePostResponseInteractive) {
-	for i := 0; i < len(c.ports); i++ {
-		if c.ports[i].CallbackID == callbackId && c.ports[i].PortType == portType {
-			for j := 0; j < len(messages); j++ {
-				//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
-				c.ports[i].interactiveMessagesFromAgent <- messages[j]
+	c.proxyFromAgentMessageChannel <- ProxyFromAgentMessageForMythic{
+		CallbackID:          callbackId,
+		PortType:            portType,
+		InteractiveMessages: messages,
+	}
+	/*
+		for i := 0; i < len(c.ports); i++ {
+			if c.ports[i].CallbackID == callbackId && c.ports[i].PortType == portType {
+				for j := 0; j < len(messages); j++ {
+					//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
+					c.ports[i].interactiveMessagesFromAgent <- messages[j]
+				}
 			}
 		}
-	}
-	go handleAgentMessagePostResponseInteractiveOutput(&messages)
+		go handleAgentMessagePostResponseInteractiveOutput(&messages)
+
+	*/
 }
 func (c *callbackPortsInUse) GetOtherCallbackIds(callbackId int) []int {
 	callbackIds := []int{}
