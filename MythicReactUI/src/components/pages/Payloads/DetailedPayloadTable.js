@@ -125,6 +125,28 @@ export function DetailedPayloadTable(props){
         )
 }
 
+const parseForDisplay = (cmd) => {
+    if(cmd.parameter_type === "Dictionary") {
+        try{
+            let parsedValue = JSON.parse(cmd.value);
+            return JSON.stringify(parsedValue, null, 2);
+        }catch(error){
+            console.log("Failed to parse parameter value as dictionary", cmd.value, error)
+            return cmd.value;
+        }
+    }else if(cmd.parameter_type === "Array" || cmd.parameter_type === "ChooseMultiple") {
+        try{
+            let parsedValue = JSON.parse(cmd.value);
+            return parsedValue.map(c => c+"\n");
+        }catch(error){
+            console.log("Failed to parse parameter value as array or choose multiple", cmd.value, error)
+            return cmd.value;
+        }
+    } else {
+        return cmd.value;
+    }
+}
+
 function DetailedPayloadInnerTable(props){
     const me = props.me
     const theme = useTheme();
@@ -341,15 +363,7 @@ function DetailedPayloadInnerTable(props){
                         <TableRow key={"buildprop" + i + "for" + props.payload_id} hover>
                             <TableCell>{cmd.description}</TableCell>
                             <TableCell>
-                              {
-                                cmd.parameter_type === "Dictionary" ? (
-                                    JSON.stringify(JSON.parse(cmd.value), null, 2)
-                                ) : (
-                                  cmd.parameter_type === "Array" || cmd.parameter_type === "ChooseMultiple" ? (
-                                    JSON.parse(cmd.value).map(c => c + "\n")
-                                  ): (cmd.value)
-                                )
-                              }
+                                {parseForDisplay(cmd)}
                                   {cmd.enc_key === null ? null : (<React.Fragment>
                                     <br/><b>Encryption Key: </b> {cmd.enc_key}
                                   </React.Fragment>) }
@@ -411,15 +425,7 @@ function DetailedPayloadInnerTable(props){
                                     <TableRow key={"c2frag" + props.payload_id + c2.c2_profile + j} hover>
                                         <TableCell>{cmd.description}</TableCell>
                                         <TableCell>
-                                        {
-                                          cmd.parameter_type === "Dictionary" ? (
-                                              JSON.stringify(JSON.parse(cmd.value), null, 2)
-                                          ) : (
-                                            cmd.parameter_type === "Array" || cmd.parameter_type === "ChooseMultiple" ? (
-                                              JSON.parse(cmd.value).map(c => c + "\n")
-                                            ): (cmd.value)
-                                          )
-                                        }
+                                            {parseForDisplay(cmd)}
                                           {cmd.enc_key === null ? (null) : (<React.Fragment>
                                             <br/><b>Encryption Key: </b> {cmd.enc_key}
                                           </React.Fragment>) }
