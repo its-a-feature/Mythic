@@ -16,7 +16,7 @@ require (
 	github.com/rubenv/sql-migrate v1.5.2
 	github.com/spf13/viper v1.16.0
 	golang.org/x/mod v0.12.0
-	google.golang.org/grpc v1.58.2
+	google.golang.org/grpc v1.58.3
 	google.golang.org/protobuf v1.31.0
 )
 
