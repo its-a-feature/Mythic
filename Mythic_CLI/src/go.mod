@@ -3,7 +3,7 @@ module github.com/MythicMeta/Mythic_CLI
 go 1.18
 
 require (
-	github.com/docker/docker v24.0.1+incompatible
+	github.com/docker/docker v24.0.7+incompatible
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
 	github.com/streadway/amqp v1.0.0
