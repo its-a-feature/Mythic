@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/new/static/css/main.00d51b79.css",
-    "main.js": "/new/static/js/main.5566d47f.js",
-    "static/media/mythic.svg": "/new/static/media/mythic.7189479fdfbd51ae729872ce2cb98784.svg",
+    "main.js": "/new/static/js/main.f0710f31.js",
+    "static/media/mythic@2x.png": "/new/static/media/mythic@2x.7c5b62b471ac779fd706.png",
     "static/media/mythic_red_small.svg": "/new/static/media/mythic_red_small.793b41cc7135cdede246661ec232976b.svg",
     "index.html": "/new/index.html",
     "main.00d51b79.css.map": "/new/static/css/main.00d51b79.css.map",
-    "main.5566d47f.js.map": "/new/static/js/main.5566d47f.js.map"
+    "main.f0710f31.js.map": "/new/static/js/main.f0710f31.js.map"
   },
   "entrypoints": [
     "static/css/main.00d51b79.css",
-    "static/js/main.5566d47f.js"
+    "static/js/main.f0710f31.js"
   ]
 }

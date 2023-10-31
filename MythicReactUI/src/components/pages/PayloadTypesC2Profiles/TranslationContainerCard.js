@@ -1,5 +1,5 @@
 import React from 'react';
-import makeStyles from '@mui/styles/makeStyles';
+import { styled } from '@mui/material/styles';
 import Card from '@mui/material/Card';
 import Typography from '@mui/material/Typography';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -13,30 +13,48 @@ import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
+const PREFIX = 'TranslationContainerCard';
+
+const classes = {
+  root: `${PREFIX}-root`,
+  expand: `${PREFIX}-expand`,
+  expandOpen: `${PREFIX}-expandOpen`,
+  running: `${PREFIX}-running`,
+  notrunning: `${PREFIX}-notrunning`
+};
+
+const StyledCard = styled(Card)((
+  {
+    theme
+  }
+) => ({
+  [`&.${classes.root}`]: {
     width: "100%",
     display: "flex",
     marginBottom: "10px"
   },
-  expand: {
+
+  [`& .${classes.expand}`]: {
     transform: 'rotate(0deg)',
     marginLeft: 'auto',
     transition: theme.transitions.create('transform', {
       duration: theme.transitions.duration.shortest,
     }),
   },
-  expandOpen: {
+
+  [`& .${classes.expandOpen}`]: {
     transform: 'rotate(180deg)',
   },
-  running: {
+
+  [`& .${classes.running}`]: {
     backgroundColor: '#44b700',
     color: '#44b700',
   },
-  notrunning: {
+
+  [`& .${classes.notrunning}`]: {
     backgroundColor: 'red',
     color: 'red',
-  },
+  }
 }));
 
 const toggleDeleteStatus = gql`
@@ -49,7 +67,7 @@ mutation toggleC2ProfileDeleteStatus($translationcontainer_id: Int!, $deleted: B
 
 export function TranslationContainerCard(props) {
   const theme = useTheme();
-  const classes = useStyles();
+
   const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [updateDeleted] = useMutation(toggleDeleteStatus, {
       onCompleted: data => {
@@ -68,7 +86,7 @@ export function TranslationContainerCard(props) {
       setOpenDeleteDialog(false);
     }
   return (
-    <Card className={classes.root} elevation={5}>
+    <StyledCard className={classes.root} elevation={5}>
         <FontAwesomeIcon icon={faLanguage} style={{width: "100px", height: "100px"}} />
         <div>
           <Typography variant="h4" component="h1" style={{textAlign:"left", marginLeft: "10px"}}>{props.name}</Typography>
@@ -106,6 +124,6 @@ export function TranslationContainerCard(props) {
                 acceptColor={props.deleted ? "success": "error"} />
             }
         </div>
-    </Card>
+    </StyledCard>
   );
 }

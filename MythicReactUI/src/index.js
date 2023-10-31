@@ -15,7 +15,7 @@ import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 
 export const mythicVersion = "3.1.5";
-export const mythicUIVersion = "0.1.23";
+export const mythicUIVersion = "0.1.24";
 
 let fetchingNewToken = false;
 
@@ -221,35 +221,43 @@ export const GetNewToken = async () =>{
       body: JSON.stringify({"refresh_token": localStorage.getItem("refresh_token"),
         "access_token": localStorage.getItem("access_token")})
   };
-  const response = await fetch('/refresh', requestOptions);
-  if (response.ok) {
-      return response.json().then(data => {
-          //console.log(data)
-          if("access_token" in data){
-              successfulRefresh(data);
-              console.log("successfully got new access_token");
-              fetchingNewToken = false;
-              return true;
-          }else{
-              console.log("calling FailedRefresh from GetNewToken call");
+  try{
+      const response = await fetch('/refresh', requestOptions);
+      if (response.ok) {
+          return response.json().then(data => {
+              //console.log(data)
+              if("access_token" in data){
+                  successfulRefresh(data);
+                  console.log("successfully got new access_token");
+                  fetchingNewToken = false;
+                  return true;
+              }else{
+                  console.log("calling FailedRefresh from GetNewToken call");
+                  FailedRefresh();
+                  fetchingNewToken = false;
+                  return false;
+              }
+          }).catch(error => {
+              console.log("Error trying to get json response in GetNewToken", error);
+              console.log(response);
               FailedRefresh();
               fetchingNewToken = false;
               return false;
-          }
-      }).catch(error => {
-          console.log("Error trying to get json response in GetNewToken", error);
-          console.log(response);
+          });
+      } else if(response.status === 403) {
           FailedRefresh();
           fetchingNewToken = false;
           return false;
-      });
-  } else if(response.status === 403) {
+      } else {
+          return true
+      }
+  }catch(error){
+      console.log(error);
       FailedRefresh();
       fetchingNewToken = false;
       return false;
-  } else {
-      return true
   }
+
 
 }
 const websocketAddress = () =>{

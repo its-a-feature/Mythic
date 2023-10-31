@@ -1,4 +1,5 @@
 import React from 'react';
+import { styled } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -10,7 +11,38 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import ListItemText from '@mui/material/ListItemText';
-import makeStyles from '@mui/styles/makeStyles';
+const PREFIX = 'CredentialTableNewCredentialDialog';
+
+const classes = {
+  formControl: `${PREFIX}-formControl`,
+  chips: `${PREFIX}-chips`,
+  chip: `${PREFIX}-chip`,
+  noLabel: `${PREFIX}-noLabel`
+};
+
+const Root = styled('div')((
+  {
+    theme
+  }
+) => ({
+  [`& .${classes.formControl}`]: {
+    margin: theme.spacing(1),
+    width: "100%",
+  },
+
+  [`& .${classes.chips}`]: {
+    display: 'flex',
+    flexWrap: 'wrap',
+  },
+
+  [`& .${classes.chip}`]: {
+    margin: 2,
+  },
+
+  [`& .${classes.noLabel}`]: {
+    marginTop: theme.spacing(2),
+  }
+}));
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -24,22 +56,6 @@ const MenuProps = {
   variant: "menu",
   getContentAnchorEl: () => null
 };
-const useStyles = makeStyles((theme) => ({
-  formControl: {
-    margin: theme.spacing(1),
-    width: "100%",
-  },
-  chips: {
-    display: 'flex',
-    flexWrap: 'wrap',
-  },
-  chip: {
-    margin: 2,
-  },
-  noLabel: {
-    marginTop: theme.spacing(2),
-  },
-}));
 
 export function CredentialTableNewCredentialDialog(props) {
   const [credentialType, setCredentialType] = React.useState("plaintext");
@@ -50,7 +66,7 @@ export function CredentialTableNewCredentialDialog(props) {
   const [realm, setRealm] = React.useState("");
   const [credential, setCredential] = React.useState("");
   const [comment, setComment] = React.useState("");
-  const classes = useStyles();
+
 
   const onSubmit = () => {
     props.onSubmit({
@@ -78,7 +94,7 @@ export function CredentialTableNewCredentialDialog(props) {
     setCredentialType(event.target.value);
   }
   return (
-    <React.Fragment>
+    <Root>
         <DialogTitle id="form-dialog-title">Register New Credential</DialogTitle>
         <DialogContent dividers={true}>
             <React.Fragment>
@@ -114,7 +130,7 @@ export function CredentialTableNewCredentialDialog(props) {
             Create
           </Button>
         </DialogActions>
-  </React.Fragment>
+  </Root>
   );
 }
 

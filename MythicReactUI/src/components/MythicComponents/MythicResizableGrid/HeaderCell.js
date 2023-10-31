@@ -1,7 +1,7 @@
 import { Box, Typography } from '@mui/material';
 import { useCallback } from 'react';
 import useSingleAndDoubleClick from '../../utilities/useSingleAndDoubleClick';
-import useStyles from './styles';
+import {classes} from './styles';
 import React from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faFilter} from '@fortawesome/free-solid-svg-icons';
@@ -22,7 +22,6 @@ const HeaderCell = ({
     headerNameKey = "name",
     VariableSizeGridProps: { style, rowIndex, columnIndex, data },
 }) => {
-    const classes = useStyles();
     const dropdownAnchorRef = React.useRef(null);
     const theme = useTheme();
     const item = data.items[rowIndex][columnIndex];

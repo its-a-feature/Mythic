@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import makeStyles from '@mui/styles/makeStyles';
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
 import { CallbacksTabsTaskingLabel, CallbacksTabsTaskingPanel } from './CallbacksTabsTasking';
@@ -7,13 +6,8 @@ import { CallbacksTabsFileBrowserLabel, CallbacksTabsFileBrowserPanel } from './
 import { CallbacksTabsProcessBrowserLabel, CallbacksTabsProcessBrowserPanel } from './CallbacksTabsProcessBrowser';
 import { CallbacksTabsTaskingSplitLabel, CallbacksTabsTaskingSplitPanel} from "./CallbacksTabsTaskingSplit";
 
-const useStyles = makeStyles((theme) => ({
-    root: {
-        width: '100%',
-    },
-}));
 export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, onEditTabDescription, contextMenuOptions, me}) {
-    const classes = useStyles();
+
     const mountedRef = React.useRef(true);
     const [value, setValue] = React.useState(0);
     const handleChange = (event, newValue) => {
@@ -47,7 +41,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, o
     }, [clickedTabId, openTabs]);
     
     return (
-        <div className={classes.root} style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, height: "100%" }}>
+        <div style={{width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1, height: "100%" }}>
             <AppBar color='default' position='static'>
                 <Tabs
                     value={value}

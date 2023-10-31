@@ -1,4 +1,5 @@
 import React, {useEffect} from 'react';
+import { styled } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -12,11 +13,43 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import ListItemText from '@mui/material/ListItemText';
-import makeStyles from '@mui/styles/makeStyles';
 import Checkbox from '@mui/material/Checkbox';
 import {useQuery, gql } from '@apollo/client';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
+
+const PREFIX = 'CallbacksTabsTaskingFilterDialog';
+
+const classes = {
+  formControl: `${PREFIX}-formControl`,
+  chips: `${PREFIX}-chips`,
+  chip: `${PREFIX}-chip`,
+  noLabel: `${PREFIX}-noLabel`
+};
+
+const Root = styled('div')((
+  {
+    theme
+  }
+) => ({
+  [`& .${classes.formControl}`]: {
+    margin: theme.spacing(1),
+    width: "100%",
+  },
+
+  [`& .${classes.chips}`]: {
+    display: 'flex',
+    flexWrap: 'wrap',
+  },
+
+  [`& .${classes.chip}`]: {
+    margin: 2,
+  },
+
+  [`& .${classes.noLabel}`]: {
+    marginTop: theme.spacing(2),
+  }
+}));
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -30,22 +63,6 @@ const MenuProps = {
   variant: "menu",
   getContentAnchorEl: () => null
 };
-const useStyles = makeStyles((theme) => ({
-  formControl: {
-    margin: theme.spacing(1),
-    width: "100%",
-  },
-  chips: {
-    display: 'flex',
-    flexWrap: 'wrap',
-  },
-  chip: {
-    margin: 2,
-  },
-  noLabel: {
-    marginTop: theme.spacing(2),
-  },
-}));
 const operatorQuery = gql`
 query operatorQuery($operation_id: Int!) {
   operation_by_pk(id: $operation_id) {
@@ -65,7 +82,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
   const [everythingBut, setEverythingBut] = React.useState([]);
   const [onlyParameters, setOnlyParameters] = React.useState("");
   const [commandOptions, setCommandOptions] = React.useState([]);
-  const classes = useStyles();
+
   useQuery(operatorQuery, {variables: {operation_id: me.user.current_operation_id},
     onCompleted: (data) => {
       setOperatorUsernames(data.operation_by_pk.operators.map( (op) => op.username));
@@ -124,7 +141,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
     }
   }
   return (
-    <React.Fragment>
+    <Root>
         <DialogTitle id="form-dialog-title">Filter Which Tasks Are Visible</DialogTitle>
         <DialogContent dividers={true} style={{overflow: "hidden"}}>
             <React.Fragment>
@@ -218,7 +235,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
             Filter
           </Button>
         </DialogActions>
-  </React.Fragment>
+  </Root>
   );
 }
 

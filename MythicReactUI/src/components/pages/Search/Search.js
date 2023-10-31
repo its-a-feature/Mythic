@@ -1,7 +1,7 @@
 import React from 'react';
+import { styled } from '@mui/material/styles';
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
-import makeStyles from '@mui/styles/makeStyles';
 import {useNavigate} from 'react-router-dom';
 import {SearchTabTasksLabel, SearchTabTasksPanel} from './SearchTabTasks';
 import {SearchTabFilesLabel, SearchTabFilesPanel} from './SearchTabFiles';
@@ -14,15 +14,25 @@ import {SearchTabSocksLabel, SearchTabSocksPanel} from './SearchTabSocks';
 import {SearchTabProcessesLabel, SearchTabProcessPanel} from "./SearchTabProcesses";
 import {SearchTabTagsLabel, SearchTabTagsPanel} from "./SearchTabTags";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
+const PREFIX = 'Search';
+
+const classes = {
+  root: `${PREFIX}-root`
+};
+
+const Root = styled('div')((
+  {
+    theme
+  }
+) => ({
+  [`&.${classes.root}`]: {
     width: "100%",
     backgroundColor: theme.palette.background.paper,
-  },
+  }
 }));
 
 export function Search(props){
-  const classes = useStyles();
+
   const navigate = useNavigate();
   const tabTypes = ["callbacks", "tasks", "files", "credentials", "keylogs", "artifacts", "tokens", "socks", "processes", "tags"];
   var params = new URLSearchParams(window.location.search);
@@ -42,7 +52,7 @@ export function Search(props){
       navigate(newRelativePathQuery);
     }
     return (
-      <div className={classes.root} style={{  height: "100%", display: "flex", flexDirection: "column"}}>
+      <Root className={classes.root} style={{  height: "100%", display: "flex", flexDirection: "column"}}>
           <AppBar position="static" color="default">
             <Tabs
               value={value}
@@ -111,6 +121,6 @@ export function Search(props){
               }
             })
           }
-      </div>
-    )
+      </Root>
+    );
 } 

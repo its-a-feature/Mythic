@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.24] - 2023-10-31
+
+### Changed
+
+- Fixed an issue where hitting enter from a popup modal would add an extra newline to the tasking field
+- Upgraded various react components 
+
 ## [0.1.23] - 2023-10-20
 
 ### Changed

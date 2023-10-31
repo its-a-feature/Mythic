@@ -7,6 +7,7 @@ import Select from '@mui/material/Select';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
 import Typography from '@mui/material/Typography';
 import { snackActions } from '../../utilities/Snackbar';
+import MenuItem from '@mui/material/MenuItem';
 
 
 const GET_Payload_Types = gql`
@@ -73,13 +74,12 @@ export function Step1SelectOS(props){
         
         <FormControl>
             <Select
-              native
               value={os}
               onChange={evt => setOS(evt.target.value)}
             >
             {
                 osOptions.map((opt) => (
-                    <option key={"step1" + opt} value={opt}>{opt}</option>
+                    <MenuItem key={"step1" + opt} value={opt}>{opt}</MenuItem>
                 ))
             }
             </Select>

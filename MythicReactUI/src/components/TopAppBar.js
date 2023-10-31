@@ -1,7 +1,7 @@
 import React from 'react';
+import { styled } from '@mui/material/styles';
 import clsx from 'clsx';
 import { useTheme } from '@mui/material/styles';
-import makeStyles from '@mui/styles/makeStyles';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
@@ -58,37 +58,31 @@ import StorageIcon from '@mui/icons-material/Storage';
 import PublicIcon from '@mui/icons-material/Public';
 
 
-const drawerWidth = 240;
+const PREFIX = 'TopAppBar';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    width: "100%",
-  },
-  title: {
-    flexGrow: 1,
-  },
-  hide: {
+const classes = {
+  root: `${PREFIX}-root`,
+  title: `${PREFIX}-title`,
+  hide: `${PREFIX}-hide`,
+  drawer: `${PREFIX}-drawer`,
+  drawerPaper: `${PREFIX}-drawerPaper`,
+  drawerHeader: `${PREFIX}-drawerHeader`,
+  listSubHeader: `${PREFIX}-listSubHeader`,
+  appBar: `${PREFIX}-appBar`,
+  appBarShift: `${PREFIX}-appBarShift`,
+  nested: `${PREFIX}-nested`,
+  mythicElement: `${PREFIX}-mythicElement`
+};
+
+const StyledAppBar = styled(AppBar)((
+  {
+    theme
+  }
+) => ({
+  [`& .${classes.hide}`]: {
     display: 'none',
   },
-  drawer: {
-    width: drawerWidth,
-    flexShrink: 0,
-  },
-  drawerPaper: {
-    width: drawerWidth,
-  },
-  drawerHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: theme.spacing(0, 1),
-    // necessary for content to be below app bar
-    ...theme.mixins.toolbar,
-    justifyContent: 'flex-end',
-  },
-  listSubHeader: {
-    backgroundColor: theme.palette.listSubHeader.default
-  },
-  appBar: {
+  [`&.${classes.appBar}`]: {
     width: "100%",
     backgroundColor: theme.topAppBarColor,
     transition: theme.transitions.create(['margin', 'width'], {
@@ -96,7 +90,7 @@ const useStyles = makeStyles((theme) => ({
       duration: theme.transitions.duration.leavingScreen,
     }),
   },
-  appBarShift: {
+  [`&.${classes.appBarShift}`]: {
     maxWidth: `calc(100% - ${drawerWidth}px)`,
     marginLeft: drawerWidth,
     transition: theme.transitions.create(['margin', 'width'], {
@@ -104,15 +98,47 @@ const useStyles = makeStyles((theme) => ({
       duration: theme.transitions.duration.enteringScreen,
     }),
   },
-  nested: {
+}));
+const StyledDrawer = styled(Drawer)((
+    {
+      theme
+    }
+) => ({
+  [`& .${classes.title}`]: {
+    flexGrow: 1,
+  },
+
+  [`&.${classes.drawer}`]: {
+    width: drawerWidth,
+    flexShrink: 0,
+  },
+
+  [`& .${classes.drawerPaper}`]: {
+    width: drawerWidth,
+  },
+
+  [`& .${classes.drawerHeader}`]: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(0, 1),
+    justifyContent: 'flex-end',
+  },
+
+  [`& .${classes.listSubHeader}`]: {
+    backgroundColor: theme.palette.listSubHeader.default
+  },
+
+  [`& .${classes.nested}`]: {
     paddingLeft: theme.spacing(4),
   },
-  mythicElement: {},
 }));
+
+
+const drawerWidth = 240;
 
 export function TopAppBar(props) {
   const theme = useTheme();
-  const classes = useStyles(theme);
+
   const feedbackRef = React.useRef(null);
   const settingsRef = React.useRef(null);
   const documentationRef = React.useRef(null);
@@ -166,16 +192,15 @@ export function TopAppBar(props) {
   }
 
   return (
-    <React.Fragment >
-
-      {me?.user?.current_operation_id ? (<EventFeedNotifications me={me} />) : (null) }
-      <AppBar className={clsx(classes.appBar, {[classes.appBarShift]: isOpen,})}>
+    <>
+      {me?.user?.current_operation_id ? (<EventFeedNotifications me={me} />) : null }
+      <StyledAppBar className={clsx(classes.appBar, {[classes.appBarShift]: isOpen,})}>
         
         { me?.loggedIn ? (
         <Toolbar variant="dense" >
             <IconButton
               edge="start"
-              className={clsx(classes.menuButton, isOpen && classes.hide)}
+              className={clsx(isOpen && classes.hide)}
               color="inherit"
               aria-label="menu"
               onClick={handleDrawerOpen}
@@ -359,8 +384,8 @@ export function TopAppBar(props) {
         </Toolbar>
           ) : null
         } 
-      </AppBar>
-      <Drawer
+      </StyledAppBar>
+      <StyledDrawer
             className={classes.drawer}
             anchor="left"
             open={isOpen}
@@ -509,8 +534,8 @@ export function TopAppBar(props) {
               </ListItem>
               </List>
         
-      </Drawer>
-    </React.Fragment>
+      </StyledDrawer>
+    </>
   );
 }
 

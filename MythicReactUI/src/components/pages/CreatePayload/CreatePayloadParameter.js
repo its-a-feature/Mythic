@@ -15,7 +15,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
 import dayjs from 'dayjs';
 import Switch from '@mui/material/Switch';
-import TextField from '@mui/material/TextField';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import Paper from '@mui/material/Paper';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
@@ -298,13 +297,12 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 return (
                     <FormControl>
                         <Select
-                          native
                           value={value}
                           onChange={onChangeValue}
                         >
                         {
                             chooseOptions.map((opt, i) => (
-                                <option key={"buildparamopt" + i} value={opt}>{opt}</option>
+                                <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
                             ))
                         }
                         </Select>
@@ -314,14 +312,13 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 return (
                     <FormControl>
                         <Select
-                            native
                             value={multiValue}
                             multiple={true}
                             onChange={onChangeMultValue}
                         >
                         {
                             chooseOptions.map((opt, i) => (
-                                <option key={"buildparamopt" + i} value={opt}>{opt}</option>
+                                <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
                             ))
                         }
                         </Select>
@@ -369,14 +366,14 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                             <div style={{display: "inline-flex", alignItems: "center", width: "100%"}}>
                                                 <FormControl style={{width: "30%"}}>
                                                     <Select
-                                                        native
+
                                                         value={a[0]}
                                                         onChange={(e) => onChangeTypedArrayChoice(e, i)}
                                                         input={<Input />}
                                                     >
                                                         {
                                                             choices.map((opt, i) => (
-                                                                <option key={name + i} value={opt}>{opt}</option>
+                                                                <MenuItem key={name + i} value={opt}>{opt}</MenuItem>
                                                             ))
                                                         }
                                                     </Select>
@@ -421,7 +418,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                 </Select>
                                 
                             </div>
-                        ) : (null) 
+                        ) : null
                         }
                     </React.Fragment>
                 );

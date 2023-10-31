@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import makeStyles from '@mui/styles/makeStyles';
+import { styled } from '@mui/material/styles';
 import Card from '@mui/material/Card';
 import CardMedia from '@mui/material/CardMedia';
 import CardContent from '@mui/material/CardContent';
@@ -18,12 +18,22 @@ import BuildIcon from '@mui/icons-material/Build';
 import {gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
+const PREFIX = 'PayloadTypeCard';
+
+const classes = {
+  root: `${PREFIX}-root`
+};
+
+const StyledCard = styled(Card)((
+  {
+    theme
+  }
+) => ({
+  [`&.${classes.root}`]: {
     width: "100%",
     display: "flex",
     marginBottom: "10px"
-  },
+  }
 }));
 
 const toggleDeleteStatus = gql`
@@ -35,7 +45,7 @@ mutation togglePayloadTypeDeleteStatus($payloadtype_id: Int!, $deleted: Boolean!
 `;
 
 export function PayloadTypeCard(props) {
-  const classes = useStyles();
+
   const theme = useTheme();
   const [wrappedPayloads, setWrappedPayloads] = React.useState("");
   const [openBuildingDialog, setOpenBuildingDialog] = React.useState(false);
@@ -70,7 +80,7 @@ export function PayloadTypeCard(props) {
     setSupportedOS(props.supported_os.join(", "));
   }, [props.wrap_these_payload_types, props.supported_os]);
   return (
-    <Card className={classes.root} elevation={5} >
+    <StyledCard className={classes.root} elevation={5} >
           <CardMedia
             className={classes.media}
             component="img"
@@ -144,6 +154,6 @@ export function PayloadTypeCard(props) {
                 />}
               
           </div>
-    </Card>
+    </StyledCard>
   );
 }

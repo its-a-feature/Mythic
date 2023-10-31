@@ -76,6 +76,18 @@ tspan {
     white-space: nowrap;
     max-width: none;
 }
+.MuiSpeedDialAction-fab {
+    background-color: ${(props) => props.theme.palette.speedDialAction};
+}
+.MuiTooltip-tooltip {
+    background-color: ${(props) => props.theme.palette.background.contrast};
+    color: ${(props) => props.theme.palette.text.contrast};
+    box-shadow: ${(props) => props.theme.shadows[1]};
+    font-size: 13px;
+}
+.MuiTooltip-arrow {
+    color: ${(props) => props.theme.palette.background.contrast};
+}
 .MuiTreeItem-root.Mui-selected > .MuiTreeItem-content .MuiTreeItem-label{
     background-color: transparent;
 }
@@ -173,5 +185,69 @@ tspan {
 }
 *::-webkit-scrollbar-thumb {
   background-color: ${(props) => props.theme.palette.primary.main};
+}
+.MythicResizableGrid-headerCellRow {
+    display: flex;
+    flex-direction: row;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+}
+.MythicResizableGrid-headerCell {
+    display: flex;
+    align-items: center;
+    padding: 0 0.25em;
+    box-sizing: border-box;
+    justify-content: space-between;
+    user-select: none;
+    background-color: ${(props) => props.theme.palette.background.paper};
+    border-top: 1px solid ${(props) => props.theme.tableHover};
+    border-right: 1px solid ${(props) => props.theme.tableHover};
+    border-bottom: 1px solid  ${(props) => props.theme.tableHover};
+    &:first-child-of-type {
+        border-left: 1px solid ${(props) => props.theme.tableHover};
+    }
+    &:hover {
+        background-color: ${(props) => props.theme.tableHover};
+        cursor: pointer;
+    }
+}
+.MythicResizableGrid-hoveredRow {
+    background-color: ${(props) => props.theme.tableHover};
+}
+.MythicResizableGrid-cell {
+    display: flex;
+    align-items: center;
+    padding: 0 0.5em;
+    box-sizing: border-box;
+    font-family: monospace;
+    border-bottom: 1px solid  ${(props) => props.theme.tableHover};
+    cursor: default !important;
+}
+.MythicResizableGrid-cellInner {
+    width: 100%;
+    white-space: nowrap;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+}
+.MythicResizableGrid-draggableHandlesContainer {
+    position: absolute;
+    top: 0;
+    overflow-x: hidden;
+}
+.MythicResizableGrid-draggableHandlesClickArea {
+    position: absolute;
+    width: 16px;
+    cursor: col-resize;
+    pointer-events: initial;
+}
+.MythicResizableGrid-draggableHandlesIndicator {
+    position: absolute;
+    top: 0;
+    left: 8;
+    width: 1px;
+    backgroundImage: linear-gradient(#7f93c0, #00000000);
 }
 `

@@ -1,10 +1,10 @@
 import React from 'react';
+import { styled } from '@mui/material/styles';
 import {useQuery, gql} from '@apollo/client';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
-import makeStyles from '@mui/styles/makeStyles';
 import { snackActions } from '../../utilities/Snackbar';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -21,20 +21,34 @@ import InfoIcon from '@mui/icons-material/Info';
 import IconButton from '@mui/material/IconButton';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
+const PREFIX = 'Step3SelectPayload';
+
+const classes = {
+  root: `${PREFIX}-root`,
+  paper: `${PREFIX}-paper`,
+  button: `${PREFIX}-button`
+};
+
+const Root = styled('div')((
+  {
+    theme
+  }
+) => ({
+  [`& .${classes.root}`]: {
     margin: 'auto',
     width: "100%"
   },
-  paper: {
+
+  [`& .${classes.paper}`]: {
     width: 200,
     height: 230,
     overflow: 'auto',
 
   },
-  button: {
+
+  [`& .${classes.button}`]: {
     margin: theme.spacing(0.5, 0),
-  },
+  }
 }));
 
 const GET_Payload_Types = gql`
@@ -98,14 +112,14 @@ export function Step3SelectPayload(props){
           canceled={canceled} finished={finished}/>
         </div>
     );
-} 
+}
 
 function PayloadSelect(props) {
   const finished = (payload) => {
     props.finished(payload);
   }
 return (
-  <React.Fragment>
+  <Root>
       <TableContainer component={Paper}>
             <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
@@ -133,7 +147,7 @@ return (
            <CreatePayloadNavigationButtons disableNext first={props.first} last={props.last} canceled={props.canceled} finished={finished} />
         </div>
       
-  </React.Fragment>
+  </Root>
 );
 }
 

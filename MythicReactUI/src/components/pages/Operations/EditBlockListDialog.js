@@ -3,7 +3,6 @@ import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import makeStyles from '@mui/styles/makeStyles';
 import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -13,32 +12,16 @@ import Checkbox from '@mui/material/Checkbox';
 import Paper from '@mui/material/Paper';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
-import CardContent from '@mui/material/CardContent'
-import Divider from '@mui/material/Divider';
+import CardContent from '@mui/material/CardContent';
 import {useQuery, gql} from '@apollo/client';
 import {useTheme} from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import { snackActions } from '../../utilities/Snackbar';
-
-const useStyles = makeStyles((theme) => ({
-  root: {
-    margin: 'auto',
-  },
-  paper: {
-    overflow: 'auto',
-  },
-  button: {
-    margin: theme.spacing(0.5, 0),
-  },
-  divider: {
-    backgroundColor: "rgb(100, 170, 204)",
-    border: "2px solid rgba(100, 170, 204)"
-  }
-}));
+import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
 
 function PayloadTypeBlockListPreMemo(props){
-    const classes = useStyles();
+
     const theme = useTheme();
     const [checked, setChecked] = React.useState([]);
     const [left, setLeft] = React.useState([]);
@@ -121,12 +104,11 @@ function PayloadTypeBlockListPreMemo(props){
       <Paper style={{width:"100%", marginTop:"5px"}}>
         <Card>
           <CardHeader
-            className={classes.paper}
             title={title}
           />
-          <Divider classes={{root: classes.divider}}/>
-          <CardContent style={{height: "calc(30vh)", overflow: "auto"}} className={classes.paper}>
-            <List dense component="div" role="list" style={{padding:0}} className={classes.paper}>
+          <StyledDivider classes={{root: classes.divider}}/>
+          <CardContent style={{height: "calc(30vh)", overflow: "auto"}} >
+            <List dense component="div" role="list" style={{padding:0}} >
               {items.map((valueObj) => {
                 const value = props.itemKey === undefined ? valueObj : valueObj[props.itemKey];
                 const labelId = `transfer-list-item-${value}-label`;
@@ -162,8 +144,8 @@ function PayloadTypeBlockListPreMemo(props){
       <Grid item xs={5}>{customList(leftTitle, left)}</Grid>
       <Grid item>
         <Grid container direction="column" alignItems="center">
-          <Button
-            variant="outlined"
+          <StyledButton
+            variant="contained"
             size="small"
             className={classes.button}
             onClick={handleAllRight}
@@ -171,9 +153,9 @@ function PayloadTypeBlockListPreMemo(props){
             aria-label="move all right"
           >
             ≫
-          </Button>
-          <Button
-            variant="outlined"
+          </StyledButton>
+          <StyledButton
+            variant="contained"
             size="small"
             className={classes.button}
             onClick={handleCheckedRight}
@@ -181,9 +163,9 @@ function PayloadTypeBlockListPreMemo(props){
             aria-label="move selected right"
           >
             &gt;
-          </Button>
-          <Button
-            variant="outlined"
+          </StyledButton>
+          <StyledButton
+            variant="contained"
             size="small"
             className={classes.button}
             onClick={handleCheckedLeft}
@@ -191,9 +173,9 @@ function PayloadTypeBlockListPreMemo(props){
             aria-label="move selected left"
           >
             &lt;
-          </Button>
-          <Button
-            variant="outlined"
+          </StyledButton>
+          <StyledButton
+            variant="contained"
             size="small"
             className={classes.button}
             onClick={handleAllLeft}
@@ -201,7 +183,7 @@ function PayloadTypeBlockListPreMemo(props){
             aria-label="move all left"
           >
             ≪
-          </Button>
+          </StyledButton>
         </Grid>
       </Grid>
       <Grid item xs={5}>{customList(rightTitle, right)}</Grid>
@@ -282,7 +264,7 @@ export function EditBlockListDialog({dialogTitle, onSubmit, blockListName: propB
     onClose();
   }
   return (
-    <React.Fragment>
+    <>
       <DialogTitle id="form-dialog-title">{dialogTitle}</DialogTitle>
       <DialogContent dividers={true}>
         <MythicTextField disabled={!editable} onChange={onChangeBlockListName} value={blockListName} name="Block List Name" autoFocus requiredValue/>
@@ -298,7 +280,7 @@ export function EditBlockListDialog({dialogTitle, onSubmit, blockListName: propB
           Submit
         </Button>
       </DialogActions>
-    </React.Fragment>
-  )
+    </>
+  );
 }
 

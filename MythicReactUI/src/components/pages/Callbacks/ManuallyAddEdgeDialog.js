@@ -1,4 +1,5 @@
 import React, {useRef} from 'react';
+import { styled } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -10,8 +11,30 @@ import InputLabel from '@mui/material/InputLabel';
 import Input from '@mui/material/Input';
 import {useQuery, gql } from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
-import makeStyles from '@mui/styles/makeStyles';
 import {snackActions} from "../../utilities/Snackbar";
+
+const PREFIX = 'ManuallyAddEdgeDialog';
+
+const classes = {
+  formControl: `${PREFIX}-formControl`,
+  selectEmpty: `${PREFIX}-selectEmpty`
+};
+
+const Root = styled('div')((
+  {
+    theme
+  }
+) => ({
+  [`& .${classes.formControl}`]: {
+    margin: theme.spacing(1),
+    minWidth: 120,
+    width: "97%"
+  },
+
+  [`& .${classes.selectEmpty}`]: {
+    marginTop: theme.spacing(2),
+  }
+}));
 
 const getP2PProfilesAndCallbacks = gql`
 query getP2PProfilesAndCallbacks{
@@ -28,18 +51,8 @@ query getP2PProfilesAndCallbacks{
   }
 }
 `;
-const useStyles = makeStyles((theme) => ({
-  formControl: {
-    margin: theme.spacing(1),
-    minWidth: 120,
-    width: "97%"
-  },
-  selectEmpty: {
-    marginTop: theme.spacing(2),
-  },
-}));
 export function ManuallyAddEdgeDialog(props) {
-    const classes = useStyles();
+
     const [callbackOptions, setCallbackOptions] = React.useState([]);
     const [profileOptions, setProfileOptions] = React.useState([]);
     const [selectedDestination, setSelectedDestination] = React.useState('');
@@ -93,7 +106,7 @@ export function ManuallyAddEdgeDialog(props) {
      return <div>Error! {error.message}</div>;
     }
   return (
-    <React.Fragment>
+    <Root>
         <DialogTitle >Manually Add Edge From Callback {props.source.id}</DialogTitle>
         <DialogContent dividers={true}>
             <React.Fragment>
@@ -143,7 +156,7 @@ export function ManuallyAddEdgeDialog(props) {
             Add
           </Button>
         </DialogActions>
-  </React.Fragment>
+  </Root>
   );
 }
 

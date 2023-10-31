@@ -9,13 +9,12 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
 import CardHeader from '@mui/material/CardHeader';
-import Divider from '@mui/material/Divider';
 import ListItemText from '@mui/material/ListItemText';
-import makeStyles from '@mui/styles/makeStyles';
 import {useQuery, gql } from '@apollo/client';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import { CardContent } from '@mui/material';
 import {CallbacksTabsTaskingInput} from "./CallbacksTabsTaskingInput";
+import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -32,22 +31,6 @@ query callbacksAndFeatures($payloadtype_id: Int!) {
   }
 }`;
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    margin: 'auto',
-  },
-  paper: {
-    width: 200,
-    //height: 500,
-  },
-  button: {
-    margin: theme.spacing(0.5, 0),
-  },
-  divider: {
-    backgroundColor: "rgb(100, 170, 204)",
-    border: "2px solid rgba(100, 170, 204)"
-  }
-}));
 const CustomListElement = ({value, onClick}) => {
     const labelId = `transfer-list-item-${value.id}-label`;
     return (
@@ -65,11 +48,11 @@ const CustomListElement = ({value, onClick}) => {
     );
 }
 const CustomList = ({title, items, left, onClick}) => {
-    const classes = useStyles();
+
     return (
-        <React.Fragment>
+        <>
             <CardHeader title={title} />
-            <Divider classes={{root: classes.divider}}/>
+            <StyledDivider classes={{root: classes.divider}}/>
             <CardContent style={{flexGrow: 1, height: "100%", width: "100%", overflowY: "auto", padding: 0}}>
                 <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
                     {items.map((value) => (
@@ -87,11 +70,11 @@ const CustomList = ({title, items, left, onClick}) => {
                         ))}
                 </List>
             </CardContent>
-        </React.Fragment>
-    )
+        </>
+    );
 }
 const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
-    const classes = useStyles();
+
     const [data, setData] = React.useState(initialData);
     const handleToggle = (value)  => {
         const updatedData = data.map(d => {
@@ -156,7 +139,7 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                 <CustomList title={"Callbacks Not Being Tasked"} left={true} items={data} onClick={handleToggle} />
             </div>
             <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-                <Button
+                <StyledButton
                     variant="contained"
                     size="small"
                     className={classes.button}
@@ -164,8 +147,8 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                     aria-label="move all right"
                 >
                     &gt;&gt;
-                </Button>
-                <Button
+                </StyledButton>
+                <StyledButton
                     variant="contained"
                     size="small"
                     className={classes.button}
@@ -173,8 +156,8 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                     aria-label="move selected right"
                 >
                     &gt;
-                </Button>
-                <Button
+                </StyledButton>
+                <StyledButton
                     variant="contained"
                     size="small"
                     className={classes.button}
@@ -182,8 +165,8 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                     aria-label="move selected left"
                 >
                     &lt;
-                </Button>
-                <Button
+                </StyledButton>
+                <StyledButton
                     variant="contained"
                     size="small"
                     className={classes.button}
@@ -191,7 +174,7 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                     aria-label="move all left"
                 >
                     &lt;&lt;
-                </Button>
+                </StyledButton>
 
             </div>
             <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", overflowY: "auto", flexDirection: "column" }}>

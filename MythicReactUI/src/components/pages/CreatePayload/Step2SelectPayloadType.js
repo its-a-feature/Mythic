@@ -6,6 +6,7 @@ import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons'
 import {CreatePayloadBuildParametersTable} from './CreatePayloadBuildParametersTable';
 import Typography from '@mui/material/Typography';
 import * as RandExp from 'randexp';
+import MenuItem from '@mui/material/MenuItem';
 
 const GET_Payload_Types = gql`
 query getPayloadTypesBuildParametersQuery($os: jsonb!) {
@@ -205,13 +206,12 @@ export function Step2SelectPayloadType(props){
                   Select Target Payload Type
             </Typography>
             <Select
-              native
               value={selectedPayloadType}
               onChange={changePayloadType}
             >
             {
                 data.payloadtype.map((opt) => (
-                    <option key={"step2" + opt.name} value={opt.name}>{opt.name}</option>
+                    <MenuItem key={"step2" + opt.name} value={opt.name}>{opt.name}</MenuItem>
                 ))
             }
             </Select><br/>

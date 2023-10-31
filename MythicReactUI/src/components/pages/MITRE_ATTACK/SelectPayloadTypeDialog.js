@@ -1,4 +1,5 @@
 import React from 'react';
+import { styled } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -8,7 +9,23 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import {useQuery, gql } from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
-import makeStyles from '@mui/styles/makeStyles';
+const PREFIX = 'SelectPayloadTypeDialog';
+
+const classes = {
+  formControl: `${PREFIX}-formControl`
+};
+
+const Root = styled('div')((
+  {
+    theme
+  }
+) => ({
+  [`& .${classes.formControl}`]: {
+    margin: theme.spacing(1),
+    minWidth: 120,
+    width: "97%"
+  }
+}));
 
 const getPayloadTypes = gql`
 query getAllPayloadTypes{
@@ -17,15 +34,8 @@ query getAllPayloadTypes{
   }
 }
 `;
-const useStyles = makeStyles((theme) => ({
-  formControl: {
-    margin: theme.spacing(1),
-    minWidth: 120,
-    width: "97%"
-  },
-}));
 export function SelectPayloadTypeDialog(props) {
-    const classes = useStyles();
+
     const [payloadtypeOptions, setPayloadtypeOptions] = React.useState([]);
     const [selectedPayloadType, setSelectedPayloadType] = React.useState('');
     const handleSubmit = () => {
@@ -57,7 +67,7 @@ export function SelectPayloadTypeDialog(props) {
      return <div>Error!</div>;
     }
   return (
-    <React.Fragment>
+    <Root>
         <DialogTitle >Select a Payload Type to Filter On</DialogTitle>
         <DialogContent dividers={true}>
             <React.Fragment>
@@ -88,7 +98,7 @@ export function SelectPayloadTypeDialog(props) {
             Select
           </Button>
         </DialogActions>
-  </React.Fragment>
+  </Root>
   );
 }
 

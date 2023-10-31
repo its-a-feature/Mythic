@@ -1,20 +1,26 @@
 import React, { useEffect } from 'react';
+import { styled } from '@mui/material/styles';
 import { CallbacksTabs } from './CallbacksTabs';
 import SpeedDial from '@mui/material/SpeedDial';
 import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
-import makeStyles from '@mui/styles/makeStyles';
 import TocIcon from '@mui/icons-material/Toc';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import { CallbacksTop } from './CallbacksTop';
-import Split from 'react-split'
+import Split from 'react-split';
 
-const useStyles = makeStyles((theme) => ({
-    root: {
-        transform: 'translateZ(0px)',
-        flexGrow: 1,
-    },
-    speedDial: {
+const PREFIX = 'Callbacks';
+
+const classes = {
+    root: `${PREFIX}-root`,
+    speedDial: `${PREFIX}-speedDial`,
+    speedDialAction: `${PREFIX}-speedDialAction`,
+    tooltip: `${PREFIX}-tooltip`,
+    arrow: `${PREFIX}-arrow`
+};
+
+const StyledSpeedDial = styled(SpeedDial)(({theme}) => ({
+    [`&.${classes.speedDial}`]: {
         position: 'absolute',
         '&.MuiSpeedDial-directionUp, &.MuiSpeedDial-directionLeft': {
             bottom: theme.spacing(2),
@@ -25,19 +31,24 @@ const useStyles = makeStyles((theme) => ({
             right: theme.spacing(2),
         },
     },
-    speedDialAction: {
-      backgroundColor: theme.palette.speedDialAction,
+
+    [`& .${classes.speedDialAction}`]: {
+        backgroundColor: theme.palette.speedDialAction,
     },
-    tooltip: {
+
+    [`& .${classes.tooltip}`]: {
         backgroundColor: theme.palette.background.contrast,
         color: theme.palette.text.contrast,
         boxShadow: theme.shadows[1],
         fontSize: 13,
     },
-    arrow: {
+
+    [`& .${classes.arrow}`]: {
         color: theme.palette.background.contrast,
-    },
+    }
 }));
+
+
 export function Callbacks({me}) {
     const [topDisplay, setTopDisplay] = React.useState('table');
     const [openTabs, setOpenTabs] = React.useState([]);
@@ -76,7 +87,6 @@ export function Callbacks({me}) {
         setClickedTabId(tabData.tabID);
         
     });
-    
     const onEditTabDescription = React.useCallback( (tabInfo, description) => {
         const tabs = openTabs.map((t) => {
             if (t.tabID === tabInfo.tabID) {
@@ -156,8 +166,7 @@ export function Callbacks({me}) {
         },
     ];
     return (
-
-        <React.Fragment>
+        <>
             <SpeedDialWrapper setTopDisplay={setTopDisplay} />
             <Split direction="vertical" sizes={[30, 70]} minSize={[0,0]} style={{ height: "100%" }}>
                 <div className="bg-gray-base">
@@ -176,9 +185,7 @@ export function Callbacks({me}) {
                     />
                 </div>
             </Split>
-        </React.Fragment>
-
-
+        </>
     );
 }
 /*
@@ -208,7 +215,7 @@ export function Callbacks({me}) {
  */
 function SpeedDialWrapperPreMemo({ setTopDisplay }) {
     const [open, setOpen] = React.useState(false);
-    const classes = useStyles();
+
     const actions = React.useMemo(
         () => [
             {
@@ -230,7 +237,7 @@ function SpeedDialWrapperPreMemo({ setTopDisplay }) {
     );
     return (
         <React.Fragment>
-            <SpeedDial
+            <StyledSpeedDial
                 ariaLabel='SpeedDial example'
                 className={classes.speedDial}
                 icon={<SpeedDialIcon />}
@@ -242,20 +249,23 @@ function SpeedDialWrapperPreMemo({ setTopDisplay }) {
                 }}
                 FabProps={{ color: 'info', size: "small", variant: "extended" }}
                 open={open}
-                style={{ marginTop: '35px' }}
+                style={{ marginTop:"35px" }}
                 direction='down'>
                 {actions.map((action) => (
                     <SpeedDialAction
                         arrow
                         className={classes.speedDialAction}
                         key={action.name}
-                        TooltipClasses={{ tooltip: classes.tooltip, arrow: classes.arrow }}
+                        TooltipClasses={{ ".MuiTooltip-tooltip": classes.tooltip,
+                            ".MuiTooltip-tooltipArrow": classes.arrow,
+
+                        }}
                         icon={action.icon}
                         tooltipTitle={action.name}
                         onClick={action.onClick}
                     />
                 ))}
-            </SpeedDial>
+            </StyledSpeedDial>
         </React.Fragment>
     );
 }

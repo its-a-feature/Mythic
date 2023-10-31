@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import useStyles from './styles';
+import {classes} from './styles';
 import Draggable from 'react-draggable';
 
 const DraggableHandles = React.forwardRef(({ height, rowHeight, width, minColumnWidth, columnWidths, onStop }, ref) => {
     const [isDragging, setIsDragging] = useState(false);
-    const classes = useStyles();
     return (
         <div
             ref={ref}

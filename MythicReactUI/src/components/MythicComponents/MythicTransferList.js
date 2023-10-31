@@ -1,9 +1,9 @@
 import React, {useEffect} from 'react';
+import { styled } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import makeStyles from '@mui/styles/makeStyles';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -13,26 +13,37 @@ import { CardContent } from '@mui/material';
 import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    margin: 'auto',
-  },
-  paper: {
-    width: 200,
-  },
-  button: {
-    margin: theme.spacing(0.5, 0),
-  },
-  divider: {
-    backgroundColor: "rgb(100, 170, 204)",
-    border: "2px solid rgba(100, 170, 204)"
-  }
+const PREFIX = 'MythicTransferList';
+
+export const classes = {
+    button: `${PREFIX}-button`,
+    divider: `${PREFIX}-divider`
+};
+
+export const StyledDivider = styled(Divider)((
+    {
+        theme
+    }
+) => ({
+    [`&.${classes.divider}`]: {
+        backgroundColor: "rgb(100, 170, 204)",
+        border: "2px solid rgba(100, 170, 204)"
+    }
+}));
+export const StyledButton = styled(Button)((
+    {
+        theme
+    }
+) => ({
+    [`&.${classes.button}`]: {
+        margin: theme.spacing(0.5, 0),
+    },
 }));
 
 
-  
+
 export function MythicTransferListDialog(props) {
-    const classes = useStyles();
+
     const [checked, setChecked] = React.useState([]);
     const [left, setLeft] = React.useState([]);
     const [right, setRight] = React.useState([]);
@@ -116,10 +127,9 @@ export function MythicTransferListDialog(props) {
     const customList = (title, items) => (
       <>
           <CardHeader
-            className={classes.cardHeader}
             title={title}
           />
-          <Divider classes={{root: classes.divider}}/>
+          <StyledDivider classes={{root: classes.divider}}/>
           <CardContent style={{flexGrow: 1, height: "100%", width: "100%", overflowY: "auto", padding: 0}}>
           <List dense component="div" role="list" style={{padding:0}}>
             {items.map((valueObj) => {
@@ -149,7 +159,7 @@ export function MythicTransferListDialog(props) {
       props.onClose();
     }
   return (
-    <React.Fragment>
+    <>
         <DialogTitle id="form-dialog-title">{props.dialogTitle}</DialogTitle>
         <DialogContent dividers={true}>
         <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
@@ -157,7 +167,7 @@ export function MythicTransferListDialog(props) {
             {customList(leftTitle, left)}
             </div>
             <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-              <Button
+              <StyledButton
                 variant="contained"
                 size="small"
                 className={classes.button}
@@ -166,8 +176,8 @@ export function MythicTransferListDialog(props) {
                 aria-label="move all right"
               >
                 &gt;&gt;
-              </Button>
-              <Button
+              </StyledButton>
+              <StyledButton
                 variant="contained"
                 size="small"
                 className={classes.button}
@@ -176,8 +186,8 @@ export function MythicTransferListDialog(props) {
                 aria-label="move selected right"
               >
                 &gt;
-              </Button>
-              <Button
+              </StyledButton>
+              <StyledButton
                 variant="contained"
                 size="small"
                 className={classes.button}
@@ -186,8 +196,8 @@ export function MythicTransferListDialog(props) {
                 aria-label="move selected left"
               >
                 &lt;
-              </Button>
-              <Button
+              </StyledButton>
+              <StyledButton
                 variant="contained"
                 size="small"
                 className={classes.button}
@@ -196,7 +206,7 @@ export function MythicTransferListDialog(props) {
                 aria-label="move all left"
               >
                 &lt;&lt;
-              </Button>
+              </StyledButton>
             </div>
             <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", overflowY: "auto", flexDirection: "column" }}>
                 {customList(rightTitle, right)}
@@ -211,7 +221,7 @@ export function MythicTransferListDialog(props) {
             Submit
           </Button>
         </DialogActions>
-  </React.Fragment>
+  </>
   );
 }
 

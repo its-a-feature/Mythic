@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import {Button} from '@mui/material';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import logo from '../../../assets/mythic.svg';
+import logo from '../../../assets/mythic@2x.png';
 import { Navigate } from 'react-router-dom';
 import { meState, successfulLogin, FailedRefresh } from '../../../cache';
 import { useReactiveVar } from '@apollo/client';
@@ -43,11 +43,15 @@ export function LoginForm(props){
                 }
             }).catch(error => {
                 snackActions.warning("Error getting JSON from server: " + error.toString());
-                console.log("Error trying to get json response", error.toString());
+                console.log("Error trying to get json response", error, response);
             });
         }).catch(error => {
-            snackActions.warning("Error talking to server: " + error.toString());
-            console.log("There was an error!", error.toString());
+            if(error.toString() === "TypeError: Failed to fetch"){
+                snackActions.warning("Please refresh and accept the SSL connection error");
+            } else {
+                snackActions.warning("Error talking to server: " + error.toString());
+            }
+            console.log("There was an error!", error);
         });
     }
     const onUsernameChange = (name, value, error) => {

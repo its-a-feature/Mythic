@@ -1,9 +1,15 @@
 import React from 'react';
+import { styled } from '@mui/material/styles';
 import PropTypes from 'prop-types';
 import {TextField} from '@mui/material';
-import withStyles from '@mui/styles/withStyles';
-const ValidationTextField = withStyles({
-      root: {
+const PREFIX = 'MythicTextField';
+
+const classes = {
+    root: `${PREFIX}-root`
+};
+
+const Root = styled('div')({
+      [`&.${classes.root}`]: {
         '& input:valid + fieldset': {
           borderColor: 'grey',
           borderWidth: 1,
@@ -17,7 +23,9 @@ const ValidationTextField = withStyles({
           padding: '4px !important', // override inline-style
         },
       },
-    })(TextField);
+    });
+
+const ValidationTextField = TextField;
 
 class MythicTextField extends React.Component {
     
@@ -49,6 +57,8 @@ class MythicTextField extends React.Component {
     onKeyPress = (event) => {
       if(event.key === "Enter"){
         if(this.props.onEnter !== undefined){
+            event.stopPropagation();
+            event.preventDefault();
           this.props.onEnter(event);
         }
       }else{
@@ -57,24 +67,24 @@ class MythicTextField extends React.Component {
     }
     render(){
         return (
-            <div style={{width:  this.props.width ? this.props.width + "rem" : "100%", display: this.props.inline ? "inline-block": "",}}>
-                <ValidationTextField 
-                    fullWidth={true} 
-                    placeholder={this.props.placeholder} 
-                    value={this.props.value} 
+            <Root style={{width:  this.props.width ? this.props.width + "rem" : "100%", display: this.props.inline ? "inline-block": "",}}>
+                <ValidationTextField
+                    fullWidth={true}
+                    placeholder={this.props.placeholder}
+                    value={this.props.value}
                     onChange={this.onChange}
                     onKeyDown={this.onKeyPress}
-                    label={this.props.showLabel === undefined ? this.props.name : this.props.showLabel ? this.props.name : undefined} 
+                    label={this.props.showLabel === undefined ? this.props.name : this.props.showLabel ? this.props.name : undefined}
                     autoFocus={this.props.autoFocus}
                     variant={this.props.variant === undefined ? "outlined" : this.props.variant}
                     data-lpignore={true}
                     autoComplete={this.props.autoComplete === undefined ? "off" : (this.props.autoComplete ? "on" : "off")}
                     disabled={this.props.disabled === undefined ? false : this.props.disabled}
-                    required={this.props.requiredValue ? this.props.requiredValue : false} 
+                    required={this.props.requiredValue ? this.props.requiredValue : false}
                     InputLabelProps={this.props.inputLabelProps}
                     multiline={this.props.multiline ? this.props.multiline : false}
                     maxRows={this.props.maxRows}
-                    error={this.checkError()} 
+                    error={this.checkError()}
                     type={this.props.type === undefined ? "text" : this.props.type}
                     onWheel={ event => event.target.blur() }
                     InputProps={this.props.InputProps}
@@ -83,9 +93,12 @@ class MythicTextField extends React.Component {
                         padding:0,
                         marginBottom: this.props.marginBottom ? this.props.marginBottom : "10px",
                         display: this.props.inline ? "inline-block": "",
-                    }}/>
-            </div>
-        )
+                    }}
+                    classes={{
+                        root: classes.root
+                    }} />
+            </Root>
+        );
     }
 }
 export default MythicTextField;

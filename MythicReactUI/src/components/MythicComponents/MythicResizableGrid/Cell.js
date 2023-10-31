@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import useStyles from './styles';
+import {classes} from './styles';
 import Grow from '@mui/material/Grow';
 import Popper from '@mui/material/Popper';
 import MenuItem from '@mui/material/MenuItem';
@@ -10,7 +10,6 @@ import {useTheme} from '@mui/material/styles';
 
 const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, data } }) => {
     const rowClassName = data.gridUUID + "row" + rowIndex;
-    const classes = useStyles();
     const contextMenuOptions = data?.rowContextMenuOptions || [];
     const dropdownAnchorRef = React.useRef(null);
     const theme = useTheme();
@@ -65,7 +64,7 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
         setOpenContextMenu(false);
       };
     return (
-        <div style={{...style, ...cellStyle, ...rowStyle}} 
+        <div style={{...style, ...cellStyle, ...rowStyle}}
             className={`${classes.cell} ${rowClassName}`} 
             onDoubleClick={handleDoubleClick}
             onMouseEnter={onMouseEnter}

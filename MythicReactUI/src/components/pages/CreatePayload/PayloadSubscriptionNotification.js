@@ -1,7 +1,7 @@
 import React from 'react';
+import { styled } from '@mui/material/styles';
 import {gql, useSubscription} from '@apollo/client';
 import Button from '@mui/material/Button';
-import makeStyles from '@mui/styles/makeStyles';
 import Typography from '@mui/material/Typography';
 import {useTheme} from '@mui/material/styles';
 import {snackActions} from '../../utilities/Snackbar';
@@ -14,6 +14,66 @@ import { toast } from 'react-toastify';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
+
+const PREFIX = 'PayloadSubscriptionNotification';
+
+const classes = {
+    root: `${PREFIX}-root`,
+    typography: `${PREFIX}-typography`,
+    actionRoot: `${PREFIX}-actionRoot`,
+    icons: `${PREFIX}-icons`,
+    expand: `${PREFIX}-expand`,
+    collapse: `${PREFIX}-collapse`,
+    checkIcon: `${PREFIX}-checkIcon`,
+    button: `${PREFIX}-button`
+};
+
+const StyledMythicDialog = styled(MythicDialog)((
+    {
+        theme
+    }
+) => ({
+    [`& .${classes.root}`]: {
+        [theme.breakpoints.up('sm')]: {
+            minWidth: '344px !important',
+        },
+    },
+
+    [`& .${classes.typography}`]: {
+        fontWeight: 'bold',
+    },
+
+    [`& .${classes.actionRoot}`]: {
+        padding: '0px 8px 0px 16px',
+    },
+
+    [`& .${classes.icons}`]: {
+        marginLeft: 'auto',
+        float: "right"
+    },
+
+    [`& .${classes.expand}`]: {
+        padding: '8px 8px',
+        transition: theme.transitions.create('transform', {
+            duration: theme.transitions.duration.shortest,
+        }),
+    },
+
+    [`& .${classes.collapse}`]: {
+        padding: 16,
+    },
+
+    [`& .${classes.checkIcon}`]: {
+        fontSize: 20,
+        color: '#b3b3b3',
+        paddingRight: 4,
+    },
+
+    [`& .${classes.button}`]: {
+        padding: 0,
+        textTransform: 'none',
+    }
+}));
 
 //fromNow must be in ISO format for hasura/postgres stuff
 //new Date().toISOString() will do it
@@ -44,46 +104,11 @@ subscription NewPayloadsSubscription($fromNow: timestamp!) {
   }
 }
  `;
-const useStyles =  makeStyles(theme => ({
-    root: {
-        [theme.breakpoints.up('sm')]: {
-            minWidth: '344px !important',
-        },
-    },
-    typography: {
-        fontWeight: 'bold',
-    },
-    actionRoot: {
-        padding: '0px 8px 0px 16px',
-    },
-    icons: {
-        marginLeft: 'auto',
-        float: "right"
-    },
-    expand: {
-        padding: '8px 8px',
-        transition: theme.transitions.create('transform', {
-            duration: theme.transitions.duration.shortest,
-        }),
-    },
-    collapse: {
-        padding: 16,
-    },
-    checkIcon: {
-        fontSize: 20,
-        color: '#b3b3b3',
-        paddingRight: 4,
-    },
-    button: {
-        padding: 0,
-        textTransform: 'none',
-    },
-}));
 
 const SnackMessage = (props) => {
     
     const theme = useTheme();
-    const classes = useStyles(theme);
+
     return (
         <React.Fragment>                    
             <Typography variant="subtitle2" className={classes.typography}>
@@ -205,12 +230,10 @@ export function PayloadSubscriptionNotification(props) {
         }
     }
     });
-    return (    
-        displayErrorDialog &&
-        <MythicDialog fullWidth={true} maxWidth="xl" open={displayErrorDialog} 
-                        onClose={handleErrorClose} 
-                        innerDialog={<SnackMessageError payloadData={payloadData} onClose={handleErrorClose} />}
-                    />
-    );
+    return displayErrorDialog &&
+    <StyledMythicDialog fullWidth={true} maxWidth="xl" open={displayErrorDialog} 
+                    onClose={handleErrorClose} 
+                    innerDialog={<SnackMessageError payloadData={payloadData} onClose={handleErrorClose} />}
+                />;
 }
 

@@ -3,35 +3,15 @@ import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import makeStyles from '@mui/styles/makeStyles';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import CardHeader from '@mui/material/CardHeader';
-import Divider from '@mui/material/Divider';
 import {gql, useQuery} from '@apollo/client';
 import { CardContent } from '@mui/material';
-
-const useStyles = makeStyles((theme) => ({
-  root: {
-    margin: 'auto',
-    paddingBottom: "10px"
-  },
-  paper: {
-    width: 200,
-    height: 230,
-    overflow: 'auto',
-  },
-  button: {
-    margin: theme.spacing(0.5, 0),
-  },
-  divider: {
-    backgroundColor: "rgb(100, 170, 204)",
-    border: "2px solid rgba(100, 170, 204)"
-  }
-}));
+import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
 
 const getCommandsQuery = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -54,9 +34,9 @@ query GetCallbackDetails($callback_id: Int!) {
   }
 }
 `;
- 
+
 export function AddRemoveCallbackCommandsDialog(props) {
-    const classes = useStyles();
+
     const [checked, setChecked] = React.useState([]);
     const [left, setLeft] = React.useState([]);
     const [originalLeft, setOriginalLeft] = React.useState([]);
@@ -142,9 +122,9 @@ export function AddRemoveCallbackCommandsDialog(props) {
       setRight([]);
     };
     const customList = (title, items) => (
-      <React.Fragment>
+      <>
           <CardHeader className={classes.cardHeader} title={title} />
-          <Divider classes={{root: classes.divider}}/>
+          <StyledDivider classes={{root: classes.divider}}/>
           <CardContent style={{flexGrow: 1, overflowY: "auto", padding: 0}}>
             <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
               {items.map((valueObj) => {
@@ -167,7 +147,7 @@ export function AddRemoveCallbackCommandsDialog(props) {
               <ListItem />
             </List>
           </CardContent>
-        </React.Fragment>
+        </>
     );
     const setFinalTags = () => {
       // things to add are in the `right` now but weren't for `originalRight`
@@ -191,7 +171,7 @@ export function AddRemoveCallbackCommandsDialog(props) {
             {customList(leftTitle, left)}
           </div>
             <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-              <Button
+              <StyledButton
                 variant="contained"
                 size="small"
                 className={classes.button}
@@ -200,8 +180,8 @@ export function AddRemoveCallbackCommandsDialog(props) {
                 aria-label="move all right"
               >
                 &gt;&gt;
-              </Button>
-              <Button
+              </StyledButton>
+              <StyledButton
                 variant="contained"
                 size="small"
                 className={classes.button}
@@ -210,8 +190,8 @@ export function AddRemoveCallbackCommandsDialog(props) {
                 aria-label="move selected right"
               >
                 &gt;
-              </Button>
-              <Button
+              </StyledButton>
+              <StyledButton
                 variant="contained"
                 size="small"
                 className={classes.button}
@@ -220,8 +200,8 @@ export function AddRemoveCallbackCommandsDialog(props) {
                 aria-label="move selected left"
               >
                 &lt;
-              </Button>
-              <Button
+              </StyledButton>
+              <StyledButton
                 variant="contained"
                 size="small"
                 className={classes.button}
@@ -230,7 +210,7 @@ export function AddRemoveCallbackCommandsDialog(props) {
                 aria-label="move all left"
               >
                 &lt;&lt;
-              </Button>
+              </StyledButton>
  
           </div>
           <div  style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>

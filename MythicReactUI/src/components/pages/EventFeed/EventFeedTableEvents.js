@@ -1,22 +1,34 @@
 import React from 'react';
+import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { toLocalTime } from '../../utilities/Time';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
-import makeStyles from '@mui/styles/makeStyles';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import {useTheme} from '@mui/material/styles';
 import {EventFeedTableEventsActions} from './EventFeedTableEventsActions';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    width: '100%',
-    maxWidth: '36ch',
-  },
-  inline: {
-    display: 'inline',
-  },
+const PREFIX = 'EventFeedTableEvents';
+
+const classes = {
+    root: `${PREFIX}-root`,
+    inline: `${PREFIX}-inline`
+};
+
+const StyledListItem = styled(ListItem)((
+    {
+        theme
+    }
+) => ({
+    [`& .${classes.root}`]: {
+      width: '100%',
+      maxWidth: '36ch',
+    },
+
+    [`& .${classes.inline}`]: {
+      display: 'inline',
+    }
 }));
 
 const GetPreAdornment = ({message}) => {
@@ -50,48 +62,48 @@ const GetPreAdornment = ({message}) => {
     )
 }
 export function EventFeedTableEvents(props){
-    const classes = useStyles();
+
     const me = useReactiveVar(meState);
 
     return (
-            <ListItem alignItems="flex-start" style={{...props.style, margin: 0, padding: "0 0 0 10px"}}>
-                <ListItemText disableTypography style={{margin: "0 0 0 0"}}
-                    primary={
-                        <React.Fragment>
-                        <Typography
-                            component="span"
-                            variant="caption"
-                            className={classes.inline}
-                            style={{margin: "0 0 0 0px"}}
-                        >
-                            {toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}
-                        </Typography>
-                          <Typography
-                            component="span"
-                            variant="body1"
-                            className={classes.inline}
-                            style={{fontWeight: "bold", margin: 0, padding: 0}}
-                          >
-                            {props.count > 1 ? " ( " + props.count + " )" : ""}
-                          </Typography>
+        <StyledListItem alignItems="flex-start" style={{...props.style, margin: 0, padding: "0 0 0 10px"}}>
+            <ListItemText disableTypography style={{margin: "0 0 0 0"}}
+                primary={
+                    <React.Fragment>
+                    <Typography
+                        component="span"
+                        variant="caption"
+                        className={classes.inline}
+                        style={{margin: "0 0 0 0px"}}
+                    >
+                        {toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}
+                    </Typography>
+                      <Typography
+                        component="span"
+                        variant="body1"
+                        className={classes.inline}
+                        style={{fontWeight: "bold", margin: 0, padding: 0}}
+                      >
+                        {props.count > 1 ? " ( " + props.count + " )" : ""}
+                      </Typography>
 
-                        </React.Fragment>
-                    }
-                    secondary={
-                    <div >
-                        <GetPreAdornment message={props} />
-                        <pre style={{overflowX: "auto", display: "inline-flex",  maxWidth: "97%", margin: "0 0 0 0px"}}>
-                            {props.message}
-                        </pre>
-                    </div>
-                    }
-                />
-                <EventFeedTableEventsActions id={props.id} level={props.level}
-                  onUpdateResolution={props.onUpdateResolution} 
-                  onUpdateLevel={props.onUpdateLevel}
-                  resolved={props.resolved}/>
-            </ListItem>
-        )
+                    </React.Fragment>
+                }
+                secondary={
+                <div >
+                    <GetPreAdornment message={props} />
+                    <pre style={{overflowX: "auto", display: "inline-flex",  maxWidth: "97%", margin: "0 0 0 0px"}}>
+                        {props.message}
+                    </pre>
+                </div>
+                }
+            />
+            <EventFeedTableEventsActions id={props.id} level={props.level}
+              onUpdateResolution={props.onUpdateResolution} 
+              onUpdateLevel={props.onUpdateLevel}
+              resolved={props.resolved}/>
+        </StyledListItem>
+    );
 }
 
 

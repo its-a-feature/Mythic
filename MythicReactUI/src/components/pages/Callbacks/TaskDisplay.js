@@ -1,9 +1,9 @@
 import React, {useEffect, useLayoutEffect, useRef} from 'react';
+import { styled } from '@mui/material/styles';
 import {IconButton} from '@mui/material';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import { toLocalTime } from '../../utilities/Time';
-import makeStyles from '@mui/styles/makeStyles';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -15,6 +15,97 @@ import {gql, useLazyQuery, useSubscription } from '@apollo/client';
 import {TaskDisplayContainer} from './TaskDisplayContainer';
 import {TagsDisplay} from '../../MythicComponents/MythicTag';
 import MultipleStopIcon from '@mui/icons-material/MultipleStop';
+
+
+const PREFIX = 'TaskDisplay';
+const ACCORDION_PREFIX = 'TaskDisplayAccordion';
+const classes = {
+  root: `${PREFIX}-root`,
+  heading: `${PREFIX}-heading`,
+  secondaryHeading: `${PREFIX}-secondaryHeading`,
+  taskAndTimeDisplay: `${PREFIX}-taskAndTimeDisplay`,
+  secondaryHeadingExpanded: `${PREFIX}-secondaryHeadingExpanded`,
+  icon: `${PREFIX}-icon`,
+  details: `${PREFIX}-details`,
+  column: `${PREFIX}-column`
+};
+const accordionClasses = {
+  root: `${ACCORDION_PREFIX}-root`,
+  content: `${ACCORDION_PREFIX}-content`,
+  expandIcon: `${ACCORDION_PREFIX}-expandIcon`,
+  expanded: `${ACCORDION_PREFIX}-expanded`,
+}
+
+const StyledPaper = styled(Paper)((
+  {
+    theme
+  }
+) => ({
+  [`&.${classes.root}`]: {
+    marginTop: "3px",
+    marginLeft: "3px",
+    marginRight: "0px",
+    height: "auto",
+    width: "99%",
+  },
+
+  [`& .${classes.heading}`]: {
+    fontSize: theme.typography.pxToRem(15),
+    display: "inline",
+    cursor: "default",
+    wordBreak: "break-all",
+  },
+
+  [`& .${classes.secondaryHeading}`]: {
+    fontSize: theme.typography.pxToRem(15),
+    //color: theme.palette.text.secondary,
+    overflow: "auto", 
+    display: "block", 
+    textOverflow: "ellipsis", 
+    wordBreak: "break-all",
+    maxWidth: "100%", 
+  },
+
+  [`& .${classes.taskAndTimeDisplay}`]: {
+    fontSize: theme.typography.pxToRem(12),
+    color: theme.palette.text.secondary,
+    overflow: "hidden", 
+    textOverflow: "ellipsis", 
+    maxWidth: "100%", 
+    whiteSpace: "nowrap",
+    display: "inline-block",
+    cursor: "default",
+    wordBreak: "break-all",
+  },
+
+  [`& .${classes.secondaryHeadingExpanded}`]: {
+    fontSize: theme.typography.pxToRem(15),
+    //color: theme.palette.text.secondary,
+    display: "block", 
+    overflow: "auto",
+    maxWidth: "100%", 
+    whiteSpace: "break-all",
+    wordBreak: "break-all",
+  },
+
+  [`& .${classes.icon}`]: {
+    verticalAlign: 'middle',
+    height: 20,
+    width: 20,
+  },
+
+  [`& .${classes.details}`]: {
+    alignItems: 'center',
+    marginRight: 0
+  },
+
+  [`& .${classes.column}`]: {
+    padding: "0 5px 0 0",
+    display: "inline-block",
+    margin: 0,
+    height: "auto"
+  }
+}));
 
 
 export const taskDataFragment = gql`
@@ -71,67 +162,12 @@ subscription getSubTasking($task_id: Int!){
 }
  `;
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    marginTop: "3px",
-    marginLeft: "3px",
-    marginRight: "0px",
-    height: "auto",
-    width: "99%",
-  },
-  heading: {
-    fontSize: theme.typography.pxToRem(15),
-    display: "inline",
-    cursor: "default",
-    wordBreak: "break-all",
-  },
-  secondaryHeading: {
-    fontSize: theme.typography.pxToRem(15),
-    //color: theme.palette.text.secondary,
-    overflow: "auto", 
-    display: "block", 
-    textOverflow: "ellipsis", 
-    wordBreak: "break-all",
-    maxWidth: "100%", 
-  },
-  taskAndTimeDisplay: {
-    fontSize: theme.typography.pxToRem(12),
-    color: theme.palette.text.secondary,
-    overflow: "hidden", 
-    textOverflow: "ellipsis", 
-    maxWidth: "100%", 
-    whiteSpace: "nowrap",
-    display: "inline-block",
-    cursor: "default",
-    wordBreak: "break-all",
-  },
-  secondaryHeadingExpanded: {
-    fontSize: theme.typography.pxToRem(15),
-    //color: theme.palette.text.secondary,
-    display: "block", 
-    overflow: "auto",
-    maxWidth: "100%", 
-    whiteSpace: "break-all",
-    wordBreak: "break-all",
-  },
-  icon: {
-    verticalAlign: 'middle',
-    height: 20,
-    width: 20,
-  },
-  details: {
-    alignItems: 'center',
-    marginRight: 0
-  },
-  column: {
-    padding: "0 5px 0 0",
-    display: "inline-block",
-    margin: 0,
-    height: "auto"
-  },
-}));
-const accordionUseStyles = makeStyles((theme) => ({
-  root: {
+const StyledAccordionSummary = styled(AccordionSummary)((
+    {
+      theme
+    }
+) => ({
+  [`&.${accordionClasses.root}`]: {
     margin: 0,
     padding: 0,
     height: "auto",
@@ -140,17 +176,17 @@ const accordionUseStyles = makeStyles((theme) => ({
     wordBreak: "break-all",
     userSelect: "text",
   },
-  content: {
+  [`& .${accordionClasses.content}`]: {
     margin: 0,
     height: "100%",
     padding: 0,
   },
-  expandIcon: {
+  [`& .${accordionClasses.expandIcon}`]: {
     margin: 0,
   },
-  expanded: {
+  [`& .${accordionClasses.expanded}`]: {
     marginRight: 0
-  }
+  },
 }));
 
 function TaskDisplayPreMemo({task, me, filterOptions, newlyIssuedTasks}){
@@ -463,9 +499,6 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
   const theme = useTheme();
   const [displayComment, setDisplayComment] = React.useState(false);
   const [alertBadges, setAlertBadges] = React.useState(0);
-  const classes = useStyles();
-  const accordionClasses = accordionUseStyles();
-  
   const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
   const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() === "false" ? false : true);
   const toggleDisplayComment = (evt) => {
@@ -519,10 +552,10 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
     e.preventDefault();
   }
   
-  return(
-    <Paper className={classes.root} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
+  return (
+    <StyledPaper className={classes.root} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
       <Accordion TransitionProps={{ unmountOnExit: true, onEntered: scrollContent }} defaultExpanded={false} onChange={toggleTaskDropdown} expanded={dropdownOpen} >
-        <AccordionSummary
+        <StyledAccordionSummary
           expandIcon={<ExpandMoreIcon />}
           aria-controls={`panel1c-content-task-${task.id}`}
           id={`panel1c-header-${task.id}`}
@@ -547,7 +580,7 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
                         <div className={classes.column}>
                             <IconButton size="small" style={{padding: "0"}} color="primary" onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
                           </div>
-                      ) : (null)}
+                      ) : null}
                     <div className={classes.column} onClick={preventPropagation}>
                         <Badge badgeContent={alertBadges} color="warning" anchorOrigin={{vertical: 'top', horizontal: 'left'}}>
                           <Typography className={classes.heading} >
@@ -558,13 +591,13 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
                 </div>
             </div>
           </ColoredTaskDisplay>          
-        </AccordionSummary>
+        </StyledAccordionSummary>
         <AccordionDetails style={{cursor: "default"}}>
           <TaskDisplayContainer me={me} task={task} />
         </AccordionDetails>
       </Accordion>
-  </Paper>
-  )
+  </StyledPaper>
+  );
 }
 export const getLabelText = (task, graphView) => {
   if(graphView){
@@ -579,7 +612,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
   const theme = useTheme();
   const [displayComment, setDisplayComment] = React.useState(false);
   const [alertBadges, setAlertBadges] = React.useState(0);
-  const classes = useStyles();
+
 
   const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
   const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() === "false" ? false : true);

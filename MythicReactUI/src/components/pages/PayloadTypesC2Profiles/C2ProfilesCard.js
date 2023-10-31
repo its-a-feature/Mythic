@@ -1,5 +1,5 @@
 import React from 'react';
-import makeStyles from '@mui/styles/makeStyles';
+import { styled } from '@mui/material/styles';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
@@ -34,18 +34,31 @@ import BuildIcon from '@mui/icons-material/Build';
 import SaveIcon from '@mui/icons-material/Save';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
+const PREFIX = 'C2ProfilesCard';
+
+const classes = {
+  root: `${PREFIX}-root`,
+  cardContent: `${PREFIX}-cardContent`
+};
+
+const StyledCard = styled(Card)((
+  {
+    theme
+  }
+) => ({
+  [`&.${classes.root}`]: {
     width: "100%",
     display: "flex",
     marginBottom: "10px"
   },
-    cardContent: {
-        textAlign: "left",
-        paddingBottom: "5px",
-        paddingTop: "0",
-    }
+
+  [`& .${classes.cardContent}`]: {
+      textAlign: "left",
+      paddingBottom: "5px",
+      paddingTop: "0",
+  }
 }));
+
 const toggleDeleteStatus = gql`
 mutation toggleC2ProfileDeleteStatus($c2profile_id: Int!, $deleted: Boolean!){
   update_c2profile_by_pk(pk_columns: {id: $c2profile_id}, _set: {deleted: $deleted}) {
@@ -74,7 +87,7 @@ mutation setProfileConfiguration($id: Int!, $file_path: String!, $data: String!)
 
 export function C2ProfilesCard(props) {
   const theme = useTheme();
-  const classes = useStyles(theme);
+
   const [openBuildingDialog, setOpenBuildingDialog] = React.useState(false);
   const [openListFilesDialog, setOpenListFilesDialog] = React.useState(false);
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -153,7 +166,7 @@ export function C2ProfilesCard(props) {
     }
 
   return (
-    <Card className={classes.root} elevation={5} style={{maxWidth: "100%"}}>
+    <StyledCard className={classes.root} elevation={5} style={{maxWidth: "100%"}}>
             {props.is_p2p ? 
             (<FontAwesomeIcon icon={faLink}  style={{width: "100px", height: "100px", marginTop: "25px"}} />)
             : 
@@ -357,6 +370,6 @@ export function C2ProfilesCard(props) {
                 </Grow>
               )}
             </Popper>
-    </Card>
+    </StyledCard>
   );
 }

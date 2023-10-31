@@ -11,29 +11,8 @@ import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
-import makeStyles from '@mui/styles/makeStyles';
 import CardHeader from '@mui/material/CardHeader';
-import Divider from '@mui/material/Divider';
-
-const useStyles = makeStyles((theme) => ({
-  root: {
-    margin: 'auto',
-    width: "100%"
-  },
-  paper: {
-    width: 200,
-    height: 230,
-    overflow: 'auto',
-
-  },
-  button: {
-    margin: theme.spacing(0.5, 0),
-  },
-  divider: {
-    backgroundColor: "rgb(100, 170, 204)",
-    border: "2px solid rgba(100, 170, 204)"
-  }
-}));
+import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
 
 const GET_Payload_Types = gql`
 query getCommands($payloadType: String!) {
@@ -162,10 +141,10 @@ export function Step3SelectCommands(props){
         
         </div>
     );
-} 
+}
 
 function CommandTransferSelect(props) {
-  const classes = useStyles();
+
   const [checked, setChecked] = React.useState([]);
   const [left, setLeft] = React.useState([]);
   const [right, setRight] = React.useState([]);
@@ -272,13 +251,11 @@ function CommandTransferSelect(props) {
     }
   }
   const customList = (title, items) => (
-    <Paper className={classes.paper} style={{width:"100%", height: "calc(40vh)", overflow: "auto"}} elevation={5}>
-      
+    <Paper style={{width:"100%", height: "calc(40vh)", overflow: "auto"}} elevation={5}>
           <CardHeader
-            className={classes.cardHeader}
             title={title}
           />
-          <Divider classes={{root: classes.divider}}/>
+          <StyledDivider className={classes.divider}/>
           <List dense component="div" role="list" style={{padding:0}}>
             {items.map((valueObj) => {
               const value = valueObj["cmd"];
@@ -311,14 +288,14 @@ function CommandTransferSelect(props) {
     props.finished(right);
   }
 return (
-  <React.Fragment>
+  <>
       <Grid container spacing={2} justifyContent="center" alignItems="center" className={classes.root}>
         <Grid item xs={5}>
           {customList("Available Commands", left)}
         </Grid>
         <Grid item>
           <Grid container direction="column" alignItems="center">
-            <Button
+            <StyledButton
               variant="contained"
               size="small"
               className={classes.button}
@@ -327,8 +304,8 @@ return (
               aria-label="move all right"
             >
               &gt;&gt;
-            </Button>
-            <Button
+            </StyledButton>
+            <StyledButton
               variant="contained"
               size="small"
               className={classes.button}
@@ -337,8 +314,8 @@ return (
               aria-label="move selected right"
             >
               &gt;
-            </Button>
-            <Button
+            </StyledButton>
+            <StyledButton
               variant="contained"
               size="small"
               className={classes.button}
@@ -347,8 +324,8 @@ return (
               aria-label="move selected left"
             >
               &lt;
-            </Button>
-            <Button
+            </StyledButton>
+            <StyledButton
               variant="contained"
               size="small"
               className={classes.button}
@@ -357,7 +334,7 @@ return (
               aria-label="move all left"
             >
               &lt;&lt;
-            </Button>
+            </StyledButton>
           </Grid>
         </Grid>
         <Grid item xs={5}>
@@ -369,7 +346,7 @@ return (
           {hoveredCommand["cmd"] !== undefined &&
             <Paper className={classes.paper} style={{width: "100%"}} elevation={5}>
               
-                <CardHeader className={classes.cardHeader}
+                <CardHeader
                   title={
                     <React.Fragment>
                       {hoveredCommand["cmd"]}
@@ -379,12 +356,12 @@ return (
                     </React.Fragment>
                   }
                 />
-                <Divider classes={{root: classes.divider}}/>
+                <StyledDivider classes={{root: classes.divider}}/>
                 {hoveredCommand["reason"] !== "" ? (
                   <Typography variant="body1" align="left" component="div" 
                       style={{ "marginLeft": "10px"}}><b>{hoveredCommand["disabled"] ? ("Disabled Reason: ") : ("Information: ")} </b>{hoveredCommand["reason"]}
                   </Typography>
-                ) : (null)}
+                ) : null}
                 <br/>
                 <Typography  align="left" component="div" 
                       style={{ "marginLeft": "10px"}}><b>Commandline Help: </b>{hoveredCommand["help_cmd"]}
@@ -401,6 +378,6 @@ return (
         </Grid>
       </Grid>
       <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={props.canceled} finished={finished} />
-  </React.Fragment>
+  </>
 );
 }

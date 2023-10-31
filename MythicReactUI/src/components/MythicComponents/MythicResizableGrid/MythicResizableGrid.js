@@ -6,7 +6,7 @@ import { VariableSizeGrid } from 'react-window';
 import HeaderCell from './HeaderCell';
 import Cell from './Cell';
 import DraggableHandles from './DraggableHandles';
-import useStyles from './styles';
+import {classes} from './styles';
 const HeaderCellContext = createContext({});
 
 const MIN_COLUMN_WIDTH = 100;
@@ -15,7 +15,6 @@ const CellRenderer = (VariableSizeGridProps) => {
     return VariableSizeGridProps.rowIndex === 0 ? null : <Cell VariableSizeGridProps={VariableSizeGridProps} />;
 };
 const innerElementType = React.forwardRef(({ children, ...rest }, ref) => {
-    const classes = useStyles();
     const HeaderCellData = useContext(HeaderCellContext);
     return (
         <div ref={ref} {...rest}>

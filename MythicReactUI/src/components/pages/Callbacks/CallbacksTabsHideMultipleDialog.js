@@ -8,15 +8,14 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
 import CardHeader from '@mui/material/CardHeader';
-import Divider from '@mui/material/Divider';
 import ListItemText from '@mui/material/ListItemText';
-import makeStyles from '@mui/styles/makeStyles';
 import {useQuery, gql } from '@apollo/client';
 import {useMutation} from '@apollo/client';
 import {hideCallbacksMutation} from './CallbackMutations';
 import { CardContent } from '@mui/material';
 import {snackActions} from "../../utilities/Snackbar";
 import {CallbacksTableLastCheckinCell} from "./CallbacksTableRow";
+import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -33,23 +32,6 @@ query callbacksAndFeatures{
   }
 }`;
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    margin: 'auto',
-  },
-  paper: {
-    width: 200,
-    height: 500,
-  },
-  button: {
-    margin: theme.spacing(0.5, 0),
-  },
-  divider: {
-    backgroundColor: "rgb(100, 170, 204)",
-    border: "2px solid rgba(100, 170, 204)"
-  }
-}));
-
 function not(a, b) {
   return a.filter((value) => b.indexOf(value) === -1);
 }
@@ -59,7 +41,7 @@ function intersection(a, b) {
 }
 
 export function CallbacksTabsHideMultipleDialog({onClose}) {
-    const classes = useStyles();
+
     const [checked, setChecked] = React.useState([]);
     const [left, setLeft] = React.useState([]);
     const [right, setRight] = React.useState([]);
@@ -128,12 +110,11 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
     }
 
     const customList = (title, items) => (
-      <React.Fragment>
+      <>
           <CardHeader
-            className={classes.cardHeader}
             title={title}
           />
-          <Divider classes={{root: classes.divider}}/>
+          <StyledDivider classes={{root: classes.divider}}/>
           <CardContent style={{flexGrow: 1, overflowY: "auto", padding: 0}}>
             <List dense component="div" role="list" style={{padding:0}}>
               {items.map((value) => {
@@ -163,7 +144,7 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
               <ListItem />
             </List>
           </CardContent>
-          </React.Fragment>
+          </>
     );
   return (
     <React.Fragment>
@@ -175,7 +156,7 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
             {customList("Visible Callbacks", left)}
             </div>
             <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-              <Button
+              <StyledButton
                 variant="contained"
                 size="small"
                 color={"primary"}
@@ -185,8 +166,8 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
                 aria-label="move all right"
               >
                 &gt;&gt;
-              </Button>
-              <Button
+              </StyledButton>
+              <StyledButton
                 variant="contained"
                 size="small"
                 color={"primary"}
@@ -196,8 +177,8 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
                 aria-label="move selected right"
               >
                 &gt;
-              </Button>
-              <Button
+              </StyledButton>
+              <StyledButton
                 variant="contained"
                 size="small"
                 color={"primary"}
@@ -207,8 +188,8 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
                 aria-label="move selected left"
               >
                 &lt;
-              </Button>
-              <Button
+              </StyledButton>
+              <StyledButton
                 variant="contained"
                 size="small"
                 color={"primary"}
@@ -218,7 +199,7 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
                 aria-label="move all left"
               >
                 &lt;&lt;
-              </Button>
+              </StyledButton>
  
           </div>
           <div  style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>

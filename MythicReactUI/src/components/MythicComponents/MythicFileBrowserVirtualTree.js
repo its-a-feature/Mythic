@@ -1,5 +1,5 @@
 import { alpha } from "@mui/material";
-import makeStyles from '@mui/styles/makeStyles';
+import { styled } from '@mui/material/styles';
 import React, { useCallback, useMemo } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as List } from "react-window";
@@ -20,16 +20,42 @@ import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Paper from '@mui/material/Paper';
 
-const useStyles = makeStyles((theme) => ({
-  rowContainer: {},
-  row: {
+const PREFIX = 'FileBrowserVirtualTree';
+
+const classes = {
+  rowContainer: `${PREFIX}-rowContainer`,
+  row: `${PREFIX}-row`,
+  rowButtonWrapper: `${PREFIX}-rowButtonWrapper`,
+  rowButton: `${PREFIX}-rowButton`,
+  rowLabel: `${PREFIX}-rowLabel`,
+  heading: `${PREFIX}-heading`,
+  secondaryHeading: `${PREFIX}-secondaryHeading`,
+  taskAndTimeDisplay: `${PREFIX}-taskAndTimeDisplay`,
+  secondaryHeadingExpanded: `${PREFIX}-secondaryHeadingExpanded`,
+  icon: `${PREFIX}-icon`,
+  details: `${PREFIX}-details`,
+  column: `${PREFIX}-column`,
+  paper: `${PREFIX}-paper`,
+  table: `${PREFIX}-table`,
+  visuallyHidden: `${PREFIX}-visuallyHidden`
+};
+
+const StyledAutoSizer = styled(AutoSizer)((
+  {
+    theme
+  }
+) => ({
+  [`& .${classes.rowContainer}`]: {},
+
+  [`& .${classes.row}`]: {
     display: "flex",
     alignItems: "left",
     marginLeft: (props) => theme.spacing(3 * props.depth),
     userSelect: "none",
     whiteSpace: "nowrap"
   },
-  rowButtonWrapper: {
+
+  [`& .${classes.rowButtonWrapper}`]: {
     width: theme.spacing(3),
     textAlign: "center",
     "&:hover": {
@@ -37,74 +63,86 @@ const useStyles = makeStyles((theme) => ({
       textDecoration: "underline"
     }
   },
-  rowButton: {
+
+  [`& .${classes.rowButton}`]: {
     width: theme.spacing(3)
   },
-  rowLabel: {
+
+  [`& .${classes.rowLabel}`]: {
     marginLeft: theme.spacing(0.5)
   },
-  heading: {
+
+  [`& .${classes.heading}`]: {
     fontSize: theme.typography.pxToRem(15),
     whiteSpace: 'pre-line',
 },
-secondaryHeading: {
-    fontSize: theme.typography.pxToRem(15),
-    //color: theme.palette.text.secondary,
-    overflow: 'hidden',
-    display: 'block',
-    textOverflow: 'ellipsis',
-    maxWidth: 'calc(90vw)',
-    whiteSpace: 'nowrap',
-},
-taskAndTimeDisplay: {
-    fontSize: theme.typography.pxToRem(12),
-    color: theme.palette.text.secondary,
-    overflow: 'hidden',
-    display: 'block',
-    textOverflow: 'ellipsis',
-    maxWidth: 'calc(90vw)',
-    whiteSpace: 'nowrap',
-},
-secondaryHeadingExpanded: {
-    fontSize: theme.typography.pxToRem(15),
-    //color: theme.palette.text.secondary,
-    display: 'block',
-    overflow: 'auto',
-    maxWidth: 'calc(90vw)',
-    whiteSpace: 'break-word',
-},
-icon: {
-    verticalAlign: 'middle',
-    height: 20,
-    width: 20,
-},
-details: {
-    alignItems: 'center',
-},
-column: {
-    padding: '0 5px 0 0',
-    display: 'inline-block',
-    margin: 0,
-    height: 'auto',
-},
-paper: {
-    width: '100%',
-    marginBottom: theme.spacing(2),
-},
-table: {
-    minWidth: 750,
-},
-visuallyHidden: {
-    border: 0,
-    clip: 'rect(0 0 0 0)',
-    height: 1,
-    margin: -1,
-    overflow: 'hidden',
-    padding: 0,
-    position: 'absolute',
-    top: 20,
-    width: 1,
-},
+
+  [`& .${classes.secondaryHeading}`]: {
+      fontSize: theme.typography.pxToRem(15),
+      //color: theme.palette.text.secondary,
+      overflow: 'hidden',
+      display: 'block',
+      textOverflow: 'ellipsis',
+      maxWidth: 'calc(90vw)',
+      whiteSpace: 'nowrap',
+  },
+
+  [`& .${classes.taskAndTimeDisplay}`]: {
+      fontSize: theme.typography.pxToRem(12),
+      color: theme.palette.text.secondary,
+      overflow: 'hidden',
+      display: 'block',
+      textOverflow: 'ellipsis',
+      maxWidth: 'calc(90vw)',
+      whiteSpace: 'nowrap',
+  },
+
+  [`& .${classes.secondaryHeadingExpanded}`]: {
+      fontSize: theme.typography.pxToRem(15),
+      //color: theme.palette.text.secondary,
+      display: 'block',
+      overflow: 'auto',
+      maxWidth: 'calc(90vw)',
+      whiteSpace: 'break-word',
+  },
+
+  [`& .${classes.icon}`]: {
+      verticalAlign: 'middle',
+      height: 20,
+      width: 20,
+  },
+
+  [`& .${classes.details}`]: {
+      alignItems: 'center',
+  },
+
+  [`& .${classes.column}`]: {
+      padding: '0 5px 0 0',
+      display: 'inline-block',
+      margin: 0,
+      height: 'auto',
+  },
+
+  [`& .${classes.paper}`]: {
+      width: '100%',
+      marginBottom: theme.spacing(2),
+  },
+
+  [`& .${classes.table}`]: {
+      minWidth: 750,
+  },
+
+  [`& .${classes.visuallyHidden}`]: {
+      border: 0,
+      clip: 'rect(0 0 0 0)',
+      height: 1,
+      margin: -1,
+      overflow: 'hidden',
+      padding: 0,
+      position: 'absolute',
+      top: 20,
+      width: 1,
+  }
 }));
 
 const VirtualTreeRow = ({
@@ -121,7 +159,7 @@ const VirtualTreeRow = ({
   //console.log("item", item, "itemlookup", ListProps.treeRootData[itemTreeData.host]?.[itemTreeData.name])
   const dropdownAnchorRef = React.useRef(null);
   const theme = useTheme();
-  const classes = useStyles();
+
   const handleOnClickButton = (e) => {
     e.stopPropagation();
     if (itemTreeData.isOpen) {
@@ -355,34 +393,31 @@ const FileBrowserVirtualTree = ({
     return finalData;
     //nodes.map((node) => flattenNode(node)).flat()
   },[flattenNode, treeRootData, treeAdjMatrix, showDeletedFiles]);
-  return (
-    flattenedNodes.length > 0 ? (
-      <AutoSizer>
-      {(AutoSizerProps) => (
-        <List
-          itemData={flattenedNodes}
-          direction="vertical"
-          height={AutoSizerProps.height}
-          width={AutoSizerProps.width}
-          itemCount={flattenedNodes.length}
-          itemSize={24}
-        >
-          {(ListProps) => (
-            <VirtualTreeRow
-              {...ListProps}
-              treeRootData={treeRootData}
-              onSelectNode={onSelectNode}
-              onExpandNode={onExpandNode}
-              onCollapseNode={onCollapseNode}
-              contextMenuOptions={contextMenuOptions}
-            />
-          )}
-        </List>
-      )}
-    </AutoSizer>
-    ) : null
-    
-  );
+  return flattenedNodes.length > 0 ? (
+    <StyledAutoSizer>
+    {(AutoSizerProps) => (
+      <List
+        itemData={flattenedNodes}
+        direction="vertical"
+        height={AutoSizerProps.height}
+        width={AutoSizerProps.width}
+        itemCount={flattenedNodes.length}
+        itemSize={24}
+      >
+        {(ListProps) => (
+          <VirtualTreeRow
+            {...ListProps}
+            treeRootData={treeRootData}
+            onSelectNode={onSelectNode}
+            onExpandNode={onExpandNode}
+            onCollapseNode={onCollapseNode}
+            contextMenuOptions={contextMenuOptions}
+          />
+        )}
+      </List>
+    )}
+  </StyledAutoSizer>
+  ) : null;
 };
 
 export default FileBrowserVirtualTree;

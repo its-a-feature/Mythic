@@ -1,5 +1,5 @@
 import React from 'react';
-import makeStyles from '@mui/styles/makeStyles';
+import { styled } from '@mui/material/styles';
 import clsx from 'clsx';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
@@ -12,34 +12,50 @@ import { red } from '@mui/material/colors';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Link } from '@mui/material';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
+const PREFIX = 'QuickStartCard';
+
+const classes = {
+  root: `${PREFIX}-root`,
+  expand: `${PREFIX}-expand`,
+  expandOpen: `${PREFIX}-expandOpen`,
+  avatar: `${PREFIX}-avatar`
+};
+
+const StyledCard = styled(Card)((
+  {
+    theme
+  }
+) => ({
+  [`&.${classes.root}`]: {
     width: `100%`,
   },
-  expand: {
+
+  [`& .${classes.expand}`]: {
     transform: 'rotate(0deg)',
     marginLeft: 'auto',
     transition: theme.transitions.create('transform', {
       duration: theme.transitions.duration.shortest,
     }),
   },
-  expandOpen: {
+
+  [`& .${classes.expandOpen}`]: {
     transform: 'rotate(180deg)',
   },
-  avatar: {
+
+  [`& .${classes.avatar}`]: {
     backgroundColor: red[500],
-  },
+  }
 }));
 
 export function QuickStartCard() {
-  const classes = useStyles();
+
   const [expanded, setExpanded] = React.useState(false);
   const handleExpandClick = () => {
     setExpanded(!expanded);
   };
 
   return (
-    <Card className={classes.root} elevation={5}>
+    <StyledCard className={classes.root} elevation={5}>
       <CardHeader
         avatar={
           <Avatar className={classes.avatar}>
@@ -87,6 +103,6 @@ export function QuickStartCard() {
           </ol>
         </CardContent>
       </Collapse>
-    </Card>
+    </StyledCard>
   );
 }
