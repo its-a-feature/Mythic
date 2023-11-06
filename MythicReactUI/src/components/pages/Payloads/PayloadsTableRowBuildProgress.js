@@ -103,7 +103,7 @@ export function PayloadsTableRowBuildProgress(props){
                     return <HideSourceIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
                 }
             }
-        } else if(step.step_success === true) {
+        } else if(step.step_success) {
             return <CheckCircleOutlineIcon style={{cursor: "pointer"}} color="success" onClick={() => buildStepClick(step)}/>
         } else {
             return <HighlightOffIcon style={{cursor: "pointer"}} color="error" onClick={() => buildStepClick(step)}/>
@@ -159,7 +159,7 @@ export function PayloadBuildStepStatusDialog(props) {
             return "Running...";
         } else if(props.step.end_time === null) {
             return "Waiting to run...";
-        } else if(props.step.step_success === "Success"){
+        } else if(props.step.step_success){
             return "Success";
         } else {
             return "Error";
@@ -301,7 +301,7 @@ export function PayloadsTableRowBuildProcessPerStep(props){
                     return <HideSourceIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
                 }
             }
-        } else if(step.step_success === true) {
+        } else if(step.step_success) {
             return <CheckCircleOutlineIcon style={{cursor: "pointer"}} color="success" onClick={() => buildStepClick(step)}/>
         } else {
             return <HighlightOffIcon style={{cursor: "pointer"}} color="error" onClick={() => buildStepClick(step)}/>
