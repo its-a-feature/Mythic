@@ -61,7 +61,7 @@ mutation updateCommentMutation($file_id: Int!, $comment: String!){
     }
 }
 `;
-const previewFileQuery = gql`
+export const previewFileQuery = gql`
 mutation previewFile($file_id: String!){
     previewFile(file_id: $file_id){
         status

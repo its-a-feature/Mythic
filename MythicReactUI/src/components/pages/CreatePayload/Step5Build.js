@@ -65,36 +65,59 @@ export function Step5Build(props){
                 }, {});
                 buildParameters.push({name: param.name, value: newDict});
             } else if (param.parameter_type === "File") {
-                const newUUID = await UploadTaskFile(param.value, "Uploaded as build parameter for " + filename);
-                if (newUUID) {
-                    buildParameters.push({name: param.name, value: newUUID});
+                if(typeof param.value === "string"){
+                    buildParameters.push({name: param.name, value: param.value});
                 } else {
-                    snackActions.error("Failed to upload files")
-                    return;
+                    const newUUID = await UploadTaskFile(param.value, "Uploaded as build parameter for " + filename);
+                    if (newUUID) {
+                        buildParameters.push({name: param.name, value: newUUID});
+                    } else {
+                        snackActions.error("Failed to upload files")
+                        return;
+                    }
                 }
+
             } else {
                 buildParameters.push({name: param.name, value: param.value});
             }
         }
-        const c2Profiles = props.buildOptions[3].reduce( (prev, c2) => {
-            if(c2.selected){
-                const parameters = c2.c2profileparameters.reduce( (prev, param) => {
+        let c2Profiles = [];
+        for(let i = 0; i < props.buildOptions[3].length; i++){
+            if(props.buildOptions[3][i].selected){
+                let instanceParam = {};
+                for(let j = 0; j < props.buildOptions[3][i].c2profileparameters.length; j++){
+                    let param = props.buildOptions[3][i].c2profileparameters[j];
                     if(param.parameter_type === "Dictionary"){
                         const newDict = param.value.reduce( (prev, cur) => {
                             if(cur.default_show){
                                 return {...prev, [cur.name]: cur.value};
                             }
                             return {...prev}
-                            
                         }, {});
-                        return {...prev, [param.name]: newDict};
+                        instanceParam = {...instanceParam, [param.name]: newDict};
+                    } else if (param.parameter_type === "File") {
+                        if(typeof param.value === "string"){
+                            instanceParam = {...instanceParam, [param.name]: param.value};
+                        } else {
+                            const newUUID = await UploadTaskFile(param.value, "Uploaded as c2 parameter for " + filename);
+                            if (newUUID) {
+                                instanceParam = {...instanceParam, [param.name]: newUUID};
+                            } else {
+                                snackActions.error("Failed to upload files")
+                                return;
+                            }
+                        }
+                    } else {
+                        instanceParam = {...instanceParam, [param.name]: param.value};
+                        //return {...prev, [param.name]: param.value}
                     }
-                    return {...prev, [param.name]: param.value}
-                }, {});
-                return [...prev, {"c2_profile": c2.name, "c2_profile_parameters": parameters}];
+                }
+                c2Profiles.push({
+                    "c2_profile": props.buildOptions[3][i].name,
+                    "c2_profile_parameters": instanceParam,
+                })
             }
-            return prev;
-        }, []);
+        }
         const finishedPayload = {
             "selected_os": props.buildOptions[0],
             "payload_type": props.buildOptions[1]["payload_type"],
@@ -105,7 +128,7 @@ export function Step5Build(props){
             "c2_profiles": c2Profiles
             };
         //console.log("finishedPayload", finishedPayload)
-        //snackActions.info("Submitted Creation to Mythic...", {autoClose: 1000});
+        snackActions.info("Submitted Creation to Mythic...", {autoClose: 1000});
         createPayloadMutation({variables: {payload: JSON.stringify(finishedPayload)}}).catch( (e) => {console.log(e)} );
     }
     const canceled = () => {

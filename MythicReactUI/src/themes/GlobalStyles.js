@@ -250,4 +250,8 @@ tspan {
     width: 1px;
     backgroundImage: linear-gradient(#7f93c0, #00000000);
 }
+.Toastify__toast-body > div > div {
+    word-break: break-all;
+    white-space: pre-wrap !important;
+}
 `

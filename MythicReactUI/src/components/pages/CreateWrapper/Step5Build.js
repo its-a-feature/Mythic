@@ -64,12 +64,16 @@ export function Step5Build(props){
                 }, {});
                 buildParameters.push({name: param.name, value: newDict});
             } else if (param.parameter_type === "File") {
-                const newUUID = await UploadTaskFile(param.value, "Uploaded as build parameter for " + filename);
-                if (newUUID) {
-                    buildParameters.push({name: param.name, value: newUUID});
+                if(typeof param.value === "string"){
+                    buildParameters.push({name: param.name, value: param.value});
                 } else {
-                    snackActions.error("Failed to upload files")
-                    return;
+                    const newUUID = await UploadTaskFile(param.value, "Uploaded as build parameter for " + filename);
+                    if (newUUID) {
+                        buildParameters.push({name: param.name, value: newUUID});
+                    } else {
+                        snackActions.error("Failed to upload files")
+                        return;
+                    }
                 }
             } else {
                 buildParameters.push({name: param.name, value: param.value});

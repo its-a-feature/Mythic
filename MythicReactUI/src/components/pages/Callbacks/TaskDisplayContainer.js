@@ -275,9 +275,9 @@ const SpeedDialDisplay = ({toggleViewBrowserScript, toggleSelectAllOutput, toggl
       <SpeedDial
         ariaLabel="Task Speeddial"
         icon={<SpeedDialIcon />}
-        style={{position: "absolute", bottom: 0}}
+        style={{position: "absolute", bottom: 0, zIndex: 1}}
         onClick={()=>{setOpenSpeedDial(!openSpeedDial)}}
-        FabProps={{ color: "primary", size: "small" }}
+        FabProps={{ color: "primary", size: "small", }}
         open={openSpeedDial}
         direction="right"
       >

@@ -69,7 +69,7 @@ export function EventFeedNotifications(props) {
                     snackActions.warning(data.operationeventlog_stream[0].message, {autoClose: 3000});
                 } else {
                     snackActions.info(
-                        <div style={{width: "100%", whiteSpace: "pre"}}>{data.operationeventlog_stream[0].message}</div>,
+                        <div style={{width: "100%"}}>{data.operationeventlog_stream[0].message}</div>,
                     {autoClose: 3000});
                 }
 
@@ -79,8 +79,6 @@ export function EventFeedNotifications(props) {
             snackActions.error("Mythic encountered an error getting operational event stream", {autoHideDuration: 2000});
         }
     }, [loading, data, error, me.user]);
-    return (    
-       null
-    );
+    return null;
 }
 

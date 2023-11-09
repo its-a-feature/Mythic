@@ -24,6 +24,7 @@ import Dialog from '@mui/material/Dialog';
 import PublicIcon from '@mui/icons-material/Public';
 import {HostFileDialog} from "./HostFileDialog";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 
 const GET_Payload_Details = gql`
 query GetPayloadDetails($payload_id: Int!, $operation_id: Int!) {
@@ -125,26 +126,38 @@ export function DetailedPayloadTable(props){
         )
 }
 
-const parseForDisplay = (cmd) => {
-    if(cmd.parameter_type === "Dictionary") {
-        try{
-            let parsedValue = JSON.parse(cmd.value);
-            return JSON.stringify(parsedValue, null, 2);
-        }catch(error){
-            console.log("Failed to parse parameter value as dictionary", cmd.value, error)
-            return cmd.value;
+const ParseForDisplay = ({cmd}) => {
+    const [renderObj, setRenderObj] = React.useState(cmd.value);
+
+    React.useEffect( () => {
+        if(cmd.parameter_type === "Dictionary") {
+            try{
+                let parsedValue = JSON.parse(cmd.value);
+                setRenderObj(JSON.stringify(parsedValue, null, 2));
+            }catch(error){
+                console.log("Failed to parse parameter value as dictionary", cmd.value, error)
+                return setRenderObj(cmd.value);
+            }
+        }else if(cmd.parameter_type === "Array" || cmd.parameter_type === "ChooseMultiple") {
+            try {
+                let parsedValue = JSON.parse(cmd.value);
+                setRenderObj(parsedValue.map(c => c + "\n"));
+            } catch (error) {
+                console.log("Failed to parse parameter value as array or choose multiple", cmd.value, error)
+                setRenderObj(cmd.value);
+            }
+        } else if(cmd.parameter_type === "File"){
+
+        } else {
+            setRenderObj(cmd.value);
         }
-    }else if(cmd.parameter_type === "Array" || cmd.parameter_type === "ChooseMultiple") {
-        try{
-            let parsedValue = JSON.parse(cmd.value);
-            return parsedValue.map(c => c+"\n");
-        }catch(error){
-            console.log("Failed to parse parameter value as array or choose multiple", cmd.value, error)
-            return cmd.value;
-        }
-    } else {
-        return cmd.value;
-    }
+    }, [cmd]);
+
+    return (
+        cmd.parameter_type === "File" ? (
+            <MythicFileContext agent_file_id={cmd.value} display_link={""} />
+        ) : (renderObj)
+    )
 }
 
 function DetailedPayloadInnerTable(props){
@@ -363,7 +376,7 @@ function DetailedPayloadInnerTable(props){
                         <TableRow key={"buildprop" + i + "for" + props.payload_id} hover>
                             <TableCell>{cmd.description}</TableCell>
                             <TableCell>
-                                {parseForDisplay(cmd)}
+                                <ParseForDisplay cmd={cmd} />
                                   {cmd.enc_key === null ? null : (<React.Fragment>
                                     <br/><b>Encryption Key: </b> {cmd.enc_key}
                                   </React.Fragment>) }
@@ -425,7 +438,7 @@ function DetailedPayloadInnerTable(props){
                                     <TableRow key={"c2frag" + props.payload_id + c2.c2_profile + j} hover>
                                         <TableCell>{cmd.description}</TableCell>
                                         <TableCell>
-                                            {parseForDisplay(cmd)}
+                                            <ParseForDisplay cmd={cmd} />
                                           {cmd.enc_key === null ? (null) : (<React.Fragment>
                                             <br/><b>Encryption Key: </b> {cmd.enc_key}
                                           </React.Fragment>) }

@@ -15,6 +15,7 @@ import MenuItem from '@mui/material/MenuItem';
 import {useTheme} from '@mui/material/styles';
 import { snackActions } from '../../utilities/Snackbar';
 import {getDefaultValueForType, getDefaultChoices} from '../CreatePayload/Step2SelectPayloadType';
+import {UploadTaskFile} from "../../MythicComponents/MythicFileUpload";
 
 const getProfileConfigQuery = gql`
 query getProfileParameters($id: Int!) {
@@ -110,29 +111,42 @@ export function C2ProfileSavedInstancesDialog(props) {
             inst["trackedValue"] = JSON.parse(inst["value"]);
             inst["choices"] = getDefaultChoices(inst);
             inst["initialValue"] = getDefaultValueForType(inst);
-          } else if(inst.parameter_type === "Dictionary"){
-            // 
-            let defaultValue = getDefaultValueForType(inst);
-            let finalDict = JSON.parse(inst["value"]); // this is a dictionary instead of an array, so fix it back
-            let finalDictKeys = Object.keys(finalDict);
-            let finalArray = [];
-            let choices = getDefaultChoices(inst);
-            for(let i = 0; i < finalDictKeys.length; i++){
-              let newDict = {
-                name: finalDictKeys[i],
-                value: finalDict[finalDictKeys[i]],
-                default_show: true
+          } else if(inst.parameter_type === "Dictionary") {
+              //
+              let defaultValue = getDefaultValueForType(inst);
+              let finalDict = JSON.parse(inst["value"]); // this is a dictionary instead of an array, so fix it back
+              let finalDictKeys = Object.keys(finalDict);
+              let finalArray = [];
+              let choices = getDefaultChoices(inst);
+              for (let i = 0; i < finalDictKeys.length; i++) {
+                  let newDict = {
+                      name: finalDictKeys[i],
+                      value: finalDict[finalDictKeys[i]],
+                      default_show: true
+                  };
+                  for (let j = 0; j < choices.length; j++) {
+                      if (choices[j].name === finalDictKeys[i]) {
+                          newDict["default_value"] = choices[j]["default_value"]
+                      }
+                  }
+                  finalArray.push(newDict);
+              }
+
+              choices = choices.map(c => {
+                  return {...c, default_show: false}
+              });
+              return {
+                  ...inst,
+                  value: finalArray,
+                  choices: choices,
+                  trackedValue: finalArray,
+                  default_value: defaultValue,
+                  initialValue: defaultValue
               };
-              for(let j = 0; j < choices.length; j++){
-                if(choices[j].name === finalDictKeys[i]){
-                    newDict["default_value"] = choices[j]["default_value"]
-                }
-            }
-              finalArray.push(newDict);
-            }
-            
-            choices = choices.map(c => {return {...c, default_show: false}});
-            return {...inst, value: finalArray, choices: choices, trackedValue: finalArray, default_value:defaultValue, initialValue:defaultValue};
+          } else if(inst.parameter_type === "File") {
+              inst["choices"] = getDefaultChoices(inst);
+              inst["trackedValue"] = {name: inst["value"], legacy: true};
+              inst["initialValue"] = getDefaultValueForType(inst);
           } else {
             inst["choices"] = getDefaultChoices(inst);
             inst["trackedValue"] = inst["value"];
@@ -179,26 +193,40 @@ export function C2ProfileSavedInstancesDialog(props) {
     if (loading) {
      return <LinearProgress />;
     }
-    const onConfigSubmit = () => {
+    const onConfigSubmit = async () => {
       if(instanceName.length === 0){
         snackActions.warning("Must supply an instance name");
         return;
       }
-        const config = currentParameters.reduce( (paramPrev, param) => {
-          //return {...prev, [cur.name]: cur.value}
-          if(param.parameter_type === "Dictionary"){
-            const newDict = param.value.reduce( (prev, cur) => {
-                if(cur.default_show){
-                    return {...prev, [cur.name]: cur.value};
+        let instanceParam = {};
+        for(let j = 0; j < currentParameters.length; j++){
+            let param = currentParameters[j];
+            if(param.parameter_type === "Dictionary"){
+                const newDict = param.value.reduce( (prev, cur) => {
+                    if(cur.default_show){
+                        return {...prev, [cur.name]: cur.value};
+                    }
+                    return {...prev}
+                }, {});
+                instanceParam = {...instanceParam, [param.name]: newDict};
+            } else if (param.parameter_type === "File") {
+                if(typeof param.value === "string"){
+                    instanceParam = {...instanceParam, [param.name]: param.value};
+                } else {
+                    const newUUID = await UploadTaskFile(param.value, "Uploaded as c2 parameter for saved C2 Parameter Instance '" + instanceName + "'");
+                    if (newUUID) {
+                        instanceParam = {...instanceParam, [param.name]: newUUID};
+                    } else {
+                        snackActions.error("Failed to upload files")
+                        return;
+                    }
                 }
-                return {...prev}
-            }, {});
-            return {...paramPrev, [param.name]: newDict};
-          } else {
-              return {...paramPrev, [param.name]: param.value};
-          }
-        }, {});
-        createInstance({variables: {instance_name: instanceName, c2profile_id: props.id, c2_instance: JSON.stringify(config)}})
+
+            } else {
+                instanceParam = {...instanceParam, [param.name]: param.value};
+            }
+        }
+        createInstance({variables: {instance_name: instanceName, c2profile_id: props.id, c2_instance: JSON.stringify(instanceParam)}});
     }
     const onChange = (name, value, error) => {
       setInstanceName(value);
@@ -269,7 +297,7 @@ export function C2ProfileSavedInstancesDialog(props) {
             Close
           </Button>
           <Button variant="contained" onClick={onConfigSubmit} color="success">
-            {selectedInstance.length > 0 ? ("Update") : ("Create")}
+            {selectedInstance.length > 0 ? (selectedInstance !== instanceName ? "Create": "Update") : ("Create")}
           </Button>
         </DialogActions>
   </React.Fragment>

@@ -19,6 +19,7 @@ import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip'
 import Paper from '@mui/material/Paper';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {Typography} from '@mui/material';
+import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id, description, initialValue, choices, trackedValue, returnAllDictValues}){
     const [value, setValue] = React.useState("");
@@ -39,7 +40,6 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const onFileChange = (evt) => {
         setFileValue({name: evt.target.files[0].name});
         onChange(name, evt.target.files[0]);
-
     }
     useEffect( () => {
         if(parameter_type === "ChooseOne"){
@@ -53,42 +53,46 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setMultiValue(trackedValue);
             setChooseOptions(choices);
         }else if(parameter_type === "File") {
-            setFileValue({name: ""});
+            if(typeof trackedValue === "string"){
+                setFileValue({name: trackedValue, legacy: trackedValue !== ""});
+            } else {
+                setFileValue(trackedValue);
+            }
         }else if(parameter_type === "Date"){
             setDateValue(dayjs(trackedValue));
             onChange(name, trackedValue, "");
         }else if(parameter_type === "Dictionary" ){
-                setDictOptions(choices);
-                let initial = trackedValue.reduce( (prev, op) => {
-                    // find all the options that have a default_show of true
-                    if(op.default_show){
-                        if(op.value){
-                            return [...prev, {...op, value: op.value} ];
-                        } else {
-                            return [...prev, {...op, value: op.default_value} ];
-                        }
-                        
-                    }else{
-                        return [...prev];
+            setDictOptions(choices);
+            let initial = trackedValue.reduce( (prev, op) => {
+                // find all the options that have a default_show of true
+                if(op.default_show){
+                    if(op.value){
+                        return [...prev, {...op, value: op.value} ];
+                    } else {
+                        return [...prev, {...op, value: op.default_value} ];
                     }
-                }, [] );
-                submitDictChange(initial);
-                setDictValue(initial);
-                let dictSelectOptionsInitial = choices.reduce( (prev, op) => {
-                    //for each option, check how many instances of it are allowed
-                    // then check how many we have currently
-                    const count = initial.reduce( (preCount, cur) => {
-                        if(cur.name === op.name){return preCount + 1}
-                        return preCount;
-                    }, 0);
-                    if(count === 0){
-                        return [{...op, value: op.default_value}, ...prev ];  
-                    }else{
-                        return [...prev]
-                    }
-                }, [{name: "Custom...", default_value: "", default_show: false}]);
-                setDictSelectOptions(dictSelectOptionsInitial);
-                setDictSelectOptionsChoice(dictSelectOptionsInitial[0]);
+
+                }else{
+                    return [...prev];
+                }
+            }, [] );
+            submitDictChange(initial);
+            setDictValue(initial);
+            let dictSelectOptionsInitial = choices.reduce( (prev, op) => {
+                //for each option, check how many instances of it are allowed
+                // then check how many we have currently
+                const count = initial.reduce( (preCount, cur) => {
+                    if(cur.name === op.name){return preCount + 1}
+                    return preCount;
+                }, 0);
+                if(count === 0){
+                    return [{...op, value: op.default_value}, ...prev ];
+                }else{
+                    return [...prev]
+                }
+            }, [{name: "Custom...", default_value: "", default_show: false}]);
+            setDictSelectOptions(dictSelectOptionsInitial);
+            setDictSelectOptionsChoice(dictSelectOptionsInitial[0]);
             
         }else if(parameter_type === "Boolean"){
             setValue( trackedValue );
@@ -289,9 +293,16 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 );
             case "File":
                 return (
-                    <Button variant="contained" component="label">
-                        { fileValue.name === "" ? "Select File" : fileValue.name }
-                    <input onChange={onFileChange} type="file" hidden /> </Button>
+                    <>
+                        <Button variant="contained" component="label">
+                            { fileValue.legacy ? "Select New File" : fileValue.name === "" ? "Select File" : fileValue.name }
+                            <input onChange={onFileChange} type="file" hidden />
+                        </Button>
+                        {fileValue.legacy &&
+                            <MythicFileContext agent_file_id={fileValue.name} />
+                        }
+                    </>
+
                 )
             case "ChooseOne":
                 return (
@@ -486,7 +497,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         {description}
                         {modifiedValue() ? (
                             <Typography color="warning.main">Modified</Typography>
-                        ) : (null)}
+                        ) : null}
                     </MythicStyledTooltip>
                  </TableCell>
                 <MythicStyledTableCell>

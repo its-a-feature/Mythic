@@ -56,8 +56,10 @@ export function C2ProfileBuildDialog(props) {
               let default_value = getDefaultValueForType(param);
               if(param.parameter_type === "Array" || param.parameter_type === "ChooseMultiple"){
                 default_value = default_value.join(", ")
-              } else if(param.parameter_type === "Boolean"){
-                default_value = default_value ? "True" : "False"
+              } else if(param.parameter_type === "Boolean") {
+                  default_value = default_value ? "True" : "False"
+              } else if(param.parameter_type === "File") {
+                  default_value = "";
               } else if(param.parameter_type === "Dictionary"){
                 let defaultChoices = getDefaultChoices(param);
                 defaultChoices = defaultChoices.reduce( (prev, cur) => {

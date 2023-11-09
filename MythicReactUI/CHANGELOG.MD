@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.26] - 2023-11-09
+
+### Changed
+
+- Added the "File" parameter type to the UI for C2 Profiles
+- Updated payload details, saved c2 instances, and payload builds to reflect new "File" parameter types
+- Fixed overflowing toast notifications causing information to get cut off
+
 ## [0.1.25] - 2023-11-06
 
 - Fixed a UI bug where clicking on a build step status would always say status as "Error" even if the icon was success

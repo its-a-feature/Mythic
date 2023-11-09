@@ -86,6 +86,8 @@ func CreateC2Instance(input CreateC2InstanceInput, operatorOperation *databaseSt
 			(c2_profile_parameters_id, value, operation_id, instance_name, c2_profile_id)
 			VALUES
 			(:c2_profile_parameters_id, :value, :operation_id, :instance_name, :c2_profile_id)
+			ON CONFLICT (instance_name, operation_id, c2_profile_parameters_id)
+			DO UPDATE SET value=:value
 			`, param); err != nil {
 				logging.LogError(err, "Failed to save new parameter instance")
 				response.Error = "Failed to save instance: " + err.Error()

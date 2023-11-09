@@ -216,7 +216,11 @@ export function Step4C2Profiles(props){
                 choices = choices.map(c => {return {...c, default_show: false}});
                 let initialValue = getDefaultValueForType(inst);
                 return {...inst, value: finalArray, choices: choices, trackedValue: finalArray, initialValue: initialValue, default_value: initialValue};
-              } else {
+              } else if(inst.parameter_type === "File") {
+                inst["choices"] = getDefaultChoices(inst);
+                inst["trackedValue"] = {name: inst["value"], legacy: true};
+                inst["initialValue"] = getDefaultValueForType(inst);
+            } else {
                 inst["choices"] = getDefaultChoices(inst);
                 inst["trackedValue"] = inst["value"];
                 inst["initialValue"] = getDefaultValueForType(inst);
