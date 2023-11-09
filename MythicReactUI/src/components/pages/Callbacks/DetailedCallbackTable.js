@@ -24,6 +24,7 @@ import {AddRemoveCallbackCommandsDialog} from './AddRemoveCallbackCommandsDialog
 import { snackActions } from '../../utilities/Snackbar';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
+import {ParseForDisplay} from "../Payloads/DetailedPayloadTable";
 
 const GET_Payload_Details = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -414,15 +415,7 @@ export function DetailedCallbackTable(props){
                                     <TableRow key={"c2frag" + data.callback_by_pk.payload.id + c2.c2_profile + j} hover>
                                         <TableCell>{cmd.description}</TableCell>
                                         <TableCell>
-                                        {
-                                          cmd.parameter_type === "Dictionary" ? (
-                                              JSON.stringify(JSON.parse(cmd.value), null, 2)
-                                          ) : (
-                                            cmd.parameter_type === "Array" || cmd.parameter_type === "ChooseMultiple" ? (
-                                              JSON.parse(cmd.value).map(c => c + "\n")
-                                            ): (cmd.value)
-                                          )
-                                        }
+                                            <ParseForDisplay cmd={cmd} />
                                             {cmd.enc_key === null ? (null) : (<React.Fragment>
                                                 <br/><b>Encryption Key: </b> {cmd.enc_key}
                                               </React.Fragment>) }

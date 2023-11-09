@@ -126,7 +126,7 @@ export function DetailedPayloadTable(props){
         )
 }
 
-const ParseForDisplay = ({cmd}) => {
+export const ParseForDisplay = ({cmd}) => {
     const [renderObj, setRenderObj] = React.useState(cmd.value);
 
     React.useEffect( () => {
