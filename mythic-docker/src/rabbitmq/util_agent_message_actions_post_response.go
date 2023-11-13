@@ -156,16 +156,19 @@ type agentMessagePostResponseCallbackTokens struct {
 }
 type agentMessagePostResponseDownload struct {
 	// Transfer a file from agent -> Mythic
-	TotalChunks  *int                   `json:"total_chunks,omitempty" mapstructure:"total_chunks,omitempty"`
-	ChunkSize    *int                   `json:"chunk_size,omitempty" mapstructure:"chunk_size,omitempty"`
-	ChunkData    *string                `json:"chunk_data,omitempty" mapstructure:"chunk_data,omitempty"`
-	ChunkNum     *int                   `json:"chunk_num,omitempty" mapstructure:"chunk_num,omitempty"`
-	FullPath     *string                `json:"full_path,omitempty" mapstructure:"full_path,omitempty"`
-	FileName     *string                `json:"filename,omitempty" mapstructure:"filename,omitempty"`
-	FileID       *string                `json:"file_id,omitempty" mapstructure:"file_id,omitempty"`
-	Host         *string                `json:"host,omitempty" mapstructure:"host,omitempty"`
-	IsScreenshot *bool                  `json:"is_screenshot,omitempty" mapstructure:"is_screenshot,omitempty"`
-	Other        map[string]interface{} `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in, so we can reply back with them
+	TotalChunks         *int                   `json:"total_chunks,omitempty" mapstructure:"total_chunks,omitempty"`
+	ChunkSize           *int                   `json:"chunk_size,omitempty" mapstructure:"chunk_size,omitempty"`
+	ChunkData           *string                `json:"chunk_data,omitempty" mapstructure:"chunk_data,omitempty"`
+	ChunkNum            *int                   `json:"chunk_num,omitempty" mapstructure:"chunk_num,omitempty"`
+	FullPath            *string                `json:"full_path,omitempty" mapstructure:"full_path,omitempty"`
+	FileName            *string                `json:"filename,omitempty" mapstructure:"filename,omitempty"`
+	FileID              *string                `json:"file_id,omitempty" mapstructure:"file_id,omitempty"`
+	Host                *string                `json:"host,omitempty" mapstructure:"host,omitempty"`
+	IsScreenshot        *bool                  `json:"is_screenshot,omitempty" mapstructure:"is_screenshot,omitempty"`
+	Other               map[string]interface{} `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in, so we can reply back with them
+	localMythicPath     string
+	knownChunkSize      int
+	determinedChunkSize chan int
 }
 type agentMessagePostResponseUpload struct {
 	// Transfer a file from Mythic -> Agent
@@ -189,12 +192,14 @@ type agentMessagePostResponseAlert struct {
 	Level        *string                 `json:"level,omitempty" mapstructure:"level"`
 	SendWebhook  bool                    `json:"send_webhook" mapstructure:"send_webhook"`
 }
-
 type agentMessagePostResponseInteractive struct {
 	TaskUUID    string                      `json:"task_id" mapstructure:"task_id"`
 	Data        string                      `json:"data" mapstructure:"data"`
 	MessageType InteractiveTask.MessageType `json:"message_type" mapstructure:"message_type"`
 }
+
+// writeDownloadChunkToDiskChan is a blocking call intentionally
+var writeDownloadChunkToDiskChan = make(chan *agentMessagePostResponseDownload)
 
 func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
 	// got message:
@@ -436,7 +441,6 @@ func handleAgentMessagePostResponseInteractiveOutput(agentResponses *[]agentMess
 		}
 	}
 }
-
 func handleAgentMessagePostResponseRemovedFiles(task databaseStructs.Task, removedFiles *[]agentMessagePostResponseRemovedFiles) error {
 	// mark the file / folder as removed and recursively mark all children as deleted too
 	for _, rmData := range *removedFiles {
@@ -749,6 +753,74 @@ func handleAgentMessagePostResponseCommands(task databaseStructs.Task, commands 
 		}
 	}
 }
+func listenForWriteDownloadChunkToLocalDisk() {
+	for {
+		select {
+		case agentResponse := <-writeDownloadChunkToDiskChan:
+			alreadySentNewChunkSize := false
+			base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.ChunkData)))
+			var totalBase64Bytes int
+			totalBase64Bytes, err := base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.ChunkData))
+			if err != nil {
+				logging.LogError(err, "Failed to base64 decode chunk data from agent when downloading file")
+				agentResponse.determinedChunkSize <- 0
+				continue
+			}
+			f, err := os.OpenFile(agentResponse.localMythicPath, os.O_RDWR|os.O_CREATE, 0644)
+			if err != nil {
+				logging.LogError(err, "Failed to open file to add agent data")
+				agentResponse.determinedChunkSize <- 0
+				continue
+			}
+			if agentResponse.knownChunkSize > 0 {
+				logging.LogDebug("downloading with known chunk size", "chunk_num", *agentResponse.ChunkNum, "chunk size", agentResponse.knownChunkSize)
+				_, err = f.Seek(int64((*agentResponse.ChunkNum-1)*(agentResponse.knownChunkSize)), io.SeekStart)
+				if err != nil {
+					logging.LogError(err, "Failed to seek to next chunk in file")
+					f.Close()
+					agentResponse.determinedChunkSize <- 0
+					continue
+				}
+				logging.LogDebug("downloading chunk", "offset from beginning", int64((*agentResponse.ChunkNum-1)*(agentResponse.knownChunkSize)))
+			} else {
+				logging.LogDebug("downloading with unknown chunk size chunk", "chunk_num", *agentResponse.ChunkNum, "chunk size", totalBase64Bytes)
+				_, err = f.Seek(int64((*agentResponse.ChunkNum-1)*(totalBase64Bytes)), io.SeekStart)
+				if err != nil {
+					logging.LogError(err, "Failed to seek to next chunk in file")
+					f.Close()
+					agentResponse.determinedChunkSize <- 0
+					continue
+				}
+				agentResponse.determinedChunkSize <- totalBase64Bytes
+				alreadySentNewChunkSize = true
+				logging.LogDebug("downloading chunk", "offset from beginning", int64((*agentResponse.ChunkNum-1)*(totalBase64Bytes)))
+			}
+			totalWritten, err := f.Write(base64DecodedFileData[:totalBase64Bytes])
+			if err != nil {
+				logging.LogError(err, "Failed to write bytes to file in agent download")
+				f.Close()
+				if !alreadySentNewChunkSize {
+					agentResponse.determinedChunkSize <- 0
+				}
+				continue
+			}
+			offset, err := f.Seek(0, io.SeekCurrent)
+			logging.LogDebug("finished writing chunk", "next offset should be", offset)
+			if totalWritten != totalBase64Bytes {
+				logging.LogError(nil, "Didn't write all of the bytes to disk")
+				f.Close()
+				if !alreadySentNewChunkSize {
+					agentResponse.determinedChunkSize <- 0
+				}
+				continue
+			}
+			f.Close()
+			if !alreadySentNewChunkSize {
+				agentResponse.determinedChunkSize <- 0
+			}
+		}
+	}
+}
 func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResponse agentMessagePostResponse) (string, error) {
 	// might need to return a file_id if we're initially registering a file for transfer from agent to Mythic
 	// two stages:
@@ -784,28 +856,46 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 			if agentResponse.Download.IsScreenshot != nil && *agentResponse.Download.IsScreenshot {
 				fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
 			}
+			agentResponse.Download.localMythicPath = fileMeta.Path
 			if !fileMeta.Complete {
 				if agentResponse.Download.ChunkData != nil && len(*agentResponse.Download.ChunkData) > 0 {
 					fileMeta.ChunksReceived += 1
-					// now open and append the chunk data to the end of the file
-					base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.Download.ChunkData)))
-					var totalBase64Bytes int
-					if totalBase64Bytes, err = base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.Download.ChunkData)); err != nil {
-						logging.LogError(err, "Failed to base64 decode chunk data from agent when downloading file")
-						return "", err
-					} else if f, err := os.OpenFile(fileMeta.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
-						logging.LogError(err, "Failed to open file to append agent data")
-						return "", err
-					} else if _, err := f.Write(base64DecodedFileData[:totalBase64Bytes]); err != nil {
-						logging.LogError(err, "Failed to write bytes to file in agent download")
-						return "", err
-					} else {
-						if fileMeta.ChunkSize == 0 {
-							fileMeta.ChunkSize = totalBase64Bytes
+					if fileMeta.ChunkSize > 0 {
+						agentResponse.Download.knownChunkSize = fileMeta.ChunkSize
+					} else if agentResponse.Download.ChunkSize != nil {
+						if *agentResponse.Download.ChunkSize > 0 {
+							agentResponse.Download.knownChunkSize = *agentResponse.Download.ChunkSize
 						}
-						f.Close()
 					}
-
+					/*
+						// now open and append the chunk data to the end of the file
+						base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.Download.ChunkData)))
+						var totalBase64Bytes int
+						if totalBase64Bytes, err = base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.Download.ChunkData)); err != nil {
+							logging.LogError(err, "Failed to base64 decode chunk data from agent when downloading file")
+							return "", err
+						} else if f, err := os.OpenFile(fileMeta.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
+							logging.LogError(err, "Failed to open file to append agent data")
+							return "", err
+						} else if _, err := f.Write(base64DecodedFileData[:totalBase64Bytes]); err != nil {
+							logging.LogError(err, "Failed to write bytes to file in agent download")
+							return "", err
+						} else {
+							if fileMeta.ChunkSize == 0 {
+								fileMeta.ChunkSize = totalBase64Bytes
+							}
+							f.Close()
+						}
+					*/
+					determinedChunkSizeChan := make(chan int)
+					agentResponse.Download.determinedChunkSize = determinedChunkSizeChan
+					writeDownloadChunkToDiskChan <- agentResponse.Download
+					determinedChunkSize := <-determinedChunkSizeChan
+					// we don't know the chunk size ahead of time and one was reported back as part of the file write
+					logging.LogDebug("got new chunk size from write action", "new chunk size", determinedChunkSize)
+					if determinedChunkSize > 0 {
+						fileMeta.ChunkSize = determinedChunkSize
+					}
 				}
 			}
 			// check about updating total chunk count in case the agent didn't know it ahead of time

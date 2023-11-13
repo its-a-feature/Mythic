@@ -80,6 +80,7 @@ func (r *rabbitMQConnection) startListeners() {
 
 func Initialize() {
 	RabbitMQConnection.channelMutexMap = make(map[string]*channelMutex)
+	go listenForWriteDownloadChunkToLocalDisk()
 	for {
 		if _, err := RabbitMQConnection.GetConnection(); err == nil {
 			// periodically check to make sure containers are online
