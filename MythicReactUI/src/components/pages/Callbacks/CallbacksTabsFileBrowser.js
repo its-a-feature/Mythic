@@ -44,6 +44,11 @@ const fileDataFragment = gql`
         parent_path_text
         tree_type
         metadata
+        callback {
+            id
+            display_id
+            mythictree_groups
+        }
     }
 `;
 const rootFileQuery = gql`
@@ -142,27 +147,38 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
     useQuery(rootFileQuery, {
         onCompleted: (data) => {
            // use an adjacency matrix but only for full_path_text -> children, not both directions
-           
+           // create the top level data in the treeRootDataRef
            for(let i = 0; i < data.mythictree.length; i++){
-                if( treeRootDataRef.current[data.mythictree[i]["host"]] === undefined) {
-                    // new host discovered 
-                    treeRootDataRef.current[data.mythictree[i]["host"]] = {};
+                for(let j = 0; j < data.mythictree[i]["callback"]["mythictree_groups"].length; j++){
+                    if(treeRootDataRef.current[data.mythictree[i]["callback"]["mythictree_groups"][j]] === undefined){
+                        treeRootDataRef.current[data.mythictree[i]["callback"]["mythictree_groups"][j]] = {};
+                    }
+                    if( treeRootDataRef.current[data.mythictree[i]["callback"]["mythictree_groups"][j]][data.mythictree[i]["host"]] === undefined) {
+                        // new host discovered
+                        treeRootDataRef.current[data.mythictree[i]["callback"]["mythictree_groups"][j]][data.mythictree[i]["host"]] = {};
+                    }
+                    treeRootDataRef.current[data.mythictree[i]["callback"]["mythictree_groups"][j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
                 }
-                treeRootDataRef.current[data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
            }
+           // create the top level data in the adjacency matrix
            const newMatrix = data.mythictree.reduce( (prev, cur) => {
-                if( prev[cur["host"]] === undefined) {
-                    // the current host isn't tracked in the adjacency matrix, so add it
-                    prev[cur["host"]] = {}
-                }
-                if( prev[cur["host"]][cur["parent_path_text"]] === undefined) {
-                    // the current parent's path isn't tracked, so add it and ourselves as children
-                    prev[cur["host"]][cur["parent_path_text"]] = {};
-                } 
-                prev[cur["host"]][cur["parent_path_text"]][cur["full_path_text"]] = 1;
-                
+               for(let j = 0; j < cur["callback"]["mythictree_groups"].length; j++) {
+                   if (prev[cur["callback"]["mythictree_groups"][j]] === undefined) {
+                       prev[cur["callback"]["mythictree_groups"][j]] = {};
+                   }
+                   if (prev[cur["callback"]["mythictree_groups"][j]][cur["host"]] === undefined) {
+                       // the current host isn't tracked in the adjacency matrix, so add it
+                       prev[cur["callback"]["mythictree_groups"][j]][cur["host"]] = {}
+                   }
+                   if (prev[cur["callback"]["mythictree_groups"][j]][cur["host"]][cur["parent_path_text"]] === undefined) {
+                       // the current parent's path isn't tracked, so add it and ourselves as children
+                       prev[cur["callback"]["mythictree_groups"][j]][cur["host"]][cur["parent_path_text"]] = {};
+                   }
+                   prev[cur["callback"]["mythictree_groups"][j]][cur["host"]][cur["parent_path_text"]][cur["full_path_text"]] = 1;
+               }
                 return prev;
            }, {...treeAdjMtx});
+           //console.log(treeRootDataRef.current);
            setTreeAdjMtx(newMatrix);
         },
         fetchPolicy: 'no-cache',
@@ -172,24 +188,33 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         fetchPolicy: "no-cache",
         onData: ({data}) => {
             for(let i = 0; i < data.data.mythictree_stream.length; i++){
-                if( treeRootDataRef.current[data.data.mythictree_stream[i]["host"]] === undefined) {
-                    // new host discovered 
-                    treeRootDataRef.current[data.data.mythictree_stream[i]["host"]] = {};
+                for(let j = 0; j < data.data.mythictree_stream[i]["callback"]["mythictree_groups"].length; j++) {
+                    if (treeRootDataRef.current[data.data.mythictree_stream[i]["callback"]["mythictree_groups"][j]] === undefined) {
+                        treeRootDataRef.current[data.data.mythictree_stream[i]["callback"]["mythictree_groups"][j]] = {};
+                    }
+                    if (treeRootDataRef.current[data.data.mythictree_stream[i]["callback"]["mythictree_groups"][j]][data.data.mythictree_stream[i]["host"]] === undefined) {
+                        // new host discovered
+                        treeRootDataRef.current[data.data.mythictree_stream[i]["callback"]["mythictree_groups"][j]][data.data.mythictree_stream[i]["host"]] = {};
+                    }
+                    treeRootDataRef.current[data.data.mythictree_stream[i]["callback"]["mythictree_groups"][j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]};
                 }
-                treeRootDataRef.current[data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]}
             }
             const newMatrix = data.data.mythictree_stream.reduce( (prev, cur) => {
-                    if( prev[cur["host"]] === undefined) {
-                        // the current host isn't tracked in the adjacency matrix, so add it
-                        prev[cur["host"]] = {}
+                for(let j = 0; j < cur["callback"]["mythictree_groups"].length; j++) {
+                    if (prev[cur["callback"]["mythictree_groups"][j]] === undefined) {
+                        prev[cur["callback"]["mythictree_groups"][j]] = {};
                     }
-                    if( prev[cur["host"]][cur["parent_path_text"]] === undefined) {
+                    if (prev[cur["callback"]["mythictree_groups"][j]][cur["host"]] === undefined) {
+                        // the current host isn't tracked in the adjacency matrix, so add it
+                        prev[cur["callback"]["mythictree_groups"][j]][cur["host"]] = {}
+                    }
+                    if (prev[cur["callback"]["mythictree_groups"][j]][cur["host"]][cur["parent_path_text"]] === undefined) {
                         // the current parent's path isn't tracked, so add it and ourselves as children
-                        prev[cur["host"]][cur["parent_path_text"]] = {};
-                    } 
-                    prev[cur["host"]][cur["parent_path_text"]][cur["full_path_text"]] = 1;
-                    
-                    return prev;
+                        prev[cur["callback"]["mythictree_groups"][j]][cur["host"]][cur["parent_path_text"]] = {};
+                    }
+                    prev[cur["callback"]["mythictree_groups"][j]][cur["host"]][cur["parent_path_text"]][cur["full_path_text"]] = 1;
+                }
+                return prev;
             }, {...treeAdjMtx});
             setTreeAdjMtx(newMatrix);
             
@@ -206,25 +231,35 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             snackActions.dismiss();
             // add in all of the raw data
             for(let i = 0; i < data.mythictree.length; i++){
-                if( treeRootDataRef.current[data.mythictree[i]["host"]] === undefined) {
-                    // new host discovered 
-                    treeRootDataRef.current[data.mythictree[i]["host"]] = {};
+                for(let j = 0; j < data.mythictree[i]["callback"]["mythictree_groups"].length; j++) {
+                    if (treeRootDataRef.current[data.mythictree[i]["callback"]["mythictree_groups"][j]] === undefined) {
+                        treeRootDataRef.current[data.mythictree[i]["callback"]["mythictree_groups"][j]] = {};
+                    }
+                    if (treeRootDataRef.current[data.mythictree[i]["callback"]["mythictree_groups"][j]][data.mythictree[i]["host"]] === undefined) {
+                        // new host discovered
+                        treeRootDataRef.current[data.mythictree[i]["callback"]["mythictree_groups"][j]][data.mythictree[i]["host"]] = {};
+                    }
+                    treeRootDataRef.current[data.mythictree[i]["callback"]["mythictree_groups"][j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]};
                 }
-                treeRootDataRef.current[data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
             }
-            // now add in all of the adjacency info
+            // now add in all the adjacency info
             //snackActions.success('Fetched data');
             // now join in the data by updating the adjacency matrix and root info
             const newMatrix = data.mythictree.reduce( (prev, cur) => {
-                if( prev[cur["host"]] === undefined) {
-                    // the current host isn't tracked in the adjacency matrix, so add it
-                    prev[cur["host"]] = {}
+                for(let j = 0; j < cur["callback"]["mythictree_groups"].length; j++) {
+                    if (prev[cur["callback"]["mythictree_groups"][j]] === undefined) {
+                        prev[cur["callback"]["mythictree_groups"][j]] = {};
+                    }
+                    if (prev[cur["callback"]["mythictree_groups"][j]][cur["host"]] === undefined) {
+                        // the current host isn't tracked in the adjacency matrix, so add it
+                        prev[cur["callback"]["mythictree_groups"][j]][cur["host"]] = {}
+                    }
+                    if (prev[cur["callback"]["mythictree_groups"][j]][cur["host"]][cur["parent_path_text"]] === undefined) {
+                        // the current parent's path isn't tracked, so add it and ourselves as children
+                        prev[cur["callback"]["mythictree_groups"][j]][cur["host"]][cur["parent_path_text"]] = {};
+                    }
+                    prev[cur["callback"]["mythictree_groups"][j]][cur["host"]][cur["parent_path_text"]][cur["full_path_text"]] = 1;
                 }
-                if( prev[cur["host"]][cur["parent_path_text"]] === undefined) {
-                    // the current parent's path isn't tracked, so add it and ourselves as children
-                    prev[cur["host"]][cur["parent_path_text"]] = {};
-                } 
-                prev[cur["host"]][cur["parent_path_text"]][cur["full_path_text"]] = 1;
                 return prev;
             }, {...treeAdjMtx})
             setTreeAdjMtx(newMatrix);
@@ -341,6 +376,7 @@ const FileBrowserTableTop = ({
     toggleShowDeletedFiles,
 }) => {
     const [fullPath, setFullPath] = React.useState('');
+    const [placeHolder, setPlaceHolder] = React.useState(selectedFolderData.host);
     const [showDeletedFiles, setLocalShowDeletedFiles] = React.useState(false);
     const onChangePath = (_, value) => {
         setFullPath(value);
@@ -349,6 +385,13 @@ const FileBrowserTableTop = ({
         if (selectedFolderData.full_path_text !== undefined) {
             setFullPath(selectedFolderData.full_path_text);
         }
+        const groups = selectedFolderData?.callback?.mythictree_groups?.join(", ") || "";
+        if(groups.length > 0 ){
+            setPlaceHolder(selectedFolderData.host + " - " + groups);
+        } else {
+            setPlaceHolder(selectedFolderData.host + groups);
+        }
+
     }, [selectedFolderData]);
     const onLocalListFilesButton = () => {
         if (fullPath === '') {
@@ -372,7 +415,7 @@ const FileBrowserTableTop = ({
                     value={fullPath}
                     onEnter={onLocalListFilesButton}
                     onChange={onChangePath}
-                    name={selectedFolderData.host}
+                    name={placeHolder}
                     InputProps={{
                         endAdornment: (
                             <React.Fragment>

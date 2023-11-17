@@ -234,15 +234,9 @@ type recursiveProcessAgentMessageResponse struct {
 func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recursiveProcessAgentMessageResponse {
 	instanceResponse := recursiveProcessAgentMessageResponse{}
 	var messageUUID uuid.UUID
-	var base64DecodedMessage []byte
-	if agentMessageInput.Base64Message != nil {
-		base64DecodedMessage = make([]byte, base64.StdEncoding.DecodedLen(len(*agentMessageInput.Base64Message)))
-	} else {
-		base64DecodedMessage = *agentMessageInput.RawMessage
-	}
-	var totalBase64Bytes int
-	var agentUUIDLength = 36
 	var err error
+	var base64DecodedMessage []byte
+	// 1. Get message
 	if utils.MythicConfig.DebugAgentMessage {
 		logging.LogDebug("Parsing agent message", "step 1", agentMessageInput)
 		if agentMessageInput.Base64Message != nil {
@@ -258,7 +252,8 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	}
 	// 2. Base64 decode agent message
 	if agentMessageInput.Base64Message != nil {
-		if totalBase64Bytes, err = base64.StdEncoding.Decode(base64DecodedMessage, *agentMessageInput.Base64Message); err != nil {
+		base64DecodedMessage, err = base64.StdEncoding.DecodeString(string(*agentMessageInput.Base64Message))
+		if err != nil {
 			errorMessage := "Failed to base64 decode message\n"
 			errorMessage += fmt.Sprintf("message: %s\n", string(*agentMessageInput.Base64Message))
 			errorMessage += fmt.Sprintf("Connection from %s\n", agentMessageInput.RemoteIP)
@@ -268,8 +263,11 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			return instanceResponse
 		}
 	} else {
-		totalBase64Bytes = len(*agentMessageInput.RawMessage)
+		base64DecodedMessage = *agentMessageInput.RawMessage
 	}
+	totalBase64Bytes := len(base64DecodedMessage)
+	var agentUUIDLength = 36
+
 	// 36 is the length of a UUID string and 16 is the length of a UUID in raw bytes
 	base64DecodedMessageLength := len(base64DecodedMessage)
 	if base64DecodedMessageLength <= 36 {

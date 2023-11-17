@@ -84,7 +84,7 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
                         transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                     }}
                     >
-                    <Paper style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                    <Paper className={"dropdownMenuColored"}>
                         <ClickAwayListener onClickAway={() => setDropdownOpen(false)}>
                         <MenuList id="split-button-menu">
                             {dropDownOptions.map((option, index) => (

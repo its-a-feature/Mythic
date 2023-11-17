@@ -1,7 +1,6 @@
 import { makeVar } from '@apollo/client';
-import {useQuery, gql } from '@apollo/client';
 import React from 'react';
-import { snackActions } from './components/utilities/Snackbar';
+import {restartWebsockets} from "./index";
 
 export const meState = makeVar({loggedIn:false, user: null, access_token: null, refresh_token: null});
 export const menuOpen = makeVar(false);
@@ -14,6 +13,7 @@ export const successfulLogin = (data) => {
         loggedIn: true,
         ...data
     });
+    restartWebsockets();
 }
 export const successfulRefresh = (data) => {
     localStorage.setItem("access_token", data.access_token);
@@ -35,5 +35,6 @@ export const FailedRefresh = () =>{
         refresh_token: null,
         user: null
     });
+    restartWebsockets();
 }
 

@@ -355,7 +355,7 @@ export function C2ProfilesCard(props) {
                     transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                   }}
                 >
-                  <Paper style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                  <Paper className={"dropdownMenuColored"}>
                     <ClickAwayListener onClickAway={handleDropdownClose}>
                       <MenuList id="split-button-menu">
                         <MenuItem key={"dropdownprofile" + props.id + "menu1"} onClick={()=>{setOpenProfileConfigDialog(true);}}>View/Edit Config</MenuItem>

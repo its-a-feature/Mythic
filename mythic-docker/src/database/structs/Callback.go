@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"github.com/its-a-feature/Mythic/utils/structs"
+	"github.com/lib/pq"
 	"time"
 )
 
@@ -37,4 +38,5 @@ type Callback struct {
 	ExtraInfo           string            `db:"extra_info" json:"extra_info" mapstructure:"extra_info"`
 	SleepInfo           string            `db:"sleep_info" json:"sleep_info" mapstructure:"sleep_info"`
 	Timestamp           time.Time         `db:"timestamp" json:"timestamp" mapstructure:"timestamp"`
+	MythicTreeGroups    pq.StringArray    `db:"mythictree_groups" json:"mythictree_groups" mapstructure:"mythictree_groups"`
 }

@@ -47,7 +47,7 @@ const updateFileComment = gql`
 
 
 
-export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick, onTaskRowAction, host, showDeletedFiles}) => {
+export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick, onTaskRowAction, host, group, showDeletedFiles}) => {
     //const [allData, setAllData] = React.useState([]);
     //console.log("treeAdjMatrix updated in table", treeAdjMatrix)
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
@@ -65,52 +65,59 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     const [updatedTreeAdjMatrix, setUpdatedTreeAdjMatrix] = React.useState(treeAdjMatrix);
     const openAllNodes = () => {
         let onodes = {};
-        for(const [host, matrix] of Object.entries(updatedTreeAdjMatrix)){
-          for(const [key, children] of Object.entries(matrix)){
-            try{
-                onodes[parseInt(key)] = true;
-            }catch(error){
-                console.log("couldn't parse int on", key)
+        for(const [group, hosts] of Object.entries(updatedTreeAdjMatrix)){
+            for(const [host, matrix] of Object.entries(hosts)){
+                for(const [key, children] of Object.entries(matrix)){
+                    try{
+                        onodes[parseInt(key)] = true;
+                    }catch(error){
+                        console.log("couldn't parse int on", key)
+                    }
+                    //if(treeRootData[host][key] !== undefined){
+                    //onodes[treeRootData[host][key].id] = true;
+                    onodes[parseInt(key)] = true;
+                    //}
+                }
             }
-            //if(treeRootData[host][key] !== undefined){
-              //onodes[treeRootData[host][key].id] = true;
-              onodes[parseInt(key)] = true;
-            //}
-          }
         }
+
         setOpenNodes(onodes);
     }
     React.useEffect( () => {
         // need to update the matrix in case there are notes that don't trace back to root
         let adjustedMatrix = {};
         //console.log("treeAdjMatrix updated", treeAdjMatrix)
-        for(const [host, matrix] of Object.entries(treeAdjMatrix)){
-            // looping through the hosts to adjust their entries
-          if( adjustedMatrix[host] === undefined){adjustedMatrix[host] = {}}
-          for(const [key, children] of Object.entries(matrix)){
-            // if key !== "", if key is in another entry, leave it. if it's not anywhere else, add it to ""
-            // key is the parent and children are all the child processes
-            if(adjustedMatrix[host][key] === undefined){adjustedMatrix[host][key] = children}
-            if(key === ""){
-                // add all the children automatically
-                for(const [i, v] of Object.entries(children)){
-                    adjustedMatrix[host][key][i] = v
-                }
-            } else {
-                // check if key  is in children anywhere, if not, add it to adjustedMatrix[host][""][key] = 1
-                let found = false;
-                for(const [keySearch, childrenSearch] of Object.entries(matrix)){
-                    for(const [i, v] of Object.entries(childrenSearch)){
-                        if(i === key){found=true}
+        for(const [group, hosts] of Object.entries(treeAdjMatrix)){
+            if(adjustedMatrix[group] === undefined){adjustedMatrix[group] = {}}
+            for(const [host, matrix] of Object.entries(hosts)){
+                // looping through the hosts to adjust their entries
+                if( adjustedMatrix[group][host] === undefined){adjustedMatrix[group][host] = {}}
+                for(const [key, children] of Object.entries(matrix)){
+                    // if key !== "", if key is in another entry, leave it. if it's not anywhere else, add it to ""
+                    // key is the parent and children are all the child processes
+                    if(adjustedMatrix[group][host][key] === undefined){adjustedMatrix[group][host][key] = children}
+                    if(key === ""){
+                        // add all the children automatically
+                        for(const [i, v] of Object.entries(children)){
+                            adjustedMatrix[group][host][key][i] = v
+                        }
+                    } else {
+                        // check if key  is in children anywhere, if not, add it to adjustedMatrix[host][""][key] = 1
+                        let found = false;
+                        for(const [keySearch, childrenSearch] of Object.entries(matrix)){
+                            for(const [i, v] of Object.entries(childrenSearch)){
+                                if(i === key){found=true}
+                            }
+                        }
+                        if(!found){
+                            if(adjustedMatrix[group][host][""] === undefined){adjustedMatrix[group][host][""] = {}}
+                            adjustedMatrix[group][host][""][key] = 1;
+                        }
                     }
                 }
-                if(!found){
-                    if(adjustedMatrix[host][""] === undefined){adjustedMatrix[host][""] = {}}
-                    adjustedMatrix[host][""][key] = 1;
-                }
             }
-          }
         }
+
         //console.log("adjustedMatrix", adjustedMatrix, "realMatrix", treeAdjMatrix)
         setUpdatedTreeAdjMatrix(adjustedMatrix);
     }, [treeAdjMatrix]);
@@ -170,7 +177,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         , [filterOptions, columnVisibility]
     );
     const flattenNode = useCallback(
-        (node, host, depth = 0) => {
+        (node, host, group, depth = 0) => {
             let treeToUse = updatedTreeAdjMatrix;
             if(viewSingleTreeData){
                 treeToUse = singleTreeData;
@@ -178,22 +185,23 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
           if(depth === 0){
             return [
               {
-                id: treeRootData[host][node]?.id || parseInt(node),
-                name: treeRootData[host][node]?.full_path_text || node,
-                full_path_text: treeRootData[host][node]?.full_path_text || node,
-                name_text: treeRootData[host][node]?.name_text || node,
-                deleted: treeRootData[host][node]?.deleted || true,
+                id: treeRootData[group][host][node]?.id || parseInt(node),
+                name: treeRootData[group][host][node]?.full_path_text || node,
+                full_path_text: treeRootData[group][host][node]?.full_path_text || node,
+                name_text: treeRootData[group][host][node]?.name_text || node,
+                deleted: treeRootData[group][host][node]?.deleted || true,
                 depth,
-                isLeaf: Object.keys(treeToUse[host]?.[node] || {}).length === 0,
-                can_have_children: treeRootData[host][node]?.can_have_children || true,
+                isLeaf: Object.keys(treeToUse[group]?.[host]?.[node] || {}).length === 0,
+                can_have_children: treeRootData[group][host][node]?.can_have_children || true,
                 isOpen: true,
-                children: (treeToUse[host]?.[node] || {}),
+                children: (treeToUse[group]?.[host]?.[node] || {}),
                 host,
+                group,
                 root: true
               },
-              ...(Object.keys(treeToUse[host]?.[node] || {})).reduce( (prev, cur) => {
-                if(!(treeRootData[host][cur]?.can_have_children || true)){return [...prev]}
-                return [...prev, flattenNode(cur, host, depth+1)];
+              ...(Object.keys(treeToUse[group]?.[host]?.[node] || {})).reduce( (prev, cur) => {
+                if(!(treeRootData[group][host][cur]?.can_have_children || true)){return [...prev]}
+                return [...prev, flattenNode(cur, host, group, depth+1)];
             }, []).flat()
             ];
           }
@@ -202,38 +210,40 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
             if(openNodes[parseInt(node)] === true){
             return [
               {
-                id: treeRootData[host][node]?.id || parseInt(node),
-                name: treeRootData[host][node]?.full_path_text || node + " - " + treeRootData[host][node]?.name_text || "UNKNOWN",
-                full_path_text: treeRootData[host][node]?.full_path_text || node,
-                name_text: treeRootData[host][node]?.name_text || node,
-                deleted: treeRootData[host][node]?.deleted || true,
+                id: treeRootData[group][host][node]?.id || parseInt(node),
+                name: treeRootData[group][host][node]?.full_path_text || node + " - " + treeRootData[group][host][node]?.name_text || "UNKNOWN",
+                full_path_text: treeRootData[group][host][node]?.full_path_text || node,
+                name_text: treeRootData[group][host][node]?.name_text || node,
+                deleted: treeRootData[group][host][node]?.deleted || true,
                 depth,
-                isLeaf: Object.keys(treeToUse[host]?.[node] || {}).length === 0,
-                can_have_children: treeRootData[host][node]?.can_have_children || true,
+                isLeaf: Object.keys(treeToUse[group][host]?.[node] || {}).length === 0,
+                can_have_children: treeRootData[group][host][node]?.can_have_children || true,
                 isOpen: true,
-                children: (treeToUse[host]?.[node] || {}),
+                children: (treeToUse[group][host]?.[node] || {}),
                 host,
+                group,
                 root: false,
               },
-              ...(Object.keys(treeToUse[host]?.[node] || {})).reduce( (prev, cur) => {
-                if(!(treeRootData[host][cur]?.can_have_children || true)){return [...prev]}
-                return [...prev, flattenNode(cur, host, depth+1)];
+              ...(Object.keys(treeToUse[group]?.[host]?.[node] || {})).reduce( (prev, cur) => {
+                if(!(treeRootData[group][host][cur]?.can_have_children || true)){return [...prev]}
+                return [...prev, flattenNode(cur, host, group, depth+1)];
             }, []).flat()
             ];
           }
           return [
             {
-              id: treeRootData[host][node]?.id ||  parseInt(node),
-              name: treeRootData[host][node]?.full_path_text || node  + " - " + treeRootData[host][node]?.name_text || "UNKNOWN",
-              full_path_text: treeRootData[host][node]?.full_path_text || node,
-              name_text: treeRootData[host][node]?.name_text || node,
-              deleted: treeRootData[host][node]?.deleted || true,
+              id: treeRootData[group][host][node]?.id ||  parseInt(node),
+              name: treeRootData[group][host][node]?.full_path_text || node  + " - " + treeRootData[group][host][node]?.name_text || "UNKNOWN",
+              full_path_text: treeRootData[group][host][node]?.full_path_text || node,
+              name_text: treeRootData[group][host][node]?.name_text || node,
+              deleted: treeRootData[group][host][node]?.deleted || true,
               depth,
-              isLeaf: Object.keys(treeToUse[host]?.[node] || {}).length === 0,
-              can_have_children: treeRootData[host][node]?.can_have_children || true,
+              isLeaf: Object.keys(treeToUse[group]?.[host]?.[node] || {}).length === 0,
+              can_have_children: treeRootData[group][host][node]?.can_have_children || true,
               isOpen: false,
-              children: (treeToUse[host]?.[node] || {}),
+              children: (treeToUse[group]?.[host]?.[node] || {}),
               host,
+              group,
               root: false,
             }
           ];
@@ -249,7 +259,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
             treeToUse = singleTreeData;
         }
         //console.log("in useMemo", updatedTreeAdjMatrix, "host", host)
-        if(host === "" || treeToUse[host] === undefined){return finalData}
+        if(host === "" || treeToUse[group]?.[host] === undefined){return finalData}
         finalData.push({
         id: host,
         name: host,
@@ -257,16 +267,17 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         isLeaf: false,
         isOpen: true,
         can_have_children: true,
-        host, 
+        host,
+        group,
         root: true,
         deleted: false,
         success: true,
-        children: treeToUse[host][""],
+        children: treeToUse[group][host][""],
         full_path_text: host,
         });
-        finalData.push(...Object.keys(treeToUse[host][""] === undefined ? {} : treeToUse[host][""]).map(c => flattenNode(c, host, 1)).flat())
+        finalData.push(...Object.keys(treeToUse[group][host][""] === undefined ? {} : treeToUse[group][host][""]).map(c => flattenNode(c, host, group, 1)).flat())
         return finalData;
-    },[flattenNode, treeRootData, host, updatedTreeAdjMatrix, openNodes, singleTreeData, viewSingleTreeData],
+    },[flattenNode, treeRootData, host, group, updatedTreeAdjMatrix, openNodes, singleTreeData, viewSingleTreeData],
     );
     const sortedData = React.useMemo(() => {
         if (sortData.sortKey === null || sortData.sortType === null) {
@@ -282,12 +293,12 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                 }
                 else if(b.root){return -1}
                 else if(sortData.inMetadata){
-                    let aData = parseInt(treeRootData[host][a.full_path_text]?.metadata[sortData.sortKey] || a.full_path_text);
-                    let bData = parseInt(treeRootData[host][b.full_path_text]?.metadata[sortData.sortKey] || b.full_path_text);
+                    let aData = parseInt(treeRootData[group][host][a.full_path_text]?.metadata[sortData.sortKey] || a.full_path_text);
+                    let bData = parseInt(treeRootData[group][host][b.full_path_text]?.metadata[sortData.sortKey] || b.full_path_text);
                     return aData > bData ? 1 : bData > aData ? -1 : 0;
                 } else {
-                    let aData = parseInt(treeRootData[host][a.full_path_text][sortData.sortKey]);
-                    let bData = parseInt(treeRootData[host][b.full_path_text][sortData.sortKey]);
+                    let aData = parseInt(treeRootData[group][host][a.full_path_text][sortData.sortKey]);
+                    let bData = parseInt(treeRootData[group][host][b.full_path_text][sortData.sortKey]);
                     return aData > bData ? 1 : bData > aData ? -1 : 0;
                 }
                 
@@ -295,20 +306,20 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         } else if (sortData.sortType === 'string') {
             tempData.sort((a, b) => {
                 //console.log(treeRootData[host][a.full_path_text], treeRootData[host][b.full_path_text])
-                if(treeRootData[host][a.full_path_text] === undefined){
-                    if(treeRootData[host][b.full_path_text] === undefined){
+                if(treeRootData[group][host][a.full_path_text] === undefined){
+                    if(treeRootData[group][host][b.full_path_text] === undefined){
                         return 0;
                     }
                     return -1;
                 }
-                if(treeRootData[host][b.full_path_text] === undefined){
+                if(treeRootData[group][host][b.full_path_text] === undefined){
                     return 1
                 }
-                let aData = treeRootData[host][a.full_path_text][sortData.sortKey];
-                let bData = treeRootData[host][b.full_path_text][sortData.sortKey];
+                let aData = treeRootData[group][host][a.full_path_text][sortData.sortKey];
+                let bData = treeRootData[group][host][b.full_path_text][sortData.sortKey];
                 if(sortData.inMetadata){
-                    aData = treeRootData[host][a.full_path_text]?.metadata[sortData.sortKey];
-                    bData = treeRootData[host][b.full_path_text]?.metadata[sortData.sortKey];
+                    aData = treeRootData[group][host][a.full_path_text]?.metadata[sortData.sortKey];
+                    bData = treeRootData[group][host][b.full_path_text]?.metadata[sortData.sortKey];
                 }
                 if(aData === undefined){
                     if(bData === undefined){
@@ -336,7 +347,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     }
     const filterRow = (rowData) => {
         if(rowData.root){return true}
-        if(!showDeletedFiles && treeRootData[host][rowData.full_path_text] !== undefined && treeRootData[host][rowData.full_path_text].deleted){
+        if(!showDeletedFiles && treeRootData[group][host][rowData.full_path_text] !== undefined && treeRootData[group][host][rowData.full_path_text].deleted){
             return true;
         }
         let filterOptionInMetadata = {}
@@ -348,13 +359,13 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
             }
         }
         for(const [key,value] of Object.entries(filterOptions)){
-            if(treeRootData[host][rowData.full_path_text] === undefined){return true}
+            if(treeRootData[group][host][rowData.full_path_text] === undefined){return true}
             if(filterOptionInMetadata[key]){
-                if(!String(treeRootData[host][rowData.full_path_text]?.metadata[key]).toLowerCase().includes(value)){
+                if(!String(treeRootData[group][host][rowData.full_path_text]?.metadata[key]).toLowerCase().includes(value)){
                     return true;
                 }
             }else{
-                if(!String(treeRootData[host][rowData.full_path_text][key]).toLowerCase().includes(value)){
+                if(!String(treeRootData[group][host][rowData.full_path_text][key]).toLowerCase().includes(value)){
                     return true;
                 }
             }
@@ -364,60 +375,64 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     const setSingleTree = (treeElement) => {
         // find all data (ancestor and children) of treeElement and hide all the rest
         // make a new adjacency matrix
-        let singleTreeAdjMatrix = {[treeElement.host]: {}};
+        let singleTreeAdjMatrix = {[group]: {[treeElement.host]: {}}};
 
         // get the parent hierarchy all the way up
-        let parent = treeRootData[treeElement.host][treeElement.full_path_text].parent_path_text;
+        let parent = treeRootData[group][treeElement.host][treeElement.full_path_text].parent_path_text;
         let current = treeElement.full_path_text;
         //console.log("initial parent", parent, "adj", treeAdjMatrix[treeElement.host][parent])
-        while(treeAdjMatrix[treeElement.host][parent] !== undefined){
-            singleTreeAdjMatrix[treeElement.host][parent] = {[current]: 1};
+        while(treeAdjMatrix[group][treeElement.host][parent] !== undefined){
+            singleTreeAdjMatrix[group][treeElement.host][parent] = {[current]: 1};
             //console.log("tree data of parent", treeRootData[treeElement.host][parent])
-            if(treeRootData[treeElement.host][parent] === undefined){
+            if(treeRootData[group][treeElement.host][parent] === undefined){
                 break;
             }
             current = parent;
-            parent = treeRootData[treeElement.host][parent].parent_path_text
+            parent = treeRootData[group][treeElement.host][parent].parent_path_text
         }
         // now get all the descendents of the selected element
-        if(treeAdjMatrix[treeElement.host][treeElement.full_path_text] !== undefined){
-            singleTreeAdjMatrix[treeElement.host][treeElement.full_path_text] = treeAdjMatrix[treeElement.host][treeElement.full_path_text]
-            let leftToProcess = Object.keys(treeAdjMatrix[treeElement.host][treeElement.full_path_text]);
+        if(treeAdjMatrix[group][treeElement.host][treeElement.full_path_text] !== undefined){
+            singleTreeAdjMatrix[group][treeElement.host][treeElement.full_path_text] = treeAdjMatrix[group][treeElement.host][treeElement.full_path_text]
+            let leftToProcess = Object.keys(treeAdjMatrix[group][treeElement.host][treeElement.full_path_text]);
             while(leftToProcess.length > 0){
                 let nextChild = leftToProcess.shift();
-                if(treeAdjMatrix[treeElement.host][nextChild] !== undefined){
-                    singleTreeAdjMatrix[treeElement.host][nextChild] = treeAdjMatrix[treeElement.host][nextChild];
-                    leftToProcess.push(...Object.keys(treeAdjMatrix[treeElement.host][nextChild]));
+                if(treeAdjMatrix[group][treeElement.host][nextChild] !== undefined){
+                    singleTreeAdjMatrix[group][treeElement.host][nextChild] = treeAdjMatrix[group][treeElement.host][nextChild];
+                    leftToProcess.push(...Object.keys(treeAdjMatrix[group][treeElement.host][nextChild]));
                 }
             }
         }
-        for(const [host, matrix] of Object.entries(singleTreeAdjMatrix)){
-            // looping through the hosts to adjust their entries
-            if( singleTreeAdjMatrix[host] === undefined){singleTreeAdjMatrix[host] = {}}
-            for(const [key, children] of Object.entries(matrix)){
-                // if key !== "", if key is in another entry, leave it. if it's not anywhere else, add it to ""
-                // key is the parent and children are all the child processes
-                if(singleTreeAdjMatrix[host][key] === undefined){singleTreeAdjMatrix[host][key] = children}
-                if(key === ""){
-                    // add all the children automatically
-                    for(const [i, v] of Object.entries(children)){
-                        singleTreeAdjMatrix[host][key][i] = v
-                    }
-                } else {
-                    // check if key  is in children anywhere, if not, add it to adjustedMatrix[host][""][key] = 1
-                    let found = false;
-                    for(const [keySearch, childrenSearch] of Object.entries(matrix)){
-                        for(const [i, v] of Object.entries(childrenSearch)){
-                            if(i === key){found=true}
+        for(const [group, hosts] of Object.entries(singleTreeAdjMatrix)){
+            if(singleTreeAdjMatrix[group] === undefined){singleTreeAdjMatrix[group] = {}}
+            for(const [host, matrix] of Object.entries(hosts)){
+                // looping through the hosts to adjust their entries
+                if( singleTreeAdjMatrix[group][host] === undefined){singleTreeAdjMatrix[group][host] = {}}
+                for(const [key, children] of Object.entries(matrix)){
+                    // if key !== "", if key is in another entry, leave it. if it's not anywhere else, add it to ""
+                    // key is the parent and children are all the child processes
+                    if(singleTreeAdjMatrix[group][host][key] === undefined){singleTreeAdjMatrix[group][host][key] = children}
+                    if(key === ""){
+                        // add all the children automatically
+                        for(const [i, v] of Object.entries(children)){
+                            singleTreeAdjMatrix[group][host][key][i] = v
+                        }
+                    } else {
+                        // check if key  is in children anywhere, if not, add it to adjustedMatrix[host][""][key] = 1
+                        let found = false;
+                        for(const [keySearch, childrenSearch] of Object.entries(matrix)){
+                            for(const [i, v] of Object.entries(childrenSearch)){
+                                if(i === key){found=true}
+                            }
+                        }
+                        if(!found){
+                            if(singleTreeAdjMatrix[group][host][""] === undefined){singleTreeAdjMatrix[group][host][""] = {}}
+                            singleTreeAdjMatrix[group][host][""][key] = 1;
                         }
                     }
-                    if(!found){
-                        if(singleTreeAdjMatrix[host][""] === undefined){singleTreeAdjMatrix[host][""] = {}}
-                        singleTreeAdjMatrix[host][""][key] = 1;
-                    }
                 }
             }
         }
+
         setSingleTreeData(singleTreeAdjMatrix);
         onSubmitFilterOptions({});
     }
@@ -434,8 +449,9 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                         switch(c.name){
                             case "Info":
                                 return  <FileBrowserTableRowActionCell 
-                                            treeRootData={treeRootData} 
-                                            host={host} 
+                                            treeRootData={treeRootData[group]}
+                                            host={host}
+                                            group={group}
                                             rowData={row}
                                             viewSingleTreeData={viewSingleTreeData}
                                             setSingleTree={setSingleTree}
@@ -443,53 +459,61 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             onTaskRowAction={onTaskRowAction} />;
                             case "Name":
                                 return <FileBrowserTableRowNameCell 
-                                            treeRootData={treeRootData} 
-                                            host={host}  
-                                            children={updatedTreeAdjMatrix[host][row.full_path_text]}
+                                            treeRootData={treeRootData[group]}
+                                            host={host}
+                                            group={group}
+                                            children={updatedTreeAdjMatrix[group][host][row.full_path_text]}
                                             handleOnClickButton={handleOnClickButton}
                                             rowData={row} />;
                             case "User":
                                 return <FileBrowserTableRowStringCell
-                                    treeRootData={treeRootData}
+                                    treeRootData={treeRootData[group]}
                                     host={host}
-                                    cellData={treeRootData[host][row.full_path_text]?.metadata?.user || ''}
+                                    group={group}
+                                    cellData={treeRootData[group][host][row.full_path_text]?.metadata?.user || ''}
                                     rowData={row} />;
                             case "Arch":
                                 return <FileBrowserTableRowStringCell
-                                    treeRootData={treeRootData}
+                                    treeRootData={treeRootData[group]}
                                     host={host}
-                                    cellData={treeRootData[host][row.full_path_text]?.metadata?.architecture || ''}
+                                    group={group}
+                                    cellData={treeRootData[group][host][row.full_path_text]?.metadata?.architecture || ''}
                                     rowData={row} />;
                             case "Session":
                                 return <FileBrowserTableRowStringCell
-                                    treeRootData={treeRootData}
+                                    treeRootData={treeRootData[group]}
                                     host={host}
-                                    cellData={treeRootData[host][row.full_path_text]?.metadata?.session_id || ''}
+                                    group={group}
+                                    cellData={treeRootData[group][host][row.full_path_text]?.metadata?.session_id || ''}
                                     rowData={row} />;
                             case "PID":
                                 return <FileBrowserTableRowStringCell 
-                                            treeRootData={treeRootData} 
-                                            host={host} 
+                                            treeRootData={treeRootData[group]}
+                                            host={host}
+                                            group={group}
                                             rowData={row} 
-                                            cellData={treeRootData[host][row.full_path_text]?.metadata?.process_id || parseInt(row.full_path_text)} />;
+                                            cellData={treeRootData[group][host][row.full_path_text]?.metadata?.process_id || parseInt(row.full_path_text)} />;
                             case "PPID":
                                 return <FileBrowserTableRowStringCell 
-                                            treeRootData={treeRootData} 
-                                            host={host} 
+                                            treeRootData={treeRootData[group]}
+                                            host={host}
+                                            group={group}
                                             rowData={row} 
-                                            cellData={treeRootData[host][row.full_path_text]?.metadata?.parent_process_id} />;
+                                            cellData={treeRootData[group][host][row.full_path_text]?.metadata?.parent_process_id} />;
                             case "Tags":
                                 return <FileBrowserTagsCell 
                                             rowData={row} 
-                                            treeRootData={treeRootData} 
-                                            host={host} 
+                                            treeRootData={treeRootData[group]}
+                                            host={host}
+                                            group={group}
                                             me={me} />
                             case "Comment":
                                 return <FileBrowserTableRowStringCell 
-                                            treeRootData={treeRootData} 
+                                            treeRootData={treeRootData[group]}
                                             host={host} 
-                                            rowData={row} 
-                                            cellData={treeRootData[host][row.full_path_text]?.comment}
+                                            rowData={row}
+                                            group={group}
+                                            cellData={treeRootData[group][host][row.full_path_text]?.comment}
                                 />;
                             default:
                                 console.log("hit default case in swith on c.name)")
@@ -518,7 +542,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         }
     };
     const localOnDoubleClick = (e, rowIndex) => {
-        const rowData = treeRootData[host][allData[rowIndex]];
+        const rowData = treeRootData[group][host][allData[rowIndex]];
         onRowDoubleClick(rowData);
     };
     const contextMenuOptions = [

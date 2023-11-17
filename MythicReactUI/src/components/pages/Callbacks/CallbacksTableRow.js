@@ -44,6 +44,8 @@ import { areEqual } from 'react-window';
 import {CallbackGraphEdgesContext} from './CallbacksTop';
 import Moment from 'react-moment';
 import moment from 'moment';
+import WidgetsIcon from '@mui/icons-material/Widgets';
+import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
 
 export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock, updateDescription, setOpenHideMultipleDialog, setOpenTaskMultipleDialog}) =>{
     const dropdownAnchorRef = React.useRef(null);
@@ -52,6 +54,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
+    const [openEditMythicTreeGroupsDialog, setOpenEditMythicTreeGroupsDialog] = React.useState(false);
     const taskingData = React.useRef({"parameters": "", "ui_feature": "callback_table:exit"});
     const [rowDataStatic, setRowDataStatic] = React.useState(rowData);
     React.useEffect( () => {
@@ -157,7 +160,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
         }
     }
     const options =  [
-        {name: 'Hide Callback', icon: <VisibilityOffIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
+        {name: 'Hide Callback', icon: <VisibilityOffIcon style={{color: theme.palette.warning.main, paddingRight: "5px"}}/>, click: (evt) => {
             evt.stopPropagation();
             hideCallback({variables: {callback_display_id: rowDataStatic.display_id}});
         }},
@@ -167,7 +170,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
             }
         },
         {
-            name: "Exit Callback", icon: <FontAwesomeIcon icon={faSkullCrossbones} style={{cursor: "pointer", marginRight: "10px"}} />, click: (evt) => {
+            name: "Exit Callback", icon: <FontAwesomeIcon icon={faSkullCrossbones} style={{color: theme.errorOnMain, cursor: "pointer", marginRight: "10px"}} />, click: (evt) => {
                 taskingData.current = {"parameters": "", "ui_feature": "callback_table:exit", "getConfirmation": true, acceptText: "exit"};
                 setOpenTaskingButton(true);
             }
@@ -177,7 +180,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
                 setOpenTaskMultipleDialog({open: true, data: rowDataStatic});
             }
         },
-        {name: 'File Browser', icon: <FontAwesomeIcon icon={faFolderOpen} style={{cursor: "pointer", marginRight: "10px"}} />, click: (evt) => {
+        {name: 'File Browser', icon: <FontAwesomeIcon icon={faFolderOpen} style={{color: theme.folderColor, cursor: "pointer", marginRight: "10px"}} />, click: (evt) => {
             evt.stopPropagation();
             localOnOpenTab("fileBrowser");
         }},
@@ -189,7 +192,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
                 evt.stopPropagation();
                 localOnOpenTab("interactSplit");
             }},
-        {name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback', icon: rowDataStatic.locked ? (<LockOpenIcon style={{paddingRight: "5px"}}/>) : (<LockIcon style={{paddingRight: "5px"}} />), click: (evt) => {
+        {name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback', icon: rowDataStatic.locked ? (<LockOpenIcon style={{color: theme.successOnMain, paddingRight: "5px"}}/>) : (<LockIcon style={{color: theme.errorOnMain, paddingRight: "5px"}} />), click: (evt) => {
             evt.stopPropagation();
             localToggleLock();
         }},
@@ -201,9 +204,13 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
             evt.stopPropagation();
             window.open("/new/callbacks/" + rowDataStatic.display_id, "_blank").focus();
         }},
-        {name: "View Metadata", icon: <InfoIcon style={{paddingRight: "5px"}} />, click: (evt) => {
+        {name: "View Metadata", icon: <InfoIcon style={{color: theme.infoOnMain, paddingRight: "5px"}} />, click: (evt) => {
             evt.stopPropagation();
             setOpenMetaDialog(true);
+        }},
+        {name: "Modify Groupings", icon: <WidgetsIcon style={{paddingRight: "5px"}} />, click: (evt) => {
+            evt.stopPropagation();
+            setOpenEditMythicTreeGroupsDialog(true);
         }}
     ];
     return (
@@ -215,7 +222,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
             >
                 <Button style={{padding: "0 10px 0 10px"}} color={rowDataStatic.integrity_level > 2 ? "error" : "primary"}  variant="contained"
                     onClick={(evt) => {evt.stopPropagation();localOnOpenTab("interact")}}>
-                    { rowDataStatic.locked ? (<LockIcon fontSize="large" style={{marginRight: "10px"}} />):(<KeyboardIcon fontSize="large" style={{marginRight: "10px"}}/>) } 
+                    { rowDataStatic.locked ? (<LockIcon fontSize="large" style={{color: theme.errorOnMain, marginRight: "10px"}} />):(<KeyboardIcon fontSize="large" style={{marginRight: "10px"}}/>) }
                     {rowDataStatic.display_id}
                 </Button>
                 <Button
@@ -238,7 +245,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
                     transformOrigin: placement === 'bottom' ? 'top left' : 'top center',
                     }}
                 >
-                    <Paper style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}} elevation={5}>
+                    <Paper className={"dropdownMenuColored"} elevation={5}>
                     <ClickAwayListener onClickAway={handleClose}>
                         <MenuList id="split-button-menu">
                         {options.map((option, index) => (
@@ -285,7 +292,18 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
                     }
                 />
             }
-
+            {openEditMythicTreeGroupsDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth={"lg"}
+                    open={openEditMythicTreeGroupsDialog}
+                    onClose={() => {setOpenEditMythicTreeGroupsDialog(false);}}
+                    innerDialog={
+                        <ModifyCallbackMythicTreeGroupsDialog callback_id={rowDataStatic.id}
+                            onClose={() => {setOpenEditMythicTreeGroupsDialog(false);}} />
+                    }
+                />
+            }
     </div>
     )
 },

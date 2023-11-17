@@ -225,7 +225,7 @@ export function PayloadsTableRow(props){
                         transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                       }}
                     >
-                      <Paper variant="outlined" style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                      <Paper variant="outlined" className={"dropdownMenuColored"}>
                         <ClickAwayListener onClickAway={handleClose}>
                           <MenuList id="split-button-menu"  >
                             {options.map((option, index) => (

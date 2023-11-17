@@ -24,7 +24,7 @@ export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFilt
     
     return (
         <div style={{display: "flex", flexDirection: "column", width: "100%", height: "100%"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+            <Paper elevation={5}  style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                 <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     {"MITRE ATT&CK Mappings"}
                 </Typography>
@@ -257,7 +257,7 @@ function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetT
                     transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                 }}
                 >
-                <Paper style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                <Paper className={"dropdownMenuColored"}>
                     <ClickAwayListener onClickAway={() => setDropdownOpen(false)}>
                     <MenuList id="split-button-menu">
                         {dropDownOptions.map((option, index) => (

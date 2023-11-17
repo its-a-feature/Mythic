@@ -14,8 +14,8 @@ import {snackActions} from './components/utilities/Snackbar';
 import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 
-export const mythicVersion = "3.1.7";
-export const mythicUIVersion = "0.1.27";
+export const mythicVersion = "3.2.0";
+export const mythicUIVersion = "0.1.28";
 
 let fetchingNewToken = false;
 
@@ -181,7 +181,6 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
       if(networkError.extensions === undefined){
         snackActions.error("Failed to connect to Mythic, please refresh");
         FailedRefresh();
-        restartWebsockets();
         window.location = "/new/login";
         return;
       }
@@ -193,7 +192,6 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
             // when AuthenticationError thrown in resolver
               console.log("got start-failed error in network");
               FailedRefresh();
-              restartWebsockets();
               window.location = "/new/login";
               break;
           default:
@@ -263,7 +261,7 @@ export const GetNewToken = async () =>{
 const websocketAddress = () =>{
     return window.location.protocol === "https:" ? "wss://" + window.location.host + "/graphql/" : "ws://" + window.location.host + "/graphql/";
 }
-const wsLink = new GraphQLWsLink(createClient({
+const wsClient = createClient({
     url: websocketAddress(),
     reconnectionAttempts: 10,
     connectionParams: () => {
@@ -273,8 +271,8 @@ const wsLink = new GraphQLWsLink(createClient({
                 Authorization: `Bearer ${localStorage.getItem('access_token')}`
             }
         }
-    }
-}));
+    }});
+const wsLink = new GraphQLWsLink(wsClient);
 const splitLink = split(
   ({ query }) => {
     const definition = getMainDefinition(query)
@@ -291,9 +289,8 @@ export const apolloClient = new ApolloClient({
     cache
   });
 export function restartWebsockets () {
-    // Copy current operations
-
-  }
+    wsClient.dispose();
+}
   // if the user refreshes the page, we lose all react tracking, so try to reload from localstorage first
 if(localStorage.getItem("access_token") !== null){
   if(isJWTValid(localStorage.getItem("access_token"))){

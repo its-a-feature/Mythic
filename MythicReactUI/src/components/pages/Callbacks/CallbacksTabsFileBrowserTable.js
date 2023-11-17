@@ -117,14 +117,14 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         if (sortData.sortType === 'number' || sortData.sortType === 'size' || sortData.sortType === 'date') {
             tempData.sort((a, b) => {
                 if(sortData.inMetadata){
-                    return parseInt(props.treeRootData[props.selectedFolderData.host][a]?.metadata[sortData.sortKey]) > 
-                    parseInt(props.treeRootData[props.selectedFolderData.host][b]?.metadata[sortData.sortKey]) ? 1 : -1
+                    return parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a]?.metadata[sortData.sortKey]) >
+                    parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b]?.metadata[sortData.sortKey]) ? 1 : -1
                 } else {
-                    return parseInt(props.treeRootData[props.selectedFolderData.host][a][sortData.sortKey]) > parseInt(props.treeRootData[props.selectedFolderData.host][b][sortData.sortKey]) ? 1 : -1
+                    return parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey]) > parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey]) ? 1 : -1
                 }
             })
         } else if (sortData.sortType === 'string') {
-            tempData.sort((a, b) => (props.treeRootData[props.selectedFolderData.host][a][sortData.sortKey].toLowerCase() > props.treeRootData[props.selectedFolderData.host][b][sortData.sortKey].toLowerCase() ? 1 : -1));
+            tempData.sort((a, b) => (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey].toLowerCase() > props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey].toLowerCase() ? 1 : -1));
         }
         if (sortData.sortDirection === 'DESC') {
             tempData.reverse();
@@ -135,11 +135,11 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         setFilterOptions(newFilterOptions);
     }
     const filterRow = (row) => {
-        if(!props.showDeletedFiles && props.treeRootData[props.selectedFolderData.host][row]?.deleted){
+        if(!props.showDeletedFiles && props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.deleted){
             return true;
         }
         for(const [key,value] of Object.entries(filterOptions)){
-            if(!String(props.treeRootData[props.selectedFolderData.host][row][key]).toLowerCase().includes(value)){
+            if(!String(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row][key]).toLowerCase().includes(value)){
                 return true;
             }
         }
@@ -156,34 +156,35 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                         switch(c.name){
                             case "Info":
                                 return  <FileBrowserTableRowActionCell 
-                                            treeRootData={props.treeRootData} 
+                                            treeRootData={props.treeRootData[props.selectedFolderData.group]}
                                             selectedFolderData={props.selectedFolderData} 
-                                            rowData={props.treeRootData[props.selectedFolderData.host][row]} 
+                                            rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]}
                                             cellData={row}
                                             me={props.me}
                                             onTaskRowAction={props.onTaskRowAction} />;
                             case "Name":
                                 return <FileBrowserTableRowNameCell 
-                                            treeRootData={props.treeRootData} 
+                                            treeRootData={props.treeRootData[props.selectedFolderData.group]}
                                             selectedFolderData={props.selectedFolderData} 
                                             cellData={row}
-                                            rowData={props.treeRootData[props.selectedFolderData.host][row]} />;
+                                            rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]} />;
                             case "Size":
-                                return TableRowSizeCell({ cellData: props.treeRootData[props.selectedFolderData.host][row]?.metadata?.size, rowData: props.treeRootData[props.selectedFolderData.host][row] });
+                                return TableRowSizeCell({ cellData: props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.metadata?.size,
+                                    rowData: props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row] });
                             case "Tags":
                                 return <FileBrowserTagsCell 
-                                            rowData={props.treeRootData[props.selectedFolderData.host][row]} 
-                                            treeRootData={props.treeRootData} 
+                                            rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]}
+                                            treeRootData={props.treeRootData[props.selectedFolderData.group]}
                                             cellData={row}
                                             selectedFolderData={props.selectedFolderData} 
                                             me={props.me} />
                             case "Last Modify":
-                                return TableRowDateCell({ cellData: props.treeRootData[props.selectedFolderData.host][row]?.metadata?.modify_time,
-                                    rowData: props.treeRootData[props.selectedFolderData.host][row],
+                                return TableRowDateCell({ cellData: props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.metadata?.modify_time,
+                                    rowData: props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row],
                                     view_utc_time: props.me?.user?.view_utc_time
                                 });
                             case "Comment":
-                                return <FileBrowserTableRowStringCell cellData={row.comment} rowData={props.treeRootData[props.selectedFolderData.host][row]} />
+                                return <FileBrowserTableRowStringCell cellData={row.comment} rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]} />
                         }
                     })];
                 }
@@ -199,17 +200,18 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         if(props.selectedFolderData.id === props.selectedFolderData.host){
             desiredPath = "";
         }
-        setAllData(Object.keys(props.treeAdjMatrix[props.selectedFolderData.host]?.[desiredPath] || {}));
+        setAllData(Object.keys(props.treeAdjMatrix[props.selectedFolderData.group]?.[props.selectedFolderData.host]?.[desiredPath] || {}));
         //console.log("just set all data")
     }, [props.selectedFolderData, props.treeAdjMatrix]);
 
     const onRowDoubleClick = (e, rowIndex) => {
-        const rowData = props.treeRootData[props.selectedFolderData.host][allData[rowIndex]];
+        //console.log(allData, rowIndex, allData[rowIndex], props.selectedFolderData);
+        const rowData = props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][allData[rowIndex]];
         if (!rowData.can_have_children) {
             return;
         }
         snackActions.info('Fetching contents from database...');
-        props.onRowDoubleClick(rowData);
+        props.onRowDoubleClick({...rowData, group: props.selectedFolderData.group});
 
         setSortData({"sortKey": null, "sortType":null, "sortDirection": "ASC"});
     };

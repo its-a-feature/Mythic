@@ -1,9 +1,13 @@
 import React from 'react';
 import FileBrowserVirtualTree from '../../MythicComponents/MythicFileBrowserVirtualTree';
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {ViewCallbackMythicTreeGroupsDialog} from "./ViewCallbackMythicTreeGroupsDialog";
 
 
 export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetchFolderData, setTableData, taskListing, tableOpenedPathId, showDeletedFiles}) => {
     const [openNodes, setOpenNodes] = React.useState({});
+    const groupName = React.useRef("");
+    const [openViewGroupsDialog, setOpenViewGroupDialog] = React.useState(false);
     const toggleNodeExpanded = (nodeId, nodeData) => {
         //console.log("toggleNodeExpanded", nodeId, nodeData);
         setTableData(nodeData);
@@ -20,7 +24,16 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
         });
       };
     const onSelectNode = (nodeId, nodeData) => {
-        setTableData(nodeData);
+        if(nodeData.root){
+
+        }else if(nodeData.is_group){
+            groupName.current = nodeData.group;
+            setOpenViewGroupDialog(true);
+        }else {
+            console.log(nodeData);
+            setTableData(nodeData);
+        }
+
     };
     React.useEffect( () => {
       setOpenNodes({
@@ -37,15 +50,30 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
       },
   ];
   return(
-    <FileBrowserVirtualTree
-        showDeletedFiles={showDeletedFiles}
-        treeRootData={treeRootData}
-        treeAdjMatrix={treeAdjMatrix}
-        openNodes={openNodes}
-        onSelectNode={onSelectNode}
-        onExpandNode={toggleNodeExpanded}
-        onCollapseNode={toggleNodeCollapsed}
-        contextMenuOptions={contextMenuOptions}
-    />
+      <>
+          <FileBrowserVirtualTree
+              showDeletedFiles={showDeletedFiles}
+              treeRootData={treeRootData}
+              treeAdjMatrix={treeAdjMatrix}
+              openNodes={openNodes}
+              onSelectNode={onSelectNode}
+              onExpandNode={toggleNodeExpanded}
+              onCollapseNode={toggleNodeCollapsed}
+              contextMenuOptions={contextMenuOptions}
+          />
+          {openViewGroupsDialog &&
+              <MythicDialog
+                  fullWidth={true}
+                  maxWidth={"lg"}
+                  open={openViewGroupsDialog}
+                  onClose={() => {setOpenViewGroupDialog(false);}}
+                  innerDialog={
+                      <ViewCallbackMythicTreeGroupsDialog group_name={groupName.current}
+                                                          onClose={() => {setOpenViewGroupDialog(false);}} />
+                  }
+              />
+          }
+      </>
+
   )
 };

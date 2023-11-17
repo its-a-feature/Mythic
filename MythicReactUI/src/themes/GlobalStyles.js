@@ -254,4 +254,11 @@ tspan {
     word-break: break-all;
     white-space: pre-wrap !important;
 }
+.MuiList-root {
+    box-shadow: 5px 5px 10px ${(props) => props.theme.palette.primary.main};
+}
+.dropdownMenuColored {
+    background-color: ${(props) => props.theme.palette.primary.main};
+    color: white;
+}
 `

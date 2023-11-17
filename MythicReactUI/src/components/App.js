@@ -61,7 +61,7 @@ export function App(props) {
             createTheme(adaptV4Theme({
                 palette: {
                     primary: {
-                        main: themeMode === "dark" ? "#465a79" : "#566d93",
+                        main: themeMode === "dark" ? "#465a79" : "rgb(102,121,145)",
                     },
                     error: {
                         main: themeMode === "dark" ? '#da3237' : '#c42c32',
@@ -73,7 +73,7 @@ export function App(props) {
                         main: themeMode === 'dark' ? '#bebebe' : '#a6a5a5',
                     },
                     info: {
-                        main: themeMode === 'dark' ? '#2574b4' : '#2574b4',
+                        main: themeMode === 'dark' ? '#2574b4' : '#4990b2',
                     },
                     mode: themeMode,
                     background: {
@@ -97,6 +97,9 @@ export function App(props) {
                 pageHeaderColor: "white",
                 folderColor: '#f1d592',
                 tableHeader: '#484848',
+                successOnMain: '#1ae302',
+                errorOnMain: '#ff656b',
+                infoOnMain: '#67ceff',
                 tableBorder: themeMode === 'dark' ? 'rgba(81,81,81,1)' : 'rgba(224,224,224,1)',
                 tableHover: themeMode === 'dark' ? 'rgba(85,88,93)' : 'rgba(245, 245, 245)',
                 pageHeader: {
@@ -138,7 +141,7 @@ export function App(props) {
                 <CssBaseline />
                 <ToastContainer limit={2} autoClose={3000}
                                 theme={themeMode}
-                                style={{maxWidth: "100%", width: "40%", marginTop: "20px", display: "flex", flexWrap: "wrap",
+                                style={{maxWidth: "100%", minWidth: "40%", width: "40%", marginTop: "20px", display: "flex", flexWrap: "wrap",
                                 wordBreak: "break-all"}}
                                 pauseOnFocusLoss={false} />
                     <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>

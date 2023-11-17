@@ -15,6 +15,7 @@ import { snackActions } from '../../utilities/Snackbar';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
+import {restartWebsockets} from '../../../index';
 
 const updateCurrentOpertionMutation = gql`
 mutation updateCurrentOpertionMutation($operator_id: Int!, $operation_id: Int!) {
@@ -63,6 +64,7 @@ export function OperationTableRow(props){
           meState({...meState(), user: {...meState().user, current_operation_id: data.updateCurrentOperation.operation_id, current_operation: props.name}});
           localStorage.setItem("user", JSON.stringify(meState().user));
           snackActions.success("Updated current operation");
+            restartWebsockets();
           //window.location.reload();
         }else if(data.updateCurrentOperation.error.includes("not a member")){
           // add ourselves as a member and try again

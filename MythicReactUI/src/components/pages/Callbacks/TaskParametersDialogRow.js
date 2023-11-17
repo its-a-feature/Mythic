@@ -94,7 +94,6 @@ export function TaskParametersDialogRow(props){
     const updateToLatestCredential = React.useRef(false);
     const [getDynamicParams] = useMutation(getDynamicQueryParams, {
         onCompleted: (data) => {
-            console.log(data);
             if(data.dynamic_query_function.status === "success"){
                 try{
                     setChoiceOptions([...data.dynamic_query_function.choices]);

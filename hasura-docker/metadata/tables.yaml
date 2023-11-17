@@ -1427,33 +1427,34 @@
       permission:
         columns:
           - active
-          - locked
-          - dec_key
-          - enc_key
-          - display_id
-          - id
-          - integrity_level
-          - locked_operator_id
-          - operation_id
-          - operator_id
-          - pid
-          - registered_payload_id
           - agent_callback_id
           - architecture
           - crypto_type
+          - dec_key
           - description
+          - display_id
           - domain
+          - enc_key
           - external_ip
           - extra_info
           - host
-          - ip
-          - os
-          - process_name
-          - sleep_info
-          - user
-          - timestamp
+          - id
           - init_callback
+          - integrity_level
+          - ip
           - last_checkin
+          - locked
+          - locked_operator_id
+          - mythictree_groups
+          - operation_id
+          - operator_id
+          - os
+          - pid
+          - process_name
+          - registered_payload_id
+          - sleep_info
+          - timestamp
+          - user
         computed_fields:
           - current_time
           - dec_key_base64
@@ -1466,33 +1467,34 @@
       permission:
         columns:
           - active
-          - locked
-          - dec_key
-          - enc_key
-          - display_id
-          - id
-          - integrity_level
-          - locked_operator_id
-          - operation_id
-          - operator_id
-          - pid
-          - registered_payload_id
           - agent_callback_id
           - architecture
           - crypto_type
+          - dec_key
           - description
+          - display_id
           - domain
+          - enc_key
           - external_ip
           - extra_info
           - host
-          - ip
-          - os
-          - process_name
-          - sleep_info
-          - user
+          - id
           - init_callback
+          - integrity_level
+          - ip
           - last_checkin
+          - locked
+          - locked_operator_id
+          - mythictree_groups
+          - operation_id
+          - operator_id
+          - os
+          - pid
+          - process_name
+          - registered_payload_id
+          - sleep_info
           - timestamp
+          - user
         computed_fields:
           - current_time
           - dec_key_base64
@@ -1505,33 +1507,34 @@
       permission:
         columns:
           - active
-          - locked
-          - dec_key
-          - enc_key
-          - display_id
-          - id
-          - integrity_level
-          - locked_operator_id
-          - operation_id
-          - operator_id
-          - pid
-          - registered_payload_id
           - agent_callback_id
           - architecture
           - crypto_type
+          - dec_key
           - description
+          - display_id
           - domain
+          - enc_key
           - external_ip
           - extra_info
           - host
-          - ip
-          - os
-          - process_name
-          - sleep_info
-          - user
+          - id
           - init_callback
+          - integrity_level
+          - ip
           - last_checkin
+          - locked
+          - locked_operator_id
+          - mythictree_groups
+          - operation_id
+          - operator_id
+          - os
+          - pid
+          - process_name
+          - registered_payload_id
+          - sleep_info
           - timestamp
+          - user
         computed_fields:
           - current_time
           - dec_key_base64
@@ -1544,33 +1547,34 @@
       permission:
         columns:
           - active
-          - locked
-          - dec_key
-          - enc_key
-          - display_id
-          - id
-          - integrity_level
-          - locked_operator_id
-          - operation_id
-          - operator_id
-          - pid
-          - registered_payload_id
           - agent_callback_id
           - architecture
           - crypto_type
+          - dec_key
           - description
+          - display_id
           - domain
+          - enc_key
           - external_ip
           - extra_info
           - host
-          - ip
-          - os
-          - process_name
-          - sleep_info
-          - user
+          - id
           - init_callback
+          - integrity_level
+          - ip
           - last_checkin
+          - locked
+          - locked_operator_id
+          - mythictree_groups
+          - operation_id
+          - operator_id
+          - os
+          - pid
+          - process_name
+          - registered_payload_id
+          - sleep_info
           - timestamp
+          - user
         computed_fields:
           - current_time
           - dec_key_base64
@@ -1583,33 +1587,34 @@
       permission:
         columns:
           - active
-          - locked
-          - dec_key
-          - enc_key
-          - display_id
-          - id
-          - integrity_level
-          - locked_operator_id
-          - operation_id
-          - operator_id
-          - pid
-          - registered_payload_id
           - agent_callback_id
           - architecture
           - crypto_type
+          - dec_key
           - description
+          - display_id
           - domain
+          - enc_key
           - external_ip
           - extra_info
           - host
-          - ip
-          - os
-          - process_name
-          - sleep_info
-          - user
+          - id
           - init_callback
+          - integrity_level
+          - ip
           - last_checkin
+          - locked
+          - locked_operator_id
+          - mythictree_groups
+          - operation_id
+          - operator_id
+          - os
+          - pid
+          - process_name
+          - registered_payload_id
+          - sleep_info
           - timestamp
+          - user
         computed_fields:
           - current_time
           - dec_key_base64
@@ -1630,6 +1635,7 @@
           - host
           - integrity_level
           - ip
+          - mythictree_groups
           - os
           - pid
           - process_name
@@ -1652,6 +1658,7 @@
           - host
           - integrity_level
           - ip
+          - mythictree_groups
           - os
           - pid
           - process_name
@@ -1674,6 +1681,7 @@
           - host
           - integrity_level
           - ip
+          - mythictree_groups
           - os
           - pid
           - process_name
@@ -1696,6 +1704,7 @@
           - host
           - integrity_level
           - ip
+          - mythictree_groups
           - os
           - pid
           - process_name
@@ -3374,6 +3383,9 @@
     name: mythictree
     schema: public
   object_relationships:
+    - name: callback
+      using:
+        foreign_key_constraint_on: callback_id
     - name: operation
       using:
         foreign_key_constraint_on: operation_id
@@ -3415,21 +3427,22 @@
     - role: developer
       permission:
         columns:
-          - id
-          - task_id
-          - timestamp
-          - operation_id
-          - host
-          - name
-          - parent_path
-          - comment
+          - callback_id
           - can_have_children
-          - success
+          - comment
           - deleted
           - full_path
+          - host
+          - id
           - metadata
-          - tree_type
+          - name
+          - operation_id
           - os
+          - parent_path
+          - success
+          - task_id
+          - timestamp
+          - tree_type
         computed_fields:
           - full_path_text
           - name_text
@@ -3441,21 +3454,22 @@
     - role: mythic_admin
       permission:
         columns:
-          - id
-          - task_id
-          - timestamp
-          - operation_id
-          - host
-          - name
-          - parent_path
-          - comment
+          - callback_id
           - can_have_children
-          - success
+          - comment
           - deleted
           - full_path
+          - host
+          - id
           - metadata
-          - tree_type
+          - name
+          - operation_id
           - os
+          - parent_path
+          - success
+          - task_id
+          - timestamp
+          - tree_type
         computed_fields:
           - full_path_text
           - name_text
@@ -3467,21 +3481,22 @@
     - role: operation_admin
       permission:
         columns:
-          - id
-          - task_id
-          - timestamp
-          - operation_id
-          - host
-          - name
-          - parent_path
-          - comment
+          - callback_id
           - can_have_children
-          - success
+          - comment
           - deleted
           - full_path
+          - host
+          - id
           - metadata
-          - tree_type
+          - name
+          - operation_id
           - os
+          - parent_path
+          - success
+          - task_id
+          - timestamp
+          - tree_type
         computed_fields:
           - full_path_text
           - name_text
@@ -3493,21 +3508,22 @@
     - role: operator
       permission:
         columns:
-          - id
-          - task_id
-          - timestamp
-          - operation_id
-          - host
-          - name
-          - parent_path
-          - comment
+          - callback_id
           - can_have_children
-          - success
+          - comment
           - deleted
           - full_path
+          - host
+          - id
           - metadata
-          - tree_type
+          - name
+          - operation_id
           - os
+          - parent_path
+          - success
+          - task_id
+          - timestamp
+          - tree_type
         computed_fields:
           - full_path_text
           - name_text
@@ -3519,21 +3535,22 @@
     - role: spectator
       permission:
         columns:
-          - id
-          - task_id
-          - timestamp
-          - operation_id
-          - host
-          - name
-          - parent_path
-          - comment
+          - callback_id
           - can_have_children
-          - success
+          - comment
           - deleted
           - full_path
+          - host
+          - id
           - metadata
-          - tree_type
+          - name
+          - operation_id
           - os
+          - parent_path
+          - success
+          - task_id
+          - timestamp
+          - tree_type
         computed_fields:
           - full_path_text
           - name_text

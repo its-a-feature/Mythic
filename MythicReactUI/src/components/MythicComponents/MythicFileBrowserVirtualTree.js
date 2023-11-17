@@ -3,7 +3,6 @@ import { styled } from '@mui/material/styles';
 import React, { useCallback, useMemo } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as List } from "react-window";
-import { snackActions } from '../utilities/Snackbar';
 import {faFolderOpen, faFolder} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ComputerIcon from '@mui/icons-material/Computer';
@@ -19,6 +18,7 @@ import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Paper from '@mui/material/Paper';
+import WidgetsIcon from '@mui/icons-material/Widgets';
 
 const PREFIX = 'FileBrowserVirtualTree';
 
@@ -153,9 +153,8 @@ const VirtualTreeRow = ({
   contextMenuOptions,
   ...ListProps
 }) => {
-  //console.log("listprops", ListProps)
   const itemTreeData = ListProps.data[ListProps.index];
-  const item = ListProps.treeRootData[itemTreeData.host]?.[itemTreeData.full_path_text] || itemTreeData;
+  const item = ListProps.treeRootData[itemTreeData.group]?.[itemTreeData.host]?.[itemTreeData.full_path_text] || itemTreeData;
   //console.log("item", item, "itemlookup", ListProps.treeRootData[itemTreeData.host]?.[itemTreeData.name])
   const dropdownAnchorRef = React.useRef(null);
   const theme = useTheme();
@@ -163,31 +162,38 @@ const VirtualTreeRow = ({
   const handleOnClickButton = (e) => {
     e.stopPropagation();
     if (itemTreeData.isOpen) {
-      onCollapseNode(item.id, item);
+      onCollapseNode(item.id, {...item, group: itemTreeData.group, host: itemTreeData.host});
     } else {
       //snackActions.info('fetching elements...', { autoClose: false });
-      onExpandNode(item.id, item);
+      onExpandNode(item.id,  {...item, group: itemTreeData.group, host: itemTreeData.host});
     }
   };
   const handleOnClickRow = (e) => {
-    onSelectNode(item.id, item);
+      onSelectNode(item.id,  {...item, group: itemTreeData.group, host: itemTreeData.host});
   };
   const [openContextMenu, setOpenContextMenu] = React.useState(false);
+
   const handleContextClick = useCallback(
       (event) => {
           event.preventDefault();
           event.stopPropagation();
-          if(contextMenuOptions && contextMenuOptions.length > 0){
-              
-              setOpenContextMenu(true);
+          if(item.root){
+
+          }else if(item.is_group){
+
+          }else {
+              if(contextMenuOptions && contextMenuOptions.length > 0){
+                  setOpenContextMenu(true);
+              }
           }
+
       },
       [contextMenuOptions] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const handleMenuItemClick = (event, index) => {
       event.preventDefault();
       event.stopPropagation();
-      contextMenuOptions[index].click({event, node: item});
+      contextMenuOptions[index].click({event, node:  {...item, group: itemTreeData.group, host: itemTreeData.host}});
       setOpenContextMenu(false);
   };
   const handleClose = (event) => {
@@ -241,8 +247,10 @@ const VirtualTreeRow = ({
                     </Grow>
                   )}
             </Popper>
-          {itemTreeData.root  ? (
-              <ComputerIcon style={{ marginLeft: '3px', marginRight: '5px' }} onClick={handleOnClickButton} />
+          {itemTreeData.is_group ? (
+              <WidgetsIcon style={{marginLeft: "3px", marginRight: "5px" }} />
+          ): itemTreeData.root  ? (
+              <ComputerIcon style={{ marginLeft: '3px', marginRight: '5px' }}  />
           ) : !itemTreeData.can_have_children ? (
               <DescriptionIcon style={{ marginLeft: '3px', marginRight: '5px' }} />
           ) : itemTreeData.isOpen ? (
@@ -280,6 +288,7 @@ const VirtualTreeRow = ({
                   <ErrorIcon fontSize='small' color="error" />
               </MythicStyledTooltip>
           ) : null}
+
       </div>
     </div>
     </div>
@@ -298,62 +307,66 @@ const FileBrowserVirtualTree = ({
 }) => {
   const flattenNode = useCallback(
     // node is just a full_path_text
-    (node, host, depth = 0) => {
+    (node, group, host, depth = 0) => {
+        //console.log(node, group, host, depth);
       if(depth === 0){
         return [
           {
-            id: treeRootData[host][node].id,
-            name: treeRootData[host][node].name_text,
-            full_path_text: treeRootData[host][node].full_path_text,
-            deleted: treeRootData[host][node].deleted,
+            id: treeRootData[group][host][node].id,
+            name: treeRootData[group][host][node].name_text,
+            full_path_text: treeRootData[group][host][node].full_path_text,
+            deleted: treeRootData[group][host][node].deleted,
             depth,
-            isLeaf: Object.keys(treeAdjMatrix[host]?.[node] || {}).length === 0,
-            can_have_children: treeRootData[host][node].can_have_children,
+            isLeaf: Object.keys(treeAdjMatrix[group][host]?.[node] || {}).length === 0,
+            can_have_children: treeRootData[group][host][node].can_have_children,
             isOpen: true,
-            children: (treeAdjMatrix[host]?.[node] || {}),
+            children: (treeAdjMatrix[group][host]?.[node] || {}),
             host,
+            group,
             root: true
           },
-          ...(Object.keys(treeAdjMatrix[host]?.[node] || {})).reduce( (prev, cur) => {
-            if(!treeRootData[host][cur].can_have_children){return [...prev]}
-            return [...prev, flattenNode(cur, host, depth+1)];
+          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).reduce( (prev, cur) => {
+            if(!treeRootData[group][host][cur].can_have_children){return [...prev]}
+            return [...prev, flattenNode(cur, group, host, depth+1)];
         }, []).flat()
         ];
       }
-      if (openNodes[treeRootData[host][node].id] === true) {
+      if (openNodes[treeRootData[group][host][node].id] === true) {
         return [
           {
-            id: treeRootData[host][node].id,
-            name: treeRootData[host][node].name_text,
-            full_path_text: treeRootData[host][node].full_path_text,
-            deleted: treeRootData[host][node].deleted,
+            id: treeRootData[group][host][node].id,
+            name: treeRootData[group][host][node].name_text,
+            full_path_text: treeRootData[group][host][node].full_path_text,
+            deleted: treeRootData[group][host][node].deleted,
             depth,
-            isLeaf: Object.keys(treeAdjMatrix[host]?.[node] || {}).length === 0,
-            can_have_children: treeRootData[host][node].can_have_children,
+            isLeaf: Object.keys(treeAdjMatrix[group][host]?.[node] || {}).length === 0,
+            can_have_children: treeRootData[group][host][node].can_have_children,
             isOpen: true,
-            children: (treeAdjMatrix[host]?.[node] || {}), 
+            children: (treeAdjMatrix[group][host]?.[node] || {}),
             host,
+            group,
             root: false,
           },
-          ...(Object.keys(treeAdjMatrix[host]?.[node] || {})).reduce( (prev, cur) => {
-            if(!treeRootData[host][cur].can_have_children){return [...prev]}
-            if(!showDeletedFiles && treeRootData[host][cur].deleted){return [...prev]}
-            return [...prev, flattenNode(cur, host, depth+1)];
+          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).reduce( (prev, cur) => {
+            if(!treeRootData[group][host][cur].can_have_children){return [...prev]}
+            if(!showDeletedFiles && treeRootData[group][host][cur].deleted){return [...prev]}
+            return [...prev, flattenNode(cur, group, host, depth+1)];
         }, []).flat()
         ];
       }
       return [
         {
-          id: treeRootData[host][node].id,
-          name: treeRootData[host][node].name_text,
-          full_path_text: treeRootData[host][node].full_path_text,
-          deleted: treeRootData[host][node].deleted,
+          id: treeRootData[group][host][node].id,
+          name: treeRootData[group][host][node].name_text,
+          full_path_text: treeRootData[group][host][node].full_path_text,
+          deleted: treeRootData[group][host][node].deleted,
           depth,
-          isLeaf: Object.keys(treeAdjMatrix[host]?.[node] || {}).length === 0,
-          can_have_children: treeRootData[host][node].can_have_children,
+          isLeaf: Object.keys(treeAdjMatrix[group]?.[host]?.[node] || {}).length === 0,
+          can_have_children: treeRootData[group][host][node].can_have_children,
           isOpen: false,
-          children: (treeAdjMatrix[host]?.[node] || {}), 
+          children: (treeAdjMatrix[group]?.[host]?.[node] || {}),
           host,
+          group,
           root: false,
         }
       ];
@@ -366,29 +379,49 @@ const FileBrowserVirtualTree = ({
     //console.log("in tree", treeRootData, treeAdjMatrix)
     // need to return an array
     let finalData = [];
-    for(const [host, matrix] of Object.entries(treeAdjMatrix)){
-      finalData.push({
-        id: host,
-        name: host,
-        depth: 0,
-        isLeaf: false,
-        isOpen: true,
-        can_have_children: true,
-        host, 
-        root: true,
-        deleted: false,
-        success: true,
-        children: matrix[""],
-        full_path_text: host,
-      });
-      finalData.push(...Object.keys(matrix[""]).reduce((prev, c) => {
-          if(!showDeletedFiles && c.deleted) {
-              return [...prev];
-          } else {
-              return [...prev, ...flattenNode(c, host, 1)]
-          }
-      }, []).flat())
+    //console.log(treeAdjMatrix);
+    for(const [group, hosts] of Object.entries(treeAdjMatrix)){
+        finalData.push({
+            id: group,
+            name: group,
+            depth: 0,
+            isLeaf: false,
+            isOpen: true,
+            can_have_children: true,
+            root: false,
+            group,
+            is_group: true,
+            deleted: false,
+            success: true,
+            children: hosts,
+            full_path_text: group,
+        });
+        for(const [host, matrix] of Object.entries(hosts)){
+            finalData.push({
+                id: host,
+                name: host,
+                depth: 1,
+                isLeaf: false,
+                isOpen: true,
+                can_have_children: true,
+                host,
+                group,
+                root: true,
+                deleted: false,
+                children: matrix[""],
+                full_path_text: host,
+            });
+            //console.log(matrix);
+            finalData.push(...Object.keys(matrix[""]).reduce((prev, c) => {
+                if(!showDeletedFiles && c.deleted) {
+                    return [...prev];
+                } else {
+                    return [...prev, ...flattenNode(c, group, host, 2)]
+                }
+            }, []).flat())
+        }
     }
+
     //console.log("flattened data", finalData)
     return finalData;
     //nodes.map((node) => flattenNode(node)).flat()

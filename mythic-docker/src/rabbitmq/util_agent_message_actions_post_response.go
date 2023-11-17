@@ -156,19 +156,16 @@ type agentMessagePostResponseCallbackTokens struct {
 }
 type agentMessagePostResponseDownload struct {
 	// Transfer a file from agent -> Mythic
-	TotalChunks         *int                   `json:"total_chunks,omitempty" mapstructure:"total_chunks,omitempty"`
-	ChunkSize           *int                   `json:"chunk_size,omitempty" mapstructure:"chunk_size,omitempty"`
-	ChunkData           *string                `json:"chunk_data,omitempty" mapstructure:"chunk_data,omitempty"`
-	ChunkNum            *int                   `json:"chunk_num,omitempty" mapstructure:"chunk_num,omitempty"`
-	FullPath            *string                `json:"full_path,omitempty" mapstructure:"full_path,omitempty"`
-	FileName            *string                `json:"filename,omitempty" mapstructure:"filename,omitempty"`
-	FileID              *string                `json:"file_id,omitempty" mapstructure:"file_id,omitempty"`
-	Host                *string                `json:"host,omitempty" mapstructure:"host,omitempty"`
-	IsScreenshot        *bool                  `json:"is_screenshot,omitempty" mapstructure:"is_screenshot,omitempty"`
-	Other               map[string]interface{} `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in, so we can reply back with them
-	localMythicPath     string
-	knownChunkSize      int
-	determinedChunkSize chan int
+	TotalChunks  *int                   `json:"total_chunks,omitempty" mapstructure:"total_chunks,omitempty"`
+	ChunkSize    *int                   `json:"chunk_size,omitempty" mapstructure:"chunk_size,omitempty"`
+	ChunkData    *string                `json:"chunk_data,omitempty" mapstructure:"chunk_data,omitempty"`
+	ChunkNum     *int                   `json:"chunk_num,omitempty" mapstructure:"chunk_num,omitempty"`
+	FullPath     *string                `json:"full_path,omitempty" mapstructure:"full_path,omitempty"`
+	FileName     *string                `json:"filename,omitempty" mapstructure:"filename,omitempty"`
+	FileID       *string                `json:"file_id,omitempty" mapstructure:"file_id,omitempty"`
+	Host         *string                `json:"host,omitempty" mapstructure:"host,omitempty"`
+	IsScreenshot *bool                  `json:"is_screenshot,omitempty" mapstructure:"is_screenshot,omitempty"`
+	Other        map[string]interface{} `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in, so we can reply back with them
 }
 type agentMessagePostResponseUpload struct {
 	// Transfer a file from Mythic -> Agent
@@ -199,7 +196,15 @@ type agentMessagePostResponseInteractive struct {
 }
 
 // writeDownloadChunkToDiskChan is a blocking call intentionally
-var writeDownloadChunkToDiskChan = make(chan *agentMessagePostResponseDownload)
+type writeDownloadChunkToDisk struct {
+	ChunkData       []byte
+	ChunkNum        int
+	LocalMythicPath string
+	KnownChunkSize  int
+	FinishedWriting chan int
+}
+
+var writeDownloadChunkToDiskChan = make(chan writeDownloadChunkToDisk, 1)
 
 func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
 	// got message:
@@ -757,67 +762,56 @@ func listenForWriteDownloadChunkToLocalDisk() {
 	for {
 		select {
 		case agentResponse := <-writeDownloadChunkToDiskChan:
-			alreadySentNewChunkSize := false
-			base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.ChunkData)))
-			var totalBase64Bytes int
-			totalBase64Bytes, err := base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.ChunkData))
-			if err != nil {
-				logging.LogError(err, "Failed to base64 decode chunk data from agent when downloading file")
-				agentResponse.determinedChunkSize <- 0
-				continue
-			}
-			f, err := os.OpenFile(agentResponse.localMythicPath, os.O_RDWR|os.O_CREATE, 0644)
+			f, err := os.OpenFile(agentResponse.LocalMythicPath, os.O_RDWR|os.O_CREATE, 0644)
 			if err != nil {
 				logging.LogError(err, "Failed to open file to add agent data")
-				agentResponse.determinedChunkSize <- 0
+				agentResponse.FinishedWriting <- 0
 				continue
 			}
-			if agentResponse.knownChunkSize > 0 {
-				logging.LogDebug("downloading with known chunk size", "chunk_num", *agentResponse.ChunkNum, "chunk size", agentResponse.knownChunkSize)
-				_, err = f.Seek(int64((*agentResponse.ChunkNum-1)*(agentResponse.knownChunkSize)), io.SeekStart)
+			if agentResponse.KnownChunkSize > 0 {
+				//logging.LogDebug("1. downloading with known chunk size", "chunk_num", agentResponse.ChunkNum, "chunk size", agentResponse.KnownChunkSize)
+				_, err = f.Seek(int64((agentResponse.ChunkNum-1)*(agentResponse.KnownChunkSize)), io.SeekStart)
 				if err != nil {
 					logging.LogError(err, "Failed to seek to next chunk in file")
+					f.Sync()
 					f.Close()
-					agentResponse.determinedChunkSize <- 0
+					agentResponse.FinishedWriting <- 0
 					continue
 				}
-				logging.LogDebug("downloading chunk", "offset from beginning", int64((*agentResponse.ChunkNum-1)*(agentResponse.knownChunkSize)))
+				//logging.LogDebug("1.1. downloading chunk", "offset from beginning", newOffset)
 			} else {
-				logging.LogDebug("downloading with unknown chunk size chunk", "chunk_num", *agentResponse.ChunkNum, "chunk size", totalBase64Bytes)
-				_, err = f.Seek(int64((*agentResponse.ChunkNum-1)*(totalBase64Bytes)), io.SeekStart)
+				//logging.LogDebug("1. downloading with unknown chunk size chunk", "chunk_num", agentResponse.ChunkNum, "chunk size", len(agentResponse.ChunkData))
+				_, err = f.Seek(int64((agentResponse.ChunkNum-1)*(len(agentResponse.ChunkData))), io.SeekStart)
 				if err != nil {
 					logging.LogError(err, "Failed to seek to next chunk in file")
+					f.Sync()
 					f.Close()
-					agentResponse.determinedChunkSize <- 0
+					agentResponse.FinishedWriting <- 0
 					continue
 				}
-				agentResponse.determinedChunkSize <- totalBase64Bytes
-				alreadySentNewChunkSize = true
-				logging.LogDebug("downloading chunk", "offset from beginning", int64((*agentResponse.ChunkNum-1)*(totalBase64Bytes)))
+				//logging.LogDebug("1.1. downloading chunk", "offset from beginning", newOffset)
 			}
-			totalWritten, err := f.Write(base64DecodedFileData[:totalBase64Bytes])
+			totalWritten, err := f.Write(agentResponse.ChunkData)
 			if err != nil {
 				logging.LogError(err, "Failed to write bytes to file in agent download")
+				f.Sync()
 				f.Close()
-				if !alreadySentNewChunkSize {
-					agentResponse.determinedChunkSize <- 0
-				}
+				agentResponse.FinishedWriting <- 0
 				continue
 			}
-			offset, err := f.Seek(0, io.SeekCurrent)
-			logging.LogDebug("finished writing chunk", "next offset should be", offset)
-			if totalWritten != totalBase64Bytes {
+			//logging.LogDebug("wrote bytes", "byte sample", string(agentResponse.ChunkData[:10]), "total bytes", len(agentResponse.ChunkData))
+			//offset, err := f.Seek(0, io.SeekCurrent)
+			//logging.LogDebug("2. finished writing chunk", "next offset should be", offset)
+			if totalWritten != len(agentResponse.ChunkData) {
 				logging.LogError(nil, "Didn't write all of the bytes to disk")
+				f.Sync()
 				f.Close()
-				if !alreadySentNewChunkSize {
-					agentResponse.determinedChunkSize <- 0
-				}
+				agentResponse.FinishedWriting <- 0
 				continue
 			}
+			f.Sync()
 			f.Close()
-			if !alreadySentNewChunkSize {
-				agentResponse.determinedChunkSize <- 0
-			}
+			agentResponse.FinishedWriting <- 0
 		}
 	}
 }
@@ -856,15 +850,15 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 			if agentResponse.Download.IsScreenshot != nil && *agentResponse.Download.IsScreenshot {
 				fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
 			}
-			agentResponse.Download.localMythicPath = fileMeta.Path
 			if !fileMeta.Complete {
 				if agentResponse.Download.ChunkData != nil && len(*agentResponse.Download.ChunkData) > 0 {
 					fileMeta.ChunksReceived += 1
+					knownChunkSize := 0
 					if fileMeta.ChunkSize > 0 {
-						agentResponse.Download.knownChunkSize = fileMeta.ChunkSize
+						knownChunkSize = fileMeta.ChunkSize
 					} else if agentResponse.Download.ChunkSize != nil {
 						if *agentResponse.Download.ChunkSize > 0 {
-							agentResponse.Download.knownChunkSize = *agentResponse.Download.ChunkSize
+							knownChunkSize = *agentResponse.Download.ChunkSize
 						}
 					}
 					/*
@@ -887,15 +881,30 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 							f.Close()
 						}
 					*/
-					determinedChunkSizeChan := make(chan int)
-					agentResponse.Download.determinedChunkSize = determinedChunkSizeChan
-					writeDownloadChunkToDiskChan <- agentResponse.Download
-					determinedChunkSize := <-determinedChunkSizeChan
-					// we don't know the chunk size ahead of time and one was reported back as part of the file write
-					logging.LogDebug("got new chunk size from write action", "new chunk size", determinedChunkSize)
-					if determinedChunkSize > 0 {
-						fileMeta.ChunkSize = determinedChunkSize
+					finishedWriting := make(chan int, 1)
+					base64DecodedFileData, err := base64.StdEncoding.DecodeString(*agentResponse.Download.ChunkData)
+					//base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.Download.ChunkData)))
+					//totalBase64Bytes, err := base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.Download.ChunkData))
+					if err != nil {
+						return "", err
 					}
+					//logging.LogDebug("0. about to have mythic write to disk", "chunk num", *agentResponse.Download.ChunkNum, "byte sample", string(base64DecodedFileData[:10]))
+					writeDownloadChunkToDiskChan <- writeDownloadChunkToDisk{
+						ChunkData:       base64DecodedFileData,
+						ChunkNum:        *agentResponse.Download.ChunkNum,
+						LocalMythicPath: fileMeta.Path,
+						KnownChunkSize:  knownChunkSize,
+						FinishedWriting: finishedWriting,
+					}
+					<-finishedWriting
+					// we don't know the chunk size ahead of time and one was reported back as part of the file write
+					//logging.LogDebug("3. finished writing", "chunk num", *agentResponse.Download.ChunkNum)
+					if *agentResponse.Download.ChunkNum == fileMeta.TotalChunks && fileMeta.TotalChunks > 1 {
+
+					} else {
+						fileMeta.ChunkSize = len(base64DecodedFileData)
+					}
+
 				}
 			}
 			// check about updating total chunk count in case the agent didn't know it ahead of time
@@ -1180,6 +1189,8 @@ func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta datab
 		"permissions": map[string]interface{}{},
 	}
 	newTree.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+	newTree.CallbackID.Valid = true
+	newTree.CallbackID.Int64 = int64(task.Callback.ID)
 	createTreeNode(&newTree)
 	if newTree.ID == 0 {
 		logging.LogError(nil, "Failed to create new tree entry")
@@ -1281,6 +1292,8 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 		newTree.Success.Bool = fileBrowser.Success
 		fileMetaData := addFilePermissions(fileBrowser)
 		newTree.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+		newTree.CallbackID.Valid = true
+		newTree.CallbackID.Int64 = int64(task.Callback.ID)
 		createTreeNode(&newTree)
 		if fileBrowser.UpdateDeleted != nil && *fileBrowser.UpdateDeleted {
 			// we need to iterate over the children for this entry and potentially remove any that the database know of but that aren't in our `files` list
@@ -1288,8 +1301,8 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 			if err = database.DB.Select(&existingTreeEntries, `SELECT 
     			id, "name", success, full_path, parent_path, operation_id, host, tree_type
 				FROM mythictree WHERE
-				parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4`,
-				fullPath, task.OperationID, pathData.Host, databaseStructs.TREE_TYPE_FILE); err != nil {
+				parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4 AND callback_id=$5`,
+				fullPath, task.OperationID, pathData.Host, databaseStructs.TREE_TYPE_FILE, task.Callback.ID); err != nil {
 				logging.LogError(err, "Failed to fetch existing children")
 				return err
 			} else {
@@ -1318,6 +1331,8 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 								}
 								fileMetaData = addChildFilePermissions(&newEntry)
 								newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+								newTreeChild.CallbackID.Valid = true
+								newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
 								updateTreeNode(newTreeChild)
 							}
 						}
@@ -1348,6 +1363,8 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 							newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
 							fileMetaData = addChildFilePermissions(&newEntry)
 							newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+							newTreeChild.CallbackID.Valid = true
+							newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
 							createTreeNode(&newTreeChild)
 						}
 					}
@@ -1371,6 +1388,8 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 				newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
 				fileMetaData = addChildFilePermissions(&newEntry)
 				newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+				newTreeChild.CallbackID.Valid = true
+				newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
 				createTreeNode(&newTreeChild)
 			}
 		}
@@ -1398,8 +1417,8 @@ func handleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 		if err := database.DB.Select(&existingTreeEntries, `SELECT 
     			id, "name", success, full_path, parent_path, operation_id, host, tree_type
 				FROM mythictree WHERE
-				operation_id=$1 AND host=$2 AND tree_type=$3`,
-			task.OperationID, host, databaseStructs.TREE_TYPE_PROCESS); err != nil {
+				operation_id=$1 AND host=$2 AND tree_type=$3 AND callback_id=$4`,
+			task.OperationID, host, databaseStructs.TREE_TYPE_PROCESS, task.Callback.ID); err != nil {
 			logging.LogError(err, "Failed to fetch existing children")
 			return err
 		} else {
@@ -1455,6 +1474,8 @@ func handleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 						}
 						reflectBackOtherKeys(&metadata, &newEntry.Other)
 						newTree.Metadata = GetMythicJSONTextFromStruct(metadata)
+						newTree.CallbackID.Valid = true
+						newTree.CallbackID.Int64 = int64(task.Callback.ID)
 						createTreeNode(&newTree)
 					}
 				}
@@ -1512,6 +1533,8 @@ func handleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 					}
 					reflectBackOtherKeys(&metadata, &newEntry.Other)
 					newTree.Metadata = GetMythicJSONTextFromStruct(metadata)
+					newTree.CallbackID.Valid = true
+					newTree.CallbackID.Int64 = int64(task.Callback.ID)
 					createTreeNode(&newTree)
 				}
 			}
@@ -1565,6 +1588,8 @@ func handleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 			}
 			reflectBackOtherKeys(&metadata, &newEntry.Other)
 			newTree.Metadata = GetMythicJSONTextFromStruct(metadata)
+			newTree.CallbackID.Valid = true
+			newTree.CallbackID.Int64 = int64(task.Callback.ID)
 			createTreeNode(&newTree)
 		}
 	}
@@ -1591,6 +1616,8 @@ func resolveAndCreateParentPathsForTreeNode(pathData utils.AnalyzedPath, task da
 		}
 		newTree.Metadata = GetMythicJSONTextFromStruct(metadata)
 		newTree.Os = getOSTypeBasedOnPathSeparator(pathData.PathSeparator, treeType)
+		newTree.CallbackID.Valid = true
+		newTree.CallbackID.Int64 = int64(task.Callback.ID)
 		createTreeNode(&newTree)
 	}
 }
@@ -1682,8 +1709,8 @@ func deleteTreeNode(treeNode databaseStructs.MythicTree, cascade bool) {
 		// we want to delete this node and all nodes that are children of it
 		treeNode.FullPath = append(treeNode.FullPath, byte('%'))
 		if _, err := database.DB.NamedExec(`UPDATE mythictree SET
-		  deleted=true 
-		  WHERE host=:host AND operation_id=:operation_id AND tree_type=:tree_type AND
+		  deleted=true, "timestamp"=now() 
+		  WHERE host=:host AND operation_id=:operation_id AND tree_type=:tree_type AND callback_id=:callback_id AND
 		        parent_path LIKE :full_path
 		   `, treeNode); err != nil {
 			logging.LogError(err, "Failed to mark all children as deleted in tree")
@@ -1691,7 +1718,7 @@ func deleteTreeNode(treeNode databaseStructs.MythicTree, cascade bool) {
 	}
 	// we just want to delete this specific node
 	if _, err := database.DB.NamedExec(`UPDATE mythictree SET
-        deleted=:deleted
+        deleted=:deleted, "timestamp"=now() 
 		WHERE id=:id`, treeNode); err != nil {
 		logging.LogError(err, "Failed to update tree node")
 	}
@@ -1702,10 +1729,10 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 		return
 	}
 	if statement, err := database.DB.PrepareNamed(`INSERT INTO mythictree
-		(host, task_id, operation_id, "name", full_path, parent_path, tree_type, can_have_children, success, metadata, os) 
+		(host, task_id, operation_id, "name", full_path, parent_path, tree_type, can_have_children, success, metadata, os, callback_id) 
 		VALUES 
-		(:host, :task_id, :operation_id, :name, :full_path, :parent_path, :tree_type, :can_have_children, :success, :metadata, :os)
-		ON CONFLICT (host, operation_id, full_path, tree_type)
+		(:host, :task_id, :operation_id, :name, :full_path, :parent_path, :tree_type, :can_have_children, :success, :metadata, :os, :callback_id)
+		ON CONFLICT (host, operation_id, full_path, tree_type, callback_id)
 		DO UPDATE SET
 		task_id=:task_id, "name"=:name, parent_path=:parent_path, can_have_children=:can_have_children,
 		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false
@@ -1718,8 +1745,8 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.Filemeta) {
 	fileBrowser := databaseStructs.MythicTree{}
 	if err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
-		operation_id=$1 AND full_path=$2 AND tree_type='file'`,
-		newFile.OperationID, newFile.FullRemotePath); err == sql.ErrNoRows {
+		operation_id=$1 AND full_path=$2 AND tree_type='file' AND callback_id=$3`,
+		newFile.OperationID, newFile.FullRemotePath, task.Callback.ID); err == sql.ErrNoRows {
 		if pathData, err := utils.SplitFilePathGetHost(string(newFile.FullRemotePath), "", []string{}); err != nil {
 			logging.LogError(err, "Failed to add data for file browser due to path issue")
 			go SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
@@ -1727,20 +1754,24 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 			if pathData.Host == "" {
 				pathData.Host = strings.ToUpper(task.Callback.Host)
 			}
-			resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
-			if err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
-				operation_id=$1 AND full_path=$2 AND tree_type='file'`,
-				newFile.OperationID, newFile.FullRemotePath); err != nil {
-				logging.LogError(err, "Failed to find, create, and then fine mythic tree data for newly downloaded file")
-			} else {
-				newFile.MythicTreeID.Int64 = int64(fileBrowser.ID)
-				newFile.MythicTreeID.Valid = true
-				if _, err := database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, newFile); err != nil {
-					logging.LogError(err, "Failed to update file meta with mythic tree id")
-				} else if _, err := database.DB.Exec(`UPDATE mythictree SET can_have_children=false WHERE id=$1`, fileBrowser.ID); err != nil {
-					logging.LogError(err, "Failed to update browser object to file instead of folder")
+			associateFileMetaWithMythicTree(pathData, newFile, task)
+			/*
+				resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
+				if err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
+					operation_id=$1 AND full_path=$2 AND tree_type='file' AND host=$3 AND callback_id=$4`,
+					newFile.OperationID, newFile.FullRemotePath, newFile.Host, task.Callback.ID); err != nil {
+					logging.LogError(err, "Failed to find, create, and then fine mythic tree data for newly downloaded file")
+				} else {
+					newFile.MythicTreeID.Int64 = int64(fileBrowser.ID)
+					newFile.MythicTreeID.Valid = true
+					if _, err := database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, newFile); err != nil {
+						logging.LogError(err, "Failed to update file meta with mythic tree id")
+					} else if _, err := database.DB.Exec(`UPDATE mythictree SET can_have_children=false WHERE id=$1`, fileBrowser.ID); err != nil {
+						logging.LogError(err, "Failed to update browser object to file instead of folder")
+					}
 				}
-			}
+
+			*/
 		}
 	} else if err == nil {
 		newFile.MythicTreeID.Int64 = int64(fileBrowser.ID)
