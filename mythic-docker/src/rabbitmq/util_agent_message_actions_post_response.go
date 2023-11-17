@@ -201,7 +201,8 @@ type writeDownloadChunkToDisk struct {
 	ChunkNum        int
 	LocalMythicPath string
 	KnownChunkSize  int
-	FinishedWriting chan int
+	FileMetaID      int
+	ChunksWritten   chan int
 }
 
 var writeDownloadChunkToDiskChan = make(chan writeDownloadChunkToDisk, 1)
@@ -759,13 +760,19 @@ func handleAgentMessagePostResponseCommands(task databaseStructs.Task, commands 
 	}
 }
 func listenForWriteDownloadChunkToLocalDisk() {
+	statement, err := database.DB.PrepareNamed(`UPDATE filemeta 
+		SET chunks_received = chunks_received + 1 
+		WHERE id=:id RETURNING chunks_received`)
+	if err != nil {
+		logging.LogFatalError(err, "Failed to create named statement for writing file chunks to disk")
+	}
 	for {
 		select {
 		case agentResponse := <-writeDownloadChunkToDiskChan:
 			f, err := os.OpenFile(agentResponse.LocalMythicPath, os.O_RDWR|os.O_CREATE, 0644)
 			if err != nil {
 				logging.LogError(err, "Failed to open file to add agent data")
-				agentResponse.FinishedWriting <- 0
+				agentResponse.ChunksWritten <- 0
 				continue
 			}
 			if agentResponse.KnownChunkSize > 0 {
@@ -775,7 +782,7 @@ func listenForWriteDownloadChunkToLocalDisk() {
 					logging.LogError(err, "Failed to seek to next chunk in file")
 					f.Sync()
 					f.Close()
-					agentResponse.FinishedWriting <- 0
+					agentResponse.ChunksWritten <- 0
 					continue
 				}
 				//logging.LogDebug("1.1. downloading chunk", "offset from beginning", newOffset)
@@ -786,7 +793,7 @@ func listenForWriteDownloadChunkToLocalDisk() {
 					logging.LogError(err, "Failed to seek to next chunk in file")
 					f.Sync()
 					f.Close()
-					agentResponse.FinishedWriting <- 0
+					agentResponse.ChunksWritten <- 0
 					continue
 				}
 				//logging.LogDebug("1.1. downloading chunk", "offset from beginning", newOffset)
@@ -796,7 +803,7 @@ func listenForWriteDownloadChunkToLocalDisk() {
 				logging.LogError(err, "Failed to write bytes to file in agent download")
 				f.Sync()
 				f.Close()
-				agentResponse.FinishedWriting <- 0
+				agentResponse.ChunksWritten <- 0
 				continue
 			}
 			//logging.LogDebug("wrote bytes", "byte sample", string(agentResponse.ChunkData[:10]), "total bytes", len(agentResponse.ChunkData))
@@ -806,12 +813,17 @@ func listenForWriteDownloadChunkToLocalDisk() {
 				logging.LogError(nil, "Didn't write all of the bytes to disk")
 				f.Sync()
 				f.Close()
-				agentResponse.FinishedWriting <- 0
+				agentResponse.ChunksWritten <- 0
 				continue
 			}
 			f.Sync()
 			f.Close()
-			agentResponse.FinishedWriting <- 0
+			chunksReceived := 0
+			err = statement.Get(&chunksReceived, map[string]interface{}{"id": agentResponse.FileMetaID})
+			if err != nil {
+				logging.LogError(err, "Failed to update chunks_received count")
+			}
+			agentResponse.ChunksWritten <- chunksReceived
 		}
 	}
 }
@@ -852,7 +864,6 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 			}
 			if !fileMeta.Complete {
 				if agentResponse.Download.ChunkData != nil && len(*agentResponse.Download.ChunkData) > 0 {
-					fileMeta.ChunksReceived += 1
 					knownChunkSize := 0
 					if fileMeta.ChunkSize > 0 {
 						knownChunkSize = fileMeta.ChunkSize
@@ -881,7 +892,7 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 							f.Close()
 						}
 					*/
-					finishedWriting := make(chan int, 1)
+					chunksWritten := make(chan int, 1)
 					base64DecodedFileData, err := base64.StdEncoding.DecodeString(*agentResponse.Download.ChunkData)
 					//base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.Download.ChunkData)))
 					//totalBase64Bytes, err := base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.Download.ChunkData))
@@ -894,9 +905,13 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 						ChunkNum:        *agentResponse.Download.ChunkNum,
 						LocalMythicPath: fileMeta.Path,
 						KnownChunkSize:  knownChunkSize,
-						FinishedWriting: finishedWriting,
+						ChunksWritten:   chunksWritten,
+						FileMetaID:      fileMeta.ID,
 					}
-					<-finishedWriting
+					latestChunkWritten := <-chunksWritten
+					if latestChunkWritten > 0 {
+						fileMeta.ChunksReceived = latestChunkWritten
+					}
 					// we don't know the chunk size ahead of time and one was reported back as part of the file write
 					//logging.LogDebug("3. finished writing", "chunk num", *agentResponse.Download.ChunkNum)
 					if *agentResponse.Download.ChunkNum == fileMeta.TotalChunks && fileMeta.TotalChunks > 1 {
@@ -935,7 +950,7 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 				}
 			}
 			if _, err := database.DB.NamedExec(`UPDATE filemeta SET
-			chunks_received=:chunks_received, host=:host, is_screenshot=:is_screenshot, 
+			host=:host, is_screenshot=:is_screenshot, 
 			full_remote_path=:full_remote_path, complete=:complete, md5=:md5, sha1=:sha1,
 			filename=:filename, total_chunks=:total_chunks, chunk_size=:chunk_size
 			WHERE id=:id`, fileMeta); err != nil {
