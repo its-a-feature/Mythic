@@ -205,7 +205,7 @@ type writeDownloadChunkToDisk struct {
 	ChunksWritten   chan int
 }
 
-var writeDownloadChunkToDiskChan = make(chan writeDownloadChunkToDisk, 1)
+var writeDownloadChunkToDiskChan = make(chan writeDownloadChunkToDisk)
 
 func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
 	// got message:
@@ -897,6 +897,7 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 					//base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.Download.ChunkData)))
 					//totalBase64Bytes, err := base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.Download.ChunkData))
 					if err != nil {
+						logging.LogError(err, "Failed to base64 decode data to write to disk, bailing out")
 						return "", err
 					}
 					//logging.LogDebug("0. about to have mythic write to disk", "chunk num", *agentResponse.Download.ChunkNum, "byte sample", string(base64DecodedFileData[:10]))
