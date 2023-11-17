@@ -190,7 +190,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         fetchPolicy: "no-cache",
         onData: ({data}) => {
             for(let i = 0; i < data.data.mythictree_stream.length; i++){
-                let currentGroups = data.mythictree_stream[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
+                let currentGroups = data.data.mythictree_stream[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
                 for(let j = 0; j < currentGroups.length; j++) {
                     if (treeRootDataRef.current[currentGroups[j]] === undefined) {
                         treeRootDataRef.current[currentGroups[j]] = {};
