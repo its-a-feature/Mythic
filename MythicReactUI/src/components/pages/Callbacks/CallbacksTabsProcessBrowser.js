@@ -163,10 +163,10 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                 return prev;
             }, {...treeAdjMtx});
            setTreeAdjMtx(newMatrix);
-           const groups = Object.keys(newMatrix);
+           const groups = Object.keys(newMatrix).sort();
            if(groups.length > 0){
                setSelectedGroup(groups[0]);
-               const hosts = Object.keys(groups[0]);
+               const hosts = Object.keys(groups[0]).sort();
                if(hosts.length > 0){
                    setSelectedHost(hosts[0]);
                }
@@ -326,7 +326,7 @@ const ProcessBrowserTableTop = ({
                             </React.Fragment>
                         }
                     >
-                        {Object.keys(groupOptions).map( (opt) => (
+                        {Object.keys(groupOptions).sort().map( (opt) => (
                             <MenuItem value={opt} key={opt}>{opt}</MenuItem>
                         ) )}
                     </Select>
@@ -359,7 +359,7 @@ const ProcessBrowserTableTop = ({
                 </React.Fragment>
                     }
                   >
-                    {Object.keys(hostOptions).map( (opt) => (
+                    {Object.keys(hostOptions).sort().map( (opt) => (
                         <MenuItem value={opt} key={opt}>{opt}</MenuItem>
                     ) )}
                   </Select>

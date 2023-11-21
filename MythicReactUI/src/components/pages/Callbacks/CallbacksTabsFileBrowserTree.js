@@ -30,7 +30,7 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
             groupName.current = nodeData.group;
             setOpenViewGroupDialog(true);
         }else {
-            console.log(nodeData);
+            //console.log(nodeData);
             setTableData(nodeData);
         }
 

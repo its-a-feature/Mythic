@@ -380,43 +380,46 @@ const FileBrowserVirtualTree = ({
     // need to return an array
     let finalData = [];
     //console.log(treeAdjMatrix);
-    for(const [group, hosts] of Object.entries(treeAdjMatrix)){
+      const groupKeys = Object.keys(treeAdjMatrix).sort();
+      for(let i = 0; i < groupKeys.length; i++){
         finalData.push({
-            id: group,
-            name: group,
+            id: groupKeys[i],
+            name: groupKeys[i],
             depth: 0,
             isLeaf: false,
             isOpen: true,
             can_have_children: true,
             root: false,
-            group,
+            group: groupKeys[i],
             is_group: true,
             deleted: false,
             success: true,
-            children: hosts,
-            full_path_text: group,
+            children: treeAdjMatrix[groupKeys[i]],
+            full_path_text: groupKeys[i],
         });
-        for(const [host, matrix] of Object.entries(hosts)){
+        const hostKeys = Object.keys(treeAdjMatrix[groupKeys[i]]).sort();
+        for(let j = 0; j < hostKeys.length; j++){
+        //for(const [host, matrix] of Object.entries(hosts)){
             finalData.push({
-                id: host,
-                name: host,
+                id: hostKeys[j],
+                name: hostKeys[j],
                 depth: 1,
                 isLeaf: false,
                 isOpen: true,
                 can_have_children: true,
-                host,
-                group,
+                host: hostKeys[j],
+                group: groupKeys[i],
                 root: true,
                 deleted: false,
-                children: matrix[""],
-                full_path_text: host,
+                children: treeAdjMatrix[groupKeys[i]][hostKeys[j]][""],
+                full_path_text: hostKeys[j],
             });
             //console.log(matrix);
-            finalData.push(...Object.keys(matrix[""]).reduce((prev, c) => {
+            finalData.push(...Object.keys(treeAdjMatrix[groupKeys[i]][hostKeys[j]][""]).reduce((prev, c) => {
                 if(!showDeletedFiles && c.deleted) {
                     return [...prev];
                 } else {
-                    return [...prev, ...flattenNode(c, group, host, 2)]
+                    return [...prev, ...flattenNode(c, groupKeys[i], hostKeys[j], 2)]
                 }
             }, []).flat())
         }
