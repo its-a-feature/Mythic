@@ -24,9 +24,16 @@ export function CallbacksTabsTaskingLabel(props){
         }else{
             setDescription("Callback: " + props.tabInfo.displayID);
         }
-    }, [props.tabInfo.payloadDescription, props.tabInfo.customDescription])
+    }, [props.tabInfo.payloadDescription, props.tabInfo.customDescription]);
+    useEffect( () => {
+        let savedDescription = localStorage.getItem(`${props.me.user.id}-${props.tabInfo.operation_id}-${props.tabInfo.tabID}`);
+        if(savedDescription && savedDescription !== ""){
+            setDescription(savedDescription);
+        }
+    }, []);
     const editDescriptionSubmit = (description) => {
         props.onEditTabDescription(props.tabInfo, description);
+        localStorage.setItem(`${props.me.user.id}-${props.tabInfo.operation_id}-${props.tabInfo.tabID}`, description);
     }
     const contextMenuOptions = props.contextMenuOptions.concat([
         {

@@ -93,8 +93,15 @@ export function CallbacksTabsProcessBrowserLabel(props){
             setDescription("Processes: " + props.tabInfo.displayID);
         }
     }, [props.tabInfo.customDescription])
+    useEffect( () => {
+        let savedDescription = localStorage.getItem(`${props.me.user.id}-${props.tabInfo.operation_id}-${props.tabInfo.tabID}`);
+        if(savedDescription && savedDescription !== ""){
+            setDescription(savedDescription);
+        }
+    }, []);
     const editDescriptionSubmit = (description) => {
         props.onEditTabDescription(props.tabInfo, description);
+        localStorage.setItem(`${props.me.user.id}-${props.tabInfo.operation_id}-${props.tabInfo.tabID}`, description);
     }
     return (
         <React.Fragment>

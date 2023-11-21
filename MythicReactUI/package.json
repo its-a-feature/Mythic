@@ -28,6 +28,7 @@
     "graphql-ws": "^5.14.2",
     "html-to-image": "^1.11.11",
     "html2canvas": "^1.4.1",
+    "ip6": "^0.2.10",
     "json5": "^2.2.3",
     "jwt-decode": "^3.1.2",
     "moment": "^2.29.4",

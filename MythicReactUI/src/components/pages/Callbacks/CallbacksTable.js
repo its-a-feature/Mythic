@@ -20,7 +20,46 @@ import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
 import {TableFilterDialog} from './TableFilterDialog';
 import {CallbacksTabsHideMultipleDialog} from "./CallbacksTabsHideMultipleDialog";
 import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog";
+import ip6 from 'ip6';
 
+const ipCompare = (a, b) => {
+    let aJSON = JSON.parse(a);
+    if(aJSON.length === 0){return 0}
+    let bJSON = JSON.parse(b);
+    if(bJSON.length === 0){return 0}
+    let aPieces = aJSON[0].split("/");
+    if(aPieces.length === 0){return 0}
+    let bPieces = bJSON[0].split("/");
+    if(bPieces.length === 0){return 0}
+    // now we're only looking at the address and not the cidr notation if it exists
+    let aIsIPv4 = aPieces[0].includes(".");
+    let aIsIPv6 = aPieces[0].includes(":");
+    let bIsIPv4 = bPieces[0].includes(".");
+    let bIsIPv6 = bPieces[0].includes(":");
+    if(aIsIPv4 && bIsIPv4){
+        // we have two ipv4 addresses
+        let aNums = aPieces[0].split(".").map( c => Number(c))
+        let bNums = bPieces[0].split(".").map( c => Number(c))
+        for(let i = 0; i < aNums.length; i++){
+            if(aNums[i] < bNums[i]){return -1}
+            else if(aNums[i] > bNums[i]){return 1}
+        }
+        return 0;
+    } else if(aIsIPv4 && bIsIPv6) {
+        return -1; // always sorting IPv4 before IPv6
+    } else if(aIsIPv6 && bIsIPv4) {
+        return 1; // always sorting IPv4 before IPv6
+    } else if(aIsIPv6 && bIsIPv6) {
+        // we have two ipv6 addresses
+        let aNums = ip6.normalize(aPieces[0]).split(":").map( c => Number(c))
+        let bNums = ip6.normalize(bPieces[0]).split(":").map( c => Number(c))
+        for(let i = 0; i < aNums.length; i++){
+            if(aNums[i] < bNums[i]){return -1}
+            else if(aNums[i] > bNums[i]){return 1}
+        }
+        return 0;
+    }
+}
 function CallbacksTablePreMemo(props){
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
@@ -85,7 +124,7 @@ function CallbacksTablePreMemo(props){
       () => 
         [
           {key: "id", type: 'number', name: "Interact", width: 150},
-          {key: "ip", type: 'string', name: "IP", width: 150},
+          {key: "ip", type: 'ip', name: "IP", width: 150},
           {key: "external_ip",type: 'string', name: "External IP", width: 150},
           {key: "host", type: 'string', name: "Host", fillWidth: true},
           {key: "user", type: 'string', name: "User", fillWidth: true},
@@ -192,7 +231,9 @@ function CallbacksTablePreMemo(props){
       if (sortData.sortType === 'number' || sortData.sortType === 'size' || sortData.sortType === 'date') {
           tempData.sort((a, b) => (parseInt(a[sortData.sortKey]) > parseInt(b[sortData.sortKey]) ? 1 : -1));
       } else if (sortData.sortType === 'string') {
-        tempData.sort((a, b) => (a[sortData.sortKey].toLowerCase() > b[sortData.sortKey].toLowerCase() ? 1 : -1));
+          tempData.sort((a, b) => (a[sortData.sortKey].toLowerCase() > b[sortData.sortKey].toLowerCase() ? 1 : -1));
+      } else if(sortData.sortType === "ip"){
+          tempData.sort((a, b) => (ipCompare(a[sortData.sortKey], b[sortData.sortKey])));
       } else if(sortData.sortType === "timestamp") {
           tempData.sort((a, b) => {
               let aDate = new Date(a[sortData.sortKey]);
