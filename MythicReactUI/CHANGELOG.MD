@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.34] - 2023-11-22
+
+### Changed
+
+- Updated Callback search page to limit the number of IPs shown and add a Groups column
+- Updated Callback metadata modal to also show Group membership
+- Added Group search to callback search page
+- Updated `Task` displays to include the callback number as a clickable link
+- Updated `Files` search page to show Groups along with Host information for files uploaded/downloaded
+- Updated `Credentials` search page to show Task, Callback, Host, and Group information
+- Updated `keylog` search page to handle non-UTF8 encoded strings without errors
+- Updated `artifacts` search page to show group information
+- Updated `process` search page to show group information
+
 ## [0.1.33] - 2023-11-21
 
 ### Changed

@@ -117,6 +117,7 @@ query GetCallbackDetails($callback_id: Int!) {
     operation_id
     process_name
     init_callback
+    mythictree_groups
   }
   
 }

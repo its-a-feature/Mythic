@@ -5,105 +5,50 @@ import  {useParams} from "react-router-dom";
 import {TaskMetadataTable} from './MetadataTable';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
-import {Button, Grid} from '@mui/material';
+import {Button, Link} from '@mui/material';
 import {IncludeMoreTasksDialog} from './IncludeMoreTasksDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {snackActions} from '../../utilities/Snackbar';
 import {copyStringToClipboard} from '../../utilities/Clipboard';
 import Switch from '@mui/material/Switch';
 import {useTheme} from '@mui/material/styles';
-const taskInfoFragment = gql`
-fragment TaskData on task {
-    comment
-    display_id
-    callback_id
-    commentOperator{
-        username
-    }
-    completed
-    id
-    operator{
-        username
-    }
-    display_params
-    original_params
-    command_name
-    status
-    timestamp
-    command {
-        cmd
-        id
-    }
-    callback {
-        id
-        host
-        user
-        display_id
-        integrity_level
-        domain
-    }
-    responses_aggregate{
-        aggregate{
-            count
-        }
-    }
-    parent_task_id
-    opsec_pre_blocked
-    opsec_pre_bypassed
-    opsec_post_blocked
-    opsec_post_bypassed
-    response_count
-    tasks {
-        id
-    }
-    tags(order_by: {id: asc}) {
-        tagtype {
-            name
-            color
-            id
-        }
-        id
-    }
-    token {
-        id
-    }
-}
-`;
+import {taskingDataFragment} from '../Callbacks/CallbackMutations'
+
 const tasksQuery = gql`
-${taskInfoFragment}
+${taskingDataFragment}
 query tasksQuery($task_range: [Int!], $operation_id: Int!) {
     task(where: {display_id: {_in: $task_range}, operation_id: {_eq: $operation_id}}, order_by: {display_id: asc}) {
-        ...TaskData
+        ...taskData
     }
 }`;
 const getTasksAcrossAllCallbacksQuery = gql`
-${taskInfoFragment}
+${taskingDataFragment}
 query tasksAcrossAllCallbacks($operation_id: Int!, $baseTask: Int!, $beforeCount: Int!, $afterCount: Int!){
     before: task(where: {operation_id: {_eq: $operation_id}, display_id:{_lt: $baseTask}}, order_by: {display_id: desc}, limit: $beforeCount) {
-        ...TaskData
+        ...taskData
     }
     after: task(where: {operation_id: {_eq: $operation_id}, display_id:{_gt: $baseTask}}, limit: $afterCount, order_by: {display_id: asc}) {
-        ...TaskData
+        ...taskData
     }
 }`;
 const getTasksAcrossACallbackQuery = gql`
-${taskInfoFragment}
+${taskingDataFragment}
 query tasksAcrossACallbacks($callback_id: Int!, $baseTask: Int!, $beforeCount: Int!, $afterCount: Int!){
     before: task(where: {operation_id: {_eq: $operation_id}, display_id:{_lt: $baseTask}}, limit: $beforeCount, order_by: {display_id: desc}) {
-        ...TaskData
+        ...taskData
     }
     after: task(where: {operation_id: {_eq: $operation_id}, display_id:{_gt: $baseTask}}, limit: $afterCount, order_by: {display_id: asc}) {
-        ...TaskData
+        ...taskData
     }
 }`;
 const getTasksAcrossAllCallbacksByOperatorQuery = gql`
-${taskInfoFragment}
+${taskingDataFragment}
 query tasksAcrossAllCallbacksByOperator($operation_id: Int!, $baseTask: Int!, $beforeCount: Int!, $afterCount: Int!, $operator: String!){
     before: task(where: {operation_id: {_eq: $operation_id}, display_id:{_lt: $baseTask}, operator: {username: {_eq: $operator}}}, limit: $beforeCount, order_by: {display_id: desc}) {
-        ...TaskData
+        ...taskData
     }
     after: task(where: {operation_id: {_eq: $operation_id}, display_id:{_gt: $baseTask}, operator: {username: {_eq: $operator}}}, limit: $afterCount, order_by: {display_id: asc}) {
-        ...TaskData
+        ...taskData
     }
 }`;
 export function SingleTaskView(props){
@@ -288,11 +233,10 @@ export function SingleTaskView(props){
         </Paper>
         {tasks.map( (task) => (
             task.type === "task" ? (
-                    <Grid container alignItems="stretch" key={"taskdisplay:" + task.id} style={{marginRight: "5px"}}>
-                        <Grid item style={{display: "inline-flex", width: removing ? "96%" : "100%"}}>
+                    <div key={"taskdisplay:" + task.id} style={{marginRight: "5px"}}>
+                        <div style={{width: removing ? "95%" : "100%", display: "inline-block"}}>
                             <TaskDisplay me={me}  task={task} command_id={task.command === null ? 0 : task.command.id} />
-                        </Grid>
-                        <Grid item  style={{display: "inline-flex"}}>
+                        </div>
                         {removing ? (
                             <Switch
                                 checked={task.checked}
@@ -300,14 +244,15 @@ export function SingleTaskView(props){
                                 name={"task" + task.id}
                                 inputProps={{ 'aria-label': 'checkbox', 'color': theme.palette.error.main }}
                         />
-                        ) : (null)}
-                        </Grid>
-                    </Grid>
+                        ) : null}
+                    </div>
                     
             ) : (
                 <Paper key={"taskdisplayforcallback:" + task.id} elevation={5} style={{ marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                     <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                        {task.domain === "" ? (null) : (task.domain + "\\")}{task.user}{task.integrity_level > 2 ? ("*") : (null)}@{task.host} ({task.id})
+                        {task.domain === "" ? null : (task.domain + "\\")}{task.user}{task.integrity_level > 2 ? ("*") : null}@{task.host} (
+                        <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + task.display_id}>{task.display_id}</Link>
+                        )
                     </Typography>
                     <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.info.main}} 
                         onClick={() => {setTaskSearchInfo(task.id)}}>Include More Tasks</Button>                  

@@ -55,6 +55,7 @@ fragment filemetaData on filemeta{
         callback {
             id
             display_id
+            mythictree_groups
         }
         command {
             cmd
@@ -71,6 +72,15 @@ fragment mythictreeData on mythictree{
     host
     id
     metadata
+    task {
+        display_id
+        id
+    }
+    callback {
+        id
+        display_id
+        mythictree_groups
+    }
     can_have_children
     tags {
         tagtype {
@@ -90,8 +100,11 @@ fragment mythictreeData on mythictree{
         task {
             id
             comment
+            display_id
             callback {
                 id
+                display_id
+                mythictree_groups
             }
         }
     }
@@ -303,6 +316,7 @@ query tagFileMetaScreenshotQuery($tag: String!, $host: String!, $offset: Int!, $
     }
   }
 `;
+
 export function SearchTabFilesLabel(props){
     return (
         <MythicSearchTabLabel label={"Files"} iconComponent={<AttachmentIcon />} {...props}/>
@@ -818,10 +832,10 @@ export const SearchTabFilesPanel = (props) =>{
                                        onChangeSearchLocation={onChangeSearchLocation}
                                        changeSearchParam={props.changeSearchParam}/>
             <div style={{overflowY: "auto", flexGrow: 1}}>
-                {searchLocation === "Uploads" ? ( <FileMetaUploadTable me={me} files={fileMetaUploadData} /> ) : (null)}
-                {searchLocation === "Downloads" ? ( <FileMetaDownloadTable me={me} files={fileMetaDownloadData} /> ) : (null) }
-                {searchLocation === "Screenshots" ? (<FileMetaScreenshotTable me={me} files={fileMetaScreenshotData} />) : (null)}
-                {searchLocation === "FileBrowser" ? (<FileBrowserTable me={me} files={fileBrowserData} />) :(null)}
+                {searchLocation === "Uploads" ? ( <FileMetaUploadTable me={me} files={fileMetaUploadData} /> ) : null}
+                {searchLocation === "Downloads" ? ( <FileMetaDownloadTable me={me} files={fileMetaDownloadData} /> ) : null }
+                {searchLocation === "Screenshots" ? (<FileMetaScreenshotTable me={me} files={fileMetaScreenshotData} />) : null}
+                {searchLocation === "FileBrowser" ? (<FileBrowserTable me={me} files={fileBrowserData} />) :null}
             </div>
             <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}}>
             <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="primary" boundaryCount={1}

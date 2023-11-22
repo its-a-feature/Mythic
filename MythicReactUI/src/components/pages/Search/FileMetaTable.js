@@ -324,6 +324,11 @@ function FileMetaDownloadTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Host: </b>{props.host}</Typography>
+                    {props.task?.callback?.mythictree_groups.length > 0 ? (
+                        <Typography variant="body2" style={{wordBreak: "break-all"}}>
+                            <b>Groups: </b>{props?.task?.callback.mythictree_groups.join(", ")}
+                        </Typography>
+                        ) : null}
                     {props.deleted ? (
                         <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</Typography>
                         ) : (
@@ -688,8 +693,13 @@ function FileMetaUploadTableRow(props){
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>
                         {props.host !== "" ? (
                             <><b>Host: </b>{props.host}</>
-                        ) : ("")}
+                        ) : null}
                     </Typography>
+                    {props.task?.callback?.mythictree_groups.length > 0 ? (
+                        <Typography variant="body2" style={{wordBreak: "break-all"}}>
+                            <b>Groups: </b>{props?.task?.callback.mythictree_groups.join(", ")}
+                        </Typography>
+                    ) : null}
                     {props.deleted ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text}</Typography>) : (
                         props.complete ? (
                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" +  props.agent_file_id}>{props.full_remote_path_text}</Link>

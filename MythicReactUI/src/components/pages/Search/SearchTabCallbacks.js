@@ -25,6 +25,7 @@ fragment callbackSearchData on callback{
     display_id
     ip
     active
+    mythictree_groups
     payload {
         payloadtype {
             name
@@ -98,6 +99,19 @@ query domainQuery($operation_id: Int!, $ip: String!, $offset: Int!, $fetchLimit:
     }
 }
 `;
+const groupSearch = gql`
+${callbackFragment}
+query groupQuery($group: [String!], $offset: Int!, $fetchLimit: Int!) {
+    callback_aggregate(distinct_on: id, where: {mythictree_groups: {_contains: $group}}){
+      aggregate {
+        count
+      }
+    }
+    callback(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {mythictree_groups: {_contains: $group}}) {
+      ...callbackSearchData
+    }
+}
+`;
 
 export function SearchTabCallbacksLabel(props){
     return (
@@ -109,7 +123,7 @@ const SearchTabCallbacksSearchPanel = (props) => {
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Host");
-    const searchFieldOptions = ["User", "Domain", "Host", "Description", "IP"];
+    const searchFieldOptions = ["User", "Domain", "Host", "Description", "IP", "Group"];
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
         props.onChangeSearchField(event.target.value);
@@ -125,19 +139,22 @@ const SearchTabCallbacksSearchPanel = (props) => {
         props.changeSearchParam("search", adjustedSearch);
         switch(adjustedSearchField){
             case "User":
-                props.onUserSearch({search:adjustedSearch, offset: 0})
+                props.onUserSearch({search:adjustedSearch, offset: 0});
                 break;
             case "Domain":
-                props.onDomainSearch({search:adjustedSearch, offset: 0})
+                props.onDomainSearch({search:adjustedSearch, offset: 0});
                 break;
             case "Host":
-                props.onHostSearch({search:adjustedSearch, offset: 0})
+                props.onHostSearch({search:adjustedSearch, offset: 0});
                 break;
             case "Description":
-                props.onDescriptionSearch({search:adjustedSearch, offset: 0})
+                props.onDescriptionSearch({search:adjustedSearch, offset: 0});
                 break;
             case "IP":
-                props.onIPSearch({search:adjustedSearch, offset: 0})
+                props.onIPSearch({search:adjustedSearch, offset: 0});
+                break;
+            case "Group":
+                props.onGroupSearch({search:adjustedSearch, offset: 0});
                 break;
             default:
                 break;
@@ -152,7 +169,7 @@ const SearchTabCallbacksSearchPanel = (props) => {
                 setSearch(queryParams.get("search"));
                 adjustedSearch = queryParams.get("search");
             }
-            console.log(queryParams.get("searchField"));
+            //console.log(queryParams.get("searchField"));
             if(queryParams.has("searchField") && searchFieldOptions.includes(queryParams.get("searchField"))){
                 setSearchField(queryParams.get("searchField"));
                 props.onChangeSearchField(queryParams.get("searchField"));
@@ -220,6 +237,9 @@ export const SearchTabCallbacksPanel = (props) =>{
             case "IP":
                 onIPSearch({search, offset: 0});
                 break;
+            case "Group":
+                onGroupSearch({search, offset: 0});
+                break;
             default:
                 break;
         }
@@ -255,6 +275,11 @@ export const SearchTabCallbacksPanel = (props) =>{
         onError: handleCallbackSearchFailure
     })
     const [getIPSearch] = useLazyQuery(ipSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleCallbackSearchResults,
+        onError: handleCallbackSearchFailure
+    })
+    const [getGroupSearch] = useLazyQuery(groupSearch, {
         fetchPolicy: "no-cache",
         onCompleted: handleCallbackSearchResults,
         onError: handleCallbackSearchFailure
@@ -329,6 +354,16 @@ export const SearchTabCallbacksPanel = (props) =>{
             ip: "%" + new_search + "%",
         }})
     }
+    const onGroupSearch = ({search, offset}) => {
+        //snackActions.info("Searching...", {persist:true});
+        setSearch(search);
+        let new_search = "{" + search + "}";
+        getGroupSearch({variables:{
+                offset: offset,
+                fetchLimit: fetchLimit,
+                group: new_search,
+            }})
+    }
     const onChangePage = (event, value) => {
         switch(searchField){
             case "User":
@@ -346,14 +381,21 @@ export const SearchTabCallbacksPanel = (props) =>{
             case "IP":
                 onIPSearch({search, offset: (value - 1) * fetchLimit});
                 break;
+            case "Group":
+                onGroupSearch({search, offset: (value - 1) * fetchLimit});
+                break;
             default:
                 break;
         }
     }
     return (
         <MythicTabPanel {...props} >
-                <SearchTabCallbacksSearchPanel onChangeSearchField={onChangeSearchField} onUserSearch={onUserSearch} onIPSearch={onIPSearch} value={props.value} index={props.index}
-                    onDomainSearch={onDomainSearch} onHostSearch={onHostSearch} onDescriptionSearch={onDescriptionSearch} changeSearchParam={props.changeSearchParam}/>
+                <SearchTabCallbacksSearchPanel onChangeSearchField={onChangeSearchField}
+                                               onUserSearch={onUserSearch}
+                                               onIPSearch={onIPSearch} value={props.value} index={props.index}
+                                                onDomainSearch={onDomainSearch}
+                                               onGroupSearch={onGroupSearch}
+                                               onHostSearch={onHostSearch} onDescriptionSearch={onDescriptionSearch} changeSearchParam={props.changeSearchParam}/>
                 <div style={{overflowY: "auto", flexGrow: 1}}>
                     {callbackData.length > 0 ? (
                         <CallbackSearchTable callbacks={callbackData} />) : (

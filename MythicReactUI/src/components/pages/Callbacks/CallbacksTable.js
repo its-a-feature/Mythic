@@ -22,7 +22,7 @@ import {CallbacksTabsHideMultipleDialog} from "./CallbacksTabsHideMultipleDialog
 import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog";
 import ip6 from 'ip6';
 
-const ipCompare = (a, b) => {
+export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
     if(aJSON.length === 0){return 0}
     let bJSON = JSON.parse(b);

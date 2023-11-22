@@ -82,3 +82,99 @@ mutation updateIPsCallback($callback_display_id: Int!, $ips: [String]!){
   }
 }
 `;
+
+export const taskingDataFragment = gql`
+    fragment taskData on task {
+        comment
+        callback {
+            display_id
+            id
+            user
+            host
+            integrity_level
+            domain
+            mythictree_groups
+        }
+        callback_id
+        commentOperator{
+            username
+        }
+        completed
+        id
+        display_id
+        operator{
+            username
+        }
+        original_params
+        display_params
+        status
+        timestamp
+        command {
+          cmd
+          supported_ui_features
+          id
+        }
+        command_name
+        opsec_pre_blocked
+        opsec_pre_bypassed
+        opsec_post_blocked
+        opsec_post_bypassed
+        interactive_task_type
+        tasks(where: {is_interactive_task: {_eq: false}}, order_by: {id: asc}) {
+            id
+            comment
+            commentOperator{
+                username
+            }
+            completed
+            subtask_group_name
+            display_id
+            operator{
+                username
+            }
+            original_params
+            display_params
+            status
+            timestamp
+            command {
+              cmd
+              supported_ui_features
+              id
+            }
+            command_name
+            response_count
+            tags {
+                tagtype {
+                    name
+                    color
+                    id
+                  }
+                id
+            }
+            tasks(order_by: {id: asc}) {
+                id
+            }
+        }
+        response_count
+        tags {
+            tagtype {
+                name
+                color
+                id
+              }
+            id
+        }
+        token {
+            id
+        }
+    }
+`;
+export const createTaskingMutation = gql`
+mutation createTasking($callback_id: Int, $callback_ids: [Int], $command: String!, $params: String!, $files: [String], $token_id: Int, $tasking_location: String, $original_params: String, $parameter_group_name: String, $parent_task_id: Int, $is_interactive_task: Boolean, $interactive_task_type: Int) {
+  createTask(callback_id: $callback_id, callback_ids: $callback_ids, command: $command, params: $params, files: $files, token_id: $token_id, tasking_location: $tasking_location, original_params: $original_params, parameter_group_name: $parameter_group_name, parent_task_id: $parent_task_id, is_interactive_task: $is_interactive_task, interactive_task_type: $interactive_task_type) {
+    status
+    id
+    error
+  }
+}
+`;

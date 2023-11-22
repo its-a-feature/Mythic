@@ -17,7 +17,7 @@ import InputLabel from '@mui/material/InputLabel';
 import Input from '@mui/material/Input';
 import Split from 'react-split';
 import {TaskDisplay} from "../Callbacks/TaskDisplay";
-import {taskingDataFragment} from '../Callbacks/CallbacksTabsTasking'
+import {taskingDataFragment} from '../Callbacks/CallbackMutations'
 
 
 

@@ -25,6 +25,14 @@ fragment mythictreeData on mythictree{
     id
     name_text
     metadata
+    task {
+        display_id
+    }
+    callback {
+        mythictree_groups
+        id
+        display_id
+    }
     tags {
         tagtype {
             name

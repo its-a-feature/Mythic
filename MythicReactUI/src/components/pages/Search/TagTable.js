@@ -102,7 +102,7 @@ function TagTableRowElement(props){
                     <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableBody>
                             <TableRow hover>
-                                <TableCell style={{width: "15%"}}>Element Type</TableCell>
+                                <TableCell style={{width: "20%"}}>Element Type</TableCell>
                                 <TableCell><b>Task</b></TableCell>
                             </TableRow>
                             <TableRow hover>
@@ -137,7 +137,7 @@ function TagTableRowElement(props){
                     <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableBody>
                             <TableRow hover>
-                                <TableCell style={{width: "15%"}}>Element Type</TableCell>
+                                <TableCell style={{width: "20%"}}>Element Type</TableCell>
                                 <TableCell><b>Credential</b></TableCell>
                             </TableRow>
                             <TableRow hover>

@@ -11,7 +11,7 @@ import { IconButton} from '@mui/material';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
-import {taskingDataFragment, createTaskingMutation} from './CallbacksTabsTasking.js';
+import {taskingDataFragment, createTaskingMutation} from './CallbackMutations.js';
 import Split from 'react-split';
 import {TaskDisplayContainerFlat} from "./TaskDisplayContainer";
 import {DrawTaskElementsFlowWithProvider} from "./C2PathDialog";

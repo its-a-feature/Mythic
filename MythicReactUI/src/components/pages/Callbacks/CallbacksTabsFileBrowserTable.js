@@ -60,7 +60,12 @@ const getFileDownloadHistory = gql`
                 timestamp
                 task {
                     id
+                    display_id
                     comment
+                    callback {
+                        display_id
+                        id
+                    }
                 }
             }
         }

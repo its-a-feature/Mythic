@@ -27,6 +27,12 @@ fragment credentialData on credential{
     task {
         display_id
         id
+        callback {
+            id
+            host
+            display_id
+            mythictree_groups
+        }
     }
     timestamp
     deleted

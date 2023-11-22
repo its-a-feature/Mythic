@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Button, IconButton, Typography} from '@mui/material';
+import {Button, IconButton, Typography, Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -8,13 +8,10 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { MythicDialog, MythicModifyStringDialog, MythicViewJSONAsTableDialog } from '../../MythicComponents/MythicDialog';
-import {DownloadHistoryDialog} from '../Callbacks/DownloadHistoryDialog';
-import HistoryIcon from '@mui/icons-material/History';
 import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
 import { gql, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import EditIcon from '@mui/icons-material/Edit';
-import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 
@@ -49,7 +46,7 @@ export function ProcessTable(props){
                     <TableRow>
                         <TableCell style={{width: "5rem"}}>Metadata</TableCell>
                         <TableCell style={{width: "5rem"}}> PID </TableCell>
-                        <TableCell style={{width: "15rem"}}>Host</TableCell>
+                        <TableCell >Info</TableCell>
                         <TableCell> Name</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
                         <TableCell style={{width: "10rem"}}>Tags</TableCell>
@@ -104,7 +101,24 @@ function ProcessTableRow(props){
                     <Typography variant="body2" style={{wordBreak: "break-all", textDecoration: props.deleted ? "strike-through" : ""}}>{props.full_path_text}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.host}</Typography>
+                    <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Host: </b> {props.host}</Typography>
+                    {props.callback?.mythictree_groups.length > 0 ? (
+                        <Typography variant="body2" style={{whiteSpace: "pre"}}>
+                            <b>Groups: </b>{props?.callback.mythictree_groups.join(", ")}<br/>
+                            <b>Callback: </b>{
+                                <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                                      href={"/new/callbacks/" + props.callback.display_id}>
+                                    {props.callback.display_id}
+                                </Link>
+                            }<br/>
+                            <b>Task: </b>{
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                                  href={"/new/task/" + props.task.display_id}>
+                                {props.task.display_id}
+                            </Link>
+                        }
+                        </Typography>
+                    ) : null}
                 </MythicStyledTableCell>
 
                 <MythicStyledTableCell>

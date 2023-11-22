@@ -18,14 +18,14 @@ import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import {C2PathDialog} from '../Callbacks/C2PathDialog';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
-import {useSubscription, gql } from '@apollo/client';
+import {useSubscription } from '@apollo/client';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import {SUB_Edges} from '../Callbacks/CallbacksTop';
 
 export function ExpandedCallbackSideDetails(props){
     const theme = useTheme();
     return (
-        <div style={{ width: "100%", height: "100%" }}>
+        <div style={{ width: "100%", height: "100%", overflowY: "scroll" }}>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                 <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Callback {props.callback.display_id}
@@ -302,6 +302,10 @@ export function ExpandedCallbackSideDetailsTable(props){
                     <TableRow hover>
                         <TableCell>Extra Info</TableCell>
                         <TableCell>{props.extra_info}</TableCell>
+                    </TableRow>
+                    <TableRow hover>
+                        <TableCell>Groups</TableCell>
+                        <TableCell>{props.mythictree_groups.join(", ")}</TableCell>
                     </TableRow>
                     {props.enc_key_base64 !== undefined ? (
                         <TableRow hover>

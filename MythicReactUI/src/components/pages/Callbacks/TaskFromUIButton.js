@@ -3,7 +3,7 @@ import {gql, useMutation, useQuery } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {MythicSelectFromListDialog} from '../../MythicComponents/MythicSelectFromListDialog';
-import {createTaskingMutation} from './CallbacksTabsTasking';
+import {createTaskingMutation} from './CallbackMutations';
 import {TaskParametersDialog} from './TaskParametersDialog';
 import { MythicConfirmDialog } from '../../MythicComponents/MythicConfirmDialog';
 

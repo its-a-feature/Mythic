@@ -28,6 +28,7 @@ fragment artifactData on taskartifact{
         display_id
         callback{
             display_id
+            mythictree_groups
         }
         command {
             cmd

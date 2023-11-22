@@ -26,6 +26,7 @@ fragment keylogData on keylog{
             host
             id
             display_id
+            mythictree_groups
         }
     }
     user
@@ -34,7 +35,7 @@ fragment keylogData on keylog{
     id
 }
 `;
-const fetchLimit = 200;
+const fetchLimit = 100;
 const keylogSearch = gql`
 ${keylogFragment}
 query keylogQuery($operation_id: Int!, $keylog: String!, $offset: Int!, $fetchLimit: Int!) {

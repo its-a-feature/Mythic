@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import Grid from '@mui/material/Grid';
+import {useTheme} from '@mui/material/styles';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -18,6 +18,10 @@ import {useReactiveVar} from '@apollo/client';
 import {IconButton, Typography} from '@mui/material';
 import { toLocalTime } from '../../utilities/Time';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
+import {b64DecodeUnicode} from "../../utilities/base64";
+import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {MythicTextEditDialog} from "../../MythicComponents/MythicTextEditDialog";
 
 /*
 export function KeylogsTableOld(props){
@@ -112,6 +116,7 @@ export function KeylogsTable(props){
                         <TableCell >User</TableCell>
                         <TableCell >Host</TableCell>
                         <TableCell >Window</TableCell>
+                        <TableCell></TableCell>
                         <TableCell style={{maxWidth: "70%"}}>Keylogs</TableCell>
                     </TableRow>
                 </TableHead>
@@ -131,6 +136,13 @@ export function KeylogsTable(props){
 }
 function KeylogTableRow(props){
     const me = useReactiveVar(meState);
+    const theme = useTheme();
+    const [keylogData, setKeylogData] = React.useState("");
+    const [openDisplayKeylogData, setOpenDisplayKeylogData] = React.useState(false);
+    React.useEffect( () => {
+        const keystrokes = b64DecodeUnicode(props.keystrokes_text);
+        setKeylogData(keystrokes);
+    }, [props.keystrokes_text]);
     const onCopyToClipboard = (data) => {
         let result = copyStringToClipboard(data);
         if(result){
@@ -144,6 +156,11 @@ function KeylogTableRow(props){
             <TableRow hover>
                 <MythicStyledTableCell>
                     <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>
+                    {props.task?.callback?.mythictree_groups.length > 0 ? (
+                        <Typography variant="body2" style={{wordBreak: "break-all"}}>
+                            <b>Groups: </b>{props?.task?.callback.mythictree_groups.join(", ")}
+                        </Typography>
+                    ) : null}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>
@@ -160,13 +177,31 @@ function KeylogTableRow(props){
                 <MythicStyledTableCell >
                     <Typography variant="body2" >{props.window}</Typography>
                 </MythicStyledTableCell>
-                <MythicStyledTableCell >
+                <MythicStyledTableCell>
                     <MythicStyledTooltip title={"Copy to clipboard"} style={{display: "inline-block"}}>
-                        <IconButton onClick={() => onCopyToClipboard(props.keystrokes_text)} size="small">
+                        <IconButton onClick={() => onCopyToClipboard(keylogData)} size="small">
                             <FontAwesomeIcon icon={faCopy} />
                         </IconButton>
                     </MythicStyledTooltip>
-                    <Typography variant="body2" style={{wordBreak: "break-all", whiteSpace: "pre-wrap", display: "inline-block"}}>{props.keystrokes_text}</Typography>   
+                </MythicStyledTableCell>
+                <MythicStyledTableCell >
+                    <Typography variant="body2" style={{wordBreak: "break-all", whiteSpace: "pre-wrap", display: "inline-block"}}>
+                        {keylogData.slice(0, 500)}
+                        {keylogData.length > 500 ? (
+                            <>
+                                {"..."}<br/>
+                                <FontAwesomeIcon icon={faExternalLinkAlt} style={{color: theme.palette.info.main, cursor: "pointer"}} size="lg"
+                                onClick={() => {setOpenDisplayKeylogData(true);}}/>
+                            </>
+                        ) : null}
+                        {openDisplayKeylogData &&
+                            <MythicDialog maxWidth={"100%"} fullWidth={true} open={openDisplayKeylogData} onClose={() => {setOpenDisplayKeylogData(false);}}
+                                  innerDialog={
+                                <MythicTextEditDialog fullWidth open={openDisplayKeylogData} onClose={() => {setOpenDisplayKeylogData(false);}}
+                                                      title={"Full keylog data"} value={keylogData}/>
+                                } />
+                        }
+                    </Typography>
                 </MythicStyledTableCell>
             </TableRow>
         </React.Fragment>

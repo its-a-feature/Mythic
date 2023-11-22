@@ -23,6 +23,7 @@ subscription CallbacksSubscription ($callback_display_id: Int!){
     current_time
     init_callback
     locked
+    mythictree_groups
     locked_operator {
       username
     }

@@ -60,11 +60,16 @@ function ArtifactTableRow(props){
                             {props.task.display_id}
                     </Link>
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
+                <MythicStyledTableCell style={{wordBreak: "break-all"}}>
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
                         href={"/new/callbacks/" + props.task.callback.display_id}>
                             {props.task.callback.display_id}
                     </Link>
+                    {props.task?.callback?.mythictree_groups.length > 0 ? (
+                        <Typography variant="body2" style={{whiteSpace: "pre"}}>
+                            <b>Groups: </b>{"\n" + props?.task?.callback.mythictree_groups.join("\n")}
+                        </Typography>
+                    ) : null}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                 <Typography variant="body2" style={{ display: "inline-block"}}>{props?.task?.operator?.username || null}</Typography>

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import {createTaskingMutation, taskingDataFragment} from './CallbacksTabsTasking';
+import {createTaskingMutation, taskingDataFragment} from './CallbackMutations';
 import {snackActions} from "../../utilities/Snackbar";
 import { gql, useMutation, useSubscription } from '@apollo/client';
 import {b64DecodeUnicode} from "./ResponseDisplay";

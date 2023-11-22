@@ -1,6 +1,6 @@
 import React, {useEffect, useLayoutEffect, useRef} from 'react';
 import { styled } from '@mui/material/styles';
-import {IconButton} from '@mui/material';
+import {IconButton, Link} from '@mui/material';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import { toLocalTime } from '../../utilities/Time';
@@ -15,6 +15,7 @@ import {gql, useLazyQuery, useSubscription } from '@apollo/client';
 import {TaskDisplayContainer} from './TaskDisplayContainer';
 import {TagsDisplay} from '../../MythicComponents/MythicTag';
 import MultipleStopIcon from '@mui/icons-material/MultipleStop';
+import {taskingDataFragment} from './CallbackMutations';
 
 
 const PREFIX = 'TaskDisplay';
@@ -107,7 +108,7 @@ const StyledPaper = styled(Paper)((
   }
 }));
 
-
+/*
 export const taskDataFragment = gql`
     fragment taskData on task {
         comment
@@ -152,9 +153,11 @@ export const taskDataFragment = gql`
         }
     }
 `;
+
+ */
 // task(where: {parent_task_id: {_eq: $task_id}}, order_by: {id: asc}) {
 const getSubTaskingQuery = gql`
-${taskDataFragment}
+${taskingDataFragment}
 subscription getSubTasking($task_id: Int!){
     task_stream(batch_size: 10, cursor: {initial_value: {timestamp: "1970-01-01"}}, where: {parent_task_id: {_eq: $task_id}, is_interactive_task: {_eq: false}}) {
         ...taskData
@@ -549,7 +552,7 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
   }
   const preventPropagation = (e) => {
     e.stopPropagation();
-    e.preventDefault();
+    //e.preventDefault();
   }
   
   return (
@@ -570,7 +573,10 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
                     </React.Fragment>
                   ) : null}
                   <div >
-                    <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>[{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}] / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username}`}
+                    <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
+                      [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
+                      / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username} `}
+                      / <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>{ task.callback.display_id}</Link>
                     </Typography>
                     <TaskStatusDisplay task={task} theme={theme}/>
                     <TaskTagDisplay task={task} />

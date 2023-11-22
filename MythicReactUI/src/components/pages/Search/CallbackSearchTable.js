@@ -48,10 +48,11 @@ export function CallbackSearchTable(props){
                         <TableCell >User</TableCell>
                         <TableCell >Domain</TableCell>
                         <TableCell >Host</TableCell>
+                        <TableCell >Groups</TableCell>
                         <TableCell >Description</TableCell>
                         <TableCell >IP</TableCell>
                         <TableCell >ID</TableCell>
-                        <TableCell>Agent</TableCell>
+                        <TableCell style={{width: "40px"}}>Agent</TableCell>
                         <TableCell style={{width: "2rem"}}>Details</TableCell>
                     </TableRow>
                 </TableHead>
@@ -108,11 +109,13 @@ function CallbackSearchTableRow(props){
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.domain}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.host}</MythicStyledTableCell>
+                <MythicStyledTableCell style={{whiteSpace: "pre"}}>{props.mythictree_groups.join("\n")}</MythicStyledTableCell>
                 <MythicStyledTableCell >
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.description}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell style={{whiteSpace: "pre"}}>
-                    {ips.join("\n")}
+                    {ips.slice(0,5).join("\n")}
+                    {ips.length > 5 ? "\n..." : null}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                 <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 

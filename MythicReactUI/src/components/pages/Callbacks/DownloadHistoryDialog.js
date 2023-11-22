@@ -12,6 +12,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import IconButton from '@mui/material/IconButton';
+import {Typography, Link} from '@mui/material';
 
 export function DownloadHistoryDialog(props){
    const [history, setHistory] = React.useState([]);
@@ -31,6 +32,7 @@ export function DownloadHistoryDialog(props){
                           <TableCell style={{width: "5rem"}}>Download</TableCell>
                           <TableCell>Time</TableCell>
                           <TableCell>Task</TableCell>
+                          <TableCell>Callback</TableCell>
                           <TableCell>Comment</TableCell>
                       </TableRow>
                   </TableHead>
@@ -44,7 +46,18 @@ export function DownloadHistoryDialog(props){
                             size="large"><GetAppIcon /></IconButton>
                         ) : (hist.chunks_received + "/" + hist.total_chunks)}</TableCell>
                         <TableCell>{hist.timestamp}</TableCell>
-                        <TableCell>{hist.task.id}</TableCell>
+                        <TableCell>
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                                  href={"/new/task/" + hist.task.display_id}>
+                                {hist.task.display_id}
+                            </Link>
+                        </TableCell>
+                          <TableCell>
+                              <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                                    href={"/new/callbacks/" + hist.task.callback.display_id}>
+                                  {hist.task.callback.display_id}
+                              </Link>
+                          </TableCell>
                         <TableCell>{hist.comment}</TableCell>
                       </TableRow>
                     ))}

@@ -6,6 +6,26 @@ type Mutation {
 }
 
 type Query {
+  c2GetIOC(
+    uuid: String!
+  ): GetIOCOutput
+}
+
+type Mutation {
+  c2HostFile(
+    c2_id: Int!
+    file_uuid: String!
+    host_url: String!
+  ): c2HostFileOutput
+}
+
+type Query {
+  c2SampleMessage(
+    uuid: String!
+  ): C2SampleMessageOutput
+}
+
+type Query {
   c2profileListFiles(
     id: Int!
   ): c2ProfileListFilesOutput
@@ -103,11 +123,15 @@ type Mutation {
     command: String!
     params: String!
     files: [String]
-    callback_id: Int!
+    callback_id: Int
+    callback_ids: [Int]
     token_id: Int
     tasking_location: String
     original_params: String
     parameter_group_name: String
+    parent_task_id: Int
+    is_interactive_task: Boolean
+    interactive_task_type: Int
   ): createTaskOutput
 }
 
@@ -265,11 +289,20 @@ type Mutation {
 }
 
 type Mutation {
-  stop_socks(
-    callback_id: Int!
-    port: Int!
-    port_type: String!
-  ): StopSocksOutput
+  toggleProxy(
+    callbackport_id: Int!
+    action: String!
+  ): toggleProxyOutput
+}
+
+type Mutation {
+  typedarray_parse_function(
+    command: String!
+    parameter_name: String!
+    payload_type: String!
+    callback: Int!
+    input_array: [String!]!
+  ): typedarrayParseOutput
 }
 
 type Mutation {
@@ -334,7 +367,8 @@ input CreatePayloadInput {
 }
 
 input updateCallbackInput {
-  callback_display_id: Int!
+  callback_display_id: Int
+  callback_display_ids: [Int]
   active: Boolean
   locked: Boolean
   description: String
@@ -698,6 +732,45 @@ type createCredentialOutput {
 }
 
 type createOperationEventLogOutput {
+  status: String!
+  error: String
+}
+
+type GetIOCOutput {
+  status: String!
+  error: String
+  output: String
+}
+
+type C2SampleMessageOutput {
+  status: String!
+  error: String
+  output: String
+}
+
+type consumingServicesListOutput {
+  webhooks: jsonb
+  loggers: jsonb
+}
+
+type c2HostFileOutput {
+  status: String!
+  error: String
+}
+
+type typedarrayParseOutput {
+  status: String!
+  error: String
+  typed_array: jsonb
+}
+
+type ToggleProxyOutput {
+  status: String!
+  action: String!
+  error: String
+}
+
+type toggleProxyOutput {
   status: String!
   error: String
 }

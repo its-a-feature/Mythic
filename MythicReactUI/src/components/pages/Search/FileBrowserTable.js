@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Button, IconButton, Typography} from '@mui/material';
+import {Button, IconButton, Typography, Link} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -102,8 +102,36 @@ function FileBrowserTableRow(props){
                 />
                 }
                 <MythicStyledTableCell>
-                <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.host}</Typography>
-                <Typography variant="body2" style={{wordBreak: "break-all", textDecoration: props.deleted ? "strike-through" : ""}}>{props.full_path_text}</Typography>
+                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.host}</Typography>
+                    <Typography variant="body2" style={{wordBreak: "break-all", textDecoration: props.deleted ? "strike-through" : ""}}>{props.full_path_text}</Typography>
+                    {props.callback ? (
+                        <>
+                            {props.callback?.mythictree_groups.length > 0 ? (
+                                <Typography variant="body2" style={{wordBreak: "break-all"}}>
+                                    <b>Groups: </b>{props?.callback.mythictree_groups.join(", ")}
+                                </Typography>
+                            ) : null}
+                            <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block", whiteSpace: "pre"}}>
+                                <b>Callback: </b>
+                                <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                                      href={"/new/callbacks/" + props.callback.display_id}>
+                                    {props.callback.display_id}
+                                </Link>
+                                {"  "}
+                            </Typography>
+                        </>
+                        )
+                    : null}
+                    <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>
+                        <b>Task: </b>
+                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                                            href={"/new/task/" + props.task?.display_id}>
+                            {props.task?.display_id}
+                        </Link>
+                    </Typography>
+
+
+
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <IconButton onClick={() => setEditCommentDialogOpen(true)} size="small" style={{display: "inline-block"}}><EditIcon /></IconButton>

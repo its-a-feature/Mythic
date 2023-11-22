@@ -18,7 +18,7 @@ import {ManuallyAddEdgeDialog} from './ManuallyAddEdgeDialog';
 import {gql, useLazyQuery } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import {TaskParametersDialog} from './TaskParametersDialog';
-import {createTaskingMutation} from './CallbacksTabsTasking';
+import {createTaskingMutation} from './CallbackMutations';
 import {useTheme} from '@mui/material/styles';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputLabel from '@mui/material/InputLabel';

@@ -1,5 +1,4 @@
 import React, {useEffect} from 'react';
-import { styled } from '@mui/material/styles';
 import { copyStringToClipboard } from '../../utilities/Clipboard';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import FileCopyOutlinedIcon from '@mui/icons-material/FileCopyOutlined';

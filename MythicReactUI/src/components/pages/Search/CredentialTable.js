@@ -170,8 +170,8 @@ export function CredentialTable(props){
                         <TableCell style={{width: "5rem"}}>Edit</TableCell>
                         <TableCell >Credential</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
-                        <TableCell style={{width: "8rem"}}>Task / Operator</TableCell>
-                        <TableCell style={{width: "5rem"}}>Type</TableCell>
+                        <TableCell >Task Info</TableCell>
+                        <TableCell style={{width: "7rem"}}>Type</TableCell>
                         <TableCell style={{width: "15rem"}}>Tags</TableCell>
                     </TableRow>
                 </TableHead>
@@ -409,7 +409,13 @@ function CredentialTableRow(props){
 
                 <MythicStyledTableCell>
                     {props.task !== null ? (
-                        <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>
+                        <>
+                            Task: <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link><br/>
+                            Callback: <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link><br/>
+                            Host: {props.task.callback.host}<br/>
+                            Groups: {props.task.callback.mythictree_groups.join(", ")}
+                        </>
+
                     ): (props.operator.username)}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.type}</MythicStyledTableCell>
