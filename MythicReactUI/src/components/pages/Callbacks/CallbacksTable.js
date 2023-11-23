@@ -132,11 +132,11 @@ function CallbacksTablePreMemo(props){
           {key: "os", type: 'string', name: "OS", width: 75},
           {key: "architecture", type: 'string', name: "Arch", width: 75},
           {key: "pid", type: 'number', name: "PID", width: 75},
-          {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150},
+          {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true},
           {key: "description", type: 'string', name: "Description", width: 400},
           {key: "sleep", type: 'string', name: "Sleep", width: 75, disableSort: true},
           {key: "agent", type: 'string', name: "Agent", width: 100, disableSort: true},
-          {key: "c2", type: 'string', name: "C2", width: 75, disableSort: true},
+          {key: "c2", type: 'string', name: "C2", width: 75, disableSort: true, disableFilterMenu: true},
           {key: "process_name", type: 'string', name: "Process Name", fillWidth: true},
         ].reduce( (prev, cur) => {
           if(columnVisibility.visible.includes(cur.name) || cur.name === "Interact"){
@@ -213,11 +213,11 @@ function CallbacksTablePreMemo(props){
     const filterRow = (row) => {
       for(const [key,value] of Object.entries(filterOptions)){
           if(key === "agent"){
-            if(!String(row.payload.payloadtype.name).toLowerCase().includes(value)){
+            if(!String(row.payload.payloadtype.name).toLowerCase().includes(String(value).toLowerCase())){
               return true;
             }
           }else{
-            if(!String(row[key]).toLowerCase().includes(value)){
+            if(!String(row[key]).toLowerCase().includes(String(value).toLowerCase())){
               return true;
             }
           }
