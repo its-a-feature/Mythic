@@ -589,7 +589,7 @@ export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSl
             { openSleepDialog &&
                 <MythicDialog fullWidth={true} open={openSleepDialog}  onClose={() => {setOpenSleepDialog(false);}}
                     innerDialog={
-                        <MythicModifyStringDialog title={"Sleep Information"} multiline maxRows={10}
+                        <MythicModifyStringDialog title={"View Sleep Information"} multiline maxRows={10}
                             onClose={() => {setOpenSleepDialog(false);}} 
                             value={cellData} 
                             onSubmit={editSleepSubmit} />

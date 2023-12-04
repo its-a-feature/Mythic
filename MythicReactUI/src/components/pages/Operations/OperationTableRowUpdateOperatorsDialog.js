@@ -201,7 +201,7 @@ export function OperationTableRowUpdateOperatorsDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Modify Operator Assignments</DialogTitle>
         <DialogContent dividers={true}>
-          <TableContainer component={Paper} className="mythicElement" style={{maxHeight: "calc(50vh)"}}>   
+          <TableContainer className="mythicElement" style={{maxHeight: "calc(50vh)"}}>
               <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                   <TableHead>
                       <TableRow>

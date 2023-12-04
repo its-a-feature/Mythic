@@ -160,7 +160,7 @@ function ViewTagDialog(props) {
 return (
   <React.Fragment>
       <DialogTitle id="form-dialog-title" onClick={(e) => e.stopPropagation()}>View Tag</DialogTitle>
-        <TableContainer component={Paper} className="mythicElement">
+        <TableContainer className="mythicElement">
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
@@ -349,7 +349,7 @@ return (
             onClose={()=>{setOpenNewDialog(false);}} 
             onSubmit={handleNewTagCreate} />}
       />) : null}
-        <TableContainer component={Paper} className="mythicElement">
+        <TableContainer className="mythicElement">
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
@@ -476,7 +476,7 @@ export function NewTagDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Create new Tag</DialogTitle>
         <DialogContent dividers={true}>
-          <TableContainer component={Paper} className="mythicElement">
+          <TableContainer className="mythicElement">
             <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableBody>
                   <TableRow hover>

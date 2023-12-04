@@ -4,7 +4,7 @@ import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {ViewCallbackMythicTreeGroupsDialog} from "./ViewCallbackMythicTreeGroupsDialog";
 
 
-export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetchFolderData, setTableData, taskListing, tableOpenedPathId, showDeletedFiles}) => {
+export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetchFolderData, setTableData, taskListing, tableOpenedPathId, showDeletedFiles, tabInfo}) => {
     const [openNodes, setOpenNodes] = React.useState({});
     const groupName = React.useRef("");
     const [openViewGroupsDialog, setOpenViewGroupDialog] = React.useState(false);
@@ -44,8 +44,8 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
     const contextMenuOptions = [
       {
           name: 'Task Listing', 
-          click: ({event, node}) => {
-              taskListing(node);
+          click: ({event, node, callback_id, callback_display_id}) => {
+              taskListing(node, callback_id, callback_display_id);
           }
       },
   ];
@@ -60,6 +60,7 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
               onExpandNode={toggleNodeExpanded}
               onCollapseNode={toggleNodeCollapsed}
               contextMenuOptions={contextMenuOptions}
+              tabInfo={tabInfo}
           />
           {openViewGroupsDialog &&
               <MythicDialog

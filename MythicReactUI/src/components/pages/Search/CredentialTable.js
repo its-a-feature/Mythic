@@ -410,8 +410,8 @@ function CredentialTableRow(props){
                 <MythicStyledTableCell>
                     {props.task !== null ? (
                         <>
-                            Task: <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link><br/>
-                            Callback: <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link><br/>
+                            Task: <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link><br/>
+                            Callback: <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link><br/>
                             Host: {props.task.callback.host}<br/>
                             Groups: {props.task.callback.mythictree_groups.join(", ")}
                         </>

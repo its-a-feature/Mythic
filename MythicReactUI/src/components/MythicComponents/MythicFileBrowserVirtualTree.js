@@ -19,6 +19,7 @@ import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Paper from '@mui/material/Paper';
 import WidgetsIcon from '@mui/icons-material/Widgets';
+import ListSubheader from '@mui/material/ListSubheader';
 
 const PREFIX = 'FileBrowserVirtualTree';
 
@@ -151,6 +152,7 @@ const VirtualTreeRow = ({
   onCollapseNode,
   onDoubleClickNode,
   contextMenuOptions,
+  tabInfo,
   ...ListProps
 }) => {
   const itemTreeData = ListProps.data[ListProps.index];
@@ -190,10 +192,13 @@ const VirtualTreeRow = ({
       },
       [contextMenuOptions] // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const handleMenuItemClick = (event, index) => {
+  const handleMenuItemClick = (event, index, callback_id, callback_display_id) => {
       event.preventDefault();
       event.stopPropagation();
-      contextMenuOptions[index].click({event, node:  {...item, group: itemTreeData.group, host: itemTreeData.host}});
+      contextMenuOptions[index].click({event,
+          node:  {...item, group: itemTreeData.group, host: itemTreeData.host},
+          callback_id, callback_display_id
+      });
       setOpenContextMenu(false);
   };
   const handleClose = (event) => {
@@ -230,17 +235,40 @@ const VirtualTreeRow = ({
                         transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                       }}
                     >
-                      <Paper variant="outlined" style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                      <Paper variant="outlined" className={"dropdownMenuColored"}>
                         <ClickAwayListener onClickAway={handleClose}>
-                          <MenuList id="split-button-menu"  >
+                          <MenuList id="split-button-menu" style={{paddingTop: 0}} >
+                              <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
+                                  Act from current Callback: {tabInfo["displayID"]}
+                              </ListSubheader>
                             {contextMenuOptions.map((option, index) => (
                               <MenuItem
                                 key={option.name + index}
-                                onClick={(event) => handleMenuItemClick(event, index)}
+                                onClick={(event) => handleMenuItemClick(event, index, tabInfo["callbackID"], tabInfo["displayID"])}
                               >
                                 {option.name}
                               </MenuItem>
                             ))}
+                              {
+                                  item?.callback && item?.["callback"]?.["id"] !== tabInfo["callbackID"] &&
+                                      <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
+                                          Act from originating Callback: {item?.callback?.["display_id"] || tabInfo["displayID"]}
+                                      </ListSubheader>
+                              }
+                              {
+                                  item?.callback && item?.["callback"]?.["id"] !== tabInfo["callbackID"] &&
+                                  contextMenuOptions.map((option, index) => (
+                                      <MenuItem
+                                          key={option.name + index}
+                                          onClick={(event) => handleMenuItemClick(event, index,
+                                              item?.["callback"]?.["id"] || tabInfo["callbackID"],
+                                              item?.["callback"]?.["display_id"] || tabInfo["displayID"])}
+                                      >
+                                          {option.name}
+                                      </MenuItem>
+                                  ))
+                              }
+
                           </MenuList>
                         </ClickAwayListener>
                       </Paper>
@@ -304,6 +332,7 @@ const FileBrowserVirtualTree = ({
   onCollapseNode,
   contextMenuOptions,
   showDeletedFiles,
+  tabInfo,
 }) => {
   const flattenNode = useCallback(
     // node is just a full_path_text
@@ -443,6 +472,7 @@ const FileBrowserVirtualTree = ({
         {(ListProps) => (
           <VirtualTreeRow
             {...ListProps}
+            tabInfo={tabInfo}
             treeRootData={treeRootData}
             onSelectNode={onSelectNode}
             onExpandNode={onExpandNode}

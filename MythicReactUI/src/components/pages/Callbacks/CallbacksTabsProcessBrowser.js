@@ -214,11 +214,15 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         }
     })
     const onListFilesButton = () => {
-        taskingData.current = ({"parameters": "", "ui_feature": "process_browser:list"});
+        taskingData.current = ({parameters: "",
+            ui_feature: "process_browser:list",
+            callback_id: tabInfo["callbackID"],
+            callback_display_id: tabInfo["displayID"]});
         setOpenTaskingButton(true);
     }
-    const onTaskRowAction = ({process_id, architecture, uifeature, openDialog, getConfirmation}) => {
-        taskingData.current = {"parameters": {host: selectedHost, process_id, architecture}, "ui_feature": uifeature, openDialog, getConfirmation};
+    const onTaskRowAction = ({process_id, architecture, uifeature, openDialog, getConfirmation, callback_id, callback_display_id}) => {
+        taskingData.current = {"parameters": {host: selectedHost, process_id, architecture},
+            "ui_feature": uifeature, openDialog, getConfirmation, callback_id, callback_display_id};
         setOpenTaskingButton(true);
     }
     const toggleShowDeletedFiles = (showStatus) => {
@@ -248,6 +252,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                 <div style={{width: "100%", display: "flex", flexDirection: "column", flexGrow: 1}}>
                     <ProcessBrowserTableTop 
                         onListFilesButton={onListFilesButton}
+                        tabInfo={tabInfo}
                         host={selectedHost}
                         group={selectedGroup}
                         toggleShowDeletedFiles={toggleShowDeletedFiles}
@@ -258,6 +263,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                     />
                     <CallbacksTabsProcessBrowserTable 
                         showDeletedFiles={showDeletedFiles}
+                        tabInfo={tabInfo}
                         onRowDoubleClick={() => {}}
                         treeRootData={treeRootDataRef.current}
                         treeAdjMatrix={treeAdjMtx}
@@ -269,7 +275,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                 </div>
                 {openTaskingButton && 
                     <TaskFromUIButton ui_feature={taskingData.current?.ui_feature || " "} 
-                        callback_id={tabInfo.callbackID} 
+                        callback_id={taskingData.current?.callback_id || tabInfo.callbackID}
                         parameters={taskingData.current?.parameters || ""}
                         openDialog={taskingData.current?.openDialog || false}
                         getConfirmation={taskingData.current?.getConfirmation || false}

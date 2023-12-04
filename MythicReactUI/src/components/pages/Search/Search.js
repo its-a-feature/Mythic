@@ -53,7 +53,7 @@ export function Search(props){
     }
     return (
       <Root className={classes.root} style={{  height: "100%", display: "flex", flexDirection: "column"}}>
-          <AppBar position="static" color="default">
+          <AppBar position="static" color="default" className={"no-box-shadow"}>
             <Tabs
               value={value}
               onChange={handleChange}

@@ -134,7 +134,7 @@ function CallbackSearchTableRow(props){
                         href={"/new/callbacks/" + props.callback.display_id}>
                             {props.callback.display_id}
                     </Link>
-                    /
+                    {" / "}
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                           href={"/new/tasks/" + props.task.display_id}>
                         {props.task.display_id}

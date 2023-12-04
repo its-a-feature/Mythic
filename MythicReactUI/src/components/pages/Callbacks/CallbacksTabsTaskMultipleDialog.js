@@ -28,6 +28,7 @@ query callbacksAndFeatures($payloadtype_id: Int!) {
     integrity_level
     pid
     display_id
+    mythictree_groups
   }
 }`;
 
@@ -55,8 +56,8 @@ const CustomList = ({title, items, left, onClick}) => {
             <StyledDivider classes={{root: classes.divider}}/>
             <CardContent style={{flexGrow: 1, height: "100%", width: "100%", overflowY: "auto", padding: 0}}>
                 <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
-                    {items.map((value) => (
-                        <>
+                    {items.map((value, index) => (
+                        <div key={value.display + index}>
                             {
                                 left && value.left &&
                                 <CustomListElement value={value} onClick={onClick}/>
@@ -65,7 +66,7 @@ const CustomList = ({title, items, left, onClick}) => {
                                 !left && value.right &&
                                 <CustomListElement value={value} onClick={onClick} />
                             }
-                        </>
+                        </div>
 
                         ))}
                 </List>
@@ -151,6 +152,7 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                 <StyledButton
                     variant="contained"
                     size="small"
+                    disabled={data.filter( x => x.checked && x.left).length === 0}
                     className={classes.button}
                     onClick={handleCheckedRight}
                     aria-label="move selected right"
@@ -160,6 +162,7 @@ const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
                 <StyledButton
                     variant="contained"
                     size="small"
+                    disabled={data.filter( x => x.checked && x.right).length === 0}
                     className={classes.button}
                     onClick={handleCheckedLeft}
                     aria-label="move selected left"

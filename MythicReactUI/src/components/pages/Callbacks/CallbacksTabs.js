@@ -42,7 +42,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, o
     
     return (
         <div style={{width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1, height: "100%" }}>
-            <AppBar color='default' position='static'>
+            <AppBar color='default' position='static' className={"no-box-shadow"}>
                 <Tabs
                     value={value}
                     onChange={handleChange}

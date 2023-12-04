@@ -48,6 +48,7 @@ const StyledPaper = styled(Paper)((
     marginRight: "0px",
     height: "auto",
     width: "99%",
+    boxShadow: "unset",
   },
 
   [`& .${classes.heading}`]: {
@@ -178,6 +179,7 @@ const StyledAccordionSummary = styled(AccordionSummary)((
     whiteSpace: "break-all",
     wordBreak: "break-all",
     userSelect: "text",
+    boxShadow: "unset",
   },
   [`& .${accordionClasses.content}`]: {
     margin: 0,
@@ -556,8 +558,8 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
   }
   
   return (
-    <StyledPaper className={classes.root} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
-      <Accordion TransitionProps={{ unmountOnExit: true, onEntered: scrollContent }} defaultExpanded={false} onChange={toggleTaskDropdown} expanded={dropdownOpen} >
+    <StyledPaper className={classes.root + " no-box-shadow"} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
+      <Accordion TransitionProps={{ unmountOnExit: true, onEntered: scrollContent }} defaultExpanded={false} onChange={toggleTaskDropdown} expanded={dropdownOpen}  >
         <StyledAccordionSummary
           expandIcon={<ExpandMoreIcon />}
           aria-controls={`panel1c-content-task-${task.id}`}
@@ -576,7 +578,7 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
                     <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
                       [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
                       / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username} `}
-                      / <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>{ task.callback.display_id}</Link>
+                      / <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>{ task.callback.display_id}</Link>
                     </Typography>
                     <TaskStatusDisplay task={task} theme={theme}/>
                     <TaskTagDisplay task={task} />
@@ -649,7 +651,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
   }
 
   return(
-      <Paper className={task.selected ? classes.root + " selectedTask" : classes.root} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
+      <Paper className={task.selected ? classes.root + " selectedTask no-box-shadow" : classes.root} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
         <ColoredTaskDisplay task={task} theme={theme}  >
               <div id={'scrolltotask' + task.id} style={{width: "100%"}}>
                 {displayComment ? (

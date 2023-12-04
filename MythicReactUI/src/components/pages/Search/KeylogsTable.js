@@ -155,7 +155,7 @@ function KeylogTableRow(props){
         <React.Fragment>
             <TableRow hover>
                 <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>
                     {props.task?.callback?.mythictree_groups.length > 0 ? (
                         <Typography variant="body2" style={{wordBreak: "break-all"}}>
                             <b>Groups: </b>{props?.task?.callback.mythictree_groups.join(", ")}
@@ -163,7 +163,7 @@ function KeylogTableRow(props){
                     ) : null}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}</Typography>

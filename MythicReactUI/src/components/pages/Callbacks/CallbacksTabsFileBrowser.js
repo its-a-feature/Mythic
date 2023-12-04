@@ -293,23 +293,29 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         tableOpenedPathIdRef.current = nodeData.id;
         setSelectedFolderData(nodeData);
     }, []);
-    const onListFilesButton = ({ fullPath }) => {
-        taskingData.current = ({"parameters": {path: fullPath, full_path: fullPath, host: selectedFolderData.host, file: ""}, "ui_feature": "file_browser:list"});
+    const onListFilesButton = ({ fullPath, callback_id, callback_display_id }) => {
+        taskingData.current = ({
+            "parameters": {path: fullPath, full_path: fullPath, host: selectedFolderData.host, file: ""},
+            "ui_feature": "file_browser:list", callback_id, callback_display_id});
         setOpenTaskingButton(true);
     };
-    const onUploadFileButton = ({ fullPath }) => {
-        taskingData.current = ({"parameters":
-                {path: fullPath, full_path: fullPath, host: selectedFolderData.host},
-            "ui_feature": "file_browser:upload", "openDialog": true});
+    const onUploadFileButton = ({ fullPath, callback_id, callback_display_id }) => {
+        taskingData.current = ({
+            "parameters": {path: fullPath, full_path: fullPath, host: selectedFolderData.host},
+            "ui_feature": "file_browser:upload", "openDialog": true,
+            callback_id, callback_display_id
+        });
         setOpenTaskingButton(true);
     };
-    const onTaskRowAction = useCallback(({ path, full_path, filename, uifeature, openDialog, getConfirmation }) => {
-        taskingData.current = ({"parameters": {
-            host: selectedFolderData.host,
-            path: path,
-            full_path: full_path,
-            file: filename,
-        }, "ui_feature": uifeature, openDialog, getConfirmation});
+    const onTaskRowAction = useCallback(({ path, full_path, filename, uifeature, openDialog, getConfirmation, callback_id, callback_display_id }) => {
+        taskingData.current = ({
+            "parameters": {
+                host: selectedFolderData.host,
+                path: path,
+                full_path: full_path,
+                file: filename,
+            }, "ui_feature": uifeature,
+            openDialog, getConfirmation, callback_id, callback_display_id});
         setOpenTaskingButton(true);
     }, [selectedFolderData]);
     const toggleShowDeletedFiles = (showStatus) => {
@@ -321,8 +327,10 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         }
          // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-    const taskListing = (nodeData) => {
-        taskingData.current = ({"parameters": {path: nodeData.full_path_text, full_path: nodeData.full_path_text, host: selectedFolderData.host, file: ""}, "ui_feature": "file_browser:list"});
+    const taskListing = (nodeData, callback_id, callback_display_id) => {
+        taskingData.current = ({
+            "parameters": {path: nodeData.full_path_text, full_path: nodeData.full_path_text, host: selectedFolderData.host, file: ""},
+            "ui_feature": "file_browser:list", callback_id, callback_display_id});
         setOpenTaskingButton(true);
     }
     return (
@@ -333,6 +341,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         <CircularProgress color="inherit" />
                     </Backdrop>
                     <CallbacksTabsFileBrowserTree
+                        tabInfo={tabInfo}
                         showDeletedFiles={showDeletedFiles}
                         treeRootData={treeRootDataRef.current}
                         treeAdjMatrix={treeAdjMtx}
@@ -347,6 +356,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                     <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
                         <div style={{ flexGrow: 0 }}>
                             <FileBrowserTableTop
+                                tabInfo={tabInfo}
                                 selectedFolderData={selectedFolderData}
                                 onListFilesButton={onListFilesButton}
                                 onUploadFileButton={onUploadFileButton}
@@ -358,6 +368,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                                 <CircularProgress color="inherit" />
                             </Backdrop>
                             <CallbacksTabsFileBrowserTable
+                                tabInfo={tabInfo}
                                 showDeletedFiles={showDeletedFiles}
                                 onRowDoubleClick={fetchFolderData}
                                 treeRootData={treeRootDataRef.current}
@@ -372,7 +383,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             </Split>
             {openTaskingButton && 
                 <TaskFromUIButton ui_feature={taskingData.current?.ui_feature || " "} 
-                    callback_id={tabInfo.callbackID} 
+                    callback_id={taskingData.current?.callback_id || tabInfo.callbackID}
                     parameters={taskingData.current?.parameters || ""}
                     tasking_location={"file_browser"}
                     openDialog={taskingData.current?.openDialog || false}
@@ -387,6 +398,7 @@ const FileBrowserTableTop = ({
     onListFilesButton,
     onUploadFileButton,
     toggleShowDeletedFiles,
+    tabInfo
 }) => {
     const [fullPath, setFullPath] = React.useState('');
     const [placeHolder, setPlaceHolder] = React.useState(selectedFolderData.host);
@@ -432,12 +444,12 @@ const FileBrowserTableTop = ({
                     InputProps={{
                         endAdornment: (
                             <React.Fragment>
-                                <MythicStyledTooltip title='Task callback to list contents'>
+                                <MythicStyledTooltip title={`Task current callback (${tabInfo["displayID"]}) to list contents`}>
                                     <IconButton style={{ padding: '3px' }} onClick={onLocalListFilesButton} size="large">
                                         <RefreshIcon color='info' />
                                     </IconButton>
                                 </MythicStyledTooltip>
-                                <MythicStyledTooltip title='Upload file to folder via callback'>
+                                <MythicStyledTooltip title={`Upload file to folder via current callback (${tabInfo["displayID"]})`}>
                                     <IconButton style={{ padding: '3px' }} onClick={onLocalUploadFileButton} size="large">
                                         <CloudUploadIcon color="info" />
                                     </IconButton>

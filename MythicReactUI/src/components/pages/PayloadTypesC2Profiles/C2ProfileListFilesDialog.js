@@ -111,7 +111,7 @@ export function C2ProfileListFilesDialog(props) {
             <input onChange={onFileChange} type="file" hidden /> 
           </Button>
         </DialogTitle>
-          <TableContainer component={Paper}>
+          <TableContainer >
             <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>

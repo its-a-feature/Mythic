@@ -37,6 +37,7 @@ import {MythicTransferListDialog} from '../../MythicComponents/MythicTransferLis
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { toLocalTime } from '../../utilities/Time';
+import ListSubheader from '@mui/material/ListSubheader';
 
 
 const getPermissionsDataQuery = gql`
@@ -166,6 +167,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                             rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]}
                                             cellData={row}
                                             me={props.me}
+                                            tabInfo={props.tabInfo}
                                             onTaskRowAction={props.onTaskRowAction} />;
                             case "Name":
                                 return <FileBrowserTableRowNameCell 
@@ -410,7 +412,7 @@ export const TableRowSizeCell = ({ cellData, rowData }) => {
     };
     return getStringSize(cellData);
 };
-const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, treeRootData, selectedFolderData, me }) => {
+const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, treeRootData, selectedFolderData, me, tabInfo }) => {
     const dropdownAnchorRef = React.useRef(null);
     const theme = useTheme();
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -478,13 +480,13 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
         evt.stopPropagation();
         setDropdownOpen((prevOpen) => !prevOpen);
     };
-    const handleMenuItemClick = (whichOption, event, index) => {
+    const handleMenuItemClick = (whichOption, event, index, callback_id, callback_display_id) => {
         switch (whichOption) {
             case 'A':
-                optionsA[index].click(event);
+                optionsA[index].click(event, callback_id, callback_display_id);
                 break;
             case 'B':
-                optionsB[index].click(event);
+                optionsB[index].click(event, callback_id, callback_display_id);
                 break;
             default:
                 break;
@@ -509,7 +511,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
         {
             name: 'View Permissions',
             icon: <VisibilityIcon style={{ paddingRight: '5px' }} />,
-            click: (evt) => {
+            click: (evt, callback_id, callback_display_id) => {
                 evt.stopPropagation();
                 getPermissions({ variables: { mythictree_id: treeRootData[selectedFolderData.host][cellData].id } });
             },
@@ -517,7 +519,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
         {
             name: 'Download History',
             icon: <HistoryIcon style={{ paddingRight: '5px' }} />,
-            click: (evt) => {
+            click: (evt, callback_id, callback_display_id) => {
                 evt.stopPropagation();
                 getHistory({ variables: { mythictree_id: treeRootData[selectedFolderData.host][cellData].id } });
             },
@@ -525,7 +527,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
         {
             name: 'Edit Comment',
             icon: <EditIcon style={{ paddingRight: '5px' }} />,
-            click: (evt) => {
+            click: (evt, callback_id, callback_display_id) => {
                 evt.stopPropagation();
                 setFileCommentDialogOpen(true);
             },
@@ -533,7 +535,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
         {
             name: 'Copy Path to Clipboard',
             icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
-            click: (evt) => {
+            click: (evt, callback_id, callback_display_id) => {
                 evt.stopPropagation();
                 copyToClipboard();
             },
@@ -543,7 +545,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
         {
             name: 'Task Listing',
             icon: <ListIcon color="warning" style={{ paddingRight: '5px'}} />,
-            click: (evt) => {
+            click: (evt, callback_id, callback_display_id) => {
                 evt.stopPropagation();
                 onTaskRowAction({
                     path: treeRootData[selectedFolderData.host][cellData].parent_path_text,
@@ -551,13 +553,14 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                     host: treeRootData[selectedFolderData.host][cellData].host,
                     filename: treeRootData[selectedFolderData.host][cellData].name_text,
                     uifeature: 'file_browser:list',
+                    callback_id, callback_display_id
                 });
             },
         },
         {
             name: 'Task Download',
             icon: <GetAppIcon color="success" style={{ paddingRight: '5px' }} />,
-            click: (evt) => {
+            click: (evt, callback_id, callback_display_id) => {
                 evt.stopPropagation();
                 onTaskRowAction({
                     path: treeRootData[selectedFolderData.host][cellData].parent_path_text,
@@ -565,13 +568,14 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                     host: treeRootData[selectedFolderData.host][cellData].host,
                     filename: treeRootData[selectedFolderData.host][cellData].name_text,
                     uifeature: 'file_browser:download',
+                    callback_id, callback_display_id
                 });
             },
         },
         {
             name: 'Task Removal',
             icon: <DeleteIcon color="error" style={{ paddingRight: '5px' }} />,
-            click: (evt) => {
+            click: (evt, callback_id, callback_display_id) => {
                 evt.stopPropagation();
                 onTaskRowAction({
                     path: treeRootData[selectedFolderData.host][cellData].parent_path_text,
@@ -579,7 +583,8 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                     host: treeRootData[selectedFolderData.host][cellData].host,
                     filename: treeRootData[selectedFolderData.host][cellData].name_text,
                     uifeature: 'file_browser:remove',
-                    getConfirmation: true
+                    getConfirmation: true,
+                    callback_id, callback_display_id
                 });
             },
         },
@@ -610,33 +615,54 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                         style={{
                             transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                         }}>
-                        <Paper
-                            style={{
-                                backgroundColor:
-                                    theme.palette.mode === 'dark'
-                                        ? theme.palette.primary.dark
-                                        : theme.palette.primary.light,
-                                color: 'white',
-                            }}>
+                        <Paper className={"dropdownMenuColored"}>
                             <ClickAwayListener onClickAway={handleClose}>
-                                <MenuList id='split-button-menu'>
+                                <MenuList id="split-button-menu" style={{paddingTop: 0}} >
+
                                     {optionsA.map((option, index) => (
                                         <MenuItem
                                             key={option.name}
-                                            onClick={(event) => handleMenuItemClick('A', event, index)}>
+                                            onClick={(event) => handleMenuItemClick('A', event,
+                                                index, tabInfo["callbackID"], tabInfo["displayID"])}>
                                             {option.icon}
                                             {option.name}
                                         </MenuItem>
                                     ))}
                                     <Divider />
+                                    <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
+                                        Act from current Callback: {tabInfo["displayID"]}
+                                    </ListSubheader>
                                     {optionsB.map((option, index) => (
                                         <MenuItem
                                             key={option.name}
-                                            onClick={(event) => handleMenuItemClick('B', event, index)}>
+                                            onClick={(event) => handleMenuItemClick('B', event,
+                                                index,
+                                                tabInfo["callbackID"],
+                                                tabInfo["displayID"])}>
                                             {option.icon}
                                             {option.name}
                                         </MenuItem>
                                     ))}
+                                    {
+                                        rowData?.callback && rowData?.callback?.["id"] !== tabInfo["callbackID"] &&
+                                            <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
+                                                Act from originating Callback: {rowData?.callback?.["display_id"] || tabInfo["displayID"]}
+                                            </ListSubheader>
+                                    }{
+                                        rowData?.callback && rowData?.callback?.["id"] !== tabInfo["callbackID"] &&
+                                            optionsB.map((option, index) => (
+                                                <MenuItem
+                                                    key={option.name}
+                                                    onClick={(event) => handleMenuItemClick('B', event,
+                                                        index,
+                                                        rowData?.["callback"]?.["id"] || tabInfo["callbackID"],
+                                                        rowData?.["callback"]?.["display_id"] || tabInfo["displayID"])}>
+                                                    {option.icon}
+                                                    {option.name}
+                                                </MenuItem>
+                                            ))
+                                    }
+
                                 </MenuList>
                             </ClickAwayListener>
                         </Paper>

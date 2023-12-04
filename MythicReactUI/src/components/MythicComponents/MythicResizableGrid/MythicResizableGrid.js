@@ -150,6 +150,9 @@ const ResizableGridWrapper = ({
                 if(columns[columnIndex].key.includes("time")){
                     return 30;
                 }
+                if(columns[columnIndex].key === "mythictree_groups"){
+                    return itemRow[columnIndex]?.props?.cellData.length;
+                }
                 try{
                     items = JSON.parse(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]);
                     if(Array.isArray(items) && items.length > 0){
@@ -168,16 +171,18 @@ const ResizableGridWrapper = ({
                     return String(data).length || -1;
                 }
                 //return String(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]).length || -1;
-            } else if(typeof(itemRow[columnIndex]?.props?.cellData) === "string"){
-                try{
+            } else if(typeof(itemRow[columnIndex]?.props?.cellData) === "string") {
+
+                try {
                     items = JSON.parse(itemRow[columnIndex]?.props?.cellData);
-                    if(Array.isArray(items) && items.length > 0){
+                    if (Array.isArray(items) && items.length > 0) {
                         return String(items[0]).length;
                     }
-                }catch(error){
+                } catch (error) {
                     return itemRow[columnIndex]?.props?.cellData.length;
                 }
-
+            } else if(Array.isArray(itemRow[columnIndex]?.props?.cellData)){
+                return itemRow[columnIndex]?.props?.cellData.join(", ").length;
             }else {
                 return itemRow[columnIndex]?.props?.cellData?.length || -1;
             }

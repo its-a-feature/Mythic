@@ -95,7 +95,7 @@ function ProcessTableRow(props){
                 />
                 }
                 <MythicStyledTableCell>
-                    <Button color="primary" variant="outlined" onClick={() => setViewPermissionsDialogOpen(true)}><PlaylistAddCheckIcon /></Button>
+                    <Button color="primary" variant="contained" onClick={() => setViewPermissionsDialogOpen(true)}><PlaylistAddCheckIcon /></Button>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all", textDecoration: props.deleted ? "strike-through" : ""}}>{props.full_path_text}</Typography>

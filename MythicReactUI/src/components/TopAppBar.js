@@ -300,7 +300,7 @@ export function TopAppBar(props) {
                     }}
                     open={Boolean(anchorEl)}
                     onClose={handleClose}
-                    MenuListProps={{style: {backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}}
+                    MenuListProps={{style: {backgroundColor: theme.palette.primary.main, color: "white"}}}
                 >
                     <MenuItem divider={true} style={{display: "block"}} component={Link} to="/new/settings" onClick={handleClose} name="settings"> 
                       <Typography paragraph={true} variant="caption" style={{marginBottom: "0", color: "white"}}>Signed in as:</Typography>
@@ -356,7 +356,7 @@ export function TopAppBar(props) {
                     }}
                     open={Boolean(documentationAnchorEl)}
                     onClose={handleDocumentationClose}
-                    MenuListProps={{style: {backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}}
+                    MenuListProps={{style: {backgroundColor: theme.palette.primary.main, color: "white"}}}
                 >
                     <MenuItem component={Link} target="_blank" to="/docs/agents" onClick={handleDocumentationClose}>Agent Documentation</MenuItem>
                     <MenuItem component={Link} target="_blank" to="/docs/wrappers" onClick={handleDocumentationClose}>Wrapper Documentation</MenuItem>

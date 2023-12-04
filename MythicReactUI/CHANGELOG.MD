@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.36] - 2023-12-04
+
+### Changed
+
+- When right-clicking or clicking a task button within the File Browser or Process Browser, new options are available
+  - You can task your current callback or the callback that initially reported the information you're seeing
+- Updated some CSS quirks with shadows
+- Added a new column for the main active callbacks table for the groups associated with the callback
+
 ## [0.1.35] - 2023-11-23
 
 ### Changed

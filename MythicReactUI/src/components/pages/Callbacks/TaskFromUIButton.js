@@ -69,28 +69,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
     const [taskingVariables, setTaskingVariables] = React.useState({});
     const [openConfirmDialog, setOpenConfirmDialog] = React.useState(false);
     const savedFinalVariables = React.useRef({});
-    const [createTask] = useMutation(createTaskingMutation, {
-        update: (cache, {data}) => {
-            if(data.createTask.status === "error"){
-                snackActions.error(data.createTask.error);
-                onTasked({tasked: false});
-            }else if(dontShowSuccessDialog){
-                onTasked({tasked: true, variables: savedFinalVariables.current});
-            }else {
-                if(callback_ids === undefined){
-                    snackActions.success("Issued \"" + selectedCommand["cmd"] + "\" to Callback " + callback_id);
-                } else {
-                    snackActions.success("Issued \"" + selectedCommand["cmd"] + "\" to " + callback_ids.length + " callbacks.\nThis might take a while to process.");
-                }
 
-                onTasked({tasked: true, variables: savedFinalVariables.current});
-            }
-        },
-        onError: data => {
-            console.error(data);
-            onTasked({tasked: false});
-        }
-    });
     const renderValue = (value) => {
         if(value === "Default Token"){
           return "Default Token";
@@ -152,6 +131,29 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
             }
         },
         fetchPolicy: "no-cache"
+    });
+    const [createTask] = useMutation(createTaskingMutation, {
+        update: (cache, {data}) => {
+            if(data.createTask.status === "error"){
+                snackActions.error(data.createTask.error);
+                onTasked({tasked: false});
+            }else if(dontShowSuccessDialog){
+                onTasked({tasked: true, variables: savedFinalVariables.current});
+            }else {
+                if(callback_ids === undefined){
+                    console.log(data)
+                    snackActions.success("Issued \"" + selectedCommand["cmd"] + "\" to Callback " + callbackData.callback_by_pk.display_id);
+                } else {
+                    snackActions.success("Issued \"" + selectedCommand["cmd"] + "\" to " + callback_ids.length + " callbacks.\nThis might take a while to process.");
+                }
+
+                onTasked({tasked: true, variables: savedFinalVariables.current});
+            }
+        },
+        onError: data => {
+            console.error(data);
+            onTasked({tasked: false});
+        }
     });
     const onSubmitSelectedCommand = (cmd) => {
         setSelectedCommand(cmd);

@@ -108,11 +108,11 @@ function TagTableRowElement(props){
                             <TableRow hover>
                                 <TableCell >Task / Callback</TableCell>
                                 <TableCell>
-                                    <Link href={"/new/task/" + props.task.display_id} target={"_blank"}>
+                                    <Link href={"/new/task/" + props.task.display_id} color="textPrimary" target={"_blank"}>
                                         {props.task.display_id}
                                     </Link>
-                                    &nbsp;&nbsp;/&nbsp;&nbsp;
-                                    <Link href={"/new/callbacks/" + props.task.callback.display_id} target={"_blank"}>
+                                    {"  /  "}
+                                    <Link href={"/new/callbacks/" + props.task.callback.display_id} color="textPrimary" target={"_blank"}>
                                         {props.task.callback.display_id}
                                     </Link>
                                 </TableCell>
@@ -226,7 +226,7 @@ function TagTableRowElement(props){
                             <TableRow hover>
                                 <TableCell >Filename</TableCell>
                                 <TableCell>
-                                    <Link style={{wordBreak: "break-all"}} color="textPrimary" download underline="always" target="_blank" href={"/direct/download/" + props.filemetum.agent_file_id}>{b64DecodeUnicode(props.filemetum.filename_text)}</Link>
+                                    <Link style={{wordBreak: "break-all"}}  color="textPrimary" download underline="always" target="_blank" href={"/direct/download/" + props.filemetum.agent_file_id}>{b64DecodeUnicode(props.filemetum.filename_text)}</Link>
                                 </TableCell>
                             </TableRow>
                             <TableRow hover>

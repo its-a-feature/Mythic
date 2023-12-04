@@ -27,6 +27,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import EditIcon from '@mui/icons-material/Edit';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import ListSubheader from '@mui/material/ListSubheader';
 
 const getPermissionsDataQuery = gql`
     query getPermissionsQuery($mythictree_id: Int!) {
@@ -47,7 +48,7 @@ const updateFileComment = gql`
 
 
 
-export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick, onTaskRowAction, host, group, showDeletedFiles}) => {
+export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick, onTaskRowAction, host, group, showDeletedFiles, tabInfo}) => {
     //const [allData, setAllData] = React.useState([]);
     //console.log("treeAdjMatrix updated in table", treeAdjMatrix)
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
@@ -453,6 +454,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             host={host}
                                             group={group}
                                             rowData={row}
+                                            tabInfo={tabInfo}
                                             viewSingleTreeData={viewSingleTreeData}
                                             setSingleTree={setSingleTree}
                                             toggleViewSingleTreeData={toggleViewSingleTreeData}
@@ -666,7 +668,7 @@ const FileBrowserTagsCell = ({rowData, treeRootData, host, me}) => {
                     me={me} />
                 <TagsDisplay tags={treeRootData[host][rowData["full_path_text"]]?.tags || []} />
             </>
-        ) : (null)
+        ) : null
     )
 }
 const FileBrowserTableRowStringCell = ({cellData, treeRootData, host, rowData}) => {
@@ -674,8 +676,9 @@ const FileBrowserTableRowStringCell = ({cellData, treeRootData, host, rowData}) 
         <div>{cellData}</div>
     )
 }
-const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, host, viewSingleTreeData,setSingleTree, toggleViewSingleTreeData}) => {
+const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, host, viewSingleTreeData,setSingleTree, toggleViewSingleTreeData, tabInfo}) => {
     const dropdownAnchorRef = React.useRef(null);
+    const arrowRef = React.useRef(null);
     const theme = useTheme();
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [viewPermissionsDialogOpen, setViewPermissionsDialogOpen] = React.useState(false);
@@ -700,13 +703,13 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
         evt.stopPropagation();
         setDropdownOpen((prevOpen) => !prevOpen);
     };
-    const handleMenuItemClick = (whichOption, event, index) => {
+    const handleMenuItemClick = (whichOption, event, index, callback_id, callback_display_id) => {
         switch (whichOption){
             case "A":
-                optionsA[index].click(event);
+                optionsA[index].click(event, callback_id, callback_display_id);
                 break;
             case "B":
-                optionsB[index].click(event);
+                optionsB[index].click(event, callback_id, callback_display_id);
                 break;
             default:
                 break;
@@ -745,38 +748,38 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
         }
     ];
     const optionsB = [
-                    {name: 'Task Inject', icon: <GetAppIcon style={{paddingRight: "5px", color: theme.palette.success.main}}/>, click: (evt) => {
+                    {name: 'Task Inject', icon: <GetAppIcon style={{paddingRight: "5px", color: theme.palette.success.main}}/>, click: (evt, callback_id, display_id) => {
                         evt.stopPropagation();
                         onTaskRowAction({
                             process_id: treeRootData[host][rowData["full_path_text"]].metadata.process_id,
                             architecture: treeRootData[host][rowData["full_path_text"]].metadata.architecture,
-                            uifeature: "process_browser:inject"
+                            uifeature: "process_browser:inject", callback_id, display_id
                         });
                     }},
-                    {name: 'Task Token Listing', icon: <ListIcon style={{paddingRight: "5px", color: theme.palette.warning.main}}/>, click: (evt) => {
+                    {name: 'Task Token Listing', icon: <ListIcon style={{paddingRight: "5px", color: theme.palette.warning.main}}/>, click: (evt, callback_id, display_id) => {
                         evt.stopPropagation();
                         onTaskRowAction({
                             process_id: treeRootData[host][rowData["full_path_text"]].metadata.process_id,
                             architecture: treeRootData[host][rowData["full_path_text"]].metadata.architecture,
-                            uifeature: "process_browser:list_tokens"
+                            uifeature: "process_browser:list_tokens", callback_id, display_id
                         });
                     }, os: ["windows"]},
-                    {name: 'Task Steal Token', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>, click: (evt) => {
+                    {name: 'Task Steal Token', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>, click: (evt, callback_id, display_id) => {
                         evt.stopPropagation();
                         onTaskRowAction({
                             process_id: treeRootData[host][rowData["full_path_text"]].metadata.process_id,
                             architecture: treeRootData[host][rowData["full_path_text"]].metadata.architecture,
-                            uifeature: "process_browser:steal_token"
+                            uifeature: "process_browser:steal_token", callback_id, display_id
                         });
                         
                     }, os: ["windows"]},
-                    {name: 'Task Kill Process', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>, click: (evt) => {
+                    {name: 'Task Kill Process', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>, click: (evt, callback_id, display_id) => {
                         evt.stopPropagation();
                         onTaskRowAction({
                             process_id: treeRootData[host][rowData["full_path_text"]].metadata.process_id,
                             architecture: treeRootData[host][rowData["full_path_text"]].metadata.architecture,
                             uifeature: "process_browser:kill",
-                            confirm_dialog: true,
+                            confirm_dialog: true, callback_id, display_id
                         });
                         
                     }},
@@ -796,7 +799,9 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
             >
                 <SettingsIcon />
             </IconButton>
-            <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}>
+            <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}
+            >
+
             {({ TransitionProps, placement }) => (
                 <Grow
                 {...TransitionProps}
@@ -804,7 +809,7 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                     transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                 }}
                 >
-                <Paper style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                <Paper className={"dropdownMenuColored"}>
                     <ClickAwayListener onClickAway={handleClose}>
                     <MenuList id="split-button-menu">
                         {optionsA.map((option, index) => (
@@ -815,24 +820,52 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                                 >
                                     {option.icon}{option.name}
                                 </MenuItem>
-                            ) : (null)
+                            ) : null
                         ))}
                         <Divider />
+                        <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
+                            Act from current Callback: {tabInfo["displayID"]}
+                        </ListSubheader>
                         {optionsB.map((option, index) => (
                             option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"]].os) ? (
                                 <MenuItem
                                     key={option.name}
-                                    onClick={(event) => handleMenuItemClick("B", event, index)}
+                                    onClick={(event) => handleMenuItemClick("B", event,
+                                        index,
+                                        tabInfo["callbackID"],
+                                        tabInfo["displayID"])}
                                 >
                                     {option.icon}{option.name}
                                 </MenuItem>
-                            ) : (null)
+                            ) : null
                         ))}
+                        {
+                            treeRootData[host][rowData["full_path_text"]]?.callback && treeRootData[host][rowData["full_path_text"]]?.callback?.["id"] !== tabInfo["callbackID"] &&
+                            <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
+                                Act from originating Callback: {treeRootData[host][rowData["full_path_text"]]?.callback?.["display_id"] || tabInfo["displayID"]}
+                            </ListSubheader>
+                        }{
+                            treeRootData[host][rowData["full_path_text"]]?.callback && treeRootData[host][rowData["full_path_text"]]?.callback?.["id"] !== tabInfo["callbackID"] &&
+                            optionsB.map((option, index) => (
+                                option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"]].os) ? (
+                                    <MenuItem
+                                        key={option.name}
+                                        onClick={(event) => handleMenuItemClick('B', event,
+                                            index,
+                                            treeRootData[host][rowData["full_path_text"]]?.["callback"]?.["id"] || tabInfo["callbackID"],
+                                            treeRootData[host][rowData["full_path_text"]]?.["callback"]?.["display_id"] || tabInfo["displayID"])}>
+                                        {option.icon}
+                                        {option.name}
+                                    </MenuItem>
+                                ): null
+                            ))
+                        }
                     </MenuList>
                     </ClickAwayListener>
                 </Paper>
                 </Grow>
             )}
+
             </Popper>
             {fileCommentDialogOpen && (
                 <MythicDialog
@@ -865,6 +898,6 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
             }
             
         </React.Fragment>
-        ) : (null)
+        ) : null
     )
 }

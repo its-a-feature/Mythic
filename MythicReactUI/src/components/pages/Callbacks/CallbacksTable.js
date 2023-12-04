@@ -70,7 +70,7 @@ function CallbacksTablePreMemo(props){
     const [selectedColumn, setSelectedColumn] = React.useState({});
     const [columnVisibility, setColumnVisibility] = React.useState({
         "visible": ["Interact", "Host", "Domain", "User", "Description", "Last Checkin", "Agent",  "IP", "PID"],
-        "hidden": ["Arch", "Sleep", "Process Name", "External IP", "C2",  "OS"]
+        "hidden": ["Arch", "Sleep", "Process Name", "External IP", "C2",  "OS", "Groups"]
     });
     const [updateDescription] = useMutation(updateDescriptionCallbackMutation, {
       update: (cache, {data}) => {
@@ -124,6 +124,7 @@ function CallbacksTablePreMemo(props){
       () => 
         [
           {key: "id", type: 'number', name: "Interact", width: 150},
+          {key: "mythictree_groups", type: 'array', name: "Groups"},
           {key: "ip", type: 'ip', name: "IP", width: 150},
           {key: "external_ip",type: 'string', name: "External IP", width: 150},
           {key: "host", type: 'string', name: "Host", fillWidth: true},
@@ -232,8 +233,12 @@ function CallbacksTablePreMemo(props){
           tempData.sort((a, b) => (parseInt(a[sortData.sortKey]) > parseInt(b[sortData.sortKey]) ? 1 : -1));
       } else if (sortData.sortType === 'string') {
           tempData.sort((a, b) => (a[sortData.sortKey].toLowerCase() > b[sortData.sortKey].toLowerCase() ? 1 : -1));
-      } else if(sortData.sortType === "ip"){
+      } else if(sortData.sortType === "ip") {
           tempData.sort((a, b) => (ipCompare(a[sortData.sortKey], b[sortData.sortKey])));
+      } else if(sortData.sortType === "array"){
+          tempData.sort( (a, b) => (
+              a[sortData.sortKey] > b[sortData.sortKey] ? 1 : -1
+          ))
       } else if(sortData.sortType === "timestamp") {
           tempData.sort((a, b) => {
               let aDate = new Date(a[sortData.sortKey]);
@@ -269,6 +274,8 @@ function CallbacksTablePreMemo(props){
                                 setOpenHideMultipleDialog={setOpenHideMultipleDialog}
                                 setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
                             />;
+                        case "Groups":
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.mythictree_groups.join(", ")} />;
                         case "IP":
                             return <CallbacksTableIPCell key={`callback${row.id}_${c.name}`} cellData={row.ip} rowData={row} callback_id={row.id} />;
                         case "External IP":

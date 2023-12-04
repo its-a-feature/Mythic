@@ -95,7 +95,7 @@ export function CreateNewCallbackDialog(props) {
         <DialogContent dividers={true}>
           This will generate a new callback based on this payload, but will not trigger a payload execution (there will be no payload running to fetch commands).
           This is useful for webshells that don't reach out to Mythic, but still need a callback in order to issue tasking. This is also useful for development and testing purposes.
-          <TableContainer component={Paper} className="mythicElement">
+          <TableContainer className="mythicElement">
             <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>

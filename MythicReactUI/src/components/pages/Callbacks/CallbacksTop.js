@@ -31,6 +31,7 @@ subscription CallbacksSubscription{
     process_name
     last_checkin
     current_time
+    mythictree_groups
     payload {
       os
       payloadtype {

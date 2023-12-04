@@ -147,7 +147,7 @@ export function MythicViewJSONAsTableDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
         <Paper elevation={5} style={{position: "relative"}} variant={"elevation"}>
-          <TableContainer component={Paper} className="mythicElement">
+          <TableContainer  className="mythicElement">
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                   <TableHead>
                       <TableRow>
@@ -163,7 +163,7 @@ export function MythicViewJSONAsTableDialog(props) {
                           <TableCell>{element.name}</TableCell>
                           {element.new_table ? 
                             (
-                              <TableContainer component={Paper} className="mythicElement">
+                              <TableContainer  className="mythicElement">
                                 <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                                       <TableHead>
                                           <TableRow>

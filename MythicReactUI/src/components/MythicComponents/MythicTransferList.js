@@ -41,177 +41,206 @@ export const StyledButton = styled(Button)((
 }));
 
 
-
-export function MythicTransferListDialog(props) {
-
-    const [checked, setChecked] = React.useState([]);
-    const [left, setLeft] = React.useState([]);
-    const [right, setRight] = React.useState([]);
-    const [leftTitle, setLeftTitle] = React.useState("");
-    const [rightTitle, setRightTitle] = React.useState("");
-    const leftChecked = intersection(checked, left);
-    const rightChecked = intersection(checked, right);
-    function not(a, b) {
-      if(props.itemKey){
-        return a.filter( (value) => b.find( (element) => element[props.itemKey] === value[props.itemKey] ) === undefined)
-      }
-      return a.filter((value) => b.indexOf(value) === -1);
-    }
-    
-    function intersection(a, b) {
-      if(props.itemKey){
-        return a.filter( (value) => b.find( (element) => element[props.itemKey] === value[props.itemKey] ) !== undefined)
-      }
-      return a.filter((value) => b.indexOf(value) !== -1);
-    }
-    const handleToggle = (value) => () => {
-      let currentIndex = -1;
-      if(props.itemKey){
-        currentIndex = checked.findIndex( (element) => element[props.itemKey] === value[props.itemKey]);
-      }else{
-        currentIndex = checked.indexOf(value);
-      }
-      
-      const newChecked = [...checked];
-
-      if (currentIndex === -1) {
-        newChecked.push(value);
-      } else {
-        newChecked.splice(currentIndex, 1);
-      }
-
-      setChecked(newChecked);
-    };
-
-    const handleAllRight = () => {
-      setRight(right.concat(left));
-      setLeft([]);
-    };
-
-    const handleCheckedRight = () => {
-      setRight(right.concat(leftChecked));
-      setLeft(not(left, leftChecked));
-      setChecked(not(checked, leftChecked));
-    };
-
-    const handleCheckedLeft = () => {
-      setLeft(left.concat(rightChecked));
-      setRight(not(right, rightChecked));
-      setChecked(not(checked, rightChecked));
-    };
-
-    const handleAllLeft = () => {
-      setLeft(left.concat(right));
-      setRight([]);
-    };
-    useEffect( () => {
-      const left = props.left.reduce( (prev, cur) => {
-        if(props.itemKey === undefined){
-          if(props.right.includes(cur)){
-            return [...prev];
-          }
-          return [...prev, cur];
-        }else{
-          if(props.right.find( element => element[props.itemKey] === cur[props.itemKey])){
-            return [...prev]
-          }
-          return [...prev, cur];
-        }
-        
-      }, [])
-      setLeft(left);
-      setRight(props.right);
-      setLeftTitle(props.leftTitle);
-      setRightTitle(props.rightTitle);
-    }, [props.left, props.right, props.leftTitle, props.rightTitle, props.itemKey]);
-    const customList = (title, items) => (
-      <>
-          <CardHeader
-            title={title}
-          />
-          <StyledDivider classes={{root: classes.divider}}/>
-          <CardContent style={{flexGrow: 1, height: "100%", width: "100%", overflowY: "auto", padding: 0}}>
-          <List dense component="div" role="list" style={{padding:0}}>
-            {items.map((valueObj) => {
-              const value = props.itemKey === undefined ? valueObj : valueObj[props.itemKey];
-              const labelId = `transfer-list-item-${value}-label`;
-              return (
-                <ListItem style={{padding:0}} key={value} role="listitem" button onClick={handleToggle(valueObj)}>
-                  <ListItemIcon>
-                    <Checkbox
-                      checked={props.itemKey === undefined ? checked.indexOf(value) !== -1 : checked.findIndex( (element) => element[props.itemKey] === value) !== -1}
-                      tabIndex={-1}
-                      disableRipple
-                      inputProps={{ 'aria-labelledby': labelId }}
-                    />
-                  </ListItemIcon>
-                  <ListItemText id={labelId} primary={value} />
-                </ListItem>
-              );
-            })}
-            <ListItem />
-          </List>
-          </CardContent>
-          </>
+const CustomListElement = ({value, onClick, itemKey}) => {
+    const displayValue = itemKey ? value[itemKey] : value.value;
+    const labelId = `transfer-list-item-${displayValue}-label`;
+    return (
+        <ListItem style={{padding:0}} key={displayValue} role="listitem" button onClick={() => onClick(value)}>
+            <ListItemIcon>
+                <Checkbox
+                    checked={value.checked}
+                    tabIndex={-1}
+                    disableRipple
+                    inputProps={{ 'aria-labelledby': labelId }}
+                />
+            </ListItemIcon>
+            <ListItemText id={labelId} primary={displayValue} />
+        </ListItem>
     );
+}
+const CustomList = ({title, items, left, onClick, itemKey}) => {
+
+    return (
+        <>
+            <CardHeader title={title} />
+            <StyledDivider classes={{root: classes.divider}}/>
+            <CardContent style={{flexGrow: 1, height: "100%", width: "100%", overflowY: "auto", padding: 0}}>
+                <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
+                    {items.map((value, index) => (
+                        <div key={index}>
+                            {
+                                left && value.left &&
+                                <CustomListElement itemKey={itemKey} value={value} onClick={onClick}/>
+                            }
+                            {
+                                !left && value.right &&
+                                <CustomListElement itemKey={itemKey} value={value} onClick={onClick} />
+                            }
+                        </div>
+
+                    ))}
+                </List>
+            </CardContent>
+        </>
+    );
+}
+const CustomTransferList = ({leftTitle, rightTitle, initialData, parentLeftData, parentRightData, itemKey}) => {
+
+    const [data, setData] = React.useState(initialData);
+    const handleToggle = (value)  => {
+        const updatedData = data.map(d => {
+            const key = itemKey ? itemKey : "value";
+            if(value[key] === d[key]){
+                return {...d, checked: !d.checked}
+            } else {
+                return {...d}
+            }
+        });
+        setData(updatedData);
+    };
+    const handleAllRight = () => {
+        const updatedData = data.map( d => {
+            return {...d, checked: false, left: false, right: true}
+        })
+        setData(updatedData);
+    };
+    const handleCheckedRight = () => {
+        const updatedData = data.map( d => {
+            if(d.checked && d.left){
+                return {...d, checked: false, left: false, right: true};
+            } else {
+                return {...d};
+            }
+        })
+        setData(updatedData);
+    };
+    const handleCheckedLeft = () => {
+        const updatedData = data.map( d => {
+            if(d.checked && d.right){
+                return {...d, checked: false, left: true, right: false};
+            } else {
+                return {...d};
+            }
+        })
+        setData(updatedData);
+    };
+    const handleAllLeft =() => {
+        const updatedData = data.map( d => {
+            return {...d, checked: false, left: true, right: false}
+        })
+        setData(updatedData);
+    };
+    React.useEffect( () => {
+        parentLeftData.current = data.reduce( (prev, cur) => {
+            if(cur.left){return [...prev, cur]}
+            return [...prev];
+        }, []);
+        parentRightData.current = data.reduce( (prev, cur) => {
+            if(cur.right){return [...prev, cur]}
+            return [...prev];
+        }, []);
+    }, [data]);
+    React.useEffect( () => {
+        setData(initialData);
+    }, [initialData]);
+    return (
+        <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
+            <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
+                <CustomList title={leftTitle} left={true} items={data} onClick={handleToggle} itemKey={itemKey} />
+            </div>
+            <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
+                <StyledButton
+                    variant="contained"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleAllRight}
+                    aria-label="move all right"
+                >
+                    &gt;&gt;
+                </StyledButton>
+                <StyledButton
+                    variant="contained"
+                    size="small"
+                    disabled={data.filter( x => x.checked && x.left).length === 0}
+                    className={classes.button}
+                    onClick={handleCheckedRight}
+                    aria-label="move selected right"
+                >
+                    &gt;
+                </StyledButton>
+                <StyledButton
+                    variant="contained"
+                    size="small"
+                    disabled={data.filter( x => x.checked && x.right).length === 0}
+                    className={classes.button}
+                    onClick={handleCheckedLeft}
+                    aria-label="move selected left"
+                >
+                    &lt;
+                </StyledButton>
+                <StyledButton
+                    variant="contained"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleAllLeft}
+                    aria-label="move all left"
+                >
+                    &lt;&lt;
+                </StyledButton>
+
+            </div>
+            <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", overflowY: "auto", flexDirection: "column" }}>
+                <CustomList title={rightTitle} left={false} items={data} onClick={handleToggle} itemKey={itemKey} />
+            </div>
+        </div>
+    )
+}
+export function MythicTransferListDialog(props) {
+    const [initialData, setInitialData] = React.useState([]);
+    const leftData = React.useRef([]);
+    const rightData = React.useRef([]);
+    const itemKey = React.useRef(props.itemKey);
+    const leftTitle = React.useRef(props.leftTitle);
+    const rightTitle = React.useRef(props.rightTitle);
+
+    useEffect( () => {
+        const leftData = props.left.map(c => {
+            if(props.itemKey){
+                return {...c, checked: false, left: true, right: false};
+            }
+            return {value: c, checked: false, left: true, right: false};
+        })
+        const rightData = props.right.map(c => {
+            if(props.itemKey){
+                return {...c, checked: false, left: false, right: true};
+            }
+            return {value: c, checked: false, left: false, right: true};
+        })
+        setInitialData([...leftData, ...rightData]);
+    }, [props.left, props.right, props.itemKey]);
     const setFinalTags = () => {
-      props.onSubmit({left, right});
+        const finalLeft = leftData.current.map( c => {
+            const key = itemKey.current ? itemKey.current : "value";
+            return c[key];
+        });
+        const finalRight = rightData.current.map( c => {
+            const key = itemKey.current ? itemKey.current : "value";
+            return c[key];
+        })
+      props.onSubmit({left: finalLeft, right: finalRight});
       props.onClose();
     }
   return (
     <>
         <DialogTitle id="form-dialog-title">{props.dialogTitle}</DialogTitle>
         <DialogContent dividers={true}>
-        <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
-            <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
-            {customList(leftTitle, left)}
-            </div>
-            <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-              <StyledButton
-                variant="contained"
-                size="small"
-                className={classes.button}
-                onClick={handleAllRight}
-                disabled={left.length === 0}
-                aria-label="move all right"
-              >
-                &gt;&gt;
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                size="small"
-                className={classes.button}
-                onClick={handleCheckedRight}
-                disabled={leftChecked.length === 0}
-                aria-label="move selected right"
-              >
-                &gt;
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                size="small"
-                className={classes.button}
-                onClick={handleCheckedLeft}
-                disabled={rightChecked.length === 0}
-                aria-label="move selected left"
-              >
-                &lt;
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                size="small"
-                className={classes.button}
-                onClick={handleAllLeft}
-                disabled={right.length === 0}
-                aria-label="move all left"
-              >
-                &lt;&lt;
-              </StyledButton>
-            </div>
-            <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", overflowY: "auto", flexDirection: "column" }}>
-                {customList(rightTitle, right)}
-            </div>
-        </div>
+            <CustomTransferList initialData={initialData}
+                                parentLeftData={leftData}
+                                parentRightData={rightData}
+                                rightTitle={rightTitle.current}
+                                leftTitle={leftTitle.current}
+                                itemKey={itemKey.current}
+            />
         </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">

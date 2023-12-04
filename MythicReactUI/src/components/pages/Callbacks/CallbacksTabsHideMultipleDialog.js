@@ -32,21 +32,166 @@ query callbacksAndFeatures{
   }
 }`;
 
-function not(a, b) {
-  return a.filter((value) => b.indexOf(value) === -1);
+const CustomListElement = ({value, onClick}) => {
+    const labelId = `transfer-list-item-${value.id}-label`;
+    return (
+        <ListItem style={{padding:0}} key={value.id} role="listitem" button onClick={() => onClick(value)}>
+            <ListItemIcon>
+                <Checkbox
+                    checked={value.checked}
+                    tabIndex={-1}
+                    disableRipple
+                    inputProps={{ 'aria-labelledby': labelId }}
+                />
+            </ListItemIcon>
+            <ListItemText id={labelId} primary={value.display} />
+        </ListItem>
+    );
 }
+const CustomList = ({title, items, left, onClick}) => {
 
-function intersection(a, b) {
-  return a.filter((value) => b.indexOf(value) !== -1);
+    return (
+        <>
+            <CardHeader title={title} />
+            <StyledDivider classes={{root: classes.divider}}/>
+            <CardContent style={{flexGrow: 1, height: "100%", width: "100%", overflowY: "auto", padding: 0}}>
+                <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
+                    {items.map((value, index) => (
+                        <div key={value.display + index}>
+                            {
+                                left && value.left &&
+                                <CustomListElement value={value} onClick={onClick}/>
+                            }
+                            {
+                                !left && value.right &&
+                                <CustomListElement value={value} onClick={onClick} />
+                            }
+                        </div>
+
+                    ))}
+                </List>
+            </CardContent>
+        </>
+    );
+}
+const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
+
+    const [data, setData] = React.useState(initialData);
+    const handleToggle = (value)  => {
+        const updatedData = data.map(d => {
+            if(value.id === d.id){
+                return {...d, checked: !d.checked}
+            } else {
+                return {...d}
+            }
+        });
+        setData(updatedData);
+    };
+    const handleAllRight = () => {
+        const updatedData = data.map( d => {
+            return {...d, checked: false, left: false, right: true}
+        })
+        setData(updatedData);
+    };
+    const handleCheckedRight = () => {
+        const updatedData = data.map( d => {
+            if(d.checked && d.left){
+                return {...d, checked: false, left: false, right: true};
+            } else {
+                return {...d};
+            }
+        })
+        setData(updatedData);
+    };
+    const handleCheckedLeft = () => {
+        const updatedData = data.map( d => {
+            if(d.checked && d.right){
+                return {...d, checked: false, left: true, right: false};
+            } else {
+                return {...d};
+            }
+        })
+        setData(updatedData);
+    };
+    const handleAllLeft =() => {
+        const updatedData = data.map( d => {
+            return {...d, checked: false, left: true, right: false}
+        })
+        setData(updatedData);
+    };
+    React.useEffect( () => {
+        parentLeftData.current = data.reduce( (prev, cur) => {
+            if(cur.left){return [...prev, cur]}
+            return [...prev];
+        }, []);
+        parentRightData.current = data.reduce( (prev, cur) => {
+            if(cur.right){return [...prev, cur]}
+            return [...prev];
+        }, []);
+    }, [data]);
+    React.useEffect( () => {
+        setData(initialData.map(c => {
+            return {...c, left: true, checked: false, right: false}
+        }));
+    }, [initialData]);
+    return (
+        <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
+            <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
+                <CustomList title={"Active Callbacks"} left={true} items={data} onClick={handleToggle} />
+            </div>
+            <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
+                <StyledButton
+                    variant="contained"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleAllRight}
+                    aria-label="move all right"
+                >
+                    &gt;&gt;
+                </StyledButton>
+                <StyledButton
+                    variant="contained"
+                    size="small"
+                    disabled={data.filter( x => x.checked && x.left).length === 0}
+                    className={classes.button}
+                    onClick={handleCheckedRight}
+                    aria-label="move selected right"
+                >
+                    &gt;
+                </StyledButton>
+                <StyledButton
+                    variant="contained"
+                    size="small"
+                    disabled={data.filter( x => x.checked && x.right).length === 0}
+                    className={classes.button}
+                    onClick={handleCheckedLeft}
+                    aria-label="move selected left"
+                >
+                    &lt;
+                </StyledButton>
+                <StyledButton
+                    variant="contained"
+                    size="small"
+                    className={classes.button}
+                    onClick={handleAllLeft}
+                    aria-label="move all left"
+                >
+                    &lt;&lt;
+                </StyledButton>
+
+            </div>
+            <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", overflowY: "auto", flexDirection: "column" }}>
+                <CustomList title={"Callbacks To Hide"} left={false} items={data} onClick={handleToggle} />
+            </div>
+        </div>
+    )
 }
 
 export function CallbacksTabsHideMultipleDialog({onClose}) {
 
-    const [checked, setChecked] = React.useState([]);
-    const [left, setLeft] = React.useState([]);
-    const [right, setRight] = React.useState([]);
-    const leftChecked = intersection(checked, left);
-    const rightChecked = intersection(checked, right);
+    const leftData = React.useRef([]);
+    const rightData = React.useRef([]);
+    const [initialData, setInitialData] = React.useState([]);
     const [hideCallback] = useMutation(hideCallbacksMutation, {
         onCompleted: data => {
             snackActions.success("Successfully hid callbacks!")
@@ -66,146 +211,27 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
           const display = `${c.display_id} - ${c.user}@${c.host} (${c.pid}) - ${c.description}`;
           return {...c, display};
         });
-        setLeft(callbackData);
+          setInitialData(callbackData);
       }
     });
-    const handleToggle = (value) => () => {
-      const currentIndex = checked.indexOf(value);
-      const newChecked = [...checked];
-
-      if (currentIndex === -1) {
-        newChecked.push(value);
-      } else {
-        newChecked.splice(currentIndex, 1);
-      }
-
-      setChecked(newChecked);
-    };
-    const handleAllRight = () => {
-      setRight(right.concat(left));
-      setLeft([]);
-    };
-    const handleCheckedRight = () => {
-      setRight(right.concat(leftChecked));
-      setLeft(not(left, leftChecked));
-      setChecked(not(checked, leftChecked));
-    };
-    const handleCheckedLeft = () => {
-      setLeft(left.concat(rightChecked));
-      setRight(not(right, rightChecked));
-      setChecked(not(checked, rightChecked));
-    };
-    const handleAllLeft = () => {
-      setLeft(left.concat(right));
-      setRight([]);
-    };
     const submitTasking = () => {
-      if(right.length === 0){
+      if(rightData.current.length === 0){
         onClose();
         return;
       }
-      let callbackIDs = right.map(c => c.display_id);
+      let callbackIDs = rightData.current.map(c => c.display_id);
       snackActions.info("Hiding callbacks...");
       hideCallback({variables: {callback_display_ids: callbackIDs}});
     }
 
-    const customList = (title, items) => (
-      <>
-          <CardHeader
-            title={title}
-          />
-          <StyledDivider classes={{root: classes.divider}}/>
-          <CardContent style={{flexGrow: 1, overflowY: "auto", padding: 0}}>
-            <List dense component="div" role="list" style={{padding:0}}>
-              {items.map((value) => {
-                const labelId = `transfer-list-item-${value.id}-label`;
-                return (
-                  <ListItem style={{padding:0}} key={value.id} role="listitem" button onClick={handleToggle(value)}>
-                    <ListItemIcon>
-                      <Checkbox
-                        checked={checked.indexOf(value) !== -1}
-                        tabIndex={-1}
-                        disableRipple
-                        inputProps={{ 'aria-labelledby': labelId }}
-                      />
-                    </ListItemIcon>
-                      <div style={{display: "inline-flex", flexDirection: "column"}} >
-                          <ListItemText primary={value.display} />
-                          <div style={{display: "inline-flex"}}>
-                              {"Last Checkin: "}&nbsp;
-                              <CallbacksTableLastCheckinCell rowData={value} />
-                          </div>
 
-                      </div>
-
-                  </ListItem>
-                );
-              })}
-              <ListItem />
-            </List>
-          </CardContent>
-          </>
-    );
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Hide Multiple Callbacks at Once</DialogTitle>
         <DialogContent dividers={true} style={{height: "100%", display: "flex", flexDirection: "column", position: "relative",  maxHeight: "100%"}}>
-        <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
-          <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
-            
-            {customList("Visible Callbacks", left)}
-            </div>
-            <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-              <StyledButton
-                variant="contained"
-                size="small"
-                color={"primary"}
-                className={classes.button}
-                onClick={handleAllRight}
-                disabled={left.length === 0}
-                aria-label="move all right"
-              >
-                &gt;&gt;
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                size="small"
-                color={"primary"}
-                className={classes.button}
-                onClick={handleCheckedRight}
-                disabled={leftChecked.length === 0}
-                aria-label="move selected right"
-              >
-                &gt;
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                size="small"
-                color={"primary"}
-                className={classes.button}
-                onClick={handleCheckedLeft}
-                disabled={rightChecked.length === 0}
-                aria-label="move selected left"
-              >
-                &lt;
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                size="small"
-                color={"primary"}
-                className={classes.button}
-                onClick={handleAllLeft}
-                disabled={right.length === 0}
-                aria-label="move all left"
-              >
-                &lt;&lt;
-              </StyledButton>
- 
-          </div>
-          <div  style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>
-            {customList("Callbacks To Hide", right)}
-            </div>
-        </div>
+            <CustomTransferList initialData={initialData}
+                                parentLeftData={leftData}
+                                parentRightData={rightData}  />
         </DialogContent>
 
         <DialogActions>

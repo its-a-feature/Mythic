@@ -254,8 +254,15 @@ tspan {
     word-break: break-all;
     white-space: pre-wrap !important;
 }
-.MuiList-root {
-    box-shadow: 5px 5px 10px ${(props) => props.theme.palette.primary.main};
+.MuiPaper-root {
+    box-shadow: 3px 3px 7px ${(props) => props.theme.palette.primary.main};
+}
+.no-box-shadow {
+    box-shadow: unset;
+}
+.MuiList-root > .MuiListSubheader-root {
+    background-color: ${(props) => props.theme.palette.primary.dark};
+    color: white;
 }
 .dropdownMenuColored {
     background-color: ${(props) => props.theme.palette.primary.main};
