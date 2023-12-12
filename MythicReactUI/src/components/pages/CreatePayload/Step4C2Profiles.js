@@ -19,6 +19,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
+import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 
 
 const GET_Payload_Types = gql`
@@ -93,6 +94,7 @@ query getDefaultC2ProfileParameters($c2profile_id: Int!) {
 
 export function Step4C2Profiles(props){
     const me = useReactiveVar(meState);
+    const [openConfirmDialog, setOpenConfirmDialog] = React.useState(false);
     const [c2Profiles, setC2Profiles] = React.useState([]);
     const { loading, error } = useQuery(GET_Payload_Types, {variables:{payloadType: props.buildOptions["payload_type"], operation_id: me?.user?.current_operation_id || 0},
         onCompleted: data => {
@@ -133,6 +135,9 @@ export function Step4C2Profiles(props){
         },
         fetchPolicy: "no-cache"
     });
+    const acceptConfirm = () => {
+        props.finished(c2Profiles);
+    }
     const finished = () => {
         let allValid = true;
         let includedC2 = false;
@@ -150,7 +155,8 @@ export function Step4C2Profiles(props){
         if(allValid){
             //console.log(c2Profiles);
             if(!includedC2){
-                snackActions.warning("Must select at least one C2 to include");
+                //snackActions.warning("Must select at least one C2 to include");
+                setOpenConfirmDialog(true);
                 return;
             }
             props.finished(c2Profiles);
@@ -243,29 +249,29 @@ export function Step4C2Profiles(props){
         fetchPolicy: "no-cache"
     });
     const [getIDefaultValues] = useLazyQuery(getDefaultsQuery, {
-    onCompleted: (data) => {
-        const updates = data.c2profile_by_pk.c2profileparameters.map( (param) => {
-        const initialValue = getDefaultValueForType(param);
-        return {...param, error: false, value: initialValue, 
-            trackedValue: initialValue, 
-            initialValue: initialValue, 
-            choices: getDefaultChoices(param)};
-        })
-        updates.sort( (a, b) => a.description < b.description ? -1 : 1);
-        const updatedc2 = c2Profiles.map( (curc2) => {
-        if(data.c2profile_by_pk.name === curc2.name){
-            return {...curc2, c2profileparameters: updates};
-        }
-        return curc2;
-    });
-    setC2Profiles(updatedc2);
-    },
-    onError: (data) => {
-        snackActions.error("Failed to fetch instance data: " + data);
-        console.log(data);
-    },
-    fetchPolicy: "no-cache"
-    });
+        onCompleted: (data) => {
+            const updates = data.c2profile_by_pk.c2profileparameters.map( (param) => {
+            const initialValue = getDefaultValueForType(param);
+            return {...param, error: false, value: initialValue,
+                trackedValue: initialValue,
+                initialValue: initialValue,
+                choices: getDefaultChoices(param)};
+            })
+            updates.sort( (a, b) => a.description < b.description ? -1 : 1);
+            const updatedc2 = c2Profiles.map( (curc2) => {
+            if(data.c2profile_by_pk.name === curc2.name){
+                return {...curc2, c2profileparameters: updates};
+            }
+            return curc2;
+        });
+        setC2Profiles(updatedc2);
+        },
+        onError: (data) => {
+            snackActions.error("Failed to fetch instance data: " + data);
+            console.log(data);
+        },
+        fetchPolicy: "no-cache"
+        });
     const onChangeCreatedInstanceName = (evt, c2) => {
         c2.selected_instance = evt.target.value;
         //setSelectedInstance(evt.target.value);
@@ -282,13 +288,13 @@ export function Step4C2Profiles(props){
             getIDefaultValues({variables: {c2profile_id: c2.id}});
         }
       }
-      if (loading) {
+    if (loading) {
         return <div><CircularProgress /></div>;
-       }
-       if (error) {
-            console.error(error);
-            return <div>Error! {error.message}</div>;
-       }
+    }
+    if (error) {
+        console.error(error);
+        return <div>Error! {error.message}</div>;
+    }
     return (
         <div >
             <Typography variant="h3" align="left" id="selectc2profiles" component="div" 
@@ -358,7 +364,11 @@ export function Step4C2Profiles(props){
                     }
                 </Table>
             </TableContainer>
-            
+            <MythicConfirmDialog open={openConfirmDialog}
+                                 title={"No C2 Profiles selected, continue?"}
+                                 onClose={() => setOpenConfirmDialog(false)}
+                                 acceptText="Accept"
+                                 onSubmit={acceptConfirm} />
             <br/>
             <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={canceled} finished={finished} />
             <br/><br/>

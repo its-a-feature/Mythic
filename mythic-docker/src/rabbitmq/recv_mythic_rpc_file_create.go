@@ -22,7 +22,7 @@ type MythicRPCFileCreateMessage struct {
 	Filename            string `json:"filename"`
 	IsScreenshot        bool   `json:"is_screenshot"`
 	IsDownloadFromAgent bool   `json:"is_download"`
-	RemotePathOnTarget  []byte `json:"remote_path"`
+	RemotePathOnTarget  string `json:"remote_path"`
 	TargetHostName      string `json:"host"`
 	Comment             string `json:"comment"`
 }
@@ -62,7 +62,7 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 		IsDownloadFromAgent: input.IsDownloadFromAgent,
 		IsPayload:           false,
 	}
-	fileData.FullRemotePath = input.RemotePathOnTarget
+	fileData.FullRemotePath = []byte(input.RemotePathOnTarget)
 	fileData.Filename = []byte(uuid.New().String())
 	fileData.AgentFileID, fileData.Path, err = GetSaveFilePath()
 	if err != nil {

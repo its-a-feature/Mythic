@@ -101,13 +101,13 @@ query domainQuery($operation_id: Int!, $ip: String!, $offset: Int!, $fetchLimit:
 `;
 const groupSearch = gql`
 ${callbackFragment}
-query groupQuery($group: [String!], $offset: Int!, $fetchLimit: Int!) {
-    callback_aggregate(distinct_on: id, where: {mythictree_groups: {_contains: $group}}){
+query groupQuery($group: String!, $offset: Int!, $fetchLimit: Int!) {
+    callback_aggregate(distinct_on: id, where: {mythictree_groups_string: {_ilike: $group}}){
       aggregate {
         count
       }
     }
-    callback(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {mythictree_groups: {_contains: $group}}) {
+    callback(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {mythictree_groups_string: {_ilike: $group}}) {
       ...callbackSearchData
     }
 }
@@ -357,11 +357,14 @@ export const SearchTabCallbacksPanel = (props) =>{
     const onGroupSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
-        let new_search = "{" + search + "}";
+        let new_search = search;
+        if(new_search === ""){
+            new_search = "_";
+        }
         getGroupSearch({variables:{
                 offset: offset,
                 fetchLimit: fetchLimit,
-                group: new_search,
+                group: "%" + new_search + "%",
             }})
     }
     const onChangePage = (event, value) => {

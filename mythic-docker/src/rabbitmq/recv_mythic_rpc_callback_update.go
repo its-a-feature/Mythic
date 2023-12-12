@@ -100,7 +100,7 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 		callback.PID = *input.PID
 	}
 	if input.Ip != nil {
-		callback.IP = "[" + *input.Ip + "]"
+		callback.IP = "[\"" + *input.Ip + "\"]"
 	}
 	if input.IPs != nil {
 		if ipArrayBytes, err := json.Marshal(*input.IPs); err != nil {

@@ -91,7 +91,7 @@ export function SettingsOperatorTableRow(props){
                   {openUpdate &&
                     <MythicDialog open={openUpdate} 
                      onClose={()=>{setOpenUpdateDialog(false);}} 
-                    innerDialog={<SettingsOperatorDialog onAccept={onAccept} handleClose={()=>{setOpenUpdateDialog(false);}} title="Update Operator"  {...props}/>}
+                    innerDialog={<SettingsOperatorDialog onAccept={onAccept} handleClose={()=>{setOpenUpdateDialog(false);}} title="Update Operator Username/Password"  {...props}/>}
                 />
                   }
                     
@@ -111,7 +111,7 @@ export function SettingsOperatorTableRow(props){
                   <>
                     <IconButton size="small" onClick={()=>{setOpenUIConfig(true);}} color="info" variant='contained'><SettingsIcon /></IconButton>
                     {openUIConfig &&
-                      <MythicDialog open={openUIConfig} onClose={()=>{setOpenUIConfig(false)}} maxWidth={"lg"} fullWidth
+                      <MythicDialog open={openUIConfig} onClose={()=>{setOpenUIConfig(false)}} maxWidth={"md"} fullWidth
                       innerDialog={<SettingsOperatorUIConfigDialog onAccept={onAcceptUIChange} onClose={()=>{setOpenUIConfig(false);}} {...props} />} 
                       />
                     }

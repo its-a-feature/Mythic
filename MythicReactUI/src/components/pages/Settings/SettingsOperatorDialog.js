@@ -30,7 +30,7 @@ export function SettingsOperatorDialog(props) {
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
         <DialogContent dividers={true}>
           <DialogContentText>
-            Use this dialog to update some information about an operator.
+                <b>Note:</b> If you're an admin, you don't need to know a user's old password to set a new one.
           </DialogContentText>
           <MythicTextField
             autoFocus
@@ -41,13 +41,16 @@ export function SettingsOperatorDialog(props) {
             id="username"
             name="username"
           />
-          <MythicTextField
-            margin="dense"
-            id="passwordOld"
-            onChange={onPasswordOldChange}
-            name={props.title === "New Operator" ? "password" : "old password"}
-            type="password"
-          />
+            {!props.userIsAdmin &&
+                <MythicTextField
+                    margin="dense"
+                    id="passwordOld"
+                    onChange={onPasswordOldChange}
+                    name={props.title === "New Operator" ? "password" : "old password"}
+                    type="password"
+                />
+            }
+
           <MythicTextField
             margin="dense"
             id="passwordNew"

@@ -69,7 +69,9 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
                     data.callback[i].mythictree_groups.forEach( (e) => otherGroupOptions.add(e) );
                 }
             }
-            const otherGroupArray = Array.from(otherGroupOptions);
+            otherGroupOptions.delete("Default")
+            let otherGroupArray = Array.from(otherGroupOptions).sort();
+            otherGroupArray.unshift("Default");
             setOtherGroups(otherGroupArray);
             if( otherGroupArray.length > 0 ){
                 setSelectedGroupDropdown(otherGroupArray[0]);

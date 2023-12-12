@@ -1422,6 +1422,11 @@
           name: callback_enckey
           schema: public
       comment: base64 encode the encryption key
+    - name: mythictree_groups_string
+      definition:
+        function:
+          name: callback_mythictree_groups
+          schema: public
   select_permissions:
     - role: developer
       permission:
@@ -1459,6 +1464,7 @@
           - current_time
           - dec_key_base64
           - enc_key_base64
+          - mythictree_groups_string
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -1499,6 +1505,7 @@
           - current_time
           - dec_key_base64
           - enc_key_base64
+          - mythictree_groups_string
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -1539,6 +1546,7 @@
           - current_time
           - dec_key_base64
           - enc_key_base64
+          - mythictree_groups_string
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -1579,6 +1587,7 @@
           - current_time
           - dec_key_base64
           - enc_key_base64
+          - mythictree_groups_string
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -1619,6 +1628,7 @@
           - current_time
           - dec_key_base64
           - enc_key_base64
+          - mythictree_groups_string
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id

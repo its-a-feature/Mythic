@@ -35,7 +35,6 @@ func init() {
 }
 
 // Endpoint: MYTHIC_RPC_CALLBACK_DECRYPT_BYTES
-//
 func MythicRPCCallbackDecryptBytes(input MythicRPCCallbackDecryptBytesMessage) MythicRPCCallbackDecryptBytesMessageResponse {
 	response := MythicRPCCallbackDecryptBytesMessageResponse{
 		Success: false,
@@ -46,6 +45,7 @@ func MythicRPCCallbackDecryptBytes(input MythicRPCCallbackDecryptBytesMessage) M
 		return response
 	} else {
 		response.Success = true
+		//logging.LogInfo("Returning decrypted message", "decrypted", cipherText)
 		response.Message = cipherText
 		return response
 	}
@@ -70,11 +70,14 @@ func CallbackDecryptMessage(agentCallbackUUID string, message *[]byte, includesU
 	} else {
 		agentMessage = *message
 	}
-	logging.LogTrace("Decrypt message", "base64 decoded", agentMessage)
+	//logging.LogInfo("Decrypt message", "base64 decoded", agentMessage)
 	if includesUUID {
 		// the first 16 or 36 bytes could be a UUID
 		if len(agentMessage) < 36 {
 			// try to get 16 byte version of uuid
+			if len(agentMessage) < 16 {
+				return nil, errors.New("message must be at least 16 bytes long")
+			}
 			if tempUUID, err := uuid.ParseBytes(agentMessage[:16]); err != nil {
 				logging.LogError(err, "Failed to parse agent UUID out of first 16 bytes of message")
 				return nil, err
@@ -99,7 +102,7 @@ func CallbackDecryptMessage(agentCallbackUUID string, message *[]byte, includesU
 	} else {
 		callbackUUID = agentCallbackUUID
 	}
-	logging.LogTrace("Decrypt message", "callbackUUID", callbackUUID, "agentMessage", agentMessage)
+	//logging.LogInfo("Decrypt message", "callbackUUID", callbackUUID, "agentMessage", agentMessage)
 	payloadtype := databaseStructs.Payloadtype{}
 	if err := database.DB.Get(&callback, `SELECT 
 	callback.id, callback.dec_key, callback.crypto_type, 
@@ -110,29 +113,32 @@ func CallbackDecryptMessage(agentCallbackUUID string, message *[]byte, includesU
 		logging.LogError(err, "Failed to fetch callback in CallbackDecryptMessage")
 		return nil, err
 	} else if err := database.DB.Get(&payloadtype, `SELECT
-	mythic_encrypts, translation_container_id, name
+	mythic_encrypts, translation_container_id, "name"
 	FROM payloadtype
 	WHERE id=$1`, callback.Payload.PayloadTypeID); err != nil {
 		logging.LogError(err, "Failed to get payloadtype information in CallbackDecryptMessage")
 		return nil, err
 	} else if payloadtype.MythicEncrypts {
 		// Mythic does encryption, so handle it
+		//logging.LogInfo("Decrypt message", "mythic encrypts", true)
 		var cipherText []byte
 		var err error
 		if callback.DecKey == nil {
+			//logging.LogInfo("Decrypt message", "dec key", nil, "agent message", agentMessage)
 			return agentMessage, nil
 		} else if cipherText, err = mythicCrypto.DecryptAES256HMAC(*callback.DecKey, agentMessage); err != nil {
 			logging.LogError(err, "Failed to decrypt message")
 			return nil, err
 		} else {
-			logging.LogDebug("Decrypt message", "decrypted", cipherText)
+			//logging.LogDebug("Decrypt message", "decrypted", cipherText)
 			return cipherText, nil
 		}
 	} else if payloadtype.TranslationContainerID.Valid {
+		//logging.LogInfo("Decrypt message", "translation container", payloadtype.TranslationContainerID.Int64)
 		// Mythic doesn't encrypt, and there's a translation container associated
 		translationContainer := databaseStructs.Translationcontainer{}
 		if err := database.DB.Get(&translationContainer, `SELECT
-		id, name, container_running 
+		id, "name", container_running 
 		FROM translationcontainer
 		WHERE id=$1`, payloadtype.TranslationContainerID.Int64); err != nil {
 			logging.LogError(err, "Failed to get translation container data when trying to encrypt")
@@ -148,6 +154,7 @@ func CallbackDecryptMessage(agentCallbackUUID string, message *[]byte, includesU
 			} else {
 				key = make([]byte, 0)
 			}
+			//logging.LogInfo("Sending decrypt routine to translation container")
 			if resp, err := RabbitMQConnection.SendTrRPCDecryptBytes(TrDecryptBytesMessage{
 				TranslationContainerName: translationContainer.Name,
 				EncryptionKey:            key,

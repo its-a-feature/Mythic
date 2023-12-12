@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
@@ -250,8 +251,9 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 			if callback.EncKey == nil && input.EncryptionKey == nil && input.C2ProfileName == pc2p.C2profile.Name && c2Instance.EncKey != nil {
 				callback.EncKey = c2Instance.EncKey
 				callback.DecKey = c2Instance.DecKey
+				callback.CryptoType = c2Instance.Value
 				if _, err := database.DB.NamedExec(`UPDATE callback SET
-							enc_key=:enc_key, dec_key=:dec_key
+							enc_key=:enc_key, dec_key=:dec_key, crypto_type=:crypto_type 
 							WHERE id=:id`, callback); err != nil {
 					logging.LogError(err, "Failed to update encryption/decryption keys for callback based on c2 profile data")
 				} else {
@@ -259,6 +261,29 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 				}
 			}
 		}
+	}
+	payloadCryptoParam := databaseStructs.Buildparameterinstance{}
+	if err := database.DB.Get(&payloadCryptoParam, `SELECT
+			enc_key, dec_key, value
+			FROM buildparameterinstance
+			WHERE dec_key IS NOT NULL AND payload_id=$1`, payload.ID); err == sql.ErrNoRows {
+		logging.LogDebug("payload has no associated build parameter instance with a crypto type")
+	} else if err != nil {
+		logging.LogError(err, "Failed to fetch buildparameterinstance crypto values for payload")
+	} else {
+		if callback.EncKey == nil && input.EncryptionKey == nil && payloadCryptoParam.EncKey != nil {
+			callback.DecKey = payloadCryptoParam.DecKey
+			callback.EncKey = payloadCryptoParam.EncKey
+			callback.CryptoType = payloadCryptoParam.Value
+			if _, err := database.DB.NamedExec(`UPDATE callback SET
+							enc_key=:enc_key, dec_key=:dec_key, crypto_type=:crypto_type 
+							WHERE id=:id`, callback); err != nil {
+				logging.LogError(err, "Failed to update encryption/decryption keys for callback based on c2 profile data")
+			} else {
+				logging.LogDebug("Updated callback encryption keys", "enc_key", callback.EncKey, "dec_key", callback.DecKey)
+			}
+		}
+
 	}
 	operationsMsg := fmt.Sprintf("New Callback (%d) %s@%s with pid %d", callback.DisplayID, callback.User, callback.Host, callback.PID)
 	go SendAllOperationsMessage(operationsMsg, callback.OperationID, "", "info")

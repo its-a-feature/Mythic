@@ -11,6 +11,7 @@ import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
 import {HexColorInput, HexColorPicker} from 'react-colorful';
 
 
@@ -101,7 +102,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                 <TableRow hover>
                   <TableCell>Font Family</TableCell>
                   <TableCell>
-                  <MythicTextField value={fontFamily} onChange={onChangeFontFamily} showLabel={false} />
+                  <MythicTextField value={fontFamily} onChange={onChangeFontFamily} showLabel={false} multiline maxRows={5} />
                   </TableCell>
                 </TableRow>
                 <TableRow hover>
@@ -133,7 +134,9 @@ export function SettingsOperatorUIConfigDialog(props) {
                   <TableCell>
                     <HexColorPicker color={topColor} onChange={setTopColor} />
                     <HexColorInput color={topColor} onChange={setTopColor} />
-                    <Box sx={{width: "100%", height: 25, backgroundColor: topColor}} > </Box>
+                    <Box sx={{width: "100%", height: 25, backgroundColor: topColor}} >
+                        <Typography style={{color: "white"}}>Operation Chimera Sample</Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               </TableBody>

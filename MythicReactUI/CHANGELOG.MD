@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.37] - 2023-12-12
+
+### Changed
+
+- Fixed a bug with the ChooseMultiple type for payload building
+- Updated the operator settings update username/password modal to be more clear
+- Updated payload creation to allow not selecting a C2 Profile (with acceptance prompt)
+- Updated callback dialog to modify groupings to sort existing groups in order
+
 ## [0.1.36] - 2023-12-04
 
 ### Changed

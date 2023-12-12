@@ -110,7 +110,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         onChange(name, evt.target.value, false);
     }
     const onChangeMultValue = (evt) => {
-        const { options } = evt.target;
+        const {options} = evt.target;
         const tmpValue = [];
         for (let i = 0, l = options.length; i < l; i += 1) {
           if (options[i].selected) {
@@ -325,11 +325,12 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         <Select
                             value={multiValue}
                             multiple={true}
+                            native
                             onChange={onChangeMultValue}
                         >
                         {
                             chooseOptions.map((opt, i) => (
-                                <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
+                                <option key={"buildparamopt" + i} value={opt}>{opt}</option>
                             ))
                         }
                         </Select>
