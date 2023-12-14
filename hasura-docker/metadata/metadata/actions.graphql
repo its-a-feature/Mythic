@@ -342,6 +342,15 @@ type Mutation {
 }
 
 type Mutation {
+  updateOperatorStatus(
+    operator_id: Int!
+    active: Boolean
+    admin: Boolean
+    deleted: Boolean
+  ): updateOperatorStatusOutput
+}
+
+type Mutation {
   updatePassword(
     user_id: Int!
     new_password: String!
@@ -773,5 +782,14 @@ type ToggleProxyOutput {
 type toggleProxyOutput {
   status: String!
   error: String
+}
+
+type updateOperatorStatusOutput {
+  status: String!
+  error: String
+  id: Int
+  admin: Boolean
+  active: Boolean
+  deleted: Boolean
 }
 

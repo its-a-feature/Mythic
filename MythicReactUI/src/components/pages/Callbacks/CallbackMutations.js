@@ -86,6 +86,7 @@ mutation updateIPsCallback($callback_display_id: Int!, $ips: [String]!){
 export const taskingDataFragment = gql`
     fragment taskData on task {
         comment
+        parent_task_id
         callback {
             display_id
             id
@@ -93,6 +94,7 @@ export const taskingDataFragment = gql`
             host
             integrity_level
             domain
+            ip
             mythictree_groups
         }
         callback_id

@@ -4,7 +4,7 @@ export const UploadTaskFile = async (file, comment) => {
   let formData = new FormData();
   formData.append("file", file);
   formData.append("comment", comment);
-  snackActions.info("Uploading " + file.name + " to Mythic...", {autoHideDuration: 2000});
+  snackActions.info("Uploading " + file.name + " to Mythic...", {autoHideDuration: 1000});
   try{
     const upload_response = await fetch('/api/v1.4/task_upload_file_webhook', {
       method: 'POST',

@@ -809,7 +809,7 @@ export function TaskParametersDialog(props) {
                     break
                 case "File":
                     setBackdropOpen(true);
-                    const newUUID = await UploadTaskFile(param.value);
+                    const newUUID = await UploadTaskFile(param.value, "Uploaded as part of tasking");
                     if(newUUID){
                         newFileUUIDs.push(newUUID);
                         collapsedParameters[param.name] = newUUID;

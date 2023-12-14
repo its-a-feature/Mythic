@@ -14,6 +14,10 @@ import { SettingsOperatorDialog } from './SettingsOperatorDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {snackActions} from '../../utilities/Snackbar';
 import {useTheme} from '@mui/material/styles';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
+import { IconButton } from '@mui/material';
 
 
 export function SettingsOperatorTable(props){
@@ -33,12 +37,23 @@ export function SettingsOperatorTable(props){
     }
     const userData = props.operators.filter(o => o.id === (props.me?.user?.id || 0))
     const userIsAdmin = userData.length > 0 ? userData[0].admin : false;
+    const [showDeleted, setShowDeleted] = React.useState(false);
     return (
         <React.Fragment>
         <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
             <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Settings
             </Typography>
+            {showDeleted ? (
+                <MythicStyledTooltip title={"Hide Deleted Operators"} style={{float: "right"}}>
+                    <IconButton size="small" style={{float: "right", marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
+                </MythicStyledTooltip>
+
+            ) : (
+                <MythicStyledTooltip title={"Show Deleted Operators"} style={{float: "right"}}>
+                    <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
+                </MythicStyledTooltip>
+            )}
         </Paper>
         <TableContainer component={Paper} className="mythicElement">   
             <Button size="small" onClick={()=>{setOpenNewDialog(true);}} style={{float: "right"}} startIcon={<AddCircleOutlineOutlinedIcon/>} color="success" variant="contained">New Operator</Button>
@@ -49,35 +64,38 @@ export function SettingsOperatorTable(props){
             <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell >Delete</TableCell>
+                        <TableCell style={{width: "6rem"}}></TableCell>
                         <TableCell >Username</TableCell>
-                        <TableCell >Update Password</TableCell>
-                        <TableCell >Use UTC</TableCell>
-                        <TableCell >UI Preferences</TableCell>
-                        <TableCell >Active</TableCell>
+                        <TableCell style={{width: "6rem"}}>Login</TableCell>
+                        <TableCell style={{width: "6rem"}}>Use UTC</TableCell>
+                        <TableCell style={{width: "6rem"}}>Preferences</TableCell>
+                        <TableCell style={{width: "6rem"}}>Active</TableCell>
                         <TableCell >Last Login</TableCell>
                         <TableCell >Creation Date</TableCell>
-                        <TableCell >Admin</TableCell>
-                        <TableCell >More...</TableCell>
+                        <TableCell style={{width: "6rem"}}>Admin</TableCell>
+                        <TableCell style={{width: "6rem"}}>More...</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
                 
                 {props.operators.map( (op) => (
-                    <SettingsOperatorTableRow
-                        me={props.me}
-                        userIsAdmin={userIsAdmin}
-                        onViewUTCChanged={props.onViewUTCChanged}
-                        onAdminChanged={props.onAdminChanged}
-                        onActiveChanged={props.onActiveChanged} 
-                        onDeleteOperator={props.onDeleteOperator}
-                        onUsernameChanged={props.onUsernameChanged}
-                        onPasswordChanged={props.onPasswordChanged}
-                        onDeleteAPIToken={props.onDeleteAPIToken}
-                        onCreateAPIToken={props.onCreateAPIToken}
-                        key={"operator" + op.id}
-                        {...op}
-                    />
+                    (showDeleted || !op.deleted) &&
+                        <SettingsOperatorTableRow
+                            me={props.me}
+                            userIsAdmin={userIsAdmin}
+                            onViewUTCChanged={props.onViewUTCChanged}
+                            onAdminChanged={props.onAdminChanged}
+                            onActiveChanged={props.onActiveChanged}
+                            onDeleteOperator={props.onDeleteOperator}
+                            onUsernameChanged={props.onUsernameChanged}
+                            onPasswordChanged={props.onPasswordChanged}
+                            onDeleteAPIToken={props.onDeleteAPIToken}
+                            onCreateAPIToken={props.onCreateAPIToken}
+                            key={"operator" + op.id}
+                            {...op}
+                        />
+
+
                 ))}
                 </TableBody>
             </Table>

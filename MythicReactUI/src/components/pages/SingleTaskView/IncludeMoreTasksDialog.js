@@ -19,7 +19,7 @@ export function IncludeMoreTasksDialog(props) {
     const [operator, setOperator] = useState("");
     const searchOptions = [
         {"type": "all", "text": "All Callbacks"},
-        {"type": "callback", "text": "This Callack"},
+        {"type": "callback", "text": "This Callback"},
         {"type": "operator", "text": "All callbacks but limited by operator"}
     ];
     const inputRef = useRef(null); 
@@ -86,7 +86,7 @@ export function IncludeMoreTasksDialog(props) {
             </React.Fragment>
             {searchTerm === 'operator' ? (
                 <MythicTextField multiline={false} onChange={(name, value, error)=>{setOperator(value)}} value={operator} name={"Operator Username"}/>
-            ) : (null)}
+            ) : null}
             
         </DialogContent>
         <DialogActions>

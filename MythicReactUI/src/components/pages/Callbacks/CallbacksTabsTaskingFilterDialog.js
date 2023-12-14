@@ -61,7 +61,6 @@ const MenuProps = {
     },
   },
   variant: "menu",
-  getContentAnchorEl: () => null
 };
 const operatorQuery = gql`
 query operatorQuery($operation_id: Int!) {
@@ -82,6 +81,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
   const [everythingBut, setEverythingBut] = React.useState([]);
   const [onlyParameters, setOnlyParameters] = React.useState("");
   const [commandOptions, setCommandOptions] = React.useState([]);
+  const [hideErrors, setHideErrors] = React.useState(false);
 
   useQuery(operatorQuery, {variables: {operation_id: me.user.current_operation_id},
     onCompleted: (data) => {
@@ -104,6 +104,9 @@ export function CallbacksTabsTaskingFilterDialog(props) {
     if(props.filterOptions["everythingButList"] !== undefined){
       setEverythingBut(props.filterOptions["everythingButList"]);
     }
+    if(props.filterOptions["hideErrors"] !== undefined){
+      setHideErrors(props.filterOptions['hideErrors']);
+    }
     if(props.filterCommandOptions){
       const commandOptionNames = props.filterCommandOptions.map(c => c.cmd);
       setCommandOptions(commandOptionNames);
@@ -115,7 +118,8 @@ export function CallbacksTabsTaskingFilterDialog(props) {
       "commentsFlag": onlyHasComments,
       "commandsList": onlyCommands,
       "everythingButList": everythingBut,
-      "parameterString": onlyParameters
+      "parameterString": onlyParameters,
+      "hideErrors": hideErrors,
     });
     props.onClose();
   }
@@ -124,6 +128,9 @@ export function CallbacksTabsTaskingFilterDialog(props) {
   }
   const handleCommentsChange = (event) => {
     setOnlyHasComments(event.target.checked);
+  }
+  const handleHideErrorsChange = (event) => {
+    setHideErrors(event.target.checked);
   }
   const handleOperatorChange = (event) => {
     setOnlyOperators(event.target.value);
@@ -139,6 +146,12 @@ export function CallbacksTabsTaskingFilterDialog(props) {
     if(event.target.value.length > 0){
       setOnlyCommands([]);
     }
+  }
+  const clearAllOnlyCommands = () => {
+    setOnlyCommands([]);
+  }
+  const clearAllEverythingBut = () => {
+    setEverythingBut([]);
   }
   return (
     <Root>
@@ -172,7 +185,9 @@ export function CallbacksTabsTaskingFilterDialog(props) {
                 </Select>
               </FormControl>
                 Only Show Tasks with Comments: <Switch checked={onlyHasComments} onChange={handleCommentsChange} color="primary" name="Only Comments" inputProps={{'aria-label': 'primary checkbox'}}/>
-                <FormControl className={classes.formControl}>
+                <br/>
+              Hide Error Tasks:<Switch checked={hideErrors} onChange={handleHideErrorsChange} color="primary" name="Hide Errors" inputProps={{'aria-label': 'primary checkbox'}}/>
+              <FormControl className={classes.formControl}>
                   <InputLabel id="include-chip-label">Only Show These Commands</InputLabel>
                   <Select
                     labelId="include-chip-label"
@@ -198,6 +213,9 @@ export function CallbacksTabsTaskingFilterDialog(props) {
                     ))}
                   </Select>
                 </FormControl>
+              {onlyCommands.length > 0 &&
+                  <Button onClick={clearAllOnlyCommands} variant={"contained"}>Clear</Button>
+              }
                 <FormControl className={classes.formControl}>
                   <InputLabel id="exclude-chip-label">Do Not Show These Commands</InputLabel>
                   <Select
@@ -224,6 +242,9 @@ export function CallbacksTabsTaskingFilterDialog(props) {
                     ))}
                   </Select>
                 </FormControl>
+              {everythingBut.length > 0 &&
+                  <Button onClick={clearAllEverythingBut} variant={"contained"}>Clear</Button>
+              }
                 <MythicTextField value={onlyParameters} onChange={onChange} name="Only Show Tasks with the Following Parameter Regex"/>
             </React.Fragment>
         </DialogContent>

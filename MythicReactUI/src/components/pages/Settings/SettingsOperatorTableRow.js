@@ -23,6 +23,8 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {SettingsOperatorUIConfigDialog} from './SettingsOperatorUIConfigDialog';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { snackActions } from '../../utilities/Snackbar';
+import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
+import PasswordIcon from '@mui/icons-material/Password';
 
 export function SettingsOperatorTableRow(props){
     const [open, setOpen] = React.useState(false);
@@ -57,23 +59,28 @@ export function SettingsOperatorTableRow(props){
         setOpenUpdateDialog(false);
     }
     const onAcceptDelete = (id) => {
-        props.onDeleteOperator(id);
+        props.onDeleteOperator(id, !props.deleted);
         setOpenDeleteDialog(false);
     }
-    const onAcceptUIChange = ({fontSize, fontFamily, topColor, hideUsernames}) => {
-      localStorage.setItem(`${me?.user?.user_id || 0}-hideUsernames`, hideUsernames);
-      localStorage.setItem(`${me?.user?.user_id || 0}-fontSize`, fontSize);
-      localStorage.setItem(`${me?.user?.user_id || 0}-fontFamily`, fontFamily);
-      localStorage.setItem(`${me?.user?.user_id || 0}-topColor`, topColor);
-      window.location.reload();
+    const onAcceptUIChange = ({fontSize, fontFamily, topColor, hideUsernames, showIP, showHostname, showCallbackGroups}) => {
+        localStorage.setItem(`${me?.user?.user_id || 0}-hideUsernames`, hideUsernames);
+        localStorage.setItem(`${me?.user?.user_id || 0}-showIP`, showIP);
+        localStorage.setItem(`${me?.user?.user_id || 0}-showHostname`, showHostname);
+        localStorage.setItem(`${me?.user?.user_id || 0}-showCallbackGroups`, showCallbackGroups);
+        localStorage.setItem(`${me?.user?.user_id || 0}-fontSize`, fontSize);
+        localStorage.setItem(`${me?.user?.user_id || 0}-fontFamily`, fontFamily);
+        localStorage.setItem(`${me?.user?.user_id || 0}-topColor`, topColor);
+        window.location.reload();
     }
     return (
         <React.Fragment>
             <TableRow key={props.id}>
-                <MythicStyledTableCell>
-                    <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}}
-                              disabled={!(isMe || props.userIsAdmin)} color="error"
-                              variant="contained"><DeleteIcon/></Button>
+                <MythicStyledTableCell >
+                    <IconButton size="large" onClick={()=>{setOpenDeleteDialog(true);}}
+                              disabled={(isMe || !props.userIsAdmin)} color={props.deleted ? "success": "error"}
+                              variant="contained">
+                        {props.deleted ? <RestoreFromTrashIcon /> : <DeleteIcon/>}
+                    </IconButton>
                   {openDelete && 
                       <MythicDialog open={openDelete} 
                       onClose={()=>{setOpenDeleteDialog(false);}} 
@@ -84,10 +91,10 @@ export function SettingsOperatorTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.username}</MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Button size="small"
+                    <IconButton size="large"
                             disabled={!(isMe || props.userIsAdmin)}
                            onClick={()=>{setOpenUpdateDialog(true);}}
-                           color="info" variant="contained"><SettingsIcon /></Button>
+                           color="error" ><PasswordIcon /></IconButton>
                   {openUpdate &&
                     <MythicDialog open={openUpdate} 
                      onClose={()=>{setOpenUpdateDialog(false);}} 
@@ -101,28 +108,31 @@ export function SettingsOperatorTableRow(props){
                         checked={props.view_utc_time}
                         disabled={!isMe}
                         onChange={onViewUTCChanged}
-                        color="primary"
+                        color="info"
                         inputProps={{ 'aria-label': 'primary checkbox' }}
                         name="view_utc_time"
                       />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                   {isMe && 
-                  <>
-                    <IconButton size="small" onClick={()=>{setOpenUIConfig(true);}} color="info" variant='contained'><SettingsIcon /></IconButton>
-                    {openUIConfig &&
-                      <MythicDialog open={openUIConfig} onClose={()=>{setOpenUIConfig(false)}} maxWidth={"md"} fullWidth
-                      innerDialog={<SettingsOperatorUIConfigDialog onAccept={onAcceptUIChange} onClose={()=>{setOpenUIConfig(false);}} {...props} />} 
-                      />
-                    }
-                  </>
+                      <>
+                        <IconButton size="large" onClick={()=>{setOpenUIConfig(true);}} color="info" variant='contained'>
+                            <SettingsIcon />
+                        </IconButton>
+                        {openUIConfig &&
+                          <MythicDialog open={openUIConfig} onClose={()=>{setOpenUIConfig(false)}} maxWidth={"md"} fullWidth
+                          innerDialog={<SettingsOperatorUIConfigDialog onAccept={onAcceptUIChange} onClose={()=>{setOpenUIConfig(false);}} {...props} />}
+                          />
+                        }
+                      </>
                   }
                   
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Switch
+                        color={ isMe || !props.userIsAdmin ? "secondary" : "info"}
                         checked={props.active}
-                        disabled={!props.userIsAdmin}
+                        disabled={isMe || !props.userIsAdmin}
                         onChange={onActiveChanged}
                         inputProps={{ 'aria-label': 'primary checkbox' }}
                         name="active"
@@ -132,8 +142,9 @@ export function SettingsOperatorTableRow(props){
                 <MythicStyledTableCell>{toLocalTime(props.creation_time, me?.user?.view_utc_time )}</MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Switch
+                        color={ isMe || !props.userIsAdmin ? "secondary" : "info"}
                         checked={props.admin}
-                        disabled={!props.userIsAdmin}
+                        disabled={isMe || !props.userIsAdmin}
                         onChange={onAdminChanged}
                         inputProps={{ 'aria-label': 'primary checkbox' }}
                         name="admin"

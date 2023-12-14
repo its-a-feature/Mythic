@@ -25,15 +25,15 @@ func ValidateLogin(username string, password string, scriptingVersion string, fr
 		return "", "", 0, err
 	} else {
 		if user.Deleted {
-			err = errors.New("Trying to log in with a deleted user")
+			err = errors.New("Attempted log in with a deleted user")
 			logging.LogError(err, "username", username)
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Tried to log in with deleted user, %s, from %s", user.Username, fromIP),
+			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Attempted to log in with deleted user, %s, from %s", user.Username, fromIP),
 				0, "", database.MESSAGE_LEVEL_WARNING)
 			return "", "", 0, err
 		} else if !user.Active {
-			err = errors.New("Trying to log in with an inactive user")
+			err = errors.New("Attempted log in with an inactive user")
 			logging.LogError(err, "username", username)
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Tried to log in with inactive user, %s, from %s", user.Username, fromIP),
+			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Attempted to log in with inactive user, %s, from %s", user.Username, fromIP),
 				0, "", database.MESSAGE_LEVEL_WARNING)
 			return "", "", 0, err
 		} else if user.ID == 1 &&

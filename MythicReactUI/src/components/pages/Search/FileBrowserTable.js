@@ -142,7 +142,7 @@ function FileBrowserTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Button color="primary" variant="outlined" onClick={() => setViewPermissionsDialogOpen(true)}><PlaylistAddCheckIcon /></Button>
+                    <Button color="primary" variant="contained" onClick={() => setViewPermissionsDialogOpen(true)}><PlaylistAddCheckIcon /></Button>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.filemeta.length > 0 ? (

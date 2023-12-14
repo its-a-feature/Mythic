@@ -33,12 +33,12 @@ query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status:
 const parameterSearch = gql`
 ${taskingDataFragment}
 query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, original_params: {_ilike: $search}}) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, original_params: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, original_params: {_ilike: $search}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, original_params: {_ilike: $search}}) {
       ...taskData
     }
   }
@@ -46,12 +46,12 @@ query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $statu
 const commentSearch = gql`
 ${taskingDataFragment}
 query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, comment: {_ilike: $search}}) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, comment: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, comment: {_ilike: $search}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, comment: {_ilike: $search}}) {
       ...taskData
     }
   }
@@ -59,12 +59,12 @@ query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status:
 const commandSearch = gql`
 ${taskingDataFragment}
 query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}}) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}}) {
       ...taskData
     }
   }
@@ -72,15 +72,41 @@ query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: 
 const tagSearch = gql`
 ${taskingDataFragment}
 query tagSearchTaskQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    tag_aggregate(distinct_on: id, order_by: {id: asc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
+    tag_aggregate(distinct_on: id, order_by: {id: desc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
       task{
         ...taskData
       }
+    }
+  }
+`;
+const callbackIDSearch = gql`
+${taskingDataFragment}
+query responseQuery($search: Int!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {display_id: {_eq: $search}}}) {
+      aggregate {
+        count(columns: id)
+      }
+    }
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {display_id: {_eq: $search}}}) {
+      ...taskData
+    }
+  }
+`;
+const callbackGroupSearch = gql`
+${taskingDataFragment}
+query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {mythictree_groups_string: {_ilike: $search}}}) {
+      aggregate {
+        count(columns: id)
+      }
+    }
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {mythictree_groups_string: {_ilike: $search}}}) {
+      ...taskData
     }
   }
 `;
@@ -95,7 +121,7 @@ const SearchTabTasksSearchPanel = (props) => {
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Command");
-    const searchFieldOptions = ["Output","Command", "Parameters", "Comment", "Tag"];
+    const searchFieldOptions = ["Output","Command", "Parameters", "Comment", "Tag", "Callback ID", "Callback Group"];
     const [filterTaskStatus, setFilterTaskStatus] = React.useState("");
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
@@ -131,6 +157,12 @@ const SearchTabTasksSearchPanel = (props) => {
                 break;
             case "Tag":
                 props.onTagSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus});
+                break;
+            case "Callback ID":
+                props.onCallbackIDSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus});
+                break;
+            case "Callback Group":
+                props.onCallbackGroupSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus});
                 break;
             default:
                 break;
@@ -221,6 +253,12 @@ export const SearchTabTasksPanel = (props) =>{
             case "Tag":
                 onTagSearch({search, offset: 0, taskStatus});
                 break;
+            case "Callback ID":
+                onCallbackIDSearch({search, offset: 0, taskStatus});
+                break;
+            case "Callback Group":
+                onCallbackGroupSearch({search, offset: 0, taskStatus});
+                break;
             default:
                 break;
         }
@@ -265,6 +303,16 @@ export const SearchTabTasksPanel = (props) =>{
         onError: handleCallbackSearchFailure
     })
     const [getTagSearch] = useLazyQuery(tagSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleCallbackSearchSuccess,
+        onError: handleCallbackSearchFailure
+    })
+    const [getCallbackIDSearch] = useLazyQuery(callbackIDSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleCallbackSearchSuccess,
+        onError: handleCallbackSearchFailure
+    })
+    const [getCallbackGroupSearch] = useLazyQuery(callbackGroupSearch, {
         fetchPolicy: "no-cache",
         onCompleted: handleCallbackSearchSuccess,
         onError: handleCallbackSearchFailure
@@ -352,14 +400,50 @@ export const SearchTabTasksPanel = (props) =>{
             newTaskStatus = "_";
         }
         setSearch(search);
-        let search_variables = {variables:{
+        getTagSearch({variables:{
                 offset: offset,
                 fetchLimit: fetchLimit,
                 search: "%" + new_search + "%",
                 status: "%" + newTaskStatus + "%"
-            }}
-        console.log(search_variables)
-        getTagSearch({variables:{
+            }})
+    }
+    const onCallbackIDSearch = ({search, offset, taskStatus}) => {
+        //snackActions.info("Searching...", {persist:true});
+        try{
+            let new_search = parseInt(search);
+            if(isNaN(new_search)){
+                if(search.length > 0){
+                    snackActions.warning("Must supply an integer to search.");
+                }
+                return
+            }
+            let newTaskStatus = taskStatus;
+            if(newTaskStatus === ""){
+                newTaskStatus = "_";
+            }
+            setSearch(search);
+            getCallbackIDSearch({variables:{
+                    offset: offset,
+                    fetchLimit: fetchLimit,
+                    search: new_search,
+                    status: "%" + newTaskStatus + "%"
+                }})
+        }catch(error){
+            snackActions.warning("Must supply an integer to search.");
+        }
+    }
+    const onCallbackGroupSearch = ({search, offset, taskStatus}) => {
+        //snackActions.info("Searching...", {persist:true});
+        let new_search = search;
+        if(search === ""){
+            new_search = "_";
+        }
+        let newTaskStatus = taskStatus;
+        if(newTaskStatus === ""){
+            newTaskStatus = "_";
+        }
+        setSearch(search);
+        getCallbackGroupSearch({variables:{
                 offset: offset,
                 fetchLimit: fetchLimit,
                 search: "%" + new_search + "%",
@@ -384,6 +468,12 @@ export const SearchTabTasksPanel = (props) =>{
             case "Tag":
                 onTagSearch({search, offset: (value-1) *fetchLimit, taskStatus});
                 break;
+            case "Callback ID":
+                onCallbackIDSearch({search, offset: (value-1) *fetchLimit, taskStatus});
+                break;
+            case "Callback Group":
+                onCallbackGroupSearch({search, offset: (value-1) *fetchLimit, taskStatus});
+                break;
             default:
                 break;
         }
@@ -395,6 +485,7 @@ export const SearchTabTasksPanel = (props) =>{
                 onCommandSearch={onCommandSearch} 
                 onOutputSearch={onOutputSearch} value={props.value} index={props.index} onChangeTaskStatus={onChangeTaskStatus}
                 onTagSearch={onTagSearch}
+                onCallbackIDSearch={onCallbackIDSearch} onCallbackGroupSearch={onCallbackGroupSearch}
                 onParameterSearch={onParameterSearch} onCommentSearch={onCommentSearch} changeSearchParam={props.changeSearchParam}/>
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 

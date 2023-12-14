@@ -40,6 +40,19 @@ export function SettingsOperatorUIConfigDialog(props) {
     const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
     const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() === "false" ? false : true);
     const [hideUsernames, setHideUsernames] = React.useState(initialHideUsernameValue);
+
+    const localStorageInitialShowIPValue = localStorage.getItem(`${me?.user?.user_id || 0}-showIP`);
+    const initialShowIPValue = localStorageInitialShowIPValue === null ? false : (localStorageInitialShowIPValue.toLowerCase() === "false" ? false : true);
+    const [showIP, setShowIP] = React.useState(initialShowIPValue);
+
+    const localStorageInitialShowHostnameValue = localStorage.getItem(`${me?.user?.user_id || 0}-showHostname`);
+    const initialShowHostnameValue = localStorageInitialShowHostnameValue === null ? false : (localStorageInitialShowHostnameValue.toLowerCase() === "false" ? false : true);
+    const [showHostname, setShowHostname] = React.useState(initialShowHostnameValue);
+
+    const localStorageInitialShowCallbackGroupsValue = localStorage.getItem(`${me?.user?.user_id || 0}-showCallbackGroups`);
+    const initialShowCallbackGroupsValue = localStorageInitialShowCallbackGroupsValue === null ? false : (localStorageInitialShowCallbackGroupsValue.toLowerCase() === "false" ? false : true);
+    const [showCallbackGroups, setShowCallbackGroups] = React.useState(initialShowCallbackGroupsValue);
+
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
     const onChangeFontSize = (name, value, error) => {
       setFontSize(value);
@@ -50,6 +63,15 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onHideUsernamesChanged = (evt) => {
       setHideUsernames(!hideUsernames);
     }
+    const onShowIPChanged = (evt) => {
+        setShowIP(!showIP);
+    }
+    const onShowHostnameChanged = (evt) => {
+        setShowHostname(!showHostname);
+    }
+    const onShowCallbackGroupsChanged = (evt) => {
+        setShowCallbackGroups(!showCallbackGroups);
+    }
     const onResumeNotifications = (evt) => {
         setResumeNotifications(!resumeNotifications);
     }
@@ -58,7 +80,10 @@ export function SettingsOperatorUIConfigDialog(props) {
         fontSize,
         fontFamily,
         topColor,
-        hideUsernames
+        hideUsernames,
+          showIP,
+          showHostname,
+          showCallbackGroups,
       });
       if(resumeNotifications){
           localStorage.setItem("dnd", JSON.stringify({
@@ -85,6 +110,9 @@ export function SettingsOperatorUIConfigDialog(props) {
       ].join(','));
       setTopColor("#3c4d67");
       setHideUsernames(false);
+      setShowIP(false);
+      setShowHostname(false);
+      setShowCallbackGroups(false);
     }
   
   return (
@@ -94,7 +122,7 @@ export function SettingsOperatorUIConfigDialog(props) {
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
-                  <TableCell style={{width: "20%"}}>Font Size</TableCell>
+                  <TableCell style={{width: "30%"}}>Font Size</TableCell>
                   <TableCell>
                     <MythicTextField type="number" value={fontSize} onChange={onChangeFontSize} showLabel={false} />
                   </TableCell>
@@ -117,6 +145,42 @@ export function SettingsOperatorUIConfigDialog(props) {
                     />
                   </TableCell>
                 </TableRow>
+                  <TableRow hover>
+                      <TableCell>Show Callback IP In Tasking</TableCell>
+                      <TableCell>
+                          <Switch
+                              checked={showIP}
+                              onChange={onShowIPChanged}
+                              color="primary"
+                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                              name="show_ip"
+                          />
+                      </TableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <TableCell>Show Callback Hostname In Tasking</TableCell>
+                      <TableCell>
+                          <Switch
+                              checked={showHostname}
+                              onChange={onShowHostnameChanged}
+                              color="primary"
+                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                              name="show_hostname"
+                          />
+                      </TableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <TableCell>Show Callback Groups In Tasking</TableCell>
+                      <TableCell>
+                          <Switch
+                              checked={showCallbackGroups}
+                              onChange={onShowCallbackGroupsChanged}
+                              color="primary"
+                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                              name="show_callback_groups"
+                          />
+                      </TableCell>
+                  </TableRow>
                 <TableRow hover>
                       <TableCell>Resume Info/Warning Notifications</TableCell>
                       <TableCell>

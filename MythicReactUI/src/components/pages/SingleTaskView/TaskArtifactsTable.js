@@ -15,13 +15,14 @@ export function TaskArtifactsTable(props){
 
    useEffect( () => {
     const condensed = props.tasks.reduce( (prev, tsk) => {
-      return [...prev, ...tsk.taskartifacts];
+        const arts = tsk.taskartifacts.map(c => {return {...c, display_id: tsk.display_id}});
+      return [...prev, ...arts];
     }, []);
     condensed.sort((a,b) => (a.task_id > b.task_id) ? 1 : ((b.task_id > a.task_id) ? -1 : 0));
     setArtifacts(condensed);
    }, [props.tasks]);
    if(artifacts.length === 0){
-     return (null)
+     return null
    }
   return (
     <React.Fragment>
@@ -45,7 +46,7 @@ export function TaskArtifactsTable(props){
                 <TableBody>
                   {artifacts.map( (artifact) => (
                     <TableRow key={"artifact" + artifact.id} hover>
-                      <TableCell>{artifact.task_id}</TableCell>
+                      <TableCell>{artifact.display_id}</TableCell>
                       <TableCell>{artifact.base_artifact}</TableCell>
                       <TableCell>{artifact.host}</TableCell>
                       <TableCell>{artifact.artifact_text}</TableCell>

@@ -10,4 +10,4 @@ COPY . .
 RUN npm ci --legacy-peer-deps
 
 # ==== RUN =====
-CMD npm run react-start
+CMD CHOKIDAR_USEPOLLING=true WATCHPACK_POLLING=true FAST_REFRESH=true WDS_POLLING=true npm run react-start

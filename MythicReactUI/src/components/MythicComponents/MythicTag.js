@@ -182,7 +182,7 @@ return (
                 <TableRow hover>
                   <TableCell>Reference URL</TableCell>
                   <TableCell>
-                    <Link href={selectedTag?.url || "#"} target="_blank" referrerPolicy='no'>{selectedTag?.url ? "click here" : "No link provided"}</Link>
+                    <Link href={selectedTag?.url || "#"} color="textPrimary" target="_blank" referrerPolicy='no'>{selectedTag?.url ? "click here" : "No link provided"}</Link>
                   </TableCell>
                 </TableRow>
                 <TableRow>
@@ -199,7 +199,7 @@ return (
                                     <TableCell>{selectedTag.data[key].startsWith("http") ? (
                                         <>
                                           {"Click for: "}
-                                          <Link href={selectedTag.data[key]} target="_blank" referrerPolicy='no'>{key}</Link>
+                                          <Link href={selectedTag.data[key]} color="textPrimary" target="_blank" referrerPolicy='no'>{key}</Link>
                                         </>
                                     ) : (selectedTag.data[key])}</TableCell>
                                 ) : typeof selectedTag.data[key] === "object" ? (
@@ -276,7 +276,7 @@ export function ViewEditTagsDialog(props) {
   const [deleteTag] = useMutation(deleteTagMutation, {
     onCompleted: data => {
       snackActions.success("Successfully deleted tag");
-      const newTags = existingTags.filter (c => c.id != data.delete_tag_by_pk.id);
+      const newTags = existingTags.filter (c => c.id !== data.delete_tag_by_pk.id);
       setExistingTags(newTags);
       if(newTags.length > 0){
         setSelectedTag(newTags[0]);
@@ -353,7 +353,7 @@ return (
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
-                  <TableCell style={{width: "20%"}}>Select Tag to Edit</TableCell>
+                  <TableCell style={{width: "30%"}}>Select Existing Tag to Edit</TableCell>
                   <TableCell style={{display: "inline-flex", flexDirection: "row-reverse"}}>
                     <Select
                         labelId="demo-dialog-select-label"
@@ -368,7 +368,10 @@ return (
                             </MenuItem>
                         ) )}
                       </Select>
-                      <IconButton size="small" style={{float: "right"}} onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/></IconButton>
+                    {selectedTag.id &&
+                        <IconButton size="small" style={{float: "right"}} onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/></IconButton>
+                    }
+
                       {openDelete && 
                         <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                       }
@@ -388,7 +391,7 @@ return (
                   <TableCell>External URL</TableCell>
                   <TableCell>
                     <MythicTextField value={newURL} onChange={onChangeURL} name="External URL reference" />
-                    <Link href={newURL} target="_blank" referrerPolicy='no'>{newURL ? "click here" : ""}</Link>
+                    <Link href={newURL} color="textPrimary" target="_blank" referrerPolicy='no'>{newURL ? "click here" : ""}</Link>
                   </TableCell>
                 </TableRow>
                 <TableRow hover>
@@ -419,9 +422,12 @@ return (
         <Button onClick={props.onClose} variant="contained" color="primary">
           Close
         </Button>
-        <Button onClick={onSubmit} variant="contained" color="success">
-          Submit
-        </Button>
+        {selectedTag.id &&
+            <Button onClick={onSubmit} variant="contained" color="success">
+              Submit
+            </Button>
+        }
+
       </DialogActions>
 </React.Fragment>
 );
@@ -474,13 +480,13 @@ export function NewTagDialog(props) {
 
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Create new Tag</DialogTitle>
+        <DialogTitle id="form-dialog-title">Create new Tag Instance</DialogTitle>
         <DialogContent dividers={true}>
           <TableContainer className="mythicElement">
             <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableBody>
                   <TableRow hover>
-                    <TableCell style={{width: "20%"}}>Select Tag Type</TableCell>
+                    <TableCell style={{width: "30%"}}>Select Existing Tag Type</TableCell>
                     <TableCell>
                       <Select
                         labelId="demo-dialog-select-label"
@@ -507,7 +513,7 @@ export function NewTagDialog(props) {
                     <TableCell>External URL</TableCell>
                     <TableCell>
                       <MythicTextField value={newURL} onChange={onChangeURL} name="External URL reference" />
-                      <Link href={newURL} target="_blank" referrerPolicy='no'>{newURL}</Link>
+                      <Link href={newURL} color="textPrimary" target="_blank" referrerPolicy='no'>{newURL}</Link>
                     </TableCell>
                   </TableRow>
                   <TableRow hover>
@@ -538,9 +544,12 @@ export function NewTagDialog(props) {
           <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
-          <Button onClick={onSubmit} variant="contained" color="success">
-            Submit
-          </Button>
+          {selectedTagType !== "" &&
+              <Button onClick={onSubmit} variant="contained" color="success">
+                Submit
+              </Button>
+          }
+
         </DialogActions>
   </React.Fragment>
   );

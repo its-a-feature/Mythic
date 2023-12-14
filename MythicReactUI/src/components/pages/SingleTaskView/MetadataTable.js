@@ -8,7 +8,7 @@ import {TaskCredentialsTable} from './TaskCredentialsTable';
 
 const MetadataQuery = gql`
 query taskMetadataQuery($task_range: [Int!]) {
-    task(where: {id: {_in: $task_range}}) {
+    task(where: {display_id: {_in: $task_range}}) {
       credentials {
         account
         comment
@@ -62,6 +62,7 @@ query taskMetadataQuery($task_range: [Int!]) {
         id
       }
       id
+      display_id
     }
   }`;
 export function TaskMetadataTable(props){

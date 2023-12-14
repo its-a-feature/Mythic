@@ -56,12 +56,12 @@
     "word-wrap": "^1.2.5"
   },
   "scripts": {
-    "react-start": "BROWSER=none PORT=3000 WDS_SOCKET_PORT=7443 react-scripts start",
+    "react-start": "CHOKIDAR_USEPOLLING=true WATCHPACK_POLLING=true FAST_REFRESH=true WDS_POLLING=true BROWSER=none PORT=3000 WDS_SOCKET_PORT=7443 WDS_SOCKET_PATH=ws react-scripts start",
     "react-build": "react-scripts build",
     "react-test": "react-scripts test",
     "react-eject": "react-scripts eject",
     "build": "npm run react-build",
-    "start": "cross-env BROWSER=none npm run react-start"
+    "start": "cross-env BROWSER=none CHOKIDAR_USEPOLLING=true WATCHPACK_POLLING=true FAST_REFRESH=true WDS_POLLING=true PORT=3000 WDS_SOCKET_PORT=7443 WDS_SOCKET_PATH=ws npm run react-start"
   },
   "eslintConfig": {
     "extends": [
@@ -71,7 +71,10 @@
   },
   "babel": {
     "presets": [
-      "react-app"
+      ["react-app",
+      {
+        "runtime": "automatic"
+      }]
     ]
   },
   "browserslist": {

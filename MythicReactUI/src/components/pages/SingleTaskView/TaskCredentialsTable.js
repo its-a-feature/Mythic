@@ -21,12 +21,13 @@ export function TaskCredentialsTable(props){
 
    useEffect( () => {
     const condensed = props.tasks.reduce( (prev, tsk) => {
-      return [...prev, ...tsk.credentials];
+        const creds = tsk.credentials.map( c => {return {...c, display_id: tsk.display_id}});
+      return [...prev, ...creds];
     }, []);
     setCredentials(condensed);
    }, [props.tasks]);
    if(credentials.length === 0){
-     return (null)
+     return null
    }
   return (
     <React.Fragment>
@@ -74,7 +75,7 @@ const CredentialTableRow = ({cred}) => {
 }
   return (
     <TableRow key={"cred" + cred.id} hover>
-      <TableCell >{cred.task_id}</TableCell>
+      <TableCell >{cred.display_id}</TableCell>
       <TableCell>{cred.type}</TableCell>
       <TableCell style={{whiteSpace: "pre-wrap", wordBreak: "break-all"}}>{cred.realm}</TableCell>
       <TableCell style={{whiteSpace: "pre-wrap", wordBreak: "break-all"}}>{cred.account}</TableCell>

@@ -490,6 +490,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: updateOperatorStatus
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_operator_status_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: updatePassword
     definition:
       kind: synchronous
@@ -605,4 +615,5 @@ custom_types:
     - name: typedarrayParseOutput
     - name: ToggleProxyOutput
     - name: toggleProxyOutput
+    - name: updateOperatorStatusOutput
   scalars: []

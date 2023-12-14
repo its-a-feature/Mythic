@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [0.1.38] - 2023-12-
+
+### Changed
+
+- Added a `Hide Task Errors` option to task filtering on the active callbacks page
+- Added option to `clear` all selected commands in the task filtering dialog on the active callbacks page
+- Added per-user UI settings to enable showing IP, Hostname, and Callback Groups with each task
+- Added the `Callback ID` and `Callback Group` search option to the Task search page
+- Adjusted the task search page to return tasks where the most recent is first (similar to the callbacks search page)
+- Fixed the single task view that wasn't getting the nearby tasks correctly
+- Updated the Settings page to not allow admins to unset their own admin status, active status, or delete themselves
+- Updated the Settings page to allow the hide/show of deleted operators
+
 ## [0.1.37] - 2023-12-12
 
 ### Changed

@@ -33,11 +33,11 @@ query tasksAcrossAllCallbacks($operation_id: Int!, $baseTask: Int!, $beforeCount
 }`;
 const getTasksAcrossACallbackQuery = gql`
 ${taskingDataFragment}
-query tasksAcrossACallbacks($callback_id: Int!, $baseTask: Int!, $beforeCount: Int!, $afterCount: Int!){
-    before: task(where: {operation_id: {_eq: $operation_id}, display_id:{_lt: $baseTask}}, limit: $beforeCount, order_by: {display_id: desc}) {
+query tasksAcrossACallbacks($operation_id: Int!, $callback_display_id: Int!, $baseTask: Int!, $beforeCount: Int!, $afterCount: Int!){
+    before: task(where: {operation_id: {_eq: $operation_id}, display_id:{_lt: $baseTask}, callback: {display_id: {_eq: $callback_display_id}}}, limit: $beforeCount, order_by: {display_id: desc}) {
         ...taskData
     }
-    after: task(where: {operation_id: {_eq: $operation_id}, display_id:{_gt: $baseTask}}, limit: $afterCount, order_by: {display_id: asc}) {
+    after: task(where: {operation_id: {_eq: $operation_id}, display_id:{_gt: $baseTask}, callback: {display_id: {_eq: $callback_display_id}}}, limit: $afterCount, order_by: {display_id: asc}) {
         ...taskData
     }
 }`;
@@ -69,29 +69,28 @@ export function SingleTaskView(props){
         }
         const allParents = tasks.reduce( (prev, cur) => {
             if(cur.type === "task" && cur.parent_task_id === null){
-                if(prev.find( (element) => element.id === cur.id)){
+                if(prev.find( (element) => element.display_id === cur.display_id)){
                     return [...prev];
                 }
                 return [...prev, {...cur, checked: false}];
             }
             return [...prev];
         }, [...allNewParents]);
-        
         allParents.sort((a,b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0));
         allParents.forEach( (tsk) => {
-            if(tsk.callback.id !== recent_callback){
+            if(tsk.callback.display_id !== recent_callback){
                 allData.push({"type": "callback", ...tsk.callback, checked: false});
             }
-            recent_callback = tsk.callback.id;
+            recent_callback = tsk.callback.display_id;
             allData.push({"type": "task", ...tsk, checked: false});
         });
         setTasks(allData);
         const allTaskIds = taskData.reduce( (prev, cur) => {
-            const subIds = cur.tasks.filter( (cur) => !prev.includes(cur.id)).map( (cur) => cur.id);
-            if(prev.includes(cur.id)){
+            const subIds = cur.tasks.filter( (cur) => !prev.includes(cur.display_id)).map( (cur) => cur.display_id);
+            if(prev.includes(cur.display_id)){
                 return [...prev, ...subIds];
             }else{
-                return [...prev, cur.id, ...subIds];
+                return [...prev, cur.display_id, ...subIds];
             }
         }, [...taskIDs]);
         setTaskIDs(allTaskIds);
@@ -102,7 +101,7 @@ export function SingleTaskView(props){
            mergeData([...completedData.before, ...completedData.after]);
         }
     });
-    const [getTasksAcrossACallback,] = useLazyQuery(getTasksAcrossACallbackQuery, {
+    const [getTasksAcrossACallback] = useLazyQuery(getTasksAcrossACallbackQuery, {
         onCompleted: completedData => {
            snackActions.success("Successfully fetched tasks");
            mergeData([...completedData.before, ...completedData.after]);
@@ -119,21 +118,22 @@ export function SingleTaskView(props){
         mergeData(completedData.task);
      }
     });
-    const setTaskSearchInfo = (callback_id) => {
+    const [searchInfoCallbackDisplayId, setSearchInfoCallbackDisplayId] = React.useState(0);
+    const setTaskSearchInfo = (callback_display_id) => {
         const opts = tasks.reduce( (prev, cur) => {
-            if(cur.type === 'task' && cur.callback.id === callback_id){
-                return [...prev, cur.id];
+            if(cur.type === 'task' && cur.callback.display_id === callback_display_id){
+                return [...prev, cur.display_id];
             }else{
                 return [...prev];
             }
         }, []);
         setTaskOptions(opts);
-        
+        setSearchInfoCallbackDisplayId(callback_display_id);
         setOpenIncludeMoreTasksDialog(true);
     }
     const toggleTaskToRemove = (event) => {
         const updated = tasks.map( (task) => {
-            if(task.type === "task" && ("task" + task.id) === event.target.name){
+            if(task.type === "task" && ("task" + task.display_id) === event.target.name){
                 return {...task, checked: event.target.checked};
             }
             return {...task};
@@ -146,7 +146,7 @@ export function SingleTaskView(props){
         setTasks(remainingTasks);
         const remainingTaskIDs = remainingTasks.reduce( (prev, cur) => {
             if(cur.type === "task"){
-                return [...prev, cur.id];
+                return [...prev, cur.display_id];
             }else{
                 return [...prev];
             }
@@ -186,7 +186,7 @@ export function SingleTaskView(props){
     const getShareableLink = () => {
         let ids = [...taskIDs];
         const range = collapse_range(ids);
-        copyStringToClipboard("/new/tasks/by_range?tasks=" + range);
+        copyStringToClipboard(window.location.origin + "/new/tasks/by_range?tasks=" + range);
         snackActions.success("Copied link to clipboard!");
     }
     const submitIncludeMoreTasks = ({taskSelected, beforeCount, afterCount, search}) => {
@@ -196,7 +196,10 @@ export function SingleTaskView(props){
                 getTasksAcrossAllCallbacks({variables: {operation_id: me.user.current_operation_id, baseTask: taskSelected, beforeCount, afterCount}});
                 break;
             case "callback":
-                getTasksAcrossACallback({variables: {}});
+                getTasksAcrossACallback({variables: {baseTask: taskSelected,
+                        beforeCount, afterCount,
+                        operation_id: me.user.current_operation_id,
+                        callback_display_id: searchInfoCallbackDisplayId }});
                 break;
             default:
                 getTasksAcrossAllCallbacksByOperator({variables: {operation_id: me.user.current_operation_id, baseTask: taskSelected, beforeCount, afterCount, operator: search}});
@@ -207,9 +210,8 @@ export function SingleTaskView(props){
         if(window.location.pathname.includes("/new/tasks/by_range")){
             let params = new URLSearchParams(window.location.search);
             if(params.has("tasks")){
-                console.log(params.get("tasks"));
                 let ids = expand_range(params.get("tasks"));
-                getTasks({variables: {task_range: ids}, operation_id: me?.user?.current_operation_id || 0});
+                getTasks({variables: {task_range: ids, operation_id: me?.user?.current_operation_id || 0}});
             }else{
                 snackActions.warning("URL Query missing '?tasks=' with a range of tasks")
             }
@@ -233,7 +235,7 @@ export function SingleTaskView(props){
         </Paper>
         {tasks.map( (task) => (
             task.type === "task" ? (
-                    <div key={"taskdisplay:" + task.id} style={{marginRight: "5px"}}>
+                    <div key={"taskdisplay:" + task.display_id} style={{marginRight: "5px"}}>
                         <div style={{width: removing ? "95%" : "100%", display: "inline-block"}}>
                             <TaskDisplay me={me}  task={task} command_id={task.command === null ? 0 : task.command.id} />
                         </div>
@@ -241,7 +243,7 @@ export function SingleTaskView(props){
                             <Switch
                                 checked={task.checked}
                                 onChange={toggleTaskToRemove}
-                                name={"task" + task.id}
+                                name={"task" + task.display_id}
                                 inputProps={{ 'aria-label': 'checkbox', 'color': theme.palette.error.main }}
                         />
                         ) : null}
@@ -251,11 +253,11 @@ export function SingleTaskView(props){
                 <Paper key={"taskdisplayforcallback:" + task.id} elevation={5} style={{ marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                     <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                         {task.domain === "" ? null : (task.domain + "\\")}{task.user}{task.integrity_level > 2 ? ("*") : null}@{task.host} (
-                        <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + task.display_id}>{task.display_id}</Link>
+                        <Link style={{wordBreak: "break-all"}} color={"textPrimary"} underline="always" target="_blank" href={"/new/callbacks/" + task.display_id}>{task.display_id}</Link>
                         )
                     </Typography>
                     <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.info.main}} 
-                        onClick={() => {setTaskSearchInfo(task.id)}}>Include More Tasks</Button>                  
+                        onClick={() => {setTaskSearchInfo(task.display_id)}}>Include More Tasks</Button>
                 </Paper>
             ))
             

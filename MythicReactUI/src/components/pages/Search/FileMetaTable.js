@@ -76,7 +76,7 @@ const SnackMessage = (props) => {
             <Typography variant="subtitle2" >
                     Zip Created! This is available at any time via the "Uploads" page.
             </Typography>
-            <Link href={"/direct/download/" + props.file_id} >
+            <Link color="textPrimary" href={"/direct/download/" + props.file_id} >
                 Download here
             </Link>
                 
@@ -387,8 +387,8 @@ function FileMetaDownloadTableRow(props){
                                                 <MythicStyledTableCell>
                                                     {props.task === null ? null : (
                                                         <>
-                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
-                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
+                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
+                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
                                                             <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.comment}</Typography>
                                                         </>
                                                         
@@ -972,8 +972,8 @@ function FileMetaScreenshotTableRow(props){
                                                 <MythicStyledTableCell>
                                                     {props.task === null ? (null) : (
                                                         <>
-                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
-                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
+                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
+                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
                                                         </>
                                                     )}
                                                     

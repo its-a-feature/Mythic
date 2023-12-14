@@ -225,6 +225,7 @@ func setRoutes(r *gin.Engine) {
 			{
 				// Only OPERATION_ADMIN and MYTHIC_ADMIN can do these routes
 				// operation
+				noSpectators.POST("update_operator_status_webhook", webcontroller.UpdateOperatorStatusWebhook)
 				noSpectators.POST("delete_disabled_command_profile_webhook", webcontroller.DeleteDisabledCommandProfileWebhook)
 				noSpectators.POST("delete_disabled_command_profile_entry_webhook", webcontroller.DeleteDisabledCommandProfileEntryWebhook)
 			}

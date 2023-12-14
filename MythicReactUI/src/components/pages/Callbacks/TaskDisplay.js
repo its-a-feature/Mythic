@@ -289,7 +289,8 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}) => {
       "commentsFlag": onlyHasComments,
       "commandsList": onlyCommands,
       "everythingButList": everythingBut,
-      "parameterString": onlyParameters
+      "parameterString": onlyParameters,
+      "hideErrors": hideErrors
     }); */
       if(task.display_params.includes("help") && task.operator.username !== me.user.username){
         setShouldDisplay(false);
@@ -337,6 +338,14 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}) => {
       if(filterOptions["parameterString"] !== ""){
         let regex = new RegExp(filterOptions["parameterString"]);
         if(!regex.test(task.display_params)){
+          if(shouldDisplay){
+            setShouldDisplay(false);
+          }
+          return;
+        }
+      }
+      if(filterOptions["hideErrors"]){
+        if(task.status.includes("error")){
           if(shouldDisplay){
             setShouldDisplay(false);
           }
@@ -456,6 +465,14 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
         return;
       }
     }
+    if(filterOptions["hideErrors"]){
+      if(task.status.includes("error")){
+        if(shouldDisplay){
+          setShouldDisplay(false);
+        }
+        return;
+      }
+    }
     if(!shouldDisplay){
       setShouldDisplay(true);
     }
@@ -505,7 +522,17 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
   const [displayComment, setDisplayComment] = React.useState(false);
   const [alertBadges, setAlertBadges] = React.useState(0);
   const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
-  const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() === "false" ? false : true);
+  const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() !== "false");
+
+  const localStorageInitialShowIPValue = localStorage.getItem(`${me?.user?.user_id || 0}-showIP`);
+  const initialShowIPValue = localStorageInitialShowIPValue === null ? false : (localStorageInitialShowIPValue.toLowerCase() !== "false");
+  const ipValue = JSON.parse(task.callback.ip)[0];
+  const localStorageInitialShowHostnameValue = localStorage.getItem(`${me?.user?.user_id || 0}-showHostname`);
+  const initialShowHostnameValue = localStorageInitialShowHostnameValue === null ? false : (localStorageInitialShowHostnameValue.toLowerCase() !== "false");
+
+  const localStorageInitialShowCallbackGroupsValue = localStorage.getItem(`${me?.user?.user_id || 0}-showCallbackGroups`);
+  const initialShowCallbackGroupsValue = localStorageInitialShowCallbackGroupsValue === null ? false : (localStorageInitialShowCallbackGroupsValue.toLowerCase() !== "false");
+
   const toggleDisplayComment = (evt) => {
     evt.stopPropagation();
     setDisplayComment(!displayComment);
@@ -579,6 +606,9 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
                       [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
                       / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username} `}
                       / <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>{ task.callback.display_id}</Link>
+                      {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}
+                      {initialShowIPValue ? `/ ${ipValue} ` : ''}
+                      {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
                     </Typography>
                     <TaskStatusDisplay task={task} theme={theme}/>
                     <TaskTagDisplay task={task} />
@@ -621,9 +651,17 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
   const [displayComment, setDisplayComment] = React.useState(false);
   const [alertBadges, setAlertBadges] = React.useState(0);
 
-
   const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
-  const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() === "false" ? false : true);
+  const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() !== "false");
+  const localStorageInitialShowIPValue = localStorage.getItem(`${me?.user?.user_id || 0}-showIP`);
+  const initialShowIPValue = localStorageInitialShowIPValue === null ? false : (localStorageInitialShowIPValue.toLowerCase() !== "false");
+  const ipValue = JSON.parse(task.callback.ip)[0];
+  const localStorageInitialShowHostnameValue = localStorage.getItem(`${me?.user?.user_id || 0}-showHostname`);
+  const initialShowHostnameValue = localStorageInitialShowHostnameValue === null ? false : (localStorageInitialShowHostnameValue.toLowerCase() !== "false");
+
+  const localStorageInitialShowCallbackGroupsValue = localStorage.getItem(`${me?.user?.user_id || 0}-showCallbackGroups`);
+  const initialShowCallbackGroupsValue = localStorageInitialShowCallbackGroupsValue === null ? false : (localStorageInitialShowCallbackGroupsValue.toLowerCase() !== "false");
+
   const toggleDisplayComment = (evt) => {
     evt.stopPropagation();
     setDisplayComment(!displayComment);
@@ -651,7 +689,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
   }
 
   return(
-      <Paper className={task.selected ? classes.root + " selectedTask no-box-shadow" : classes.root} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
+      <StyledPaper className={task.selected ? classes.root + " selectedTask no-box-shadow" : classes.root} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
         <ColoredTaskDisplay task={task} theme={theme}  >
               <div id={'scrolltotask' + task.id} style={{width: "100%"}}>
                 {displayComment ? (
@@ -661,7 +699,13 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
                     </React.Fragment>
                 ) : null}
                 <div >
-                  <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>[{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}] / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username}`}
+                  <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
+                    [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
+                    / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username} `}
+                    / <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>{ task.callback.display_id}</Link>
+                    {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}
+                    {initialShowIPValue ? `/ ${ipValue} ` : ''}
+                    {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
                   </Typography>
                   {!graphView && <TaskStatusDisplay task={task} theme={theme}/>}
                   {!graphView && <TaskTagDisplay task={task} />}
@@ -685,6 +729,6 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
             <MultipleStopIcon />
           </IconButton>}
             </ColoredTaskDisplay>
-      </Paper>
+      </StyledPaper>
   )
 }

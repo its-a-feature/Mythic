@@ -37,7 +37,7 @@ const fetchLimit = 50;
 const userSearch = gql`
 ${callbackFragment}
 query userQuery($operation_id: Int!, $user: String!, $offset: Int!, $fetchLimit: Int!) {
-    callback_aggregate(distinct_on: id, where: {operation_id: {_eq: $operation_id}, user: {_ilike: $user}}) {
+    callback_aggregate(distinct_on: id, order_by: {id: desc}, where: {operation_id: {_eq: $operation_id}, user: {_ilike: $user}}) {
       aggregate {
         count
       }
@@ -50,7 +50,7 @@ query userQuery($operation_id: Int!, $user: String!, $offset: Int!, $fetchLimit:
 const hostSearch = gql`
 ${callbackFragment}
 query hostQuery($operation_id: Int!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    callback_aggregate(distinct_on: id, where: {host: {_ilike: $host}, operation_id: {_eq: $operation_id}}) {
+    callback_aggregate(distinct_on: id, order_by: {id: desc}, where: {host: {_ilike: $host}, operation_id: {_eq: $operation_id}}) {
       aggregate {
         count
       }
@@ -63,7 +63,7 @@ query hostQuery($operation_id: Int!, $host: String!, $offset: Int!, $fetchLimit:
 const domainSearch = gql`
 ${callbackFragment}
 query domainQuery($operation_id: Int!, $domain: String!, $offset: Int!, $fetchLimit: Int!) {
-    callback_aggregate(distinct_on: id, where: {domain: {_ilike: $domain}, operation_id: {_eq: $operation_id}}){
+    callback_aggregate(distinct_on: id, order_by: {id: desc}, where: {domain: {_ilike: $domain}, operation_id: {_eq: $operation_id}}){
       aggregate {
         count
       }
@@ -76,7 +76,7 @@ query domainQuery($operation_id: Int!, $domain: String!, $offset: Int!, $fetchLi
 const descriptionSearch = gql`
 ${callbackFragment}
 query domainQuery($operation_id: Int!, $description: String!, $offset: Int!, $fetchLimit: Int!) {
-    callback_aggregate(distinct_on: id, where: {description: {_ilike: $description}, operation_id: {_eq: $operation_id}}){
+    callback_aggregate(distinct_on: id, order_by: {id: desc}, where: {description: {_ilike: $description}, operation_id: {_eq: $operation_id}}){
       aggregate {
         count
       }
@@ -89,7 +89,7 @@ query domainQuery($operation_id: Int!, $description: String!, $offset: Int!, $fe
 const ipSearch = gql`
 ${callbackFragment}
 query domainQuery($operation_id: Int!, $ip: String!, $offset: Int!, $fetchLimit: Int!) {
-    callback_aggregate(distinct_on: id, where: {_or: [{ip: {_ilike: $ip}}, {external_ip: {_ilike: $ip}}], operation_id: {_eq: $operation_id}}){
+    callback_aggregate(distinct_on: id, order_by: {id: desc}, where: {_or: [{ip: {_ilike: $ip}}, {external_ip: {_ilike: $ip}}], operation_id: {_eq: $operation_id}}){
       aggregate {
         count
       }
@@ -102,7 +102,7 @@ query domainQuery($operation_id: Int!, $ip: String!, $offset: Int!, $fetchLimit:
 const groupSearch = gql`
 ${callbackFragment}
 query groupQuery($group: String!, $offset: Int!, $fetchLimit: Int!) {
-    callback_aggregate(distinct_on: id, where: {mythictree_groups_string: {_ilike: $group}}){
+    callback_aggregate(distinct_on: id, order_by: {id: desc}, where: {mythictree_groups_string: {_ilike: $group}}){
       aggregate {
         count
       }

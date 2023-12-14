@@ -95,7 +95,8 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
         "commentsFlag": false,
         "commandsList": [],
         "parameterString": "",
-        "everythingButList": []
+        "everythingButList": [],
+        "hideErrors": false,
     });
     const [canScroll, setCanScroll] = React.useState(true);
     const [selectedTask, setSelectedTask] = React.useState({id: 0});

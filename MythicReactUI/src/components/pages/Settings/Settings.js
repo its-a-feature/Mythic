@@ -6,7 +6,7 @@ import { snackActions } from '../../utilities/Snackbar';
 
 const GET_Operator = gql`
 query GetOperators {
-  operator(where: {deleted: {_eq: false}}, order_by: {username: asc}) {
+  operator(order_by: {username: asc}) {
     active
     admin
     creation_time
@@ -34,25 +34,31 @@ mutation SettingsUpdateOperatorViewUTCTime($id: Int!, $view_utc_time: Boolean) {
 `;
 const operatorsUpdateAdmin = gql`
 mutation SettingsUpdateOperatorAdminMutation($id: Int!, $admin: Boolean) {
-  update_operator_by_pk(pk_columns: {id: $id}, _set: {admin: $admin}) {
-      id
-      admin
+  updateOperatorStatus(operator_id: $id, admin: $admin) {
+    status
+    error
+    id
+    admin
   }
 }
 `;
 const operatorsUpdateActive = gql`
 mutation SettingsUpdateOperatorActiveMutation($id: Int!, $active: Boolean) {
-  update_operator_by_pk(pk_columns: {id: $id}, _set: {active: $active}) {
-      id
-      active
+  updateOperatorStatus(operator_id: $id, active: $active) {
+    status
+    error
+    id
+    active
   }
 }
 `;
 const operatorsDelete = gql`
-mutation SettingsDeleteOperatorMutation($id: Int!) {
-  update_operator_by_pk(pk_columns: {id: $id}, _set: {deleted: true}) {
-      id
-      deleted
+mutation SettingsDeleteOperatorMutation($id: Int!, $deleted: Boolean) {
+  updateOperatorStatus(operator_id: $id, deleted: $deleted) {
+    status
+    error
+    id
+    deleted
   }
 }
 `;
@@ -141,56 +147,65 @@ export function Settings({me}){
     });
     const [deleteOperator] = useMutation(operatorsDelete, {
         onCompleted: (result) => {
-          if(result.update_operator_by_pk === null){
-            snackActions.warning("Cannot update another user's data without Admin permissions");
-            return;
-          }
-          const updatedOperators = operators.filter( o => o.id !== result.update_operator_by_pk.id);
-          setOperators(updatedOperators);
-          snackActions.success("Successfully updated");
+            if(result.updateOperatorStatus.status === "error"){
+              snackActions.warning(result.updateOperatorStatus.error);
+              return;
+            }
+            const updatedOperators = operators.map(o => {
+                if(o.id === result.updateOperatorStatus.id){
+                    return {...o, deleted: result.updateOperatorStatus.deleted}
+                }else{
+                    return {...o}
+                }
+            });
+            setOperators(updatedOperators);
+            snackActions.success("Successfully updated");
         },
-        onError: () => {
-          snackActions.warning("Unable to delete operator without Admin permissions");
+        onError: (err) => {
+            console.log(err)
+            snackActions.warning("Unable to delete operator without Admin permissions");
         }
     });
     const [updateAdmin] = useMutation(operatorsUpdateAdmin, {
       onCompleted: (result) => {
-        if(result.update_operator_by_pk === null){
-          snackActions.warning("Cannot update another user's data without Admin permissions");
-          return;
-        }
-        const updatedOperators = operators.map(o => {
-          if(o.id === result.update_operator_by_pk.id){
-            return {...o, admin: result.update_operator_by_pk.admin}
-          }else{
-            return {...o}
+          if(result.updateOperatorStatus.status === "error"){
+              snackActions.warning(result.updateOperatorStatus.error);
+              return;
           }
-        });
-        setOperators(updatedOperators);
-        snackActions.success("Successfully updated");
+          const updatedOperators = operators.map(o => {
+              if(o.id === result.updateOperatorStatus.id){
+                  return {...o, admin: result.updateOperatorStatus.admin}
+              }else{
+                  return {...o}
+              }
+          });
+          setOperators(updatedOperators);
+          snackActions.success("Successfully updated");
       },
-      onError: () => {
-        snackActions.warning("Unable to update operator admin status without Admin permissions");
+      onError: (err) => {
+          console.log(err);
+          snackActions.warning("Unable to update operator admin status without Admin permissions");
       }
     });
     const [updateActive] = useMutation(operatorsUpdateActive, {
       onCompleted: (result) => {
-        if(result.update_operator_by_pk === null){
-          snackActions.warning("Cannot update another user's data without Admin permissions");
-          return;
-        }
-        const updatedOperators = operators.map(o => {
-          if(o.id === result.update_operator_by_pk.id){
-            return {...o, active: result.update_operator_by_pk.active}
-          }else{
-            return {...o}
+          if(result.updateOperatorStatus.status === "error"){
+              snackActions.warning(result.updateOperatorStatus.error);
+              return;
           }
-        });
-        setOperators(updatedOperators);
-        snackActions.success("Successfully updated");
+          const updatedOperators = operators.map(o => {
+              if(o.id === result.updateOperatorStatus.id){
+                  return {...o, active: result.updateOperatorStatus.active}
+              }else{
+                  return {...o}
+              }
+          });
+          setOperators(updatedOperators);
+          snackActions.success("Successfully updated");
       },
-      onError: () => {
-        snackActions.warning("Unable to update operator active status without Admin permissions");
+      onError: (err) => {
+          console.log(err);
+          snackActions.warning("Unable to update operator active status without Admin permissions");
       }
     });
     const [createAPIToken] = useMutation(createAPITokenMutation, {
@@ -286,8 +301,8 @@ export function Settings({me}){
     const onNewOperator = (username, password) => {
         newOperator({variables: {username, password}});
     }
-    const onDeleteOperator = (id) => {
-        deleteOperator({variables: {id}});
+    const onDeleteOperator = (id, value) => {
+        deleteOperator({variables: {id, deleted: value}});
     }
     const onUsernameChanged = (id, value) => {
       updateUsername({variables: {id, username: value}})

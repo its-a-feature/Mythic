@@ -18,13 +18,14 @@ export function TaskFilesTable(props){
 
    useEffect( () => {
     const condensed = props.tasks.reduce( (prev, tsk) => {
-      return [...prev, ...tsk.filemeta];
+        const fls = tsk.filemeta.map(c => {return {...c, display_id: tsk.display_id}});
+      return [...prev, ...fls];
     }, []);
     setFiles(condensed);
     condensed.sort((a,b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0));
    }, [props.tasks]);
    if(files.length === 0){
-     return (null)
+     return null
    }
   return (
     <React.Fragment>

@@ -93,7 +93,8 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         "commentsFlag": false,
         "commandsList": [],
         "parameterString": "",
-        "everythingButList": []
+        "everythingButList": [],
+        "hideErrors": false
     });
     const [canScroll, setCanScroll] = React.useState(true);
     const mountedRef = React.useRef(true);
