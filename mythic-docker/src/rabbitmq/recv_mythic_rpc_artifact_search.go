@@ -57,7 +57,7 @@ func MythicRPCArtifactSearch(input MythicRPCArtifactSearchMessage) MythicRPCArti
 		paramDict["operation_id"] = task.Callback.OperationID
 		searchString := `SELECT * FROM taskartifact WHERE operation_id=:operation_id `
 		if input.SearchArtifacts.Host != nil {
-			paramDict["host"] = fmt.Sprintf("%%%s%%", *&input.SearchArtifacts.Host)
+			paramDict["host"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.Host)
 			searchString += "AND host ILIKE :host "
 		}
 		if input.SearchArtifacts.ArtifactMessage != nil {
