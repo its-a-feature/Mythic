@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.7] - 2023-12-21
+
+### Changed
+
+- Updated to allow SOCKS/rpfwd message format to specify a `port` (uint32) as part of their messages with Mythic
+  - This allows multiple instances of rpfwd per callback with proper tracking for which port to go to
+  - The `port` sent in the messages is the local port the agent binds to for rpwfd
+- Updated the rpfwd remote connectivity test to happen in a goroutine and not block registration
+
 ## [3.2.6] - 2023-12-20
 
 ### Changed

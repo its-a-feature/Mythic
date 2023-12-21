@@ -29,14 +29,17 @@ type proxyToAgentMessage struct {
 	ServerID uint32 `json:"server_id" mapstructure:"server_id"`
 	Message  []byte `json:"data" mapstructure:"data"`
 	IsExit   bool   `json:"exit" mapstructure:"exit"`
+	Port     int    `json:"port,omitempty" mapstructure:"port,omitempty"`
 }
 type proxyFromAgentMessage struct {
 	ServerID uint32 `json:"server_id" mapstructure:"server_id"`
 	Message  string `json:"data" mapstructure:"data"`
 	IsExit   bool   `json:"exit" mapstructure:"exit"`
+	Port     int    `json:"port" mapstructure:"port"`
 }
 type acceptedConnection struct {
 	conn                         net.Conn
+	port                         int
 	shouldClose                  chan bool
 	messagesFromAgent            chan proxyFromAgentMessage
 	interactiveMessagesFromAgent chan agentMessagePostResponseInteractive
@@ -172,26 +175,66 @@ func (c *callbackPortsInUse) Initialize() {
 func (c *callbackPortsInUse) ListenForProxyFromAgentMessage() {
 	for {
 		agentMessage := <-c.proxyFromAgentMessageChannel
-		for i := 0; i < len(c.ports); i++ {
-			if c.ports[i].CallbackID == agentMessage.CallbackID && c.ports[i].PortType == agentMessage.PortType {
-				switch agentMessage.PortType {
-				case CALLBACK_PORT_TYPE_RPORTFWD:
-					fallthrough
-				case CALLBACK_PORT_TYPE_SOCKS:
-					for j := 0; j < len(agentMessage.Messages); j++ {
-						//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
-						c.ports[i].messagesFromAgent <- agentMessage.Messages[j]
+		switch agentMessage.PortType {
+		case CALLBACK_PORT_TYPE_RPORTFWD:
+			fallthrough
+		case CALLBACK_PORT_TYPE_SOCKS:
+			// loop through each message and find the corresponding callback + local port combo
+			for j := 0; j < len(agentMessage.Messages); j++ {
+				for i := 0; i < len(c.ports); i++ {
+					if c.ports[i].CallbackID == agentMessage.CallbackID && c.ports[i].PortType == agentMessage.PortType {
+						if agentMessage.Messages[j].Port > 0 {
+							// port is specified, try to find the right one
+							if c.ports[i].LocalPort == agentMessage.Messages[j].Port {
+								c.ports[i].messagesFromAgent <- agentMessage.Messages[j]
+								break
+							}
+						} else {
+							// didn't specify a specific port, to just send it to the first matching type
+							c.ports[i].messagesFromAgent <- agentMessage.Messages[j]
+							break
+						}
 					}
-				case CALLBACK_PORT_TYPE_INTERACTIVE:
+				}
+				//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
+				//c.ports[i].messagesFromAgent <- agentMessage.Messages[j]
+			}
+		case CALLBACK_PORT_TYPE_INTERACTIVE:
+			for i := 0; i < len(c.ports); i++ {
+				if c.ports[i].CallbackID == agentMessage.CallbackID && c.ports[i].PortType == agentMessage.PortType {
 					for j := 0; j < len(agentMessage.InteractiveMessages); j++ {
 						//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
 						c.ports[i].interactiveMessagesFromAgent <- agentMessage.InteractiveMessages[j]
 					}
 					handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
+					break
 				}
-
 			}
+
 		}
+		/*
+			for i := 0; i < len(c.ports); i++ {
+				if c.ports[i].CallbackID == agentMessage.CallbackID && c.ports[i].PortType == agentMessage.PortType {
+					switch agentMessage.PortType {
+					case CALLBACK_PORT_TYPE_RPORTFWD:
+						fallthrough
+					case CALLBACK_PORT_TYPE_SOCKS:
+						for j := 0; j < len(agentMessage.Messages); j++ {
+							//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
+							c.ports[i].messagesFromAgent <- agentMessage.Messages[j]
+						}
+					case CALLBACK_PORT_TYPE_INTERACTIVE:
+						for j := 0; j < len(agentMessage.InteractiveMessages); j++ {
+							//logging.LogInfo("got message from agent", "chan", messages[j].ServerID, "p.messagesFromAgentQueue", len(c.ports[i].messagesFromAgent))
+							c.ports[i].interactiveMessagesFromAgent <- agentMessage.InteractiveMessages[j]
+						}
+						handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
+					}
+
+				}
+			}
+
+		*/
 	}
 }
 func (c *callbackPortsInUse) GetNextAvailableLocalPort() uint32 {
@@ -424,13 +467,17 @@ func (p *callbackPortUsage) Start() error {
 	case CALLBACK_PORT_TYPE_RPORTFWD:
 		// start managing incoming/outgoing connections
 		go p.manageConnections()
-		if !canReachRemoteHost(p.RemoteIP, p.RemotePort) {
-			err := errors.New(fmt.Sprintf("Testing remote connection for rpfwd:\nfailed to reach remote host, %s:%d", p.RemoteIP, p.RemotePort))
-			go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-		} else {
-			go SendAllOperationsMessage(fmt.Sprintf("Testing remote connection for rpfwd:\nsuccessfully connected to remote host, %s:%d", p.RemoteIP, p.RemotePort),
-				p.OperationID, "", database.MESSAGE_LEVEL_INFO)
-		}
+		// test outbound connectivity
+		go func() {
+			if !canReachRemoteHost(p.RemoteIP, p.RemotePort) {
+				err := errors.New(fmt.Sprintf("Testing remote connection for rpfwd:\nfailed to reach remote host, %s:%d", p.RemoteIP, p.RemotePort))
+				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			} else {
+				go SendAllOperationsMessage(fmt.Sprintf("Testing remote connection for rpfwd:\nsuccessfully connected to remote host, %s:%d", p.RemoteIP, p.RemotePort),
+					p.OperationID, "", database.MESSAGE_LEVEL_INFO)
+			}
+		}()
+
 	case CALLBACK_PORT_TYPE_INTERACTIVE:
 		if isPortExposedThroughDocker(p.LocalPort) {
 			addr := fmt.Sprintf("0.0.0.0:%d", p.LocalPort)
@@ -556,6 +603,7 @@ func (p *callbackPortUsage) manageConnections() {
 							Message:  nil,
 							IsExit:   true,
 							ServerID: removeCon.ServerID,
+							Port:     p.LocalPort,
 						},
 						MessagesToAgent: p.messagesToAgent,
 						ProxyType:       p.PortType,
@@ -579,6 +627,7 @@ func (p *callbackPortUsage) manageConnections() {
 							Message:  nil,
 							IsExit:   true,
 							ServerID: newMsg.ServerID,
+							Port:     p.LocalPort,
 						},
 						MessagesToAgent: p.messagesToAgent,
 						ProxyType:       p.PortType,
@@ -603,6 +652,7 @@ func (p *callbackPortUsage) manageConnections() {
 								Message:  nil,
 								IsExit:   true,
 								ServerID: newMsg.ServerID,
+								Port:     p.LocalPort,
 							},
 							MessagesToAgent: p.messagesToAgent,
 							CallbackID:      p.CallbackID,
@@ -616,6 +666,7 @@ func (p *callbackPortUsage) manageConnections() {
 							shouldClose:       make(chan bool, 1),
 							messagesFromAgent: make(chan proxyFromAgentMessage, 200),
 							ServerID:          newMsg.ServerID, // randomized id
+							port:              p.LocalPort,
 						}
 						//p.newConnectionChannel <- &newConnection
 						// using the channel like normal might cause a race condition with processing the next message from the agent
@@ -675,6 +726,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 					shouldClose:       make(chan bool, 1),
 					messagesFromAgent: make(chan proxyFromAgentMessage, 200),
 					ServerID:          uint32(rand.Intn(math.MaxInt32)), // randomized id
+					port:              p.LocalPort,
 				}
 				// add this connection for tracking so it can be cancelled later if needed
 
@@ -729,6 +781,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 									Message:  nil,
 									IsExit:   true,
 									ServerID: newConnection.ServerID,
+									Port:     p.LocalPort,
 								},
 								MessagesToAgent: p.messagesToAgent,
 								CallbackID:      p.CallbackID,
@@ -744,6 +797,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 										Message:  buf[:length],
 										IsExit:   false,
 										ServerID: newConnection.ServerID,
+										Port:     p.LocalPort,
 									},
 									MessagesToAgent: p.messagesToAgent,
 									CallbackID:      p.CallbackID,
@@ -802,6 +856,7 @@ func (p *callbackPortUsage) handleRpfwdConnections(newConnection *acceptedConnec
 						Message:  nil,
 						IsExit:   true,
 						ServerID: newConnection.ServerID,
+						Port:     p.LocalPort,
 					},
 					MessagesToAgent: p.messagesToAgent,
 					CallbackID:      p.CallbackID,
@@ -817,6 +872,7 @@ func (p *callbackPortUsage) handleRpfwdConnections(newConnection *acceptedConnec
 							Message:  buf[:length],
 							IsExit:   false,
 							ServerID: newConnection.ServerID,
+							Port:     p.LocalPort,
 						},
 						MessagesToAgent: p.messagesToAgent,
 						ProxyType:       p.PortType,
@@ -853,6 +909,7 @@ func (p *callbackPortUsage) handleInteractiveConnections() {
 					interactiveMessagesFromAgent: make(chan agentMessagePostResponseInteractive, 200),
 					ServerID:                     uint32(rand.Intn(math.MaxInt32)), // randomized id
 					TaskUUID:                     &taskUUID,
+					port:                         p.LocalPort,
 				}
 				p.newConnectionChannel <- &newConnection
 
