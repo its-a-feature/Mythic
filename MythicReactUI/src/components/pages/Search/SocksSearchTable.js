@@ -74,7 +74,7 @@ export function SocksSearchTable(props){
 function CallbackSearchTableRow(props){
     const theme = useTheme();
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
-
+    const confirmDialogText = "This does not issue any start/stop command to the agent. This only opens/closes ports that Mythic controls. For rpfwd, this will not open/close that port on the remote host - you need to issue a task to your agent to do that.";
     const [updateDeleted] = useMutation(toggleProxy, {
         onCompleted: (data) => {
             if (data.toggleProxy.status === "success"){
@@ -109,6 +109,7 @@ function CallbackSearchTableRow(props){
                     <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete}
                                          open={openDeleteDialog} acceptText={props.deleted ? "Restart Proxy" : "Stop Proxy"}
                                          acceptColor={props.deleted ? "success" : "error"}
+                                         dialogText={confirmDialogText}
                     />
                 }
 
@@ -136,7 +137,7 @@ function CallbackSearchTableRow(props){
                     </Link>
                     {" / "}
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
-                          href={"/new/tasks/" + props.task.display_id}>
+                          href={"/new/task/" + props.task.display_id}>
                         {props.task.display_id}
                     </Link>
                 </TableCell>

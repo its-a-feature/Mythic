@@ -19,7 +19,7 @@ export function MythicConfirmDialog(props) {
     <MythicDialog fullWidth={false} maxWidth="sm" open={props.open} onClose={()=>{props.onClose()}} innerDialog={
         <React.Fragment>
             <DialogTitle >{props.title ? (props.title) : ("Are you sure?")}</DialogTitle>
-            {props.dialogText === undefined ? (null) : (
+            {props.dialogText === undefined ? null : (
               <DialogContent dividers={true} style={{maxHeight: "calc(70vh)"}}>
                 <DialogContentText>
                   {props.dialogText}
