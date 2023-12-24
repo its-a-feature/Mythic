@@ -72,7 +72,7 @@ export function C2ProfileContainerDisplay(props) {
                 c2profile.map( (pt) => (
                   showDeleted || !pt.deleted ? (
                     <C2ProfilesCard key={"c2prof" + pt.id} me={props.me} {...pt} />
-                    ) : (null)
+                    ) : null
                 ))
             }
         </div>

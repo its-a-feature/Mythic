@@ -28,7 +28,6 @@ export function C2ProfileOutputDialog(props) {
     useQuery(getProfileOutputQuery, {
         variables: {id: props.profile_id},
         onCompleted: data => {
-            console.log("completed")
             if(data.getProfileOutput.status === "success"){
                 if(data.getProfileOutput.output.length === 0){
                     setOutputData("No data from server");
@@ -60,7 +59,7 @@ export function C2ProfileOutputDialog(props) {
               theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
               fontSize={14}
               showGutter={true}
-              height={"100px"}
+              height={"100%"}
               highlightActiveLine={true}
               value={outputData}
               width={"100%"}

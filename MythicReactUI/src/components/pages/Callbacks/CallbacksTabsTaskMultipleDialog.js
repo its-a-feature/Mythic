@@ -4,17 +4,11 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import Checkbox from '@mui/material/Checkbox';
-import CardHeader from '@mui/material/CardHeader';
-import ListItemText from '@mui/material/ListItemText';
 import {useQuery, gql } from '@apollo/client';
 import {TaskFromUIButton} from './TaskFromUIButton';
-import { CardContent } from '@mui/material';
 import {CallbacksTabsTaskingInput} from "./CallbacksTabsTaskingInput";
-import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
+import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell} from "./CallbacksTableRow";
+import { DataGrid } from '@mui/x-data-grid';
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -28,162 +22,85 @@ query callbacksAndFeatures($payloadtype_id: Int!) {
     integrity_level
     pid
     display_id
-    mythictree_groups
+    mythictree_groups_string
   }
 }`;
 
-const CustomListElement = ({value, onClick}) => {
-    const labelId = `transfer-list-item-${value.id}-label`;
-    return (
-        <ListItem style={{padding:0}} key={value.id} role="listitem" button onClick={() => onClick(value)}>
-            <ListItemIcon>
-                <Checkbox
-                    checked={value.checked}
-                    tabIndex={-1}
-                    disableRipple
-                    inputProps={{ 'aria-labelledby': labelId }}
-                />
-            </ListItemIcon>
-            <ListItemText id={labelId} primary={value.display} />
-        </ListItem>
-    );
-}
-const CustomList = ({title, items, left, onClick}) => {
-
-    return (
-        <>
-            <CardHeader title={title} />
-            <StyledDivider classes={{root: classes.divider}}/>
-            <CardContent style={{flexGrow: 1, height: "100%", width: "100%", overflowY: "auto", padding: 0}}>
-                <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
-                    {items.map((value, index) => (
-                        <div key={value.display + index}>
-                            {
-                                left && value.left &&
-                                <CustomListElement value={value} onClick={onClick}/>
-                            }
-                            {
-                                !left && value.right &&
-                                <CustomListElement value={value} onClick={onClick} />
-                            }
-                        </div>
-
-                        ))}
-                </List>
-            </CardContent>
-        </>
-    );
-}
-const CustomTransferList = ({initialData, parentLeftData, parentRightData}) => {
-
-    const [data, setData] = React.useState(initialData);
-    const handleToggle = (value)  => {
-        const updatedData = data.map(d => {
-            if(value.id === d.id){
-                return {...d, checked: !d.checked}
-            } else {
-                return {...d}
-            }
-        });
-        setData(updatedData);
-    };
-    const handleAllRight = () => {
-        const updatedData = data.map( d => {
-            return {...d, checked: false, left: false, right: true}
-        })
-        setData(updatedData);
-    };
-    const handleCheckedRight = () => {
-        const updatedData = data.map( d => {
-            if(d.checked && d.left){
-                return {...d, checked: false, left: false, right: true};
-            } else {
-                return {...d};
-            }
-        })
-        setData(updatedData);
-    };
-    const handleCheckedLeft = () => {
-        const updatedData = data.map( d => {
-            if(d.checked && d.right){
-                return {...d, checked: false, left: true, right: false};
-            } else {
-                return {...d};
-            }
-        })
-        setData(updatedData);
-    };
-    const handleAllLeft =() => {
-        const updatedData = data.map( d => {
-            return {...d, checked: false, left: true, right: false}
-        })
-        setData(updatedData);
-    };
+const columns = [
+    { field: 'display_id', headerName: 'ID', width: 80, type: 'number', },
+    {
+        field: 'host',
+        headerName: 'Host',
+        flex: 0.5,
+    },
+    {
+        field: 'user',
+        headerName: 'User',
+        flex: 0.5,
+    },
+    {
+        field: 'pid',
+        headerName: 'PID',
+        type: 'number',
+        width: 80,
+    },
+    {
+        field: 'description',
+        headerName: 'Description',
+        flex: 1,
+    },
+    {
+        field: "last_checkin",
+        headerName: "Checkin",
+        width: 100,
+        valueGetter: (params) => new Date(params.row.last_checkin),
+        renderCell: (params) =>
+            <CallbacksTableLastCheckinCell rowData={params.row} />,
+    },
+    {
+        field: "mythictree_groups_string",
+        headerName: "Groups",
+        flex: 0.5,
+    }
+];
+const CustomSelectTable = ({initialData, selectedData}) => {
+    const [data, setData] = React.useState([]);
+    const [rowSelectionModel, setRowSelectionModel] = React.useState([]);
     React.useEffect( () => {
-        parentLeftData.current = data.reduce( (prev, cur) => {
-            if(cur.left){return [...prev, cur]}
+        selectedData.current = data.reduce( (prev, cur) => {
+            if(rowSelectionModel.includes(cur.id)){return [...prev, cur]}
             return [...prev];
         }, []);
-        parentRightData.current = data.reduce( (prev, cur) => {
-            if(cur.right){return [...prev, cur]}
-            return [...prev];
-        }, []);
-    }, [data]);
+    }, [data, rowSelectionModel]);
     React.useEffect( () => {
         setData(initialData.map(c => {
-            return {...c, left: true, checked: false, right: false}
+            return {...c};
         }));
     }, [initialData]);
     return (
-        <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
-            <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
-                <CustomList title={"Callbacks Not Being Tasked"} left={true} items={data} onClick={handleToggle} />
-            </div>
-            <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-                <StyledButton
-                    variant="contained"
-                    size="small"
-                    className={classes.button}
-                    onClick={handleAllRight}
-                    aria-label="move all right"
-                >
-                    &gt;&gt;
-                </StyledButton>
-                <StyledButton
-                    variant="contained"
-                    size="small"
-                    disabled={data.filter( x => x.checked && x.left).length === 0}
-                    className={classes.button}
-                    onClick={handleCheckedRight}
-                    aria-label="move selected right"
-                >
-                    &gt;
-                </StyledButton>
-                <StyledButton
-                    variant="contained"
-                    size="small"
-                    disabled={data.filter( x => x.checked && x.right).length === 0}
-                    className={classes.button}
-                    onClick={handleCheckedLeft}
-                    aria-label="move selected left"
-                >
-                    &lt;
-                </StyledButton>
-                <StyledButton
-                    variant="contained"
-                    size="small"
-                    className={classes.button}
-                    onClick={handleAllLeft}
-                    aria-label="move all left"
-                >
-                    &lt;&lt;
-                </StyledButton>
-
-            </div>
-            <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", overflowY: "auto", flexDirection: "column" }}>
-                <CustomList title={"Callbacks To Task"} left={false} items={data} onClick={handleToggle} />
-            </div>
+        <div style={{height: "calc(80vh)"}}>
+            <DataGrid
+                rows={data}
+                columns={columns}
+                initialState={{
+                    pagination: {
+                        paginationModel: {
+                        },
+                    },
+                    sorting: {
+                        sortModel: [{ field: 'last_checkin', sort: 'asc' }],
+                    },
+                }}
+                autoPageSize
+                checkboxSelection
+                onRowSelectionModelChange={(newRowSelectionModel) => {
+                    setRowSelectionModel(newRowSelectionModel);
+                }}
+                rowSelectionModel={rowSelectionModel}
+                density={"compact"}
+            />
         </div>
+
     )
 }
 export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
@@ -193,8 +110,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
     const taskingData = React.useRef({});
     const finalTaskedParameters = React.useRef(null);
     const [initialData, setInitialData] = React.useState([]);
-    const leftData = React.useRef([]);
-    const rightData = React.useRef([]);
+    const selectedData = React.useRef([]);
     useQuery(callbacksAndFeaturesQuery, {variables: {payloadtype_id: callback.payload.payloadtype.id},
       fetchPolicy: "no-cache",
       onCompleted: (data) => {
@@ -206,12 +122,12 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
     });
     const submitTasking = () => {
       //console.log("selectedFeature", selectedFeature)
-      if(rightData.current.length === 0){
+      if(selectedData.current.length === 0){
         onClose();
-        console.log("rightData.current.length === 0")
+        console.log("selectedData.current.length === 0")
         return;
       }
-        const callbacks = rightData.current.map( c => c.display_id)
+        const callbacks = selectedData.current.map( c => c.display_id)
         if(callbacks.length > 0){
             if(finalTaskedParameters.current){
                 taskingData.current = {...taskingData.current, callback_ids: callbacks, openDialog: false, parameters: finalTaskedParameters.current};
@@ -326,16 +242,14 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Task Multiple {callback.payload.payloadtype.name} Callbacks at Once</DialogTitle>
-        <DialogContent dividers={true} style={{height: "100%", display: "flex", flexDirection: "column", position: "relative",  maxHeight: "100%"}}>
-            <CustomTransferList initialData={initialData}
-                            parentLeftData={leftData}
-                            parentRightData={rightData}  />
+
+            <CustomSelectTable initialData={initialData}
+                               selectedData={selectedData}  />
         <Grid item xs={12} >
             <CallbacksTabsTaskingInput filterTasks={false} onSubmitFilter={()=>{}} onSubmitCommandLine={onSubmitCommandLine}
                                        changeSelectedToken={changeSelectedToken}
                                        filterOptions={{}} callback_id={callback.id} callback_os={callback.payload.os} parentMountedRef={mountedRef} />
         </Grid>
-        </DialogContent>
         {openTaskingButton && 
             <TaskFromUIButton cmd={taskingData.current?.cmd} 
                 callback_id={taskingData?.current?.callback_id || 0}

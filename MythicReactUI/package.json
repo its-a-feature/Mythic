@@ -19,6 +19,7 @@
     "@mui/icons-material": "^5.14.16",
     "@mui/lab": "^5.0.0-alpha.138",
     "@mui/material": "^5.14.16",
+    "@mui/x-data-grid": "^6.18.6",
     "@mui/x-date-pickers": "^6.17.0",
     "ace-builds": "^1.31.1",
     "anser": "^2.1.1",
@@ -71,10 +72,12 @@
   },
   "babel": {
     "presets": [
-      ["react-app",
-      {
-        "runtime": "automatic"
-      }]
+      [
+        "react-app",
+        {
+          "runtime": "automatic"
+        }
+      ]
     ]
   },
   "browserslist": {
