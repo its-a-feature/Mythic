@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.41] - 2023-12-24
+
+### Changed
+
+- fixed an issue with the new task multiple last checkin time
+- added an `ip` column to the task multiple and hide multiple dialogs
+
+## [0.1.39] - 2023-12-24
+
+### Changed
+
+- updated the task multiple and hide multiple dialogs
 
 ## [0.1.38] - 2023-12-
 

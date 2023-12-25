@@ -6,7 +6,7 @@ import {useQuery, gql } from '@apollo/client';
 import {useMutation} from '@apollo/client';
 import {hideCallbacksMutation} from './CallbackMutations';
 import {snackActions} from "../../utilities/Snackbar";
-import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell} from "./CallbacksTableRow";
+import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell, CallbacksTableIPCell} from "./CallbacksTableRow";
 import { DataGrid } from '@mui/x-data-grid';
 
 
@@ -16,6 +16,7 @@ query callbacksAndFeatures{
     id
     display_id
     host
+    ip
     user
     process_name
     pid
@@ -53,6 +54,20 @@ const columns = [
         field: 'description',
         headerName: 'Description',
         flex: 1,
+    },
+    {
+      field: 'ip',
+      headerName: 'IP',
+      flex: 1,
+      renderCell: (params) => <CallbacksTableIPCell rowData={params.row} cellData={params.row.ip} />,
+        sortable: false,
+      valueGetter: (params) => {
+          try{
+              return JSON.parse(params.row.ip)[0];
+          }catch(error){
+              return params.row.ip;
+          }
+      }
     },
     {
         field: "last_checkin",

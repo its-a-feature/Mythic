@@ -1,13 +1,12 @@
 import React, {useEffect} from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
 import {useQuery, gql } from '@apollo/client';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import {CallbacksTabsTaskingInput} from "./CallbacksTabsTaskingInput";
-import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell} from "./CallbacksTableRow";
+import {CallbacksTableIPCell, CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell} from "./CallbacksTableRow";
 import { DataGrid } from '@mui/x-data-grid';
 
 
@@ -22,6 +21,8 @@ query callbacksAndFeatures($payloadtype_id: Int!) {
     integrity_level
     pid
     display_id
+    last_checkin
+    ip
     mythictree_groups_string
   }
 }`;
@@ -48,6 +49,20 @@ const columns = [
         field: 'description',
         headerName: 'Description',
         flex: 1,
+    },
+    {
+        field: 'ip',
+        headerName: 'IP',
+        flex: 1,
+        renderCell: (params) => <CallbacksTableIPCell rowData={params.row} cellData={params.row.ip} />,
+        sortable: false,
+        valueGetter: (params) => {
+            try{
+                return JSON.parse(params.row.ip)[0];
+            }catch(error){
+                return params.row.ip;
+            }
+        }
     },
     {
         field: "last_checkin",
