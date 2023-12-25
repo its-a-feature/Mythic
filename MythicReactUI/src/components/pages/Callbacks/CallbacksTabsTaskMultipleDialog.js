@@ -229,12 +229,12 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
                 return;
             }else{
                 delete parsed["_"];
-                finalTaskedParameters.current = JSON.stringify(parsed);
+                finalTaskedParameters.current = parsed;
                 taskingData.current = {
                     cmd: cmd.cmd,
                     callback_id: callback.id,
                     openDialog: false,
-                    parameters: finalTaskedParameters.current,
+                    parameters: parsed,
                     original_params: params,
                     parsedParameters: parsed,
                     tasking_location: newTaskingLocation,
