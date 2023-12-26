@@ -2,7 +2,7 @@ FROM itsafeaturemythic/mythic_go_base:latest
 
 WORKDIR /usr/src/app
 
-ARG GOPROXY
+ARG GOPROXY=proxy.golang.org
 ARG GO111MODULE
 
 RUN go env -w GOPROXY=${GOPROXY}

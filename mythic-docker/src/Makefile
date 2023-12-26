@@ -17,6 +17,7 @@ MYTHIC_DEBUG_AGENT_MESSAGE?=false
 export
 
 build:
+	go mod tidy
 	CGO_ENABLED=0 go build -o ${BINARY_NAME} -tags="nomsgpack" .
 copy_to_final:
 	cp ${BINARY_NAME} /
