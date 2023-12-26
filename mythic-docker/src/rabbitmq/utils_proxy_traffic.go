@@ -200,6 +200,7 @@ func (c *callbackPortsInUse) ListenForProxyFromAgentMessage() {
 				//c.ports[i].messagesFromAgent <- agentMessage.Messages[j]
 			}
 		case CALLBACK_PORT_TYPE_INTERACTIVE:
+			foundPort := false
 			for i := 0; i < len(c.ports); i++ {
 				if c.ports[i].CallbackID == agentMessage.CallbackID && c.ports[i].PortType == agentMessage.PortType {
 					for j := 0; j < len(agentMessage.InteractiveMessages); j++ {
@@ -207,8 +208,12 @@ func (c *callbackPortsInUse) ListenForProxyFromAgentMessage() {
 						c.ports[i].interactiveMessagesFromAgent <- agentMessage.InteractiveMessages[j]
 					}
 					handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
+					foundPort = true
 					break
 				}
+			}
+			if !foundPort {
+				go handleAgentMessagePostResponseInteractiveOutput(&agentMessage.InteractiveMessages)
 			}
 
 		}
@@ -286,17 +291,27 @@ func (c *callbackPortsInUse) GetPortForTypeAndCallback(taskId int, callbackId in
 func (c *callbackPortsInUse) GetDataForCallbackIdPortType(callbackId int, portType CallbackPortType) (interface{}, error) {
 	var interactiveData []agentMessagePostResponseInteractive
 	var socksData []proxyToAgentMessage
+	fetchedInteractive := false
 	for i := 0; i < len(c.ports); i++ {
 		if c.ports[i].CallbackID == callbackId && c.ports[i].PortType == portType {
 			switch portType {
 			case CALLBACK_PORT_TYPE_INTERACTIVE:
 				interactiveData = append(interactiveData, c.ports[i].GetData().([]agentMessagePostResponseInteractive)...)
+				fetchedInteractive = true
 			case CALLBACK_PORT_TYPE_SOCKS:
 				fallthrough
 			case CALLBACK_PORT_TYPE_RPORTFWD:
 				socksData = append(socksData, c.ports[i].GetData().([]proxyToAgentMessage)...)
 			}
 
+		}
+	}
+	if portType == CALLBACK_PORT_TYPE_INTERACTIVE && !fetchedInteractive {
+		newInteractiveData, err := handleAgentMessageGetInteractiveTasking(callbackId)
+		if err != nil {
+			logging.LogError(err, "Failed to fetch interactive tasks")
+		} else {
+			interactiveData = append(interactiveData, newInteractiveData...)
 		}
 	}
 	switch portType {

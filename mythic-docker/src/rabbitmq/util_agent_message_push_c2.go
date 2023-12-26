@@ -171,24 +171,29 @@ func interceptProxyDataToAgentForPushC2() {
 func handleAgentMessageGetInteractiveTasking(callbackID int) ([]agentMessagePostResponseInteractive, error) {
 	currentTasks := []databaseStructs.Task{}
 	if taskIDs := submittedTasksAwaitingFetching.getInteractiveTasksForCallbackId(callbackID); len(taskIDs) > 0 {
-		if query, args, err := sqlx.Named(`SELECT 
+		//logging.LogInfo("getting interactive tasks", "task ids", taskIDs)
+		query, args, err := sqlx.Named(`SELECT 
     		params, parent_task_id, token_id, interactive_task_type, id
 			FROM task WHERE id IN (:ids) AND parent_task_id > 0 ORDER BY id ASC`, map[string]interface{}{
 			"ids": taskIDs,
-		}); err != nil {
+		})
+		if err != nil {
 			logging.LogError(err, "Failed to make named statement when searching for tasks")
 			return nil, errors.New("failed to make statement to search for tasks")
-		} else if query, args, err := sqlx.In(query, args...); err != nil {
+		}
+		query, args, err = sqlx.In(query, args...)
+		if err != nil {
 			logging.LogError(err, "Failed to do sqlx.In")
 			return nil, errors.New("failed to make query to search for tasks")
-		} else {
-			query = database.DB.Rebind(query)
-			if err := database.DB.Select(&currentTasks, query, args...); err != nil {
-				logging.LogError(err, "Failed to exec sqlx.IN modified statement")
-				return nil, errors.New("failed to search for tasks")
-			}
 		}
+		query = database.DB.Rebind(query)
+		if err = database.DB.Select(&currentTasks, query, args...); err != nil {
+			logging.LogError(err, "Failed to exec sqlx.IN modified statement")
+			return nil, errors.New("failed to search for tasks")
+		}
+
 	}
+	//logging.LogInfo("getting interactive tasks", "current Tasks", currentTasks)
 	var response []agentMessagePostResponseInteractive
 	for _, task := range currentTasks {
 		var parentTaskUUID string
