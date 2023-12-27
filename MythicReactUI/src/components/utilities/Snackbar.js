@@ -163,6 +163,7 @@ export const snackActions = {
   },
   dismiss(){
     toast.dismiss();
+    toast.clearWaitingQueue();
   },
   clearAll(){
     toast.dismiss();

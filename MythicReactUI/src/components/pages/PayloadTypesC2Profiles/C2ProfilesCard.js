@@ -1,7 +1,6 @@
 import React from 'react';
 import { styled } from '@mui/material/styles';
 import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import {C2ProfileBuildDialog} from './C2ProfileBuildDialog';
@@ -33,31 +32,9 @@ import IconButton from '@mui/material/IconButton';
 import BuildIcon from '@mui/icons-material/Build';
 import SaveIcon from '@mui/icons-material/Save';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import TableRow from '@mui/material/TableRow';
+import MythicTableCell from "../../MythicComponents/MythicTableCell";
 
-const PREFIX = 'C2ProfilesCard';
-
-const classes = {
-  root: `${PREFIX}-root`,
-  cardContent: `${PREFIX}-cardContent`
-};
-
-const StyledCard = styled(Card)((
-  {
-    theme
-  }
-) => ({
-  [`&.${classes.root}`]: {
-    width: "100%",
-    display: "flex",
-    marginBottom: "10px"
-  },
-
-  [`& .${classes.cardContent}`]: {
-      textAlign: "left",
-      paddingBottom: "5px",
-      paddingTop: "0",
-  }
-}));
 
 const toggleDeleteStatus = gql`
 mutation toggleC2ProfileDeleteStatus($c2profile_id: Int!, $deleted: Boolean!){
@@ -85,26 +62,25 @@ mutation setProfileConfiguration($id: Int!, $file_path: String!, $data: String!)
 }
 `;
 
-export function C2ProfilesCard(props) {
-  const theme = useTheme();
+export function C2ProfilesRow({service, showDeleted}) {
+    const theme = useTheme();
+    const [openBuildingDialog, setOpenBuildingDialog] = React.useState(false);
+    const [openListFilesDialog, setOpenListFilesDialog] = React.useState(false);
+    const [dropdownOpen, setDropdownOpen] = React.useState(false);
+    const dropdownAnchorRef = React.useRef(null);
+    const handleDropdownToggle = () => {
+        setDropdownOpen((prevOpen) => !prevOpen);
+    };
+    const handleDropdownClose = (event) => {
+        if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
+            return;
+        }
 
-  const [openBuildingDialog, setOpenBuildingDialog] = React.useState(false);
-  const [openListFilesDialog, setOpenListFilesDialog] = React.useState(false);
-  const [dropdownOpen, setDropdownOpen] = React.useState(false);
-  const dropdownAnchorRef = React.useRef(null);
-  const handleDropdownToggle = () => {
-    setDropdownOpen((prevOpen) => !prevOpen);
-  };
-  const handleDropdownClose = (event) => {
-    if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
-      return;
-    }
-
-    setDropdownOpen(false);
-  };
-  const [startStopProfile] = useMutation(startStopProfileMutation, {
+        setDropdownOpen(false);
+    };
+    const [startStopProfile] = useMutation(startStopProfileMutation, {
         update: (cache, {data}) => {
-            
+
         },
         onError: data => {
             console.error(data);
@@ -115,12 +91,12 @@ export function C2ProfilesCard(props) {
         }
     });
     const onStartStopProfile = () => {
-        if(props.running){
+        if(service.running){
             snackActions.info("Submitting stop task. Waiting 3s for output ..." );
         }else{
             snackActions.info("Submitting start task. Waiting 3s for output ..." );
-        }  
-        startStopProfile({variables: {id: props.id, action: props.running ? "stop" : "start"}});
+        }
+        startStopProfile({variables: {id: service.id, action: service.running ? "stop" : "start"}});
     }
     const [openProfileDialog, setOpenProfileDialog] = React.useState(false);
     const [openProfileConfigDialog, setOpenProfileConfigDialog] = React.useState(false);
@@ -129,7 +105,7 @@ export function C2ProfilesCard(props) {
     const [openProfileSavedInstancesDialog, setOpenProfileSavedInstancesDialog] = React.useState(false);
     const [configSubmit] = useMutation(setProfileConfigMutation, {
         update: (cache, {data}) => {
-            
+
         },
         onError: data => {
             console.error(data);
@@ -144,232 +120,239 @@ export function C2ProfilesCard(props) {
         }
     });
     const onConfigSubmit = (content) => {
-      //console.log(content)
-      configSubmit({variables: {id: props.id, file_path: "config.json", data: content}});
+        //console.log(content)
+        configSubmit({variables: {id: service.id, file_path: "config.json", data: content}});
     }
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [updateDeleted] = useMutation(toggleDeleteStatus, {
-      onCompleted: data => {
-      },
-      onError: error => {
-        if(props.deleted){
-          snackActions.error("Failed to restore c2 profile");
-        } else {
-          snackActions.error("Failed to mark c2 profile as deleted");
+        onCompleted: data => {
+        },
+        onError: error => {
+            if(service.deleted){
+                snackActions.error("Failed to restore c2 profile");
+            } else {
+                snackActions.error("Failed to mark c2 profile as deleted");
+            }
+
         }
-        
-      }
     });
     const onAcceptDelete = () => {
-      updateDeleted({variables: {c2profile_id: props.id, deleted: !props.deleted}})
-      setOpenDeleteDialog(false);
+        updateDeleted({variables: {c2profile_id: service.id, deleted: !service.deleted}})
+        setOpenDeleteDialog(false);
     }
+    if(service.deleted && !showDeleted){
+        return null;
+    }
+    return (
+        <>
+            <TableRow hover>
+                <MythicTableCell>
+                    {service.deleted ? (
+                        <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="success" size="large">
+                            <RestoreFromTrashOutlinedIcon/>
+                        </IconButton>
+                    ) : (
+                        <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="error" size="large">
+                            <DeleteIcon/>
+                        </IconButton>
+                    )}
+                </MythicTableCell>
+                <MythicTableCell>
+                    {service.is_p2p ?
+                        (<FontAwesomeIcon icon={faLink}  style={{width: "80", height: "80", padding: "10px"}} />)
+                        :
+                        (<WifiIcon style={{width: "80", height: "80", padding: "10px"}}/>)
+                    }
+                </MythicTableCell>
+                <MythicTableCell>
+                    {service.name}
+                </MythicTableCell>
+                <MythicTableCell>C2</MythicTableCell>
+                <MythicTableCell>
+                    <Typography variant="body1" component="p">
+                        <b>Author:</b> {service.author}
+                    </Typography>
+                    <Typography variant="body1" component="p">
+                        <b>Supported Agents:</b> {service.payloadtypec2profiles.filter( (pt) => !pt.payloadtype.deleted ).map(c => c.payloadtype.name).join(", ")}
+                    </Typography>
+                    <Typography variant="body2" component="p">
+                        <b>Description: </b>{service.description}
+                    </Typography>
+                </MythicTableCell>
+                <MythicTableCell>
+                    <Typography variant="body2" component="p" color={service.container_running ? theme.palette.success.main : theme.palette.error.main} >
+                        <b>{service.container_running ? "Online" : "Offline"}</b>
+                    </Typography>
+                    {!service.is_p2p && service.running &&
+                        <React.Fragment>
+                            <Typography variant="body2" component="p" >
+                                <b>C2 Server Status: </b>
+                            </Typography>
+                            <Typography variant="body2" component="p" style={{ color:theme.palette.success.main}}>
+                                <b>{"Accepting Connections"}</b>
+                            </Typography>
+                        </React.Fragment>
+                    }
+                    {!service.is_p2p && !service.running &&
+                        <React.Fragment>
+                            <Typography variant="body2" component="p" >
+                                <b>C2 Server Status: </b>
+                            </Typography>
+                            <Typography variant="body2" component="p" style={{color:theme.palette.error.main}}>
+                                <b>{"Not Accepting Connection"}</b>
+                            </Typography>
+                        </React.Fragment>
+                    }
+                </MythicTableCell>
+                <MythicTableCell>
+                    {service.container_running ? (
+                        service.running ?
+                            (
+                                <ButtonGroup variant="contained" color={"secondary"} ref={dropdownAnchorRef} aria-label="split button" >
+                                    <Button size="small" color={service.running ? "success" : "error"} onClick={onStartStopProfile} style={{width: "100%"}}>Stop Profile</Button>
+                                    <Button
+                                        size="small"
+                                        aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
+                                        aria-expanded={dropdownOpen ? 'true' : undefined}
+                                        aria-label="select merge strategy"
+                                        aria-haspopup="menu"
+                                        color={service.running ? "success" : "error"}
+                                        onClick={handleDropdownToggle}
+                                    >
+                                        <ArrowDropDownIcon />
+                                    </Button>
+                                </ButtonGroup>
+                            )
+                            :
+                            (
+                                service.is_p2p ? null : (
+                                    <ButtonGroup size="small" variant="contained" ref={dropdownAnchorRef} aria-label="split button" color={service.running ? "success" : "error"} >
+                                        <Button size="small" onClick={onStartStopProfile} color={service.running ? "success" : "error"} style={{width: "100%"}}>Start Profile</Button>
+                                        <Button
+                                            size="small"
+                                            aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
+                                            aria-expanded={dropdownOpen ? 'true' : undefined}
+                                            aria-label="select merge strategy"
+                                            aria-haspopup="menu"
+                                            color={service.running ? "success" : "error"}
+                                            onClick={handleDropdownToggle}
+                                        >
+                                            <ArrowDropDownIcon />
+                                        </Button>
+                                    </ButtonGroup>
+                                )
 
-  return (
-    <StyledCard className={classes.root} elevation={5} style={{maxWidth: "100%"}}>
-            {props.is_p2p ? 
-            (<FontAwesomeIcon icon={faLink}  style={{width: "100px", height: "100px", marginTop: "25px"}} />)
-            : 
-            (<WifiIcon style={{width: "100px", height: "100px", marginTop: "25px"}}/>)
-            }
-        <div style={{maxWidth: "60%"}}>
-          <Typography variant="h4" component="h1" style={{textAlign:"left", marginLeft: "10px", display: "inline-block"}}>{props.name}</Typography>
-          <CardContent className={classes.cardContent}>
-              <Typography variant="body1" component="p">
-                <b>Author:</b> {props.author}
-              </Typography>
-              <Typography variant="body1" component="p">
-                <b>Supported Agents:</b> {props.payloadtypec2profiles.filter( (pt) => !pt.payloadtype.deleted ).map(c => c.payloadtype.name).join(", ")}
-              </Typography>
-              <Typography variant="body2" component="p">
-                <b>Description: </b>{props.description}
-              </Typography>
-              <Typography variant="body2" component="p" >
-                <b>Container Status: </b>
-              </Typography>
-              <Typography variant="body2" component="p" color={props.container_running ? theme.palette.success.main : theme.palette.error.main} >
-                <b>{props.container_running ? "Online" : "Offline"}</b>
-              </Typography>
-              {!props.is_p2p && props.running &&
-              <React.Fragment>
-                <Typography variant="body2" component="p" >
-                  <b>C2 Server Status: </b>
-                </Typography>
-                <Typography variant="body2" component="p" style={{ color:theme.palette.success.main}}>
-                  <b>{"Accepting Connections"}</b>
-                </Typography>
-              </React.Fragment>
-              }
-              {!props.is_p2p && !props.running &&
-                <React.Fragment>
-                  <Typography variant="body2" component="p" >
-                    <b>C2 Server Status: </b>
-                  </Typography>
-                  <Typography variant="body2" component="p" style={{color:theme.palette.error.main}}>
-                    <b>{"Not Accepting Connection"}</b>
-                  </Typography>
-                </React.Fragment>
-              }
-              <div >
-                  {props.container_running ? (
-                      props.running ?
-                          (
-                              <ButtonGroup variant="contained" color={"secondary"} ref={dropdownAnchorRef} aria-label="split button" >
-                                  <Button size="small" color={props.running ? "success" : "error"} onClick={onStartStopProfile} style={{width: "100%"}}>Stop Profile</Button>
-                                  <Button
-                                      size="small"
-                                      aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
-                                      aria-expanded={dropdownOpen ? 'true' : undefined}
-                                      aria-label="select merge strategy"
-                                      aria-haspopup="menu"
-                                      color={props.running ? "success" : "error"}
-                                      onClick={handleDropdownToggle}
-                                  >
-                                      <ArrowDropDownIcon />
-                                  </Button>
-                              </ButtonGroup>
-                          )
-                          :
-                          (
-                              props.is_p2p ? (
-                                  null
-                              ) : (
-                                  <ButtonGroup size="small" variant="contained" ref={dropdownAnchorRef} aria-label="split button" color={props.running ? "success" : "error"} >
-                                      <Button size="small" onClick={onStartStopProfile} color={props.running ? "success" : "error"} style={{width: "100%"}}>Start Profile</Button>
-                                      <Button
-                                          size="small"
-                                          aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
-                                          aria-expanded={dropdownOpen ? 'true' : undefined}
-                                          aria-label="select merge strategy"
-                                          aria-haspopup="menu"
-                                          color={props.running ? "success" : "error"}
-                                          onClick={handleDropdownToggle}
-                                      >
-                                          <ArrowDropDownIcon />
-                                      </Button>
-                                  </ButtonGroup>
-                              )
+                            )
+                    ) : null}
+                    <br/>
+                    <IconButton
+                        color={"secondary"}
+                        href={"/docs/c2-profiles/" + service.name.toLowerCase()}
+                        target="_blank"
+                        size="large">
+                        <MenuBookIcon />
+                    </IconButton>
+                    <IconButton
+                        color={"secondary"}
+                        onClick={()=>{setOpenBuildingDialog(true);}}
+                        size="large">
+                        <BuildIcon />
+                    </IconButton>
 
-                          )
-                  ) : (
-                      <Button disabled color="secondary">Container Offline</Button>
-                  )}
-              </div>
-          </CardContent>
-        </div>
 
-            <div style={{
-                display: "inline-flex",
-                paddingRight: "10px",
-                marginLeft: "auto",
-                justifyContent: "space-evenly",
-                flexDirection: "column",
-                alignContent: "flex-end",
-                backgroundColor: theme.palette.textBackgroundColor,
-            }}>
-                <IconButton
-                  color={"secondary"}
-                  href={"/docs/c2-profiles/" + props.name.toLowerCase()}
-                  target="_blank"
-                  size="large">
-                  <MenuBookIcon />
-                </IconButton>
-                <IconButton
-                  color={"secondary"}
-                  onClick={()=>{setOpenBuildingDialog(true);}}
-                  size="large">
-                    <BuildIcon />
-                </IconButton>
+                    <IconButton
+                        onClick={() => {setOpenProfileSavedInstancesDialog(true);}}
+                        color={"success"}
+                        size="large">
+                        <SaveIcon />
+                    </IconButton>
+
+                    {service.container_running &&
+                        <IconButton
+                            color={"secondary"}
+                            onClick={()=>{setOpenListFilesDialog(true);}}
+                            size="large">
+                            <AttachFileIcon />
+                        </IconButton>
+                    }
+                    <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
+                        {({ TransitionProps, placement }) => (
+                            <Grow
+                                {...TransitionProps}
+                                style={{
+                                    transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
+                                }}
+                            >
+                                <Paper className={"dropdownMenuColored"}>
+                                    <ClickAwayListener onClickAway={handleDropdownClose}>
+                                        <MenuList id="split-button-menu">
+                                            <MenuItem key={"dropdownprofile" + service.id + "menu1"} onClick={()=>{setOpenProfileConfigDialog(true);}}>View/Edit Config</MenuItem>
+                                            {
+                                                service.running ?
+                                                    (<MenuItem key={"dropdownprofile" + service.id + "menu2"} onClick={()=>{setOpenProfileDialog(true);}}>View Stdout/Stderr</MenuItem>) : (null)
+                                            }
+                                        </MenuList>
+
+                                    </ClickAwayListener>
+                                </Paper>
+                            </Grow>
+                        )}
+                    </Popper>
+                </MythicTableCell>
                 {openBuildingDialog &&
-                  <MythicDialog fullWidth={true} maxWidth="lg" open={openBuildingDialog}
-                    onClose={()=>{setOpenBuildingDialog(false);}}
-                    innerDialog={<C2ProfileBuildDialog {...props} onClose={()=>{setOpenBuildingDialog(false);}} payload_name={props.name} />}
-                />
+                    <MythicDialog fullWidth={true} maxWidth="lg" open={openBuildingDialog}
+                                  onClose={()=>{setOpenBuildingDialog(false);}}
+                                  innerDialog={<C2ProfileBuildDialog {...service} onClose={()=>{setOpenBuildingDialog(false);}}
+                                                                     payload_name={service.name} />}
+                    />
                 }
                 {openProfileStartStopDialog &&
-                  <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileStartStopDialog}
-                    onClose={()=>{setOpenProfileStartStopDialog(false);}}
-                    innerDialog={<C2ProfileStartStopOutputDialog output={output} onClose={()=>{setOpenProfileStartStopDialog(false);}} payload_name={props.name} />}
-                />
-                }
-
-                 <IconButton
-                   onClick={() => {setOpenProfileSavedInstancesDialog(true);}}
-                   color={"success"}
-                   size="large">
-                     <SaveIcon />
-                 </IconButton>
-                 {props.deleted ? (
-                  <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="success" size="large">
-                      <RestoreFromTrashOutlinedIcon/>
-                  </IconButton>
-                ) : (
-                  <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="error" size="large">
-                      <DeleteIcon/>
-                  </IconButton>
-                )}
-                {props.container_running &&
-                  <IconButton
-                    color={"secondary"}
-                    onClick={()=>{setOpenListFilesDialog(true);}}
-                    size="large">
-                      <AttachFileIcon />
-                  </IconButton>
+                    <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileStartStopDialog}
+                                  onClose={()=>{setOpenProfileStartStopDialog(false);}}
+                                  innerDialog={<C2ProfileStartStopOutputDialog output={output}
+                                                                               onClose={()=>{setOpenProfileStartStopDialog(false);}}
+                                                                               payload_name={service.name} />}
+                    />
                 }
                 {openDelete &&
-                  <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete}
-                    open={openDelete}
-                    acceptText={props.deleted ? "Restore" : "Remove"}
-                    acceptColor={props.deleted ? "success": "error"} />
+                    <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete}
+                                         open={openDelete}
+                                         acceptText={service.deleted ? "Restore" : "Remove"}
+                                         acceptColor={service.deleted ? "success": "error"} />
                 }
-                 {openProfileDialog &&
-                  <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileDialog}
-                    onClose={()=>{setOpenProfileDialog(false);}}
-                    innerDialog={<C2ProfileOutputDialog {...props}  payload_name={props.name} onClose={()=>{setOpenProfileDialog(false);}} profile_id={props.id} />}
-                  />
-                 }
+                {openProfileDialog &&
+                    <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileDialog}
+                                  onClose={()=>{setOpenProfileDialog(false);}}
+                                  innerDialog={<C2ProfileOutputDialog {...service}  payload_name={service.name}
+                                                                      onClose={()=>{setOpenProfileDialog(false);}}
+                                                                      profile_id={service.id} />}
+                    />
+                }
                 {openProfileConfigDialog &&
-                <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileConfigDialog}
-                  onClose={()=>{setOpenProfileConfigDialog(false);}}
-                  innerDialog={<C2ProfileConfigDialog filename={"config.json"} onConfigSubmit={onConfigSubmit} payload_name={props.name} onClose={()=>{setOpenProfileConfigDialog(false);}} profile_id={props.id} />}
-                />
+                    <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileConfigDialog}
+                                  onClose={()=>{setOpenProfileConfigDialog(false);}}
+                                  innerDialog={<C2ProfileConfigDialog filename={"config.json"}
+                                                                      onConfigSubmit={onConfigSubmit}
+                                                                      payload_name={service.name}
+                                                                      onClose={()=>{setOpenProfileConfigDialog(false);}}
+                                                                      profile_id={service.id} />}
+                    />
                 }
                 {openProfileSavedInstancesDialog &&
-                  <MythicDialog fullWidth={true} maxWidth="xl" open={openProfileSavedInstancesDialog}
-                    onClose={()=>{setOpenProfileSavedInstancesDialog(false);}}
-                    innerDialog={<C2ProfileSavedInstancesDialog {...props} onClose={()=>{setOpenProfileSavedInstancesDialog(false);}} />}
-                />
+                    <MythicDialog fullWidth={true} maxWidth="xl" open={openProfileSavedInstancesDialog}
+                                  onClose={()=>{setOpenProfileSavedInstancesDialog(false);}}
+                                  innerDialog={<C2ProfileSavedInstancesDialog {...service}
+                                                                              onClose={()=>{setOpenProfileSavedInstancesDialog(false);}} />}
+                    />
                 }
                 {openListFilesDialog &&
-                  <MythicDialog fullWidth={true} maxWidth="md" open={openListFilesDialog}
-                    onClose={()=>{setOpenListFilesDialog(false);}}
-                    innerDialog={<C2ProfileListFilesDialog {...props} onClose={()=>{setOpenListFilesDialog(false);}} />}
-                />
+                    <MythicDialog fullWidth={true} maxWidth="md" open={openListFilesDialog}
+                                  onClose={()=>{setOpenListFilesDialog(false);}}
+                                  innerDialog={<C2ProfileListFilesDialog {...service} onClose={()=>{setOpenListFilesDialog(false);}} />}
+                    />
                 }
-            </div>
-            <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
-              {({ TransitionProps, placement }) => (
-                <Grow
-                  {...TransitionProps}
-                  style={{
-                    transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                  }}
-                >
-                  <Paper className={"dropdownMenuColored"}>
-                    <ClickAwayListener onClickAway={handleDropdownClose}>
-                      <MenuList id="split-button-menu">
-                        <MenuItem key={"dropdownprofile" + props.id + "menu1"} onClick={()=>{setOpenProfileConfigDialog(true);}}>View/Edit Config</MenuItem>
-                       {
-                        props.running ? 
-                        (<MenuItem key={"dropdownprofile" + props.id + "menu2"} onClick={()=>{setOpenProfileDialog(true);}}>View Stdout/Stderr</MenuItem>) : (null)
-                       }
-                      </MenuList>
-                      
-                    </ClickAwayListener>
-                  </Paper>
-                </Grow>
-              )}
-            </Popper>
-    </StyledCard>
-  );
+            </TableRow>
+        </>
+
+    );
 }

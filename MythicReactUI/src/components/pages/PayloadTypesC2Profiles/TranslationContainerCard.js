@@ -5,13 +5,15 @@ import Typography from '@mui/material/Typography';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faLanguage } from '@fortawesome/free-solid-svg-icons';
 import {useTheme} from '@mui/material/styles';
-import CardContent from '@mui/material/CardContent';
+import IconButton from '@mui/material/IconButton';
 import {useMutation, gql} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
-import Button from '@mui/material/Button';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
+import TableRow from '@mui/material/TableRow';
+import MythicTableCell from "../../MythicComponents/MythicTableCell";
 
 const PREFIX = 'TranslationContainerCard';
 
@@ -65,65 +67,76 @@ mutation toggleC2ProfileDeleteStatus($translationcontainer_id: Int!, $deleted: B
 }
 `;
 
-export function TranslationContainerCard(props) {
+export function TranslationContainerRow({service, showDeleted}) {
   const theme = useTheme();
 
   const [openDelete, setOpenDeleteDialog] = React.useState(false);
-    const [updateDeleted] = useMutation(toggleDeleteStatus, {
+  const [updateDeleted] = useMutation(toggleDeleteStatus, {
       onCompleted: data => {
       },
       onError: error => {
-        if(props.deleted){
-          snackActions.error("Failed to restore translation profile");
-        } else {
-          snackActions.error("Failed to mark translation profile as deleted");
-        }
-        
+          if(service.deleted){
+              snackActions.error("Failed to restore translation profile");
+          } else {
+              snackActions.error("Failed to mark translation profile as deleted");
+          }
       }
     });
     const onAcceptDelete = () => {
-      updateDeleted({variables: {translationcontainer_id: props.id, deleted: !props.deleted}})
+      updateDeleted({variables: {translationcontainer_id: service.id, deleted: !service.deleted}})
       setOpenDeleteDialog(false);
     }
   return (
-    <StyledCard className={classes.root} elevation={5}>
-        <FontAwesomeIcon icon={faLanguage} style={{width: "100px", height: "100px"}} />
-        <div>
-          <Typography variant="h4" component="h1" style={{textAlign:"left", marginLeft: "10px"}}>{props.name}</Typography>
-          <CardContent style={{textAlign:"left"}}>
-              <Typography variant="body1" component="p">
-                <b>Author:</b> {props.author}
-              </Typography>
-              <Typography variant="body1" component="p">
-                <b>Supported Agents:</b> {props.payloadtypes.filter(pt => !pt.deleted).map( (pt) => pt.name).join(", ")}
-              </Typography>
-              <Typography variant="body2" component="p">
-                <b>Description: </b>{props.description}
-              </Typography>
-              <Typography variant="body2" component="p" >
-                <b>Container Status: </b>
-              </Typography>
-              <Typography variant="body2" component="p" color={props.container_running ? theme.palette.success.main : theme.palette.error.main} >
-                <b>{props.container_running ? "Online" : "Offline"}</b>
-              </Typography>
-          </CardContent>
-        </div>
-        <div style={{display: "inline-flex", paddingRight: "10px", marginLeft: "auto", justifyContent: "space-evenly", alignItems: "stretch", flexDirection: "column", alignContent: "flex-end"}}>
-            <Button size="small" variant="contained" color="primary" href={"/docs/c2-profiles/" + props.name.toLowerCase()} target="_blank">
-              Docs
-            </Button>
-            {props.deleted ? (
-              <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" variant="contained"><RestoreFromTrashOutlinedIcon/> Restore</Button>
-            ) : (
-              <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/> Delete</Button>
-            )}
-            {openDelete && 
-              <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} 
-                open={openDelete} 
-                acceptText={props.deleted ? "Restore" : "Remove"} 
-                acceptColor={props.deleted ? "success": "error"} />
-            }
-        </div>
-    </StyledCard>
+
+        <TableRow hover>
+            <MythicTableCell>
+                {service.deleted ? (
+                    <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" variant="contained"><RestoreFromTrashOutlinedIcon/></IconButton>
+                ) : (
+                    <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/></IconButton>
+                )}
+                {openDelete &&
+                    <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete}
+                                         open={openDelete}
+                                         acceptText={service.deleted ? "Restore" : "Remove"}
+                                         acceptColor={service.deleted ? "success": "error"} />
+                }
+            </MythicTableCell>
+            <MythicTableCell>
+                <FontAwesomeIcon icon={faLanguage} style={{width: "80px", height: "80px"}} />
+            </MythicTableCell>
+            <MythicTableCell>
+                {service.name}
+            </MythicTableCell>
+            <MythicTableCell>
+                Translation
+            </MythicTableCell>
+            <MythicTableCell>
+                <Typography variant="body1" component="p">
+                    <b>Author:</b> {service.author}
+                </Typography>
+                <Typography variant="body1" component="p">
+                    <b>Supported Agents:</b> {service.payloadtypes.filter(pt => !pt.deleted).map( (pt) => pt.name).join(", ")}
+                </Typography>
+                <Typography variant="body2" component="p">
+                    <b>Description: </b>{service.description}
+                </Typography>
+            </MythicTableCell>
+            <MythicTableCell>
+                <Typography variant="body2" component="p" color={service.container_running ? theme.palette.success.main : theme.palette.error.main} >
+                    <b>{service.container_running ? "Online" : "Offline"}</b>
+                </Typography>
+            </MythicTableCell>
+            <MythicTableCell>
+                <IconButton
+                    color={"secondary"}
+                    href={"/docs/c2-profiles/" + service.name.toLowerCase()}
+                    target="_blank"
+                    size="large">
+                    <MenuBookIcon />
+                </IconButton>
+            </MythicTableCell>
+        </TableRow>
+
   );
 }

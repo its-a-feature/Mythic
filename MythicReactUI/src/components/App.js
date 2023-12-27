@@ -142,7 +142,7 @@ export function App(props) {
                 <ToastContainer limit={2} autoClose={3000}
                                 theme={themeMode}
                                 style={{maxWidth: "100%", minWidth: "40%", width: "40%", marginTop: "20px", display: "flex", flexWrap: "wrap",
-                                wordBreak: "break-all"}}
+                                wordBreak: "break-all", flexDirection: "column", justifyContent: "center"}}
                                 pauseOnFocusLoss={false} />
                     <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ minHeight: '56px', flexGrow: 0 }}>
