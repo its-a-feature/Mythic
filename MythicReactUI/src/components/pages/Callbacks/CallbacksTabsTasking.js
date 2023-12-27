@@ -12,6 +12,7 @@ import AutorenewIcon from '@mui/icons-material/Autorenew';
 import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import {taskingDataFragment, createTaskingMutation} from "./CallbackMutations";
+import { validate as uuidValidate } from 'uuid';
 
 
 export function CallbacksTabsTaskingLabel(props){
@@ -288,7 +289,21 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             onCreateTask({callback_id: tabInfo.displayID, command: cmd.cmd, params: params, parameter_group_name: "Default", tasking_location: newTaskingLocation});
         }else{
             // check if there's a "file" component that needs to be displayed
-            const fileParamExists = cmd.commandparameters.find(param => param.parameter_type === "File" && cmdGroupNames.includes(param.parameter_group_name));
+            const fileParamExists = cmd.commandparameters.find(param => {
+                if(param.parameter_type === "File" && cmdGroupNames.includes(param.parameter_group_name)){
+                    if(!(param.cli_name in parsed || param.name in parsed || param.display_name in parsed)){
+                        return true;
+                    }
+                    if(param.cli_name in parsed && uuidValidate(parsed[param.cli_name])){
+                        return false; // no need for a popup, already have a valid file specified
+                    } else if(param.name in parsed && uuidValidate(parsed[param.name])){
+                        return false;
+                    } else if(param.display_name in parsed && uuidValidate(parsed[param.display_name])){
+                        return false;
+                    }
+                }
+
+            });
             //console.log("missing File for group? ", fileParamExists, cmdGroupNames);
             let missingRequiredPrams = false;
             if(cmdGroupNames.length === 1){

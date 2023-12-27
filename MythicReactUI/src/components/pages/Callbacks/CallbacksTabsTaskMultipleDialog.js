@@ -6,8 +6,9 @@ import Grid from '@mui/material/Grid';
 import {useQuery, gql } from '@apollo/client';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import {CallbacksTabsTaskingInput} from "./CallbacksTabsTaskingInput";
-import {CallbacksTableIPCell, CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell} from "./CallbacksTableRow";
+import {CallbacksTableIPCell, CallbacksTableLastCheckinCell} from "./CallbacksTableRow";
 import { DataGrid } from '@mui/x-data-grid';
+import { validate as uuidValidate } from 'uuid';
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -103,7 +104,7 @@ const CustomSelectTable = ({initialData, selectedData}) => {
                         },
                     },
                     sorting: {
-                        sortModel: [{ field: 'last_checkin', sort: 'asc' }],
+                        sortModel: [{ field: 'display_id', sort: 'desc' }],
                     },
                 }}
                 autoPageSize
@@ -185,8 +186,21 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
             return;
         }else{
             // check if there's a "file" component that needs to be displayed
-            const fileParamExists = cmd.commandparameters.find(param => param.parameter_type === "File" && cmdGroupNames.includes(param.parameter_group_name));
-            //console.log("missing File for group? ", fileParamExists, cmdGroupNames);
+            const fileParamExists = cmd.commandparameters.find(param => {
+                if(param.parameter_type === "File" && cmdGroupNames.includes(param.parameter_group_name)){
+                    if(!(param.cli_name in parsed || param.name in parsed || param.display_name in parsed)){
+                        return true;
+                    }
+                    if(param.cli_name in parsed && uuidValidate(parsed[param.cli_name])){
+                        return false; // no need for a popup, already have a valid file specified
+                    } else if(param.name in parsed && uuidValidate(parsed[param.name])){
+                        return false;
+                    } else if(param.display_name in parsed && uuidValidate(parsed[param.display_name])){
+                        return false;
+                    }
+                }
+
+            });//console.log("missing File for group? ", fileParamExists, cmdGroupNames);
             let missingRequiredPrams = false;
             if(cmdGroupNames.length === 1){
                 const missingParams = cmd.commandparameters.filter(param => param.required && param.parameter_group_name === cmdGroupNames[0] && !(param.cli_name in parsed || param.name in parsed || param.display_name in parsed));
