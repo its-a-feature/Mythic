@@ -8,4 +8,4 @@ fi
 apt update
 
 # Install Docker and Docker Compose
-apt install docker docker-compose-plugin -y
+apt install docker.io docker-compose -y
