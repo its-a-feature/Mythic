@@ -5,6 +5,7 @@ import { CallbacksTabsTaskingLabel, CallbacksTabsTaskingPanel } from './Callback
 import { CallbacksTabsFileBrowserLabel, CallbacksTabsFileBrowserPanel } from './CallbacksTabsFileBrowser';
 import { CallbacksTabsProcessBrowserLabel, CallbacksTabsProcessBrowserPanel } from './CallbacksTabsProcessBrowser';
 import { CallbacksTabsTaskingSplitLabel, CallbacksTabsTaskingSplitPanel} from "./CallbacksTabsTaskingSplit";
+import {CallbacksTabsTaskingConsoleLabel, CallbacksTabsTaskingConsolePanel} from "./CallbacksTabsTaskingConsole";
 
 export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, onEditTabDescription, contextMenuOptions, me}) {
 
@@ -80,6 +81,19 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, o
                                         contextMenuOptions={contextMenuOptions}
                                     />
                                 )
+                            case 'interactConsole':
+                                return (
+                                    <CallbacksTabsTaskingConsoleLabel
+                                        onEditTabDescription={onEditTabDescription}
+                                        onCloseTab={onCloseTabLocal}
+                                        key={'tablabel' + tab.tabID + tab.tabType}
+                                        tabInfo={tab}
+                                        index={index}
+                                        me={me}
+                                        onDragTab={onDragTab}
+                                        contextMenuOptions={contextMenuOptions}
+                                    />
+                                )
                             case 'fileBrowser':
                                 return (
                                     <CallbacksTabsFileBrowserLabel
@@ -136,6 +150,24 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, o
                     case 'interactSplit':
                         return (
                             <CallbacksTabsTaskingSplitPanel
+                                style={{
+                                    position: 'relative',
+                                    height: '100%',
+                                    maxHeight: '100%',
+                                    overflow: 'auto',
+                                }}
+                                key={'tabpanel' + tab.tabID + tab.tabType}
+                                onCloseTab={onCloseTabLocal}
+                                tabInfo={tab}
+                                value={value}
+                                index={index}
+                                me={me}
+                                parentMountedRef={mountedRef}
+                            />
+                        );
+                    case 'interactConsole':
+                        return (
+                            <CallbacksTabsTaskingConsolePanel
                                 style={{
                                     position: 'relative',
                                     height: '100%',

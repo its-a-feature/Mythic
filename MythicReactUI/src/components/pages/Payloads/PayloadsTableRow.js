@@ -226,7 +226,7 @@ export function PayloadsTableRow(props){
                       }}
                     >
                       <Paper variant="outlined" className={"dropdownMenuColored"}>
-                        <ClickAwayListener onClickAway={handleClose}>
+                        <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
                           <MenuList id="split-button-menu"  >
                             {options.map((option, index) => (
                               <MenuItem

@@ -12,7 +12,7 @@ import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined';
 import Badge from '@mui/material/Badge';
 import {useTheme} from '@mui/material/styles';
 import {gql, useLazyQuery, useSubscription } from '@apollo/client';
-import {TaskDisplayContainer} from './TaskDisplayContainer';
+import {TaskDisplayContainer, TaskDisplayContainerConsole} from './TaskDisplayContainer';
 import {TagsDisplay} from '../../MythicComponents/MythicTag';
 import MultipleStopIcon from '@mui/icons-material/MultipleStop';
 import {taskingDataFragment} from './CallbackMutations';
@@ -210,6 +210,13 @@ function TaskDisplayFlatPreMemo({task, me, filterOptions, selectedTask, onSelect
   )
 }
 export const TaskDisplayFlat = React.memo(TaskDisplayFlatPreMemo);
+function TaskDisplayConsolePreMemo({task, me, filterOptions, newlyIssuedTasks}){
+  return (
+      <TaskRowConsole me={me} task={task} newlyIssuedTasks={newlyIssuedTasks} filterOptions={filterOptions}
+               indentLevel={0} />
+  );
+}
+export const TaskDisplayConsole = React.memo(TaskDisplayConsolePreMemo);
 const TaskStatusDisplay = ({task, theme}) => {
   if(task.status.toLowerCase().includes("error")){
     return (<Typography size="small" component="span" style={{padding: "0", color: theme.palette.error.main, marginLeft: "5%", display: "inline-block", fontSize: theme.typography.pxToRem(15)}}>{task.status.toLowerCase()}</Typography>)
@@ -516,6 +523,129 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
       )
   )
 }
+const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}) => {
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const [taskingData, setTaskingData] = React.useState([]);
+  const [shouldDisplay, setShouldDisplay] = React.useState(true);
+  useSubscription(getSubTaskingQuery, {
+    variables: {task_id: task.id},
+    onData:  ({data}) => {
+      //console.log(subscriptionData);
+      // need to merge in the tasking data
+      const newTaskingData = data.data.task_stream.reduce( (prev, cur) => {
+        for(let i = 0; i < prev.length; i++){
+          if(prev[i].id === cur.id){
+            prev[i] = {...cur}
+            return prev;
+          }
+        }
+        return [...prev, cur];
+      }, [...taskingData]);
+      newTaskingData.sort( (a,b) => a.id < b.id ? -1 : 1);
+      setTaskingData(newTaskingData);
+    }
+  });
+  useEffect( () => {
+    /*props.onSubmit({
+    "operatorsList": onlyOperators,
+    "commentsFlag": onlyHasComments,
+    "commandsList": onlyCommands,
+    "everythingButList": everythingBut,
+    "parameterString": onlyParameters,
+    "hideErrors": hideErrors
+  }); */
+    if(task.display_params.includes("help") && task.operator.username !== me.user.username){
+      setShouldDisplay(false);
+      return;
+    }
+    if(filterOptions === undefined){
+      if(!shouldDisplay){
+        setShouldDisplay(true);
+      }
+      return;
+    }
+    if(filterOptions["operatorsList"].length > 0){
+      if(!filterOptions["operatorsList"].includes(task.operator.username)){
+        if(shouldDisplay){
+          setShouldDisplay(false);
+        }
+        return;
+      }
+    }
+    if(filterOptions["commentsFlag"]){
+      if(task.comment === ""){
+        if(shouldDisplay){
+          setShouldDisplay(false);
+        }
+        return;
+      }
+    }
+    if(filterOptions["commandsList"].length > 0){
+      // only show these commands
+      if(!filterOptions["commandsList"].includes(task.command_name)){
+        if(shouldDisplay){
+          setShouldDisplay(false);
+        }
+        return;
+      }
+    }
+    if(filterOptions["everythingButList"].length > 0){
+      if(filterOptions["everythingButList"].includes(task.command_name)){
+        if(shouldDisplay){
+          setShouldDisplay(false);
+        }
+        return;
+      }
+    }
+    if(filterOptions["parameterString"] !== ""){
+      let regex = new RegExp(filterOptions["parameterString"]);
+      if(!regex.test(task.display_params)){
+        if(shouldDisplay){
+          setShouldDisplay(false);
+        }
+        return;
+      }
+    }
+    if(filterOptions["hideErrors"]){
+      if(task.status.includes("error")){
+        if(shouldDisplay){
+          setShouldDisplay(false);
+        }
+        return;
+      }
+    }
+    if(!shouldDisplay){
+      setShouldDisplay(true);
+    }
+  }, [filterOptions, task.comment, task.command, task.display_params, task.operator.username]);
+  const toggleTaskDropdown = React.useCallback( (event, expanded) => {
+    if(window.getSelection().toString() !== ""){
+      return;
+    }
+    setDropdownOpen(!dropdownOpen);
+  }, [dropdownOpen]);
+  /*
+  useEffect( () => {
+    if(!isFetchingSubtasks && task.tasks.length > 0){
+      getSubTasks();
+    }
+  }, [task.tasks]);
+  */
+  return (
+      shouldDisplay ? (
+          <div style={{marginLeft: (indentLevel * 10) + "px"}}>
+            <TaskLabelConsole me={me} task={task} newlyIssuedTasks={newlyIssuedTasks} />
+            {
+              taskingData.map( (tsk) => (
+                  <TaskRowConsole key={"taskrow: " + tsk.id} me={me} task={tsk}
+                           filterOptions={filterOptions} indentLevel={indentLevel+1}/>
+              ))
+            }
+          </div>
+
+      ) : null
+  )
+}
 const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks}) => {
   const [fromNow, setFromNow] = React.useState(new Date());
   const theme = useTheme();
@@ -675,7 +805,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
   const scrollContent = (node, isAppearing) => {
     // only auto-scroll if you issued the task
     if(task.operator.username === (me?.user?.username || "")){
-      document.getElementById(`scrolltotask${task.id}`).scrollIntoView({
+      document.getElementById(`scrolltotasksplit${task.id}`).scrollIntoView({
         //behavior: "smooth",
         block: "start",
         inline: "start"
@@ -685,19 +815,27 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
   }
   const preventPropagation = (e) => {
     e.stopPropagation();
-    e.preventDefault();
+    //e.preventDefault();
+  }
+  const onClickEntry = (e) => {
+    if(showOnSelectTask){
+      onSelectTask(e);
+    }
   }
 
   return(
-      <StyledPaper className={task.selected ? classes.root + " selectedTask no-box-shadow" : classes.root} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
-        <ColoredTaskDisplay task={task} theme={theme}  >
-              <div id={'scrolltotask' + task.id} style={{width: "100%"}}>
-                {displayComment ? (
-                    <React.Fragment>
-                      <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>{task.commentOperator.username}</Typography><br/>
-                      <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
-                    </React.Fragment>
-                ) : null}
+      <StyledPaper className={task.selected ? classes.root + " selectedTask no-box-shadow" : classes.root}
+                   elevation={5} style={{marginRight: 0, cursor: "pointer"}} id={`taskHeader-${task.id}`}
+                   onClick={onClickEntry}
+      >
+        <ColoredTaskDisplay task={task} theme={theme} >
+              <div id={'scrolltotasksplit' + task.id} style={{width: "100%"}}>
+                  {displayComment ? (
+                      <React.Fragment>
+                        <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>{task.commentOperator.username}</Typography><br/>
+                        <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
+                      </React.Fragment>
+                  ) : null}
                 <div >
                   <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
                     [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
@@ -709,6 +847,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
                   </Typography>
                   {!graphView && <TaskStatusDisplay task={task} theme={theme}/>}
                   {!graphView && <TaskTagDisplay task={task} />}
+
                 </div>
                 <div>
                   {task.comment !== "" && !graphView ? (
@@ -716,7 +855,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
                         <IconButton size="small" style={{padding: "0"}} color="primary" onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
                       </div>
                   ) : null}
-                  <div className={classes.column} onClick={preventPropagation}>
+                  <div className={classes.column} >
                     <Badge badgeContent={alertBadges} color="warning" anchorOrigin={{vertical: 'top', horizontal: 'left'}}>
                       <Typography className={classes.heading} >
                         {getLabelText(task, graphView)}
@@ -725,10 +864,86 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
                   </div>
                 </div>
               </div>
-          {showOnSelectTask && <IconButton onClick={onSelectTask} style={{display: "inline-block"}}>
-            <MultipleStopIcon />
-          </IconButton>}
+
             </ColoredTaskDisplay>
       </StyledPaper>
   )
+}
+const TaskLabelConsole = ({task, me}) => {
+  const theme = useTheme();
+  const [displayComment, setDisplayComment] = React.useState(false);
+  const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
+  const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() !== "false");
+
+  const localStorageInitialShowIPValue = localStorage.getItem(`${me?.user?.user_id || 0}-showIP`);
+  const initialShowIPValue = localStorageInitialShowIPValue === null ? false : (localStorageInitialShowIPValue.toLowerCase() !== "false");
+  const ipValue = JSON.parse(task.callback.ip)[0];
+  const localStorageInitialShowHostnameValue = localStorage.getItem(`${me?.user?.user_id || 0}-showHostname`);
+  const initialShowHostnameValue = localStorageInitialShowHostnameValue === null ? false : (localStorageInitialShowHostnameValue.toLowerCase() !== "false");
+
+  const localStorageInitialShowCallbackGroupsValue = localStorage.getItem(`${me?.user?.user_id || 0}-showCallbackGroups`);
+  const initialShowCallbackGroupsValue = localStorageInitialShowCallbackGroupsValue === null ? false : (localStorageInitialShowCallbackGroupsValue.toLowerCase() !== "false");
+
+  const toggleDisplayComment = (evt) => {
+    evt.stopPropagation();
+    setDisplayComment(!displayComment);
+  }
+  useLayoutEffect( () => {
+    if(task.operator.username === (me?.user?.username || "")){
+      scrollContent();
+    }
+  }, [])
+  const scrollContent = (node, isAppearing) => {
+    // only auto-scroll if you issued the task
+    if(task.operator.username === (me?.user?.username || "")){
+      document.getElementById(`scrolltotaskconsole${task.id}`).scrollIntoView({
+        //behavior: "smooth",
+        block: "start",
+        inline: "start"
+      })
+    }
+
+  }
+  const preventPropagation = (e) => {
+    e.stopPropagation();
+    //e.preventDefault();
+  }
+
+  return (
+      <StyledPaper className={classes.root + " no-box-shadow"} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
+            <ColoredTaskDisplay task={task} theme={theme}  >
+              <div id={'scrolltotaskconsole' + task.id} style={{width: "100%"}}>
+                {displayComment ? (
+                    <React.Fragment>
+                      <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>{task.commentOperator.username}</Typography><br/>
+                      <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
+                    </React.Fragment>
+                ) : null}
+                  <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
+                    [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
+                    / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username} `}
+                    / <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>{ task.callback.display_id}</Link>
+                    {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}
+                    {initialShowIPValue ? `/ ${ipValue} ` : ''}
+                    {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
+                  </Typography>
+                  <TaskStatusDisplay task={task} theme={theme}/>
+                  <TaskTagDisplay task={task} />
+                <div>
+                  {task.comment !== "" ? (
+                      <div className={classes.column}>
+                        <IconButton size="small" style={{padding: "0"}} color="primary" onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
+                      </div>
+                  ) : null}
+                  <div className={classes.column} onClick={preventPropagation}>
+                      <Typography className={classes.heading} >
+                        {(task?.command?.cmd || task.command_name) + " " + task.display_params}
+                      </Typography>
+                  </div>
+                </div>
+              </div>
+            </ColoredTaskDisplay>
+            <TaskDisplayContainerConsole me={me} task={task} />
+      </StyledPaper>
+  );
 }

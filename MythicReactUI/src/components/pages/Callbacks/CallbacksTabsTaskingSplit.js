@@ -16,6 +16,7 @@ import Split from 'react-split';
 import {TaskDisplayContainerFlat} from "./TaskDisplayContainer";
 import {DrawTaskElementsFlowWithProvider} from "./C2PathDialog";
 import {useTheme} from '@mui/material/styles';
+import { validate as uuidValidate } from 'uuid';
 
 
 export function CallbacksTabsTaskingSplitLabel(props){
@@ -299,8 +300,21 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             onCreateTask({callback_id: tabInfo.displayID, command: cmd.cmd, params: params, parameter_group_name: "Default", tasking_location: newTaskingLocation});
         }else{
             // check if there's a "file" component that needs to be displayed
-            const fileParamExists = cmd.commandparameters.find(param => param.parameter_type === "File" && cmdGroupNames.includes(param.parameter_group_name));
-            //console.log("missing File for group? ", fileParamExists, cmdGroupNames);
+            const fileParamExists = cmd.commandparameters.find(param => {
+                if(param.parameter_type === "File" && cmdGroupNames.includes(param.parameter_group_name)){
+                    if(!(param.cli_name in parsed || param.name in parsed || param.display_name in parsed)){
+                        return true;
+                    }
+                    if(param.cli_name in parsed && uuidValidate(parsed[param.cli_name])){
+                        return false; // no need for a popup, already have a valid file specified
+                    } else if(param.name in parsed && uuidValidate(parsed[param.name])){
+                        return false;
+                    } else if(param.display_name in parsed && uuidValidate(parsed[param.display_name])){
+                        return false;
+                    }
+                }
+
+            });//console.log("missing File for group? ", fileParamExists, cmdGroupNames);
             let missingRequiredPrams = false;
             if(cmdGroupNames.length === 1){
                 const missingParams = cmd.commandparameters.filter(param => param.required && param.parameter_group_name === cmdGroupNames[0] && !(param.cli_name in parsed || param.name in parsed || param.display_name in parsed));
@@ -408,7 +422,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                         {loadingMore && <LinearProgress color="info" thickness={2} style={{paddingTop: "5px"}}/>}
                         {
                             taskingData.task.map( (task) => (
-                            <TaskDisplayFlat key={"taskinteractdisplay" + task.id} me={me} task={task}
+                            <TaskDisplayFlat key={"taskinteractdisplaysplit" + task.id} me={me} task={task}
                                              command_id={task.command == null ? 0 : task.command.id}
                                              filterOptions={filterOptions}
                                              onSelectTask={(tsk) => {changeSelectedTask(tsk)}}

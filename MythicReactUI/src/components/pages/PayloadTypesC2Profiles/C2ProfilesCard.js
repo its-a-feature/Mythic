@@ -284,7 +284,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                                 }}
                             >
                                 <Paper className={"dropdownMenuColored"}>
-                                    <ClickAwayListener onClickAway={handleDropdownClose}>
+                                    <ClickAwayListener onClickAway={handleDropdownClose} mouseEvent={"onMouseDown"}>
                                         <MenuList id="split-button-menu">
                                             <MenuItem key={"dropdownprofile" + service.id + "menu1"} onClick={()=>{setOpenProfileConfigDialog(true);}}>View/Edit Config</MenuItem>
                                             {

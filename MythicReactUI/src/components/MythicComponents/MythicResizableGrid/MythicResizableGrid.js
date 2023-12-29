@@ -224,7 +224,7 @@ const ResizableGridWrapper = ({
                     rowHeight={getRowHeight}
                     itemData={{ items: itemsWithHeader, onDoubleClickRow, gridUUID, rowContextMenuOptions}}
                     innerElementType={innerElementType}
-                    overscanRowCount={0}
+                    overscanRowCount={5}
                     onScroll={({ scrollLeft }) => {
                         if (dragHandlesRef.current) {
                             dragHandlesRef.current.scrollTo({ left: scrollLeft });

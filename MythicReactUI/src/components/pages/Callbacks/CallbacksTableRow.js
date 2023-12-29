@@ -46,6 +46,7 @@ import Moment from 'react-moment';
 import moment from 'moment';
 import WidgetsIcon from '@mui/icons-material/Widgets';
 import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
+import TerminalIcon from '@mui/icons-material/Terminal';
 
 export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock, updateDescription, setOpenHideMultipleDialog, setOpenTaskMultipleDialog}) =>{
     const dropdownAnchorRef = React.useRef(null);
@@ -192,6 +193,11 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
                 evt.stopPropagation();
                 localOnOpenTab("interactSplit");
             }},
+        {name: "Console View", icon: <TerminalIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
+                evt.stopPropagation();
+                localOnOpenTab("interactConsole");
+            }
+        },
         {name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback', icon: rowDataStatic.locked ? (<LockOpenIcon style={{color: theme.successOnMain, paddingRight: "5px"}}/>) : (<LockIcon style={{color: theme.errorOnMain, paddingRight: "5px"}} />), click: (evt) => {
             evt.stopPropagation();
             localToggleLock();
@@ -246,7 +252,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, onOpenTab, toggleLock,
                     }}
                 >
                     <Paper className={"dropdownMenuColored"} elevation={5}>
-                    <ClickAwayListener onClickAway={handleClose}>
+                    <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
                         <MenuList id="split-button-menu">
                         {options.map((option, index) => (
                             <MenuItem

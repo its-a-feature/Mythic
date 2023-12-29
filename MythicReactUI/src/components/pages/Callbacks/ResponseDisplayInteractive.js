@@ -318,8 +318,8 @@ export const ResponseDisplayInteractive = (props) =>{
             <SearchBar onSubmitSearch={onSubmitSearch} />
         }
         <div style={{overflowY: "auto", width: "100%", flexGrow: 1}} ref={props.responseRef}>
-            {alloutput.map( (e) => (
-                <GetOutputFormat data={e} useASNIColor={useASNIColor} messagesEndRef={messagesEndRef}
+            {alloutput.map( (e, index) => (
+                <GetOutputFormat key={"getoutput" + index} data={e} useASNIColor={useASNIColor} messagesEndRef={messagesEndRef}
                                  showTaskStatus={showTaskStatus} wrapText={wrapText} />
             ))}
             <div ref={messagesEndRef}/>

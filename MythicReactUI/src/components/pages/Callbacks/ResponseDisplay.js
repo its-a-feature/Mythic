@@ -24,6 +24,19 @@ subscription subResponsesQuery($task_id: Int!, $fetchLimit: Int!) {
     is_error
   }
 }`;
+const subResponsesStream = gql`
+subscription subResponsesStream($task_id: Int!){
+  response_stream(
+    batch_size: 20,
+    cursor: {initial_value: {id: 0}},
+    where: {task_id: {_eq: $task_id} }
+  ){
+    id
+    response: response_text
+    timestamp
+  }
+}
+`;
 const getResponsesLazyQuery = gql`
 query subResponsesQuery($task_id: Int!, $fetchLimit: Int!, $offset: Int!, $search: String!) {
   response(where: {task_id: {_eq: $task_id}, response_escape: {_ilike: $search}}, limit: $fetchLimit, offset: $offset, order_by: {id: asc}) {
@@ -290,6 +303,68 @@ const NonInteractiveResponseDisplay = (props) => {
         </div>
         <PaginationBar selectAllOutput={props.selectAllOutput} totalCount={totalCount} pageSize={fetchLimit}
                        onSubmitPageChange={onSubmitPageChange} task={props.task} search={search} />
+      </React.Fragment>
+  )
+}
+export const ResponseDisplayConsole = (props) => {
+  const interactive = props?.task?.command?.supported_ui_features.includes("task_response:interactive") || false;
+  return (
+      interactive ? (
+          <ResponseDisplayInteractive {...props} />
+      ) : (
+          <NonInteractiveResponseDisplayConsole {...props} />
+      )
+  )
+}
+export const NonInteractiveResponseDisplayConsole = (props) => {
+  const [output, setOutput] = React.useState("");
+  const [rawResponses, setRawResponses] = React.useState([]);
+  const taskID = React.useRef(props.task.id);
+  const subscriptionDataCallback = React.useCallback( ({data}) => {
+    //console.log("fetchLimit", fetchLimit, "totalCount", totalCount);
+    if(props.task.id !== taskID.current){
+      taskID.current = props.task.id;
+      const responses = data.data.response_stream.reduce( (prev, cur) => {
+        return prev + b64DecodeUnicode(cur.response);
+      }, b64DecodeUnicode(""));
+      setOutput(responses);
+      const responseArray = data.data.response_stream.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
+      setRawResponses(responseArray);
+    } else {
+      const newerResponses = data.data.response_stream.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
+      newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
+      let outputResponses = output;
+      let rawResponseArray = [...rawResponses];
+      for(let i = 0; i < newerResponses.length; i++){
+          outputResponses += newerResponses[i]["response"];
+          rawResponseArray.push(newerResponses[i]);
+      }
+      //console.log("updated output", outputResponses)
+      setOutput(outputResponses);
+      setRawResponses(rawResponseArray);
+    }
+
+
+  }, [output, rawResponses, props.task.id]);
+  useSubscription(subResponsesStream, {
+    variables: {task_id: props.task.id},
+    fetchPolicy: "network_only",
+    onData: subscriptionDataCallback
+  });
+  const onSubmitSearch = React.useCallback( (newSearch) => {
+    snackActions.warning("Search not supported for console view");
+  }, []);
+
+  return (
+      <React.Fragment>
+        {props.searchOutput &&
+            <SearchBar onSubmitSearch={onSubmitSearch} />
+        }
+        <div style={{overflowY: "auto", width: "100%", height: props.expand ? "100%": undefined}} ref={props.responseRef}>
+          <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
+                                    output={output} command_id={props.command_id}
+                                    task={props.task} search={""} expand={props.expand}/>
+        </div>
       </React.Fragment>
   )
 }

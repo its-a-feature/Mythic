@@ -9,17 +9,16 @@ import Paper from '@mui/material/Paper';
 import {useTheme} from '@mui/material/styles';
 
 const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, data } }) => {
+    const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const rowClassName = data.gridUUID + "row" + rowIndex;
     const contextMenuOptions = data?.rowContextMenuOptions || [];
     const dropdownAnchorRef = React.useRef(null);
-    const theme = useTheme();
     const handleDoubleClick = useCallback(
         (e) => {
             data.onDoubleClickRow(e, rowIndex - 1); // minus 1 to account for header row
         },
         [data, rowIndex]
     );
-
     const item = data.items[rowIndex][columnIndex];
     const cellStyle = item?.props?.cellData?.cellStyle || {};
     const rowStyle = data.items[rowIndex][columnIndex]?.props?.rowData?.rowStyle || {};
@@ -39,7 +38,10 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
             }
         }
     }
-    const [openContextMenu, setOpenContextMenu] = React.useState(false);
+    const handleMenuItemClick = (event, index) => {
+        contextMenuOptions[index].click({event, columnIndex, rowIndex, data: data.items[rowIndex][columnIndex]?.props?.rowData || {}});
+        setOpenContextMenu(false);
+    };
     const handleContextClick = useCallback(
         (event) => {
             event.preventDefault();
@@ -47,25 +49,14 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
                 return;
             }
             if(contextMenuOptions && contextMenuOptions.length > 0){
-                
                 setOpenContextMenu(true);
             }
         },
-        [contextMenuOptions, columnIndex] // eslint-disable-line react-hooks/exhaustive-deps
+        [contextMenuOptions] // eslint-disable-line react-hooks/exhaustive-deps
     );
-    const handleMenuItemClick = (event, index) => {
-        contextMenuOptions[index].click({event, columnIndex, rowIndex, data: data.items[rowIndex][columnIndex]?.props?.rowData || {}});
-        setOpenContextMenu(false);
-    };
-    const handleClose = (event) => {
-        if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
-          return;
-        }
-        setOpenContextMenu(false);
-      };
     return (
         <div style={{...style, ...cellStyle, ...rowStyle}}
-            className={`${classes.cell} ${rowClassName}`} 
+            className={`${classes.cell} ${rowClassName}`}
             onDoubleClick={handleDoubleClick}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
@@ -75,34 +66,52 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
             <div className={classes.cellInner}>
                 {item}
             </div>
-            <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
-                {({ TransitionProps, placement }) => (
-                <Grow
-                    {...TransitionProps}
-                    style={{
-                    transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                    }}
-                >
-                    <Paper variant="outlined" style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
-                    <ClickAwayListener onClickAway={handleClose}>
-                        <MenuList id="split-button-menu"  >
-                        {contextMenuOptions.map((option, index) => (
-                            <MenuItem
-                            key={option.name + index}
-                            onClick={(event) => handleMenuItemClick(event, index)}
-                            >
-                            {option.name}
-                            </MenuItem>
-                        ))}
-                        </MenuList>
-                    </ClickAwayListener>
-                    </Paper>
-                </Grow>
-                )}
-            </Popper>
+            <ContextMenu dropdownAnchorRef={dropdownAnchorRef} contextMenuOptions={contextMenuOptions}
+                disableFilterMenu={item.disableFilterMenu} openContextMenu={openContextMenu}
+                         setOpenContextMenu={setOpenContextMenu} handleMenuItemClick={handleMenuItemClick}
+            />
         </div>
     );
 };
+const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOptions, setOpenContextMenu, handleMenuItemClick}) => {
+    const theme = useTheme();
+
+    const handleClose = (event) => {
+        if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
+            return;
+        }
+        setOpenContextMenu(false);
+    };
+
+    return (
+        openContextMenu &&
+        <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
+            {({ TransitionProps, placement }) => (
+                <Grow
+                    {...TransitionProps}
+                    style={{
+                        transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
+                    }}
+                >
+                    <Paper variant="outlined" style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                        <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+                            <MenuList id="split-button-menu"  >
+                                {contextMenuOptions.map((option, index) => (
+                                    <MenuItem
+                                        key={option.name + index}
+                                        onClick={(event) => handleMenuItemClick(event, index)}
+                                    >
+                                        {option.name}
+                                    </MenuItem>
+                                ))}
+                            </MenuList>
+                        </ClickAwayListener>
+                    </Paper>
+                </Grow>
+            )}
+        </Popper>
+    )
+}
 const Cell = React.memo(CellPreMemo);
 export default Cell;
 
