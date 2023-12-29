@@ -10,10 +10,11 @@ RUN go env -w GO111MODULE=${GO111MODULE}
 
 COPY ["src/", "."]
 
-RUN go mod download
-RUN go mod tidy
+RUN go mod download && go mod tidy && make build
+#RUN go mod tidy
 
-CMD ["/bin/bash", "-c", "make", "build"]
+
+#CMD ["/bin/bash", "-c", "make", "build"]
 
 FROM alpine
 
