@@ -69,6 +69,10 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"com.docker.network.bridge.name": "mythic_if",
 		})
 	}
+	volumes := map[string]interface{}{}
+	if curConfig.IsSet("volumes") {
+		volumes = curConfig.GetStringMap("volumes")
+	}
 
 	// adding or setting services in the docker-compose file
 	var pStruct map[string]interface{}
@@ -116,10 +120,19 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"start_period": "20s",
 		}
 		pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf"
-		pStruct["volumes"] = []string{
-			"./postgres-docker/database:/var/lib/postgresql/data",
-			"./postgres-docker/postgres.conf:/etc/postgresql.conf",
+		if mythicEnv.GetBool("postgres_bind_local_mount") {
+			pStruct["volumes"] = []string{
+				"./postgres-docker/database:/var/lib/postgresql/data",
+				"./postgres-docker/postgres.conf:/etc/postgresql.conf",
+			}
+		} else {
+			pStruct["volumes"] = []string{
+				"mythic_postgres/database:/var/lib/postgresql/data",
+				"mythic_postgres/postgres.conf:/etc/postgresql.conf",
+			}
+
 		}
+
 		if imageExists("mythic_postgres") {
 			if mythicEnv.GetBool("postgres_debug") {
 				pStruct["volumes"] = []string{
@@ -150,6 +163,9 @@ func addMythicServiceDockerComposeEntry(service string) {
 			pStruct["environment"] = updateEnvironmentVariables(curConfig.GetStringSlice("services."+strings.ToLower(service)+".environment"), environment)
 		} else {
 			pStruct["environment"] = environment
+		}
+		if _, ok := volumes["mythic_postgres"]; !ok {
+			volumes["mythic_postgres"] = ""
 		}
 	case "mythic_documentation":
 		pStruct["build"] = "./documentation-docker"
