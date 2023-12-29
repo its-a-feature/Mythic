@@ -1,5 +1,4 @@
-# Pulled from Thanatos (https://github.com/MythicAgents/thanatos/blob/rewrite/.github/workflows/image.yml)
-# MEhrn00
+# Pulled from Thanatos (https://github.com/MythicAgents/thanatos/blob/rewrite/.github/workflows/image.yml) - MEhrn00
 
 # Name for the Github actions workflow
 name: Build and push container images
