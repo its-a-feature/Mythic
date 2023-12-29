@@ -84,6 +84,9 @@ jobs:
             org.opencontainers.image.source=${{ env.SERVER_IMAGE_SOURCE }}
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
+          platforms: |-
+            linux/amd64
+            linux/arm64
 
       - name: Build and push the cli container image
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
@@ -98,6 +101,11 @@ jobs:
             org.opencontainers.image.source=${{ env.MYTHIC_CLI_IMAGE_SOURCE }}
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
+          platforms: |-
+            linux/amd64
+            linux/arm64
+            darwin/amd64
+            darwin/arm64
 
       # The Dockerfile which Mythic uses to pull in the base container image needs to be
       # updated to reference the newly built container image
