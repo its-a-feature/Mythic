@@ -33,7 +33,7 @@ env:
 
   # Set the container image version to the Github release tag
   #VERSION: ${{ github.event.release.tag_name }}
-  VERSION: ${{ github.event.head_commit.message }}
+  VERSION: ${{ github.event.head_commit.message }} 
 
   # Branch for pushing release changes (TODO: Change this to the main branch when the rewrite is finished)
   RELEASE_BRANCH: docker_updates
