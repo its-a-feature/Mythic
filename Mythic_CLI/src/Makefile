@@ -3,6 +3,8 @@ BINARY_NAME=mythic-cli
 export
 
 build:
+	go mod download
+	go mod tidy
 	go build -o ${BINARY_NAME} .
 	
 build_linux:
