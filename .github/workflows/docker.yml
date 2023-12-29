@@ -86,7 +86,9 @@ jobs:
         with:
           context: mythic-docker
           file: mythic-docker/.docker/Dockerfile
-          tags: ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:${{ env.VERSION }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:latest
           push: true
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
@@ -94,7 +96,7 @@ jobs:
             org.opencontainers.image.source=${{ env.SERVER_IMAGE_SOURCE }}
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
-          platforms: |-
+          platforms: |
             linux/amd64
             linux/arm64
 
@@ -103,7 +105,9 @@ jobs:
         with:
           context: Mythic_CLI
           file: Mythic_CLI/.docker/Dockerfile
-          tags: ${{ env.REGISTRY }}/${{ env.MYTHIC_CLI_IMAGE_NAME }}:${{ env.VERSION }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.MYTHIC_CLI_IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.MYTHIC_CLI_IMAGE_NAME }}:latest
           push: true
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
@@ -111,7 +115,7 @@ jobs:
             org.opencontainers.image.source=${{ env.MYTHIC_CLI_IMAGE_SOURCE }}
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
-          platforms: |-
+          platforms: |
             linux/amd64
             linux/arm64
 
