@@ -10,12 +10,9 @@ RUN go env -w GO111MODULE=${GO111MODULE}
 
 COPY ["src/", "."]
 
-RUN make build
-#RUN go mod tidy
-
-
-#CMD ["/bin/bash", "-c", "make", "build"]
+RUN make build_all
 
 FROM alpine
 
-COPY --from=0 /usr/src/app/mythic-cli /mythic-cli
+COPY --from=0 /usr/src/app/mythic-cli_linux /mythic-cli_linux
+COPY --from=0 /usr/src/app/mythic-cli_macos /mythic-cli_macos

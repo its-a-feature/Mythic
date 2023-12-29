@@ -62,6 +62,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # setup Docker build action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: 'arm64,arm'
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
       # Container image names need to be lowercased. This changes the 'IMAGE_NAME'
       # variable to all lowercase letters
       - name: Lowercase the server container image name
@@ -104,8 +114,6 @@ jobs:
           platforms: |-
             linux/amd64
             linux/arm64
-            darwin/amd64
-            darwin/arm64
 
       # The Dockerfile which Mythic uses to pull in the base container image needs to be
       # updated to reference the newly built container image
