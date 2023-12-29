@@ -17,4 +17,4 @@ CMD ["/bin/bash", "-c", "make", "build"]
 
 FROM alpine
 
-COPY --from=0 /usr/src/app /mythic-cli
+COPY --from=0 /usr/src/app/mythic-cli /mythic-cli
