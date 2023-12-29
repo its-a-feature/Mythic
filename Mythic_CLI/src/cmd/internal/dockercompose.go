@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -670,87 +671,89 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 			"com.docker.network.bridge.name": "mythic_if",
 		})
 	}
-	if absPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder, service)); err != nil {
+	absPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder, service))
+	if err != nil {
 		fmt.Printf("[-] Failed to get the absolute path to the %s folder, does the folder exist?\n", InstalledServicesFolder)
 		fmt.Printf("[*] If the service doesn't exist, you might need to install with 'mythic-cli install'\n")
 		os.Exit(1)
-	} else if !dirExists(absPath) {
+	}
+	if !dirExists(absPath) {
 		fmt.Printf("[-] %s does not exist, not adding to Mythic\n", absPath)
 		os.Exit(1)
-	} else {
-		pStruct := map[string]interface{}{
-			"labels": map[string]string{
-				"name": service,
-			},
-			"image":    strings.ToLower(service),
-			"hostname": service,
-			"logging": map[string]interface{}{
-				"driver": "json-file",
-				"options": map[string]string{
-					"max-file": "1",
-					"max-size": "10m",
-				},
-			},
-			"restart": "always",
-			"volumes": []string{
-				absPath + ":/Mythic/",
-			},
-			"container_name": strings.ToLower(service),
-			//"networks": []string{
-			//	"default_network",
-			//},
-			"cpus": mythicEnv.GetInt("INSTALLED_SERVICE_CPUS"),
-		}
-		if mythicEnv.GetString("installed_service_mem_limit") != "" {
-			pStruct["mem_limit"] = mythicEnv.GetString("installed_service_mem_limit")
-		}
-		for key, element := range additionalConfigs {
-			pStruct[key] = element
-		}
-		pStruct["build"] = map[string]interface{}{
-			"context": absPath,
-			"args":    buildArguments,
-		}
-		pStruct["network_mode"] = "host"
-		pStruct["extra_hosts"] = []string{
-			"mythic_server:127.0.0.1",
-			"mythic_rabbitmq:127.0.0.1",
-		}
-		environment := []string{
-			"MYTHIC_ADDRESS=http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/agent_message",
-			"MYTHIC_WEBSOCKET=ws://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/ws/agent_message",
-			"RABBITMQ_USER=${RABBITMQ_USER}",
-			"RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}",
-			"RABBITMQ_PORT=${RABBITMQ_PORT}",
-			"RABBITMQ_HOST=${RABBITMQ_HOST}",
-			"MYTHIC_SERVER_HOST=${MYTHIC_SERVER_HOST}",
-			"MYTHIC_SERVER_PORT=${MYTHIC_SERVER_PORT}",
-			"MYTHIC_SERVER_GRPC_PORT=${MYTHIC_SERVER_GRPC_PORT}",
-			"WEBHOOK_DEFAULT_URL=${WEBHOOK_DEFAULT_URL}",
-			"WEBHOOK_DEFAULT_CALLBACK_CHANNEL=${WEBHOOK_DEFAULT_CALLBACK_CHANNEL}",
-			"WEBHOOK_DEFAULT_FEEDBACK_CHANNEL=${WEBHOOK_DEFAULT_FEEDBACK_CHANNEL}",
-			"WEBHOOK_DEFAULT_STARTUP_CHANNEL=${WEBHOOK_DEFAULT_STARTUP_CHANNEL}",
-			"WEBHOOK_DEFAULT_ALERT_CHANNEL=${WEBHOOK_DEFAULT_ALERT_CHANNEL}",
-			"WEBHOOK_DEFAULT_CUSTOM_CHANNEL=${WEBHOOK_DEFAULT_CUSTOM_CHANNEL}",
-			"DEBUG_LEVEL=${DEBUG_LEVEL}",
-		}
-		if _, ok := pStruct["environment"]; ok {
-			pStruct["environment"] = updateEnvironmentVariables(curConfig.GetStringSlice("services."+strings.ToLower(service)+".environment"), environment)
-		} else {
-			pStruct["environment"] = environment
-		}
-		curConfig.Set("services."+strings.ToLower(service), pStruct)
-		if !curConfig.IsSet("networks") {
-			curConfig.Set("networks", networkInfo)
-		} else {
-			curConfig.Set("networks.default_network.driver_opts", map[string]string{
-				"com.docker.network.bridge.name": "mythic_if",
-			})
-		}
-		curConfig.Set("version", "2.4")
-		curConfig.WriteConfig()
-		fmt.Println("[+] Successfully updated docker-compose.yml")
 	}
+	pStruct := map[string]interface{}{
+		"labels": map[string]string{
+			"name": service,
+		},
+		"image":    strings.ToLower(service),
+		"hostname": service,
+		"logging": map[string]interface{}{
+			"driver": "json-file",
+			"options": map[string]string{
+				"max-file": "1",
+				"max-size": "10m",
+			},
+		},
+		"restart":        "always",
+		"container_name": strings.ToLower(service),
+		"cpus":           mythicEnv.GetInt("INSTALLED_SERVICE_CPUS"),
+	}
+	if mythicEnv.GetString("installed_service_mem_limit") != "" {
+		pStruct["mem_limit"] = mythicEnv.GetString("installed_service_mem_limit")
+	}
+	for key, element := range additionalConfigs {
+		pStruct[key] = element
+	}
+	pStruct["build"] = map[string]interface{}{
+		"context": absPath,
+		"args":    buildArguments,
+	}
+	pStruct["network_mode"] = "host"
+	pStruct["extra_hosts"] = []string{
+		"mythic_server:127.0.0.1",
+		"mythic_rabbitmq:127.0.0.1",
+	}
+	environment := []string{
+		"MYTHIC_ADDRESS=http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/agent_message",
+		"MYTHIC_WEBSOCKET=ws://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/ws/agent_message",
+		"RABBITMQ_USER=${RABBITMQ_USER}",
+		"RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}",
+		"RABBITMQ_PORT=${RABBITMQ_PORT}",
+		"RABBITMQ_HOST=${RABBITMQ_HOST}",
+		"MYTHIC_SERVER_HOST=${MYTHIC_SERVER_HOST}",
+		"MYTHIC_SERVER_PORT=${MYTHIC_SERVER_PORT}",
+		"MYTHIC_SERVER_GRPC_PORT=${MYTHIC_SERVER_GRPC_PORT}",
+		"WEBHOOK_DEFAULT_URL=${WEBHOOK_DEFAULT_URL}",
+		"WEBHOOK_DEFAULT_CALLBACK_CHANNEL=${WEBHOOK_DEFAULT_CALLBACK_CHANNEL}",
+		"WEBHOOK_DEFAULT_FEEDBACK_CHANNEL=${WEBHOOK_DEFAULT_FEEDBACK_CHANNEL}",
+		"WEBHOOK_DEFAULT_STARTUP_CHANNEL=${WEBHOOK_DEFAULT_STARTUP_CHANNEL}",
+		"WEBHOOK_DEFAULT_ALERT_CHANNEL=${WEBHOOK_DEFAULT_ALERT_CHANNEL}",
+		"WEBHOOK_DEFAULT_CUSTOM_CHANNEL=${WEBHOOK_DEFAULT_CUSTOM_CHANNEL}",
+		"DEBUG_LEVEL=${DEBUG_LEVEL}",
+	}
+	if _, ok := pStruct["environment"]; ok {
+		pStruct["environment"] = updateEnvironmentVariables(curConfig.GetStringSlice("services."+strings.ToLower(service)+".environment"), environment)
+	} else {
+		pStruct["environment"] = environment
+	}
+	// only add in volumes if some aren't already listed
+	if _, ok := pStruct["volumes"]; !ok {
+		pStruct["volumes"] = []string{
+			absPath + ":/Mythic/",
+		}
+	}
+	curConfig.Set("services."+strings.ToLower(service), pStruct)
+	if !curConfig.IsSet("networks") {
+		curConfig.Set("networks", networkInfo)
+	} else {
+		curConfig.Set("networks.default_network.driver_opts", map[string]string{
+			"com.docker.network.bridge.name": "mythic_if",
+		})
+	}
+	curConfig.Set("version", "2.4")
+	curConfig.WriteConfig()
+	fmt.Println("[+] Successfully updated docker-compose.yml")
+
 	return nil
 }
 func RemoveDockerComposeEntry(service string) error {
@@ -831,20 +834,25 @@ func runDockerCompose(args []string) error {
 
 	stdoutScanner := bufio.NewScanner(stdout)
 	stderrScanner := bufio.NewScanner(stderr)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
 	go func() {
 		for stdoutScanner.Scan() {
 			fmt.Printf("%s\n", stdoutScanner.Text())
 		}
+		wg.Done()
 	}()
 	go func() {
 		for stderrScanner.Scan() {
 			fmt.Printf("%s\n", stderrScanner.Text())
 		}
+		wg.Done()
 	}()
 	err = command.Start()
 	if err != nil {
 		log.Fatalf("[-] Error trying to start docker-compose: %v\n", err)
 	}
+	wg.Wait()
 	err = command.Wait()
 	if err != nil {
 		fmt.Printf("[-] Error from docker-compose: %v\n", err)
@@ -854,47 +862,55 @@ func runDockerCompose(args []string) error {
 	return nil
 }
 func runDocker(args []string) (string, error) {
-	if lookPath, err := exec.LookPath("docker"); err != nil {
+	lookPath, err := exec.LookPath("docker")
+	if err != nil {
 		log.Fatalf("[-] docker is not installed or available in the current PATH\n")
-	} else if exe, err := os.Executable(); err != nil {
-		log.Fatalf("[-] Failed to get lookPath to current executable\n")
-	} else {
-		exePath := filepath.Dir(exe)
-		command := exec.Command(lookPath, args...)
-		command.Dir = exePath
-		command.Env = getMythicEnvList()
-		stdout, err := command.StdoutPipe()
-		if err != nil {
-			log.Fatalf("[-] Failed to get stdout pipe for running docker-compose\n")
-		}
-		stderr, err := command.StderrPipe()
-		if err != nil {
-			log.Fatalf("[-] Failed to get stderr pipe for running docker-compose\n")
-		}
-		stdoutScanner := bufio.NewScanner(stdout)
-		stderrScanner := bufio.NewScanner(stderr)
-		outputString := ""
-		go func() {
-			for stdoutScanner.Scan() {
-				outputString += stdoutScanner.Text()
-			}
-		}()
-		go func() {
-			for stderrScanner.Scan() {
-				fmt.Printf("%s\n", stderrScanner.Text())
-			}
-		}()
-		if err = command.Start(); err != nil {
-			log.Fatalf("[-] Error trying to start docker: %v\n", err)
-		} else if err = command.Wait(); err != nil {
-			fmt.Printf("[-] Error from docker: %v\n", err)
-			fmt.Printf("[*] Docker command: %v\n", args)
-			return "", err
-		} else {
-			return outputString, nil
-		}
 	}
-	return "", nil
+	exe, err := os.Executable()
+	if err != nil {
+		log.Fatalf("[-] Failed to get lookPath to current executable\n")
+	}
+	exePath := filepath.Dir(exe)
+	command := exec.Command(lookPath, args...)
+	command.Dir = exePath
+	command.Env = getMythicEnvList()
+	stdout, err := command.StdoutPipe()
+	if err != nil {
+		log.Fatalf("[-] Failed to get stdout pipe for running docker-compose\n")
+	}
+	stderr, err := command.StderrPipe()
+	if err != nil {
+		log.Fatalf("[-] Failed to get stderr pipe for running docker-compose\n")
+	}
+	stdoutScanner := bufio.NewScanner(stdout)
+	stderrScanner := bufio.NewScanner(stderr)
+	outputString := ""
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		for stdoutScanner.Scan() {
+			outputString += stdoutScanner.Text()
+		}
+		wg.Done()
+	}()
+	go func() {
+		for stderrScanner.Scan() {
+			fmt.Printf("%s\n", stderrScanner.Text())
+		}
+		wg.Done()
+	}()
+	err = command.Start()
+	if err != nil {
+		log.Fatalf("[-] Error trying to start docker: %v\n", err)
+	}
+	wg.Wait()
+	err = command.Wait()
+	if err != nil {
+		fmt.Printf("[-] Error from docker: %v\n", err)
+		fmt.Printf("[*] Docker command: %v\n", args)
+		return "", err
+	}
+	return outputString, nil
 }
 func GetAllExistingNonMythicServiceNames() ([]string, error) {
 	// get all services that exist within the loaded config
