@@ -37,7 +37,7 @@ env:
   VERSION: ${{ github.event.head_commit.message }}
 
   # Branch for pushing release changes (TODO: Change this to the main branch when the rewrite is finished)
-  #RELEASE_BRANCH: rewrite
+  RELEASE_BRANCH: docker_updates
 
 jobs:
   # Builds the base container image and pushes it to the container registry
