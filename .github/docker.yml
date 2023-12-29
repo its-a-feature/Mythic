@@ -1,0 +1,140 @@
+# Pulled from Thanatos (https://github.com/MythicAgents/thanatos/blob/rewrite/.github/workflows/image.yml)
+# MEhrn00
+
+# Name for the Github actions workflow
+name: Build and push container images
+
+on:
+  # Only run workflow when there is a new release published in Github
+  #release:
+  #  types: [published]
+  push:
+    branches:
+      - 'docker_updates'
+
+# Variables holding configuration settings
+env:
+  # Container registry the built container image will be pushed to
+  REGISTRY: ghcr.io
+
+  # Set the container image name to the Github repository name. (its-a-feature/Mythic)
+  SERVER_IMAGE_NAME: ${{ github.repository }}_server
+  MYTHIC_CLI_IMAGE_NAME: ${{ github.repository }}_cli
+
+  # Description label for the package in Github
+  IMAGE_DESCRIPTION: "test containers for Mythic development, do not use!"
+
+  # Source URL for the package in Github. This links the Github repository packages list
+  # to this container image
+  SERVER_IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+  MYTHIC_CLI_IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+
+  # License for the container image
+  IMAGE_LICENSE: BSD-3-Clause
+
+  # Set the container image version to the Github release tag
+  #VERSION: ${{ github.event.release.tag_name }}
+  VERSION: ${{ github.event.head_commit.message }}
+
+  # Branch for pushing release changes (TODO: Change this to the main branch when the rewrite is finished)
+  #RELEASE_BRANCH: rewrite
+
+jobs:
+  # Builds the base container image and pushes it to the container registry
+  build-and-push-image:
+    runs-on: ubuntu-latest
+
+    # Provision an ephemeral Github token for the workflow which is capable of pushing
+    # Github packages and pushing code
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      # Pull in the repository code
+      - name: Checkout the repository
+        uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+
+      # Log in to the configured container registry using the ephemeral Github token
+      - name: Log in to the container registry
+        uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Container image names need to be lowercased. This changes the 'IMAGE_NAME'
+      # variable to all lowercase letters
+      - name: Lowercase the server container image name
+        run: echo "SERVER_IMAGE_NAME=${SERVER_IMAGE_NAME,,}" >> ${GITHUB_ENV}
+
+      - name: Lowercase the cli container image name
+        run: echo "MYTHIC_CLI_IMAGE_NAME=${MYTHIC_CLI_IMAGE_NAME,,}" >> ${GITHUB_ENV}
+
+      # Build and push the server container image with the specified tag and labels
+      - name: Build and push the server container image
+        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        with:
+          context: mythic-docker
+          file: mythic-docker/.docker/Dockerfile
+          tags: ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:${{ env.VERSION }}
+          push: true
+          # These container metadata labels allow configuring the package in Github
+          # packages. The source will link the package to this Github repository
+          labels: |
+            org.opencontainers.image.source=${{ env.SERVER_IMAGE_SOURCE }}
+            org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
+            org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
+
+      - name: Build and push the cli container image
+        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        with:
+          context: Mythic_CLI
+          file: Mythic_CLI/.docker/Dockerfile
+          tags: ${{ env.REGISTRY }}/${{ env.MYTHIC_CLI_IMAGE_NAME }}:${{ env.VERSION }}
+          push: true
+          # These container metadata labels allow configuring the package in Github
+          # packages. The source will link the package to this Github repository
+          labels: |
+            org.opencontainers.image.source=${{ env.MYTHIC_CLI_IMAGE_SOURCE }}
+            org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
+            org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
+
+      # The Dockerfile which Mythic uses to pull in the base container image needs to be
+      # updated to reference the newly built container image
+      - name: Fix the server Dockerfile reference to reference the new release tag
+        working-directory: mythic-docker
+        run: |
+          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${SERVER_IMAGE_NAME}:${VERSION}|" Dockerfile
+
+      - name: Fix the cli Dockerfile reference to reference the new release tag
+        working-directory: Mythic_CLI
+        run: |
+          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_CLI_IMAGE_NAME}:${VERSION}|" Dockerfile
+
+      # Push the changes to the Dockerfile
+      - name: Push the updated base Dockerfile image reference changes
+        uses: EndBug/add-and-commit@v9 # ref: https://github.com/marketplace/actions/add-commit
+        with:
+          # Only add the Dockerfile changes. Nothing else should have been modified
+          add:
+          - mythic-docker/Dockerfile
+          - Mythic_CLI/Dockerfile
+          # Use the Github actions bot for the commit author
+          default_author: github_actions
+          committer_email: github-actions[bot]@users.noreply.github.com
+
+          # Set the commit message
+          message: "Bump Mythic Dockerfile tag to match release '${{ env.VERSION }}'"
+
+          # Overwrite the current git tag with the new changes
+          #tag: '${{ env.VERSION }} --force'
+
+          # Push the new changes with the tag overwriting the current one
+          #tag_push: '--force'
+
+          # Push the commits to the branch marked as the release branch
+          push: origin HEAD:${{ env.RELEASE_BRANCH }} --set-upstream
+
+          # Have the workflow fail in case there are pathspec issues
+          pathspec_error_handling: exitImmediately
