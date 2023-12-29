@@ -10,7 +10,7 @@ RUN go env -w GO111MODULE=${GO111MODULE}
 
 COPY ["src/", "."]
 
-RUN go mod download && go mod tidy && make build
+RUN make build
 #RUN go mod tidy
 
 
