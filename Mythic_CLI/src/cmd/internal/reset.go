@@ -10,14 +10,23 @@ import (
 func DatabaseReset() {
 	fmt.Printf("[*] Stopping Mythic\n")
 	DockerStop([]string{})
+	DockerRemoveContainers([]string{"mythic_postgres"})
 	workingPath := getCwdFromExe()
 	fmt.Printf("[*] Removing database files\n")
-	err := os.RemoveAll(filepath.Join(workingPath, "postgres-docker", "database"))
-	if err != nil {
-		fmt.Printf("[-] Failed to remove database files\n")
+	if mythicEnv.GetBool("postgres_bind_local_mount") {
+		err := os.RemoveAll(filepath.Join(workingPath, "postgres-docker", "database"))
+		if err != nil {
+			fmt.Printf("[-] Failed to remove database files\n%v\n", err)
+		} else {
+			fmt.Printf("[+] Successfully reset datbase files\n")
+		}
 	} else {
-		fmt.Printf("[+] Successfully reset datbase files\n")
+		err := DockerRemoveVolume("mythic_postgres_volume")
+		if err != nil {
+			fmt.Printf("[-] Failed to remove database:\n%v\n", err)
+		}
 	}
+
 }
 func RabbitmqReset(explicitCall bool) {
 	if explicitCall {

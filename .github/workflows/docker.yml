@@ -20,6 +20,7 @@ env:
   MYTHIC_SERVER_IMAGE_NAME: ${{ github.repository }}_server
   MYTHIC_CLI_IMAGE_NAME: ${{ github.repository }}_cli
   MYTHIC_POSTGRES_IMAGE_NAME: ${{ github.repository }}_postgres
+  MYTHIC_RABBITMQ_IMAGE_NAME: ${{ github.repository }}_postgres
 
   # Description label for the package in Github
   IMAGE_DESCRIPTION: "test containers for Mythic development, do not use!"
@@ -29,6 +30,7 @@ env:
   MYTHIC_SERVER_IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
   MYTHIC_CLI_IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
   MYTHIC_POSTGRES_IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+  MYTHIC_RABBITMQ_IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
 
   # License for the container image
   IMAGE_LICENSE: BSD-3-Clause
@@ -85,6 +87,9 @@ jobs:
       - name: Lowercase the postgres container image name
         run: echo "MYTHIC_POSTGRES_IMAGE_NAME=${MYTHIC_POSTGRES_IMAGE_NAME,,}" >> ${GITHUB_ENV}
 
+      - name: Lowercase the rabbitmq container image name
+        run: echo "MYTHIC_RABBITMQ_IMAGE_NAME=${MYTHIC_RABBITMQ_IMAGE_NAME,,}" >> ${GITHUB_ENV}
+
       # Build and push the server container image with the specified tag and labels
       - name: Build and push the server container image
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
@@ -137,6 +142,22 @@ jobs:
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
           platforms: linux/amd64,linux/arm64
 
+      - name: Build and push the rabbitmq container image
+        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        with:
+          context: rabbitmq-docker
+          file: rabbitmq-docker/.docker/Dockerfile
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.MYTHIC_RABBITMQ_IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.MYTHIC_RABBITMQ_IMAGE_NAME }}:latest
+          push: true
+          # These container metadata labels allow configuring the package in Github
+          # packages. The source will link the package to this Github repository
+          labels: |
+            org.opencontainers.image.source=${{ env.MYTHIC_RABBITMQ_IMAGE_SOURCE }}
+            org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
+            org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
+          platforms: linux/amd64,linux/arm64
       # The Dockerfile which Mythic uses to pull in the base container image needs to be
       # updated to reference the newly built container image
       - name: Fix the server Dockerfile reference to reference the new release tag
@@ -153,6 +174,11 @@ jobs:
         working-directory: postgres-docker
         run: |
           sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_POSTGRES_IMAGE_NAME}:${VERSION}|" Dockerfile
+
+      - name: Fix the rabbitmq Dockerfile reference to reference the new release tag
+        working-directory: rabbitmq-docker
+        run: |
+          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_RABBITMQ_IMAGE_NAME}:${VERSION}|" Dockerfile
 
       # Push the changes to the Dockerfile
       - name: Push the updated base Dockerfile image reference changes

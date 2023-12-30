@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"io"
 	"log"
@@ -231,7 +232,11 @@ func DockerStart(containers []string) error {
 				}
 			}
 		}
-		DockerRemoveImages()
+		err = DockerRemoveImages()
+		if err != nil {
+			fmt.Printf("[-] Failed to remove images\n%v\n", err)
+			return err
+		}
 		TestMythicRabbitmqConnection()
 		TestMythicConnection()
 		Status(false)
@@ -275,10 +280,14 @@ func DockerBuild(containers []string) error {
 		}
 		if err := runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, containers...)); err != nil {
 			return err
-		} else if err := runDockerCompose(append([]string{"up", "--build", "-d"}, containers...)); err != nil {
+		} else if err = runDockerCompose(append([]string{"up", "--build", "-d"}, containers...)); err != nil {
 			return err
 		}
-		DockerRemoveImages()
+		err := DockerRemoveImages()
+		if err != nil {
+			fmt.Printf("[-] Failed to remove images\n%v\n", err)
+			return err
+		}
 		return nil
 	}
 }
@@ -286,7 +295,7 @@ func DockerRemoveImages() error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer cli.Close()
 
@@ -302,6 +311,27 @@ func DockerRemoveImages() error {
 				Force:         true,
 				PruneChildren: true,
 			})
+		}
+	}
+	return nil
+}
+func DockerRemoveVolume(volumeName string) error {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	defer cli.Close()
+	volumes, err := cli.VolumeList(ctx, volume.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, currentVolume := range volumes.Volumes {
+		if currentVolume.Name == volumeName {
+			err = cli.VolumeRemove(ctx, currentVolume.Name, true)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
