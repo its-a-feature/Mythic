@@ -20,7 +20,7 @@ env:
   MYTHIC_SERVER_IMAGE_NAME: ${{ github.repository }}_server
   MYTHIC_CLI_IMAGE_NAME: ${{ github.repository }}_cli
   MYTHIC_POSTGRES_IMAGE_NAME: ${{ github.repository }}_postgres
-  MYTHIC_RABBITMQ_IMAGE_NAME: ${{ github.repository }}_postgres
+  MYTHIC_RABBITMQ_IMAGE_NAME: ${{ github.repository }}_rabbitmq
 
   # Description label for the package in Github
   IMAGE_DESCRIPTION: "test containers for Mythic development, do not use!"
