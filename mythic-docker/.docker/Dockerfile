@@ -15,6 +15,7 @@ RUN make build_final
 FROM alpine
 
 COPY --from=0 /mythic_server /mythic_server
+COPY --from=0 /usr/src/app /usr/src/app
 
 WORKDIR /usr/src/app
 

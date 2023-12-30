@@ -460,9 +460,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 		if mythicEnv.GetString("mythic_server_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("mythic_server_mem_limit")
 		}
-		pStruct["volumes"] = []string{
-			"./mythic-docker/src:/usr/src/app",
-		}
+
 		pStruct["healthcheck"] = map[string]interface{}{
 			"test":         "wget -SqO - http://127.0.0.1:${MYTHIC_SERVER_PORT}/health",
 			"interval":     "60s",
@@ -518,6 +516,20 @@ func addMythicServiceDockerComposeEntry(service string) {
 			pStruct["environment"] = updateEnvironmentVariables(curConfig.GetStringSlice("services."+strings.ToLower(service)+".environment"), environment)
 		} else {
 			pStruct["environment"] = environment
+		}
+		if mythicEnv.GetBool("mythic_server_bind_local_mount") {
+			pStruct["volumes"] = []string{
+				"./mythic-docker/src:/usr/src/app",
+			}
+		} else {
+			pStruct["volumes"] = []string{
+				"mythic_server_volume:/usr/src/app",
+			}
+		}
+		if _, ok := volumes["mythic_server"]; !ok {
+			volumes["mythic_server_volume"] = map[string]interface{}{
+				"name": "mythic_server_volume",
+			}
 		}
 	case "mythic_sync":
 		if absPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder, service)); err != nil {

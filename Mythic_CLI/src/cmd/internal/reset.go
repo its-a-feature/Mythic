@@ -10,7 +10,6 @@ import (
 func DatabaseReset() {
 	fmt.Printf("[*] Stopping Mythic\n")
 	DockerStop([]string{})
-	DockerRemoveContainers([]string{"mythic_postgres"})
 	workingPath := getCwdFromExe()
 	fmt.Printf("[*] Removing database files\n")
 	if mythicEnv.GetBool("postgres_bind_local_mount") {
@@ -21,6 +20,7 @@ func DatabaseReset() {
 			fmt.Printf("[+] Successfully reset datbase files\n")
 		}
 	} else {
+		DockerRemoveContainers([]string{"mythic_postgres"})
 		err := DockerRemoveVolume("mythic_postgres_volume")
 		if err != nil {
 			fmt.Printf("[-] Failed to remove database:\n%v\n", err)
@@ -34,13 +34,21 @@ func RabbitmqReset(explicitCall bool) {
 		DockerStop([]string{})
 		fmt.Printf("[*] Removing rabbitmq files\n")
 	}
-	workingPath := getCwdFromExe()
-	err := os.RemoveAll(filepath.Join(workingPath, "rabbitmq-docker", "storage"))
-	if err != nil {
-		log.Fatalf("[-] Failed to reset rabbitmq files: %v\n", err)
+	if mythicEnv.GetBool("rabbitmq_bind_local_mount") {
+		workingPath := getCwdFromExe()
+		err := os.RemoveAll(filepath.Join(workingPath, "rabbitmq-docker", "storage"))
+		if err != nil {
+			log.Fatalf("[-] Failed to reset rabbitmq files: %v\n", err)
+		} else {
+			if explicitCall {
+				fmt.Printf("[+] Successfully reset rabbitmq files\n")
+			}
+		}
 	} else {
-		if explicitCall {
-			fmt.Printf("[+] Successfully reset rabbitmq files\n")
+		DockerRemoveContainers([]string{"mythic_rabbitmq"})
+		err := DockerRemoveVolume("mythic_rabbitmq_volume")
+		if err != nil {
+			fmt.Printf("[-] Failed to remove rabbitmq files:\n%v\n", err)
 		}
 	}
 }
