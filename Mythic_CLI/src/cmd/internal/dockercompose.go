@@ -61,7 +61,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			},
 		},
 	}
-	if !curConfig.IsSet("networks") {
+	if !curConfig.InConfig("networks") {
 		// don't blow away changes to the network configuration
 		curConfig.Set("networks", networkInfo)
 	} else {
@@ -70,14 +70,14 @@ func addMythicServiceDockerComposeEntry(service string) {
 		})
 	}
 	volumes := map[string]interface{}{}
-	if curConfig.IsSet("volumes") {
+	if curConfig.InConfig("volumes") {
 		volumes = curConfig.GetStringMap("volumes")
 	}
 
 	// adding or setting services in the docker-compose file
 	var pStruct map[string]interface{}
 
-	if curConfig.IsSet("services." + strings.ToLower(service)) {
+	if curConfig.InConfig("services." + strings.ToLower(service)) {
 		pStruct = curConfig.GetStringMap("services." + strings.ToLower(service))
 		delete(pStruct, "network_mode")
 		delete(pStruct, "extra_hosts")
@@ -127,8 +127,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			}
 		} else {
 			pStruct["volumes"] = []string{
-				"mythic_postgres/database:/var/lib/postgresql/data",
-				"mythic_postgres/postgres.conf:/etc/postgresql.conf",
+				"mythic_postgres_volume:/var/lib/postgresql/data",
 			}
 
 		}
@@ -165,7 +164,9 @@ func addMythicServiceDockerComposeEntry(service string) {
 			pStruct["environment"] = environment
 		}
 		if _, ok := volumes["mythic_postgres"]; !ok {
-			volumes["mythic_postgres"] = ""
+			volumes["mythic_postgres_volume"] = map[string]interface{}{
+				"name": "mythic_postgres_volume",
+			}
 		}
 	case "mythic_documentation":
 		pStruct["build"] = "./documentation-docker"
@@ -425,7 +426,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 		pStruct["environment"] = []string{
 			"JUPYTER_TOKEN=${JUPYTER_TOKEN}",
 		}
-		if curConfig.IsSet("services.mythic_jupyter.deploy") {
+		if curConfig.InConfig("services.mythic_jupyter.deploy") {
 			pStruct["deploy"] = curConfig.Get("services.mythic_jupyter.deploy")
 		}
 	case "mythic_server":
@@ -519,19 +520,19 @@ func addMythicServiceDockerComposeEntry(service string) {
 				"GHOSTWRITER_URL=${GHOSTWRITER_URL}",
 				"GHOSTWRITER_OPLOG_ID=${GHOSTWRITER_OPLOG_ID}",
 			}
-			if !mythicEnv.IsSet("GHOSTWRITER_API_KEY") {
+			if !mythicEnv.InConfig("GHOSTWRITER_API_KEY") {
 				key := askVariable("Please enter your GhostWriter API Key")
 				mythicEnv.Set("GHOSTWRITER_API_KEY", key)
 			}
-			if !mythicEnv.IsSet("GHOSTWRITER_URL") {
+			if !mythicEnv.InConfig("GHOSTWRITER_URL") {
 				url := askVariable("Please enter your GhostWriter URL")
 				mythicEnv.Set("GHOSTWRITER_URL", url)
 			}
-			if !mythicEnv.IsSet("GHOSTWRITER_OPLOG_ID") {
+			if !mythicEnv.InConfig("GHOSTWRITER_OPLOG_ID") {
 				gwID := askVariable("Please enter your GhostWriter OpLog ID")
 				mythicEnv.Set("GHOSTWRITER_OPLOG_ID", gwID)
 			}
-			if !mythicEnv.IsSet("MYTHIC_API_KEY") {
+			if !mythicEnv.InConfig("MYTHIC_API_KEY") {
 				mythicID := askVariable("Please enter your Mythic API Key (optional)")
 				mythicEnv.Set("MYTHIC_API_KEY", mythicID)
 			}
@@ -582,22 +583,28 @@ func addMythicServiceDockerComposeEntry(service string) {
 		}
 		pStruct["command"] = "--extend.query-path=/queries.yaml"
 	}
-	if !curConfig.IsSet("services." + strings.ToLower(service)) {
+	if !curConfig.InConfig("services." + strings.ToLower(service)) {
 		curConfig.Set("services."+strings.ToLower(service), pStruct)
 		fmt.Printf("[+] Added %s to docker-compose\n", strings.ToLower(service))
 	} else {
 		curConfig.Set("services."+strings.ToLower(service), pStruct)
 	}
 
-	if !curConfig.IsSet("networks") {
+	if !curConfig.InConfig("networks") {
 		curConfig.Set("networks", networkInfo)
 	} else {
 		curConfig.Set("networks.default_network.driver_opts", map[string]string{
 			"com.docker.network.bridge.name": "mythic_if",
 		})
 	}
+	curConfig.Set("volumes", volumes)
 	curConfig.Set("version", "2.4")
-	curConfig.WriteConfig()
+	err := curConfig.WriteConfig()
+	if err != nil {
+		fmt.Printf("[-] Failed to update config: %v\n", err)
+	} else {
+		fmt.Println("[+] Successfully updated docker-compose.yml")
+	}
 }
 func removeMythicServiceDockerComposeEntry(service string) {
 	var curConfig = viper.New()
@@ -623,7 +630,7 @@ func removeMythicServiceDockerComposeEntry(service string) {
 			},
 		},
 	}
-	if !curConfig.IsSet("networks") {
+	if !curConfig.InConfig("networks") {
 		// don't blow away changes to the network configuration
 		curConfig.Set("networks", networkInfo)
 	} else {
@@ -635,7 +642,7 @@ func removeMythicServiceDockerComposeEntry(service string) {
 	if isServiceRunning(service) {
 		DockerStop([]string{strings.ToLower(service)})
 	}
-	if curConfig.IsSet("services." + strings.ToLower(service)) {
+	if curConfig.InConfig("services." + strings.ToLower(service)) {
 		delete(curConfig.Get("services").(map[string]interface{}), strings.ToLower(service))
 		if stringInSlice(service, []string{"mythic_grafana", "mythic_prometheus", "mythic_postgres_exporter"}) {
 			fmt.Printf("[+] Removed %s from docker-compose because postgres_debug is set to false\n", strings.ToLower(service))
@@ -644,7 +651,7 @@ func removeMythicServiceDockerComposeEntry(service string) {
 		}
 
 	}
-	if !curConfig.IsSet("networks") {
+	if !curConfig.InConfig("networks") {
 		curConfig.Set("networks", networkInfo)
 	} else {
 		curConfig.Set("networks.default_network.driver_opts", map[string]string{
@@ -652,7 +659,13 @@ func removeMythicServiceDockerComposeEntry(service string) {
 		})
 	}
 	curConfig.Set("version", "2.4")
-	curConfig.WriteConfig()
+	fmt.Printf("set volume: %v\n", curConfig.GetStringMap("volumes"))
+	err := curConfig.WriteConfig()
+	if err != nil {
+		fmt.Printf("[-] Failed to update config: %v\n", err)
+	} else {
+		fmt.Println("[+] Successfully updated docker-compose.yml")
+	}
 }
 
 func AddDockerComposeEntry(service string, additionalConfigs map[string]interface{}) error {
@@ -680,7 +693,7 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 			},
 		},
 	}
-	if !curConfig.IsSet("networks") {
+	if !curConfig.InConfig("networks") {
 		curConfig.Set("networks", networkInfo)
 	} else {
 		curConfig.Set("networks.default_network.driver_opts", map[string]string{
@@ -759,7 +772,7 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 		}
 	}
 	curConfig.Set("services."+strings.ToLower(service), pStruct)
-	if !curConfig.IsSet("networks") {
+	if !curConfig.InConfig("networks") {
 		curConfig.Set("networks", networkInfo)
 	} else {
 		curConfig.Set("networks.default_network.driver_opts", map[string]string{
@@ -767,8 +780,13 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 		})
 	}
 	curConfig.Set("version", "2.4")
-	curConfig.WriteConfig()
-	fmt.Println("[+] Successfully updated docker-compose.yml")
+	fmt.Printf("set volume: %v\n", curConfig.GetStringMap("volumes"))
+	err = curConfig.WriteConfig()
+	if err != nil {
+		fmt.Printf("[-] Failed to update config: %v\n", err)
+	} else {
+		fmt.Println("[+] Successfully updated docker-compose.yml")
+	}
 
 	return nil
 }
@@ -806,7 +824,7 @@ func RemoveDockerComposeEntry(service string) error {
 		fmt.Printf("[+] Removed %s from docker-compose\n", strings.ToLower(service))
 
 	}
-	if !curConfig.IsSet("networks") {
+	if !curConfig.InConfig("networks") {
 		curConfig.Set("networks", networkInfo)
 	} else {
 		curConfig.Set("networks.default_network.driver_opts", map[string]string{
@@ -814,8 +832,13 @@ func RemoveDockerComposeEntry(service string) error {
 		})
 	}
 	curConfig.Set("version", "2.4")
-	curConfig.WriteConfig()
-	fmt.Println("[+] Successfully updated docker-compose.yml")
+	fmt.Printf("set volume: %v\n", curConfig.GetStringMap("volumes"))
+	err := curConfig.WriteConfig()
+	if err != nil {
+		fmt.Printf("[-] Failed to update config: %v\n", err)
+	} else {
+		fmt.Println("[+] Successfully updated docker-compose.yml")
+	}
 	return nil
 }
 

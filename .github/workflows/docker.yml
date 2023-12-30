@@ -101,9 +101,7 @@ jobs:
             org.opencontainers.image.source=${{ env.MYTHIC_SERVER_IMAGE_SOURCE }}
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
-          platforms: |
-            linux/amd64
-            linux/arm64
+          platforms: linux/amd64,linux/arm64
 
       - name: Build and push the cli container image
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
@@ -120,9 +118,7 @@ jobs:
             org.opencontainers.image.source=${{ env.MYTHIC_CLI_IMAGE_SOURCE }}
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
-          platforms: |
-            linux/amd64
-            linux/arm64
+          platforms: linux/amd64,linux/arm64
 
       - name: Build and push the postgres container image
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
@@ -139,9 +135,7 @@ jobs:
             org.opencontainers.image.source=${{ env.MYTHIC_POSTGRES_IMAGE_SOURCE }}
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
-          platforms: |
-            linux/amd64
-            linux/arm64
+          platforms: linux/amd64,linux/arm64
 
       # The Dockerfile which Mythic uses to pull in the base container image needs to be
       # updated to reference the newly built container image
