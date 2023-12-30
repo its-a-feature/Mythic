@@ -49,26 +49,29 @@ func addMythicServiceDockerComposeEntry(service string) {
 			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
 		}
 	}
-	networkInfo := map[string]interface{}{
-		"default_network": map[string]interface{}{
-			"driver": "bridge",
-			"driver_opts": map[string]string{
+	/*
+		networkInfo := map[string]interface{}{
+			"default_network": map[string]interface{}{
+				"driver": "bridge",
+				"driver_opts": map[string]string{
+					"com.docker.network.bridge.name": "mythic_if",
+				},
+				"labels": []string{
+					"mythic_network",
+					"default_network",
+				},
+			},
+		}
+		if !curConfig.InConfig("networks") {
+			// don't blow away changes to the network configuration
+			curConfig.Set("networks", networkInfo)
+		} else {
+			curConfig.Set("networks.default_network.driver_opts", map[string]string{
 				"com.docker.network.bridge.name": "mythic_if",
-			},
-			"labels": []string{
-				"mythic_network",
-				"default_network",
-			},
-		},
-	}
-	if !curConfig.InConfig("networks") {
-		// don't blow away changes to the network configuration
-		curConfig.Set("networks", networkInfo)
-	} else {
-		curConfig.Set("networks.default_network.driver_opts", map[string]string{
-			"com.docker.network.bridge.name": "mythic_if",
-		})
-	}
+			})
+		}
+
+	*/
 	volumes := map[string]interface{}{}
 	if curConfig.InConfig("volumes") {
 		volumes = curConfig.GetStringMap("volumes")
@@ -82,9 +85,13 @@ func addMythicServiceDockerComposeEntry(service string) {
 		delete(pStruct, "network_mode")
 		delete(pStruct, "extra_hosts")
 		delete(pStruct, "build")
-		pStruct["networks"] = []string{
-			"default_network",
-		}
+		delete(pStruct, "networks")
+		/*
+			pStruct["networks"] = []string{
+				"default_network",
+			}
+
+		*/
 	} else {
 		pStruct = map[string]interface{}{
 			"logging": map[string]interface{}{
@@ -100,9 +107,12 @@ func addMythicServiceDockerComposeEntry(service string) {
 			},
 			"container_name": service,
 			"image":          service,
-			"networks": []string{
-				"default_network",
-			},
+			/*
+				"networks": []string{
+					"default_network",
+				},
+
+			*/
 		}
 	}
 
@@ -119,7 +129,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"retries":      5,
 			"start_period": "20s",
 		}
-		pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf"
+		pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgres.conf"
 		if mythicEnv.GetBool("postgres_bind_local_mount") {
 			pStruct["volumes"] = []string{
 				"./postgres-docker/database:/var/lib/postgresql/data",
@@ -354,11 +364,23 @@ func addMythicServiceDockerComposeEntry(service string) {
 			}
 		}
 		pStruct["environment"] = finalRabbitEnv
-		pStruct["volumes"] = []string{
-			"./rabbitmq-docker/storage:/var/lib/rabbitmq",
-			"./rabbitmq-docker/generate_config.sh:/generate_config.sh",
-			"./rabbitmq-docker/rabbitmq.conf:/tmp/base_rabbitmq.conf",
+		if mythicEnv.GetBool("rabbitmq_bind_local_mount") {
+			pStruct["volumes"] = []string{
+				"./rabbitmq-docker/storage:/var/lib/rabbitmq",
+				"./rabbitmq-docker/generate_config.sh:/generate_config.sh",
+				"./rabbitmq-docker/rabbitmq.conf:/tmp/base_rabbitmq.conf",
+			}
+		} else {
+			pStruct["volumes"] = []string{
+				"mythic_rabbitmq_volume:/var/lib/rabbitmq",
+			}
 		}
+		if _, ok := volumes["mythic_rabbitmq"]; !ok {
+			volumes["mythic_rabbitmq_volume"] = map[string]interface{}{
+				"name": "mythic_rabbitmq_volume",
+			}
+		}
+
 	case "mythic_react":
 		if mythicEnv.GetBool("mythic_react_debug") {
 			pStruct["build"] = map[string]interface{}{
@@ -589,14 +611,16 @@ func addMythicServiceDockerComposeEntry(service string) {
 	} else {
 		curConfig.Set("services."+strings.ToLower(service), pStruct)
 	}
+	/*
+		if !curConfig.InConfig("networks") {
+			curConfig.Set("networks", networkInfo)
+		} else {
+			curConfig.Set("networks.default_network.driver_opts", map[string]string{
+				"com.docker.network.bridge.name": "mythic_if",
+			})
+		}
 
-	if !curConfig.InConfig("networks") {
-		curConfig.Set("networks", networkInfo)
-	} else {
-		curConfig.Set("networks.default_network.driver_opts", map[string]string{
-			"com.docker.network.bridge.name": "mythic_if",
-		})
-	}
+	*/
 	curConfig.Set("volumes", volumes)
 	curConfig.Set("version", "2.4")
 	err := curConfig.WriteConfig()
@@ -618,26 +642,29 @@ func removeMythicServiceDockerComposeEntry(service string) {
 			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
 		}
 	}
-	networkInfo := map[string]interface{}{
-		"default_network": map[string]interface{}{
-			"driver": "bridge",
-			"driver_opts": map[string]string{
+	/*
+		networkInfo := map[string]interface{}{
+			"default_network": map[string]interface{}{
+				"driver": "bridge",
+				"driver_opts": map[string]string{
+					"com.docker.network.bridge.name": "mythic_if",
+				},
+				"labels": []string{
+					"mythic_network",
+					"default_network",
+				},
+			},
+		}
+		if !curConfig.InConfig("networks") {
+			// don't blow away changes to the network configuration
+			curConfig.Set("networks", networkInfo)
+		} else {
+			curConfig.Set("networks.default_network.driver_opts", map[string]string{
 				"com.docker.network.bridge.name": "mythic_if",
-			},
-			"labels": []string{
-				"mythic_network",
-				"default_network",
-			},
-		},
-	}
-	if !curConfig.InConfig("networks") {
-		// don't blow away changes to the network configuration
-		curConfig.Set("networks", networkInfo)
-	} else {
-		curConfig.Set("networks.default_network.driver_opts", map[string]string{
-			"com.docker.network.bridge.name": "mythic_if",
-		})
-	}
+			})
+		}
+
+	*/
 
 	if isServiceRunning(service) {
 		DockerStop([]string{strings.ToLower(service)})
@@ -651,13 +678,16 @@ func removeMythicServiceDockerComposeEntry(service string) {
 		}
 
 	}
-	if !curConfig.InConfig("networks") {
-		curConfig.Set("networks", networkInfo)
-	} else {
-		curConfig.Set("networks.default_network.driver_opts", map[string]string{
-			"com.docker.network.bridge.name": "mythic_if",
-		})
-	}
+	/*
+		if !curConfig.InConfig("networks") {
+			curConfig.Set("networks", networkInfo)
+		} else {
+			curConfig.Set("networks.default_network.driver_opts", map[string]string{
+				"com.docker.network.bridge.name": "mythic_if",
+			})
+		}
+
+	*/
 	curConfig.Set("version", "2.4")
 	fmt.Printf("set volume: %v\n", curConfig.GetStringMap("volumes"))
 	err := curConfig.WriteConfig()
@@ -681,25 +711,28 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
 		}
 	}
-	networkInfo := map[string]interface{}{
-		"default_network": map[string]interface{}{
-			"driver": "bridge",
-			"driver_opts": map[string]string{
+	/*
+		networkInfo := map[string]interface{}{
+			"default_network": map[string]interface{}{
+				"driver": "bridge",
+				"driver_opts": map[string]string{
+					"com.docker.network.bridge.name": "mythic_if",
+				},
+				"labels": []string{
+					"mythic_network",
+					"default_network",
+				},
+			},
+		}
+		if !curConfig.InConfig("networks") {
+			curConfig.Set("networks", networkInfo)
+		} else {
+			curConfig.Set("networks.default_network.driver_opts", map[string]string{
 				"com.docker.network.bridge.name": "mythic_if",
-			},
-			"labels": []string{
-				"mythic_network",
-				"default_network",
-			},
-		},
-	}
-	if !curConfig.InConfig("networks") {
-		curConfig.Set("networks", networkInfo)
-	} else {
-		curConfig.Set("networks.default_network.driver_opts", map[string]string{
-			"com.docker.network.bridge.name": "mythic_if",
-		})
-	}
+			})
+		}
+
+	*/
 	absPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder, service))
 	if err != nil {
 		fmt.Printf("[-] Failed to get the absolute path to the %s folder, does the folder exist?\n", InstalledServicesFolder)
@@ -772,13 +805,16 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 		}
 	}
 	curConfig.Set("services."+strings.ToLower(service), pStruct)
-	if !curConfig.InConfig("networks") {
-		curConfig.Set("networks", networkInfo)
-	} else {
-		curConfig.Set("networks.default_network.driver_opts", map[string]string{
-			"com.docker.network.bridge.name": "mythic_if",
-		})
-	}
+	/*
+		if !curConfig.InConfig("networks") {
+			curConfig.Set("networks", networkInfo)
+		} else {
+			curConfig.Set("networks.default_network.driver_opts", map[string]string{
+				"com.docker.network.bridge.name": "mythic_if",
+			})
+		}
+
+	*/
 	curConfig.Set("version", "2.4")
 	fmt.Printf("set volume: %v\n", curConfig.GetStringMap("volumes"))
 	err = curConfig.WriteConfig()
@@ -803,18 +839,21 @@ func RemoveDockerComposeEntry(service string) error {
 			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
 		}
 	}
-	networkInfo := map[string]interface{}{
-		"default_network": map[string]interface{}{
-			"driver": "bridge",
-			"driver_opts": map[string]string{
-				"com.docker.network.bridge.name": "mythic_if",
+	/*
+		networkInfo := map[string]interface{}{
+			"default_network": map[string]interface{}{
+				"driver": "bridge",
+				"driver_opts": map[string]string{
+					"com.docker.network.bridge.name": "mythic_if",
+				},
+				"labels": []string{
+					"mythic_network",
+					"default_network",
+				},
 			},
-			"labels": []string{
-				"mythic_network",
-				"default_network",
-			},
-		},
-	}
+		}
+
+	*/
 
 	if !stringInSlice(service, MythicPossibleServices) {
 		if isServiceRunning(service) {
@@ -824,13 +863,16 @@ func RemoveDockerComposeEntry(service string) error {
 		fmt.Printf("[+] Removed %s from docker-compose\n", strings.ToLower(service))
 
 	}
-	if !curConfig.InConfig("networks") {
-		curConfig.Set("networks", networkInfo)
-	} else {
-		curConfig.Set("networks.default_network.driver_opts", map[string]string{
-			"com.docker.network.bridge.name": "mythic_if",
-		})
-	}
+	/*
+		if !curConfig.InConfig("networks") {
+			curConfig.Set("networks", networkInfo)
+		} else {
+			curConfig.Set("networks.default_network.driver_opts", map[string]string{
+				"com.docker.network.bridge.name": "mythic_if",
+			})
+		}
+
+	*/
 	curConfig.Set("version", "2.4")
 	fmt.Printf("set volume: %v\n", curConfig.GetStringMap("volumes"))
 	err := curConfig.WriteConfig()
