@@ -1,7 +1,8 @@
 FROM nginx:1.25-alpine
 COPY error403.html /usr/share/nginx/html/
 COPY ["config/", "/etc/nginx"]
-COPY ["ssl/", "/etc/ssl/private/"]
+COPY [".docker/mythic-cert.crt", "/etc/ssl/private/mythic-cert.crt"]
+COPY [".docker/mythic-ssl.key", "/etc/ssl/private/mythic-ssl.key"]
 COPY ["health_check.sh", "/health_check.sh"]
 RUN chmod +x /health_check.sh
 
