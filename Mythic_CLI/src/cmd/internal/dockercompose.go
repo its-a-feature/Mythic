@@ -455,9 +455,24 @@ func addMythicServiceDockerComposeEntry(service string) {
 				"context": "./mythic-react-docker",
 				"args":    buildArguments,
 			}
-			pStruct["volumes"] = []string{
-				"./mythic-react-docker/config:/etc/nginx",
-				"./mythic-react-docker/mythic/public:/mythic/new",
+			if mythicEnv.GetBool("mythic_react_bind_local_mount") {
+				pStruct["volumes"] = []string{
+					"./mythic-react-docker/config:/etc/nginx",
+					"./mythic-react-docker/mythic/public:/mythic/new",
+				}
+			} else {
+				pStruct["volumes"] = []string{
+					"mythic_react_volume_config:/etc/nginx",
+					"mythic_react_volume_public:/mythic/new",
+				}
+			}
+		}
+		if _, ok := volumes["mythic_react"]; !ok {
+			volumes["mythic_react_volume_config"] = map[string]interface{}{
+				"name": "mythic_react_volume_config",
+			}
+			volumes["mythic_react_volume_ssl"] = map[string]interface{}{
+				"name": "mythic_react_volume_public",
 			}
 		}
 		if mythicEnv.GetBool("mythic_react_bind_localhost_only") {

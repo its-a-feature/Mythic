@@ -1,5 +1,5 @@
-FROM itsafeaturemythic/mythic_go_base:latest
-
+#FROM itsafeaturemythic/mythic_go_base:latest
+FROM golang:1.21-alpine
 WORKDIR /usr/src/app
 
 ARG GOPROXY=proxy.golang.org
