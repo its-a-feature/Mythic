@@ -22,6 +22,7 @@ env:
   MYTHIC_POSTGRES_IMAGE_NAME: ${{ github.repository }}_postgres
   MYTHIC_RABBITMQ_IMAGE_NAME: ${{ github.repository }}_rabbitmq
   MYTHIC_DOCUMENTATION_IMAGE_NAME: ${{ github.repository }}_documentation
+  MYTHIC_JUPYTER_IMAGE_NAME: ${{ github.repository }}_jupyter
 
   # Description label for the package in Github
   IMAGE_DESCRIPTION: "test containers for Mythic development, do not use!"
@@ -90,6 +91,9 @@ jobs:
 
       - name: Lowercase the documentation container image name
         run: echo "MYTHIC_DOCUMENTATION_IMAGE_NAME=${MYTHIC_DOCUMENTATION_IMAGE_NAME,,}" >> ${GITHUB_ENV}
+
+      - name: Lowercase the jupyter container image name
+        run: echo "MYTHIC_JUPYTER_IMAGE_NAME=${MYTHIC_JUPYTER_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       # Build and push the server container image with the specified tag and labels
       - name: Build and push the server container image
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
@@ -175,6 +179,23 @@ jobs:
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
           platforms: linux/amd64,linux/arm64
+
+      - name: Build and push the jupyter container image
+        uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
+        with:
+          context: jupyter-docker
+          file: jupyter-docker/.docker/Dockerfile
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.MYTHIC_JUPYTER_IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.MYTHIC_JUPYTER_IMAGE_NAME }}:latest
+          push: true
+          # These container metadata labels allow configuring the package in Github
+          # packages. The source will link the package to this Github repository
+          labels: |
+            org.opencontainers.image.source=${{ env.IMAGE_SOURCE }}
+            org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
+            org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
+          platforms: linux/amd64,linux/arm64
       # The Dockerfile which Mythic uses to pull in the base container image needs to be
       # updated to reference the newly built container image
       - name: Fix the server Dockerfile reference to reference the new release tag
@@ -202,12 +223,16 @@ jobs:
         run: |
           sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_DOCUMENTATION_IMAGE_NAME}:${VERSION}|" Dockerfile
 
+      - name: Fix the jupyter Dockerfile reference to reference the new release tag
+        working-directory: jupyter-docker
+        run: |
+          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_JUPYTER_IMAGE_NAME}:${VERSION}|" Dockerfile
       # Push the changes to the Dockerfile
       - name: Push the updated base Dockerfile image reference changes
         uses: EndBug/add-and-commit@v9 # ref: https://github.com/marketplace/actions/add-commit
         with:
           # Only add the Dockerfile changes. Nothing else should have been modified
-          add: "['mythic-docker/Dockerfile', 'Mythic_CLI/Dockerfile', 'postgres-docker/Dockerfile', 'rabbitmq-docker/Dockerfile', 'documentation-docker/Dockerfile']"
+          add: "['mythic-docker/Dockerfile', 'Mythic_CLI/Dockerfile', 'postgres-docker/Dockerfile', 'rabbitmq-docker/Dockerfile', 'documentation-docker/Dockerfile', 'jupyter-docker/Dockerfile']"
           # Use the Github actions bot for the commit author
           default_author: github_actions
           committer_email: github-actions[bot]@users.noreply.github.com
