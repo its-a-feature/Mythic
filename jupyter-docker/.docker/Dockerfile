@@ -15,5 +15,5 @@ ENV JUPYTERHUB_SERVICE_PREFIX "/jupyter/"
 
 COPY ["jupyter/", "."]
 
-CMD start.sh jupyter lab --ServerApp.open_browser=false --IdentityProvider.token='${JUPYTER_TOKEN}' --ServerApp.base_url="/jupyter" --ServerApp.default_url="/jupyter"
+CMD start.sh jupyter lab --ServerApp.open_browser=false --IdentityProvider.token='${JUPYTER_TOKEN:-mythic}' --ServerApp.base_url="/jupyter" --ServerApp.default_url="/jupyter"
 # sudo docker run -p 8888:8888 -v `pwd`/jupyter:/projects jupyter

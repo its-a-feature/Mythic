@@ -4,6 +4,8 @@ COPY ["configuration.sh", "/docker-entrypoint-initdb.d/configuration.sh"]
 COPY ["postgres.conf", "/etc/postgres.conf"]
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 --start-period=20s \
-  CMD pg_isready -d mythic_db -p ${POSTGRES_PORT} -U mythic_user || exit 1
+  CMD pg_isready -d mythic_db -p ${POSTGRES_PORT:-5432} -U mythic_user || exit 1
 
-CMD su postgres postgres -c "max_connections=100" -p ${POSTGRES_PORT} -c config_file=/etc/postgres.conf
+USER postgres
+
+CMD postgres -c "max_connections=100" -p ${POSTGRES_PORT:-5432} -c config_file=/etc/postgres.conf
