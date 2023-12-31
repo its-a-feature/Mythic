@@ -187,7 +187,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"context": "./documentation-docker",
 			"args":    buildArguments,
 		}
-		pStruct["command"] = "server -p ${DOCUMENTATION_PORT}"
+		//pStruct["command"] = "server -p ${DOCUMENTATION_PORT}"
 		if mythicEnv.GetBool("documentation_bind_localhost_only") {
 			pStruct["ports"] = []string{
 				"127.0.0.1:${DOCUMENTATION_PORT}:${DOCUMENTATION_PORT}",
@@ -210,9 +210,21 @@ func addMythicServiceDockerComposeEntry(service string) {
 		pStruct["environment"] = []string{
 			"DOCUMENTATION_PORT=${DOCUMENTATION_PORT}",
 		}
-		pStruct["volumes"] = []string{
-			"./documentation-docker/:/src",
+		if mythicEnv.GetBool("documentation_bind_local_mount") {
+			pStruct["volumes"] = []string{
+				"./documentation-docker/:/src",
+			}
+		} else {
+			pStruct["volumes"] = []string{
+				"mythic_documentation_volume:/usr/src/app",
+			}
 		}
+		if _, ok := volumes["mythic_documentation"]; !ok {
+			volumes["mythic_documentation_volume"] = map[string]interface{}{
+				"name": "mythic_documentation_volume",
+			}
+		}
+
 	case "mythic_graphql":
 		pStruct["build"] = map[string]interface{}{
 			"context": "./hasura-docker",
@@ -441,7 +453,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 		if mythicEnv.GetString("jupyter_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("jupyter_mem_limit")
 		}
-		pStruct["command"] = "start.sh jupyter lab --ServerApp.open_browser=false --IdentityProvider.token='${JUPYTER_TOKEN}' --ServerApp.base_url=\"/jupyter\" --ServerApp.default_url=\"/jupyter\""
+		//pStruct["command"] = "start.sh jupyter lab --ServerApp.open_browser=false --IdentityProvider.token='${JUPYTER_TOKEN}' --ServerApp.base_url=\"/jupyter\" --ServerApp.default_url=\"/jupyter\""
 		if mythicEnv.GetBool("jupyter_bind_localhost_only") {
 			pStruct["ports"] = []string{
 				"127.0.0.1:${JUPYTER_PORT}:${JUPYTER_PORT}",
@@ -451,14 +463,26 @@ func addMythicServiceDockerComposeEntry(service string) {
 				"${JUPYTER_PORT}:${JUPYTER_PORT}",
 			}
 		}
-		pStruct["volumes"] = []string{
-			"./jupyter-docker/jupyter:/projects",
-		}
+
 		pStruct["environment"] = []string{
 			"JUPYTER_TOKEN=${JUPYTER_TOKEN}",
 		}
 		if curConfig.InConfig("services.mythic_jupyter.deploy") {
 			pStruct["deploy"] = curConfig.Get("services.mythic_jupyter.deploy")
+		}
+		if mythicEnv.GetBool("jupyter_bind_local_mount") {
+			pStruct["volumes"] = []string{
+				"./jupyter-docker/jupyter:/projects",
+			}
+		} else {
+			pStruct["volumes"] = []string{
+				"mythic_jupyter_volume:/projects",
+			}
+		}
+		if _, ok := volumes["mythic_jupyter"]; !ok {
+			volumes["mythic_jupyter_volume"] = map[string]interface{}{
+				"name": "mythic_jupyter_volume",
+			}
 		}
 	case "mythic_server":
 		pStruct["build"] = map[string]interface{}{
