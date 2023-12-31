@@ -5,4 +5,4 @@
 #FROM hasura/graphql-engine:v2.9.0-beta.1.cli-migrations-v2
 #FROM hasura/graphql-engine:v2.19.0.cli-migrations-v2
 #FROM hasura/graphql-engine:latest.cli-migrations-v2
-FROM ghcr.io/its-a-feature/mythic_graphql:v0.0.2.20
+FROM ghcr.io/its-a-feature/mythic_graphql:v0.0.2.21
