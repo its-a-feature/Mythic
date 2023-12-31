@@ -10,6 +10,8 @@ RUN go env -w GO111MODULE=${GO111MODULE}
 
 COPY ["src/", "."]
 
+RUN apt-get install make
+
 RUN make build_all
 
 FROM alpine

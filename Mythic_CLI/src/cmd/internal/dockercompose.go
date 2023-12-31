@@ -484,13 +484,16 @@ func addMythicServiceDockerComposeEntry(service string) {
 				"${MYTHIC_REACT_PORT}:${MYTHIC_REACT_PORT}",
 			}
 		}
-		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         "wget -SqO - http://127.0.0.1:${MYTHIC_REACT_PORT}/new",
-			"interval":     "30s",
-			"timeout":      "60s",
-			"retries":      3,
-			"start_period": "15s",
-		}
+		/*
+			pStruct["healthcheck"] = map[string]interface{}{
+				"test":         "wget -SqO - http://127.0.0.1:${MYTHIC_REACT_PORT}/new",
+				"interval":     "30s",
+				"timeout":      "60s",
+				"retries":      3,
+				"start_period": "15s",
+			}
+
+		*/
 		pStruct["environment"] = []string{
 			"MYTHIC_REACT_PORT=${MYTHIC_REACT_PORT}",
 		}
