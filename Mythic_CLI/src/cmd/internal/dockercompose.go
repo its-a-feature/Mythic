@@ -133,17 +133,6 @@ func addMythicServiceDockerComposeEntry(service string) {
 
 		*/
 		//pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgres.conf"
-		if mythicEnv.GetBool("postgres_bind_local_mount") {
-			pStruct["volumes"] = []string{
-				"./postgres-docker/database:/var/lib/postgresql/data",
-				"./postgres-docker/postgres.conf:/etc/postgresql.conf",
-			}
-		} else {
-			pStruct["volumes"] = []string{
-				"mythic_postgres_volume:/var/lib/postgresql/data",
-			}
-
-		}
 
 		if imageExists("mythic_postgres") {
 			if mythicEnv.GetBool("postgres_debug") {
@@ -175,6 +164,17 @@ func addMythicServiceDockerComposeEntry(service string) {
 			pStruct["environment"] = updateEnvironmentVariables(curConfig.GetStringSlice("services."+strings.ToLower(service)+".environment"), environment)
 		} else {
 			pStruct["environment"] = environment
+		}
+		if mythicEnv.GetBool("postgres_bind_local_mount") {
+			pStruct["volumes"] = []string{
+				"./postgres-docker/database:/var/lib/postgresql/data",
+				"./postgres-docker/postgres.conf:/etc/postgresql.conf",
+			}
+		} else {
+			pStruct["volumes"] = []string{
+				"mythic_postgres_volume:/var/lib/postgresql/data",
+			}
+
 		}
 		if _, ok := volumes["mythic_postgres"]; !ok {
 			volumes["mythic_postgres_volume"] = map[string]interface{}{
@@ -253,9 +253,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 		} else {
 			pStruct["environment"] = environment
 		}
-		pStruct["volumes"] = []string{
-			"./hasura-docker/metadata:/metadata",
-		}
+
 		if mythicEnv.GetBool("hasura_bind_localhost_only") {
 			pStruct["ports"] = []string{
 				"127.0.0.1:${HASURA_PORT}:${HASURA_PORT}",
@@ -265,28 +263,49 @@ func addMythicServiceDockerComposeEntry(service string) {
 				"${HASURA_PORT}:${HASURA_PORT}",
 			}
 		}
+		if mythicEnv.GetBool("hasura_bind_local_mount") {
+			pStruct["volumes"] = []string{
+				"./hasura-docker/metadata:/metadata",
+			}
+		} else {
+			pStruct["volumes"] = []string{
+				"mythic_graphql_volume:/metadata",
+			}
+		}
+		if _, ok := volumes["mythic_graphql"]; !ok {
+			volumes["mythic_graphql_volume"] = map[string]interface{}{
+				"name": "mythic_graphql_volume",
+			}
+		}
 	case "mythic_nginx":
 		pStruct["build"] = map[string]interface{}{
 			"context": "./nginx-docker",
 			"args":    buildArguments,
 		}
-		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         "curl -k https://127.0.0.1:${NGINX_PORT}/new/login",
-			"interval":     "30s",
-			"timeout":      "60s",
-			"retries":      5,
-			"start_period": "15s",
-		}
-		nginxUseSSL := "ssl"
-		if !mythicEnv.GetBool("NGINX_USE_SSL") {
-			nginxUseSSL = ""
+		/*
 			pStruct["healthcheck"] = map[string]interface{}{
-				"test":         "curl http://127.0.0.1:${NGINX_PORT}/new/login",
+				"test":         "curl -k https://127.0.0.1:${NGINX_PORT}/new/login",
 				"interval":     "30s",
 				"timeout":      "60s",
 				"retries":      5,
 				"start_period": "15s",
 			}
+			nginxUseSSL := "ssl"
+			if !mythicEnv.GetBool("NGINX_USE_SSL") {
+				nginxUseSSL = ""
+				pStruct["healthcheck"] = map[string]interface{}{
+					"test":         "curl http://127.0.0.1:${NGINX_PORT}/new/login",
+					"interval":     "30s",
+					"timeout":      "60s",
+					"retries":      5,
+					"start_period": "15s",
+				}
+			}
+
+		*/
+		nginxUseSSL := "ssl"
+		if !mythicEnv.GetBool("NGINX_USE_SSL") {
+			nginxUseSSL = ""
 		}
 		nginxUseIPV4 := ""
 		if !mythicEnv.GetBool("NGINX_USE_IPV4") {
@@ -322,10 +341,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			}
 		}
 		pStruct["environment"] = finalNginxEnv
-		pStruct["volumes"] = []string{
-			"./nginx-docker/ssl:/etc/ssl/private",
-			"./nginx-docker/config:/etc/nginx",
-		}
+
 		if mythicEnv.GetBool("nginx_bind_localhost_only") {
 			pStruct["ports"] = []string{
 				"127.0.0.1:${NGINX_PORT}:${NGINX_PORT}",
@@ -333,6 +349,21 @@ func addMythicServiceDockerComposeEntry(service string) {
 		} else {
 			pStruct["ports"] = []string{
 				"${NGINX_PORT}:${NGINX_PORT}",
+			}
+		}
+		if mythicEnv.GetBool("nginx_bind_local_mount") {
+			pStruct["volumes"] = []string{
+				"./nginx-docker/ssl:/etc/ssl/private",
+				"./nginx-docker/config:/etc/nginx",
+			}
+		} else {
+			pStruct["volumes"] = []string{
+				"mythic_nginx_volume:/etc/nginx",
+			}
+		}
+		if _, ok := volumes["mythic_nginx"]; !ok {
+			volumes["mythic_nginx_volume"] = map[string]interface{}{
+				"name": "mythic_nginx_volume",
 			}
 		}
 	case "mythic_rabbitmq":
