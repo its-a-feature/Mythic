@@ -317,14 +317,20 @@ func Status(verbose bool) {
 		if stringInSlice(container.Image, MythicPossibleServices) {
 			found := false
 			for _, mnt := range container.Mounts {
-				if mnt.Name == container.Image+"_volume" {
-					info += mnt.Name + "\t"
+				if strings.HasPrefix(mnt.Name, container.Image+"_volume") {
+					if found {
+						info += ", " + mnt.Name
+					} else {
+						info += mnt.Name
+					}
+
 					found = true
 				}
 			}
 			if !found {
-				info += "local\t"
+				info += "local"
 			}
+			info += "\t"
 			info = info + portString
 			mythicLocalServices = append(mythicLocalServices, info)
 		} else {

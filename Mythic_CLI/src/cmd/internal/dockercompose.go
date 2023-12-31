@@ -358,12 +358,16 @@ func addMythicServiceDockerComposeEntry(service string) {
 			}
 		} else {
 			pStruct["volumes"] = []string{
-				"mythic_nginx_volume:/etc/nginx",
+				"mythic_nginx_volume_config:/etc/nginx",
+				"mythic_nginx_volume_ssl:/etc/ssl/private",
 			}
 		}
 		if _, ok := volumes["mythic_nginx"]; !ok {
-			volumes["mythic_nginx_volume"] = map[string]interface{}{
-				"name": "mythic_nginx_volume",
+			volumes["mythic_nginx_volume_config"] = map[string]interface{}{
+				"name": "mythic_nginx_volume_config",
+			}
+			volumes["mythic_nginx_volume_ssl"] = map[string]interface{}{
+				"name": "mythic_nginx_volume_ssl",
 			}
 		}
 	case "mythic_rabbitmq":
