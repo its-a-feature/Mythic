@@ -108,7 +108,7 @@ func TestMythicRabbitmqConnection() {
 			fmt.Printf("[-] Failed to connect to RabbitMQ, retrying in %ds\n", sleepTime)
 			time.Sleep(10 * time.Second)
 		} else {
-			defer conn.Close()
+			conn.Close()
 			fmt.Printf("[+] Successfully connected to RabbitMQ at amqp://%s:***@%s:%s/mythic_vhost\n\n", mythicEnv.GetString("RABBITMQ_USER"), rabbitmqAddress, rabbitmqPort)
 			return
 		}
@@ -285,6 +285,7 @@ func Status(verbose bool) {
 		}
 		var portRanges []uint16
 		var portRangeMaps []string
+		portString := ""
 		info := fmt.Sprintf("%s\t%s\t%s\t", container.Labels["name"], container.State, container.Status)
 		if len(container.Ports) > 0 {
 			sort.Slice(container.Ports[:], func(i, j int) bool {
@@ -303,7 +304,7 @@ func Status(verbose bool) {
 			if len(portRanges) > 0 {
 				sort.Slice(portRanges, func(i, j int) bool { return portRanges[i] < portRanges[j] })
 			}
-			portString := strings.Join(portRangeMaps[:], ", ")
+			portString = strings.Join(portRangeMaps[:], ", ")
 			var stringPortRanges []string
 			for _, val := range portRanges {
 				stringPortRanges = append(stringPortRanges, fmt.Sprintf("%d", val))
@@ -312,10 +313,19 @@ func Status(verbose bool) {
 				portString = portString + ", "
 			}
 			portString = portString + strings.Join(stringPortRanges[:], ", ")
-
-			info = info + portString
 		}
 		if stringInSlice(container.Image, MythicPossibleServices) {
+			found := false
+			for _, mnt := range container.Mounts {
+				if mnt.Name == container.Image+"_volume" {
+					info += mnt.Name + "\t"
+					found = true
+				}
+			}
+			if !found {
+				info += "local\t"
+			}
+			info = info + portString
 			mythicLocalServices = append(mythicLocalServices, info)
 		} else {
 			installedServicesAbsPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder))
@@ -332,41 +342,42 @@ func Status(verbose bool) {
 				}
 			}
 		}
+
 	}
 	fmt.Fprintln(w, "Mythic Main Services")
-	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tPORTS")
+	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tMOUNT\tPORTS")
 	for _, line := range mythicLocalServices {
 		fmt.Fprintln(w, line)
 	}
-	fmt.Fprintln(w, "\t\t\t\t")
+	fmt.Fprintln(w, "\t\t\t\t\t")
 	w.Flush()
 	fmt.Fprintln(w, "Installed Services")
-	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tPORTS")
+	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS")
 	for _, line := range installedServices {
 		fmt.Fprintln(w, line)
 	}
-	fmt.Fprintln(w, "\t\t\t\t")
+	fmt.Fprintln(w, "\t\t\t")
 	// remove all elementsInCompose from elementsOnDisk
 	for _, container := range elementsInCompose {
 		elementsOnDisk = RemoveStringFromSliceNoOrder(elementsOnDisk, container)
 	}
 	if len(elementsInCompose) > 0 && verbose {
 		fmt.Fprintln(w, "Docker Compose services not running, start with: ./mythic-cli start [name]")
-		fmt.Fprintln(w, "NAME\t\t\t")
+		fmt.Fprintln(w, "NAME\t")
 		sort.Strings(elementsInCompose)
 		for _, container := range elementsInCompose {
-			fmt.Fprintln(w, fmt.Sprintf("%s\t\t\t", container))
+			fmt.Fprintln(w, fmt.Sprintf("%s\t", container))
 		}
-		fmt.Fprintln(w, "\t\t\t\t")
+		fmt.Fprintln(w, "\t")
 	}
 	if len(elementsOnDisk) > 0 && verbose {
 		fmt.Fprintln(w, "Extra Services, add to docker compose with: ./mythic-cli add [name]")
-		fmt.Fprintln(w, "NAME\t\t\t")
+		fmt.Fprintln(w, "NAME\t")
 		sort.Strings(elementsOnDisk)
 		for _, container := range elementsOnDisk {
-			fmt.Fprintln(w, fmt.Sprintf("%s\t\t\t", container))
+			fmt.Fprintln(w, fmt.Sprintf("%s\t", container))
 		}
-		fmt.Fprintln(w, "\t\t\t\t")
+		fmt.Fprintln(w, "\t\t")
 	}
 	w.Flush()
 	if len(installedServices) == 0 {
@@ -408,7 +419,6 @@ func GetLogs(containerName string, numLogs string) {
 				if err != nil {
 					log.Fatalf("Failed to get container GetLogs: %v", err)
 				}
-				defer reader.Close()
 				// awesome post about the leading 8 payload/header bytes: https://medium.com/@dhanushgopinath/reading-docker-container-logs-with-golang-docker-engine-api-702233fac044
 				p := make([]byte, 8)
 				_, err = reader.Read(p)
@@ -418,6 +428,7 @@ func GetLogs(containerName string, numLogs string) {
 					fmt.Printf("%s", content)
 					_, err = reader.Read(p)
 				}
+				reader.Close()
 			}
 		}
 		if !found {

@@ -122,14 +122,17 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"context": "./postgres-docker",
 			"args":    buildArguments,
 		}
-		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         "pg_isready -d mythic_db -p ${POSTGRES_PORT} -U mythic_user",
-			"interval":     "30s",
-			"timeout":      "60s",
-			"retries":      5,
-			"start_period": "20s",
-		}
-		pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgres.conf"
+		/*
+			pStruct["healthcheck"] = map[string]interface{}{
+				"test":         "pg_isready -d mythic_db -p ${POSTGRES_PORT} -U mythic_user",
+				"interval":     "30s",
+				"timeout":      "60s",
+				"retries":      5,
+				"start_period": "20s",
+			}
+
+		*/
+		//pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgres.conf"
 		if mythicEnv.GetBool("postgres_bind_local_mount") {
 			pStruct["volumes"] = []string{
 				"./postgres-docker/database:/var/lib/postgresql/data",
@@ -194,13 +197,16 @@ func addMythicServiceDockerComposeEntry(service string) {
 				"${DOCUMENTATION_PORT}:${DOCUMENTATION_PORT}",
 			}
 		}
-		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         "wget -nv -t1 -O /dev/null http://127.0.0.1:${DOCUMENTATION_PORT}/docs/",
-			"interval":     "10s",
-			"timeout":      "10s",
-			"retries":      5,
-			"start_period": "10s",
-		}
+		/*
+			pStruct["healthcheck"] = map[string]interface{}{
+				"test":         "wget -nv -t1 -O /dev/null http://127.0.0.1:${DOCUMENTATION_PORT}/docs/",
+				"interval":     "10s",
+				"timeout":      "10s",
+				"retries":      5,
+				"start_period": "10s",
+			}
+
+		*/
 		pStruct["environment"] = []string{
 			"DOCUMENTATION_PORT=${DOCUMENTATION_PORT}",
 		}
@@ -322,18 +328,21 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"context": "./rabbitmq-docker",
 			"args":    buildArguments,
 		}
-		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         "rabbitmq-diagnostics -q check_port_connectivity",
-			"interval":     "60s",
-			"timeout":      "30s",
-			"retries":      5,
-			"start_period": "15s",
-		}
+		/*
+			pStruct["healthcheck"] = map[string]interface{}{
+				"test":         "rabbitmq-diagnostics -q check_port_connectivity",
+				"interval":     "60s",
+				"timeout":      "30s",
+				"retries":      5,
+				"start_period": "15s",
+			}
+
+		*/
 		pStruct["cpus"] = mythicEnv.GetInt("RABBITMQ_CPUS")
 		if mythicEnv.GetString("rabbitmq_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("rabbitmq_mem_limit")
 		}
-		pStruct["command"] = "/bin/sh -c \"chmod +x /generate_config.sh && /generate_config.sh && rabbitmq-server\""
+		//pStruct["command"] = "/bin/sh -c \"chmod +x /generate_config.sh && /generate_config.sh && rabbitmq-server\""
 		if mythicEnv.GetBool("rabbitmq_bind_localhost_only") {
 			pStruct["ports"] = []string{
 				"127.0.0.1:${RABBITMQ_PORT}:${RABBITMQ_PORT}",
@@ -460,15 +469,17 @@ func addMythicServiceDockerComposeEntry(service string) {
 		if mythicEnv.GetString("mythic_server_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("mythic_server_mem_limit")
 		}
+		/*
+			pStruct["healthcheck"] = map[string]interface{}{
+				"test":         "wget -SqO - http://127.0.0.1:${MYTHIC_SERVER_PORT}/health",
+				"interval":     "60s",
+				"timeout":      "10s",
+				"retries":      5,
+				"start_period": "20s",
+			}
 
-		pStruct["healthcheck"] = map[string]interface{}{
-			"test":         "wget -SqO - http://127.0.0.1:${MYTHIC_SERVER_PORT}/health",
-			"interval":     "60s",
-			"timeout":      "10s",
-			"retries":      5,
-			"start_period": "20s",
-		}
-		pStruct["command"] = "${MYTHIC_SERVER_COMMAND}"
+		*/
+		//pStruct["command"] = "${MYTHIC_SERVER_COMMAND}"
 		environment := []string{
 			"POSTGRES_HOST=${POSTGRES_HOST}",
 			"POSTGRES_PORT=${POSTGRES_PORT}",
