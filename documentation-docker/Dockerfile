@@ -1,1 +1,1 @@
-FROM ghcr.io/its-a-feature/Mythic_documentation:v0.0.2.18
+FROM ghcr.io/its-a-feature/mythic_documentation:v0.0.2.19
