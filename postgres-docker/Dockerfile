@@ -1,1 +1,1 @@
-FROM ghcr.io/its-a-feature/mythic_postgres:v0.0.2.21
+FROM ghcr.io/its-a-feature/mythic_postgres:v0.0.2.23
