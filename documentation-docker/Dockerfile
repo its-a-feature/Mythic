@@ -1,3 +1,1 @@
-FROM klakegg/hugo:latest
-
-RUN hugo new site mythic_docs
+FROM ghcr.io/its-a-feature/mythic_documentation:v0.0.2.12
