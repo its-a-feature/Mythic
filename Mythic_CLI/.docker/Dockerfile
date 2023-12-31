@@ -10,7 +10,7 @@ RUN go env -w GO111MODULE=${GO111MODULE}
 
 COPY ["src/", "."]
 
-RUN apt-get install make
+RUN apk add --no-cache make
 
 RUN make build_all
 
