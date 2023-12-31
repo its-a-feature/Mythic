@@ -314,6 +314,19 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
 
+      # update names to lowercase
+      - name: Lowercase the server container image name
+        run: echo "MYTHIC_SERVER_IMAGE_NAME=${MYTHIC_SERVER_IMAGE_NAME,,}" >> ${GITHUB_ENV}
+      - name: Lowercase the cli container image name
+        run: echo "MYTHIC_CLI_IMAGE_NAME=${MYTHIC_CLI_IMAGE_NAME,,}" >> ${GITHUB_ENV}
+      - name: Lowercase the postgres container image name
+        run: echo "MYTHIC_POSTGRES_IMAGE_NAME=${MYTHIC_POSTGRES_IMAGE_NAME,,}" >> ${GITHUB_ENV}
+      - name: Lowercase the rabbitmq container image name
+        run: echo "MYTHIC_RABBITMQ_IMAGE_NAME=${MYTHIC_RABBITMQ_IMAGE_NAME,,}" >> ${GITHUB_ENV}
+      - name: Lowercase the documentation container image name
+        run: echo "MYTHIC_DOCUMENTATION_IMAGE_NAME=${MYTHIC_DOCUMENTATION_IMAGE_NAME,,}" >> ${GITHUB_ENV}
+      - name: Lowercase the jupyter container image name
+        run: echo "MYTHIC_JUPYTER_IMAGE_NAME=${MYTHIC_JUPYTER_IMAGE_NAME,,}" >> ${GITHUB_ENV}
       # The Dockerfile which Mythic uses to pull in the base container image needs to be
       # updated to reference the newly built container image
       - name: Fix the server Dockerfile reference to reference the new release tag
