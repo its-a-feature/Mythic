@@ -471,7 +471,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			volumes["mythic_react_volume_config"] = map[string]interface{}{
 				"name": "mythic_react_volume_config",
 			}
-			volumes["mythic_react_volume_ssl"] = map[string]interface{}{
+			volumes["mythic_react_volume_public"] = map[string]interface{}{
 				"name": "mythic_react_volume_public",
 			}
 		}

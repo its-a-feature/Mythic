@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"archive/tar"
 	"bufio"
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -267,11 +269,20 @@ func updateNginxBlockLists() {
 		outputString += fmt.Sprintf("allow %s;\n", ip)
 	}
 	outputString += "deny all;"
-	ipFilePath := filepath.Join(getCwdFromExe(), "nginx-docker", "config", "blockips.conf")
-	if err := os.WriteFile(ipFilePath, []byte(outputString), 0600); err != nil {
-		fmt.Printf("[-] Failed to write out block list file\n")
-		os.Exit(1)
+	if mythicEnv.GetBool("nginx_bind_local_mount") {
+		ipFilePath := filepath.Join(getCwdFromExe(), "nginx-docker", "config", "blockips.conf")
+		if err := os.WriteFile(ipFilePath, []byte(outputString), 0600); err != nil {
+			fmt.Printf("[-] Failed to write out block list file: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		err := moveStringToVolume("mythic_nginx_volume_config", "blockips.conf", outputString)
+		if err != nil {
+			fmt.Printf("[-] Failed to write out block list file: %v\n", err)
+			os.Exit(1)
+		}
 	}
+
 }
 
 // check docker version to make sure it's high enough for Mythic's features
@@ -297,4 +308,89 @@ func generateSavedImageFolder() error {
 	} else {
 		return os.MkdirAll(savedImagePath, 0755)
 	}
+}
+
+func ByteCountSI(b int64) string {
+	const unit = 1000
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB",
+		float64(b)/float64(div), "kMGTPE"[exp])
+}
+
+func tarFileToBytes(sourceName string) (*bytes.Buffer, error) {
+	source, err := os.Open(sourceName)
+	if err != nil {
+		return nil, err
+	}
+	sourceStats, err := source.Stat()
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	err = tw.WriteHeader(&tar.Header{
+		Name: sourceName,         // filename
+		Mode: 0777,               // permissions
+		Size: sourceStats.Size(), // filesize
+	})
+	if err != nil {
+		return nil, err
+	}
+	content, err := io.ReadAll(source)
+	if err != nil {
+		return nil, err
+	}
+	_, err = tw.Write(content)
+	if err != nil {
+		return nil, err
+	}
+	err = tw.Close()
+	if err != nil {
+		return nil, err
+	}
+	return &buf, nil
+}
+func tarStringToBytes(sourceName string, data string) (*bytes.Buffer, error) {
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	err := tw.WriteHeader(&tar.Header{
+		Name: sourceName,       // filename
+		Mode: 0777,             // permissions
+		Size: int64(len(data)), // filesize
+	})
+	if err != nil {
+		return nil, err
+	}
+	_, err = tw.Write([]byte(data))
+	if err != nil {
+		return nil, err
+	}
+	err = tw.Close()
+	if err != nil {
+		return nil, err
+	}
+	return &buf, nil
+}
+func moveFileToVolume(volumeName string, destinationName string, sourceName string) error {
+	contentBytes, err := tarFileToBytes(sourceName)
+	if err != nil {
+		return err
+	}
+	DockerCopyIntoVolume(contentBytes, destinationName, volumeName)
+	return nil
+}
+func moveStringToVolume(volumeName string, destinationName string, content string) error {
+	contentBytes, err := tarStringToBytes(destinationName, content)
+	if err != nil {
+		return err
+	}
+	DockerCopyIntoVolume(contentBytes, destinationName, volumeName)
+	return nil
 }
