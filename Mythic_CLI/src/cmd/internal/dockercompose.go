@@ -216,7 +216,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			}
 		} else {
 			pStruct["volumes"] = []string{
-				"mythic_documentation_volume:/usr/src/app",
+				"mythic_documentation_volume:/src",
 			}
 		}
 		if _, ok := volumes["mythic_documentation"]; !ok {

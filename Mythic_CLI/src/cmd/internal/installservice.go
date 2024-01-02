@@ -174,7 +174,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 							}
 						} else {
 							err = moveFileToVolume("mythic_documentation_volume",
-								filepath.Join("content", "Agents", f.Name()),
+								filepath.Join("content", "Agents"),
 								filepath.Join(installPath, "documentation-payload", f.Name()))
 							if err != nil {
 								fmt.Printf("[-] Failed to install documentation for payload: %v\n", err)
@@ -199,28 +199,40 @@ func InstallFolder(installPath string, overWrite bool) error {
 				for _, f := range files {
 					if f.IsDir() {
 						fmt.Printf("[*] Processing Documentation for %s\n", f.Name())
-						if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name())) {
-							if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
-								fmt.Printf("[*] Removing current version\n")
-								err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
-								if err != nil {
-									fmt.Printf("[-] Failed to remove current version: %v\n", err)
-									fmt.Printf("[-] Continuing to the next c2 documentation\n")
-									continue
+						if mythicEnv.GetBool("document_bind_local_mount") {
+							if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name())) {
+								if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
+									fmt.Printf("[*] Removing current version\n")
+									err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
+									if err != nil {
+										fmt.Printf("[-] Failed to remove current version: %v\n", err)
+										fmt.Printf("[-] Continuing to the next c2 documentation\n")
+										continue
+									} else {
+										fmt.Printf("[+] Successfully removed the current version\n")
+									}
 								} else {
-									fmt.Printf("[+] Successfully removed the current version\n")
+									fmt.Printf("[!] Skipping documentation for %s\n", f.Name())
+									continue
 								}
-							} else {
-								fmt.Printf("[!] Skipping documentation for %s\n", f.Name())
+							}
+							fmt.Printf("[*] Copying new documentation version into place\n")
+							err = copyDir(filepath.Join(installPath, "documentation-c2", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
+							if err != nil {
+								fmt.Printf("[-] Failed to copy directory over\n")
 								continue
 							}
+						} else {
+							err = moveFileToVolume("mythic_documentation_volume",
+								filepath.Join("content", "C2 Profiles"),
+								filepath.Join(installPath, "documentation-c2", f.Name()))
+							if err != nil {
+								fmt.Printf("[-] Failed to install documentation for c2: %v\n", err)
+								continue
+							}
+
 						}
-						fmt.Printf("[*] Copying new documentation version into place\n")
-						err = copyDir(filepath.Join(installPath, "documentation-c2", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
-						if err != nil {
-							fmt.Printf("[-] Failed to copy directory over\n")
-							continue
-						}
+
 					}
 				}
 				fmt.Printf("[+] Successfully installed c2 documentation\n")
@@ -238,27 +250,37 @@ func InstallFolder(installPath string, overWrite bool) error {
 				for _, f := range files {
 					if f.IsDir() {
 						fmt.Printf("[*] Processing Documentation for %s\n", f.Name())
-						if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name())) {
-							if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
-								fmt.Printf("[*] Removing current version\n")
-								err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
-								if err != nil {
-									fmt.Printf("[-] Failed to remove current version: %v\n", err)
-									fmt.Printf("[-] Continuing to the next wrapper documentation\n")
-									continue
+						if mythicEnv.GetBool("document_local_bind_mount") {
+							if dirExists(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name())) {
+								if overWrite || askConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
+									fmt.Printf("[*] Removing current version\n")
+									err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
+									if err != nil {
+										fmt.Printf("[-] Failed to remove current version: %v\n", err)
+										fmt.Printf("[-] Continuing to the next wrapper documentation\n")
+										continue
+									} else {
+										fmt.Printf("[+] Successfully removed the current version\n")
+									}
 								} else {
-									fmt.Printf("[+] Successfully removed the current version\n")
+									fmt.Printf("[!] Skipping documentation for , %s\n", f.Name())
+									continue
 								}
-							} else {
-								fmt.Printf("[!] Skipping documentation for , %s\n", f.Name())
+							}
+							fmt.Printf("[*] Copying new documentation into place\n")
+							err = copyDir(filepath.Join(installPath, "documentation-wrapper", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
+							if err != nil {
+								fmt.Printf("[-] Failed to copy directory over\n")
 								continue
 							}
-						}
-						fmt.Printf("[*] Copying new documentation into place\n")
-						err = copyDir(filepath.Join(installPath, "documentation-wrapper", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
-						if err != nil {
-							fmt.Printf("[-] Failed to copy directory over\n")
-							continue
+						} else {
+							err = moveFileToVolume("mythic_documentation_volume",
+								filepath.Join("content", "Wrappers"),
+								filepath.Join(installPath, "documentation-wrapper", f.Name()))
+							if err != nil {
+								fmt.Printf("[-] Failed to install documentation for wrapper: %v\n", err)
+								continue
+							}
 						}
 					}
 				}

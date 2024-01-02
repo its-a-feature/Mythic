@@ -337,16 +337,21 @@ func tarFileToBytes(sourceName string) (*bytes.Buffer, error) {
 	tw := tar.NewWriter(&buf)
 	if sourceStats.IsDir() {
 		// walk through every file in the folder
+		absSourcePath, err := filepath.Abs(sourceName)
+		if err != nil {
+			fmt.Printf("[-] Failed to get absolute path of folder to copy over. Resulting directory structure might be weird\n")
+			return nil, err
+		}
+		// absSourcePath is the parent directory to copy over now
+		// ex: say to move over apfell/ so we'll get a folder called apfell on the target volume
+		absSourcePath = filepath.Dir(absSourcePath)
 		err = filepath.Walk(sourceName, func(file string, fi os.FileInfo, err error) error {
 			// generate tar header
 			header, err := tar.FileInfoHeader(fi, file)
 			if err != nil {
 				return err
 			}
-
-			// must provide real name
-			// (see https://golang.org/src/archive/tar/common.go?#L626)
-			header.Name = filepath.ToSlash(file)
+			header.Name = strings.ReplaceAll(file, absSourcePath, "")
 			// write header
 			if err = tw.WriteHeader(header); err != nil {
 				return err
