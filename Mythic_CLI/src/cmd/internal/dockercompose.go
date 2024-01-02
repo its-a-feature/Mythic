@@ -916,7 +916,6 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 
 	*/
 	curConfig.Set("version", "2.4")
-	fmt.Printf("set volume: %v\n", curConfig.GetStringMap("volumes"))
 	err = curConfig.WriteConfig()
 	if err != nil {
 		fmt.Printf("[-] Failed to update config: %v\n", err)
