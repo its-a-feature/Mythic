@@ -6,4 +6,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=5 --start-period=10s \
 
 RUN hugo new site mythic_docs
 
-CMD server -p ${DOCUMENTATION_PORT:-8090}
+ENTRYPOINT server -p ${DOCUMENTATION_PORT:-8090}
