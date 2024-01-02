@@ -276,7 +276,7 @@ func updateNginxBlockLists() {
 			os.Exit(1)
 		}
 	} else {
-		err := moveStringToVolume("mythic_nginx_volume_config", "blockips.conf", outputString)
+		err := moveStringToVolume("mythic_nginx_volume_config", ".", "blockips.conf", outputString)
 		if err != nil {
 			fmt.Printf("[-] Failed to write out block list file: %v\n", err)
 			os.Exit(1)
@@ -335,27 +335,59 @@ func tarFileToBytes(sourceName string) (*bytes.Buffer, error) {
 	}
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
-	err = tw.WriteHeader(&tar.Header{
-		Name: sourceName,         // filename
-		Mode: 0777,               // permissions
-		Size: sourceStats.Size(), // filesize
-	})
-	if err != nil {
-		return nil, err
+	if sourceStats.IsDir() {
+		// walk through every file in the folder
+		err = filepath.Walk(sourceName, func(file string, fi os.FileInfo, err error) error {
+			// generate tar header
+			header, err := tar.FileInfoHeader(fi, file)
+			if err != nil {
+				return err
+			}
+
+			// must provide real name
+			// (see https://golang.org/src/archive/tar/common.go?#L626)
+			header.Name = filepath.ToSlash(file)
+			// write header
+			if err = tw.WriteHeader(header); err != nil {
+				return err
+			}
+			// if not a dir, write file content
+			if !fi.IsDir() {
+				data, err := os.Open(file)
+				if err != nil {
+					return err
+				}
+				if _, err := io.Copy(tw, data); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		return &buf, err
+	} else {
+		err = tw.WriteHeader(&tar.Header{
+			Name: sourceName,         // filename
+			Mode: 0777,               // permissions
+			Size: sourceStats.Size(), // filesize
+		})
+		if err != nil {
+			return nil, err
+		}
+		content, err := io.ReadAll(source)
+		if err != nil {
+			return nil, err
+		}
+		_, err = tw.Write(content)
+		if err != nil {
+			return nil, err
+		}
+		err = tw.Close()
+		if err != nil {
+			return nil, err
+		}
+		return &buf, nil
 	}
-	content, err := io.ReadAll(source)
-	if err != nil {
-		return nil, err
-	}
-	_, err = tw.Write(content)
-	if err != nil {
-		return nil, err
-	}
-	err = tw.Close()
-	if err != nil {
-		return nil, err
-	}
-	return &buf, nil
+
 }
 func tarStringToBytes(sourceName string, data string) (*bytes.Buffer, error) {
 	var buf bytes.Buffer
@@ -386,8 +418,8 @@ func moveFileToVolume(volumeName string, destinationName string, sourceName stri
 	DockerCopyIntoVolume(contentBytes, destinationName, volumeName)
 	return nil
 }
-func moveStringToVolume(volumeName string, destinationName string, content string) error {
-	contentBytes, err := tarStringToBytes(destinationName, content)
+func moveStringToVolume(volumeName string, destinationName string, sourceName string, content string) error {
+	contentBytes, err := tarStringToBytes(sourceName, content)
 	if err != nil {
 		return err
 	}

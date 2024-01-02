@@ -149,7 +149,7 @@ func DockerStart(containers []string) error {
 			return err
 		}
 	}
-	updateNginxBlockLists()
+	//updateNginxBlockLists()
 	// get all the services on disk and in docker-compose currently
 	if diskAgents, err := getElementsOnDisk(); err != nil {
 		return err
@@ -175,7 +175,6 @@ func DockerStart(containers []string) error {
 		}
 		// if the user didn't explicitly call out starting certain containers, then do all of them
 		if len(containers) == 0 {
-			generateCerts()
 			containers = append(dockerComposeContainers, intendedMythicServices...)
 		}
 		finalContainers := []string{}
@@ -240,6 +239,8 @@ func DockerStart(containers []string) error {
 			fmt.Printf("[-] Failed to remove images\n%v\n", err)
 			return err
 		}
+		updateNginxBlockLists()
+		generateCerts()
 		TestMythicRabbitmqConnection()
 		TestMythicConnection()
 		Status(false)
@@ -410,7 +411,7 @@ func VolumesList() error {
 	defer cli.Close()
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 0, 8, 2, '\t', 0)
-	fmt.Fprintln(w, "VOLUME\tSIZE\tCONTAINER (Ref Count)\tLOCATION")
+	fmt.Fprintln(w, "VOLUME\tSIZE\tCONTAINER (Ref Count)\tCONTAINER STATUS\tLOCATION")
 	du, err := cli.DiskUsage(ctx, types.DiskUsageOptions{})
 	if err != nil {
 		fmt.Printf("[-] Failed to get disk sizes: %v\n", err)
@@ -432,18 +433,28 @@ func VolumesList() error {
 		if currentVolume.UsageData != nil {
 			size = ByteCountSI(currentVolume.UsageData.Size)
 		}
-		container := "unused"
+		if !strings.HasPrefix(currentVolume.Name, "mythic_") {
+			continue
+		}
+		containerPieces := strings.Split(currentVolume.Name, "_")
+		containerName := strings.Join(containerPieces[0:2], "_")
+		container := "unused (0)"
+		containerStatus := "offline"
 		for _, c := range containers {
+			if c.Image == containerName {
+				containerStatus = c.Status
+			}
 			for _, m := range c.Mounts {
 				if m.Name == currentVolume.Name {
 					container = c.Image + " (" + strconv.Itoa(int(currentVolume.UsageData.RefCount)) + ")"
 				}
 			}
 		}
-		entries = append(entries, fmt.Sprintf("%s\t%s\t%s\t%s",
+		entries = append(entries, fmt.Sprintf("%s\t%s\t%s\t%s\t%s",
 			name,
 			size,
 			container,
+			containerStatus,
 			currentVolume.Mountpoint,
 		))
 	}
@@ -540,9 +551,12 @@ func DockerCopyIntoVolume(sourceFile io.Reader, destinationFileName string, dest
 	for _, container := range containers {
 		for _, mnt := range container.Mounts {
 			if mnt.Name == destinationVolume {
-				err = cli.CopyToContainer(ctx, container.ID, mnt.Destination+"/"+destinationFileName, sourceFile, types.CopyToContainerOptions{CopyUIDGID: true})
+				err = cli.CopyToContainer(ctx, container.ID, mnt.Destination+"/"+destinationFileName, sourceFile, types.CopyToContainerOptions{
+					CopyUIDGID: true,
+				})
 				if err != nil {
 					fmt.Printf("[-] Failed to write file: %v\n", err)
+					os.Exit(1)
 				} else {
 					fmt.Printf("[+] Successfully wrote file\n")
 				}
