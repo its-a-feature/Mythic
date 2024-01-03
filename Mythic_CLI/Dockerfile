@@ -1,1 +1,1 @@
-FROM ghcr.io/its-a-feature/mythic_cli:v0.0.2.32
+FROM ghcr.io/its-a-feature/mythic_cli:v0.0.2.33
