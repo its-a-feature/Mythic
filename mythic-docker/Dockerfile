@@ -1,6 +1,6 @@
 #FROM ghcr.io/its-a-feature/mythic_server:v0.0.2.32
 
-FROM itsafeaturemythic/mythic_go_base:latest
+FROM ghcr.io/its-a-feature/mythic_server:v0.0.2.33
 
 WORKDIR /usr/src/app
 
@@ -14,7 +14,7 @@ COPY ["src/", "."]
 
 RUN make build_final
 
-FROM alpine
+FROM ghcr.io/its-a-feature/mythic_server:v0.0.2.33
 
 COPY --from=0 /mythic_server /mythic_server
 
