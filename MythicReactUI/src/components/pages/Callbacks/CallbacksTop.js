@@ -3,7 +3,7 @@ import {useSubscription, gql } from '@apollo/client';
 import {CallbacksTable} from './CallbacksTable';
 import {CallbacksGraph} from './CallbacksGraph';
 export const CallbackGraphEdgesContext = createContext([]);
-
+export const OnOpenTabContext = createContext( () => {});
 const SUB_Callbacks = gql`
 subscription CallbacksSubscription{
   callback(where: {active: {_eq: true}}, order_by: {id: desc}) {
@@ -161,13 +161,15 @@ export function CallbacksTop(props){
     return (
       <div style={{height: "100%", width: "100%"}}>
           <CallbackGraphEdgesContext.Provider value={callbackEdges}>
-            {props.topDisplay === "graph" ? (
-              <CallbacksGraph maxHeight={"100%"} key={"callbacksgraph"} onOpenTab={onOpenTabLocal} callbacks={callbacks } />
-            ) : (
-                <CallbacksTable key={"callbackstable"} onOpenTab={onOpenTabLocal}
-                                callbacks={callbacks}
-                                parentMountedRef={mountedRef} me={me}/>
-              )}
+              <OnOpenTabContext.Provider value={onOpenTabLocal}>
+                  {props.topDisplay === "graph" ? (
+                      <CallbacksGraph maxHeight={"100%"} key={"callbacksgraph"}  />
+                  ) : (
+                      <CallbacksTable key={"callbackstable"} onOpenTab={onOpenTabLocal}
+                                      callbacks={callbacks}
+                                      parentMountedRef={mountedRef} me={me}/>
+                  )}
+              </OnOpenTabContext.Provider>
           </CallbackGraphEdgesContext.Provider>
         </div>
     );

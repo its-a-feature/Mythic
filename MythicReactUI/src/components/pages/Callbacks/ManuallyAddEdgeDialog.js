@@ -43,6 +43,7 @@ query getP2PProfilesAndCallbacks{
       id
       callback {
         id
+        display_id
         description
       }
     }
@@ -81,7 +82,7 @@ export function ManuallyAddEdgeDialog(props) {
             snackActions.error("Must select a valid destination");
             return;
         }
-        props.onSubmit(props.source.id, selectedProfile, selectedDestination.callback);
+        props.onSubmit(props.source.display_id, selectedProfile, selectedDestination.callback);
         props.onClose();
     }
     const { loading, error } = useQuery(getP2PProfilesAndCallbacks, {
@@ -107,10 +108,10 @@ export function ManuallyAddEdgeDialog(props) {
     }
   return (
     <Root>
-        <DialogTitle >Manually Add Edge From Callback {props.source.id}</DialogTitle>
+        <DialogTitle >Manually Add Edge From Callback {props.source.display_id}</DialogTitle>
         <DialogContent dividers={true}>
             <React.Fragment>
-                Manually add an edge from Callback {props.source.id} to another callback via a P2P C2 Profile.<br/>
+                Manually add an edge from Callback {props.source.display_id} to another callback via a P2P C2 Profile.<br/>
                 <FormControl className={classes.formControl}>
                   <InputLabel ref={inputRefC2}>Profile</InputLabel>
                   <Select
@@ -142,7 +143,7 @@ export function ManuallyAddEdgeDialog(props) {
                       <em>None</em>
                     </MenuItem>
                     {callbackOptions.map( (opt) => (
-                        <MenuItem value={opt} key={"callback:" + opt.callback.id}>{opt.callback.id} ({opt.callback.description})</MenuItem>
+                        <MenuItem value={opt} key={"callback:" + opt.callback.id}>{opt.callback.display_id} ({opt.callback.description})</MenuItem>
                     ) )}
                   </Select>
                 </FormControl>

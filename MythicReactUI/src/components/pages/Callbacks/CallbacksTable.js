@@ -269,7 +269,7 @@ function CallbacksTablePreMemo(props){
                             return <CallbacksTableIDCell
                                 rowData={row}
                                 key={`callback${row.id}_${c.name}`}
-                                onOpenTab={props.onOpenTab}
+                                //onOpenTab={props.onOpenTab}
                                 updateDescription={updateDescriptionSubmit}
                                 setOpenHideMultipleDialog={setOpenHideMultipleDialog}
                                 setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}

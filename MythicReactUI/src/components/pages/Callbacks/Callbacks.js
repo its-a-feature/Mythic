@@ -53,7 +53,7 @@ export function Callbacks({me}) {
     const [topDisplay, setTopDisplay] = React.useState('table');
     const [openTabs, setOpenTabs] = React.useState([]);
     const [clickedTabId, setClickedTabId] = React.useState('');
-    const openTabRef = React.useRef();
+    const openTabRef = React.useRef([]);
     useEffect(() => {
         const oldTabs = localStorage.getItem('openTabs');
         if (oldTabs !== undefined && oldTabs !== null) {

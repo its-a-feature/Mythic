@@ -1,4 +1,4 @@
-import React, {useEffect, useCallback} from 'react';
+import React, {useEffect, useCallback, useMemo, useState} from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -22,6 +22,13 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import SwapCallsIcon from '@mui/icons-material/SwapCalls';
 import {snackActions} from "../../utilities/Snackbar";
 import {TaskLabelFlat, getLabelText} from './TaskDisplay';
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {MythicSelectFromListDialog} from "../../MythicComponents/MythicSelectFromListDialog";
+import {ManuallyAddEdgeDialog} from "./ManuallyAddEdgeDialog";
+import {TaskParametersDialog} from "./TaskParametersDialog";
+import {addEdgeMutation, createTaskingMutation, hideCallbackMutation, removeEdgeMutation} from "./CallbackMutations";
+import {loadedLinkCommandsQuery} from "./CallbacksGraph";
+import {useMutation, gql, useLazyQuery } from '@apollo/client';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -42,10 +49,10 @@ function getStyles(name, selectedOptions, theme) {
           : theme.typography.fontWeightMedium,
     };
   }
-export function C2PathDialog(props) {
+export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab}) {
     const theme = useTheme();
-    const labelComponentOptions = ["id", "user", "host", "ip", "domain", "os", "process_name"];
-    const [selectedComponentOptions, setSelectedComponentOptions] = React.useState(["id", "user"]);
+    const labelComponentOptions = ["display_id", "user", "host", "ip", "domain", "os", "process_name"];
+    const [selectedComponentOptions, setSelectedComponentOptions] = React.useState(["display_id", "user"]);
     const [selectedGroupBy, setSelectedGroupBy] = React.useState("None");
     const groupByOptions = ["host", "user", "ip", "domain", "os", "process_name", "None"];
     const [viewConfig, setViewConfig] = React.useState({
@@ -74,12 +81,170 @@ export function C2PathDialog(props) {
     useEffect( () => {
         setViewConfig({...viewConfig, group_by: selectedGroupBy});
     }, [selectedGroupBy])
+    // adding context menus and options
+    const [linkCommands, setLinkCommands] = React.useState([]);
+    const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
+    const [openSelectLinkCommandDialog, setOpenSelectLinkCommandDialog] = React.useState(false);
+    const [selectedLinkCommand, setSelectedLinkCommand] = useState();
+    const [selectedCallback, setSelectedCallback] = useState();
+    const [manuallyRemoveEdgeDialogOpen, setManuallyRemoveEdgeDialogOpen] = useState(false);
+    const [manuallyAddEdgeDialogOpen, setManuallyAddEdgeDialogOpen] = useState(false);
+    const [edgeOptions, setEdgeOptions] = useState([]); // used for manuallyRemoveEdgeDialog
+    const [addEdgeSource, setAddEdgeSource] = useState(null); // used for manuallyAddEdgeDialog
+    const [getLinkCommands] = useLazyQuery(loadedLinkCommandsQuery, {fetchPolicy: "network-only",
+        onCompleted: data => {
+            const updatedCommands = data.loadedcommands.map( c => {return {command: {...c.command, parsedParameters: {}}}})
+            if(updatedCommands.length === 1){
+                //no need for a popup, there's only one possible command
+                setSelectedLinkCommand(updatedCommands[0].command);
+                setOpenParametersDialog(true);
+            }else if(updatedCommands.length === 0){
+                //no possible command can be used, do a notification
+                snackActions.warning("No commands loaded support the ui feature 'graph_view:link'");
+            }else{
+                const cmds = updatedCommands.map( (cmd) => { return {...cmd, display: cmd.command.cmd} } );
+                setLinkCommands(cmds);
+                setSelectedLinkCommand(cmds[0].command);
+                setOpenSelectLinkCommandDialog(true);
+            }
+        }});
+    const onSubmitSelectedLinkCommand = (cmd) => {
+        setSelectedLinkCommand(cmd.command);
+        //console.log(cmd);
+        setOpenParametersDialog(true);
+    }
+    const [createTask] = useMutation(createTaskingMutation, {
+        update: (cache, {data}) => {
+            if(data.createTask.status === "error"){
+                snackActions.error(data.createTask.error);
+            }else{
+                snackActions.success("task created");
+            }
 
-  return (
+        }
+    });
+    const submitParametersDialog = (cmd, parameters, files) => {
+        setOpenParametersDialog(false);
+        createTask({variables: {callback_id: selectedCallback.id, command: cmd, params: parameters, files}});
+    }
+    const [hideCallback] = useMutation(hideCallbackMutation, {
+        update: (cache, {data}) => {
+            //console.log(data);
+        },
+        onError: (error) => {
+            console.log(error)
+            snackActions.error(error.message);
+            //setContextMenuOpen(false);
+        },
+        onCompleted: (data) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Successfully hid callback")
+            }else{
+                snackActions.error(data.updateCallback.error)
+            }
+
+            //setContextMenuOpen(false);
+        }
+    });
+    const [manuallyRemoveEdge] = useMutation(removeEdgeMutation, {
+        update: (cache, {data}) => {
+            //console.log(data);
+            snackActions.success("Successfully removed edge, updating graph...");
+        },
+        onError: (err) => {
+            snackActions.error(err.message);
+        }
+    });
+    const [manuallyAddEdge] = useMutation(addEdgeMutation, {
+        update: (cache, {data}) => {
+            //console.log(data);
+            snackActions.success("Successfully added edge, updating graph...");
+        },
+        onError: (err) => {
+            snackActions.error(err.message);
+        }
+    });
+    const onSubmitManuallyRemoveEdge = (edge) => {
+        if(edge === ""){
+            snackActions.warning("No edge selected");
+            return;
+        }
+        manuallyRemoveEdge({variables: {edge_id: edge.id}});
+    }
+    const onSubmitManuallyAddEdge = (source_id, profile, destination) => {
+        if(profile === "" || destination === ""){
+            snackActions.warning("Profile or Destination Callback not provided");
+            return;
+        }
+        manuallyAddEdge({variables: {source_id: source_id, c2profile: profile.name, destination_id: destination.display_id}});
+    }
+    const contextMenu = useMemo(() => {return [
+        {
+            title: 'Hide Callback',
+            onClick: function(node) {
+                hideCallback({variables: {callback_display_id: node.display_id}});
+            }
+        },
+        {
+            title: 'Interact',
+            onClick: function(node){
+                //console.log(node);
+                if(onOpenTab){
+                    onOpenTab({tabType: "interact", tabID: node.callback_id + "interact", callbackID: node.callback_id});
+                } else {
+                    snackActions.warning("interacting with callbacks not available here");
+                }
+
+            }
+        },
+        {
+            title: "Manually Remove Edge",
+            onClick: function(node){
+                const opts = callbackgraphedges.reduce( (prev, e) => {
+                    if(e.source.id === node.id || e.destination.id === node.id){
+                        if(e.end_timestamp === null){
+                            if(e.source.id === e.destination.id){
+                                return [...prev, {...e, "display": e.source.display_id + " --> " + e.c2profile.name + " --> Mythic"}];
+                            } else {
+                                return [...prev, {...e, "display": e.source.display_id + " --> " + e.c2profile.name + " --> " + e.destination.display_id}];
+                            }
+
+                        }else{
+                            return [...prev];
+                        }
+                    } else {
+                        return [...prev];
+                    }
+                }, []);
+                setEdgeOptions(opts);
+                setManuallyRemoveEdgeDialogOpen(true);
+            }
+        },
+        {
+            title: "Manually Add Edge",
+            onClick: function(node){
+                setAddEdgeSource(node);
+                setManuallyAddEdgeDialogOpen(true);
+            }
+        },
+        {
+            title: "Task Callback for Edge",
+            onClick: function(node){
+                setLinkCommands([]);
+                setSelectedLinkCommand(null);
+                setSelectedCallback(null);
+                getLinkCommands({variables: {callback_id: node.id} });
+                setSelectedCallback(node);
+            }
+        },
+    ]}, [getLinkCommands, hideCallback, viewConfig, onOpenTab]);
+
+
+    return (
     <>
         <div style={{padding: "10px"}}>
             <Typography variant='h4' style={{display:"inline-block", marginTop: "10px"}}>
-            Callback {props.callback.display_id}'s Egress Path
+            Callback {callback.display_id}'s Egress Path
             </Typography>
             <div style={{float: "right"}}>
                 <FormControl sx={{ width: 200,  marginTop: "10px" }}>
@@ -126,11 +291,44 @@ export function C2PathDialog(props) {
                 </FormControl>
             </div>
         </div>
-        <DialogContent dividers={true} style={{height: "calc(70vh)"}}>
-            <DrawC2PathElementsFlowWithProvider edges={props.callbackgraphedges} view_config={viewConfig} theme={theme} />
+        <DialogContent style={{height: "calc(70vh)" }}>
+            {manuallyRemoveEdgeDialogOpen &&
+                <MythicDialog fullWidth={true} maxWidth="sm" open={manuallyRemoveEdgeDialogOpen}
+                              onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}}
+                              innerDialog={<MythicSelectFromListDialog onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}} identifier="id" display="display"
+                                                                       onSubmit={onSubmitManuallyRemoveEdge} options={edgeOptions} title={"Manually Remove Edge"} action={"remove"} />}
+                />
+            }
+            {manuallyAddEdgeDialogOpen &&
+                <MythicDialog fullWidth={true} maxWidth="sm" open={manuallyAddEdgeDialogOpen}
+                              onClose={()=>{setManuallyAddEdgeDialogOpen(false);}}
+                              innerDialog={<ManuallyAddEdgeDialog onClose={()=>{setManuallyAddEdgeDialogOpen(false);}}
+                                                                  onSubmit={onSubmitManuallyAddEdge} source={addEdgeSource} />}
+                />
+            }
+            {openParametersDialog &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog}
+                              onClose={()=>{setOpenParametersDialog(false);}}
+                              innerDialog={<TaskParametersDialog command={selectedLinkCommand} callback={selectedCallback} onSubmit={submitParametersDialog} onClose={()=>{setOpenParametersDialog(false);}} />}
+                />
+            }
+            {openSelectLinkCommandDialog &&
+                <MythicDialog fullWidth={true} maxWidth="sm" open={openSelectLinkCommandDialog}
+                              onClose={()=>{setOpenSelectLinkCommandDialog(false);}}
+                              innerDialog={<MythicSelectFromListDialog onClose={()=>{setOpenSelectLinkCommandDialog(false);}}
+                                                                       onSubmit={onSubmitSelectedLinkCommand} options={linkCommands} title={"Select Link Command"}
+                                                                       action={"select"} display={"display"} identifier={"display"}/>}
+                />
+            }
+            <DrawC2PathElementsFlowWithProvider
+                edges={callbackgraphedges}
+                view_config={viewConfig}
+                theme={theme}
+                contextMenu={contextMenu}
+            />
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+          <Button onClick={onClose} variant="contained" color="primary">
             Close
           </Button>
         </DialogActions>
@@ -1026,7 +1224,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
                     <MiniMap pannable={true} />
                 </ReactFlow>
             {openContextMenu &&
-            <div style={{...contextMenuCoord}} className="context-menu">
+            <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
                 {contextMenu.map( (m) => (
                     <Button key={m.title} variant={"contained"} className="context-menu-button" onClick={() => {
                         m.onClick(contextMenuNode.current);

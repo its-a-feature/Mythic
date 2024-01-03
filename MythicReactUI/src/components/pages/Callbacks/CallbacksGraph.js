@@ -24,7 +24,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import {CallbackGraphEdgesContext} from './CallbacksTop';
+import {CallbackGraphEdgesContext, OnOpenTabContext} from './CallbacksTop';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 1;
@@ -65,8 +65,8 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
     const dropdownAnchorRef = React.useRef(null);
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [showConfiguration, setShowConfiguration] = React.useState(false);
-    const labelComponentOptions = ["id", "user", "host", "ip", "domain", "os", "process_name"];
-    const [selectedComponentOptions, setSelectedComponentOptions] = React.useState(["id", "user"]);
+    const labelComponentOptions = ["display_id", "user", "host", "ip", "domain", "os", "process_name"];
+    const [selectedComponentOptions, setSelectedComponentOptions] = React.useState(["display_id", "user"]);
     const [selectedGroupBy, setSelectedGroupBy] = React.useState("None");
     const groupByOptions = ["host", "user", "ip", "domain", "os", "process_name", "None"];
     const handleChange = (event) => {
@@ -211,9 +211,10 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
         </div>
     )
 }
-export function CallbacksGraph({onOpenTab}){
+export function CallbacksGraph({}){
     const theme = useTheme();
     const callbackgraphedges = useContext(CallbackGraphEdgesContext);
+    const onOpenTab = useContext(OnOpenTabContext);
     //used for creating a task to do a link command
     const [linkCommands, setLinkCommands] = React.useState([]);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
@@ -262,7 +263,7 @@ export function CallbacksGraph({onOpenTab}){
     }
     const [viewConfig, setViewConfig] = React.useState({
         rankDir: "TB",
-        label_components: ["id", "user"],
+        label_components: ["display_id", "user"],
         packet_flow_view: true,
         include_disconnected: true,
         show_all_nodes: false,
@@ -317,7 +318,7 @@ export function CallbacksGraph({onOpenTab}){
             snackActions.warning("Profile or Destination Callback not provided");
             return;
         }
-        manuallyAddEdge({variables: {source_id: source_id, c2profile: profile.name, destination_id: destination.id}});
+        manuallyAddEdge({variables: {source_id: source_id, c2profile: profile.name, destination_id: destination.display_id}});
     }
     const contextMenu = useMemo(() => {return [
 	        {
@@ -381,7 +382,7 @@ export function CallbacksGraph({onOpenTab}){
             {manuallyRemoveEdgeDialogOpen &&
                 <MythicDialog fullWidth={true} maxWidth="sm" open={manuallyRemoveEdgeDialogOpen}
                     onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}} 
-                    innerDialog={<MythicSelectFromListDialog onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}} identifier="edge_id" display="display"
+                    innerDialog={<MythicSelectFromListDialog onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}} identifier="id" display="display"
                                         onSubmit={onSubmitManuallyRemoveEdge} options={edgeOptions} title={"Manually Remove Edge"} action={"remove"} />}
                 />
             }
