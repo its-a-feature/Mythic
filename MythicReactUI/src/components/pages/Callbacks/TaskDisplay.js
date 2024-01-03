@@ -14,7 +14,6 @@ import {useTheme} from '@mui/material/styles';
 import {gql, useLazyQuery, useSubscription } from '@apollo/client';
 import {TaskDisplayContainer, TaskDisplayContainerConsole} from './TaskDisplayContainer';
 import {TagsDisplay} from '../../MythicComponents/MythicTag';
-import MultipleStopIcon from '@mui/icons-material/MultipleStop';
 import {taskingDataFragment} from './CallbackMutations';
 
 

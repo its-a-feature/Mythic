@@ -128,6 +128,16 @@ export const taskingDataFragment = gql`
             commentOperator{
                 username
             }
+            callback {
+                display_id
+                id
+                user
+                host
+                integrity_level
+                domain
+                ip
+                mythictree_groups
+            }
             completed
             subtask_group_name
             display_id

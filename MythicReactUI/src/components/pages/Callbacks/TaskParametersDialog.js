@@ -60,6 +60,7 @@ query getAllEdgesQuery($callback_id: Int!){
             agent_callback_id
             host
             id
+            display_id
             payload {
               id
               uuid
@@ -81,6 +82,7 @@ query getAllEdgesQuery($callback_id: Int!){
             agent_callback_id
             host
             id
+            display_id
             payload {
               uuid
               id
@@ -174,6 +176,7 @@ query getAllPayloadsOnHostsQuery($operation_id: Int!){
         agent_callback_id
         host
         id
+        display_id
         description
         crypto_type
         payload {
@@ -588,7 +591,7 @@ export function TaskParametersDialog(props) {
                                     for( const [key, value] of Object.entries(c2info)){
                                         c2array.push({name: key, parameters: value});
                                     }
-                                    const payloadInfo = {...entry.registered_payload, c2info: c2array, display: "Callback " + entry.id + " - " + entry.description, ...entry, type: "callback", payloadOnHostID:null};
+                                    const payloadInfo = {...entry.registered_payload, c2info: c2array, display: "Callback " + entry.display_id + " - " + entry.description, ...entry, type: "callback", payloadOnHostID:null};
                                     return {...host, payloads: [...host.payloads, payloadInfo]}
                                 }else{
                                     return host;
@@ -609,7 +612,7 @@ export function TaskParametersDialog(props) {
                                 for( const [key, value] of Object.entries(c2info)){
                                     c2array.push({name: key, parameters: value});
                                 }
-                                const payloadInfo = {...entry.registered_payload, c2info: c2array, display: "Callback " + entry.id + " - " + entry.description, ...entry, type: "callback", payloadOnHostID:null};
+                                const payloadInfo = {...entry.registered_payload, c2info: c2array, display: "Callback " + entry.display_id + " - " + entry.description, ...entry, type: "callback", payloadOnHostID:null};
                                 return [...prevn, {host: entry.host, payloads: [payloadInfo] } ]
                             }else{
                                 return updates;
@@ -746,14 +749,14 @@ export function TaskParametersDialog(props) {
                         const edge_active_choices = loadedAllEdgesLoading.callbackgraphedge.reduce( (prevn, edge) => {
                             if(edge.source.id === edge.destination.id) {return prevn}
                             if(edge.end_timestamp === null){
-                                return [...prevn, {...edge, display: "Callback " + edge.source.id + " --" + edge.c2profile.name + "--> Callback " + edge.destination.id + (edge.end_timestamp === null? "(Active)" : "(Dead at " + edge.end_timestamp + ")")}];
+                                return [...prevn, {...edge, display: "Callback " + edge.source.display_id + " --" + edge.c2profile.name + "--> Callback " + edge.destination.display_id + (edge.end_timestamp === null? "(Active)" : "(Dead at " + edge.end_timestamp + ")")}];
                             }
                             return prevn;
                         }, []);
                         const edge_dead_choices = loadedAllEdgesLoading.callbackgraphedge.reduce( (prevn, edge) => {
                             if(edge.source.id === edge.destination.id) {return prevn}
                             if(edge.end_timestamp !== null){
-                                return [...prevn, {...edge, display: "Callback " + edge.source.id + " --" + edge.c2profile.name + "--> Callback " + edge.destination.id + (edge.end_timestamp === null? "(Active)" : "(Dead at " + edge.end_timestamp + ")")}];
+                                return [...prevn, {...edge, display: "Callback " + edge.source.display_id + " --" + edge.c2profile.name + "--> Callback " + edge.destination.display_id + (edge.end_timestamp === null? "(Active)" : "(Dead at " + edge.end_timestamp + ")")}];
                             }
                             return prevn;
                         }, []);
