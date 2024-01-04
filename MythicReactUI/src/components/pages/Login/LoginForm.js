@@ -32,6 +32,10 @@ export function LoginForm(props){
             body: JSON.stringify({username, password})
         };
         fetch('/auth', requestOptions).then((response) => {
+            if(response.status !== 200){
+                snackActions.warning("HTTP " + response.status + " Error: Check Mythic logs");
+                return;
+            }
             response.json().then(data => {
                 //console.log(data)
                 if("access_token" in data){

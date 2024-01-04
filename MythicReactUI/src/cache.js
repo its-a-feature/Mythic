@@ -1,6 +1,7 @@
 import { makeVar } from '@apollo/client';
 import React from 'react';
 import {restartWebsockets} from "./index";
+import {snackActions} from "./components/utilities/Snackbar";
 
 export const meState = makeVar({loggedIn:false, user: null, access_token: null, refresh_token: null});
 export const menuOpen = makeVar(false);
@@ -35,6 +36,7 @@ export const FailedRefresh = () =>{
         refresh_token: null,
         user: null
     });
+    snackActions.clearAll();
     restartWebsockets();
 }
 
