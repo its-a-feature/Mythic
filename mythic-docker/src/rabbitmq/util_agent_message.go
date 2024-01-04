@@ -422,6 +422,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			instanceResponse.Err = err
 			return instanceResponse
 		}
+		//logging.LogInfo("decrypted message after post response", "decrypted", decryptedMessage)
 		if _, ok := decryptedMessage[CALLBACK_MESSAGE_KEY_RESPONSES]; ok {
 			// this means we got response data outside the post_response key, so handle it
 			if postResponseMap, postResponseMapErr := handleAgentMessagePostResponse(&decryptedMessage, uuidInfo); postResponseMapErr != nil {

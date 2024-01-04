@@ -962,7 +962,7 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 				return fileMeta.AgentFileID, nil
 			}
 		}
-	} else if agentResponse.Download.TotalChunks != nil {
+	} else if agentResponse.Download.TotalChunks != nil && *agentResponse.Download.TotalChunks > 0 {
 		// new to make a new file_id and register it for the agent to use for downloading a file
 		// likely looking at step 1
 		var err error
@@ -1194,6 +1194,9 @@ func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta datab
 		Deleted:         false,
 	}
 	parentPath, _, name := getParentPathFullPathName(pathData, len(pathData.PathPieces)-1, databaseStructs.TREE_TYPE_FILE)
+	if parentPath == "" && name == "" {
+		return
+	}
 	newTree.ParentPath = []byte(parentPath)
 	newTree.Name = []byte(name)
 	newTree.Success.Valid = true
@@ -1615,7 +1618,9 @@ func handleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 func resolveAndCreateParentPathsForTreeNode(pathData utils.AnalyzedPath, task databaseStructs.Task, treeType string) {
 	for i, _ := range pathData.PathPieces {
 		parentPath, fullPath, name := getParentPathFullPathName(pathData, i, databaseStructs.TREE_TYPE_FILE)
-
+		if parentPath == "" && fullPath == "" && name == "" {
+			continue
+		}
 		newTree := databaseStructs.MythicTree{
 			Host:            pathData.Host,
 			TaskID:          task.ID,
@@ -1680,6 +1685,10 @@ func getParentPathFullPathName(pathData utils.AnalyzedPath, endIndex int, treeTy
 	var parentPath string
 	var fullPath string
 	var name string
+	if endIndex < 0 {
+		logging.LogError(nil, "can't get parent full path name when end index < 0")
+		return "", "", ""
+	}
 	switch treeType {
 	case databaseStructs.TREE_TYPE_FILE:
 		if endIndex == 0 {
@@ -1760,6 +1769,10 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 }
 func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.Filemeta) {
 	fileBrowser := databaseStructs.MythicTree{}
+	if newFile.FullRemotePath == nil || len(newFile.FullRemotePath) == 0 {
+		logging.LogError(nil, "Trying to addFileMeta to Mythic's Tree, but no FullRemotePath provided")
+		return
+	}
 	if err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
 		operation_id=$1 AND full_path=$2 AND tree_type='file' AND callback_id=$3`,
 		newFile.OperationID, newFile.FullRemotePath, task.Callback.ID); err == sql.ErrNoRows {

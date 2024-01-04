@@ -248,7 +248,8 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 				response.Error = err.Error()
 				return response
 			}
-			if callback.EncKey == nil && input.EncryptionKey == nil && input.C2ProfileName == pc2p.C2profile.Name && c2Instance.EncKey != nil {
+			if callback.EncKey == nil && input.EncryptionKey == nil && c2Instance.EncKey != nil &&
+				(input.C2ProfileName == pc2p.C2profile.Name || input.C2ProfileName == "") {
 				callback.EncKey = c2Instance.EncKey
 				callback.DecKey = c2Instance.DecKey
 				callback.CryptoType = c2Instance.Value
