@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 func isServiceRunning(service string) bool {
@@ -38,40 +39,8 @@ func isServiceRunning(service string) bool {
 	return false
 }
 func addMythicServiceDockerComposeEntry(service string) {
-	var curConfig = viper.New()
-	curConfig.SetConfigName("docker-compose")
-	curConfig.SetConfigType("yaml")
-	curConfig.AddConfigPath(getCwdFromExe())
-	if err := curConfig.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatalf("[-] Error while reading in docker-compose file: %s\n", err)
-		} else {
-			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
-		}
-	}
-	/*
-		networkInfo := map[string]interface{}{
-			"default_network": map[string]interface{}{
-				"driver": "bridge",
-				"driver_opts": map[string]string{
-					"com.docker.network.bridge.name": "mythic_if",
-				},
-				"labels": []string{
-					"mythic_network",
-					"default_network",
-				},
-			},
-		}
-		if !curConfig.InConfig("networks") {
-			// don't blow away changes to the network configuration
-			curConfig.Set("networks", networkInfo)
-		} else {
-			curConfig.Set("networks.default_network.driver_opts", map[string]string{
-				"com.docker.network.bridge.name": "mythic_if",
-			})
-		}
+	curConfig := readInDockerCompose()
 
-	*/
 	volumes := map[string]interface{}{}
 	if curConfig.InConfig("volumes") {
 		volumes = curConfig.GetStringMap("volumes")
@@ -711,60 +680,14 @@ func addMythicServiceDockerComposeEntry(service string) {
 	} else {
 		curConfig.Set("services."+strings.ToLower(service), pStruct)
 	}
-	/*
-		if !curConfig.InConfig("networks") {
-			curConfig.Set("networks", networkInfo)
-		} else {
-			curConfig.Set("networks.default_network.driver_opts", map[string]string{
-				"com.docker.network.bridge.name": "mythic_if",
-			})
-		}
-
-	*/
 	curConfig.Set("volumes", volumes)
-	curConfig.Set("version", "2.4")
-	err := curConfig.WriteConfig()
+	err := setDockerComposeDefaultsAndWrite(curConfig)
 	if err != nil {
 		fmt.Printf("[-] Failed to update config: %v\n", err)
-	} else {
-		fmt.Println("[+] Successfully updated docker-compose.yml")
 	}
 }
 func removeMythicServiceDockerComposeEntry(service string) {
-	var curConfig = viper.New()
-	curConfig.SetConfigName("docker-compose")
-	curConfig.SetConfigType("yaml")
-	curConfig.AddConfigPath(getCwdFromExe())
-	if err := curConfig.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatalf("[-] Error while reading in docker-compose file: %s\n", err)
-		} else {
-			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
-		}
-	}
-	/*
-		networkInfo := map[string]interface{}{
-			"default_network": map[string]interface{}{
-				"driver": "bridge",
-				"driver_opts": map[string]string{
-					"com.docker.network.bridge.name": "mythic_if",
-				},
-				"labels": []string{
-					"mythic_network",
-					"default_network",
-				},
-			},
-		}
-		if !curConfig.InConfig("networks") {
-			// don't blow away changes to the network configuration
-			curConfig.Set("networks", networkInfo)
-		} else {
-			curConfig.Set("networks.default_network.driver_opts", map[string]string{
-				"com.docker.network.bridge.name": "mythic_if",
-			})
-		}
-
-	*/
+	curConfig := readInDockerCompose()
 
 	if isServiceRunning(service) {
 		DockerStop([]string{strings.ToLower(service)})
@@ -778,19 +701,8 @@ func removeMythicServiceDockerComposeEntry(service string) {
 		}
 
 	}
-	/*
-		if !curConfig.InConfig("networks") {
-			curConfig.Set("networks", networkInfo)
-		} else {
-			curConfig.Set("networks.default_network.driver_opts", map[string]string{
-				"com.docker.network.bridge.name": "mythic_if",
-			})
-		}
 
-	*/
-	curConfig.Set("version", "2.4")
-	fmt.Printf("set volume: %v\n", curConfig.GetStringMap("volumes"))
-	err := curConfig.WriteConfig()
+	err := setDockerComposeDefaultsAndWrite(curConfig)
 	if err != nil {
 		fmt.Printf("[-] Failed to update config: %v\n", err)
 	} else {
@@ -800,39 +712,8 @@ func removeMythicServiceDockerComposeEntry(service string) {
 
 func AddDockerComposeEntry(service string, additionalConfigs map[string]interface{}) error {
 	// add c2/payload [name] as type [group] to the main yaml file
-	var curConfig = viper.New()
-	curConfig.SetConfigName("docker-compose")
-	curConfig.SetConfigType("yaml")
-	curConfig.AddConfigPath(getCwdFromExe())
-	if err := curConfig.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatalf("[-] Error while reading in docker-compose file: %s\n", err)
-		} else {
-			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
-		}
-	}
-	/*
-		networkInfo := map[string]interface{}{
-			"default_network": map[string]interface{}{
-				"driver": "bridge",
-				"driver_opts": map[string]string{
-					"com.docker.network.bridge.name": "mythic_if",
-				},
-				"labels": []string{
-					"mythic_network",
-					"default_network",
-				},
-			},
-		}
-		if !curConfig.InConfig("networks") {
-			curConfig.Set("networks", networkInfo)
-		} else {
-			curConfig.Set("networks.default_network.driver_opts", map[string]string{
-				"com.docker.network.bridge.name": "mythic_if",
-			})
-		}
+	curConfig := readInDockerCompose()
 
-	*/
 	absPath, err := filepath.Abs(filepath.Join(getCwdFromExe(), InstalledServicesFolder, service))
 	if err != nil {
 		fmt.Printf("[-] Failed to get the absolute path to the %s folder, does the folder exist?\n", InstalledServicesFolder)
@@ -905,18 +786,8 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 		}
 	}
 	curConfig.Set("services."+strings.ToLower(service), pStruct)
-	/*
-		if !curConfig.InConfig("networks") {
-			curConfig.Set("networks", networkInfo)
-		} else {
-			curConfig.Set("networks.default_network.driver_opts", map[string]string{
-				"com.docker.network.bridge.name": "mythic_if",
-			})
-		}
 
-	*/
-	curConfig.Set("version", "2.4")
-	err = curConfig.WriteConfig()
+	err = setDockerComposeDefaultsAndWrite(curConfig)
 	if err != nil {
 		fmt.Printf("[-] Failed to update config: %v\n", err)
 	} else {
@@ -927,32 +798,7 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 }
 func RemoveDockerComposeEntry(service string) error {
 	// add c2/payload [name] as type [group] to the main yaml file
-	var curConfig = viper.New()
-	curConfig.SetConfigName("docker-compose")
-	curConfig.SetConfigType("yaml")
-	curConfig.AddConfigPath(getCwdFromExe())
-	if err := curConfig.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatalf("[-] Error while reading in docker-compose file: %s\n", err)
-		} else {
-			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
-		}
-	}
-	/*
-		networkInfo := map[string]interface{}{
-			"default_network": map[string]interface{}{
-				"driver": "bridge",
-				"driver_opts": map[string]string{
-					"com.docker.network.bridge.name": "mythic_if",
-				},
-				"labels": []string{
-					"mythic_network",
-					"default_network",
-				},
-			},
-		}
-
-	*/
+	curConfig := readInDockerCompose()
 
 	if !stringInSlice(service, MythicPossibleServices) {
 		if isServiceRunning(service) {
@@ -962,19 +808,7 @@ func RemoveDockerComposeEntry(service string) error {
 		fmt.Printf("[+] Removed %s from docker-compose\n", strings.ToLower(service))
 
 	}
-	/*
-		if !curConfig.InConfig("networks") {
-			curConfig.Set("networks", networkInfo)
-		} else {
-			curConfig.Set("networks.default_network.driver_opts", map[string]string{
-				"com.docker.network.bridge.name": "mythic_if",
-			})
-		}
-
-	*/
-	curConfig.Set("version", "2.4")
-	fmt.Printf("set volume: %v\n", curConfig.GetStringMap("volumes"))
-	err := curConfig.WriteConfig()
+	err := setDockerComposeDefaultsAndWrite(curConfig)
 	if err != nil {
 		fmt.Printf("[-] Failed to update config: %v\n", err)
 	} else {
@@ -1227,4 +1061,36 @@ func CheckDockerCompose() {
 	if !checkDockerVersion() {
 		log.Fatalf("[-] Bad docker version\n")
 	}
+}
+func setDockerComposeDefaultsAndWrite(curConfig *viper.Viper) error {
+	curConfig.Set("version", "2.4")
+	file := curConfig.ConfigFileUsed()
+	if len(file) == 0 {
+		file = "./docker-compose.yml"
+	}
+	configMap := curConfig.AllSettings()
+	ignoredKeys := []string{"networks"}
+	for _, key := range ignoredKeys {
+		delete(configMap, key)
+	}
+
+	content, err := yaml.Marshal(configMap)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(file, content, 0644)
+}
+func readInDockerCompose() *viper.Viper {
+	var curConfig = viper.New()
+	curConfig.SetConfigName("docker-compose")
+	curConfig.SetConfigType("yaml")
+	curConfig.AddConfigPath(getCwdFromExe())
+	if err := curConfig.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Fatalf("[-] Error while reading in docker-compose file: %s\n", err)
+		} else {
+			log.Fatalf("[-] Error while parsing docker-compose file: %s\n", err)
+		}
+	}
+	return curConfig
 }
