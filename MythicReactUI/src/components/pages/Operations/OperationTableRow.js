@@ -16,6 +16,7 @@ import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined';
 import {restartWebsockets} from '../../../index';
+import {useNavigate} from 'react-router-dom';
 
 const updateCurrentOpertionMutation = gql`
 mutation updateCurrentOpertionMutation($operator_id: Int!, $operation_id: Int!) {
@@ -103,6 +104,7 @@ export function OperationTableRow(props){
       updateDeleted({variables: {operation_id: props.id, deleted: !props.deleted}})
       setOpenDeleteDialog(false);
     }
+    const navigate = useNavigate();
     return (
         <React.Fragment>
             <TableRow key={props.id} hover>
@@ -145,7 +147,7 @@ export function OperationTableRow(props){
                 <TableCell>{props.admin.username}</TableCell>
                 <TableCell>
                 <Button size="small" startIcon={<AssessmentIcon/>}
-                        onClick={() => {snackActions.warning("Not Implemented")}} color="primary"
+                        onClick={() => {navigate("/new")}} color="primary"
                         disabled={me?.user?.current_operation_id !== props.id}
                         variant="contained">Analysis</Button>
                 </TableCell>

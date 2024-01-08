@@ -11,7 +11,6 @@ import Paper from '@mui/material/Paper';
 import {useTheme} from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import Tooltip from '@mui/material/Tooltip';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 
 const GetC2ProfilesAndPayloadTypes = gql`
@@ -82,7 +81,7 @@ export function AgentC2Overview(props){
       }
     });
     if (loading) {
-     return <LinearProgress />;;
+     return <LinearProgress />;
     }
     return (
     <div style={{ marginTop: "10px", marginRight: "5px"}}>
