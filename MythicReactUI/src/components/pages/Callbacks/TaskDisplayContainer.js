@@ -857,12 +857,12 @@ const SpeedDialDisplayConsole = ({toggleViewBrowserScript, toggleSelectAllOutput
         }
         <SpeedDial
             ariaLabel="Task Speeddial"
-            icon={<SpeedDialIcon />}
-            style={{position: "relative", float: "right", bottom: "0px", zIndex: 2, height: "0px", display: "inline-flex", flexDirection: "row-reverse"}}
+            icon={<SpeedDialIcon  />}
+            style={{  bottom: "0px", zIndex: 2, height: "0px", flexDirection: "row", alignItems: "flex-start", position: "relative"}}
             onClick={()=>{setOpenSpeedDial(!openSpeedDial)}}
-            FabProps={{color: "primary", size: "small" }}
+            FabProps={{color: "primary", sx: {width: 25, height: 25, minHeight: 20}  }}
             open={openSpeedDial}
-            direction="left"
+            direction="right"
         >
           <SpeedDialAction
               icon={<CodeIcon/>}

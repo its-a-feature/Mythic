@@ -161,9 +161,42 @@ export function CallbacksCard() {
         //console.log(event, itemIdentifier, item);
         if(item.label.includes("not successful")){
             navigate("/new/search?searchField=Command&search=" + item.id + "&tab=tasks&taskStatus=error");
+        } else {
+            navigate("/new/search?searchField=Command&search=" + item.id + "&tab=tasks&taskStatus=");
         }
 
     };
+    const handlePortClick = (event, itemIdentifier, item) => {
+        //console.log(event, itemIdentifier, item);
+        navigate("/new/search?tab=socks");
+    };
+    const handleArtifactClick = (event, itemIdentifier, item) => {
+        //console.log(event, itemIdentifier, item);
+        navigate("/new/search?tab=artifacts&searchField=Type&search=" + item.id);
+    };
+    const handleTagClick = (event, itemIdentifier, item) => {
+        //console.log(event, itemIdentifier, item);
+        navigate("/new/search?tab=tags&searchField=TagType&search=" + item.id);
+    };
+    const handleUserContextClick = (user) => {
+        let search = user.split(" ");
+        search = search[search.length - 1];
+        if(search.length > 0){
+            if(search[0] === "*"){
+                search = search.substring(1);
+            }
+            navigate("/new/search?searchField=User&search=" + search);
+        }
+
+    }
+    const handleHostContextClick = (host) => {
+        let search = host.split(" ");
+        search = search[search.length - 1];
+        if(search.length > 0){
+            navigate("/new/search?searchField=Host&search=" + search);
+        }
+
+    }
     useQuery(GetCallbacks, {fetchPolicy: "network-only",
         onCompleted: (data) => {
             let callbackData = {};
@@ -358,6 +391,25 @@ export function CallbacksCard() {
                         taskedHostCounts[ "[" + curGroup + "] " + currentHost ] += 1;
                     } else {
                         taskedHostCounts[ "[" + curGroup + "] " + currentHost ] = 1;
+                    }
+                }
+                if(callbackData[cur.callback_id].mythictree_groups.length === 0){
+                    let currentTaskedUser = callbackData[cur.callback_id].user;
+                    if(callbackData[cur.callback_id].integrity_level > 2){
+                        currentTaskedUser = "*" + currentTaskedUser;
+                    }
+                    if( taskedUserCounts[ currentTaskedUser] ){
+                        taskedUserCounts[ currentTaskedUser] += 1;
+                    } else {
+                        taskedUserCounts[ currentTaskedUser] = 1;
+                    }
+
+                    // get counts per tasked host
+                    let currentHost = callbackData[cur.callback_id].host;
+                    if(taskedHostCounts[ currentHost ]){
+                        taskedHostCounts[ currentHost ] += 1;
+                    } else {
+                        taskedHostCounts[  currentHost ] = 1;
                     }
                 }
                 // get operator activity counts
@@ -566,8 +618,10 @@ export function CallbacksCard() {
                 />
 
                 <TableDataCard data={taskedUser} title={"Top User Contexts"} leftKey={"label"} rightKey={"value"}
+                               onRowClick={handleUserContextClick}
                                leftColumnTitle={"User"} rightColumnTitle={"Tasks"} />
                 <TableDataCard data={taskedHosts} title={"Top Active Hosts"} leftKey={"label"} rightKey={"value"}
+                               onRowClick={handleHostContextClick}
                                leftColumnTitle={"Host"} rightColumnTitle={"Tasks"} />
             </div>
             <div style={{}}>
@@ -590,16 +644,19 @@ export function CallbacksCard() {
                 <PieChartCard data={taskArtifacts}
                               innerElement={ <PieCenterLabel>Top Artifacts</PieCenterLabel> }
                               hidden={true}
+                              onClick={handleArtifactClick}
                               additionalStyles={{
                               }}
                 />
                 <PieChartCard data={tags}
                               innerElement={ <PieCenterLabel>Top Tags</PieCenterLabel> }
                               hidden={true}
+                              onClick={handleTagClick}
                               additionalStyles={{
                               }}
                 />
                 <PieMultiChartCard data={callbackPorts}
+                                   onClick={handlePortClick}
                                title={"Port Usage"}
                               hidden={true}
                 />
@@ -627,7 +684,7 @@ const PieChartCard = ({data, width="100%", additionalStyles, innerElement, hidde
     right: 10,
     top: 10,
     bottom: 10,
-}, colors=cheerfulFiestaPalette}) => {
+}, colors=cheerfulFiestaPalette, onClick}) => {
     const theme = useTheme();
     return (
         <Paper elevation={5} style={{
@@ -678,6 +735,7 @@ const PieChartCard = ({data, width="100%", additionalStyles, innerElement, hidde
                     },
                 }}
                 colors={colors}
+                onClick={onClick}
             >
                 {innerElement}
             </PieChart>
@@ -760,7 +818,7 @@ const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondaryElement
         </Paper>
     )
 }
-const TableDataCard = ({data, title, leftColumnTitle, rightColumnTitle, leftKey, rightKey, width="100%"}) => {
+const TableDataCard = ({data, title, leftColumnTitle, rightColumnTitle, leftKey, rightKey, width="100%", onRowClick}) => {
     const theme = useTheme();
     return (
         <Paper elevation={5} style={{
@@ -786,7 +844,7 @@ const TableDataCard = ({data, title, leftColumnTitle, rightColumnTitle, leftKey,
                 </TableHead>
                 <TableBody >
                     {data.map( (d, index) => (
-                        <TableRow hover key={d[leftKey] + index}>
+                        <TableRow hover key={d[leftKey] + index} onClick={() => {onRowClick(d[leftKey])}} style={{cursor: "pointer"}}>
                             <MythicTableCell>{d[leftKey]}</MythicTableCell>
                             <MythicTableCell>{d[rightKey]}</MythicTableCell>
                         </TableRow>

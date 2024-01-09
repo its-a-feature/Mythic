@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.50] - 2024-01-09
+
+### Changed
+
+- Updated the dashboard page to have more links to the search pages based on what you click
+- Updated the console view for a callback to move the speeddial button closer to the task itself
+
 ## [0.1.48] - 2024-01-08
 
 ### Changed
