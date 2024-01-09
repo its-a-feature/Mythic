@@ -206,8 +206,8 @@ export function CallbacksCard() {
             const newActive = data.callback.reduce( (prev, cur) => {
                 if(!callbackData[cur.id]){
                     callbackData[cur.id] = {...cur,
-                        init_callback: new Date(cur.init_callback),
-                        last_checkin: new Date(cur.last_checkin),
+                        init_callback: new Date(cur.init_callback + "Z"),
+                        last_checkin: new Date(cur.last_checkin + "Z"),
                         init_callback_day: new Date(cur.init_callback.substr(0, 10) + "T00:00Z"),
                         last_checkin_day: new Date(cur.last_checkin.substr(0, 10) + "T00:00Z")}
                 }
