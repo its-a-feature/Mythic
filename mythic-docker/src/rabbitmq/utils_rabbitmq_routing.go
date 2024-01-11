@@ -25,6 +25,9 @@ func GetPTRPCReSyncRoutingKey(container string) string {
 func GetPtC2BuildRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_BUILD_C2_ROUTING_KEY)
 }
+func GetPtOnNewCallbackRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, PT_ON_NEW_CALLBACK)
+}
 func GetPtTaskCreateRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_TASK_CREATE_TASKING)
 }

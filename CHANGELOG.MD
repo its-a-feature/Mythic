@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.12] - 2024-01-10
+
+### Changed
+
+- Updated the C2 File host webhook to automatically stop and restart a C2 Profile after hosting a file
+- Added a new MythicRPC* for getting graph edges associated with a callback
+- Added a new MythicRPC* for creating a new task based on AgentCallbackUUID
+  - associated Operator for this will be the operator associated with the Callback (i.e. the one that made the payload)
+- Added new function for a Payload Type for `on_new_callback`/`onNewCallbackFunction` so that you can take actions based on new callbacks
+- Fixed bug with attempts to send `alerts` in `checkin` message not properly tracking them for the new callback
+- Support for container version 1.2.0
+
 ## [3.2.11] - 2023-01-04
 
 ### Changed

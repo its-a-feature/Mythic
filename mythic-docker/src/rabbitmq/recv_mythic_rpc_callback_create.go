@@ -38,6 +38,7 @@ type MythicRPCCallbackCreateMessageResponse struct {
 	Success      bool   `json:"success"`
 	Error        string `json:"error"`
 	CallbackUUID string `json:"callback_uuid"`
+	CallbackID   int    `json:"callback_id"`
 }
 
 func init() {
@@ -331,9 +332,17 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		logging.LogError(err, "Failed to register callback on host")
 	}
 	response.CallbackUUID = callback.AgentCallbackID
+	response.CallbackID = callback.ID
 	response.Success = true
+	go sendPtOnNewCallback(callback.ID)
 	return response
 
+}
+func sendPtOnNewCallback(callbackId int) {
+	allCallbackData := GetOnNewCallbackConfigurationForContainer(callbackId)
+	if err := RabbitMQConnection.SendPtOnNewCallback(allCallbackData); err != nil {
+		logging.LogError(err, "In sendPtOnNewCallback, but failed to SendPtOnNewCallback ")
+	}
 }
 func processMythicRPCCallbackCreate(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCCallbackCreateMessage{}

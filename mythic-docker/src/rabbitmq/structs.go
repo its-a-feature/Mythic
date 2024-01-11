@@ -41,6 +41,15 @@ type PayloadConfigurationBuildParameter struct {
 	Value interface{} `json:"value" binding:"required"`
 }
 
+type PTOnNewCallbackAllData struct {
+	Callback        PTTaskMessageCallbackData            `json:"callback"`
+	BuildParameters []PayloadConfigurationBuildParameter `json:"build_parameters"`
+	Commands        []string                             `json:"commands"`
+	Payload         PTTaskMessagePayloadData             `json:"payload"`
+	C2Profiles      []PayloadConfigurationC2Profile      `json:"c2info"`
+	PayloadType     string                               `json:"payload_type"`
+}
+
 // PT_TASK_* structs
 
 type PTTaskMessageAllData struct {

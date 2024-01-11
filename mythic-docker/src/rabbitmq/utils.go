@@ -917,6 +917,16 @@ func GetTaskConfigurationForContainer(taskID int) PTTaskMessageAllData {
 	taskMessage.PayloadType = taskMessage.Payload.PayloadType
 	return taskMessage
 }
+func GetOnNewCallbackConfigurationForContainer(callbackId int) PTOnNewCallbackAllData {
+	callbackMessage := PTOnNewCallbackAllData{}
+	callbackMessage.Callback = GetTaskMessageCallbackInformation(callbackId)
+	callbackMessage.Payload = getTaskMessagePayloadInformation(callbackMessage.Callback.RegisteredPayloadID)
+	callbackMessage.Commands = GetTaskMessageCommandList(callbackId)
+	callbackMessage.C2Profiles = GetTaskMessageCallbackC2ProfileInformation(callbackId)
+	callbackMessage.BuildParameters = *GetBuildParameterInformation(callbackMessage.Callback.RegisteredPayloadID)
+	callbackMessage.PayloadType = callbackMessage.Payload.PayloadType
+	return callbackMessage
+}
 
 // save file to disk
 func GetSaveFilePath() (string, string, error) {

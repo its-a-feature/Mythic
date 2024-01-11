@@ -23,6 +23,9 @@ const (
 	//	Result of asking a container to build a new payload
 	//		send PayloadBuildResponse to this route
 	PT_BUILD_RESPONSE_ROUTING_KEY = "pt_build_response"
+	// Result of informing a container of a new callback based on its payload type
+	// 		send PTOnNewCallbackResponse to this route
+	PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY = "pt_on_new_callback_response"
 	//	Result of asking a container to build a new c2profile-only payload for hot-swapping c2s
 	//		send PayloadBuildC2Response to this route
 	PT_BUILD_C2_RESPONSE_ROUTING_KEY = "pt_c2_build_response"
@@ -65,6 +68,7 @@ const (
 	PT_TASK_OPSEC_PRE_CHECK = "pt_task_opsec_pre_check"
 	//
 	PT_TASK_CREATE_TASKING   = "pt_task_create_tasking"
+	PT_ON_NEW_CALLBACK       = "pt_on_new_callback"
 	PT_TASK_OPSEC_POST_CHECK = "pt_task_opsec_post_check"
 	//
 	PT_RPC_COMMAND_DYNAMIC_QUERY_FUNCTION = "pt_command_dynamic_query_function"
@@ -142,6 +146,7 @@ const (
 	MYTHIC_RPC_TASK_SEARCH                    = "mythic_rpc_task_search"
 	MYTHIC_RPC_TASK_DISPLAY_TO_REAL_ID_SEARCH = "mythic_rpc_task_display_to_real_id_search"
 	MYTHIC_RPC_TASK_UPDATE                    = "mythic_rpc_task_update"
+	MYTHIC_RPC_TASK_CREATE                    = "mythic_rpc_task_create"
 	MYTHIC_RPC_TASK_CREATE_SUBTASK            = "mythic_rpc_task_create_subtask"
 	MYTHIC_RPC_TASK_CREATE_SUBTASK_GROUP      = "mythic_rpc_task_create_group"
 	// MYTHIC_RPC_RESPONSE_SEARCH response operations
@@ -152,6 +157,7 @@ const (
 	// MYTHIC_RPC_CALLBACK_CREATE callback operations
 	MYTHIC_RPC_CALLBACK_CREATE                    = "mythic_rpc_callback_create"
 	MYTHIC_RPC_CALLBACK_SEARCH                    = "mythic_rpc_callback_search"
+	MYTHIC_RPC_CALLBACK_EDGE_SEARCH               = "mythic_rpc_callback_edge_search"
 	MYTHIC_RPC_CALLBACK_DISPLAY_TO_REAL_ID_SEARCH = "mythic_rpc_callback_display_to_real_id_search"
 	MYTHIC_RPC_CALLBACK_ADD_COMMAND               = "mythic_rpc_callback_add_command"
 	MYTHIC_RPC_CALLBACK_REMOVE_COMMAND            = "mythic_rpc_callback_remove_command"
