@@ -67,6 +67,7 @@ type cachedUUIDInfo struct {
 	PayloadTypeName          string
 	LastCheckinTime          time.Time
 	CallbackID               int `json:"callback_id" db:"callback_id"`
+	CallbackDisplayID        int `json:"callback_display_id" db:"display_id"`
 	OperationID              int `json:"operation_id" db:"operation_id"`
 	// Active - tracking if the callback is active or not in a cached way
 	Active bool
@@ -267,11 +268,10 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	}
 	totalBase64Bytes := len(base64DecodedMessage)
 	var agentUUIDLength = 36
-
 	// 36 is the length of a UUID string and 16 is the length of a UUID in raw bytes
 	base64DecodedMessageLength := len(base64DecodedMessage)
-	if base64DecodedMessageLength <= 36 {
-		if base64DecodedMessageLength <= 16 {
+	if base64DecodedMessageLength < 36 {
+		if base64DecodedMessageLength < 16 {
 			// if a message is less than 16 bytes, then it can't possibly have a UUID in it
 			errorMessage := "Message length too short\n"
 			errorMessage += fmt.Sprintf("message: %s\n", string(base64DecodedMessage))
@@ -494,7 +494,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			if err := mapstructure.Decode(decryptedMessage[CALLBACK_MESSAGE_KEY_ALERTS], &alerts); err != nil {
 				logging.LogError(err, "Failed to parse alert messages")
 			} else {
-				go handleAgentMessagePostResponseAlerts(uuidInfo.OperationID, uuidInfo.CallbackID, &alerts)
+				go handleAgentMessagePostResponseAlerts(uuidInfo.OperationID, uuidInfo.CallbackID, uuidInfo.CallbackDisplayID, &alerts)
 			}
 		}
 		if _, ok := decryptedMessage[CALLBACK_PORT_TYPE_SOCKS]; ok {
@@ -629,7 +629,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 	payload := databaseStructs.Payload{}
 	stager := databaseStructs.Staginginfo{}
 	if err := database.DB.Get(&callback, `SELECT
-		callback.id, callback.enc_key, callback.dec_key, callback.crypto_type, callback.operation_id, callback.last_checkin,
+		callback.id, callback.enc_key, callback.dec_key, callback.crypto_type, callback.operation_id, callback.last_checkin, callback.display_id,
 		payload.id "payload.id", 
 		payloadtype.id "payload.payloadtype.id", 
 		payloadtype.name "payload.payloadtype.name", 
@@ -653,6 +653,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		newCache.CallbackDecKey = callback.DecKey
 		newCache.CryptoType = callback.CryptoType
 		newCache.CallbackID = callback.ID
+		newCache.CallbackDisplayID = callback.DisplayID
 		newCache.LastCheckinTime = callback.LastCheckin
 		newCache.OperationID = callback.OperationID
 	} else if err := database.DB.Get(&payload, `SELECT
@@ -681,6 +682,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 			newCache.TranslationContainerID = int(payload.Payloadtype.TranslationContainerID.Int64)
 		}
 		newCache.CallbackID = 0
+		newCache.CallbackDisplayID = 0
 		newCache.LastCheckinTime = time.Now().UTC()
 		newCache.OperationID = payload.OperationID
 		// we also need to get the crypto keys from the c2 profile for this payload
@@ -751,6 +753,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 			newCache.TranslationContainerID = int(stager.Payload.Payloadtype.TranslationContainerID.Int64)
 		}
 		newCache.CallbackID = 0
+		newCache.CallbackDisplayID = 0
 		newCache.LastCheckinTime = time.Now().UTC()
 		newCache.OperationID = stager.Payload.OperationID
 	} else {

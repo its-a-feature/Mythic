@@ -338,7 +338,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 					}
 				}
 				if agentResponse.Alerts != nil {
-					go handleAgentMessagePostResponseAlerts(currentTask.OperationID, uUIDInfo.CallbackID, agentResponse.Alerts)
+					go handleAgentMessagePostResponseAlerts(currentTask.OperationID, uUIDInfo.CallbackID, uUIDInfo.CallbackDisplayID, agentResponse.Alerts)
 				}
 				reflectBackOtherKeys(&mythicResponse, &agentResponse.Other)
 				// always updating at least the timestamp for the last thing that happened
@@ -872,26 +872,6 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 							knownChunkSize = *agentResponse.Download.ChunkSize
 						}
 					}
-					/*
-						// now open and append the chunk data to the end of the file
-						base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.Download.ChunkData)))
-						var totalBase64Bytes int
-						if totalBase64Bytes, err = base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.Download.ChunkData)); err != nil {
-							logging.LogError(err, "Failed to base64 decode chunk data from agent when downloading file")
-							return "", err
-						} else if f, err := os.OpenFile(fileMeta.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
-							logging.LogError(err, "Failed to open file to append agent data")
-							return "", err
-						} else if _, err := f.Write(base64DecodedFileData[:totalBase64Bytes]); err != nil {
-							logging.LogError(err, "Failed to write bytes to file in agent download")
-							return "", err
-						} else {
-							if fileMeta.ChunkSize == 0 {
-								fileMeta.ChunkSize = totalBase64Bytes
-							}
-							f.Close()
-						}
-					*/
 					chunksWritten := make(chan int, 1)
 					base64DecodedFileData, err := base64.StdEncoding.DecodeString(*agentResponse.Download.ChunkData)
 					//base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.Download.ChunkData)))
@@ -912,6 +892,12 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 					latestChunkWritten := <-chunksWritten
 					if latestChunkWritten > 0 {
 						fileMeta.ChunksReceived = latestChunkWritten
+					}
+					fileDisk, err := os.Stat(fileMeta.Path)
+					if err != nil {
+						logging.LogError(err, "Failed to write file to disk")
+					} else {
+						fileMeta.Size = fileDisk.Size()
 					}
 					// we don't know the chunk size ahead of time and one was reported back as part of the file write
 					//logging.LogDebug("3. finished writing", "chunk num", *agentResponse.Download.ChunkNum)
@@ -949,11 +935,17 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 					fileMeta.Sha1 = hex.EncodeToString(sha1Hash.Sum(nil))
 					fileMeta.Md5 = hex.EncodeToString(md5Hash.Sum(nil))
 				}
+				fileDisk, err := os.Stat(fileMeta.Path)
+				if err != nil {
+					logging.LogError(err, "Failed to write file to disk")
+				} else {
+					fileMeta.Size = fileDisk.Size()
+				}
 			}
 			if _, err := database.DB.NamedExec(`UPDATE filemeta SET
 			host=:host, is_screenshot=:is_screenshot, 
 			full_remote_path=:full_remote_path, complete=:complete, md5=:md5, sha1=:sha1,
-			filename=:filename, total_chunks=:total_chunks, chunk_size=:chunk_size
+			filename=:filename, total_chunks=:total_chunks, chunk_size=:chunk_size, size=:size
 			WHERE id=:id`, fileMeta); err != nil {
 				logging.LogError(err, "Failed to update filemeta based on agent file download")
 				return "", err
@@ -1821,14 +1813,14 @@ func handleAgentMessagePostResponseEdges(uuidInfo *cachedUUIDInfo, edges *[]agen
 			} else if edge.Action == "remove" {
 				callbackGraph.RemoveByAgentIds(edge.Source, edge.Destination, edge.C2Profile)
 				if edge.Source == edge.Destination && edge.Source == uuidInfo.UUID {
-					logging.LogInfo("updating our own edge id")
+					//logging.LogInfo("updating our own edge id")
 					MarkCallbackInfoInactive(uuidInfo.CallbackID)
 				}
 			}
 		}
 	}
 }
-func handleAgentMessagePostResponseAlerts(operationID int, callbackID int, alerts *[]agentMessagePostResponseAlert) {
+func handleAgentMessagePostResponseAlerts(operationID int, callbackID int, displayID int, alerts *[]agentMessagePostResponseAlert) {
 	if alerts == nil {
 		return
 	}
@@ -1853,11 +1845,11 @@ func handleAgentMessagePostResponseAlerts(operationID int, callbackID int, alert
 		go SendAllOperationsMessage(alert.Alert, operationID, source, level)
 		if level != database.MESSAGE_LEVEL_WARNING && alert.SendWebhook {
 			// send this as a custom webhook message
-			go submitAgentAlertToWebhook(operationID, callbackID, alert)
+			go submitAgentAlertToWebhook(operationID, callbackID, displayID, alert)
 		}
 	}
 }
-func submitAgentAlertToWebhook(operationID int, callbackID int, alert agentMessagePostResponseAlert) {
+func submitAgentAlertToWebhook(operationID int, callbackID int, callbackDisplayID int, alert agentMessagePostResponseAlert) {
 	operationInfo := databaseStructs.Operation{}
 	if err := database.DB.Get(&operationInfo, `SELECT * FROM operation WHERE id=$1`, operationID); err != nil {
 		logging.LogError(err, "Failed to find operation information when sending custom webhook")
@@ -1871,10 +1863,11 @@ func submitAgentAlertToWebhook(operationID int, callbackID int, alert agentMessa
 		OperatorUsername: "",
 		Action:           WEBHOOK_TYPE_CUSTOM,
 		Data: map[string]interface{}{
-			"callback_id":   callbackID,
-			"alert":         alert.Alert,
-			"webhook_alert": alert.WebhookAlert,
-			"source":        alert.Source,
+			"callback_id":         callbackID,
+			"callback_display_id": callbackDisplayID,
+			"alert":               alert.Alert,
+			"webhook_alert":       alert.WebhookAlert,
+			"source":              alert.Source,
 		},
 	}); err != nil {
 		logging.LogError(err, "Failed to send webhook")

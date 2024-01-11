@@ -26,12 +26,12 @@ export function BrowserScriptsTable(props){
                 </Typography>
                 <Button size="small" onClick={() => setOpenNewScriptDialog(true)} style={{float: "right", marginTop: "10px", marginRight: "30px"}} startIcon={<AddCircleOutlineOutlinedIcon/>} color="primary" variant="contained">New Script</Button>
                 {openNewScriptDialog ? (   
-                    <MythicDialog fullWidth={true} maxWidth="md" open={openNewScriptDialog} 
+                    <MythicDialog fullWidth={true} maxWidth="xl" open={openNewScriptDialog}
                         onClose={()=>{setOpenNewScriptDialog(false);}} 
                         innerDialog={
                             <EditScriptDialog me={props.me} onClose={()=>{setOpenNewScriptDialog(false);}} title="Create New Browser Script" new={true} onSubmitEdit={props.onSubmitNew} />
                         } />    
-                    ) : (null)
+                    ) : null
                 }
             </Paper>
             <TableContainer component={Paper} className="mythicElement" style={{maxHeight: "90%"}}>

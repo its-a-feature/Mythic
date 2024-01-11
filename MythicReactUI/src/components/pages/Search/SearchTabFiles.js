@@ -21,6 +21,7 @@ const fileMetaFragment = gql`
 fragment filemetaData on filemeta{
     agent_file_id
     chunk_size
+    size
     chunks_received
     complete
     deleted
@@ -95,6 +96,7 @@ fragment mythictreeData on mythictree{
         agent_file_id
         chunks_received
         complete
+        size
         total_chunks
         timestamp
         task {

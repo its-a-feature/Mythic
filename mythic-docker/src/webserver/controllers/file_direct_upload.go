@@ -58,8 +58,14 @@ func FileDirectUploadWebhook(c *gin.Context) {
 		filemeta.ChunksReceived = 1
 		filemeta.Md5 = mythicCrypto.HashMD5(fileData)
 		filemeta.Sha1 = mythicCrypto.HashSha1(fileData)
+		fileDisk, err := os.Stat(filemeta.Path)
+		if err != nil {
+			logging.LogError(err, "Failed to write file to disk")
+		} else {
+			filemeta.Size = fileDisk.Size()
+		}
 		if _, err := database.DB.NamedExec(`UPDATE filemeta SET
-				chunk_size=:chunk_size, md5=:md5, sha1=:sha1, total_chunks=:total_chunks, chunks_received=:chunks_received, complete=true
+				chunk_size=:chunk_size, md5=:md5, sha1=:sha1, total_chunks=:total_chunks, chunks_received=:chunks_received, complete=true, size=:size
 				WHERE id=:id`,
 			filemeta); err != nil {
 			logging.LogError(err, "Failed to save metadata to database")

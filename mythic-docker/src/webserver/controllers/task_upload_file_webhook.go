@@ -73,9 +73,15 @@ func TaskUploadFileWebhook(c *gin.Context) {
 		fileMeta.OperatorID = currentOperation.CurrentOperator.ID
 		fileMeta.Md5 = mythicCrypto.HashMD5(fileData)
 		fileMeta.Sha1 = mythicCrypto.HashSha1(fileData)
+		fileDisk, err := os.Stat(fileMeta.Path)
+		if err != nil {
+			logging.LogError(err, "Failed to write file to disk")
+		} else {
+			fileMeta.Size = fileDisk.Size()
+		}
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
-			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,"comment",operator_id,delete_after_fetch,md5,sha1,agent_file_id)
-			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id)
+			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,"comment",operator_id,delete_after_fetch,md5,sha1,agent_file_id,size)
+			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :size)
 			RETURNING id`); err != nil {
 			logging.LogError(err, "Failed to save metadata to database")
 			c.JSON(http.StatusOK, gin.H{

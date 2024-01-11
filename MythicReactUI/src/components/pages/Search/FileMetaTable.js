@@ -34,6 +34,7 @@ import txtFile from '../../../assets/file_txt.png';
 import hexFile from '../../../assets/file_bin.png';
 import {HostFileDialog} from "../Payloads/HostFileDialog";
 import PublicIcon from '@mui/icons-material/Public';
+import {getStringSize} from '../Callbacks/ResponseDisplayTable';
 
 const downloadBulkQuery = gql`
 mutation downloadBulkMutation($files: [String!]!){
@@ -183,6 +184,7 @@ export function FileMetaDownloadTable(props){
                         <TableCell style={{width: "7rem"}}>Actions</TableCell>
                         <TableCell >File</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
+                        <TableCell>Size</TableCell>
                         <TableCell style={{width: "10rem"}}>Tags</TableCell>
                         <TableCell style={{width: "5rem"}}>More</TableCell>
                     </TableRow>
@@ -348,6 +350,9 @@ function FileMetaDownloadTableRow(props){
                         />
                     }
 
+                </MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    {getStringSize({cellData: {"plaintext": props.size}})}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <ViewEditTags target_object={"filemeta_id"} target_object_id={props.id} me={me} />
@@ -543,6 +548,7 @@ export function FileMetaUploadTable(props){
                         <TableCell style={{width: "20rem"}}>Source</TableCell>
                         <TableCell >Destination</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
+                        <TableCell style={{}}>Size</TableCell>
                         <TableCell style={{width: "15rem"}}>Tags</TableCell>
                         <TableCell style={{width: "5rem"}}>More</TableCell>
                     </TableRow>
@@ -718,6 +724,9 @@ function FileMetaUploadTableRow(props){
                     />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
+                    {getStringSize({cellData: {"plaintext": props.size}})}
+                </MythicStyledTableCell>
+                <MythicStyledTableCell>
                     <ViewEditTags target_object={"filemeta_id"} target_object_id={props.id} me={me} />
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
@@ -854,6 +863,7 @@ export function FileMetaScreenshotTable(props){
                         <TableCell >Time</TableCell>
                         <TableCell >Host</TableCell>
                         <TableCell >Comment</TableCell>
+                        <TableCell >Size</TableCell>
                         <TableCell>Tags</TableCell>
                         <TableCell >More</TableCell>
                     </TableRow>
@@ -936,6 +946,9 @@ function FileMetaScreenshotTableRow(props){
                     />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
+                    {getStringSize({cellData: {"plaintext": props.size}})}
+                </MythicStyledTableCell>
+                <MythicStyledTableCell>
                     <ViewEditTags target_object={"filemeta_id"} target_object_id={props.id} me={me} />
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
@@ -970,7 +983,7 @@ function FileMetaScreenshotTableRow(props){
                                                 </MythicStyledTableCell>
                                                 <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.operator.username}</Typography></MythicStyledTableCell>
                                                 <MythicStyledTableCell>
-                                                    {props.task === null ? (null) : (
+                                                    {props.task === null ? null : (
                                                         <>
                                                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
                                                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
@@ -980,7 +993,7 @@ function FileMetaScreenshotTableRow(props){
                                                 </MythicStyledTableCell>
                                                 <MythicStyledTableCell>{props.task !== null ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.comment}</Typography>) : (null)}</MythicStyledTableCell>
                                                 <MythicStyledTableCell>
-                                                    {props.task === null ? (null) : (
+                                                    {props.task === null ? null : (
                                                         <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.command.cmd}</Typography>
                                                     )}
                                                 </MythicStyledTableCell>
@@ -992,7 +1005,7 @@ function FileMetaScreenshotTableRow(props){
                             </Collapse>
                         </MythicStyledTableCell>
                     </TableRow>
-            ) : (null) }
+            ) : null }
         </React.Fragment>
     )
 }

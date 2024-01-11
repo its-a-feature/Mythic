@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"github.com/its-a-feature/Mythic/database"
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 
 	"github.com/its-a-feature/Mythic/logging"
 )
@@ -16,10 +18,14 @@ const (
 )
 
 type PTRPCDynamicQueryFunctionMessage struct {
-	Command       string `json:"command" binding:"required"`
-	ParameterName string `json:"parameter_name" binding:"required"`
-	PayloadType   string `json:"payload_type" binding:"required"`
-	Callback      int    `json:"callback" binding:"required"`
+	Command           string `json:"command" binding:"required"`
+	ParameterName     string `json:"parameter_name" binding:"required"`
+	PayloadType       string `json:"payload_type" binding:"required"`
+	PayloadOS         string `json:"payload_os"`
+	PayloadUUID       string `json:"payload_uuid"`
+	AgentCallbackID   string `json:"agent_callback_id"`
+	Callback          int    `json:"callback" binding:"required"`
+	CallbackDisplayID int    `json:"callback_display_id"`
 }
 
 type PTRPCDynamicQueryFunctionMessageResponse struct {
@@ -31,6 +37,23 @@ type PTRPCDynamicQueryFunctionMessageResponse struct {
 func (r *rabbitMQConnection) SendPtRPCDynamicQueryFunction(dynamicQuery PTRPCDynamicQueryFunctionMessage) (*PTRPCDynamicQueryFunctionMessageResponse, error) {
 	dynamicQueryResponse := PTRPCDynamicQueryFunctionMessageResponse{}
 	exclusiveQueue := true
+	callback := databaseStructs.Callback{}
+	err := database.DB.Get(&callback, `SELECT
+    	callback.agent_callback_id,
+    	callback.display_id,
+    	payload.os "payload.os",
+    	payload.uuid "payload.uuid"
+	FROM callback
+	JOIN payload on callback.registered_payload_id = payload.id
+	WHERE callback.id=$1
+    `, dynamicQuery.Callback)
+	if err != nil {
+		return nil, err
+	}
+	dynamicQuery.PayloadUUID = callback.Payload.UuID
+	dynamicQuery.PayloadOS = callback.Payload.Os
+	dynamicQuery.AgentCallbackID = callback.AgentCallbackID
+	dynamicQuery.CallbackDisplayID = callback.DisplayID
 	if configBytes, err := json.Marshal(dynamicQuery); err != nil {
 		logging.LogError(err, "Failed to convert configCheck to JSON", "dynamicQuery", dynamicQuery)
 		return nil, err

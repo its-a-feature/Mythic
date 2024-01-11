@@ -33,4 +33,5 @@ type Filemeta struct {
 	Md5                 string            `db:"md5" json:"md5" mapstructure:"md5"`
 	Sha1                string            `db:"sha1" json:"sha1" mapstructure:"sha1"`
 	Comment             string            `db:"comment" json:"comment" mapstructure:"comment"`
+	Size                int64             `db:"size" json:"size" mapstructure:"size"`
 }

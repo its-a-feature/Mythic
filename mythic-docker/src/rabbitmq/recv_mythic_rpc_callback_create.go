@@ -35,10 +35,11 @@ type MythicRPCCallbackCreateMessage struct {
 	ProcessName    string   `json:"process_name" mapstructure:"process_name"`
 }
 type MythicRPCCallbackCreateMessageResponse struct {
-	Success      bool   `json:"success"`
-	Error        string `json:"error"`
-	CallbackUUID string `json:"callback_uuid"`
-	CallbackID   int    `json:"callback_id"`
+	Success           bool   `json:"success"`
+	Error             string `json:"error"`
+	CallbackUUID      string `json:"callback_uuid"`
+	CallbackID        int    `json:"callback_id"`
+	CallbackDisplayID int    `json:"callback_display_id"`
 }
 
 func init() {
@@ -333,6 +334,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 	}
 	response.CallbackUUID = callback.AgentCallbackID
 	response.CallbackID = callback.ID
+	response.CallbackDisplayID = callback.DisplayID
 	response.Success = true
 	go sendPtOnNewCallback(callback.ID)
 	return response

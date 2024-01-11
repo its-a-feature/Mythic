@@ -75,6 +75,7 @@ func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cache
 		response["status"] = "success"
 		reflectBackOtherKeys(&response, &agentMessage.Other)
 		UUIDInfo.CallbackID = mythicRPCCallbackCreateMessageResponse.CallbackID
+		UUIDInfo.CallbackDisplayID = mythicRPCCallbackCreateMessageResponse.CallbackDisplayID
 		return response, nil
 
 	}

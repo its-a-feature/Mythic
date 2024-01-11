@@ -100,8 +100,11 @@ export function EditScriptDialog(props) {
     const [logOutput, setLogOutput] = React.useState("console.log messages:\n");
     const logStreamRef = React.useRef("console.log messages:\n");
     useEffect( () => {
-        getAvailableTasks({variables: {command_id: props.command_id}})
-    }, []);
+        if(selectedCommand !== ""){
+            getAvailableTasks({variables: {command_id: selectedCommand}})
+        }
+
+    }, [selectedCommand]);
     useEffect( () => {
         if(props.script !== undefined){
           try{
@@ -162,12 +165,15 @@ export function EditScriptDialog(props) {
         });
     }
     React.useEffect( () => {
+
         var logBackup = console.log;
         console.log = function(msg) {
             logStreamRef.current += "\n" + msg;
             logBackup.apply(msg);
             setLogOutput(logStreamRef.current)
         };
+
+
     }, []);
 
     const onDragging = () => {
