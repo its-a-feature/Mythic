@@ -126,7 +126,7 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 		FROM
 		payload
 		WHERE
-		uuid.id=$1`, input.PayloadUUID)
+		payload.uuid=$1`, input.PayloadUUID)
 		if err != nil {
 			response.Error = "Must supply a valid payload UUID"
 			return response
