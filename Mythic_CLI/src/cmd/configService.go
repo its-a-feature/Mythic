@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/spf13/cobra"
 	"os"
 	"sort"
@@ -35,7 +35,7 @@ func configService(cmd *cobra.Command, args []string) {
 	fmt.Fprintf(writer, "\n %s\t%s", "Setting", "Value")
 	fmt.Fprintf(writer, "\n %s\t%s", "–––––––", "–––––––")
 
-	configuration := internal.GetConfigStrings([]string{
+	configuration := config.GetConfigStrings([]string{
 		"MYTHIC_SERVER_HOST",
 		"MYTHIC_SERVER_PORT",
 		"MYTHIC_SERVER_GRPC_PORT",
@@ -51,14 +51,14 @@ func configService(cmd *cobra.Command, args []string) {
 	for _, key := range keys {
 		fmt.Fprintf(writer, "\n %s\t%s", strings.ToUpper(key), configuration[key])
 	}
-	mythicServerStatus := internal.GetConfigStrings([]string{"MYTHIC_SERVER_BIND_LOCALHOST_ONLY"})
+	mythicServerStatus := config.GetConfigStrings([]string{"MYTHIC_SERVER_BIND_LOCALHOST_ONLY"})
 	if val, ok := mythicServerStatus["MYTHIC_SERVER_BIND_LOCALHOST_ONLY"]; ok {
 		if val == "true" {
 			fmt.Fprintf(writer, "\t\t")
 			fmt.Fprintf(writer, "MYTHIC_SERVER_BIND_LOCALHOST_ONLY is set to true - set this to false and restart Mythic")
 		}
 	}
-	rabbitmqStatus := internal.GetConfigStrings([]string{"RABBITMQ_BIND_LOCALHOST_ONLY"})
+	rabbitmqStatus := config.GetConfigStrings([]string{"RABBITMQ_BIND_LOCALHOST_ONLY"})
 	if val, ok := rabbitmqStatus["RABBITMQ_BIND_LOCALHOST_ONLY"]; ok {
 		if val == "true" {
 			fmt.Fprintf(writer, "\t\t")

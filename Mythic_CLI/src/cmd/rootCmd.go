@@ -30,5 +30,6 @@ func Execute() {
 
 func init() {
 	// Create or parse the Docker ``.env`` file
+	config.Initialize()
 	internal.Initialize()
 }

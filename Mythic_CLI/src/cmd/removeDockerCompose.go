@@ -19,7 +19,7 @@ func init() {
 }
 
 func removeDockerCompose(cmd *cobra.Command, args []string) {
-	if err := internal.RemoveDockerComposeEntry(args[0]); err != nil {
+	if err := internal.RemoveService(args[0]); err != nil {
 
 	}
 }
