@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/spf13/cobra"
 	"os"
 	"sort"
@@ -35,7 +35,7 @@ func configDisplay(cmd *cobra.Command, args []string) {
 	fmt.Fprintf(writer, "\n %s\t%s", "Setting", "Value")
 	fmt.Fprintf(writer, "\n %s\t%s", "–––––––", "–––––––")
 
-	configuration := internal.GetConfigAllStrings()
+	configuration := config.GetConfigAllStrings()
 	keys := make([]string, 0, len(configuration))
 	for k := range configuration {
 		keys = append(keys, k)

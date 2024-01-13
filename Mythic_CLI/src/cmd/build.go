@@ -18,7 +18,7 @@ func init() {
 }
 
 func buildContainer(cmd *cobra.Command, args []string) {
-	if err := internal.DockerBuild(args); err != nil {
+	if err := internal.ServiceBuild(args); err != nil {
 
 	}
 }

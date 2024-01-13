@@ -18,7 +18,7 @@ func init() {
 }
 
 func start(cmd *cobra.Command, args []string) {
-	if err := internal.DockerStart(args); err != nil {
+	if err := internal.ServiceStart(args); err != nil {
 
 	}
 }

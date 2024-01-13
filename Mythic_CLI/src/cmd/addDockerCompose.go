@@ -19,7 +19,7 @@ func init() {
 }
 
 func addDockerCompose(cmd *cobra.Command, args []string) {
-	if err := internal.AddDockerComposeEntry(args[0], make(map[string]interface{})); err != nil {
+	if err := internal.Add3rdPartyService(args[0], make(map[string]interface{})); err != nil {
 
 	}
 }

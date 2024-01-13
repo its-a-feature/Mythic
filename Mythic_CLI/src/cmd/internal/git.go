@@ -21,7 +21,7 @@ func runGitClone(args []string) error {
 
 		command := exec.Command(lookPath, args...)
 		command.Dir = exePath
-		command.Env = getMythicEnvList()
+		//command.Env = getMythicEnvList()
 
 		if stdout, err := command.StdoutPipe(); err != nil {
 			fmt.Printf("[-] Failed to get stdout pipe for running git")
@@ -66,7 +66,7 @@ func runGitLsRemote(args []string) (err error) {
 		//  git ls-remote URL HEAD
 		command := exec.Command(lookPath, args...)
 		command.Dir = exePath
-		command.Env = getMythicEnvList()
+		//command.Env = getMythicEnvList()
 		command.Env = append(command.Env, "GIT_TERMINAL_PROMPT=0")
 
 		if err = command.Run(); err != nil {

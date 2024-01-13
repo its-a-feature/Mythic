@@ -3,13 +3,13 @@ package internal
 import (
 	"context"
 	"crypto/tls"
-	"encoding/binary"
 	"fmt"
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
+	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/streadway/amqp"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,27 +20,9 @@ import (
 	"time"
 )
 
-func imageExists(containerName string) bool {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		log.Fatalf("Failed to get client in GetLogs: %v", err)
-	}
-	desiredImage := fmt.Sprintf("%v:latest", strings.ToLower(containerName))
-	images, err := cli.ImageList(context.Background(), types.ImageListOptions{All: true})
-	if err != nil {
-		log.Fatalf("Failed to get container list: %v", err)
-	}
-	for _, image := range images {
-		for _, name := range image.RepoTags {
-			if name == desiredImage {
-				return true
-			}
-		}
-	}
-	return false
-}
 func TestMythicConnection() {
 	webAddress := "127.0.0.1"
+	mythicEnv := config.GetMythicEnv()
 	if mythicEnv.GetString("NGINX_HOST") == "mythic_nginx" {
 		if mythicEnv.GetBool("NGINX_USE_SSL") {
 			webAddress = "https://127.0.0.1"
@@ -58,41 +40,42 @@ func TestMythicConnection() {
 	sleepTime := int64(10)
 	count := make([]int, maxCount)
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	fmt.Printf("[*] Waiting for Mythic Server and Nginx to come online (Retry Count = %d)\n", maxCount)
+	log.Printf("[*] Waiting for Mythic Server and Nginx to come online (Retry Count = %d)\n", maxCount)
 	for i := range count {
-		fmt.Printf("[*] Attempting to connect to Mythic UI at %s:%d, attempt %d/%d\n", webAddress, mythicEnv.GetInt("NGINX_PORT"), i+1, maxCount)
+		log.Printf("[*] Attempting to connect to Mythic UI at %s:%d, attempt %d/%d\n", webAddress, mythicEnv.GetInt("NGINX_PORT"), i+1, maxCount)
 		resp, err := http.Get(webAddress + ":" + strconv.Itoa(mythicEnv.GetInt("NGINX_PORT")))
 		if err != nil {
-			fmt.Printf("[-] Failed to make connection to host, retrying in %ds\n", sleepTime)
-			fmt.Printf("%v\n", err)
+			log.Printf("[-] Failed to make connection to host, retrying in %ds\n", sleepTime)
+			log.Printf("%v\n", err)
 		} else {
-			defer resp.Body.Close()
+			resp.Body.Close()
 			if resp.StatusCode == 200 || resp.StatusCode == 404 {
-				fmt.Printf("[+] Successfully connected to Mythic at " + webAddress + ":" + strconv.Itoa(mythicEnv.GetInt("NGINX_PORT")) + "\n\n")
+				log.Printf("[+] Successfully connected to Mythic at " + webAddress + ":" + strconv.Itoa(mythicEnv.GetInt("NGINX_PORT")) + "\n\n")
 				return
 			} else if resp.StatusCode == 502 || resp.StatusCode == 504 {
-				fmt.Printf("[-] Nginx is up, but waiting for Mythic Server, retrying connection in %ds\n", sleepTime)
+				log.Printf("[-] Nginx is up, but waiting for Mythic Server, retrying connection in %ds\n", sleepTime)
 			} else {
-				fmt.Printf("[-] Connection failed with HTTP Status Code %d, retrying in %ds\n", resp.StatusCode, sleepTime)
+				log.Printf("[-] Connection failed with HTTP Status Code %d, retrying in %ds\n", resp.StatusCode, sleepTime)
 			}
 		}
 		time.Sleep(time.Duration(sleepTime) * time.Second)
 	}
-	fmt.Printf("[-] Failed to make connection to Mythic Server\n")
-	fmt.Printf("    This could be due to limited resources on the host (recommended at least 2CPU and 4GB RAM)\n")
-	fmt.Printf("    If there is an issue with Mythic server, use 'mythic-cli logs mythic_server' to view potential errors\n")
+	log.Printf("[-] Failed to make connection to Mythic Server\n")
+	log.Printf("    This could be due to limited resources on the host (recommended at least 2CPU and 4GB RAM)\n")
+	log.Printf("    If there is an issue with Mythic server, use 'mythic-cli logs mythic_server' to view potential errors\n")
 	Status(false)
-	fmt.Printf("[*] Fetching logs from mythic_server now:\n")
+	log.Printf("[*] Fetching logs from mythic_server now:\n")
 	GetLogs("mythic_server", "500")
 	os.Exit(1)
 }
 func TestMythicRabbitmqConnection() {
 	rabbitmqAddress := "127.0.0.1"
+	mythicEnv := config.GetMythicEnv()
 	rabbitmqPort := mythicEnv.GetString("RABBITMQ_PORT")
 	if mythicEnv.GetString("RABBITMQ_HOST") != "mythic_rabbitmq" && mythicEnv.GetString("RABBITMQ_HOST") != "127.0.0.1" {
 		rabbitmqAddress = mythicEnv.GetString("RABBITMQ_HOST")
 	}
-	if rabbitmqAddress == "127.0.0.1" && !isServiceRunning("mythic_rabbitmq") {
+	if rabbitmqAddress == "127.0.0.1" && !manager.GetManager().IsServiceRunning("mythic_rabbitmq") {
 		log.Printf("[-] Service mythic_rabbitmq should be running on the host, but isn't. Containers will be unable to connect.\nStart it by starting Mythic ('sudo ./mythic-cli mythic start') or manually with 'sudo ./mythic-cli mythic start mythic_rabbitmq'\n")
 		return
 	}
@@ -100,21 +83,21 @@ func TestMythicRabbitmqConnection() {
 	var err error
 	count := make([]int, maxCount)
 	sleepTime := int64(10)
-	fmt.Printf("[*] Waiting for RabbitMQ to come online (Retry Count = %d)\n", maxCount)
+	log.Printf("[*] Waiting for RabbitMQ to come online (Retry Count = %d)\n", maxCount)
 	for i := range count {
-		fmt.Printf("[*] Attempting to connect to RabbitMQ at %s:%s, attempt %d/%d\n", rabbitmqAddress, rabbitmqPort, i+1, maxCount)
+		log.Printf("[*] Attempting to connect to RabbitMQ at %s:%s, attempt %d/%d\n", rabbitmqAddress, rabbitmqPort, i+1, maxCount)
 		conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%s/mythic_vhost", mythicEnv.GetString("RABBITMQ_USER"), mythicEnv.GetString("RABBITMQ_PASSWORD"), rabbitmqAddress, rabbitmqPort))
 		if err != nil {
-			fmt.Printf("[-] Failed to connect to RabbitMQ, retrying in %ds\n", sleepTime)
+			log.Printf("[-] Failed to connect to RabbitMQ, retrying in %ds\n", sleepTime)
 			time.Sleep(10 * time.Second)
 		} else {
 			conn.Close()
-			fmt.Printf("[+] Successfully connected to RabbitMQ at amqp://%s:***@%s:%s/mythic_vhost\n\n", mythicEnv.GetString("RABBITMQ_USER"), rabbitmqAddress, rabbitmqPort)
+			log.Printf("[+] Successfully connected to RabbitMQ at amqp://%s:***@%s:%s/mythic_vhost\n\n", mythicEnv.GetString("RABBITMQ_USER"), rabbitmqAddress, rabbitmqPort)
 			return
 		}
 	}
-	fmt.Printf("[-] Failed to make a connection to the RabbitMQ server: %v\n", err)
-	if isServiceRunning("mythic_rabbitmq") {
+	log.Printf("[-] Failed to make a connection to the RabbitMQ server: %v\n", err)
+	if manager.GetManager().IsServiceRunning("mythic_rabbitmq") {
 		log.Printf("    The mythic_rabbitmq service is running, but mythic-cli is unable to connect\n")
 	} else {
 		if rabbitmqAddress == "127.0.0.1" {
@@ -126,76 +109,12 @@ func TestMythicRabbitmqConnection() {
 	}
 }
 func TestPorts() error {
-	// go through the different services in mythicEnv and check to make sure their ports aren't already used by trying to open them
-	//MYTHIC_SERVER_HOST:MYTHIC_SERVER_PORT
-	//POSTGRES_HOST:POSTGRES_PORT
-	//HASURA_HOST:HASURA_PORT
-	//RABBITMQ_HOST:RABBITMQ_PORT
-	//DOCUMENTATION_HOST:DOCUMENTATION_PORT
-	//NGINX_HOST:NGINX_PORT
-	portChecks := map[string][]string{
-		"MYTHIC_SERVER_HOST": {
-			"MYTHIC_SERVER_PORT",
-			"mythic_server",
-		},
-		"POSTGRES_HOST": {
-			"POSTGRES_PORT",
-			"mythic_postgres",
-		},
-		"HASURA_HOST": {
-			"HASURA_PORT",
-			"mythic_graphql",
-		},
-		"RABBITMQ_HOST": {
-			"RABBITMQ_PORT",
-			"mythic_rabbitmq",
-		},
-		"DOCUMENTATION_HOST": {
-			"DOCUMENTATION_PORT",
-			"mythic_documentation",
-		},
-		"NGINX_HOST": {
-			"NGINX_PORT",
-			"mythic_nginx",
-		},
-		"MYTHIC_REACT_HOST": {
-			"MYTHIC_REACT_PORT",
-			"mythic_react",
-		},
-		"JUPYTER_HOST": {
-			"JUPYTER_PORT",
-			"mythic_jupyter",
-		},
-	}
-	var addServices []string
-	var removeServices []string
-	if mythicEnv.GetBool("postgres_debug") {
-		addServices = append(addServices, "mythic_grafana", "mythic_prometheus", "mythic_postgres_exporter")
-	}
-	for key, val := range portChecks {
-		if mythicEnv.GetString(key) == val[1] || mythicEnv.GetString(key) == "127.0.0.1" {
-			addServices = append(addServices, val[1])
-			p, err := net.Listen("tcp", ":"+strconv.Itoa(mythicEnv.GetInt(val[0])))
-			if err != nil {
-				fmt.Printf("[-] Port %d, from variable %s, appears to already be in use: %v\n", mythicEnv.GetInt(val[0]), key, err)
-				return err
-			}
-			err = p.Close()
-			if err != nil {
-				fmt.Printf("[-] Failed to close connection: %v\n", err)
-				return err
-			}
-		} else {
-			removeServices = append(removeServices, val[1])
-		}
-	}
-	if mythicEnv.GetBool("postgres_debug") {
-		addServices = append(addServices, "mythic_grafana", "mythic_prometheus", "mythic_postgres_exporter")
-	}
+	manager.GetManager().TestPorts()
 	return nil
 }
 func PrintMythicConnectionInfo() {
 	w := new(tabwriter.Writer)
+	mythicEnv := config.GetMythicEnv()
 	w.Init(os.Stdout, 0, 8, 2, '\t', 0)
 	fmt.Fprintln(w, "MYTHIC SERVICE\tWEB ADDRESS\tBOUND LOCALLY")
 	if mythicEnv.GetString("NGINX_HOST") == "mythic_nginx" {
@@ -404,45 +323,11 @@ func Status(verbose bool) {
 	fmt.Printf("    Use 'sudo ./mythic-cli config service' for configs for these services.\n")
 }
 func GetLogs(containerName string, numLogs string) {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	logCount, err := strconv.Atoi(numLogs)
 	if err != nil {
-		log.Fatalf("Failed to get client in GetLogs: %v", err)
+		log.Fatalf("[-] Bad log count: %v\n", err)
 	}
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
-	if err != nil {
-		log.Fatalf("Failed to get container list: %v", err)
-	}
-	if len(containers) > 0 {
-		found := false
-		for _, container := range containers {
-			if container.Labels["name"] == containerName {
-				found = true
-				reader, err := cli.ContainerLogs(context.Background(), container.ID, types.ContainerLogsOptions{
-					ShowStdout: true,
-					ShowStderr: true,
-					Tail:       numLogs,
-				})
-				if err != nil {
-					log.Fatalf("Failed to get container GetLogs: %v", err)
-				}
-				// awesome post about the leading 8 payload/header bytes: https://medium.com/@dhanushgopinath/reading-docker-container-logs-with-golang-docker-engine-api-702233fac044
-				p := make([]byte, 8)
-				_, err = reader.Read(p)
-				for err == nil {
-					content := make([]byte, binary.BigEndian.Uint32(p[4:]))
-					reader.Read(content)
-					fmt.Printf("%s", content)
-					_, err = reader.Read(p)
-				}
-				reader.Close()
-			}
-		}
-		if !found {
-			fmt.Println("[-] Failed to find that container")
-		}
-	} else {
-		fmt.Println("[-] No containers running")
-	}
+	manager.GetManager().GetLogs(containerName, logCount)
 }
 func ListServices() {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -461,7 +346,7 @@ func ListServices() {
 	sort.Slice(containers[:], func(i, j int) bool {
 		return containers[i].Labels["name"] < containers[j].Labels["name"]
 	})
-	elementsOnDisk, err := getElementsOnDisk()
+	elementsOnDisk, err := manager.GetManager().GetInstalled3rdPartyServicesOnDisk()
 	if err != nil {
 		log.Fatalf("[-] Failed to get list of installed services on disk: %v\n", err)
 	}
