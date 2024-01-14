@@ -14,6 +14,7 @@ import MythicTableCell from "../../MythicComponents/MythicTableCell";
 
 import {gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 const toggleDeleteStatus = gql`
 mutation togglePayloadTypeDeleteStatus($payloadtype_id: Int!, $deleted: Boolean!){
@@ -105,19 +106,23 @@ export function PayloadTypeRow({service, showDeleted}){
                     </Typography>
                 </MythicTableCell>
                 <MythicTableCell>
-                    <IconButton
-                        color="secondary"
-                        href={service.wrapper ? "/docs/wrappers/" + service.name : "/docs/agents/" + service.name}
-                        target="_blank"
-                        size="large">
-                        <MenuBookIcon />
-                    </IconButton>
-                    <IconButton
-                        onClick={()=>{setOpenBuildingDialog(true);}}
-                        color="secondary"
-                        size="large">
-                        <BuildIcon />
-                    </IconButton>
+                    <MythicStyledTooltip title={"Documentation"}>
+                        <IconButton
+                            color="secondary"
+                            href={service.wrapper ? "/docs/wrappers/" + service.name : "/docs/agents/" + service.name}
+                            target="_blank"
+                            size="large">
+                            <MenuBookIcon />
+                        </IconButton>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={"Build Parameters"}>
+                        <IconButton
+                            onClick={()=>{setOpenBuildingDialog(true);}}
+                            color="secondary"
+                            size="large">
+                            <BuildIcon />
+                        </IconButton>
+                    </MythicStyledTooltip>
                 </MythicTableCell>
             </TableRow>
             {openDelete &&

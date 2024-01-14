@@ -3,14 +3,6 @@ import { EventFeedTableEvents } from './EventFeedTableEvents';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import {useTheme} from '@mui/material/styles';
-import {Button} from '@mui/material';
-import ButtonGroup from '@mui/material/ButtonGroup';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Pagination from '@mui/material/Pagination';
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import SearchIcon from '@mui/icons-material/Search';
@@ -18,6 +10,9 @@ import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import HealingIcon from '@mui/icons-material/Healing';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import Grid from '@mui/material/Grid';
 
 const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
    return (
@@ -34,8 +29,17 @@ const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
 export function EventFeedTable(props){
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
+    const [level, setLevel] = React.useState("All Levels");
+    const levelOptions = [
+        "All Levels", "warning", "info", "debug"
+    ];
+
     const handleSearchValueChange = (name, value, error) => {
         setSearch(value);
+    }
+    const handleLevelValueChange = (event) => {
+        setLevel(event.target.value);
+        props.onLevelChange(event.target.value);
     }
     const submitSearch = (event) => {
         props.onSearch(search)
@@ -43,24 +47,39 @@ export function EventFeedTable(props){
     return (
         <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
             <div>
-                <div style={{"display": "inline-block", width: "100%", marginBottom: "0px", marginTop: "10px"}}>
-                    <MythicTextField placeholder="Search..." value={search}
-                                     onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
-                        endAdornment:
-                            <React.Fragment>
-                                <Tooltip title="Search">
-                                    <IconButton onClick={submitSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></IconButton>
-                                </Tooltip>
-                                <Tooltip title="Resolve Viewable Errors">
-                                    <IconButton onClick={props.resolveViewableErrors} size="large"><AutoFixHighIcon style={{color: theme.palette.success.main}}/></IconButton>
-                                </Tooltip>
-                                <Tooltip title="Resolve All Errors">
-                                    <IconButton onClick={props.resolveAllErrors} size="large"><HealingIcon style={{color: theme.palette.success.main}}/></IconButton>
-                                </Tooltip>
-                            </React.Fragment>,
-                        style: {padding: 0}
-                    }}/>
-                </div>
+                <Grid container spacing={2} style={{paddingTop: "10px", maxWidth: "100%"}}>
+                    <Grid item xs={10}>
+                        <MythicTextField placeholder="Search..." value={search}
+                                         onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
+                            endAdornment:
+                                <React.Fragment>
+                                    <Tooltip title="Search">
+                                        <IconButton onClick={submitSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Resolve Viewable Errors">
+                                        <IconButton onClick={props.resolveViewableErrors} size="large"><AutoFixHighIcon style={{color: theme.palette.success.main}}/></IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Resolve All Errors">
+                                        <IconButton onClick={props.resolveAllErrors} size="large"><HealingIcon style={{color: theme.palette.success.main}}/></IconButton>
+                                    </Tooltip>
+                                </React.Fragment>,
+                            style: {padding: 0}
+                        }}/>
+                    </Grid>
+                    <Grid item xs={1}>
+                        <Select
+                            style={{width: "100%", display: "inline-block"}}
+                            value={level}
+                            onChange={handleLevelValueChange}
+                        >
+                            {
+                                levelOptions.map((opt, i) => (
+                                    <MenuItem key={"levelFilter" + opt} value={opt}>{opt}</MenuItem>
+                                ))
+                            }
+                        </Select>
+                    </Grid>
+                </Grid>
             </div>
             <div style={{display: "flex", flexDirection: "column", width: "100%", overflowY: "auto"}}>
                 <Paper elevation={5} style={{position: "relative", flexGrow: 1, overflowY: "scroll", backgroundColor: theme.body, paddingBottom: "20px"}} variant={"elevation"}>

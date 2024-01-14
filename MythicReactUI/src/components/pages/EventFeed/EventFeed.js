@@ -4,8 +4,8 @@ import {EventFeedTable} from './EventFeedTable';
 import {snackActions} from '../../utilities/Snackbar';
 
 const GET_Event_Feed = gql`
-query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!) {
-  operationeventlog(where: {deleted: {_eq: false}, message: {_ilike: $search}}, order_by: {id: desc}, limit: $limit, offset: $offset) {
+query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $level: String!) {
+  operationeventlog(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}}, order_by: {id: desc}, limit: $limit, offset: $offset) {
     id
     level
     message
@@ -14,7 +14,7 @@ query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!) {
     count
     source
   }
-  operationeventlog_aggregate(where: {deleted: {_eq: false}, message: {_ilike: $search}}) {
+  operationeventlog_aggregate(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}}) {
     aggregate {
       count
     }
@@ -78,6 +78,7 @@ export function EventFeed(props){
   const [operationeventlog, setOperationEventLog] = React.useState([]);
   const [fromNow, setFromNow] = React.useState((new Date()).toISOString());
   const [search, setSearch] = React.useState("");
+  const [level, setLevel] = React.useState("All Levels");
   useSubscription(SUB_Event_Feed, {
     variables: {fromNow}, fetchPolicy: "no-cache",
     onData: ({data}) => {
@@ -102,13 +103,6 @@ export function EventFeed(props){
       fetchPolicy: "network-only",
       onCompleted: (data) => {
         snackActions.dismiss();
-        /*
-        if(data.operationeventlog.length === 0){
-          snackActions.info("No more events");
-          return;
-        }
-
-         */
         let tempPageData = {...pageData};
         tempPageData.totalCount = data.operationeventlog_aggregate.aggregate.count;
         setPageData(tempPageData);
@@ -193,10 +187,20 @@ export function EventFeed(props){
     if(search !== ""){
       localSearch = "%" + search + "%";
     }
-    getMoreTasking({variables: {offset: (value - 1) * pageData.fetchLimit, limit: pageData.fetchLimit, search: localSearch}})
+    let localLevel = level;
+    if(level === "All Levels"){
+      localLevel = "%_%";
+    }
+    getMoreTasking({variables: {offset: (value - 1) * pageData.fetchLimit,
+        limit: pageData.fetchLimit,
+        search: localSearch,
+        level: localLevel
+      }})
   }
   React.useEffect( () => {
-    getMoreTasking({variables: {offset: 0, limit: pageData.fetchLimit, search: "%_%"}})
+    getMoreTasking({variables: {offset: 0,
+        limit: pageData.fetchLimit, search: "%_%", level: "%_%"
+      }})
   }, [])
   const resolveViewableErrors = useCallback( () => {
     snackActions.info("Resolving Errors...");
@@ -213,20 +217,25 @@ export function EventFeed(props){
     snackActions.info("Resolving Errors...");
     updateResolveAllErrors();
   }, []);
-  const onSearch = (searchQuery) => {
+  const onSearchChange = (searchQuery) => {
     setSearch(searchQuery);
+  }
+  const onLevelChange = (levelValue) => {
+    setLevel(levelValue);
   }
   React.useEffect( () => {
     onChangePage(null, 1);
-  }, [search]);
+  }, [search, level]);
   return (
       <EventFeedTable operationeventlog={operationeventlog}
                       onUpdateResolution={onUpdateResolution}
                       onUpdateLevel={onUpdateLevel}
                       resolveViewableErrors={resolveViewableErrors}
                       resolveAllErrors={resolveAllErrors}
-                      pageData={pageData} onChangePage={onChangePage}
-                      onSearch={onSearch}
+                      pageData={pageData}
+                      onChangePage={onChangePage}
+                      onSearch={onSearchChange}
+                      onLevelChange={onLevelChange}
       />
   );
 }

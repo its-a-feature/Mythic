@@ -1,6 +1,4 @@
 import React from 'react';
-import { styled } from '@mui/material/styles';
-import Card from '@mui/material/Card';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import {C2ProfileBuildDialog} from './C2ProfileBuildDialog';
@@ -34,6 +32,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import TableRow from '@mui/material/TableRow';
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 
 const toggleDeleteStatus = gql`
@@ -159,9 +158,9 @@ export function C2ProfilesRow({service, showDeleted}) {
                 </MythicTableCell>
                 <MythicTableCell>
                     {service.is_p2p ?
-                        (<FontAwesomeIcon icon={faLink}  style={{width: "80", height: "80", padding: "10px"}} />)
+                        (<FontAwesomeIcon icon={faLink}  style={{width: "80px", height: "80px", padding: "10px"}} />)
                         :
-                        (<WifiIcon style={{width: "80", height: "80", padding: "10px"}}/>)
+                        (<WifiIcon style={{width: "80px", height: "80px", padding: "10px"}}/>)
                     }
                 </MythicTableCell>
                 <MythicTableCell>
@@ -245,35 +244,40 @@ export function C2ProfilesRow({service, showDeleted}) {
                             )
                     ) : null}
                     <br/>
-                    <IconButton
-                        color={"secondary"}
-                        href={"/docs/c2-profiles/" + service.name.toLowerCase()}
-                        target="_blank"
-                        size="large">
-                        <MenuBookIcon />
-                    </IconButton>
-                    <IconButton
-                        color={"secondary"}
-                        onClick={()=>{setOpenBuildingDialog(true);}}
-                        size="large">
-                        <BuildIcon />
-                    </IconButton>
-
-
-                    <IconButton
-                        onClick={() => {setOpenProfileSavedInstancesDialog(true);}}
-                        color={"success"}
-                        size="large">
-                        <SaveIcon />
-                    </IconButton>
-
-                    {service.container_running &&
+                    <MythicStyledTooltip title={"Documentation"}>
                         <IconButton
                             color={"secondary"}
-                            onClick={()=>{setOpenListFilesDialog(true);}}
+                            href={"/docs/c2-profiles/" + service.name.toLowerCase()}
+                            target="_blank"
                             size="large">
-                            <AttachFileIcon />
+                            <MenuBookIcon />
                         </IconButton>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={"Build Parameters"}>
+                        <IconButton
+                            color={"secondary"}
+                            onClick={()=>{setOpenBuildingDialog(true);}}
+                            size="large">
+                            <BuildIcon />
+                        </IconButton>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={"Save/Edit Instances for Building"}>
+                        <IconButton
+                            onClick={() => {setOpenProfileSavedInstancesDialog(true);}}
+                            color={"success"}
+                            size="large">
+                            <SaveIcon />
+                        </IconButton>
+                    </MythicStyledTooltip>
+                    {service.container_running &&
+                        <MythicStyledTooltip title={"View Files"}>
+                            <IconButton
+                                color={"secondary"}
+                                onClick={()=>{setOpenListFilesDialog(true);}}
+                                size="large">
+                                <AttachFileIcon />
+                            </IconButton>
+                        </MythicStyledTooltip>
                     }
                     <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
                         {({ TransitionProps, placement }) => (
