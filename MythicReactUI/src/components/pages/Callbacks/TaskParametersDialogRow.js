@@ -457,9 +457,16 @@ export function TaskParametersDialogRow(props){
         props.onChange(props.name, values, false);
     }
     const addNewTypedArrayValue = () => {
-        const newTypedArray = [...typedArrayValue, [props.default_value, ""]];
-        setTypedArrayValue(newTypedArray);
-        props.onChange(props.name, newTypedArray, false);
+        if(props.default_value !== "" && props.default_value !== "[]"){
+            const newTypedArray = [...typedArrayValue, [props.default_value, ""]];
+            setTypedArrayValue(newTypedArray);
+            props.onChange(props.name, newTypedArray, false);
+        } else {
+            const newTypedArray = [...typedArrayValue, [props.choices[0], ""]];
+            setTypedArrayValue(newTypedArray);
+            props.onChange(props.name, newTypedArray, false);
+        }
+
     }
     const removeTypedArrayValue = (index) => {
         let removed = [...typedArrayValue];
