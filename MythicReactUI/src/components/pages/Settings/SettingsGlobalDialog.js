@@ -69,7 +69,7 @@ export function SettingsGlobalDialog(props) {
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
-                  <TableCell style={{width: "30%"}}>Agent Debug Messages</TableCell>
+                  <TableCell style={{width: "60%"}}>Emit detailed agent message parsing information to the event logs. This is very noisy and can slow down the server. Also set by the MYTHIC_DEBUG_AGENT_MESSAGE config variable.</TableCell>
                   <TableCell>
                       <Switch
                           checked={debugAgentMessage}
