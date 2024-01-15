@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"log"
 	"net"
 	"os"
@@ -187,4 +188,20 @@ func fileExists(path string) bool {
 		}
 	}
 	return !info.IsDir()
+}
+
+func SetConfigValue(configKey string, configValue interface{}) error {
+	switch configKey {
+	case "MYTHIC_DEBUG_AGENT_MESSAGE":
+		MythicConfig.DebugAgentMessage = configValue.(bool)
+	default:
+		return errors.New("unknown configKey to update")
+	}
+	return nil
+}
+
+func GetGlobalConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"MYTHIC_DEBUG_AGENT_MESSAGE": MythicConfig.DebugAgentMessage,
+	}
 }

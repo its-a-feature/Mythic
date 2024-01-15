@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.55] - 2024-01-15
+
+### Changed
+
+- Updated the Settings page to offer an ability to modify global settings
+  - You must be an admin to do this
+  - Currently, you can only toggle on/off the agent debug message setting
+  
 ## [0.1.54] - 2024-01-14
 
 ### Changed

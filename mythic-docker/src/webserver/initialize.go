@@ -170,6 +170,8 @@ func setRoutes(r *gin.Engine) {
 				// submitting webhooks
 				allOperationMembers.POST("send_external_webhook", webcontroller.SendExternalWebhookWebhook)
 				allOperationMembers.POST("create_operation_event_log", webcontroller.CreateOperationEventLog)
+				// global config
+				allOperationMembers.POST("get_global_settings_webhook", webcontroller.GetGlobalSettingWebhook)
 			}
 
 			noSpectators := protected.Group("/api/v1.4/")
@@ -224,10 +226,11 @@ func setRoutes(r *gin.Engine) {
 			operationAdminsOnly.Use(authentication.RBACMiddlewareOperationAdmin())
 			{
 				// Only OPERATION_ADMIN and MYTHIC_ADMIN can do these routes
-				// operation
-				noSpectators.POST("update_operator_status_webhook", webcontroller.UpdateOperatorStatusWebhook)
-				noSpectators.POST("delete_disabled_command_profile_webhook", webcontroller.DeleteDisabledCommandProfileWebhook)
-				noSpectators.POST("delete_disabled_command_profile_entry_webhook", webcontroller.DeleteDisabledCommandProfileEntryWebhook)
+				operationAdminsOnly.POST("update_operator_status_webhook", webcontroller.UpdateOperatorStatusWebhook)
+				operationAdminsOnly.POST("delete_disabled_command_profile_webhook", webcontroller.DeleteDisabledCommandProfileWebhook)
+				operationAdminsOnly.POST("delete_disabled_command_profile_entry_webhook", webcontroller.DeleteDisabledCommandProfileEntryWebhook)
+				// global settings
+				operationAdminsOnly.POST("update_global_settings_webhook", webcontroller.UpdateGlobalSettingsWebhook)
 			}
 		}
 	}

@@ -16,8 +16,11 @@ import {snackActions} from '../../utilities/Snackbar';
 import {useTheme} from '@mui/material/styles';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import TuneIcon from '@mui/icons-material/Tune';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { IconButton } from '@mui/material';
+import {SettingsOperatorDeleteDialog} from "./SettingsOperatorDeleteDialog";
+import {SettingsGlobalDialog} from "./SettingsGlobalDialog";
 
 
 export function SettingsOperatorTable(props){
@@ -38,12 +41,19 @@ export function SettingsOperatorTable(props){
     const userData = props.operators.filter(o => o.id === (props.me?.user?.id || 0))
     const userIsAdmin = userData.length > 0 ? userData[0].admin : false;
     const [showDeleted, setShowDeleted] = React.useState(false);
+    const [openGlobalSettingsDialog, setOpenGlobalSettingsDialog] = React.useState(false);
     return (
         <React.Fragment>
         <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
             <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Settings
             </Typography>
+            <MythicStyledTooltip title={"Adjust Global Settings"} style={{float: "right", marginRight: "10px", marginLeft: "5px"}}>
+                <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained"
+                            onClick={() => setOpenGlobalSettingsDialog(!openGlobalSettingsDialog)} >
+                    <TuneIcon />
+                </IconButton>
+            </MythicStyledTooltip>
             {showDeleted ? (
                 <MythicStyledTooltip title={"Hide Deleted Operators"} style={{float: "right"}}>
                     <IconButton size="small" style={{float: "right", marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
@@ -54,6 +64,13 @@ export function SettingsOperatorTable(props){
                     <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                 </MythicStyledTooltip>
             )}
+            {openGlobalSettingsDialog &&
+                <MythicDialog open={openGlobalSettingsDialog} size={"lg"} fullWidth
+                              onClose={()=>{setOpenGlobalSettingsDialog(false);}}
+                              innerDialog={<SettingsGlobalDialog
+                                  onClose={()=>{setOpenGlobalSettingsDialog(false);}}  />}
+                />
+            }
         </Paper>
         <TableContainer component={Paper} className="mythicElement">   
             <Button size="small" onClick={()=>{setOpenNewDialog(true);}} style={{float: "right"}} startIcon={<AddCircleOutlineOutlinedIcon/>} color="success" variant="contained">New Operator</Button>

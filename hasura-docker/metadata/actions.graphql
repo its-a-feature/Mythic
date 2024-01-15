@@ -216,6 +216,10 @@ type Mutation {
 }
 
 type Query {
+  getGlobalSettings: globalSettingsOutput
+}
+
+type Query {
   getProfileOutput(
     id: Int!
   ): ProfileOutput
@@ -316,6 +320,12 @@ type Mutation {
     user_id: Int!
     operation_id: Int!
   ): updateCurrentOperationOutput
+}
+
+type Mutation {
+  updateGlobalSettings(
+    settings: jsonb!
+  ): updateGlobalSettingsOutput
 }
 
 type Mutation {
@@ -791,5 +801,14 @@ type updateOperatorStatusOutput {
   admin: Boolean
   active: Boolean
   deleted: Boolean
+}
+
+type updateGlobalSettingsOutput {
+  status: String!
+  error: String
+}
+
+type globalSettingsOutput {
+  settings: jsonb!
 }
 

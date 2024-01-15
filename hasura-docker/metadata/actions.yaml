@@ -308,6 +308,17 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: getGlobalSettings
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/get_global_settings_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: getProfileOutput
     definition:
       kind: ""
@@ -473,6 +484,13 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: updateGlobalSettings
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_global_settings_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: mythic_admin
   - name: updateOperation
     definition:
       kind: synchronous
@@ -616,4 +634,6 @@ custom_types:
     - name: ToggleProxyOutput
     - name: toggleProxyOutput
     - name: updateOperatorStatusOutput
+    - name: updateGlobalSettingsOutput
+    - name: globalSettingsOutput
   scalars: []
