@@ -380,6 +380,9 @@ export function TaskParametersDialog(props) {
     }
     useEffect( () => {
         //console.log("use effect triggered")
+        if(!props.command.parsedParameters){
+            props.command.parsedParameters = {};
+        }
         const getLinkInfoFromAgentConnect = (choices) => {
             if(choices.length > 0){
                 const c2profileparameters = choices[0]["payloads"][0]["c2info"][0].parameters.reduce( (prev, opt) => {
@@ -432,6 +435,7 @@ export function TaskParametersDialog(props) {
                     return [...prev];
                 }
                 //console.log(props.command);
+
                 switch(cmd.type){
                     case "Boolean":
                         if(cmd.name in props.command.parsedParameters){

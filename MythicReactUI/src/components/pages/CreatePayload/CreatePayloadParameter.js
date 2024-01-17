@@ -20,6 +20,7 @@ import Paper from '@mui/material/Paper';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {Typography} from '@mui/material';
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
+import {snackActions} from "../../utilities/Snackbar";
 
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id, description, initialValue, choices, trackedValue, returnAllDictValues}){
     const [value, setValue] = React.useState("");
@@ -214,13 +215,19 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         setDictSelectOptionsChoice(dictSelectOptionsInitial[0]);
     }
     const onChangeDate = (date) => {
-        setDateValue(dayjs(date))
-        onChange(name, date.toISOString().slice(0,10), "");
+        try {
+            let newDayjsDate = dayjs(date);
+            let newDayString = date.toISOString().slice(0,10);
+            setDateValue(newDayjsDate);
+            onChange(name, newDayString, "");
+        }catch(error){
+            snackActions.warning("invalid date")
+            console.error("invalid date", date);
+        }
     }
     const toggleSwitchValue = (evt) => {
-        let newVal = !value;
-        setValue(newVal);
-        onChange(name, newVal, false);
+        setValue(evt.target.checked);
+        onChange(name, evt.target.checked, false);
     }
     const addNewArrayValue = () => {
         const newArray = [...arrayValue, ""];
