@@ -45,7 +45,7 @@ func AddMythicService(service string) {
 			"POSTGRES_PASSWORD=${POSTGRES_PASSWORD}",
 		}
 		if _, ok := pStruct["environment"]; ok {
-			pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]string), environment)
+			pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), environment)
 		} else {
 			pStruct["environment"] = environment
 		}
@@ -121,7 +121,7 @@ func AddMythicService(service string) {
 			"HASURA_GRAPHQL_CONSOLE_ASSETS_DIR=/srv/console-assets",
 		}
 		if _, ok := pStruct["environment"]; ok {
-			pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]string), environment)
+			pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), environment)
 		} else {
 			pStruct["environment"] = environment
 		}
@@ -183,7 +183,7 @@ func AddMythicService(service string) {
 			fmt.Sprintf("NGINX_USE_IPV6=%s", nginxUseIPV6),
 		}
 		if _, ok := pStruct["environment"]; ok {
-			environment = utils.UpdateEnvironmentVariables(pStruct["environment"].([]string), environment)
+			environment = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), environment)
 		}
 		var finalNginxEnv []string
 		for _, val := range environment {
@@ -246,7 +246,7 @@ func AddMythicService(service string) {
 			"RABBITMQ_PORT=${RABBITMQ_PORT}",
 		}
 		if _, ok := pStruct["environment"]; ok {
-			environment = utils.UpdateEnvironmentVariables(pStruct["environment"].([]string), environment)
+			environment = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), environment)
 		}
 		var finalRabbitEnv []string
 		badRabbitMqEnvs := []string{
@@ -421,7 +421,7 @@ func AddMythicService(service string) {
 		}
 		pStruct["ports"] = mythicServerPorts
 		if _, ok := pStruct["environment"]; ok {
-			pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]string), environment)
+			pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), environment)
 		} else {
 			pStruct["environment"] = environment
 		}
@@ -535,7 +535,7 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 		"DEBUG_LEVEL=${DEBUG_LEVEL}",
 	}
 	if _, ok := pStruct["environment"]; ok {
-		pStruct["environment"] = utils.UpdateEnvironmentVariables(existingConfig["environment"].([]string), environment)
+		pStruct["environment"] = utils.UpdateEnvironmentVariables(existingConfig["environment"].([]interface{}), environment)
 	} else {
 		pStruct["environment"] = environment
 	}

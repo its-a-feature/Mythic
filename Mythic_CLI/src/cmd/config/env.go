@@ -323,8 +323,6 @@ func GetBuildArguments() []string {
 	buildEnv.AddConfigPath(utils.GetCwdFromExe())
 	buildEnv.AutomaticEnv()
 	if !utils.FileExists(filepath.Join(utils.GetCwdFromExe(), "build.env")) {
-		log.Printf("[*] No build.env file detected in Mythic's root directory; not supplying build arguments to docker containers\n")
-		log.Printf("    If you need to supply build arguments to docker containers, create build.env and supply key=value entries there\n")
 		return []string{}
 	}
 	if err := buildEnv.ReadInConfig(); err != nil {

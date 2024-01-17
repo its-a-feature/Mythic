@@ -2,6 +2,7 @@ package manager
 
 import (
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
+	"io"
 	"path/filepath"
 )
 
@@ -56,6 +57,22 @@ type CLIManager interface {
 	GetLogs(service string, logCount int)
 	// TestPorts check to make sure all ports are available for services to use
 	TestPorts()
+	// PrintConnectionInfo lists out connection information for the various services (web endpoints, open ports, etc)
+	PrintConnectionInfo()
+	// Status prints out the current status of all the containers and volumes in use
+	Status(verbose bool)
+	// ListServices prints out all the 3rd party services on disk and currently installed
+	ListServices()
+	// ResetDatabase deletes the current database or volume
+	ResetDatabase(localMount bool)
+	// ListVolumes prints out all of the volumes in use by Mythic
+	ListVolumes()
+	// RemoveVolume removes the named volume
+	RemoveVolume(volumeName string) error
+	// CopyIntoVolume copies from a source io.Reader to the destination filename on the destination volume
+	CopyIntoVolume(sourceFile io.Reader, destinationFileName string, destinationVolume string)
+	// CopyFromVolume copies from the source filename in the volume to the destination filename outside of the volume
+	CopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string)
 }
 
 var currentManager CLIManager
