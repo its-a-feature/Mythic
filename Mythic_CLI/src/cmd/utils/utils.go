@@ -53,10 +53,10 @@ func RemoveStringFromSliceNoOrder(source []string, str string) []string {
 	// we didn't find the element to remove
 	return source
 }
-func UpdateEnvironmentVariables(originalList []string, updates []string) []string {
+func UpdateEnvironmentVariables(originalList []interface{}, updates []string) []string {
 	var finalList []string
 	for _, entry := range originalList {
-		entryPieces := strings.Split(entry, "=")
+		entryPieces := strings.Split(entry.(string), "=")
 		found := false
 		for _, update := range updates {
 			updatePieces := strings.Split(update, "=")
@@ -66,7 +66,7 @@ func UpdateEnvironmentVariables(originalList []string, updates []string) []strin
 			}
 		}
 		if !found {
-			finalList = append(finalList, entry)
+			finalList = append(finalList, entry.(string))
 		}
 	}
 	for _, update := range updates {

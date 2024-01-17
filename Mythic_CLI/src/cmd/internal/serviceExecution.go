@@ -1,22 +1,12 @@
 package internal
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/volume"
-	"github.com/docker/docker/client"
 	"io"
 	"log"
-	"os"
-	"sort"
-	"strconv"
-	"strings"
-	"text/tabwriter"
 )
 
 // ServiceStart is entrypoint from commands to start containers
@@ -48,15 +38,13 @@ func ServiceStart(containers []string) error {
 		}
 	}
 	for _, val := range intendedMythicServices {
-		if utils.StringInSlice(val, currentMythicServices) {
-
-		} else {
-			AddMythicService(val)
-		}
+		AddMythicService(val)
 	}
 	// if the user didn't explicitly call out starting certain containers, then do all of them
 	if len(containers) == 0 {
 		containers = append(dockerComposeContainers, intendedMythicServices...)
+		// make sure the ports are open that we're going to need
+		TestPorts()
 	}
 	finalContainers := []string{}
 	for _, val := range containers { // these are specified containers or all in docker compose
@@ -145,213 +133,16 @@ func DockerBuildReactUI() error {
 
 // Docker Volume commands
 
-func VolumesList() error {
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		panic(err)
-	}
-	defer cli.Close()
-	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 0, 8, 2, '\t', 0)
-	fmt.Fprintln(w, "VOLUME\tSIZE\tCONTAINER (Ref Count)\tCONTAINER STATUS\tLOCATION")
-	du, err := cli.DiskUsage(ctx, types.DiskUsageOptions{})
-	if err != nil {
-		fmt.Printf("[-] Failed to get disk sizes: %v\n", err)
-		os.Exit(1)
-	}
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
-	if err != nil {
-		fmt.Printf("[-] Failed to get container list: %v\n", err)
-		os.Exit(1)
-	}
-	if du.Volumes == nil {
-		fmt.Printf("[-] No volumes known\n")
-		return nil
-	}
-	var entries []string
-	for _, currentVolume := range du.Volumes {
-		name := currentVolume.Name
-		size := "unknown"
-		if currentVolume.UsageData != nil {
-			size = utils.ByteCountSI(currentVolume.UsageData.Size)
-		}
-		if !strings.HasPrefix(currentVolume.Name, "mythic_") {
-			continue
-		}
-		containerPieces := strings.Split(currentVolume.Name, "_")
-		containerName := strings.Join(containerPieces[0:2], "_")
-		container := "unused (0)"
-		containerStatus := "offline"
-		for _, c := range containers {
-			if c.Image == containerName {
-				containerStatus = c.Status
-			}
-			for _, m := range c.Mounts {
-				if m.Name == currentVolume.Name {
-					container = c.Image + " (" + strconv.Itoa(int(currentVolume.UsageData.RefCount)) + ")"
-				}
-			}
-		}
-		entries = append(entries, fmt.Sprintf("%s\t%s\t%s\t%s\t%s",
-			name,
-			size,
-			container,
-			containerStatus,
-			currentVolume.Mountpoint,
-		))
-	}
-	sort.Strings(entries)
-	for _, line := range entries {
-		fmt.Fprintln(w, line)
-	}
-
-	defer w.Flush()
-	return nil
+func VolumesList() {
+	manager.GetManager().ListVolumes()
 }
 func DockerRemoveVolume(volumeName string) error {
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		panic(err)
-	}
-	defer cli.Close()
-	volumes, err := cli.VolumeList(ctx, volume.ListOptions{})
-	if err != nil {
-		return err
-	}
-	for _, currentVolume := range volumes.Volumes {
-		if currentVolume.Name == volumeName {
-			err = cli.VolumeRemove(ctx, currentVolume.Name, true)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return manager.GetManager().RemoveVolume(volumeName)
 }
-func ensureVolume(volumeName string) error {
-	containerNamePieces := strings.Split(volumeName, "_")
-	containerName := strings.Join(containerNamePieces[0:2], "_")
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return err
-	}
-	defer cli.Close()
-	volumes, err := cli.VolumeList(ctx, volume.ListOptions{})
-	if err != nil {
-		return err
-	}
-	foundVolume := false
-	for _, currentVolume := range volumes.Volumes {
-		if currentVolume.Name == volumeName {
-			foundVolume = true
-		}
-	}
-	if !foundVolume {
-		_, err = cli.VolumeCreate(ctx, volume.CreateOptions{Name: volumeName})
-		if err != nil {
-			return err
-		}
-	}
-	// now that we know the volume exists, make sure it's attached to a running container or we can't manipulate files
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
-	if err != nil {
-		return err
-	}
-	for _, container := range containers {
-		if container.Image == containerName {
-			for _, mnt := range container.Mounts {
-				if mnt.Name == volumeName {
-					// container is running and has this mount associated with it
-					return nil
-				}
-			}
-			return errors.New(fmt.Sprintf("container, %s, isn't using volume, %s", containerName, volumeName))
-		}
-	}
-	return errors.New(fmt.Sprintf("failed to find container, %s, for volume, %s", containerName, volumeName))
-}
+
 func DockerCopyIntoVolume(sourceFile io.Reader, destinationFileName string, destinationVolume string) {
-	err := ensureVolume(destinationVolume)
-	if err != nil {
-		fmt.Printf("[-] Failed to ensure volume exists: %v\n", err)
-		os.Exit(1)
-	}
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		fmt.Printf("[-] Failed to connect to docker api: %v\n", err)
-		os.Exit(1)
-	}
-	defer cli.Close()
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
-	if err != nil {
-		fmt.Printf("[-] Failed to get container list: %v\n", err)
-		os.Exit(1)
-	}
-	for _, container := range containers {
-		for _, mnt := range container.Mounts {
-			if mnt.Name == destinationVolume {
-				err = cli.CopyToContainer(ctx, container.ID, mnt.Destination+"/"+destinationFileName, sourceFile, types.CopyToContainerOptions{
-					CopyUIDGID: true,
-				})
-				if err != nil {
-					fmt.Printf("[-] Failed to write file: %v\n", err)
-					os.Exit(1)
-				} else {
-					fmt.Printf("[+] Successfully wrote file\n")
-				}
-				return
-			}
-		}
-	}
-	fmt.Printf("[-] Failed to find that volume name in use by any containers")
-	os.Exit(1)
+	manager.GetManager().CopyIntoVolume(sourceFile, destinationFileName, destinationVolume)
 }
 func DockerCopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string) {
-	err := ensureVolume(sourceVolumeName)
-	if err != nil {
-		fmt.Printf("[-] Failed to ensure volume exists: %v\n", err)
-		os.Exit(1)
-	}
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		fmt.Printf("[-] Failed to connect to docker api: %v\n", err)
-		os.Exit(1)
-	}
-	defer cli.Close()
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
-	if err != nil {
-		fmt.Printf("[-] Failed to get container list: %v\n", err)
-		os.Exit(1)
-	}
-	for _, container := range containers {
-		for _, mnt := range container.Mounts {
-			if mnt.Name == sourceVolumeName {
-				reader, _, err := cli.CopyFromContainer(ctx, container.ID, mnt.Destination+"/"+sourceFileName)
-				if err != nil {
-					fmt.Printf("[-] Failed to read file: %v\n", err)
-					return
-				}
-				destination, err := os.Create(destinationName)
-				if err != nil {
-					fmt.Printf("[-] Failed to open destination filename: %v\n", err)
-					return
-				}
-				defer destination.Close()
-				_, err = io.Copy(destination, reader)
-				if err != nil {
-					fmt.Printf("[-] Failed to get file from volume: %v\n", err)
-					return
-				}
-				fmt.Printf("[+] Successfully wrote file\n")
-				return
-			}
-		}
-	}
-	fmt.Printf("[-] Failed to find that volume name in use by any containers")
-	os.Exit(1)
+	manager.GetManager().CopyFromVolume(sourceVolumeName, sourceFileName, destinationName)
 }

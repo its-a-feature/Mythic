@@ -9,6 +9,7 @@ import (
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/spf13/viper"
 	"golang.org/x/mod/semver"
@@ -19,9 +20,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"text/tabwriter"
 )
 
 type DockerComposeManager struct {
@@ -191,7 +194,7 @@ func (d *DockerComposeManager) SaveImages(services []string, outputPath string) 
 		return errors.New(fmt.Sprintf("[-] Failed to create output file: %v\n", err))
 	}
 	defer outFile.Close()
-	fmt.Printf("[*] Saving to %s\nThis will take a while...\n", savedImagePath)
+	log.Printf("[*] Saving to %s\nThis will take a while...\n", savedImagePath)
 	_, err = io.Copy(outFile, ioReadCloser)
 	if err != nil {
 		return errors.New(fmt.Sprintf("[-] Failed to write contents to file: %v\n", err))
@@ -213,7 +216,7 @@ func (d *DockerComposeManager) LoadImages(outputPath string) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("[-] Failed to load image into Docker: %v\n", err))
 	}
-	fmt.Printf("[+] loaded docker images!\n")
+	log.Printf("[+] loaded docker images!\n")
 	return nil
 
 }
@@ -252,10 +255,11 @@ func (d *DockerComposeManager) GetVolumes() (map[string]interface{}, error) {
 // SetVolumes sets a specific volume configuration into the docker-compose file.
 func (d *DockerComposeManager) SetVolumes(volumes map[string]interface{}) {
 	curConfig := d.readInDockerCompose()
-	curConfig.Set("volumes", volumes)
-	err := d.setDockerComposeDefaultsAndWrite(curConfig)
+	allConfigSettings := curConfig.AllSettings()
+	allConfigSettings["volumes"] = volumes
+	err := d.setDockerComposeDefaultsAndWrite(allConfigSettings)
 	if err != nil {
-		fmt.Printf("[-] Failed to update config: %v\n", err)
+		log.Printf("[-] Failed to update config: %v\n", err)
 	}
 }
 
@@ -294,15 +298,20 @@ func (d *DockerComposeManager) GetServiceConfiguration(service string) (map[stri
 // SetServiceConfiguration sets a service configuration into docker-compose
 func (d *DockerComposeManager) SetServiceConfiguration(service string, pStruct map[string]interface{}) error {
 	curConfig := d.readInDockerCompose()
-	if !curConfig.InConfig("services." + strings.ToLower(service)) {
-		curConfig.Set("services."+strings.ToLower(service), pStruct)
-		log.Printf("[+] Added %s to docker-compose\n", strings.ToLower(service))
-	} else {
-		curConfig.Set("services."+strings.ToLower(service), pStruct)
+	allConfigValues := curConfig.AllSettings()
+	for key, _ := range allConfigValues {
+		if key == "services" {
+			allServices := allConfigValues["services"].(map[string]interface{})
+			if _, ok := allServices[service]; !ok {
+				log.Printf("[+] Added %s to docker-compose\n", strings.ToLower(service))
+			}
+			allServices[service] = pStruct
+			allConfigValues["services"] = allServices
+		}
 	}
-	err := d.setDockerComposeDefaultsAndWrite(curConfig)
+	err := d.setDockerComposeDefaultsAndWrite(allConfigValues)
 	if err != nil {
-		fmt.Printf("[-] Failed to update config: %v\n", err)
+		log.Printf("[-] Failed to update config: %v\n", err)
 	}
 	return err
 }
@@ -349,17 +358,24 @@ func (d *DockerComposeManager) StopServices(services []string, deleteImages bool
 // RemoveServices removes certain container entries from the docker-compose
 func (d *DockerComposeManager) RemoveServices(services []string) error {
 	curConfig := d.readInDockerCompose()
-	for _, service := range services {
-		if !utils.StringInSlice(service, config.MythicPossibleServices) {
-			if d.IsServiceRunning(service) {
-				_ = d.StopServices([]string{strings.ToLower(service)}, true)
+	allConfigValues := curConfig.AllSettings()
+	for key, _ := range allConfigValues {
+		if key == "services" {
+			allServices := allConfigValues["services"].(map[string]interface{})
+			for _, service := range services {
+				if !utils.StringInSlice(service, config.MythicPossibleServices) {
+					if d.IsServiceRunning(service) {
+						_ = d.StopServices([]string{strings.ToLower(service)}, true)
 
+					}
+					delete(allServices, strings.ToLower(service))
+					log.Printf("[+] Removed %s from docker-compose\n", strings.ToLower(service))
+				}
 			}
-			delete(curConfig.Get("services").(map[string]interface{}), strings.ToLower(service))
-			log.Printf("[+] Removed %s from docker-compose\n", strings.ToLower(service))
 		}
 	}
-	err := d.setDockerComposeDefaultsAndWrite(curConfig)
+
+	err := d.setDockerComposeDefaultsAndWrite(allConfigValues)
 	if err != nil {
 		log.Printf("[-] Failed to update config: %v\n", err)
 		return err
@@ -565,6 +581,428 @@ func (d *DockerComposeManager) TestPorts() {
 	}
 }
 
+func (d *DockerComposeManager) PrintConnectionInfo() {
+	w := new(tabwriter.Writer)
+	mythicEnv := config.GetMythicEnv()
+	w.Init(os.Stdout, 0, 8, 2, '\t', 0)
+	fmt.Fprintln(w, "MYTHIC SERVICE\tWEB ADDRESS\tBOUND LOCALLY")
+	if mythicEnv.GetString("NGINX_HOST") == "mythic_nginx" {
+		if mythicEnv.GetBool("NGINX_USE_SSL") {
+			fmt.Fprintln(w, "Nginx (Mythic Web UI)\thttps://127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("NGINX_PORT"))+"\t", mythicEnv.GetBool("nginx_bind_localhost_only"))
+		} else {
+			fmt.Fprintln(w, "Nginx (Mythic Web UI)\thttp://127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("NGINX_PORT"))+"\t", mythicEnv.GetBool("nginx_bind_localhost_only"))
+		}
+	} else {
+		if mythicEnv.GetBool("NGINX_USE_SSL") {
+			fmt.Fprintln(w, "Nginx (Mythic Web UI)\thttps://"+mythicEnv.GetString("NGINX_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("NGINX_PORT"))+"\t", mythicEnv.GetBool("nginx_bind_localhost_only"))
+		} else {
+			fmt.Fprintln(w, "Nginx (Mythic Web UI)\thttp://"+mythicEnv.GetString("NGINX_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("NGINX_PORT"))+"\t", mythicEnv.GetBool("nginx_bind_localhost_only"))
+		}
+	}
+	if mythicEnv.GetString("MYTHIC_SERVER_HOST") == "mythic_server" {
+		fmt.Fprintln(w, "Mythic Backend Server\thttp://127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("MYTHIC_SERVER_PORT"))+"\t", mythicEnv.GetBool("mythic_server_bind_localhost_only"))
+	} else {
+		fmt.Fprintln(w, "Mythic Backend Server\thttp://"+mythicEnv.GetString("MYTHIC_SERVER_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("MYTHIC_SERVER_PORT"))+"\t", mythicEnv.GetBool("mythic_server_bind_localhost_only"))
+	}
+	if mythicEnv.GetString("HASURA_HOST") == "mythic_graphql" {
+		fmt.Fprintln(w, "Hasura GraphQL Console\thttp://127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("HASURA_PORT"))+"\t", mythicEnv.GetBool("hasura_bind_localhost_only"))
+	} else {
+		fmt.Fprintln(w, "Hasura GraphQL Console\thttp://"+mythicEnv.GetString("HASURA_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("HASURA_PORT"))+"\t", mythicEnv.GetBool("hasura_bind_localhost_only"))
+	}
+	if mythicEnv.GetString("JUPYTER_HOST") == "mythic_jupyter" {
+		fmt.Fprintln(w, "Jupyter Console\thttp://127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("JUPYTER_PORT"))+"\t", mythicEnv.GetBool("jupyter_bind_localhost_only"))
+	} else {
+		fmt.Fprintln(w, "Jupyter Console\thttp://"+mythicEnv.GetString("JUPYTER_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("JUPYTER_PORT"))+"\t", mythicEnv.GetBool("jupyter_bind_localhost_only"))
+	}
+	if mythicEnv.GetString("DOCUMENTATION_HOST") == "mythic_documentation" {
+		fmt.Fprintln(w, "Internal Documentation\thttp://127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("DOCUMENTATION_PORT"))+"\t", mythicEnv.GetBool("documentation_bind_localhost_only"))
+	} else {
+		fmt.Fprintln(w, "Internal Documentation\thttp://"+mythicEnv.GetString("DOCUMENTATION_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("DOCUMENTATION_PORT"))+"\t", mythicEnv.GetBool("documentation_bind_localhost_only"))
+	}
+	fmt.Fprintln(w, "\t\t\t\t")
+	fmt.Fprintln(w, "ADDITIONAL SERVICES\tADDRESS\tBOUND LOCALLY")
+	if mythicEnv.GetString("POSTGRES_HOST") == "mythic_postgres" {
+		fmt.Fprintln(w, "Postgres Database\tpostgresql://mythic_user:password@127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("POSTGRES_PORT"))+"/mythic_db\t", mythicEnv.GetBool("postgres_bind_localhost_only"))
+	} else {
+		fmt.Fprintln(w, "Postgres Database\tpostgresql://mythic_user:password@"+mythicEnv.GetString("POSTGRES_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("POSTGRES_PORT"))+"/mythic_db\t", mythicEnv.GetBool("postgres_bind_localhost_only"))
+	}
+	if mythicEnv.GetString("MYTHIC_REACT_HOST") == "mythic_react" {
+		fmt.Fprintln(w, "React Server\thttp://127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("MYTHIC_REACT_PORT"))+"/new\t", mythicEnv.GetBool("mythic_react_bind_localhost_only"))
+	} else {
+		fmt.Fprintln(w, "React Server\thttp://"+mythicEnv.GetString("MYTHIC_REACT_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("MYTHIC_REACT_PORT"))+"/new\t", mythicEnv.GetBool("mythic_react_bind_localhost_only"))
+	}
+	if mythicEnv.GetString("RABBITMQ_HOST") == "mythic_rabbitmq" {
+		fmt.Fprintln(w, "RabbitMQ\tamqp://"+mythicEnv.GetString("RABBITMQ_USER")+":password@127.0.0.1:"+strconv.Itoa(mythicEnv.GetInt("RABBITMQ_PORT"))+"\t", mythicEnv.GetBool("rabbitmq_bind_localhost_only"))
+	} else {
+		fmt.Fprintln(w, "RabbitMQ\tamqp://"+mythicEnv.GetString("RABBITMQ_USER")+":password@"+mythicEnv.GetString("RABBITMQ_HOST")+":"+strconv.Itoa(mythicEnv.GetInt("RABBITMQ_PORT"))+"\t", mythicEnv.GetBool("rabbitmq_bind_localhost_only"))
+	}
+	fmt.Fprintln(w, "\t\t\t\t")
+	w.Flush()
+}
+
+func (d *DockerComposeManager) Status(verbose bool) {
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatalf("[-] Failed to get client in Status check: %v", err)
+	}
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+		All: true,
+	})
+	if err != nil {
+		log.Fatalf("[-] Failed to get container list: %v\n", err)
+	}
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 2, '\t', 0)
+	var mythicLocalServices []string
+	var installedServices []string
+	sort.Slice(containers[:], func(i, j int) bool {
+		return containers[i].Labels["name"] < containers[j].Labels["name"]
+	})
+	elementsOnDisk, err := d.GetInstalled3rdPartyServicesOnDisk()
+	if err != nil {
+		log.Fatalf("[-] Failed to get list of installed services on disk: %v\n", err)
+	}
+	elementsInCompose, err := d.GetAllExistingNonMythicServiceNames()
+	if err != nil {
+		log.Fatalf("[-] Failed to get list of installed services in docker-compose: %v\n", err)
+	}
+	for _, container := range containers {
+		if container.Labels["name"] == "" {
+			continue
+		}
+		var portRanges []uint16
+		var portRangeMaps []string
+		portString := ""
+		info := fmt.Sprintf("%s\t%s\t%s\t", container.Labels["name"], container.State, container.Status)
+		if len(container.Ports) > 0 {
+			sort.Slice(container.Ports[:], func(i, j int) bool {
+				return container.Ports[i].PublicPort < container.Ports[j].PublicPort
+			})
+			for _, port := range container.Ports {
+				if port.PublicPort > 0 {
+					if port.PrivatePort == port.PublicPort && port.IP == "0.0.0.0" {
+						portRanges = append(portRanges, port.PrivatePort)
+					} else {
+						portRangeMaps = append(portRangeMaps, fmt.Sprintf("%d/%s -> %s:%d", port.PrivatePort, port.Type, port.IP, port.PublicPort))
+					}
+
+				}
+			}
+			if len(portRanges) > 0 {
+				sort.Slice(portRanges, func(i, j int) bool { return portRanges[i] < portRanges[j] })
+			}
+			portString = strings.Join(portRangeMaps[:], ", ")
+			var stringPortRanges []string
+			for _, val := range portRanges {
+				stringPortRanges = append(stringPortRanges, fmt.Sprintf("%d", val))
+			}
+			if len(stringPortRanges) > 0 && len(portString) > 0 {
+				portString = portString + ", "
+			}
+			portString = portString + strings.Join(stringPortRanges[:], ", ")
+		}
+		if utils.StringInSlice(container.Image, config.MythicPossibleServices) {
+			found := false
+			for _, mnt := range container.Mounts {
+				if strings.HasPrefix(mnt.Name, container.Image+"_volume") {
+					if found {
+						info += ", " + mnt.Name
+					} else {
+						info += mnt.Name
+					}
+
+					found = true
+				}
+			}
+			if !found {
+				info += "local"
+			}
+			info += "\t"
+			info = info + portString
+			mythicLocalServices = append(mythicLocalServices, info)
+		} else {
+			for _, mnt := range container.Mounts {
+				if strings.Contains(mnt.Source, d.InstalledServicesPath) {
+					installedServices = append(installedServices, info)
+					elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container.Labels["name"])
+					elementsInCompose = utils.RemoveStringFromSliceNoOrder(elementsInCompose, container.Labels["name"])
+				}
+			}
+		}
+
+	}
+	fmt.Fprintln(w, "Mythic Main Services")
+	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tMOUNT\tPORTS")
+	for _, line := range mythicLocalServices {
+		fmt.Fprintln(w, line)
+	}
+	fmt.Fprintln(w, "\t\t\t\t\t")
+	w.Flush()
+	fmt.Fprintln(w, "Installed Services")
+	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS")
+	for _, line := range installedServices {
+		fmt.Fprintln(w, line)
+	}
+	fmt.Fprintln(w, "\t\t\t")
+	// remove all elementsInCompose from elementsOnDisk
+	for _, container := range elementsInCompose {
+		elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container)
+	}
+	if len(elementsInCompose) > 0 && verbose {
+		fmt.Fprintln(w, "Docker Compose services not running, start with: ./mythic-cli start [name]")
+		fmt.Fprintln(w, "NAME\t")
+		sort.Strings(elementsInCompose)
+		for _, container := range elementsInCompose {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t", container))
+		}
+		fmt.Fprintln(w, "\t")
+	}
+	if len(elementsOnDisk) > 0 && verbose {
+		fmt.Fprintln(w, "Extra Services, add to docker compose with: ./mythic-cli add [name]")
+		fmt.Fprintln(w, "NAME\t")
+		sort.Strings(elementsOnDisk)
+		for _, container := range elementsOnDisk {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t", container))
+		}
+		fmt.Fprintln(w, "\t\t")
+	}
+	w.Flush()
+}
+
+func (d *DockerComposeManager) ListServices() {
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatalf("[-] Failed to get client in List Services: %v", err)
+	}
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+		All: true,
+	})
+	if err != nil {
+		log.Fatalf("[-] Failed to get container list: %v\n", err)
+	}
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 2, '\t', 0)
+	var installedServices []string
+	sort.Slice(containers[:], func(i, j int) bool {
+		return containers[i].Labels["name"] < containers[j].Labels["name"]
+	})
+	elementsOnDisk, err := d.GetInstalled3rdPartyServicesOnDisk()
+	if err != nil {
+		log.Fatalf("[-] Failed to get list of installed services on disk: %v\n", err)
+	}
+	elementsInCompose, err := d.GetAllExistingNonMythicServiceNames()
+	if err != nil {
+		log.Fatalf("[-] Failed to get list of installed services in docker-compose: %v\n", err)
+	}
+	for _, container := range containers {
+		if container.Labels["name"] == "" {
+			continue
+		}
+		for _, mnt := range container.Mounts {
+			if strings.Contains(mnt.Source, d.InstalledServicesPath) {
+				info := fmt.Sprintf("%s\t%s\t%v\t%v", container.Labels["name"], container.Status, true, utils.StringInSlice(container.Labels["name"], elementsInCompose))
+				installedServices = append(installedServices, info)
+				elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container.Labels["name"])
+				elementsInCompose = utils.RemoveStringFromSliceNoOrder(elementsInCompose, container.Labels["name"])
+			}
+		}
+	}
+	for _, container := range elementsInCompose {
+		elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container)
+	}
+	fmt.Fprintln(w, "Name\tContainerStatus\tImageBuilt\tDockerComposeEntry")
+	for _, line := range installedServices {
+		fmt.Fprintln(w, line)
+	}
+	if len(elementsInCompose) > 0 {
+		sort.Strings(elementsInCompose)
+		for _, container := range elementsInCompose {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t%s\t%v\t%v", container, "N/A", d.DoesImageExist(container), true))
+		}
+	}
+	if len(elementsOnDisk) > 0 {
+		sort.Strings(elementsOnDisk)
+		for _, container := range elementsOnDisk {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t%s\t%v\t%v", container, "N/A", d.DoesImageExist(container), false))
+		}
+	}
+	w.Flush()
+}
+
+func (d *DockerComposeManager) ResetDatabase(localMount bool) {
+	if localMount {
+		workingPath := utils.GetCwdFromExe()
+		err := os.RemoveAll(filepath.Join(workingPath, "postgres-docker", "database"))
+		if err != nil {
+			log.Printf("[-] Failed to remove database files\n%v\n", err)
+		} else {
+			log.Printf("[+] Successfully reset datbase files\n")
+		}
+	} else {
+		d.RemoveContainers([]string{"mythic_postgres"})
+		err := d.RemoveVolume("mythic_postgres_volume")
+		if err != nil {
+			log.Printf("[-] Failed to remove database:\n%v\n", err)
+		}
+	}
+}
+func (d *DockerComposeManager) ListVolumes() {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	defer cli.Close()
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 2, '\t', 0)
+	fmt.Fprintln(w, "VOLUME\tSIZE\tCONTAINER (Ref Count)\tCONTAINER STATUS\tLOCATION")
+	du, err := cli.DiskUsage(ctx, types.DiskUsageOptions{})
+	if err != nil {
+		log.Fatalf("[-] Failed to get disk sizes: %v\n", err)
+	}
+	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
+	if err != nil {
+		log.Fatalf("[-] Failed to get container list: %v\n", err)
+	}
+	if du.Volumes == nil {
+		log.Printf("[-] No volumes known\n")
+		return
+	}
+	var entries []string
+	for _, currentVolume := range du.Volumes {
+		name := currentVolume.Name
+		size := "unknown"
+		if currentVolume.UsageData != nil {
+			size = utils.ByteCountSI(currentVolume.UsageData.Size)
+		}
+		if !strings.HasPrefix(currentVolume.Name, "mythic_") {
+			continue
+		}
+		containerPieces := strings.Split(currentVolume.Name, "_")
+		containerName := strings.Join(containerPieces[0:2], "_")
+		container := "unused (0)"
+		containerStatus := "offline"
+		for _, c := range containers {
+			if c.Image == containerName {
+				containerStatus = c.Status
+			}
+			for _, m := range c.Mounts {
+				if m.Name == currentVolume.Name {
+					container = c.Image + " (" + strconv.Itoa(int(currentVolume.UsageData.RefCount)) + ")"
+				}
+			}
+		}
+		entries = append(entries, fmt.Sprintf("%s\t%s\t%s\t%s\t%s",
+			name,
+			size,
+			container,
+			containerStatus,
+			currentVolume.Mountpoint,
+		))
+	}
+	sort.Strings(entries)
+	for _, line := range entries {
+		fmt.Fprintln(w, line)
+	}
+
+	defer w.Flush()
+	return
+}
+func (d *DockerComposeManager) RemoveVolume(volumeName string) error {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	defer cli.Close()
+	volumes, err := cli.VolumeList(ctx, volume.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, currentVolume := range volumes.Volumes {
+		if currentVolume.Name == volumeName {
+			err = cli.VolumeRemove(ctx, currentVolume.Name, true)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+func (d *DockerComposeManager) CopyIntoVolume(sourceFile io.Reader, destinationFileName string, destinationVolume string) {
+	err := d.ensureVolume(destinationVolume)
+	if err != nil {
+		log.Fatalf("[-] Failed to ensure volume exists: %v\n", err)
+	}
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatalf("[-] Failed to connect to docker api: %v\n", err)
+	}
+	defer cli.Close()
+	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
+	if err != nil {
+		log.Fatalf("[-] Failed to get container list: %v\n", err)
+	}
+	for _, container := range containers {
+		for _, mnt := range container.Mounts {
+			if mnt.Name == destinationVolume {
+				err = cli.CopyToContainer(ctx, container.ID, mnt.Destination+"/"+destinationFileName, sourceFile, types.CopyToContainerOptions{
+					CopyUIDGID: true,
+				})
+				if err != nil {
+					log.Fatalf("[-] Failed to write file: %v\n", err)
+				} else {
+					log.Printf("[+] Successfully wrote file\n")
+				}
+				return
+			}
+		}
+	}
+	log.Fatalf("[-] Failed to find that volume name in use by any containers")
+}
+func (d *DockerComposeManager) CopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string) {
+	err := d.ensureVolume(sourceVolumeName)
+	if err != nil {
+		log.Fatalf("[-] Failed to ensure volume exists: %v\n", err)
+	}
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatalf("[-] Failed to connect to docker api: %v\n", err)
+	}
+	defer cli.Close()
+	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
+	if err != nil {
+		log.Fatalf("[-] Failed to get container list: %v\n", err)
+	}
+	for _, container := range containers {
+		for _, mnt := range container.Mounts {
+			if mnt.Name == sourceVolumeName {
+				reader, _, err := cli.CopyFromContainer(ctx, container.ID, mnt.Destination+"/"+sourceFileName)
+				if err != nil {
+					log.Printf("[-] Failed to read file: %v\n", err)
+					return
+				}
+				destination, err := os.Create(destinationName)
+				if err != nil {
+					log.Printf("[-] Failed to open destination filename: %v\n", err)
+					return
+				}
+				_, err = io.Copy(destination, reader)
+				destination.Close()
+				if err != nil {
+					log.Printf("[-] Failed to get file from volume: %v\n", err)
+					return
+				}
+				log.Printf("[+] Successfully wrote file\n")
+				return
+			}
+		}
+	}
+	log.Fatalf("[-] Failed to find that volume name in use by any containers")
+}
+
 // Internal Support Commands
 func (d *DockerComposeManager) getMythicEnvList() []string {
 	env := config.GetMythicEnv().AllSettings()
@@ -573,7 +1011,6 @@ func (d *DockerComposeManager) getMythicEnvList() []string {
 		val := config.GetMythicEnv().GetString(key)
 		if val != "" {
 			// prevent trying to append arrays or dictionaries to our environment list
-			//fmt.Println(strings.ToUpper(key), val)
 			envList = append(envList, strings.ToUpper(key)+"="+val)
 		}
 	}
@@ -690,25 +1127,17 @@ func (d *DockerComposeManager) runDockerCompose(args []string) error {
 	wg.Wait()
 	err = command.Wait()
 	if err != nil {
-		fmt.Printf("[-] Error from docker-compose: %v\n", err)
-		fmt.Printf("[*] Docker compose command: %v\n", args)
+		log.Printf("[-] Error from docker-compose: %v\n", err)
+		log.Printf("[*] Docker compose command: %v\n", args)
 		return err
 	}
 	return nil
 }
-func (d *DockerComposeManager) setDockerComposeDefaultsAndWrite(curConfig *viper.Viper) error {
-	curConfig.Set("version", "2.4")
-	file := curConfig.ConfigFileUsed()
-	if len(file) == 0 {
-		file = "./docker-compose.yml"
-	}
-	configMap := curConfig.AllSettings()
-	ignoredKeys := []string{"networks"}
-	for _, key := range ignoredKeys {
-		delete(configMap, key)
-	}
-
-	content, err := yaml.Marshal(configMap)
+func (d *DockerComposeManager) setDockerComposeDefaultsAndWrite(curConfig map[string]interface{}) error {
+	file := filepath.Join(utils.GetCwdFromExe(), "docker-compose.yml")
+	curConfig["version"] = "2.4"
+	delete(curConfig, "networks")
+	content, err := yaml.Marshal(curConfig)
 	if err != nil {
 		return err
 	}
@@ -728,6 +1157,49 @@ func (d *DockerComposeManager) readInDockerCompose() *viper.Viper {
 	}
 	return curConfig
 }
+func (d *DockerComposeManager) ensureVolume(volumeName string) error {
+	containerNamePieces := strings.Split(volumeName, "_")
+	containerName := strings.Join(containerNamePieces[0:2], "_")
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
+	volumes, err := cli.VolumeList(ctx, volume.ListOptions{})
+	if err != nil {
+		return err
+	}
+	foundVolume := false
+	for _, currentVolume := range volumes.Volumes {
+		if currentVolume.Name == volumeName {
+			foundVolume = true
+		}
+	}
+	if !foundVolume {
+		_, err = cli.VolumeCreate(ctx, volume.CreateOptions{Name: volumeName})
+		if err != nil {
+			return err
+		}
+	}
+	// now that we know the volume exists, make sure it's attached to a running container or we can't manipulate files
+	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
+	if err != nil {
+		return err
+	}
+	for _, container := range containers {
+		if container.Image == containerName {
+			for _, mnt := range container.Mounts {
+				if mnt.Name == volumeName {
+					// container is running and has this mount associated with it
+					return nil
+				}
+			}
+			return errors.New(fmt.Sprintf("container, %s, isn't using volume, %s", containerName, volumeName))
+		}
+	}
+	return errors.New(fmt.Sprintf("failed to find container, %s, for volume, %s", containerName, volumeName))
+}
 
 // GetAllExistingNonMythicServiceNames from reading in the docker-compose file, not necessarily what's running
 func (d *DockerComposeManager) GetAllExistingNonMythicServiceNames() ([]string, error) {
@@ -738,10 +1210,10 @@ func (d *DockerComposeManager) GetAllExistingNonMythicServiceNames() ([]string, 
 	groupNameConfig.AddConfigPath(utils.GetCwdFromExe())
 	if err := groupNameConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			fmt.Printf("[-] Error while reading in docker-compose file: %s\n", err)
+			log.Printf("[-] Error while reading in docker-compose file: %s\n", err)
 			return []string{}, err
 		} else {
-			fmt.Printf("[-] Error while parsing docker-compose file: %s\n", err)
+			log.Printf("[-] Error while parsing docker-compose file: %s\n", err)
 			return []string{}, err
 		}
 	}
@@ -764,10 +1236,10 @@ func (d *DockerComposeManager) GetCurrentMythicServiceNames() ([]string, error) 
 	groupNameConfig.AddConfigPath(utils.GetCwdFromExe())
 	if err := groupNameConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			fmt.Printf("[-] Error while reading in docker-compose file: %s\n", err)
+			log.Printf("[-] Error while reading in docker-compose file: %s\n", err)
 			return []string{}, err
 		} else {
-			fmt.Printf("[-] Error while parsing docker-compose file: %s\n", err)
+			log.Printf("[-] Error while parsing docker-compose file: %s\n", err)
 			return []string{}, err
 		}
 	}
