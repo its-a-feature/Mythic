@@ -1,6 +1,6 @@
 #FROM ghcr.io/its-a-feature/mythic_server:v0.0.2.32
 
-FROM ghcr.io/its-a-feature/mythic_server:v0.0.2.34
+FROM ghcr.io/its-a-feature/mythic_server:v0.0.2.35
 
 WORKDIR /usr/src/app
 
@@ -14,7 +14,7 @@ COPY ["src/", "."]
 
 RUN make build_final
 
-FROM ghcr.io/its-a-feature/mythic_server:v0.0.2.34
+FROM ghcr.io/its-a-feature/mythic_server:v0.0.2.35
 
 COPY --from=0 /mythic_server /mythic_server
 
