@@ -428,7 +428,7 @@ jobs:
       - name: Fix the mythic_docker_latest reference to reference the new release tag
         working-directory: Mythic_CLI/src/cmd/config
         run: |
-          sed -i "s|^mythicEnv.Set(\"mythic_docker_latest\", .*$|mythicEnv.Set(\"mythic_docker_latest\", \"${REGISTRY}/${MYTHIC_SERVER_IMAGE_NAME}:${VERSION}\")|" env.go
+          sed -i "s|.*mythicEnv\.Set\(\"mythic_docker_latest\".*$|mythicEnv\.Set\(\"mythic_docker_latest\", \"${REGISTRY}/${MYTHIC_SERVER_IMAGE_NAME}:${VERSION}\"\)|" env.go
 
       - name: Build and push the cli container image
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
@@ -492,44 +492,44 @@ jobs:
       - name: Fix the server Dockerfile reference to reference the new release tag
         working-directory: mythic-docker
         run: |
-          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_SERVER_IMAGE_NAME}:${VERSION}|" Dockerfile
+          sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_SERVER_IMAGE_NAME}:${VERSION}|" Dockerfile
 
       - name: Fix the cli Dockerfile reference to reference the new release tag
         working-directory: Mythic_CLI
         run: |
-          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_CLI_IMAGE_NAME}:${VERSION}|" Dockerfile
+          sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_CLI_IMAGE_NAME}:${VERSION}|" Dockerfile
 
       - name: Fix the postgres Dockerfile reference to reference the new release tag
         working-directory: postgres-docker
         run: |
-          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_POSTGRES_IMAGE_NAME}:${VERSION}|" Dockerfile
+          sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_POSTGRES_IMAGE_NAME}:${VERSION}|" Dockerfile
 
       - name: Fix the rabbitmq Dockerfile reference to reference the new release tag
         working-directory: rabbitmq-docker
         run: |
-          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_RABBITMQ_IMAGE_NAME}:${VERSION}|" Dockerfile
+          sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_RABBITMQ_IMAGE_NAME}:${VERSION}|" Dockerfile
 
       - name: Fix the documentation Dockerfile reference to reference the new release tag
         working-directory: documentation-docker
         run: |
-          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_DOCUMENTATION_IMAGE_NAME}:${VERSION}|" Dockerfile
+          sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_DOCUMENTATION_IMAGE_NAME}:${VERSION}|" Dockerfile
 
       - name: Fix the jupyter Dockerfile reference to reference the new release tag
         working-directory: jupyter-docker
         run: |
-          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_JUPYTER_IMAGE_NAME}:${VERSION}|" Dockerfile
+          sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_JUPYTER_IMAGE_NAME}:${VERSION}|" Dockerfile
       - name: Fix the graphql Dockerfile reference to reference the new release tag
         working-directory: hasura-docker
         run: |
-          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_GRAPHQL_IMAGE_NAME}:${VERSION}|" Dockerfile
+          sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_GRAPHQL_IMAGE_NAME}:${VERSION}|" Dockerfile
       - name: Fix the nginx Dockerfile reference to reference the new release tag
         working-directory: nginx-docker
         run: |
-          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_NGINX_IMAGE_NAME}:${VERSION}|" Dockerfile
+          sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_NGINX_IMAGE_NAME}:${VERSION}|" Dockerfile
       - name: Fix the react Dockerfile reference to reference the new release tag
         working-directory: mythic-react-docker
         run: |
-          sed -i "s|^FROM .*$|FROM ${REGISTRY}/${MYTHIC_REACT_IMAGE_NAME}:${VERSION}|" Dockerfile
+          sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_REACT_IMAGE_NAME}:${VERSION}|" Dockerfile
       # Push the changes to the Dockerfile
       - name: Push the updated base Dockerfile image reference changes
         uses: EndBug/add-and-commit@v9 # ref: https://github.com/marketplace/actions/add-commit
