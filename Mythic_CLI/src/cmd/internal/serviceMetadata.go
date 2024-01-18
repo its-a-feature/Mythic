@@ -22,10 +22,15 @@ func AddMythicService(service string) {
 	volumes, _ := manager.GetManager().GetVolumes()
 	switch service {
 	case "mythic_postgres":
-		pStruct["build"] = map[string]interface{}{
-			"context": "./postgres-docker",
-			"args":    config.GetBuildArguments(),
+		if mythicEnv.GetBool("postgres_use_build_context") {
+			pStruct["build"] = map[string]interface{}{
+				"context": "./postgres-docker",
+				"args":    config.GetBuildArguments(),
+			}
+		} else {
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
 		}
+
 		pStruct["cpus"] = mythicEnv.GetInt("POSTGRES_CPUS")
 		if mythicEnv.GetString("postgres_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("postgres_mem_limit")
@@ -49,7 +54,7 @@ func AddMythicService(service string) {
 		} else {
 			pStruct["environment"] = environment
 		}
-		if !mythicEnv.GetBool("postgres_bind_use_volume") {
+		if !mythicEnv.GetBool("postgres_use_volume") {
 			pStruct["volumes"] = []string{
 				"./postgres-docker/database:/var/lib/postgresql/data",
 				"./postgres-docker/postgres.conf:/etc/postgresql.conf",
@@ -66,11 +71,15 @@ func AddMythicService(service string) {
 			}
 		}
 	case "mythic_documentation":
-		pStruct["build"] = "./documentation-docker"
-		pStruct["build"] = map[string]interface{}{
-			"context": "./documentation-docker",
-			"args":    config.GetBuildArguments(),
+		if mythicEnv.GetBool("documentation_use_build_context") {
+			pStruct["build"] = map[string]interface{}{
+				"context": "./documentation-docker",
+				"args":    config.GetBuildArguments(),
+			}
+		} else {
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
 		}
+
 		if mythicEnv.GetBool("documentation_bind_localhost_only") {
 			pStruct["ports"] = []string{
 				"127.0.0.1:${DOCUMENTATION_PORT}:${DOCUMENTATION_PORT}",
@@ -83,7 +92,7 @@ func AddMythicService(service string) {
 		pStruct["environment"] = []string{
 			"DOCUMENTATION_PORT=${DOCUMENTATION_PORT}",
 		}
-		if !mythicEnv.GetBool("documentation_bind_use_volume") {
+		if !mythicEnv.GetBool("documentation_use_volume") {
 			pStruct["volumes"] = []string{
 				"./documentation-docker/:/src",
 			}
@@ -98,10 +107,15 @@ func AddMythicService(service string) {
 			}
 		}
 	case "mythic_graphql":
-		pStruct["build"] = map[string]interface{}{
-			"context": "./hasura-docker",
-			"args":    config.GetBuildArguments(),
+		if mythicEnv.GetBool("hasura_use_build_context") {
+			pStruct["build"] = map[string]interface{}{
+				"context": "./hasura-docker",
+				"args":    config.GetBuildArguments(),
+			}
+		} else {
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
 		}
+
 		pStruct["cpus"] = mythicEnv.GetInt("HASURA_CPUS")
 		if mythicEnv.GetString("hasura_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("hasura_mem_limit")
@@ -135,7 +149,7 @@ func AddMythicService(service string) {
 				"${HASURA_PORT}:${HASURA_PORT}",
 			}
 		}
-		if !mythicEnv.GetBool("hasura_bind_use_volume") {
+		if !mythicEnv.GetBool("hasura_use_volume") {
 			pStruct["volumes"] = []string{
 				"./hasura-docker/metadata:/metadata",
 			}
@@ -150,10 +164,15 @@ func AddMythicService(service string) {
 			}
 		}
 	case "mythic_nginx":
-		pStruct["build"] = map[string]interface{}{
-			"context": "./nginx-docker",
-			"args":    config.GetBuildArguments(),
+		if mythicEnv.GetBool("nginx_use_build_context") {
+			pStruct["build"] = map[string]interface{}{
+				"context": "./nginx-docker",
+				"args":    config.GetBuildArguments(),
+			}
+		} else {
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
 		}
+
 		nginxUseSSL := "ssl"
 		if !mythicEnv.GetBool("NGINX_USE_SSL") {
 			nginxUseSSL = ""
@@ -202,7 +221,7 @@ func AddMythicService(service string) {
 				"${NGINX_PORT}:${NGINX_PORT}",
 			}
 		}
-		if !mythicEnv.GetBool("nginx_bind_use_volume") {
+		if !mythicEnv.GetBool("nginx_use_volume") {
 			pStruct["volumes"] = []string{
 				"./nginx-docker/ssl:/etc/ssl/private",
 				"./nginx-docker/config:/etc/nginx",
@@ -222,10 +241,15 @@ func AddMythicService(service string) {
 			}
 		}
 	case "mythic_rabbitmq":
-		pStruct["build"] = map[string]interface{}{
-			"context": "./rabbitmq-docker",
-			"args":    config.GetBuildArguments(),
+		if mythicEnv.GetBool("rabbitmq_use_build_context") {
+			pStruct["build"] = map[string]interface{}{
+				"context": "./rabbitmq-docker",
+				"args":    config.GetBuildArguments(),
+			}
+		} else {
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
 		}
+
 		pStruct["cpus"] = mythicEnv.GetInt("RABBITMQ_CPUS")
 		if mythicEnv.GetString("rabbitmq_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("rabbitmq_mem_limit")
@@ -260,7 +284,7 @@ func AddMythicService(service string) {
 			}
 		}
 		pStruct["environment"] = finalRabbitEnv
-		if !mythicEnv.GetBool("rabbitmq_bind_use_volume") {
+		if !mythicEnv.GetBool("rabbitmq_use_volume") {
 			pStruct["volumes"] = []string{
 				"./rabbitmq-docker/storage:/var/lib/rabbitmq",
 				"./rabbitmq-docker/generate_config.sh:/generate_config.sh",
@@ -290,11 +314,16 @@ func AddMythicService(service string) {
 				"./mythic-react-docker/mythic/public:/app/build",
 			}
 		} else {
-			pStruct["build"] = map[string]interface{}{
-				"context": "./mythic-react-docker",
-				"args":    config.GetBuildArguments(),
+			if mythicEnv.GetBool("mythic_react_use_build_context") {
+				pStruct["build"] = map[string]interface{}{
+					"context": "./mythic-react-docker",
+					"args":    config.GetBuildArguments(),
+				}
+			} else {
+				pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
 			}
-			if !mythicEnv.GetBool("mythic_react_bind_use_volume") {
+
+			if !mythicEnv.GetBool("mythic_react_use_volume") {
 				pStruct["volumes"] = []string{
 					"./mythic-react-docker/config:/etc/nginx",
 					"./mythic-react-docker/mythic/public:/mythic/new",
@@ -327,10 +356,15 @@ func AddMythicService(service string) {
 			"MYTHIC_REACT_PORT=${MYTHIC_REACT_PORT}",
 		}
 	case "mythic_jupyter":
-		pStruct["build"] = map[string]interface{}{
-			"context": "./jupyter-docker",
-			"args":    config.GetBuildArguments(),
+		if mythicEnv.GetBool("jupyter_use_build_context") {
+			pStruct["build"] = map[string]interface{}{
+				"context": "./jupyter-docker",
+				"args":    config.GetBuildArguments(),
+			}
+		} else {
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
 		}
+
 		pStruct["cpus"] = mythicEnv.GetInt("JUPYTER_CPUS")
 		if mythicEnv.GetString("jupyter_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("jupyter_mem_limit")
@@ -354,7 +388,7 @@ func AddMythicService(service string) {
 			}
 
 		*/
-		if !mythicEnv.GetBool("jupyter_bind_use_volume") {
+		if !mythicEnv.GetBool("jupyter_use_volume") {
 			pStruct["volumes"] = []string{
 				"./jupyter-docker/jupyter:/projects",
 			}
@@ -369,10 +403,15 @@ func AddMythicService(service string) {
 			}
 		}
 	case "mythic_server":
-		pStruct["build"] = map[string]interface{}{
-			"context": "./mythic-docker",
-			"args":    config.GetBuildArguments(),
+		if mythicEnv.GetBool("mythic_server_use_build_context") {
+			pStruct["build"] = map[string]interface{}{
+				"context": "./mythic-docker",
+				"args":    config.GetBuildArguments(),
+			}
+		} else {
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
 		}
+
 		pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SERVER_CPUS")
 		if mythicEnv.GetString("mythic_server_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("mythic_server_mem_limit")
@@ -425,7 +464,7 @@ func AddMythicService(service string) {
 		} else {
 			pStruct["environment"] = environment
 		}
-		if !mythicEnv.GetBool("mythic_server_bind_use_volume") {
+		if !mythicEnv.GetBool("mythic_server_use_volume") {
 			pStruct["volumes"] = []string{
 				"./mythic-docker/src:/usr/src/app",
 			}
@@ -444,6 +483,7 @@ func AddMythicService(service string) {
 			fmt.Printf("[-] Failed to get abs path for mythic_sync\n")
 			return
 		} else {
+
 			pStruct["build"] = map[string]interface{}{
 				"context": absPath,
 				"args":    config.GetBuildArguments(),

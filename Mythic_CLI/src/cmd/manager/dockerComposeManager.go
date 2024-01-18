@@ -275,6 +275,7 @@ func (d *DockerComposeManager) GetServiceConfiguration(service string) (map[stri
 		delete(pStruct, "build")
 		delete(pStruct, "networks")
 		delete(pStruct, "command")
+		delete(pStruct, "image")
 		delete(pStruct, "healthcheck")
 	} else {
 		pStruct = map[string]interface{}{
