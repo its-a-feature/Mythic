@@ -44,7 +44,7 @@ type CLIManager interface {
 	// GetInstalled3rdPartyServicesOnDisk returns the names of the installed services on disk
 	GetInstalled3rdPartyServicesOnDisk() ([]string, error)
 	// GetAllExistingNonMythicServiceNames reads current configuration and returns all non-mythic services
-	GetAllExistingNonMythicServiceNames() ([]string, error)
+	GetAllInstalled3rdPartyServiceNames() ([]string, error)
 	// GetCurrentMythicServiceNames reads current configuration and returns all mythic services
 	GetCurrentMythicServiceNames() ([]string, error)
 	// GetPathTo3rdPartyServicesOnDisk returns the path where a 3rd party services Dockerfile lives on disk
@@ -54,19 +54,19 @@ type CLIManager interface {
 	// BuildUI a new instance of the Mythic React UI and save it in the mythic-react-docker folder
 	BuildUI() error
 	// GetLogs fetches logCount of the most recent logs from the service container
-	GetLogs(service string, logCount int)
+	GetLogs(service string, logCount int, follow bool)
 	// TestPorts check to make sure all ports are available for services to use
-	TestPorts()
+	TestPorts(services []string)
 	// PrintConnectionInfo lists out connection information for the various services (web endpoints, open ports, etc)
 	PrintConnectionInfo()
 	// Status prints out the current status of all the containers and volumes in use
 	Status(verbose bool)
 	// ListServices prints out all the 3rd party services on disk and currently installed
-	ListServices()
+	PrintAllServices()
 	// ResetDatabase deletes the current database or volume
-	ResetDatabase(localMount bool)
+	ResetDatabase(useVolume bool)
 	// ListVolumes prints out all of the volumes in use by Mythic
-	ListVolumes()
+	PrintVolumeInformation()
 	// RemoveVolume removes the named volume
 	RemoveVolume(volumeName string) error
 	// CopyIntoVolume copies from a source io.Reader to the destination filename on the destination volume

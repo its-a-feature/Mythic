@@ -156,7 +156,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 				for _, f := range files {
 					if f.IsDir() {
 						log.Printf("[*] Processing Documentation for %s\n", f.Name())
-						if config.GetMythicEnv().GetBool("documentation_bind_local_mount") {
+						if !config.GetMythicEnv().GetBool("documentation_bind_use_volume") {
 							if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name())) {
 								if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
 									log.Printf("[*] Removing current version\n")
@@ -206,7 +206,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 				for _, f := range files {
 					if f.IsDir() {
 						log.Printf("[*] Processing Documentation for %s\n", f.Name())
-						if config.GetMythicEnv().GetBool("document_bind_local_mount") {
+						if !config.GetMythicEnv().GetBool("document_bind_use_volume") {
 							if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name())) {
 								if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
 									log.Printf("[*] Removing current version\n")
@@ -459,6 +459,7 @@ func InstallMythicSyncFolder(installPath string) error {
 	AddMythicService(service)
 	log.Printf("[+] Successfully installed mythic_sync!\n")
 	if manager.GetManager().IsServiceRunning("mythic_server") {
+		log.Printf("[*] Starting mythic_sync")
 		err = ServiceStart([]string{strings.ToLower(service)})
 		if err != nil {
 			log.Printf("[-] Failed to start mythic_sync: %v\n", err)
@@ -483,10 +484,10 @@ func InstallMythicSync(url string, branch string) error {
 	}
 	if branch == "" {
 		log.Printf("[*] Cloning %s\n", url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")})
+		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth 1", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")})
 	} else {
 		log.Printf("[*] Cloning branch \"%s\" from %s\n", branch, url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")})
+		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth 1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")})
 	}
 	if err != nil {
 		log.Printf("[-] Failed to clone down repository: %v\n", err)

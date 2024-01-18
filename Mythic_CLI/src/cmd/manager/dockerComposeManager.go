@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
+	"github.com/creack/pty"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
@@ -323,7 +324,7 @@ func (d *DockerComposeManager) GetPathTo3rdPartyServicesOnDisk() string {
 
 // StopServices stops certain containers that are running and optionally deletes the backing images
 func (d *DockerComposeManager) StopServices(services []string, deleteImages bool) error {
-	dockerComposeContainers, err := d.GetAllExistingNonMythicServiceNames()
+	dockerComposeContainers, err := d.GetAllInstalled3rdPartyServiceNames()
 	if err != nil {
 		return err
 	}
@@ -363,14 +364,12 @@ func (d *DockerComposeManager) RemoveServices(services []string) error {
 		if key == "services" {
 			allServices := allConfigValues["services"].(map[string]interface{})
 			for _, service := range services {
-				if !utils.StringInSlice(service, config.MythicPossibleServices) {
-					if d.IsServiceRunning(service) {
-						_ = d.StopServices([]string{strings.ToLower(service)}, true)
+				if d.IsServiceRunning(service) {
+					_ = d.StopServices([]string{strings.ToLower(service)}, true)
 
-					}
-					delete(allServices, strings.ToLower(service))
-					log.Printf("[+] Removed %s from docker-compose\n", strings.ToLower(service))
 				}
+				delete(allServices, strings.ToLower(service))
+				log.Printf("[+] Removed %s from docker-compose\n", strings.ToLower(service))
 			}
 		}
 	}
@@ -477,7 +476,7 @@ func (d *DockerComposeManager) BuildUI() error {
 	return err
 }
 
-func (d *DockerComposeManager) GetLogs(service string, logCount int) {
+func (d *DockerComposeManager) GetLogs(service string, logCount int, follow bool) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		log.Fatalf("Failed to get client in GetLogs: %v", err)
@@ -494,6 +493,7 @@ func (d *DockerComposeManager) GetLogs(service string, logCount int) {
 				reader, err := cli.ContainerLogs(context.Background(), container.ID, types.ContainerLogsOptions{
 					ShowStdout: true,
 					ShowStderr: true,
+					Follow:     follow,
 					Tail:       fmt.Sprintf("%d", logCount),
 				})
 				if err != nil {
@@ -519,7 +519,7 @@ func (d *DockerComposeManager) GetLogs(service string, logCount int) {
 	}
 }
 
-func (d *DockerComposeManager) TestPorts() {
+func (d *DockerComposeManager) TestPorts(services []string) {
 	// go through the different services in mythicEnv and check to make sure their ports aren't already used by trying to open them
 	//MYTHIC_SERVER_HOST:MYTHIC_SERVER_PORT
 	//POSTGRES_HOST:POSTGRES_PORT
@@ -565,19 +565,23 @@ func (d *DockerComposeManager) TestPorts() {
 	var removeServices []string
 	mythicEnv := config.GetMythicEnv()
 	for key, val := range portChecks {
-		if mythicEnv.GetString(key) == val[1] || mythicEnv.GetString(key) == "127.0.0.1" {
-			addServices = append(addServices, val[1])
-			p, err := net.Listen("tcp", ":"+strconv.Itoa(mythicEnv.GetInt(val[0])))
-			if err != nil {
-				log.Fatalf("[-] Port %d, from variable %s, appears to already be in use: %v\n", mythicEnv.GetInt(val[0]), key, err)
+		// only check ports for services we're about to start
+		if utils.StringInSlice(val[1], services) {
+			if mythicEnv.GetString(key) == val[1] || mythicEnv.GetString(key) == "127.0.0.1" {
+				addServices = append(addServices, val[1])
+				p, err := net.Listen("tcp", ":"+strconv.Itoa(mythicEnv.GetInt(val[0])))
+				if err != nil {
+					log.Fatalf("[-] Port %d, from variable %s, appears to already be in use: %v\n", mythicEnv.GetInt(val[0]), key, err)
+				}
+				err = p.Close()
+				if err != nil {
+					log.Printf("[-] Failed to close connection: %v\n", err)
+				}
+			} else {
+				removeServices = append(removeServices, val[1])
 			}
-			err = p.Close()
-			if err != nil {
-				log.Printf("[-] Failed to close connection: %v\n", err)
-			}
-		} else {
-			removeServices = append(removeServices, val[1])
 		}
+
 	}
 }
 
@@ -662,7 +666,7 @@ func (d *DockerComposeManager) Status(verbose bool) {
 	if err != nil {
 		log.Fatalf("[-] Failed to get list of installed services on disk: %v\n", err)
 	}
-	elementsInCompose, err := d.GetAllExistingNonMythicServiceNames()
+	elementsInCompose, err := d.GetAllInstalled3rdPartyServiceNames()
 	if err != nil {
 		log.Fatalf("[-] Failed to get list of installed services in docker-compose: %v\n", err)
 	}
@@ -710,12 +714,11 @@ func (d *DockerComposeManager) Status(verbose bool) {
 					} else {
 						info += mnt.Name
 					}
-
 					found = true
 				}
 			}
 			if !found {
-				info += "local"
+				info += "N/A"
 			}
 			info += "\t"
 			info = info + portString
@@ -769,7 +772,7 @@ func (d *DockerComposeManager) Status(verbose bool) {
 	w.Flush()
 }
 
-func (d *DockerComposeManager) ListServices() {
+func (d *DockerComposeManager) PrintAllServices() {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		log.Fatalf("[-] Failed to get client in List Services: %v", err)
@@ -790,7 +793,7 @@ func (d *DockerComposeManager) ListServices() {
 	if err != nil {
 		log.Fatalf("[-] Failed to get list of installed services on disk: %v\n", err)
 	}
-	elementsInCompose, err := d.GetAllExistingNonMythicServiceNames()
+	elementsInCompose, err := d.GetAllInstalled3rdPartyServiceNames()
 	if err != nil {
 		log.Fatalf("[-] Failed to get list of installed services in docker-compose: %v\n", err)
 	}
@@ -829,24 +832,24 @@ func (d *DockerComposeManager) ListServices() {
 	w.Flush()
 }
 
-func (d *DockerComposeManager) ResetDatabase(localMount bool) {
-	if localMount {
+func (d *DockerComposeManager) ResetDatabase(useVolume bool) {
+	if !useVolume {
 		workingPath := utils.GetCwdFromExe()
 		err := os.RemoveAll(filepath.Join(workingPath, "postgres-docker", "database"))
 		if err != nil {
-			log.Printf("[-] Failed to remove database files\n%v\n", err)
+			log.Fatalf("[-] Failed to remove database files\n%v\n", err)
 		} else {
 			log.Printf("[+] Successfully reset datbase files\n")
 		}
 	} else {
-		d.RemoveContainers([]string{"mythic_postgres"})
+		_ = d.RemoveContainers([]string{"mythic_postgres"})
 		err := d.RemoveVolume("mythic_postgres_volume")
 		if err != nil {
 			log.Printf("[-] Failed to remove database:\n%v\n", err)
 		}
 	}
 }
-func (d *DockerComposeManager) ListVolumes() {
+func (d *DockerComposeManager) PrintVolumeInformation() {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -1094,43 +1097,11 @@ func (d *DockerComposeManager) runDockerCompose(args []string) error {
 	command := exec.Command(lookPath, args...)
 	command.Dir = exePath
 	command.Env = d.getMythicEnvList()
-
-	stdout, err := command.StdoutPipe()
+	f, err := pty.Start(command)
 	if err != nil {
-		log.Fatalf("[-] Failed to get stdout pipe for running docker-compose\n")
+		log.Fatalf("[-] Failed to run docker command: %v\n", err)
 	}
-	stderr, err := command.StderrPipe()
-	if err != nil {
-		log.Fatalf("[-] Failed to get stderr pipe for running docker-compose\n")
-	}
-
-	stdoutScanner := bufio.NewScanner(stdout)
-	stderrScanner := bufio.NewScanner(stderr)
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		for stdoutScanner.Scan() {
-			fmt.Printf("%s\n", stdoutScanner.Text())
-		}
-		wg.Done()
-	}()
-	go func() {
-		for stderrScanner.Scan() {
-			fmt.Printf("%s\n", stderrScanner.Text())
-		}
-		wg.Done()
-	}()
-	err = command.Start()
-	if err != nil {
-		log.Fatalf("[-] Error trying to start docker-compose: %v\n", err)
-	}
-	wg.Wait()
-	err = command.Wait()
-	if err != nil {
-		log.Printf("[-] Error from docker-compose: %v\n", err)
-		log.Printf("[*] Docker compose command: %v\n", args)
-		return err
-	}
+	io.Copy(os.Stdout, f)
 	return nil
 }
 func (d *DockerComposeManager) setDockerComposeDefaultsAndWrite(curConfig map[string]interface{}) error {
@@ -1201,8 +1172,7 @@ func (d *DockerComposeManager) ensureVolume(volumeName string) error {
 	return errors.New(fmt.Sprintf("failed to find container, %s, for volume, %s", containerName, volumeName))
 }
 
-// GetAllExistingNonMythicServiceNames from reading in the docker-compose file, not necessarily what's running
-func (d *DockerComposeManager) GetAllExistingNonMythicServiceNames() ([]string, error) {
+func (d *DockerComposeManager) GetAllInstalled3rdPartyServiceNames() ([]string, error) {
 	// get all services that exist within the loaded config
 	groupNameConfig := viper.New()
 	groupNameConfig.SetConfigName("docker-compose")

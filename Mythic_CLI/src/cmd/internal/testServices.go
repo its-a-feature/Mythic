@@ -58,7 +58,7 @@ func TestMythicConnection() {
 	log.Printf("    If there is an issue with Mythic server, use 'mythic-cli logs mythic_server' to view potential errors\n")
 	Status(false)
 	log.Printf("[*] Fetching logs from mythic_server now:\n")
-	GetLogs("mythic_server", "500")
+	GetLogs("mythic_server", "500", false)
 	os.Exit(1)
 }
 func TestMythicRabbitmqConnection() {
@@ -102,7 +102,8 @@ func TestMythicRabbitmqConnection() {
 	}
 }
 func TestPorts() error {
-	manager.GetManager().TestPorts()
+	intendedServices, _ := config.GetIntendedMythicServiceNames()
+	manager.GetManager().TestPorts(intendedServices)
 	return nil
 }
 
@@ -131,13 +132,13 @@ func Status(verbose bool) {
 	log.Printf("[*] If you are using a remote PayloadType or C2Profile, they will need certain environment variables to properly connect to Mythic.\n")
 	log.Printf("    Use 'sudo ./mythic-cli config service' for configs for these services.\n")
 }
-func GetLogs(containerName string, numLogs string) {
+func GetLogs(containerName string, numLogs string, follow bool) {
 	logCount, err := strconv.Atoi(numLogs)
 	if err != nil {
 		log.Fatalf("[-] Bad log count: %v\n", err)
 	}
-	manager.GetManager().GetLogs(containerName, logCount)
+	manager.GetManager().GetLogs(containerName, logCount, follow)
 }
 func ListServices() {
-	manager.GetManager().ListServices()
+	manager.GetManager().PrintAllServices()
 }

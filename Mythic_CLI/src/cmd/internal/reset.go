@@ -13,7 +13,7 @@ func DatabaseReset() {
 		if confirm {
 			log.Printf("[*] Stopping Mythic\n")
 			manager.GetManager().StopServices([]string{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
-			manager.GetManager().ResetDatabase(config.GetMythicEnv().GetBool("postgres_bind_local_mount"))
+			manager.GetManager().ResetDatabase(config.GetMythicEnv().GetBool("postgres_bind_use_volume"))
 			log.Printf("[*] Removing database files\n")
 		}
 	}

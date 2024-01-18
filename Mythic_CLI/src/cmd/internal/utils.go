@@ -110,7 +110,7 @@ func updateNginxBlockLists() {
 		outputString += fmt.Sprintf("allow %s;\n", ip)
 	}
 	outputString += "deny all;"
-	if config.GetMythicEnv().GetBool("nginx_bind_local_mount") {
+	if !config.GetMythicEnv().GetBool("nginx_bind_use_volume") {
 		ipFilePath := filepath.Join(utils.GetCwdFromExe(), "nginx-docker", "config", "blockips.conf")
 		if err := os.WriteFile(ipFilePath, []byte(outputString), 0600); err != nil {
 			log.Fatalf("[-] Failed to write out block list file: %v\n", err)
