@@ -19,7 +19,7 @@ func ServiceStart(containers []string) error {
 	if err != nil {
 		return err
 	}
-	dockerComposeContainers, err := manager.GetManager().GetAllExistingNonMythicServiceNames()
+	dockerComposeContainers, err := manager.GetManager().GetAllInstalled3rdPartyServiceNames()
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func ServiceStart(containers []string) error {
 			AddMythicService(service)
 		}
 	}
-	manager.GetManager().TestPorts()
+	manager.GetManager().TestPorts(finalContainers)
 	err = manager.GetManager().StartServices(finalContainers, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
 	err = manager.GetManager().RemoveImages()
 	if err != nil {
@@ -134,7 +134,7 @@ func DockerBuildReactUI() error {
 // Docker Volume commands
 
 func VolumesList() {
-	manager.GetManager().ListVolumes()
+	manager.GetManager().PrintVolumeInformation()
 }
 func DockerRemoveVolume(volumeName string) error {
 	return manager.GetManager().RemoveVolume(volumeName)

@@ -23,7 +23,7 @@ func init() {
 		"force",
 		"f",
 		false,
-		`Force installing from GitHub and don't prompt to overwrite files if an older version is already installed'`,
+		`Force installing from GitHub and don't prompt to overwrite files if an older version is already installed`,
 	)
 	installMythicSyncGitHubCmd.Flags().StringVarP(
 		&branch,

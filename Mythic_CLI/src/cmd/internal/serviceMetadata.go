@@ -49,7 +49,7 @@ func AddMythicService(service string) {
 		} else {
 			pStruct["environment"] = environment
 		}
-		if mythicEnv.GetBool("postgres_bind_local_mount") {
+		if !mythicEnv.GetBool("postgres_bind_use_volume") {
 			pStruct["volumes"] = []string{
 				"./postgres-docker/database:/var/lib/postgresql/data",
 				"./postgres-docker/postgres.conf:/etc/postgresql.conf",
@@ -83,7 +83,7 @@ func AddMythicService(service string) {
 		pStruct["environment"] = []string{
 			"DOCUMENTATION_PORT=${DOCUMENTATION_PORT}",
 		}
-		if mythicEnv.GetBool("documentation_bind_local_mount") {
+		if !mythicEnv.GetBool("documentation_bind_use_volume") {
 			pStruct["volumes"] = []string{
 				"./documentation-docker/:/src",
 			}
@@ -135,7 +135,7 @@ func AddMythicService(service string) {
 				"${HASURA_PORT}:${HASURA_PORT}",
 			}
 		}
-		if mythicEnv.GetBool("hasura_bind_local_mount") {
+		if !mythicEnv.GetBool("hasura_bind_use_volume") {
 			pStruct["volumes"] = []string{
 				"./hasura-docker/metadata:/metadata",
 			}
@@ -202,7 +202,7 @@ func AddMythicService(service string) {
 				"${NGINX_PORT}:${NGINX_PORT}",
 			}
 		}
-		if mythicEnv.GetBool("nginx_bind_local_mount") {
+		if !mythicEnv.GetBool("nginx_bind_use_volume") {
 			pStruct["volumes"] = []string{
 				"./nginx-docker/ssl:/etc/ssl/private",
 				"./nginx-docker/config:/etc/nginx",
@@ -260,7 +260,7 @@ func AddMythicService(service string) {
 			}
 		}
 		pStruct["environment"] = finalRabbitEnv
-		if mythicEnv.GetBool("rabbitmq_bind_local_mount") {
+		if !mythicEnv.GetBool("rabbitmq_bind_use_volume") {
 			pStruct["volumes"] = []string{
 				"./rabbitmq-docker/storage:/var/lib/rabbitmq",
 				"./rabbitmq-docker/generate_config.sh:/generate_config.sh",
@@ -294,7 +294,7 @@ func AddMythicService(service string) {
 				"context": "./mythic-react-docker",
 				"args":    config.GetBuildArguments(),
 			}
-			if mythicEnv.GetBool("mythic_react_bind_local_mount") {
+			if !mythicEnv.GetBool("mythic_react_bind_use_volume") {
 				pStruct["volumes"] = []string{
 					"./mythic-react-docker/config:/etc/nginx",
 					"./mythic-react-docker/mythic/public:/mythic/new",
@@ -354,7 +354,7 @@ func AddMythicService(service string) {
 			}
 
 		*/
-		if mythicEnv.GetBool("jupyter_bind_local_mount") {
+		if !mythicEnv.GetBool("jupyter_bind_use_volume") {
 			pStruct["volumes"] = []string{
 				"./jupyter-docker/jupyter:/projects",
 			}
@@ -425,7 +425,7 @@ func AddMythicService(service string) {
 		} else {
 			pStruct["environment"] = environment
 		}
-		if mythicEnv.GetBool("mythic_server_bind_local_mount") {
+		if !mythicEnv.GetBool("mythic_server_bind_use_volume") {
 			pStruct["volumes"] = []string{
 				"./mythic-docker/src:/usr/src/app",
 			}
@@ -508,7 +508,7 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 		pStruct[key] = element
 	}
 	pStruct["build"] = map[string]interface{}{
-		"context": manager.GetManager().GetPathTo3rdPartyServicesOnDisk(),
+		"context": filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service),
 		"args":    config.GetBuildArguments(),
 	}
 	pStruct["network_mode"] = "host"
@@ -542,7 +542,7 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 	// only add in volumes if some aren't already listed
 	if _, ok := pStruct["volumes"]; !ok {
 		pStruct["volumes"] = []string{
-			manager.GetManager().GetPathTo3rdPartyServicesOnDisk() + ":/Mythic/",
+			filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service) + ":/Mythic/",
 		}
 	}
 	return manager.GetManager().SetServiceConfiguration(service, pStruct)
@@ -552,13 +552,14 @@ func RemoveService(service string) error {
 }
 
 func Initialize() {
+	if !manager.GetManager().CheckRequiredManagerVersion() {
+		log.Fatalf("[-] Bad %s version\n", manager.GetManager().GetManagerName())
+	}
 	manager.GetManager().GenerateRequiredConfig()
 	// based on .env, find out which mythic services are supposed to be running and add them to docker compose
 	intendedMythicContainers, _ := config.GetIntendedMythicServiceNames()
 	for _, container := range intendedMythicContainers {
 		AddMythicService(container)
 	}
-	if !manager.GetManager().CheckRequiredManagerVersion() {
-		log.Fatalf("[-] Bad %s version\n", manager.GetManager().GetManagerName())
-	}
+
 }

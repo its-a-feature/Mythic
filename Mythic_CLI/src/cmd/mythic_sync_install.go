@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"log"
 )
 
 // installCmd represents the config command
@@ -18,5 +19,5 @@ func init() {
 }
 
 func installMythicSync(cmd *cobra.Command, args []string) {
-
+	log.Fatalf("[-] Must specify github or folder")
 }
