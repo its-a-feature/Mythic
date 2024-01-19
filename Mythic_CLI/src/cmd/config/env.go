@@ -99,7 +99,8 @@ func GetMythicEnv() *viper.Viper {
 func setMythicConfigDefaultValues() {
 	// global configuration
 	mythicEnv.SetDefault("debug_level", "warning")
-	mythicEnv.SetDefault("server_name", "mythic")
+	mythicEnv.SetDefault("global_server_name", "mythic")
+	mythicEnv.SetDefault("global_manager", "docker")
 	// nginx configuration
 	mythicEnv.SetDefault("nginx_port", 7443)
 	mythicEnv.SetDefault("nginx_host", "mythic_nginx")

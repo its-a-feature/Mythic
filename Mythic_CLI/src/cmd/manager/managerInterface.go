@@ -1,8 +1,10 @@
 package manager
 
 import (
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 	"io"
+	"log"
 	"path/filepath"
 )
 
@@ -61,11 +63,11 @@ type CLIManager interface {
 	PrintConnectionInfo()
 	// Status prints out the current status of all the containers and volumes in use
 	Status(verbose bool)
-	// ListServices prints out all the 3rd party services on disk and currently installed
+	// PrintAllServices prints out all the 3rd party services on disk and currently installed
 	PrintAllServices()
 	// ResetDatabase deletes the current database or volume
 	ResetDatabase(useVolume bool)
-	// ListVolumes prints out all of the volumes in use by Mythic
+	// PrintVolumeInformation prints out all the volumes in use by Mythic
 	PrintVolumeInformation()
 	// RemoveVolume removes the named volume
 	RemoveVolume(volumeName string) error
@@ -77,11 +79,18 @@ type CLIManager interface {
 
 var currentManager CLIManager
 
-func init() {
-	currentManager = &DockerComposeManager{
-		InstalledServicesPath:   "InstalledServices",
-		InstalledServicesFolder: filepath.Join(utils.GetCwdFromExe(), "InstalledServices"),
+func Initialize() {
+	envManager := config.GetMythicEnv().GetString("global_manager")
+	switch envManager {
+	case "docker":
+		currentManager = &DockerComposeManager{
+			InstalledServicesPath:   "InstalledServices",
+			InstalledServicesFolder: filepath.Join(utils.GetCwdFromExe(), "InstalledServices"),
+		}
+	default:
+		log.Fatalf("[-] Unknown manger specified in .env for global_manager")
 	}
+
 }
 func GetManager() CLIManager {
 	return currentManager
