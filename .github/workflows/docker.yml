@@ -443,10 +443,9 @@ jobs:
           # packages. The source will link the package to this Github repository
           labels: |
             org.opencontainers.image.source=${{ env.IMAGE_SOURCE }}
-            org.opencontainers.image.description="${{ env.IMAGE_DESCRIPTION }}"
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
           platforms: linux/amd64,linux/arm64
-          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=\"${{ env.IMAGE_DESCRIPTION }}\"
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
 
   update_files:
     runs-on: ubuntu-latest
