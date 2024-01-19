@@ -706,19 +706,20 @@ func (d *DockerComposeManager) Status(verbose bool) {
 			}
 			portString = portString + strings.Join(stringPortRanges[:], ", ")
 		}
-		if utils.StringInSlice(container.Image, config.MythicPossibleServices) {
-			found := false
+		if utils.StringInSlice(container.Image, config.MythicPossibleServices) ||
+			strings.HasPrefix(container.Image, "ghcr.io/its-a-feature/mythic_") {
+			foundMountInfo := false
 			for _, mnt := range container.Mounts {
 				if strings.HasPrefix(mnt.Name, container.Image+"_volume") {
-					if found {
+					if foundMountInfo {
 						info += ", " + mnt.Name
 					} else {
 						info += mnt.Name
 					}
-					found = true
+					foundMountInfo = true
 				}
 			}
-			if !found {
+			if !foundMountInfo {
 				info += "N/A"
 			}
 			info += "\t"
@@ -887,12 +888,12 @@ func (d *DockerComposeManager) PrintVolumeInformation() {
 		container := "unused (0)"
 		containerStatus := "offline"
 		for _, c := range containers {
-			if c.Image == containerName {
+			if containerName == c.Labels["name"] {
 				containerStatus = c.Status
 			}
 			for _, m := range c.Mounts {
 				if m.Name == currentVolume.Name {
-					container = c.Image + " (" + strconv.Itoa(int(currentVolume.UsageData.RefCount)) + ")"
+					container = containerName + " (" + strconv.Itoa(int(currentVolume.UsageData.RefCount)) + ")"
 				}
 			}
 		}
