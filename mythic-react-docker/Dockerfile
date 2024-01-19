@@ -1,1 +1,1 @@
-FROM ghcr.io/its-a-feature/mythic_react:v0.0.2.51
+FROM ghcr.io/its-a-feature/mythic_react:v0.0.2.52
