@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -305,26 +306,36 @@ func GetConfigAllStrings() map[string]string {
 }
 func GetConfigStrings(args []string) map[string]string {
 	resultMap := make(map[string]string)
+	allSettings := mythicEnv.AllKeys()
 	for i := 0; i < len(args[0:]); i++ {
-		setting := strings.ToLower(args[i])
-		val := mythicEnv.GetString(setting)
-		if val == "" {
-			log.Fatalf("Config variable `%s` not found", setting)
-		} else {
-			resultMap[setting] = val
+		searchRegex, err := regexp.Compile(args[i])
+		if err != nil {
+			log.Fatalf("[!] bad regex: %v", err)
+		}
+		for _, setting := range allSettings {
+			if searchRegex.MatchString(setting) {
+				val := mythicEnv.GetString(setting)
+				if val == "" {
+					log.Fatalf("Config variable `%s` not found", setting)
+				} else {
+					resultMap[setting] = val
+				}
+			}
 		}
 	}
 	return resultMap
 }
 func SetConfigStrings(key string, value string) {
-	if strings.ToLower(value) == "true" {
-		mythicEnv.Set(key, true)
-	} else if strings.ToLower(value) == "false" {
-		mythicEnv.Set(key, false)
-	} else {
-		mythicEnv.Set(key, value)
+	allSettings := mythicEnv.AllKeys()
+	searchRegex, err := regexp.Compile(key)
+	if err != nil {
+		log.Fatalf("[!] bad regex: %v", err)
 	}
-	mythicEnv.Get(key)
+	for _, setting := range allSettings {
+		if searchRegex.MatchString(setting) {
+			mythicEnv.Set(setting, value)
+		}
+	}
 	writeMythicEnvironmentVariables()
 }
 func GetBuildArguments() []string {
