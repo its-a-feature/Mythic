@@ -446,6 +446,7 @@ jobs:
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
           platforms: linux/amd64,linux/arm64
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
 
   update_files:
     runs-on: ubuntu-latest
@@ -498,6 +499,11 @@ jobs:
         working-directory: Mythic_CLI
         run: |
           sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_CLI_IMAGE_NAME}:${VERSION}|" Dockerfile
+
+      - name: Fix the mythic_docker_latest reference to reference the new release tag
+        working-directory: Mythic_CLI/src/cmd/config
+        run: |
+          sed -i "s|^const MythicDockerLatest =.*$|const MythicDockerLatest = \"${VERSION}\"|" constants.go
 
       - name: Fix the postgres Dockerfile reference to reference the new release tag
         working-directory: postgres-docker
