@@ -28,7 +28,7 @@ env:
   MYTHIC_REACT_IMAGE_NAME: ${{ github.repository }}_react
 
   # Description label for the package in Github
-  IMAGE_DESCRIPTION: "test containers for Mythic development, do not use!"
+  IMAGE_DESCRIPTION: "test containers for Mythic development. Do not use this version!"
 
   # Source URL for the package in Github. This links the Github repository packages list
   # to this container image
