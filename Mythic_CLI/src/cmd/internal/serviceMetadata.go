@@ -27,8 +27,9 @@ func AddMythicService(service string) {
 				"context": "./postgres-docker",
 				"args":    config.GetBuildArguments(),
 			}
+			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("POSTGRES_CPUS")
@@ -76,8 +77,9 @@ func AddMythicService(service string) {
 				"context": "./documentation-docker",
 				"args":    config.GetBuildArguments(),
 			}
+			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		if mythicEnv.GetBool("documentation_bind_localhost_only") {
@@ -112,8 +114,9 @@ func AddMythicService(service string) {
 				"context": "./hasura-docker",
 				"args":    config.GetBuildArguments(),
 			}
+			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("HASURA_CPUS")
@@ -169,8 +172,9 @@ func AddMythicService(service string) {
 				"context": "./nginx-docker",
 				"args":    config.GetBuildArguments(),
 			}
+			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		nginxUseSSL := "ssl"
@@ -246,8 +250,9 @@ func AddMythicService(service string) {
 				"context": "./rabbitmq-docker",
 				"args":    config.GetBuildArguments(),
 			}
+			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("RABBITMQ_CPUS")
@@ -306,6 +311,7 @@ func AddMythicService(service string) {
 				"context": "./MythicReactUI",
 				"args":    config.GetBuildArguments(),
 			}
+			pStruct["image"] = service
 			pStruct["volumes"] = []string{
 				"./MythicReactUI/src:/app/src",
 				"./MythicReactUI/public:/app/public",
@@ -319,8 +325,9 @@ func AddMythicService(service string) {
 					"context": "./mythic-react-docker",
 					"args":    config.GetBuildArguments(),
 				}
+				pStruct["image"] = service
 			} else {
-				pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
+				pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
 			}
 
 			if !mythicEnv.GetBool("mythic_react_use_volume") {
@@ -361,8 +368,9 @@ func AddMythicService(service string) {
 				"context": "./jupyter-docker",
 				"args":    config.GetBuildArguments(),
 			}
+			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("JUPYTER_CPUS")
@@ -408,8 +416,9 @@ func AddMythicService(service string) {
 				"context": "./mythic-docker",
 				"args":    config.GetBuildArguments(),
 			}
+			pStruct["image"] = service
 		} else {
-			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("mythic_docker_latest"))
+			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
 		}
 
 		pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SERVER_CPUS")
@@ -488,6 +497,7 @@ func AddMythicService(service string) {
 				"context": absPath,
 				"args":    config.GetBuildArguments(),
 			}
+			pStruct["image"] = service
 			pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SYNC_CPUS")
 			if mythicEnv.GetString("mythic_sync_mem_limit") != "" {
 				pStruct["mem_limit"] = mythicEnv.GetString("mythic_sync_mem_limit")

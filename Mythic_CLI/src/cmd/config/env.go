@@ -261,7 +261,7 @@ func parseMythicEnvironmentVariables() {
 			mythicEnv.Set(key, val[1])
 		}
 	}
-	mythicEnv.Set("mythic_docker_latest", MythicDockerLatest)
+	mythicEnv.Set("global_docker_latest", MythicDockerLatest)
 	writeMythicEnvironmentVariables()
 }
 func writeMythicEnvironmentVariables() {
