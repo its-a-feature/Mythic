@@ -428,7 +428,7 @@ jobs:
       - name: Fix the mythic_docker_latest reference to reference the new release tag
         working-directory: Mythic_CLI/src/cmd/config
         run: |
-          sed -i "s|^const MythicDockerLatest =.*$|const MythicDockerLatest = \"${env.VERSION}\"|" constants.go
+          sed -i "s|^const MythicDockerLatest =.*$|const MythicDockerLatest = \"${VERSION}\"|" constants.go
 
       - name: Build and push the cli container image
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
