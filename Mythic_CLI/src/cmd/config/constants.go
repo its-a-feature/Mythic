@@ -1,3 +1,3 @@
 package config
 
-const MythicDockerLatest = "v0.0.2.38"
+const MythicDockerLatest = "v0.0.2.45"
