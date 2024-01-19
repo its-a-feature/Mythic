@@ -484,10 +484,10 @@ func InstallMythicSync(url string, branch string) error {
 	}
 	if branch == "" {
 		log.Printf("[*] Cloning %s\n", url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth 1", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")})
+		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")})
 	} else {
 		log.Printf("[*] Cloning branch \"%s\" from %s\n", branch, url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth 1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")})
+		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")})
 	}
 	if err != nil {
 		log.Printf("[-] Failed to clone down repository: %v\n", err)

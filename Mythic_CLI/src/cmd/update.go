@@ -108,14 +108,10 @@ func checkMythicVersion(client *http.Client, urlBase string) (needsUpdate bool, 
 					fmt.Printf("This will require a completely new clone of Mythic\n")
 				} else if semver.MajorMinor(localVersion) != semver.MajorMinor(remoteVersion) {
 					fmt.Printf("[!] Minor version update available. This means there has been some database updates, but not a major change to how Mythic operates.\n")
-					fmt.Printf("This will require deleting your current database (you will lose ALL data in your database). Please backup your database first.\n")
-					fmt.Printf("Use the following steps to update:\n")
-					fmt.Printf("1. ./mythic-cli database reset\n")
-					fmt.Printf("2. ./mythic-cli rabbitmq reset\n")
-					fmt.Printf("3. git pull\n")
-					fmt.Printf("4. ./mythic-cli start\n")
+					fmt.Printf("This will require doing a 'git pull' and making a new 'mythic-cli' via 'sudo make'. Then restart Mythic\n")
 				} else {
 					fmt.Printf("[+] A patch is available. This means no database schema has changed and only bug fixes applied. This is safe to update now.\n")
+					fmt.Printf("This will require doing a 'git pull' and making a new 'mythic-cli' via 'sudo make'. Then restart Mythic\n")
 				}
 				return true, nil
 			} else {
