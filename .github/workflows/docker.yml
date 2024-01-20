@@ -10,6 +10,8 @@ on:
   push:
     branches:
       - 'docker_updates'
+    tags:
+      - "v*.*.*"
 
 # Variables holding configuration settings
 env:
@@ -38,8 +40,7 @@ env:
   IMAGE_LICENSE: BSD-3-Clause
 
   # Set the container image version to the Github release tag
-  #VERSION: ${{ github.event.release.tag_name }}
-  VERSION: ${{ github.event.head_commit.message }}
+  VERSION: ${{ github.ref_name }}
 
   # Branch for pushing release changes (TODO: Change this to the main branch when the rewrite is finished)
   RELEASE_BRANCH: docker_updates
@@ -78,7 +79,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_SERVER_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_SERVER_IMAGE_NAME }}:latest
-          push: true
+          push: ${{ github.ref_type == 'tag' }}
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
           labels: |
@@ -120,7 +121,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_POSTGRES_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_POSTGRES_IMAGE_NAME }}:latest
-          push: true
+          push: ${{ github.ref_type == 'tag' }}
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
           labels: |
@@ -162,7 +163,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_RABBITMQ_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_RABBITMQ_IMAGE_NAME }}:latest
-          push: true
+          push: ${{ github.ref_type == 'tag' }}
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
           labels: |
@@ -204,7 +205,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_DOCUMENTATION_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_DOCUMENTATION_IMAGE_NAME }}:latest
-          push: true
+          push: ${{ github.ref_type == 'tag' }}
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
           labels: |
@@ -248,7 +249,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_JUPYTER_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_JUPYTER_IMAGE_NAME }}:latest
-          push: true
+          push: ${{ github.ref_type == 'tag' }}
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
           labels: |
@@ -292,7 +293,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_GRAPHQL_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_GRAPHQL_IMAGE_NAME }}:latest
-          push: true
+          push: ${{ github.ref_type == 'tag' }}
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
           labels: |
@@ -336,7 +337,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_NGINX_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_NGINX_IMAGE_NAME }}:latest
-          push: true
+          push: ${{ github.ref_type == 'tag' }}
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
           labels: |
@@ -380,7 +381,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_REACT_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_REACT_IMAGE_NAME }}:latest
-          push: true
+          push: ${{ github.ref_type == 'tag' }}
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
           labels: |
@@ -438,7 +439,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_CLI_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_CLI_IMAGE_NAME }}:latest
-          push: true
+          push: ${{ github.ref_type == 'tag' }}
           # These container metadata labels allow configuring the package in Github
           # packages. The source will link the package to this Github repository
           labels: |
@@ -542,6 +543,7 @@ jobs:
           sed -i "s|^FROM ghcr\.io.*$|FROM ${REGISTRY}/${MYTHIC_REACT_IMAGE_NAME}:${VERSION}|" Dockerfile
       # Push the changes to the Dockerfile
       - name: Push the updated base Dockerfile image reference changes
+        if: ${{ github.ref_type == 'tag' }}
         uses: EndBug/add-and-commit@v9 # ref: https://github.com/marketplace/actions/add-commit
         with:
           # Only add the Dockerfile changes. Nothing else should have been modified
@@ -554,10 +556,10 @@ jobs:
           message: "Bump Mythic Dockerfile tag to match release '${{ env.VERSION }}'"
 
           # Overwrite the current git tag with the new changes
-          #tag: '${{ env.VERSION }} --force'
+          tag: '${{ env.VERSION }} --force'
 
           # Push the new changes with the tag overwriting the current one
-          #tag_push: '--force'
+          tag_push: '--force'
 
           # Push the commits to the branch marked as the release branch
           push: origin HEAD:${{ env.RELEASE_BRANCH }} --set-upstream
