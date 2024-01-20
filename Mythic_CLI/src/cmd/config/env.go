@@ -331,11 +331,21 @@ func SetConfigStrings(key string, value string) {
 	if err != nil {
 		log.Fatalf("[!] bad regex: %v", err)
 	}
+	found := false
 	for _, setting := range allSettings {
 		if searchRegex.MatchString(setting) {
 			mythicEnv.Set(setting, value)
+			found = true
 		}
 	}
+	if !found {
+		log.Printf("[-] Failed to find any matching keys")
+		return
+	}
+	writeMythicEnvironmentVariables()
+}
+func SetNewConfigStrings(key string, value string) {
+	mythicEnv.Set(key, value)
 	writeMythicEnvironmentVariables()
 }
 func GetBuildArguments() []string {

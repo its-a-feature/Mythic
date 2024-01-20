@@ -551,16 +551,43 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 		"container_name": strings.ToLower(service),
 		"cpus":           config.GetMythicEnv().GetInt("INSTALLED_SERVICE_CPUS"),
 	}
+	pStruct["build"] = map[string]interface{}{
+		"context": filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service),
+		"args":    config.GetBuildArguments(),
+	}
+	agentConfigs := config.GetConfigStrings([]string{fmt.Sprintf("%s_.*", service)})
+	agentUseBuildContextKey := fmt.Sprintf("%s_use_build_context", service)
+	agentRemoteImageKey := fmt.Sprintf("%s_remote_image", service)
+	agentUseVolumeKey := fmt.Sprintf("%s_use_volume", service)
+	if useBuildContext, ok := agentConfigs[agentUseBuildContextKey]; ok {
+		if useBuildContext == "false" {
+			delete(pStruct, "build")
+		}
+		pStruct["image"] = agentConfigs[agentRemoteImageKey]
+	}
+	if useVolume, ok := agentConfigs[agentUseVolumeKey]; ok {
+		if useVolume == "true" {
+			volumeName := fmt.Sprintf("%s_volume", service)
+			pStruct["volumes"] = []string{
+				volumeName + ":/Mythic/",
+			}
+			// add our new volume to the list of volumes if needed
+			volumes, _ := manager.GetManager().GetVolumes()
+			volumes[volumeName] = map[string]string{
+				"name": volumeName,
+			}
+			manager.GetManager().SetVolumes(volumes)
+		} else {
+			delete(pStruct, "volumes")
+		}
+	}
 	if config.GetMythicEnv().GetString("installed_service_mem_limit") != "" {
 		pStruct["mem_limit"] = config.GetMythicEnv().GetString("installed_service_mem_limit")
 	}
 	for key, element := range additionalConfigs {
 		pStruct[key] = element
 	}
-	pStruct["build"] = map[string]interface{}{
-		"context": filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service),
-		"args":    config.GetBuildArguments(),
-	}
+
 	pStruct["network_mode"] = "host"
 	pStruct["extra_hosts"] = []string{
 		"mythic_server:127.0.0.1",
