@@ -16,295 +16,301 @@ import (
 
 func InstallFolder(installPath string, overWrite bool) error {
 	workingPath := utils.GetCwdFromExe()
-	if utils.FileExists(filepath.Join(installPath, "config.json")) {
-		var installConfig = viper.New()
-		installConfig.SetConfigName("config")
-		installConfig.SetConfigType("json")
-		log.Printf("[*] Parsing installConfig.json\n")
-		installConfig.AddConfigPath(installPath)
-		if err := installConfig.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				fmt.Printf("[-] Error while reading in installConfig file: %s", err)
-				return err
-			} else {
-				fmt.Printf("[-] Error while parsing installConfig file: %s", err)
-				return err
-			}
+	if !utils.FileExists(filepath.Join(installPath, "config.json")) {
+		log.Fatal("[-] Failed to find config.json in cloned down repo\n")
+	}
+	var installConfig = viper.New()
+	installConfig.SetConfigName("config")
+	installConfig.SetConfigType("json")
+	log.Printf("[*] Parsing config.json\n")
+	installConfig.AddConfigPath(installPath)
+	if err := installConfig.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			fmt.Printf("[-] Error while reading in installConfig file: %s", err)
+			return err
+		} else {
+			fmt.Printf("[-] Error while parsing installConfig file: %s", err)
+			return err
 		}
-		if !installConfig.GetBool("exclude_payload_type") {
-			// handle the payload type copying here
-			files, err := ioutil.ReadDir(filepath.Join(installPath, "Payload_Type"))
-			if err != nil {
-				fmt.Printf("[-] Failed to list contents of new Payload_Type folder: %v\n", err)
-				return err
-			}
-			for _, f := range files {
-				if f.IsDir() {
-					fmt.Printf("[*] Processing Payload Type %s\n", f.Name())
+	}
+	latestVersion := installConfig.GetStringMapString("remote_images")
+	for key, val := range latestVersion {
+		config.SetNewConfigStrings(fmt.Sprintf("%s_remote_image", key), val)
+		config.SetNewConfigStrings(fmt.Sprintf("%s_use_volume", key), "true")
+		config.SetNewConfigStrings(fmt.Sprintf("%s_use_build_context", key), "false")
+	}
+	if !installConfig.GetBool("exclude_payload_type") {
+		// handle the payload type copying here
+		files, err := ioutil.ReadDir(filepath.Join(installPath, "Payload_Type"))
+		if err != nil {
+			fmt.Printf("[-] Failed to list contents of new Payload_Type folder: %v\n", err)
+			return err
+		}
+		for _, f := range files {
+			if f.IsDir() {
+				fmt.Printf("[*] Processing Payload Type %s\n", f.Name())
 
-					if utils.DirExists(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name())) {
-						if overWrite || config.AskConfirm("[*] "+f.Name()+" already exists. Replace current version? ") {
-							log.Printf("[*] Stopping current container\n")
-							if manager.GetManager().IsServiceRunning(strings.ToLower(f.Name())) {
-								if err := ServiceStop([]string{f.Name()}); err != nil {
-									log.Printf("[-] Failed to stop current container: %v\n", err)
-									return err
-								}
+				if utils.DirExists(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name())) {
+					if overWrite || config.AskConfirm("[*] "+f.Name()+" already exists. Replace current version? ") {
+						log.Printf("[*] Stopping current container\n")
+						if manager.GetManager().IsServiceRunning(strings.ToLower(f.Name())) {
+							if err := ServiceStop([]string{f.Name()}); err != nil {
+								log.Printf("[-] Failed to stop current container: %v\n", err)
+								return err
 							}
-							log.Printf("[*] Removing current version\n")
-							err = os.RemoveAll(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name()))
-							if err != nil {
-								log.Printf("[-] Failed to remove current version: %v\n", err)
-								log.Printf("[-] Continuing to the next payload\n")
-								continue
-							} else {
-								log.Printf("[+] Successfully removed the current version\n")
-							}
-						} else {
-							log.Printf("[!] Skipping Payload Type, %s\n", f.Name())
-							continue
 						}
-					}
-					log.Printf("[*] Copying new version of payload into place\n")
-					err = utils.CopyDir(filepath.Join(installPath, "Payload_Type", f.Name()),
-						filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name()))
-					if err != nil {
-						log.Printf("[-] Failed to copy directory over: %v\n", err)
-						continue
-					}
-					log.Printf("[*] Adding service into docker-compose\n")
-					if installConfig.IsSet("docker-compose") {
-						err := Add3rdPartyService(f.Name(), installConfig.GetStringMap("docker-compose"))
+						log.Printf("[*] Removing current version\n")
+						err = os.RemoveAll(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name()))
 						if err != nil {
-							log.Printf("[-] Failed to add service to docker-compose: %v\n", err)
-						} else if err := ServiceBuild([]string{f.Name()}); err != nil {
-							log.Printf("[-] Failed to start service: %v\n", err)
+							log.Printf("[-] Failed to remove current version: %v\n", err)
+							log.Printf("[-] Continuing to the next payload\n")
+							continue
+						} else {
+							log.Printf("[+] Successfully removed the current version\n")
 						}
 					} else {
-						if err := Add3rdPartyService(f.Name(), make(map[string]interface{})); err != nil {
-							log.Printf("[-] Failed to add service to docker-compose: %v\n", err)
-						} else if err := ServiceBuild([]string{f.Name()}); err != nil {
-							log.Printf("[-] Failed to start service: %v\n", err)
-						}
-					}
-
-				}
-			}
-			log.Printf("[+] Successfully installed service\n")
-		} else {
-			log.Printf("[*] Skipping over Payload Type\n")
-		}
-		if !installConfig.GetBool("exclude_c2_profiles") {
-			// handle the c2 profile copying here
-			files, err := ioutil.ReadDir(filepath.Join(installPath, "C2_Profiles"))
-			if err != nil {
-				log.Printf("[-] Failed to list contents of C2_Profiles folder from clone\n")
-				return err
-			}
-			for _, f := range files {
-				if f.IsDir() {
-					log.Printf("[*] Processing C2 Profile %s\n", f.Name())
-					if utils.DirExists(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name())) {
-						if overWrite || config.AskConfirm("[*] "+f.Name()+" already exists. Replace current version? ") {
-							log.Printf("[*] Stopping current container\n")
-							if manager.GetManager().IsServiceRunning(strings.ToLower(f.Name())) {
-								if err := ServiceStop([]string{f.Name()}); err != nil {
-									log.Printf("[-] Failed to stop container: %v\n", err)
-									return err
-								}
-							}
-							log.Printf("[*] Removing current version\n")
-							err = os.RemoveAll(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name()))
-							if err != nil {
-								log.Printf("[-] Failed to remove current version: %v\n", err)
-								log.Printf("[-] Continuing to the next c2 profile\n")
-								continue
-							} else {
-								log.Printf("[+] Successfully removed the current version\n")
-							}
-						} else {
-							log.Printf("[!] Skipping C2 Profile, %s\n", f.Name())
-							continue
-						}
-					}
-					log.Printf("[*] Copying new version into place\n")
-					err = utils.CopyDir(filepath.Join(installPath, "C2_Profiles", f.Name()),
-						filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name()))
-					if err != nil {
-						log.Printf("[-] Failed to copy directory over\n")
+						log.Printf("[!] Skipping Payload Type, %s\n", f.Name())
 						continue
 					}
-					// now add payload type to yaml installConfig
-					log.Printf("[*] Adding c2, %s, into docker-compose\n", f.Name())
-					if err = Add3rdPartyService(f.Name(), make(map[string]interface{})); err != nil {
-						log.Printf("[-] Failed to add %s to docker-compose: %v\n", f.Name(), err)
+				}
+				log.Printf("[*] Copying new version of payload into place\n")
+				err = utils.CopyDir(filepath.Join(installPath, "Payload_Type", f.Name()),
+					filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name()))
+				if err != nil {
+					log.Printf("[-] Failed to copy directory over: %v\n", err)
+					continue
+				}
+				log.Printf("[*] Adding service into docker-compose\n")
+				if installConfig.IsSet("docker-compose") {
+					err := Add3rdPartyService(f.Name(), installConfig.GetStringMap("docker-compose"))
+					if err != nil {
+						log.Printf("[-] Failed to add service to docker-compose: %v\n", err)
+					} else if err := ServiceBuild([]string{f.Name()}); err != nil {
+						log.Printf("[-] Failed to start service: %v\n", err)
+					}
+				} else {
+					if err := Add3rdPartyService(f.Name(), make(map[string]interface{})); err != nil {
+						log.Printf("[-] Failed to add service to docker-compose: %v\n", err)
 					} else if err := ServiceBuild([]string{f.Name()}); err != nil {
 						log.Printf("[-] Failed to start service: %v\n", err)
 					}
 				}
+
 			}
-			log.Printf("[+] Successfully installed c2\n")
-		} else {
-			log.Printf("[*] Skipping over C2 Profile\n")
 		}
-		if !installConfig.GetBool("exclude_documentation_payload") {
-			// handle payload documentation copying here
-			files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-payload"))
-			if err != nil {
-				log.Printf("[-] Failed to list contents of documentation_payload folder from clone: %v\n", err)
-			} else {
-				for _, f := range files {
-					if f.IsDir() {
-						log.Printf("[*] Processing Documentation for %s\n", f.Name())
-						if !config.GetMythicEnv().GetBool("documentation_bind_use_volume") {
-							if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name())) {
-								if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
-									log.Printf("[*] Removing current version\n")
-									err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name()))
-									if err != nil {
-										log.Printf("[-] Failed to remove current version: %v\n", err)
-										log.Printf("[-] Continuing to the next payload documentation\n")
-										continue
-									} else {
-										log.Printf("[+] Successfully removed the current version\n")
-									}
-								} else {
-									log.Printf("[!] Skipping documentation for , %s\n", f.Name())
-									continue
-								}
+		log.Printf("[+] Successfully installed service\n")
+	} else {
+		log.Printf("[*] Skipping over Payload Type\n")
+	}
+	if !installConfig.GetBool("exclude_c2_profiles") {
+		// handle the c2 profile copying here
+		files, err := ioutil.ReadDir(filepath.Join(installPath, "C2_Profiles"))
+		if err != nil {
+			log.Printf("[-] Failed to list contents of C2_Profiles folder from clone\n")
+			return err
+		}
+		for _, f := range files {
+			if f.IsDir() {
+				log.Printf("[*] Processing C2 Profile %s\n", f.Name())
+				if utils.DirExists(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name())) {
+					if overWrite || config.AskConfirm("[*] "+f.Name()+" already exists. Replace current version? ") {
+						log.Printf("[*] Stopping current container\n")
+						if manager.GetManager().IsServiceRunning(strings.ToLower(f.Name())) {
+							if err := ServiceStop([]string{f.Name()}); err != nil {
+								log.Printf("[-] Failed to stop container: %v\n", err)
+								return err
 							}
-							log.Printf("[*] Copying new documentation into place\n")
-							err = utils.CopyDir(filepath.Join(installPath, "documentation-payload", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name()))
-							if err != nil {
-								log.Printf("[-] Failed to copy directory over\n")
-								continue
-							}
+						}
+						log.Printf("[*] Removing current version\n")
+						err = os.RemoveAll(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name()))
+						if err != nil {
+							log.Printf("[-] Failed to remove current version: %v\n", err)
+							log.Printf("[-] Continuing to the next c2 profile\n")
+							continue
 						} else {
-							err = moveFileToVolume("mythic_documentation_volume",
-								filepath.Join("content", "Agents"),
-								filepath.Join(installPath, "documentation-payload", f.Name()))
-							if err != nil {
-								log.Printf("[-] Failed to install documentation for payload: %v\n", err)
+							log.Printf("[+] Successfully removed the current version\n")
+						}
+					} else {
+						log.Printf("[!] Skipping C2 Profile, %s\n", f.Name())
+						continue
+					}
+				}
+				log.Printf("[*] Copying new version into place\n")
+				err = utils.CopyDir(filepath.Join(installPath, "C2_Profiles", f.Name()),
+					filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name()))
+				if err != nil {
+					log.Printf("[-] Failed to copy directory over\n")
+					continue
+				}
+				// now add payload type to yaml installConfig
+				log.Printf("[*] Adding c2, %s, into docker-compose\n", f.Name())
+				if err = Add3rdPartyService(f.Name(), make(map[string]interface{})); err != nil {
+					log.Printf("[-] Failed to add %s to docker-compose: %v\n", f.Name(), err)
+				} else if err := ServiceBuild([]string{f.Name()}); err != nil {
+					log.Printf("[-] Failed to start service: %v\n", err)
+				}
+			}
+		}
+		log.Printf("[+] Successfully installed c2\n")
+	} else {
+		log.Printf("[*] Skipping over C2 Profile\n")
+	}
+	if !installConfig.GetBool("exclude_documentation_payload") {
+		// handle payload documentation copying here
+		files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-payload"))
+		if err != nil {
+			log.Printf("[-] Failed to list contents of documentation_payload folder from clone: %v\n", err)
+		} else {
+			for _, f := range files {
+				if f.IsDir() {
+					log.Printf("[*] Processing Documentation for %s\n", f.Name())
+					if !config.GetMythicEnv().GetBool("documentation_bind_use_volume") {
+						if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name())) {
+							if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
+								log.Printf("[*] Removing current version\n")
+								err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name()))
+								if err != nil {
+									log.Printf("[-] Failed to remove current version: %v\n", err)
+									log.Printf("[-] Continuing to the next payload documentation\n")
+									continue
+								} else {
+									log.Printf("[+] Successfully removed the current version\n")
+								}
+							} else {
+								log.Printf("[!] Skipping documentation for , %s\n", f.Name())
 								continue
 							}
 						}
-
-					}
-				}
-				log.Printf("[+] Successfully installed Payload documentation\n")
-			}
-
-		} else {
-			log.Printf("[*] Skipping over Payload Documentation\n")
-		}
-		if !installConfig.GetBool("exclude_documentation_c2") {
-			// handle the c2 documentation copying here
-			files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-c2"))
-			if err != nil {
-				log.Printf("[-] Failed to list contents of documentation_payload folder from clone")
-			} else {
-				for _, f := range files {
-					if f.IsDir() {
-						log.Printf("[*] Processing Documentation for %s\n", f.Name())
-						if !config.GetMythicEnv().GetBool("document_bind_use_volume") {
-							if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name())) {
-								if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
-									log.Printf("[*] Removing current version\n")
-									err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
-									if err != nil {
-										log.Printf("[-] Failed to remove current version: %v\n", err)
-										log.Printf("[-] Continuing to the next c2 documentation\n")
-										continue
-									} else {
-										log.Printf("[+] Successfully removed the current version\n")
-									}
-								} else {
-									log.Printf("[!] Skipping documentation for %s\n", f.Name())
-									continue
-								}
-							}
-							log.Printf("[*] Copying new documentation version into place\n")
-							err = utils.CopyDir(filepath.Join(installPath, "documentation-c2", f.Name()),
-								filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
-							if err != nil {
-								log.Printf("[-] Failed to copy directory over\n")
-								continue
-							}
-						} else {
-							err = moveFileToVolume("mythic_documentation_volume",
-								filepath.Join("content", "C2 Profiles"),
-								filepath.Join(installPath, "documentation-c2", f.Name()))
-							if err != nil {
-								log.Printf("[-] Failed to install documentation for c2: %v\n", err)
-								continue
-							}
-
+						log.Printf("[*] Copying new documentation into place\n")
+						err = utils.CopyDir(filepath.Join(installPath, "documentation-payload", f.Name()), filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name()))
+						if err != nil {
+							log.Printf("[-] Failed to copy directory over\n")
+							continue
 						}
-
+					} else {
+						err = moveFileToVolume("mythic_documentation_volume",
+							filepath.Join("content", "Agents"),
+							filepath.Join(installPath, "documentation-payload", f.Name()))
+						if err != nil {
+							log.Printf("[-] Failed to install documentation for payload: %v\n", err)
+							continue
+						}
 					}
-				}
-				log.Printf("[+] Successfully installed c2 documentation\n")
-			}
 
-		} else {
-			log.Printf("[*] Skipping over C2 Documentation\n")
+				}
+			}
+			log.Printf("[+] Successfully installed Payload documentation\n")
 		}
-		if !installConfig.GetBool("exclude_documentation_wrapper") {
-			// handle payload documentation copying here
-			files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-wrapper"))
-			if err != nil {
-				log.Printf("[-] Failed to list contents of documentation-wrapper folder from clone: %v\n", err)
-			} else {
-				for _, f := range files {
-					if f.IsDir() {
-						log.Printf("[*] Processing Documentation for %s\n", f.Name())
-						if config.GetMythicEnv().GetBool("document_local_bind_mount") {
-							if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name())) {
-								if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
-									log.Printf("[*] Removing current version\n")
-									err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
-									if err != nil {
-										log.Printf("[-] Failed to remove current version: %v\n", err)
-										log.Printf("[-] Continuing to the next wrapper documentation\n")
-										continue
-									} else {
-										log.Printf("[+] Successfully removed the current version\n")
-									}
-								} else {
-									log.Printf("[!] Skipping documentation for , %s\n", f.Name())
+
+	} else {
+		log.Printf("[*] Skipping over Payload Documentation\n")
+	}
+	if !installConfig.GetBool("exclude_documentation_c2") {
+		// handle the c2 documentation copying here
+		files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-c2"))
+		if err != nil {
+			log.Printf("[-] Failed to list contents of documentation_payload folder from clone")
+		} else {
+			for _, f := range files {
+				if f.IsDir() {
+					log.Printf("[*] Processing Documentation for %s\n", f.Name())
+					if !config.GetMythicEnv().GetBool("document_bind_use_volume") {
+						if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name())) {
+							if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
+								log.Printf("[*] Removing current version\n")
+								err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
+								if err != nil {
+									log.Printf("[-] Failed to remove current version: %v\n", err)
+									log.Printf("[-] Continuing to the next c2 documentation\n")
 									continue
+								} else {
+									log.Printf("[+] Successfully removed the current version\n")
 								}
-							}
-							log.Printf("[*] Copying new documentation into place\n")
-							err = utils.CopyDir(filepath.Join(installPath, "documentation-wrapper", f.Name()),
-								filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
-							if err != nil {
-								log.Printf("[-] Failed to copy directory over\n")
-								continue
-							}
-						} else {
-							err = moveFileToVolume("mythic_documentation_volume",
-								filepath.Join("content", "Wrappers"),
-								filepath.Join(installPath, "documentation-wrapper", f.Name()))
-							if err != nil {
-								log.Printf("[-] Failed to install documentation for wrapper: %v\n", err)
+							} else {
+								log.Printf("[!] Skipping documentation for %s\n", f.Name())
 								continue
 							}
 						}
+						log.Printf("[*] Copying new documentation version into place\n")
+						err = utils.CopyDir(filepath.Join(installPath, "documentation-c2", f.Name()),
+							filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name()))
+						if err != nil {
+							log.Printf("[-] Failed to copy directory over\n")
+							continue
+						}
+					} else {
+						err = moveFileToVolume("mythic_documentation_volume",
+							filepath.Join("content", "C2 Profiles"),
+							filepath.Join(installPath, "documentation-c2", f.Name()))
+						if err != nil {
+							log.Printf("[-] Failed to install documentation for c2: %v\n", err)
+							continue
+						}
+
+					}
+
+				}
+			}
+			log.Printf("[+] Successfully installed c2 documentation\n")
+		}
+
+	} else {
+		log.Printf("[*] Skipping over C2 Documentation\n")
+	}
+	if !installConfig.GetBool("exclude_documentation_wrapper") {
+		// handle payload documentation copying here
+		files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-wrapper"))
+		if err != nil {
+			log.Printf("[-] Failed to list contents of documentation-wrapper folder from clone: %v\n", err)
+		} else {
+			for _, f := range files {
+				if f.IsDir() {
+					log.Printf("[*] Processing Documentation for %s\n", f.Name())
+					if config.GetMythicEnv().GetBool("document_local_bind_mount") {
+						if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name())) {
+							if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
+								log.Printf("[*] Removing current version\n")
+								err = os.RemoveAll(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
+								if err != nil {
+									log.Printf("[-] Failed to remove current version: %v\n", err)
+									log.Printf("[-] Continuing to the next wrapper documentation\n")
+									continue
+								} else {
+									log.Printf("[+] Successfully removed the current version\n")
+								}
+							} else {
+								log.Printf("[!] Skipping documentation for , %s\n", f.Name())
+								continue
+							}
+						}
+						log.Printf("[*] Copying new documentation into place\n")
+						err = utils.CopyDir(filepath.Join(installPath, "documentation-wrapper", f.Name()),
+							filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name()))
+						if err != nil {
+							log.Printf("[-] Failed to copy directory over\n")
+							continue
+						}
+					} else {
+						err = moveFileToVolume("mythic_documentation_volume",
+							filepath.Join("content", "Wrappers"),
+							filepath.Join(installPath, "documentation-wrapper", f.Name()))
+						if err != nil {
+							log.Printf("[-] Failed to install documentation for wrapper: %v\n", err)
+							continue
+						}
 					}
 				}
-				log.Printf("[+] Successfully installed Wrapper documentation\n")
 			}
-		} else {
-			log.Printf("[*] Skipping over Wrapper Documentation\n")
-		}
-		if manager.GetManager().IsServiceRunning("mythic_documentation") {
-			fmt.Printf("[*] Restarting mythic_documentation container to pull in changes\n")
-			ServiceStop([]string{"mythic_documentation"})
-			ServiceStart([]string{"mythic_documentation"})
+			log.Printf("[+] Successfully installed Wrapper documentation\n")
 		}
 	} else {
-		log.Fatal("[-] Failed to find config.json in cloned down repo\n")
+		log.Printf("[*] Skipping over Wrapper Documentation\n")
+	}
+
+	if manager.GetManager().IsServiceRunning("mythic_documentation") {
+		fmt.Printf("[*] Restarting mythic_documentation container to pull in changes\n")
+		ServiceStop([]string{"mythic_documentation"})
+		ServiceStart([]string{"mythic_documentation"})
 	}
 	return nil
 }

@@ -706,8 +706,7 @@ func (d *DockerComposeManager) Status(verbose bool) {
 			}
 			portString = portString + strings.Join(stringPortRanges[:], ", ")
 		}
-		if utils.StringInSlice(container.Image, config.MythicPossibleServices) ||
-			strings.HasPrefix(container.Image, "ghcr.io/its-a-feature/mythic_") {
+		if utils.StringInSlice(container.Labels["name"], config.MythicPossibleServices) {
 			foundMountInfo := false
 			for _, mnt := range container.Mounts {
 				if strings.HasPrefix(mnt.Name, container.Image+"_volume") {
@@ -726,15 +725,13 @@ func (d *DockerComposeManager) Status(verbose bool) {
 			info = info + portString
 			mythicLocalServices = append(mythicLocalServices, info)
 		} else {
-			for _, mnt := range container.Mounts {
-				if strings.Contains(mnt.Source, d.InstalledServicesPath) {
-					installedServices = append(installedServices, info)
-					elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container.Labels["name"])
-					elementsInCompose = utils.RemoveStringFromSliceNoOrder(elementsInCompose, container.Labels["name"])
-				}
+			if utils.StringInSlice(container.Labels["name"], elementsOnDisk) ||
+				utils.StringInSlice(container.Labels["name"], elementsInCompose) {
+				installedServices = append(installedServices, info)
+				elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container.Labels["name"])
+				elementsInCompose = utils.RemoveStringFromSliceNoOrder(elementsInCompose, container.Labels["name"])
 			}
 		}
-
 	}
 	fmt.Fprintln(w, "Mythic Main Services")
 	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tMOUNT\tPORTS")
