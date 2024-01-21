@@ -706,22 +706,22 @@ func (d *DockerComposeManager) Status(verbose bool) {
 			}
 			portString = portString + strings.Join(stringPortRanges[:], ", ")
 		}
-		if utils.StringInSlice(container.Labels["name"], config.MythicPossibleServices) {
-			foundMountInfo := false
-			for _, mnt := range container.Mounts {
-				if strings.HasPrefix(mnt.Name, container.Image+"_volume") {
-					if foundMountInfo {
-						info += ", " + mnt.Name
-					} else {
-						info += mnt.Name
-					}
-					foundMountInfo = true
+		foundMountInfo := false
+		for _, mnt := range container.Mounts {
+			if strings.HasPrefix(mnt.Name, container.Labels["name"]+"_volume") {
+				if foundMountInfo {
+					info += ", " + mnt.Name
+				} else {
+					info += mnt.Name
 				}
+				foundMountInfo = true
 			}
-			if !foundMountInfo {
-				info += "N/A"
-			}
-			info += "\t"
+		}
+		if !foundMountInfo {
+			info += "local"
+		}
+		info += "\t"
+		if utils.StringInSlice(container.Labels["name"], config.MythicPossibleServices) {
 			info = info + portString
 			mythicLocalServices = append(mythicLocalServices, info)
 		} else {
@@ -741,11 +741,11 @@ func (d *DockerComposeManager) Status(verbose bool) {
 	fmt.Fprintln(w, "\t\t\t\t\t")
 	w.Flush()
 	fmt.Fprintln(w, "Installed Services")
-	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS")
+	fmt.Fprintln(w, "CONTAINER NAME\tSTATE\tSTATUS\tMOUNT")
 	for _, line := range installedServices {
 		fmt.Fprintln(w, line)
 	}
-	fmt.Fprintln(w, "\t\t\t")
+	fmt.Fprintln(w, "\t\t\t\t")
 	// remove all elementsInCompose from elementsOnDisk
 	for _, container := range elementsInCompose {
 		elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container)
@@ -871,17 +871,21 @@ func (d *DockerComposeManager) PrintVolumeInformation() {
 		return
 	}
 	var entries []string
+	volumeList, err := d.GetVolumes()
+	if err != nil {
+		log.Fatalf("[-] Failed to get volumes: %v", err)
+	}
 	for _, currentVolume := range du.Volumes {
 		name := currentVolume.Name
 		size := "unknown"
 		if currentVolume.UsageData != nil {
 			size = utils.ByteCountSI(currentVolume.UsageData.Size)
 		}
-		if !strings.HasPrefix(currentVolume.Name, "mythic_") {
+		if _, ok := volumeList[currentVolume.Name]; !ok {
 			continue
 		}
-		containerPieces := strings.Split(currentVolume.Name, "_")
-		containerName := strings.Join(containerPieces[0:2], "_")
+		containerPieces := strings.Split(currentVolume.Name, "_volume")
+		containerName := containerPieces[0]
 		container := "unused (0)"
 		containerStatus := "offline"
 		for _, c := range containers {
