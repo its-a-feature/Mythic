@@ -562,8 +562,8 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 	if useBuildContext, ok := agentConfigs[agentUseBuildContextKey]; ok {
 		if useBuildContext == "false" {
 			delete(pStruct, "build")
+			pStruct["image"] = agentConfigs[agentRemoteImageKey]
 		}
-		pStruct["image"] = agentConfigs[agentRemoteImageKey]
 	}
 	if useVolume, ok := agentConfigs[agentUseVolumeKey]; ok {
 		if useVolume == "true" {
