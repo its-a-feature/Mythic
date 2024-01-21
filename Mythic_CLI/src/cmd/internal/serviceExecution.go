@@ -67,9 +67,12 @@ func ServiceStart(containers []string) error {
 			finalContainers = append(finalContainers, val)
 		}
 	}
+	// make sure we always update the config when starting in case .env variables changed
 	for _, service := range finalContainers {
 		if utils.StringInSlice(service, config.MythicPossibleServices) {
 			AddMythicService(service)
+		} else {
+			Add3rdPartyService(service, map[string]interface{}{})
 		}
 	}
 	manager.GetManager().TestPorts(finalContainers)
@@ -90,13 +93,19 @@ func ServiceStop(containers []string) error {
 	return manager.GetManager().StopServices(containers, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
 }
 func ServiceBuild(containers []string) error {
+	composeServices, err := manager.GetManager().GetAllInstalled3rdPartyServiceNames()
+	if err != nil {
+		log.Fatalf("[-] Failed to get installed service list: %v", err)
+	}
 	for _, container := range containers {
 		if utils.StringInSlice(container, config.MythicPossibleServices) {
 			// update the necessary docker compose entries for mythic services
 			AddMythicService(container)
+		} else if utils.StringInSlice(container, composeServices) {
+			Add3rdPartyService(container, map[string]interface{}{})
 		}
 	}
-	err := manager.GetManager().BuildServices(containers)
+	err = manager.GetManager().BuildServices(containers)
 	if err != nil {
 		return err
 	}
