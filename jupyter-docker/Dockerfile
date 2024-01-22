@@ -1,1 +1,1 @@
-FROM ghcr.io/its-a-feature/mythic_jupyter:v0.0.3-rc3
+FROM ghcr.io/its-a-feature/mythic_jupyter:v0.0.3-rc4
