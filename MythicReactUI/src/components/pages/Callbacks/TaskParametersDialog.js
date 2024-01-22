@@ -273,6 +273,19 @@ query getCredentialsQuery($operation_id: Int!){
     }
 }
 `;
+
+export const commandInParsedParameters = (cmd, parsedParameters) =>{
+    if(cmd.name in parsedParameters){
+        return cmd.name
+    }
+    if(cmd.cli_name in parsedParameters){
+        return cmd.cli_name
+    }
+    if(cmd.display_name in parsedParameters){
+        return cmd.display_name
+    }
+    return undefined
+}
 export function TaskParametersDialog(props) {
     const theme = useTheme();
     const [backdropOpen, setBackdropOpen] = React.useState(false);
@@ -435,11 +448,12 @@ export function TaskParametersDialog(props) {
                     return [...prev];
                 }
                 //console.log(props.command);
-
+                let parsedParameterName = commandInParsedParameters(cmd, props.command.parsedParameters);
                 switch(cmd.type){
                     case "Boolean":
-                        if(cmd.name in props.command.parsedParameters){
-                            return [...prev, {...cmd, value: props.command.parsedParameters[cmd.name]}];
+
+                        if(parsedParameterName){
+                            return [...prev, {...cmd, value: props.command.parsedParameters[parsedParameterName]}];
                         }
                         else if(cmd.default_value){
                             return [...prev, {...cmd, value: cmd.default_value.toLowerCase() === "true"}];
@@ -447,28 +461,28 @@ export function TaskParametersDialog(props) {
                             return [...prev, {...cmd, value: false}];
                         }
                     case "String":
-                        if(cmd.name in props.command.parsedParameters){
-                            return [...prev, {...cmd, value: props.command.parsedParameters[cmd.name]}];
+                        if(parsedParameterName){
+                            return [...prev, {...cmd, value: props.command.parsedParameters[parsedParameterName]}];
                         }else{
                             return [...prev, {...cmd, value: cmd.default_value}];
                         }                      
                     case "Number":
-                        if(cmd.name in props.command.parsedParameters){
-                            return [...prev, {...cmd, value: props.command.parsedParameters[cmd.name]}];
+                        if(parsedParameterName){
+                            return [...prev, {...cmd, value: props.command.parsedParameters[parsedParameterName]}];
                         }else{
                             return [...prev, {...cmd, value: cmd.default_value === "" ? 0 : parseInt(cmd.default_value)}];
                         }
                     case "Array":
-                        if(cmd.name in props.command.parsedParameters){
-                            return [...prev, {...cmd, value: props.command.parsedParameters[cmd.name]}];
+                        if(parsedParameterName){
+                            return [...prev, {...cmd, value: props.command.parsedParameters[parsedParameterName]}];
                         }else if(cmd.default_value.length > 0){
                             return [...prev, {...cmd, value: JSON.parse(cmd.default_value)}];
                         }else{
                             return [...prev, {...cmd, value: []}];
                         }
                     case "TypedArray":
-                        if(cmd.name in props.command.parsedParameters){
-                            return [...prev, {...cmd, value: props.command.parsedParameters[cmd.name]}];
+                        if(parsedParameterName){
+                            return [...prev, {...cmd, value: props.command.parsedParameters[parsedParameterName]}];
                         }else if(cmd.default_value.length > 0){
                             return [...prev, {...cmd, value: JSON.parse(cmd.default_value)}];
                         }else{
@@ -538,8 +552,8 @@ export function TaskParametersDialog(props) {
                                 else{defaultV = choices[0];}
                             }
                         }
-                        if(cmd.name in props.command.parsedParameters){
-                            return [...prev, {...cmd, choices: choices, value: props.command.parsedParameters[cmd.name]}];
+                        if(parsedParameterName){
+                            return [...prev, {...cmd, choices: choices, value: props.command.parsedParameters[parsedParameterName]}];
                         }else{
                             return [...prev, {...cmd, choices: choices, default_value: defaultV, value: defaultV}];
                         }
@@ -547,7 +561,10 @@ export function TaskParametersDialog(props) {
                         return [...prev, {...cmd, value: {} }];                   
                     case "CredentialJson":
                         if (loadedCredentialsLoading.credential.length > 0){
-                            if(cmd.value === "" || (typeof(cmd.value) === Object && Object.keys(cmd.value).length === 0) || cmd.value === undefined){
+                            if(parsedParameterName){
+                                cmd.value = props.command.parsedParameters[parsedParameterName];
+                            }
+                            else if(cmd.value === "" || (typeof(cmd.value) === Object && Object.keys(cmd.value).length === 0) || cmd.value === undefined){
                                 cmd.value = loadedCredentialsLoading.credential[0];
                             }
                             return [...prev, {...cmd, choices: loadedCredentialsLoading.credential}];
