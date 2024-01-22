@@ -474,12 +474,14 @@ func AddMythicService(service string) {
 			pStruct["environment"] = environment
 		}
 		if !mythicEnv.GetBool("mythic_server_use_volume") {
+			// mount the entire directory in so that you can see changes to code too
 			pStruct["volumes"] = []string{
 				"./mythic-docker/src:/usr/src/app",
 			}
 		} else {
+			// when using a volume for Mythic server, just have it save off the files
 			pStruct["volumes"] = []string{
-				"mythic_server_volume:/usr/src/app",
+				"mythic_server_volume:/usr/src/app/files",
 			}
 		}
 		if _, ok := volumes["mythic_server"]; !ok {
