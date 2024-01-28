@@ -10,6 +10,7 @@ on:
   push:
     branches:
       - 'docker_updates'
+      - 'master'
     tags:
       - "v*.*.*"
 
