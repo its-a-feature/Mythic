@@ -1,4 +1,4 @@
-FROM ghcr.io/its-a-feature/mythic_server:v0.0.2.32
+FROM ghcr.io/its-a-feature/mythic_server:v0.0.3
 
 #FROM itsafeaturemythic/mythic_go_base:latest
 
