@@ -1,1 +1,1 @@
-FROM nginx:1.23-alpine
+FROM ghcr.io/its-a-feature/mythic_react:v0.0.3

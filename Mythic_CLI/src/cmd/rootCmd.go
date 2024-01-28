@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
+	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
 	"os"
 )
 
@@ -30,5 +31,7 @@ func Execute() {
 
 func init() {
 	// Create or parse the Docker ``.env`` file
+	config.Initialize()
+	manager.Initialize()
 	internal.Initialize()
 }

@@ -1,37 +1,21 @@
 package internal
 
 import (
-	"fmt"
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
+	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
 	"log"
-	"os"
-	"path/filepath"
 )
 
 func DatabaseReset() {
-	fmt.Printf("[*] Stopping Mythic\n")
-	DockerStop([]string{})
-	workingPath := getCwdFromExe()
-	fmt.Printf("[*] Removing database files\n")
-	err := os.RemoveAll(filepath.Join(workingPath, "postgres-docker", "database"))
-	if err != nil {
-		fmt.Printf("[-] Failed to remove database files\n")
-	} else {
-		fmt.Printf("[+] Successfully reset datbase files\n")
-	}
-}
-func RabbitmqReset(explicitCall bool) {
-	if explicitCall {
-		fmt.Printf("[*] Stopping Mythic\n")
-		DockerStop([]string{})
-		fmt.Printf("[*] Removing rabbitmq files\n")
-	}
-	workingPath := getCwdFromExe()
-	err := os.RemoveAll(filepath.Join(workingPath, "rabbitmq-docker", "storage"))
-	if err != nil {
-		log.Fatalf("[-] Failed to reset rabbitmq files: %v\n", err)
-	} else {
-		if explicitCall {
-			fmt.Printf("[+] Successfully reset rabbitmq files\n")
+	confirm := config.AskConfirm("Are you sure you want to reset the database? ")
+	if confirm {
+		confirm = config.AskConfirm("Are you absolutely sure? This will delete ALL data with your database forever. ")
+		if confirm {
+			log.Printf("[*] Stopping Mythic\n")
+			manager.GetManager().StopServices([]string{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
+			manager.GetManager().ResetDatabase(config.GetMythicEnv().GetBool("postgres_bind_use_volume"))
+			log.Printf("[*] Removing database files\n")
 		}
 	}
+
 }

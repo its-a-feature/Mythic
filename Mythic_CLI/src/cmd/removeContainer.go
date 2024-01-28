@@ -18,7 +18,7 @@ func init() {
 }
 
 func removeContainer(cmd *cobra.Command, args []string) {
-	if err := internal.DockerRemoveContainers(args); err != nil {
+	if err := internal.ServiceRemoveContainers(args); err != nil {
 
 	}
 }

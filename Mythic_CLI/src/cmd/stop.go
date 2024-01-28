@@ -19,7 +19,7 @@ func init() {
 }
 
 func stop(cmd *cobra.Command, args []string) {
-	if err := internal.DockerStop(args); err != nil {
+	if err := internal.ServiceStop(args); err != nil {
 
 	}
 }

@@ -83,112 +83,112 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 	}
 	searchResults := databaseStructs.Callback{}
 	callback := databaseStructs.Callback{}
-	if err := database.DB.Get(&callback, `SELECT
+	err := database.DB.Get(&callback, `SELECT
 		operation_id
 		FROM callback
-		WHERE agent_callback_id=$1 OR id=$2`, input.AgentCallbackUUID, input.AgentCallbackID); err != nil {
+		WHERE agent_callback_id=$1 OR id=$2`, input.AgentCallbackUUID, input.AgentCallbackID)
+	if err != nil {
 		logging.LogError(err, "Failed to find callback UUID")
 		response.Error = err.Error()
 		return response
-	} else {
-		targetCallback := databaseStructs.Callback{
-			OperationID: callback.OperationID,
-		}
-		if input.SearchCallbackID != nil {
-			targetCallback.ID = *input.SearchCallbackID
-		}
-		if input.SearchCallbackUUID != nil {
-			targetCallback.AgentCallbackID = *input.SearchCallbackUUID
-		}
-		if input.SearchCallbackDisplayID != nil {
-			targetCallback.DisplayID = *input.SearchCallbackDisplayID
-		}
-		searchString := `SELECT 
+	}
+	targetCallback := databaseStructs.Callback{
+		OperationID: callback.OperationID,
+	}
+	if input.SearchCallbackID != nil {
+		targetCallback.ID = *input.SearchCallbackID
+	}
+	if input.SearchCallbackUUID != nil {
+		targetCallback.AgentCallbackID = *input.SearchCallbackUUID
+	}
+	if input.SearchCallbackDisplayID != nil {
+		targetCallback.DisplayID = *input.SearchCallbackDisplayID
+	}
+	searchString := `SELECT 
     		callback.*,
     		payload.uuid "payload.uuid"
 			FROM callback 
 			JOIN payload on callback.registered_payload_id = payload.id
 			WHERE callback.operation_id=:operation_id `
-		// if we're not actually searching for another callback, just set ours
-		if input.SearchCallbackDisplayID != nil || input.SearchCallbackID != nil || input.SearchCallbackUUID != nil {
-			searchString += ` AND (callback.id=:id OR
+	// if we're not actually searching for another callback, just set ours
+	if input.SearchCallbackDisplayID != nil || input.SearchCallbackID != nil || input.SearchCallbackUUID != nil {
+		searchString += ` AND (callback.id=:id OR
 			callback.agent_callback_id=:agent_callback_id OR
 			callback.display_id=:display_id)`
+	}
+	if input.SearchCallbackUser != nil {
+		targetCallback.User = *input.SearchCallbackUser
+		searchString += `AND user=:user `
+	}
+	if input.SearchCallbackHost != nil {
+		targetCallback.Host = strings.ToUpper(*input.SearchCallbackHost)
+		if targetCallback.Host == "" {
+			targetCallback.Host = "UNKNOWN"
 		}
-		if input.SearchCallbackUser != nil {
-			targetCallback.User = *input.SearchCallbackUser
-			searchString += `AND user=:user `
-		}
-		if input.SearchCallbackHost != nil {
-			targetCallback.Host = strings.ToUpper(*input.SearchCallbackHost)
-			if targetCallback.Host == "" {
-				targetCallback.Host = "UNKNOWN"
-			}
-			searchString += `AND host=:host `
-		}
-		if input.SearchCallbackPID != nil {
-			targetCallback.PID = *input.SearchCallbackPID
-			searchString += `AND pid=:pid `
-		}
-		if input.SearchCallbackIP != nil {
-			targetCallback.IP = *input.SearchCallbackIP
-			searchString += `AND ip ILIKE :ip `
-		}
-		if input.SearchCallbackExtraInfo != nil {
-			targetCallback.ExtraInfo = *input.SearchCallbackExtraInfo
-			searchString += `AND extra_info ILIKE :extra_info `
-		}
-		if input.SearchCallbackSleepInfo != nil {
-			targetCallback.SleepInfo = *input.SearchCallbackSleepInfo
-			searchString += `AND sleep_info ILIKE :sleep_info `
-		}
-		if input.SearchCallbackExternalIP != nil {
-			targetCallback.ExternalIp = *input.SearchCallbackExternalIP
-			searchString += `AND external_ip ILIKE :external_ip `
-		}
-		if input.SearchCallbackIntegrityLevel != nil {
-			targetCallback.IntegrityLevel = *input.SearchCallbackIntegrityLevel
-			searchString += `AND integrity_level=:integrity_level `
-		}
-		if input.SearchCallbackOs != nil {
-			targetCallback.Os = *input.SearchCallbackOs
-			searchString += `AND callback.os ILIKE :os `
-		}
-		if input.SearchCallbackDomain != nil {
-			targetCallback.Domain = *input.SearchCallbackDomain
-			searchString += `AND domain ILIKE :domain `
-		}
-		if input.SearchCallbackArchitecture != nil {
-			targetCallback.Architecture = *input.SearchCallbackArchitecture
-			searchString += `AND architecture ILIKE :architecture`
-		}
-		if input.SearchCallbackDescription != nil {
-			targetCallback.Description = *input.SearchCallbackDescription
-			searchString += `AND callback.description ILIKE :description`
-		}
-		if rows, err := database.DB.NamedQuery(searchString, targetCallback); err != nil {
-			logging.LogError(err, "Failed to search callback information")
+		searchString += `AND host=:host `
+	}
+	if input.SearchCallbackPID != nil {
+		targetCallback.PID = *input.SearchCallbackPID
+		searchString += `AND pid=:pid `
+	}
+	if input.SearchCallbackIP != nil {
+		targetCallback.IP = *input.SearchCallbackIP
+		searchString += `AND ip ILIKE :ip `
+	}
+	if input.SearchCallbackExtraInfo != nil {
+		targetCallback.ExtraInfo = *input.SearchCallbackExtraInfo
+		searchString += `AND extra_info ILIKE :extra_info `
+	}
+	if input.SearchCallbackSleepInfo != nil {
+		targetCallback.SleepInfo = *input.SearchCallbackSleepInfo
+		searchString += `AND sleep_info ILIKE :sleep_info `
+	}
+	if input.SearchCallbackExternalIP != nil {
+		targetCallback.ExternalIp = *input.SearchCallbackExternalIP
+		searchString += `AND external_ip ILIKE :external_ip `
+	}
+	if input.SearchCallbackIntegrityLevel != nil {
+		targetCallback.IntegrityLevel = *input.SearchCallbackIntegrityLevel
+		searchString += `AND integrity_level=:integrity_level `
+	}
+	if input.SearchCallbackOs != nil {
+		targetCallback.Os = *input.SearchCallbackOs
+		searchString += `AND callback.os ILIKE :os `
+	}
+	if input.SearchCallbackDomain != nil {
+		targetCallback.Domain = *input.SearchCallbackDomain
+		searchString += `AND domain ILIKE :domain `
+	}
+	if input.SearchCallbackArchitecture != nil {
+		targetCallback.Architecture = *input.SearchCallbackArchitecture
+		searchString += `AND architecture ILIKE :architecture`
+	}
+	if input.SearchCallbackDescription != nil {
+		targetCallback.Description = *input.SearchCallbackDescription
+		searchString += `AND callback.description ILIKE :description`
+	}
+	rows, err := database.DB.NamedQuery(searchString, targetCallback)
+	if err != nil {
+		logging.LogError(err, "Failed to search callback information")
+		response.Error = err.Error()
+		return response
+	}
+	for rows.Next() {
+		result := MythicRPCCallbackSearchMessageResult{}
+		if err = rows.StructScan(&searchResults); err != nil {
+			logging.LogError(err, "Failed to get row from callbacks for search")
+		} else if err = mapstructure.Decode(searchResults, &result); err != nil {
+			logging.LogError(err, "Failed to map callback search results into array")
 			response.Error = err.Error()
 			return response
 		} else {
-			for rows.Next() {
-				result := MythicRPCCallbackSearchMessageResult{}
-				if err = rows.StructScan(&searchResults); err != nil {
-					logging.LogError(err, "Failed to get row from callbacks for search")
-				} else if err = mapstructure.Decode(searchResults, &result); err != nil {
-					logging.LogError(err, "Failed to map callback search results into array")
-					response.Error = err.Error()
-					return response
-				} else {
-					result.RegisteredPayloadUUID = searchResults.Payload.UuID
-					result.LockedOperatorID = int(searchResults.LockedOperatorID.Int64)
-					response.Results = append(response.Results, result)
-				}
-			}
-			response.Success = true
-			return response
+			result.RegisteredPayloadUUID = searchResults.Payload.UuID
+			result.LockedOperatorID = int(searchResults.LockedOperatorID.Int64)
+			response.Results = append(response.Results, result)
 		}
 	}
+	response.Success = true
+	return response
 }
 func processMythicRPCCallbackSearch(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCCallbackSearchMessage{}

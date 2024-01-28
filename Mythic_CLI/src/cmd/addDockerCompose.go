@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
+	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 // configCmd represents the config command
@@ -19,7 +22,12 @@ func init() {
 }
 
 func addDockerCompose(cmd *cobra.Command, args []string) {
-	if err := internal.AddDockerComposeEntry(args[0], make(map[string]interface{})); err != nil {
-
+	if utils.StringInSlice(args[0], config.MythicPossibleServices) {
+		internal.AddMythicService(args[0])
+		return
+	}
+	err := internal.Add3rdPartyService(args[0], make(map[string]interface{}))
+	if err != nil {
+		log.Printf("[-] Failed to add service")
 	}
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 // configCmd represents the config command
@@ -19,7 +20,10 @@ func init() {
 }
 
 func removeDockerCompose(cmd *cobra.Command, args []string) {
-	if err := internal.RemoveDockerComposeEntry(args[0]); err != nil {
-
+	err := internal.RemoveService(args[0])
+	if err != nil {
+		log.Printf("[-] Failed to remove service")
+		return
 	}
+	log.Printf("[+] Successfully removed service")
 }
