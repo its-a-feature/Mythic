@@ -67,6 +67,9 @@ func MythicRPCTaskUpdate(input MythicRPCTaskUpdateMessage) MythicRPCTaskUpdateMe
 		return response
 	} else {
 		response.Success = true
+		if task.Completed {
+			go CheckAndProcessTaskCompletionHandlers(task.ID)
+		}
 		return response
 	}
 }

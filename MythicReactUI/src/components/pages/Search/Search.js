@@ -45,12 +45,37 @@ export function Search(props){
       var newRelativePathQuery = window.location.pathname + "?" + params.toString();
       navigate(newRelativePathQuery);
   };
-
-    const changeSearchParam = (name, value) => {
+  const changeSearchParam = (name, value) => {
       params.set(name, value);
       var newRelativePathQuery = window.location.pathname + "?" + params.toString();
       navigate(newRelativePathQuery);
     }
+  const getTabComponent = () => {
+    switch(valueString){
+      case "tasks":
+        return <SearchTabTasksPanel key={"taskspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+      case "callbacks":
+        return <SearchTabCallbacksPanel key={"callbackspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+      case "files":
+        return <SearchTabFilesPanel key={"filespanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+      case "credentials":
+        return <SearchTabCredentialsPanel key={"credentialspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam}/>
+      case "keylogs":
+        return <SearchTabKeylogsPanel key={"keylogspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+      case "tokens":
+        return <SearchTabTokensPanel key={"tokenspanel"} index={value} me={props.me} value={value}  changeSearchParam={changeSearchParam} />
+      case "artifacts":
+        return <SearchTabArtifactsPanel key={"artifactspanel"} index={value} me={props.me} value={value}  changeSearchParam={changeSearchParam} />
+      case "socks":
+        return <SearchTabSocksPanel key={"sockspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+      case "processes":
+        return <SearchTabProcessPanel key={"processpanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+      case "tags":
+        return <SearchTabTagsPanel key={"tagspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+      default:
+        return null;
+    }
+  }
     return (
       <Root className={classes.root} style={{  height: "100%", display: "flex", flexDirection: "column"}}>
           <AppBar position="static" color="default" className={"no-box-shadow"}>
@@ -87,39 +112,14 @@ export function Search(props){
                     case "tags":
                       return <SearchTabTagsLabel key={"tagstab"} me={props.me} />;
                     default:
-                      return (null);
+                      return null;
                   }
                 })
             }
             </Tabs>
           </AppBar>
           {
-            tabTypes.map( (tab, index) => {
-              switch(tab){
-                  case "tasks":
-                    return <SearchTabTasksPanel key={"taskspanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam} />
-                  case "callbacks":
-                    return <SearchTabCallbacksPanel key={"callbackspanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam} />
-                  case "files":
-                    return <SearchTabFilesPanel key={"filespanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam} />
-                  case "credentials":
-                    return <SearchTabCredentialsPanel key={"credentialspanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam}/>
-                  case "keylogs":
-                    return <SearchTabKeylogsPanel key={"keylogspanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam} />
-                  case "tokens":
-                    return <SearchTabTokensPanel key={"tokenspanel"} index={index} me={props.me} value={value}  changeSearchParam={changeSearchParam} />
-                  case "artifacts":
-                    return <SearchTabArtifactsPanel key={"artifactspanel"} index={index} me={props.me} value={value}  changeSearchParam={changeSearchParam} />
-                  case "socks":
-                    return <SearchTabSocksPanel key={"sockspanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam} />
-                  case "processes":
-                    return <SearchTabProcessPanel key={"processpanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam} />
-                  case "tags":
-                    return <SearchTabTagsPanel key={"tagspanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam} />
-                  default:
-                    return (null);
-              }
-            })
+            getTabComponent()
           }
       </Root>
     );

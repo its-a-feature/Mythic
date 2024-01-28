@@ -6,7 +6,7 @@ export function MythicStyledTooltip(props){
     const { children, title, style, ...other} = props;
     const theme = useTheme();
     return (
-        <Tooltip title={title} arrow componentsProps={{
+        <Tooltip title={title} arrow followCursor enterDelay={1000} componentsProps={{
             tooltip: {
                 sx: {
                     backgroundColor: theme.palette.background.contrast,

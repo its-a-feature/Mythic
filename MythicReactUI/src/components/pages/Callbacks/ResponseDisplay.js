@@ -14,20 +14,14 @@ import {Backdrop, CircularProgress, IconButton, Typography} from '@mui/material'
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import Pagination from '@mui/material/Pagination';
 import {ResponseDisplayInteractive} from "./ResponseDisplayInteractive";
+import {ResponseDisplayMedia} from "./ResponseDisplayMedia";
+import {ResponseDisplayMaterialReactTable} from "./ResponseDisplayMaterialReactTable";
+import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 
-const subResponsesQuery = gql`
-subscription subResponsesQuery($task_id: Int!, $fetchLimit: Int!) {
-  response(where: {task_id: {_eq: $task_id}}, limit: $fetchLimit, order_by: {id: asc}) {
-    id
-    response: response_text
-    timestamp
-    is_error
-  }
-}`;
 const subResponsesStream = gql`
 subscription subResponsesStream($task_id: Int!){
   response_stream(
-    batch_size: 20,
+    batch_size: 50,
     cursor: {initial_value: {id: 0}},
     where: {task_id: {_eq: $task_id} }
   ){
@@ -38,7 +32,7 @@ subscription subResponsesStream($task_id: Int!){
 }
 `;
 const getResponsesLazyQuery = gql`
-query subResponsesQuery($task_id: Int!, $fetchLimit: Int!, $offset: Int!, $search: String!) {
+query subResponsesQuery($task_id: Int!, $fetchLimit: Int, $offset: Int!, $search: String!) {
   response(where: {task_id: {_eq: $task_id}, response_escape: {_ilike: $search}}, limit: $fetchLimit, offset: $offset, order_by: {id: asc}) {
     id
     response: response_text
@@ -74,7 +68,6 @@ query getBrowserScriptsQuery($command_id: Int!, $operator_id: Int!){
 }
 
 `;
-const fetchLimit = 10;
 export function b64DecodeUnicode(str) {
   if(str.length === 0){return ""}
   try{
@@ -112,28 +105,25 @@ export const ResponseDisplay = (props) =>{
 const NonInteractiveResponseDisplay = (props) => {
   const [output, setOutput] = React.useState("");
   const [rawResponses, setRawResponses] = React.useState([]);
-  const highestFetched = React.useRef(0);
   const taskID = React.useRef(props.task.id);
-  const [search, setSearch] = React.useState("");
+  const search = React.useRef("");
   const [totalCount, setTotalCount] = React.useState(0);
-  const oldSelectAllOutput = React.useRef(props.selectAllOutput);
   const [openBackdrop, setOpenBackdrop] = React.useState(true);
+  const initialResponseStreamLimit = useMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 10, output: "number"})
   const [fetchMoreResponses] = useLazyQuery(getResponsesLazyQuery, {
     fetchPolicy: "network-only",
     onCompleted: (data) => {
-      const responses = data.response.reduce( (prev, cur) => {
-        return prev + b64DecodeUnicode(cur.response);
-      }, b64DecodeUnicode(""));
-      const maxID = data.response.reduce( (prev, cur) => {
-        if(cur.id > prev){
-          return cur.id;
-        }
-        return prev;
-      }, highestFetched.current);
-      highestFetched.current = maxID;
-      setOutput(responses);
+      //console.log("fetchMoreResponses called", data)
+      // set raw responses to be what we just manually fetched
       const responseArray = data.response.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
       setRawResponses(responseArray);
+
+      const responses = responseArray.reduce( (prev, cur) => {
+        return prev + cur.response;
+      }, b64DecodeUnicode(""));
+      setOutput(responses);
+      // update maxID
+
       if(!props.selectAllOutput){
         setTotalCount(data.response_aggregate.aggregate.count);
       }
@@ -146,19 +136,14 @@ const NonInteractiveResponseDisplay = (props) => {
   const [fetchAllResponses] = useLazyQuery(getAllResponsesLazyQuery, {
     fetchPolicy: "network-only",
     onCompleted: (data) => {
-      const responses = data.response.reduce( (prev, cur) => {
-        return prev + b64DecodeUnicode(cur.response);
-      }, b64DecodeUnicode(""));
-      const maxID = data.response.reduce( (prev, cur) => {
-        if(cur.id > prev){
-          return cur.id;
-        }
-        return prev;
-      }, highestFetched.current);
-      highestFetched.current = maxID;
-      setOutput(responses);
       const responseArray = data.response.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
       setRawResponses(responseArray);
+
+      const responses = responseArray.reduce( (prev, cur) => {
+        return prev + cur.response;
+      }, b64DecodeUnicode(""));
+      setOutput(responses);
+
       setTotalCount(1);
       setOpenBackdrop(false);
     },
@@ -167,108 +152,111 @@ const NonInteractiveResponseDisplay = (props) => {
     }
   });
   React.useEffect( () => {
-    if(props.selectAllOutput !== oldSelectAllOutput.current){
+    //if(props.selectAllOutput !== oldSelectAllOutput.current){
+      //oldSelectAllOutput.current = props.selectAllOutput;
       if(props.selectAllOutput){
         setOpenBackdrop(true);
-        if(search === ""){
+        if(search.current === ""){
           fetchAllResponses({variables: {task_id: props.task.id, search: "%%"}})
         }else{
-          fetchAllResponses({variables: {task_id: props.task.id, search: "%" + search + "%"}})
+          fetchAllResponses({variables: {task_id: props.task.id, search: "%" + search.current + "%"}})
         }
+      }else{
+        // going from select all output to not select all output
+        // don't fetch this on first load
+        onSubmitPageChange(1);
       }
-    }
-  }, [props.selectAllOutput, oldSelectAllOutput]);
+    //}
+  }, [props.selectAllOutput]);
   React.useEffect( () => {
     setOpenBackdrop(true);
+    onSubmitPageChange(1);
   }, [props.task.id]);
   const subscriptionDataCallback = React.useCallback( ({data}) => {
     //console.log("fetchLimit", fetchLimit, "totalCount", totalCount);
     if(props.task.id !== taskID.current){
+      console.log("props.task.id !== taskID.current", props.task.id, taskID.current)
       taskID.current = props.task.id;
-      const responses = data.data.response.reduce( (prev, cur) => {
-        return prev + b64DecodeUnicode(cur.response);
+      // this is the latest batch of responses
+
+      // base64 decode all of the response data
+      const responseArray = data.data.response_stream.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
+      // set the aggregated output
+      const responses = responseArray.reduce( (prev, cur) => {
+        return prev + cur.response;
       }, b64DecodeUnicode(""));
-      highestFetched.current = data.data.response.reduce((prev, cur) => {
-        if (cur.id > prev) {
-          return cur.id;
-        }
-        return prev;
-      }, highestFetched.current);
       setOutput(responses);
-      const responseArray = data.data.response.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
+
       setRawResponses(responseArray);
-      setTotalCount(0);
+      setTotalCount(responseArray.length);
       setOpenBackdrop(false);
     } else {
-      if(totalCount >= fetchLimit){
+      if(totalCount >= initialResponseStreamLimit && initialResponseStreamLimit > 0){
         // we won't display it
         console.log("got more than we can see currently", totalCount);
         setOpenBackdrop(false);
         return;
       }
-      // we still have some room to view more, but only room for fetchLimit - totalFetched.current
-
-      const newResponses = data.data.response.filter( r => r.id > highestFetched.current);
-      const newerResponses = newResponses.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
-      //const newerResponses = data.data.response.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
+      // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
+      const currentIDS = rawResponses.map( r => r.id);
+      const newerResponses = data.data.response_stream.reduce( (prev, cur) => {
+        if(currentIDS.includes(cur.id)){return prev}
+        return [...prev, {...cur, response: b64DecodeUnicode(cur.response)}]
+      }, rawResponses);
+      // sort them to make sure we're still in order
       newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
-      let outputResponses = output;
-      //let outputResponses = "";
-      let rawResponseArray = [...rawResponses];
-      let highestFetchedId = highestFetched.current;
-      let totalFetchedSoFar = totalCount;
-      for(let i = 0; i < newerResponses.length; i++){
-        if(totalFetchedSoFar < fetchLimit){
-          outputResponses += newerResponses[i]["response"];
-          rawResponseArray.push(newerResponses[i]);
-          highestFetchedId = newerResponses[i]["id"];
-          totalFetchedSoFar += 1;
-        }else{
-          break;
+      // newerResponses is everything we've seen plus everything new
+      if(initialResponseStreamLimit > 0){
+        // take just the responses that make up our stream limit
+        const finalRawResponses = newerResponses.slice(0, initialResponseStreamLimit);
+        const outputResponses = finalRawResponses.reduce( (prev, cur) => {
+          return prev + cur.response;
+        }, b64DecodeUnicode(""));
+        if(finalRawResponses.length !== rawResponses.length){
+          setRawResponses(finalRawResponses);
+          setOutput(outputResponses);
         }
+      } else {
+        setRawResponses(newerResponses);
+        const outputResponses = newerResponses.reduce( (prev, cur) => {
+          return prev + cur.response;
+        }, b64DecodeUnicode(""));
+        setOutput(outputResponses);
       }
-      //console.log("updated output", outputResponses)
-      setOutput(outputResponses);
-      setRawResponses(rawResponseArray);
       setOpenBackdrop(false);
-      highestFetched.current = highestFetchedId;
     }
-
-
-  }, [output, highestFetched.current, rawResponses, totalCount, openBackdrop, props.task.id]);
-  useSubscription(subResponsesQuery, {
-    variables: {task_id: props.task.id, fetchLimit: fetchLimit},
+  }, [output, rawResponses, totalCount, props.task.id]);
+  useSubscription(subResponsesStream, {
+    variables: {task_id: props.task.id},
     fetchPolicy: "network_only",
     onData: subscriptionDataCallback
   });
   const onSubmitPageChange = (currentPage) => {
-    if(!props.selectAllOutput){
-      setOpenBackdrop(true);
-      if(search === undefined || search === ""){
+    //console.log("onSubmitPageChange")
+    if(search.current === undefined || search.current === ""){
         fetchMoreResponses({variables: {task_id: props.task.id,
-            fetchLimit: fetchLimit,
-            offset: fetchLimit * (currentPage - 1),
+            fetchLimit: initialResponseStreamLimit === 0 ? undefined : initialResponseStreamLimit,
+            offset: initialResponseStreamLimit * (currentPage - 1),
             search: "%_%"
           }})
       }else{
         fetchMoreResponses({variables: {task_id: props.task.id,
-            fetchLimit: fetchLimit,
-            offset: fetchLimit * (currentPage - 1),
-            search: "%" +  search + "%"
+            fetchLimit: initialResponseStreamLimit  === 0 ? undefined : initialResponseStreamLimit,
+            offset: initialResponseStreamLimit * (currentPage - 1),
+            search: "%" +  search.current + "%"
           }})
       }
-    }
-
   }
   const onSubmitSearch = React.useCallback( (newSearch) => {
-    setSearch(newSearch);
-    setOpenBackdrop(true);
+    search.current = newSearch;
+    //console.log("onSubmitSearch")
+    //setOpenBackdrop(true);
     if(newSearch === undefined || newSearch === ""){
       if(props.selectAllOutput){
         fetchAllResponses({variables: {task_id: props.task.id, search: "%%"}})
       }else{
         fetchMoreResponses({variables: {task_id: props.task.id,
-            fetchLimit: fetchLimit,
+            fetchLimit: initialResponseStreamLimit  === 0 ? undefined : initialResponseStreamLimit,
             offset: 0,
             search: "%_%"
           }})
@@ -279,14 +267,14 @@ const NonInteractiveResponseDisplay = (props) => {
         fetchAllResponses({variables: {task_id: props.task.id, search: "%" + newSearch + "%"}})
       }else{
         fetchMoreResponses({variables: {task_id: props.task.id,
-            fetchLimit: fetchLimit,
+            fetchLimit: initialResponseStreamLimit,
             offset: 0,
             search: "%" + newSearch + "%"
           }})
       }
 
     }
-  }, []);
+  }, [search.current]);
 
   return (
       <React.Fragment>
@@ -296,13 +284,22 @@ const NonInteractiveResponseDisplay = (props) => {
         {props.searchOutput &&
             <SearchBar onSubmitSearch={onSubmitSearch} />
         }
-        <div style={{overflowY: "auto", width: "100%", height: props.expand ? "100%": undefined}} ref={props.responseRef}>
-          <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
-                                    output={output} command_id={props.command_id}
-                                    task={props.task} search={search} expand={props.expand}/>
-        </div>
-        <PaginationBar selectAllOutput={props.selectAllOutput} totalCount={totalCount} pageSize={fetchLimit}
-                       onSubmitPageChange={onSubmitPageChange} task={props.task} search={search} />
+        {!openBackdrop &&
+            <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
+
+              <div style={{overflowY: "auto", flexGrow: 1, width: "100%", height: props.expand ? "100%": undefined, display: "flex"}} ref={props.responseRef}>
+                <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
+                                          output={output} command_id={props.command_id}
+                                          task={props.task} search={search.current} expand={props.expand}/>
+
+              </div>
+              {!props.selectAllOutput && initialResponseStreamLimit !== 0 &&
+                  <PaginationBar selectAllOutput={props.selectAllOutput} totalCount={totalCount} pageSize={initialResponseStreamLimit}
+                                 onSubmitPageChange={onSubmitPageChange} task={props.task} search={search.current} />
+              }
+            </div>
+
+        }
       </React.Fragment>
   )
 }
@@ -324,27 +321,27 @@ export const NonInteractiveResponseDisplayConsole = (props) => {
     //console.log("fetchLimit", fetchLimit, "totalCount", totalCount);
     if(props.task.id !== taskID.current){
       taskID.current = props.task.id;
-      const responses = data.data.response_stream.reduce( (prev, cur) => {
-        return prev + b64DecodeUnicode(cur.response);
+      const responseArray = data.data.response_stream.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
+      const responses = responseArray.reduce( (prev, cur) => {
+        return prev + cur.response;
       }, b64DecodeUnicode(""));
       setOutput(responses);
-      const responseArray = data.data.response_stream.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
       setRawResponses(responseArray);
     } else {
-      const newerResponses = data.data.response_stream.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
+      // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
+      const currentIDS = rawResponses.map( r => r.id);
+      const newerResponses = data.data.response_stream.reduce( (prev, cur) => {
+        if(currentIDS.includes(cur.id)){return prev}
+        return [...prev, {...cur, response: b64DecodeUnicode(cur.response)}]
+      }, rawResponses);
+      // sort them to make sure we're still in order
       newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
-      let outputResponses = output;
-      let rawResponseArray = [...rawResponses];
-      for(let i = 0; i < newerResponses.length; i++){
-          outputResponses += newerResponses[i]["response"];
-          rawResponseArray.push(newerResponses[i]);
-      }
-      //console.log("updated output", outputResponses)
+      setRawResponses(newerResponses);
+      const outputResponses = newerResponses.reduce( (prev, cur) => {
+        return prev + cur.response;
+      }, b64DecodeUnicode(""));
       setOutput(outputResponses);
-      setRawResponses(rawResponseArray);
     }
-
-
   }, [output, rawResponses, props.task.id]);
   useSubscription(subResponsesStream, {
     variables: {task_id: props.task.id},
@@ -393,6 +390,10 @@ export const PaginationBar = ({selectAllOutput, totalCount, onSubmitPageChange, 
     }
   }, [totalCount, maxCount, search, selectAllOutput]);
   const pageCount = Math.max(1, Math.ceil(localTotalCount / pageSize));
+  // don't bother people with pagination information if they haven't even started paginating
+  if(pageCount < 2){
+    return null
+  }
   return (
     <div id={'scrolltotaskbottom' + task.id} style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "10px",}} >
         <Pagination count={pageCount} page={currentPage} variant="contained" color="primary" showFirstButton showLastButton
@@ -411,7 +412,7 @@ export const SearchBar = ({onSubmitSearch}) => {
   }
   return (
     <div style={{marginTop: "10px"}}>
-      <MythicTextField value={search} autoFocus onEnter={onSubmitLocalSearch} onChange={(n,v,e) => setSearch(v)} placeholder="Search Output of This Task" name="Search..."
+      <MythicTextField value={search} autoFocus onEnter={onSubmitLocalSearch} onChange={(n,v,e) => setSearch(v)} placeholder="Search All Output of This Task" name="Search..."
         InputProps={{
           endAdornment: 
           <React.Fragment>
@@ -429,6 +430,8 @@ export const SearchBar = ({onSubmitSearch}) => {
 const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, command_id, task, search, expand}) => {
   const [localViewBrowserScript, setViewBrowserScript] = React.useState(true);
   const [browserScriptData, setBrowserScriptData] = React.useState({});
+  const [loadingBrowserScript, setLoadingBrowserScript] = React.useState(true);
+  const useNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: false});
   const script = React.useRef();
   const me = useReactiveVar(meState);
   useEffect( () => {
@@ -456,6 +459,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
         copied["plaintext"] = "";
       }
     }
+    if(useNewBrowserScriptTable){return copied}
     if(scriptData["table"] !== undefined){
       if(scriptData["table"].length > 0){
         const tableUpdates = scriptData.table.map( t => {
@@ -463,7 +467,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
             let foundMatch = false;
             for (const entry of Object.values(r)) {
               if(entry["plaintext"] !== undefined){
-                if(String(entry["plaintext"]).includes(search)){foundMatch = true;}
+                if(String(entry["plaintext"]).toLowerCase().includes(search)){foundMatch = true;}
               }
               if(entry["button"] !== undefined && entry["button"]["value"] !== undefined){
                 if(JSON.stringify(entry["button"]["value"]).includes(search)){foundMatch = true;}
@@ -476,6 +480,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
         copied["table"] = tableUpdates;
       }
     }
+
     return copied;
   }
   useEffect( () => {
@@ -483,10 +488,11 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
       setViewBrowserScript(false);
     }else{
       setViewBrowserScript(viewBrowserScript);
-      if(viewBrowserScript && script.current !== undefined){
+      if(viewBrowserScript){
         try{
           const rawResponseData = rawResponses.map(c => c.response);
-          let res = script.current(task, rawResponseData);
+          let scriptTaskData = JSON.parse(JSON.stringify(task));
+          let res = script.current(scriptTaskData, rawResponseData);
           setBrowserScriptData(filterOutput(res));
         }catch(error){
           setViewBrowserScript(false);
@@ -494,7 +500,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
           
       }
     }
-  }, [viewBrowserScript, rawResponses]);
+  }, [viewBrowserScript]);
   const [fetchScripts] = useLazyQuery(taskScript, {
     fetchPolicy: "no-cache",
     onCompleted: (data) => {
@@ -506,7 +512,8 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
           setViewBrowserScript(true);
           //console.log(rawResponses);
           const rawResponseData = rawResponses.map(c => c.response);
-          let res = script.current(task, rawResponseData);
+          let scriptTaskData = JSON.parse(JSON.stringify(task));
+          let res = script.current(scriptTaskData, rawResponseData);
           setBrowserScriptData(filterOutput(res));
         }catch(error){
           //snackActions.error(error.toString());
@@ -518,16 +525,22 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
         setViewBrowserScript(false);
         setBrowserScriptData({});
       }
+      setLoadingBrowserScript(false);
     },
     onError: (data) => {
-      console.log(data);
+      console.log("error loading scripts", data);
     }
   });
   useEffect( () => {
     if(command_id !== undefined){
-      fetchScripts({variables: {command_id: command_id, operator_id: me.user.user_id, operation_id: me.user.current_operation_id}});
+      setLoadingBrowserScript(true);
+      fetchScripts({variables: {command_id: command_id, operator_id: me.user.user_id}});
     }
   }, [command_id, task.id]);
+  if(loadingBrowserScript){
+    return null
+  }
+  //console.log(browserScriptData);
   return (
     localViewBrowserScript && browserScriptData ? (
       <React.Fragment>
@@ -535,12 +548,15 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
               <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} {...scr} />
             )) || null
           }
-          {browserScriptData?.plaintext &&
+          {browserScriptData?.plaintext !== undefined &&
             <ResponseDisplayPlaintext plaintext={browserScriptData["plaintext"]} expand={expand} />
           }
-          {browserScriptData?.table?.map( (table, index) => (
-              <ResponseDisplayTable callback_id={task.callback_id} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
-            )) || null
+          {browserScriptData?.table?.map( (table, index) => {
+          if(useNewBrowserScriptTable){
+            return <ResponseDisplayMaterialReactTable callback_id={task.callback_id} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
+          }
+            return <ResponseDisplayTable callback_id={task.callback_id} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
+          }) || null
           }
           {browserScriptData?.download?.map( (dl, index) => (
               <ResponseDisplayDownload download={dl} key={"download" + index + "fortask" + task.id} />
@@ -550,6 +566,9 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
               <ResponseDisplaySearch search={s} key={"searchlink" + index + "fortask" + task.id} />
           )) || null
           }
+          {browserScriptData?.media?.map( (s, index) => (
+              <ResponseDisplayMedia key={"searchmedia" + index + "fortask" + task.id} media={s} expand={expand} />
+          )) || null}
       </React.Fragment>
     ) : (
       <ResponseDisplayPlaintext plaintext={output} expand={expand}/>

@@ -100,6 +100,7 @@ export function App(props) {
                 successOnMain: '#1ae302',
                 errorOnMain: '#ff656b',
                 infoOnMain: '#67ceff',
+                materialReactTableHeader: themeMode === 'dark' ? '#484848' : '#d5d5d5',
                 tableBorder: themeMode === 'dark' ? 'rgba(81,81,81,1)' : 'rgba(224,224,224,1)',
                 tableHover: themeMode === 'dark' ? 'rgba(85,88,93)' : 'rgba(245, 245, 245)',
                 pageHeader: {

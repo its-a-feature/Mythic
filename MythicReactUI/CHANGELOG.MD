@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.59] - 2024-01-28
+
+### Changed
+
+- Added a new `media` type for browser scripting to render pdfs, images, and text inline with tasking
+  - The following render inline: "png", "jpg", "gif", "jpeg", "pdf"
+  - The following render as text: "txt", "ps1", "php", "json", "yml", "yaml", "config", "cfg", "go"
+  - More file extensions will be added over time, please open PRs or issues to add more formats
+  - Formats must be able to natively render in Google Chrome and Firefox, so something like a docx won't work
+- Added a new `media` button on the files page to render pdfs, images, and syntax highlighted text
+- Added a new user setting to disable automatic rendering of media types (requires a manual click each time)
+- Updated tooltips to not display immediately, to follow the cursor, and go away faster, so they don't interfere with clicking as much
+- Added new `experimental` toggle per-operator in their settings page to try out new experimental features
+  - added a new experimental feature for a different kind of table to be rendered for BrowserScript Tables
+- Updated size of top/side icons to make it easier for people to navigate
+- Moved the dark/light mode toggle from the size to a dedicated icon on top
+- Updated the normal `blue plus` for tasks to a `grey cog` that's on the far right of tasks
+  - this should clean up the standard output when looking through tasks
+- Updated to not show pagination information for task output unless there's more than one page
+- Updated rendering for the search page to not implicitly render all other tabs for increased performance
+
 ## [0.1.58] - 2024-01-22
 
 ### Changed

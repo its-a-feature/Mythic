@@ -13,6 +13,7 @@ import TableContainer from '@mui/material/TableContainer';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import {HexColorInput, HexColorPicker} from 'react-colorful';
+import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 
 
 export function SettingsOperatorUIConfigDialog(props) {
@@ -37,20 +38,20 @@ export function SettingsOperatorUIConfigDialog(props) {
     const [fontSize, setFontSize] = React.useState(initialLocalStorageFontSizeValue);
     const [fontFamily, setFontFamily] = React.useState(initialLocalStorageFontFamilyValue);
     const [topColor, setTopColor] = React.useState(initialLocalStorageTopColorValue);
-    const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
-    const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() === "false" ? false : true);
+
+    const initialShowMediaValue = useMythicSetting({setting_name: "showMedia", default_value: true});
+    const [showMedia, setShowMedia] = React.useState(initialShowMediaValue);
+
+    const initialHideUsernameValue = useMythicSetting({setting_name: "hideUsernames", default_value: false});
     const [hideUsernames, setHideUsernames] = React.useState(initialHideUsernameValue);
 
-    const localStorageInitialShowIPValue = localStorage.getItem(`${me?.user?.user_id || 0}-showIP`);
-    const initialShowIPValue = localStorageInitialShowIPValue === null ? false : (localStorageInitialShowIPValue.toLowerCase() === "false" ? false : true);
+    const initialShowIPValue = useMythicSetting({setting_name: "showIP", default_value: false});
     const [showIP, setShowIP] = React.useState(initialShowIPValue);
 
-    const localStorageInitialShowHostnameValue = localStorage.getItem(`${me?.user?.user_id || 0}-showHostname`);
-    const initialShowHostnameValue = localStorageInitialShowHostnameValue === null ? false : (localStorageInitialShowHostnameValue.toLowerCase() === "false" ? false : true);
+    const initialShowHostnameValue = useMythicSetting({setting_name: "showHostname", default_value: false});
     const [showHostname, setShowHostname] = React.useState(initialShowHostnameValue);
 
-    const localStorageInitialShowCallbackGroupsValue = localStorage.getItem(`${me?.user?.user_id || 0}-showCallbackGroups`);
-    const initialShowCallbackGroupsValue = localStorageInitialShowCallbackGroupsValue === null ? false : (localStorageInitialShowCallbackGroupsValue.toLowerCase() === "false" ? false : true);
+    const initialShowCallbackGroupsValue = useMythicSetting({setting_name: "showCallbackGroups", default_value: false});
     const [showCallbackGroups, setShowCallbackGroups] = React.useState(initialShowCallbackGroupsValue);
 
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
@@ -72,19 +73,13 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onShowCallbackGroupsChanged = (evt) => {
         setShowCallbackGroups(!showCallbackGroups);
     }
+    const onShowMediaChanged = (evt) => {
+        setShowMedia(!showMedia);
+    }
     const onResumeNotifications = (evt) => {
         setResumeNotifications(!resumeNotifications);
     }
     const onAccept = () => {
-      props.onAccept({
-        fontSize,
-        fontFamily,
-        topColor,
-        hideUsernames,
-          showIP,
-          showHostname,
-          showCallbackGroups,
-      });
       if(resumeNotifications){
           localStorage.setItem("dnd", JSON.stringify({
               "doNotDisturb": false,
@@ -92,6 +87,15 @@ export function SettingsOperatorUIConfigDialog(props) {
               "doNotDisturbMinutes": 0
           }))
       }
+        localStorage.setItem(`${me?.user?.user_id || 0}-hideUsernames`, hideUsernames);
+        localStorage.setItem(`${me?.user?.user_id || 0}-showIP`, showIP);
+        localStorage.setItem(`${me?.user?.user_id || 0}-showHostname`, showHostname);
+        localStorage.setItem(`${me?.user?.user_id || 0}-showCallbackGroups`, showCallbackGroups);
+        localStorage.setItem(`${me?.user?.user_id || 0}-fontSize`, fontSize);
+        localStorage.setItem(`${me?.user?.user_id || 0}-fontFamily`, fontFamily);
+        localStorage.setItem(`${me?.user?.user_id || 0}-topColor`, topColor);
+        localStorage.setItem(`${me?.user?.user_id || 0}-showMedia`, showMedia);
+        window.location.reload();
       props.onClose();
     }
     const setDefaults = () => {
@@ -113,6 +117,7 @@ export function SettingsOperatorUIConfigDialog(props) {
       setShowIP(false);
       setShowHostname(false);
       setShowCallbackGroups(false);
+      setShowMedia(true);
     }
   
   return (
@@ -178,6 +183,18 @@ export function SettingsOperatorUIConfigDialog(props) {
                               color="primary"
                               inputProps={{ 'aria-label': 'primary checkbox' }}
                               name="show_callback_groups"
+                          />
+                      </TableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <TableCell>Automatically show Media in Browser scripts</TableCell>
+                      <TableCell>
+                          <Switch
+                              checked={showMedia}
+                              onChange={onShowMediaChanged}
+                              color="primary"
+                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                              name="show_media"
                           />
                       </TableCell>
                   </TableRow>

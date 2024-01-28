@@ -5,21 +5,24 @@ import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
 import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
+import {snackActions} from "../../utilities/Snackbar";
 
-
-
+const MaxRenderSize = 2000000;
 export const ResponseDisplayPlaintext = (props) =>{
   const theme = useTheme();
-  const [plaintextView, setPlaintextView] = React.useState(String(props.plaintext));
+  const [plaintextView, setPlaintextView] = React.useState("");
   useEffect( () => {
-    try{
-      const newPlaintext = JSON.stringify(JSON.parse(String(props.plaintext)), null, 4);
-      setPlaintextView(newPlaintext);
-    }catch(error){
-      //console.log("trying to JSONify plaintext error", error);
-      setPlaintextView(props.plaintext);
-    }
-
+      if(props.plaintext.length > MaxRenderSize){
+          snackActions.warning("Response too large (> 2MB), truncating the render. Download task output to view entire response.");
+          setPlaintextView(props.plaintext.substring(0, MaxRenderSize));
+      } else {
+          try{
+              const newPlaintext = JSON.stringify(JSON.parse(String(props.plaintext)), null, 4);
+              setPlaintextView(newPlaintext);
+          }catch(error){
+              setPlaintextView(String(props.plaintext));
+          }
+      }
   }, [props.plaintext]);
   return (
     <AceEditor 
@@ -35,7 +38,7 @@ export const ResponseDisplayPlaintext = (props) =>{
         width={"100%"}
         //autoScrollEditorIntoView={true}
         wrapEnabled={true}
-        minLines={2}
+        minLines={1}
         //maxLines={props.expand ? 50 : 20}
         setOptions={{
           showLineNumbers: true,

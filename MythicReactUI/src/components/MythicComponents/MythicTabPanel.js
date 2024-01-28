@@ -134,7 +134,7 @@ export function MythicTabLabel(props) {
             onDragOver={allowDrop}
             onDragEnter={onDragEnter}
             onDragLeave={onDragLeave}
-            draggable={onDragTab ? true : false}
+            draggable={!!onDragTab}
             onDragStart={drag}
             label={
                 <span onContextMenu={handleContextClick} style={{ display: 'inline-block', zIndex: 1}} ref={dropdownAnchorRef}>

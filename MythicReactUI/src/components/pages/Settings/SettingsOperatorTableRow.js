@@ -25,12 +25,16 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { snackActions } from '../../utilities/Snackbar';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 import PasswordIcon from '@mui/icons-material/Password';
+import {SettingsOperatorExperimentalUIConfigDialog} from "./SettingsOperatorExperimentalUIConfigDialog";
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 export function SettingsOperatorTableRow(props){
     const [open, setOpen] = React.useState(false);
     const [openUpdate, setOpenUpdateDialog] = React.useState(false);
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [openUIConfig, setOpenUIConfig] = React.useState(false);
+    const [openExperimentalUIConfig, setOpenExperimentalUIConfig] = React.useState(false);
     const me = props.me;
     const isMe = ( me?.user?.user_id || 0 ) === props.id;
     const onViewUTCChanged = (evt) => {
@@ -61,16 +65,6 @@ export function SettingsOperatorTableRow(props){
     const onAcceptDelete = (id) => {
         props.onDeleteOperator(id, !props.deleted);
         setOpenDeleteDialog(false);
-    }
-    const onAcceptUIChange = ({fontSize, fontFamily, topColor, hideUsernames, showIP, showHostname, showCallbackGroups}) => {
-        localStorage.setItem(`${me?.user?.user_id || 0}-hideUsernames`, hideUsernames);
-        localStorage.setItem(`${me?.user?.user_id || 0}-showIP`, showIP);
-        localStorage.setItem(`${me?.user?.user_id || 0}-showHostname`, showHostname);
-        localStorage.setItem(`${me?.user?.user_id || 0}-showCallbackGroups`, showCallbackGroups);
-        localStorage.setItem(`${me?.user?.user_id || 0}-fontSize`, fontSize);
-        localStorage.setItem(`${me?.user?.user_id || 0}-fontFamily`, fontFamily);
-        localStorage.setItem(`${me?.user?.user_id || 0}-topColor`, topColor);
-        window.location.reload();
     }
     return (
         <React.Fragment>
@@ -116,17 +110,27 @@ export function SettingsOperatorTableRow(props){
                 <MythicStyledTableCell>
                   {isMe && 
                       <>
-                        <IconButton size="large" onClick={()=>{setOpenUIConfig(true);}} color="info" variant='contained'>
+                        <IconButton style={{display: "inline-block"}} size="large" onClick={()=>{setOpenUIConfig(true);}} color="info" variant='contained'>
                             <SettingsIcon />
                         </IconButton>
                         {openUIConfig &&
                           <MythicDialog open={openUIConfig} onClose={()=>{setOpenUIConfig(false)}} maxWidth={"md"} fullWidth
-                          innerDialog={<SettingsOperatorUIConfigDialog onAccept={onAcceptUIChange} onClose={()=>{setOpenUIConfig(false);}} {...props} />}
+                          innerDialog={<SettingsOperatorUIConfigDialog  onClose={()=>{setOpenUIConfig(false);}} {...props} />}
                           />
                         }
+                        <MythicStyledTooltip title={"Experimental UI Settings"} >
+                            <IconButton size="large" onClick={()=>{setOpenExperimentalUIConfig(true);}} color="warning" variant='contained'>
+                                <RocketLaunchIcon />
+                            </IconButton>
+                        </MythicStyledTooltip>
+
+                          {openExperimentalUIConfig &&
+                              <MythicDialog open={openExperimentalUIConfig} onClose={()=>{setOpenExperimentalUIConfig(false)}} maxWidth={"md"} fullWidth
+                                            innerDialog={<SettingsOperatorExperimentalUIConfigDialog  onClose={()=>{setOpenExperimentalUIConfig(false);}} {...props} />}
+                              />
+                          }
                       </>
                   }
-                  
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Switch

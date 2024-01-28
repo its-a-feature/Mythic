@@ -112,6 +112,7 @@ func setRoutes(r *gin.Engine) {
 		// unauthenticated file download based on file UUID
 		// this is for payload hosting and payload containers to fetch files via web
 		r.GET("/direct/download/:file_uuid", webcontroller.FileDirectDownloadWebhook)
+		r.GET("/direct/view/:file_uuid", webcontroller.FileDirectViewWebhook)
 		// unauthenticated file upload based on file UUID
 		// this is for payload containers to upload files that are too big for rabbitmq
 		r.POST("/direct/upload/:file_uuid", webcontroller.FileDirectUploadWebhook)

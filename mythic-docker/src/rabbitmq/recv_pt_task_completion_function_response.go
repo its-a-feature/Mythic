@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"strings"
 
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -74,6 +75,7 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		} else {
 			task.Status = PT_TASK_FUNCTION_STATUS_SUBTASK_COMPLETED_FUNCTION_ERROR
 		}
+
 	} else if task.SubtaskGroupName != "" && task.GroupCallbackFunction != "" && !task.GroupCallbackFunctionCompleted {
 		// we have a subtask group name, we have a group callback function defined, and that group callback function is done
 		// need to check if we're the last one in the group to finish - if so, we need to call the function, if not do nothing
@@ -154,6 +156,7 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		} else {
 			task.Stderr += payloadMsg.Error
 			task.Status = PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION_ERROR
+			task.Completed = true
 		}
 	}
 	if payloadMsg.Completed != nil {
@@ -168,6 +171,10 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 			}
 		}
 
+	}
+	if task.Completed && strings.Contains("error", task.Status) && len(task.Stderr) == 0 {
+		// if the task is now completed and we're returning error, but there's no stderr, add something
+		task.Stderr = "No error output provided by the task completion function, but Success was set to False.\n"
 	}
 	if _, err := database.DB.NamedExec(`UPDATE task SET
 		status=:status, display_params=:display_params, "stdout"=:stdout, stderr=:stderr,

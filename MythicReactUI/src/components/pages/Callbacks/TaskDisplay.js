@@ -15,6 +15,7 @@ import {gql, useLazyQuery, useSubscription } from '@apollo/client';
 import {TaskDisplayContainer, TaskDisplayContainerConsole} from './TaskDisplayContainer';
 import {TagsDisplay} from '../../MythicComponents/MythicTag';
 import {taskingDataFragment} from './CallbackMutations';
+import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 
 
 const PREFIX = 'TaskDisplay';
@@ -266,6 +267,67 @@ const ColoredTaskDisplay = ({task, theme, children}) => {
         {children}
       </span>
     )
+}
+const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick }) => {
+  const [displayComment, setDisplayComment] = React.useState(false);
+  const [alertBadges, setAlertBadges] = React.useState(0);
+  const initialHideUsernameValue = useMythicSetting({setting_name: "hideUsernames", default_value: false});
+  const initialShowIPValue = useMythicSetting({setting_name: "showIP", default_value: false});
+  const ipValue = JSON.parse(task.callback.ip)[0];
+  const initialShowHostnameValue = useMythicSetting({setting_name: "showHostname", default_value: false});
+  const initialShowCallbackGroupsValue = useMythicSetting({setting_name: "showCallbackGroups", default_value: false});
+  const toggleDisplayComment = (evt) => {
+    evt.stopPropagation();
+    setDisplayComment(!displayComment);
+  }
+  const preventPropagation = (e) => {
+    e.stopPropagation();
+    //e.preventDefault();
+  }
+  const onLocalClick = (e) => {
+    if(onClick){
+      onClick(e);
+    }
+    preventPropagation(e);
+  }
+  return (
+      <ColoredTaskDisplay task={task} theme={theme}  >
+        <div id={taskDivID} style={{width: "100%"}}>
+          {displayComment ? (
+              <React.Fragment>
+                <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>{task.commentOperator.username}</Typography><br/>
+                <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
+              </React.Fragment>
+          ) : null}
+          <div >
+            <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
+              [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
+              / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username} `}
+              / <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>{ task.callback.display_id}</Link>
+              {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}
+              {initialShowIPValue ? `/ ${ipValue} ` : ''}
+              {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
+            </Typography>
+            <TaskStatusDisplay task={task} theme={theme}/>
+            <TaskTagDisplay task={task} />
+          </div>
+          <div>
+            {task.comment !== "" ? (
+                <div className={classes.column}>
+                  <IconButton size="small" style={{padding: "0"}} color="primary" onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
+                </div>
+            ) : null}
+            <div className={classes.column} onClick={onLocalClick}>
+              <Badge badgeContent={alertBadges} color="warning" anchorOrigin={{vertical: 'top', horizontal: 'left'}}>
+                <Typography className={classes.heading} onClick={onLocalClick}>
+                  {(task?.command?.cmd || task.command_name) + " " + task.display_params}
+                </Typography>
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </ColoredTaskDisplay>
+  )
 }
 const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}) => {
 	const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -645,28 +707,12 @@ const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}
       ) : null
   )
 }
+
 const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks}) => {
   const [fromNow, setFromNow] = React.useState(new Date());
   const theme = useTheme();
-  const [displayComment, setDisplayComment] = React.useState(false);
-  const [alertBadges, setAlertBadges] = React.useState(0);
-  const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
-  const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() !== "false");
-
-  const localStorageInitialShowIPValue = localStorage.getItem(`${me?.user?.user_id || 0}-showIP`);
-  const initialShowIPValue = localStorageInitialShowIPValue === null ? false : (localStorageInitialShowIPValue.toLowerCase() !== "false");
-  const ipValue = JSON.parse(task.callback.ip)[0];
-  const localStorageInitialShowHostnameValue = localStorage.getItem(`${me?.user?.user_id || 0}-showHostname`);
-  const initialShowHostnameValue = localStorageInitialShowHostnameValue === null ? false : (localStorageInitialShowHostnameValue.toLowerCase() !== "false");
-
-  const localStorageInitialShowCallbackGroupsValue = localStorage.getItem(`${me?.user?.user_id || 0}-showCallbackGroups`);
-  const initialShowCallbackGroupsValue = localStorageInitialShowCallbackGroupsValue === null ? false : (localStorageInitialShowCallbackGroupsValue.toLowerCase() !== "false");
-
-  const toggleDisplayComment = (evt) => {
-    evt.stopPropagation();
-    setDisplayComment(!displayComment);
-  }
   const prevResponseMaxId = useRef(0);
+  // only scroll down for your own tasks
   useLayoutEffect( () => {
     if(task.operator.username === (me?.user?.username || "")){
       scrollContent();
@@ -681,8 +727,6 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
         if(prevResponseMaxId.current === 0 && currentData > 0){
           toggleTaskDropdown();
           prevResponseMaxId.current = currentData;
-        }else if(currentData > prevResponseMaxId.current){
-          setAlertBadges(currentData - prevResponseMaxId.current);
         }
       } else if(newlyIssuedTasks !== undefined) {
         let newIndex = newlyIssuedTasks.findIndex( (e) => e === task.id);
@@ -694,7 +738,6 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
       }
     }else{
       prevResponseMaxId.current = currentData;
-      setAlertBadges(0);
     }
   }, [task.response_count, dropdownOpen]);
   const scrollContent = (node, isAppearing) => {
@@ -708,11 +751,7 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
     }
     
   }
-  const preventPropagation = (e) => {
-    e.stopPropagation();
-    //e.preventDefault();
-  }
-  
+
   return (
     <StyledPaper className={classes.root + " no-box-shadow"} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
       <Accordion TransitionProps={{ unmountOnExit: true, onEntered: scrollContent }} defaultExpanded={false} onChange={toggleTaskDropdown} expanded={dropdownOpen}  >
@@ -722,42 +761,7 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
           id={`panel1c-header-${task.id}`}
           classes={accordionClasses}
         >  
-          <ColoredTaskDisplay task={task} theme={theme}  >
-              <div id={'scrolltotask' + task.id} style={{width: "100%"}}>
-                {displayComment ? (
-                    <React.Fragment>
-                        <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>{task.commentOperator.username}</Typography><br/>
-                        <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
-                    </React.Fragment>
-                  ) : null}
-                  <div >
-                    <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
-                      [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
-                      / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username} `}
-                      / <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>{ task.callback.display_id}</Link>
-                      {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}
-                      {initialShowIPValue ? `/ ${ipValue} ` : ''}
-                      {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
-                    </Typography>
-                    <TaskStatusDisplay task={task} theme={theme}/>
-                    <TaskTagDisplay task={task} />
-                  </div>
-                  <div>
-                  {task.comment !== "" ? (
-                        <div className={classes.column}>
-                            <IconButton size="small" style={{padding: "0"}} color="primary" onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
-                          </div>
-                      ) : null}
-                    <div className={classes.column} onClick={preventPropagation}>
-                        <Badge badgeContent={alertBadges} color="warning" anchorOrigin={{vertical: 'top', horizontal: 'left'}}>
-                          <Typography className={classes.heading} >
-                            {(task?.command?.cmd || task.command_name) + " " + task.display_params}
-                          </Typography>
-                        </Badge>
-                      </div>
-                </div>
-            </div>
-          </ColoredTaskDisplay>          
+          <ColoredTaskLabel theme={theme} task={task} me={me} taskDivID={'scrolltotask' + task.id} />
         </StyledAccordionSummary>
         <AccordionDetails style={{cursor: "default"}}>
           <TaskDisplayContainer me={me} task={task} />
@@ -777,24 +781,7 @@ export const getLabelText = (task, graphView) => {
 }
 export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphView}) => {
   const theme = useTheme();
-  const [displayComment, setDisplayComment] = React.useState(false);
-  const [alertBadges, setAlertBadges] = React.useState(0);
 
-  const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
-  const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() !== "false");
-  const localStorageInitialShowIPValue = localStorage.getItem(`${me?.user?.user_id || 0}-showIP`);
-  const initialShowIPValue = localStorageInitialShowIPValue === null ? false : (localStorageInitialShowIPValue.toLowerCase() !== "false");
-  const ipValue = JSON.parse(task.callback.ip)[0];
-  const localStorageInitialShowHostnameValue = localStorage.getItem(`${me?.user?.user_id || 0}-showHostname`);
-  const initialShowHostnameValue = localStorageInitialShowHostnameValue === null ? false : (localStorageInitialShowHostnameValue.toLowerCase() !== "false");
-
-  const localStorageInitialShowCallbackGroupsValue = localStorage.getItem(`${me?.user?.user_id || 0}-showCallbackGroups`);
-  const initialShowCallbackGroupsValue = localStorageInitialShowCallbackGroupsValue === null ? false : (localStorageInitialShowCallbackGroupsValue.toLowerCase() !== "false");
-
-  const toggleDisplayComment = (evt) => {
-    evt.stopPropagation();
-    setDisplayComment(!displayComment);
-  }
   useLayoutEffect( () => {
     if(task.operator.username === (me?.user?.username || "")){
       scrollContent();
@@ -812,10 +799,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
     }
 
   }
-  const preventPropagation = (e) => {
-    e.stopPropagation();
-    //e.preventDefault();
-  }
+
   const onClickEntry = (e) => {
     if(showOnSelectTask){
       onSelectTask(e);
@@ -827,66 +811,12 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
                    elevation={5} style={{marginRight: 0, cursor: "pointer"}} id={`taskHeader-${task.id}`}
                    onClick={onClickEntry}
       >
-        <ColoredTaskDisplay task={task} theme={theme} >
-              <div id={'scrolltotasksplit' + task.id} style={{width: "100%"}}>
-                  {displayComment ? (
-                      <React.Fragment>
-                        <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>{task.commentOperator.username}</Typography><br/>
-                        <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
-                      </React.Fragment>
-                  ) : null}
-                <div >
-                  <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
-                    [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
-                    / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username} `}
-                    / <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>{ task.callback.display_id}</Link>
-                    {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}
-                    {initialShowIPValue ? `/ ${ipValue} ` : ''}
-                    {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
-                  </Typography>
-                  {!graphView && <TaskStatusDisplay task={task} theme={theme}/>}
-                  {!graphView && <TaskTagDisplay task={task} />}
-
-                </div>
-                <div>
-                  {task.comment !== "" && !graphView ? (
-                      <div className={classes.column}>
-                        <IconButton size="small" style={{padding: "0"}} color="primary" onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
-                      </div>
-                  ) : null}
-                  <div className={classes.column} >
-                    <Badge badgeContent={alertBadges} color="warning" anchorOrigin={{vertical: 'top', horizontal: 'left'}}>
-                      <Typography className={classes.heading} >
-                        {getLabelText(task, graphView)}
-                      </Typography>
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-            </ColoredTaskDisplay>
+        <ColoredTaskLabel theme={theme} task={task} me={me} taskDivID={`scrolltotasksplit${task.id}`} onClick={onClickEntry} />
       </StyledPaper>
   )
 }
 const TaskLabelConsole = ({task, me}) => {
   const theme = useTheme();
-  const [displayComment, setDisplayComment] = React.useState(false);
-  const localStorageInitialHideUsernameValue = localStorage.getItem(`${me?.user?.user_id || 0}-hideUsernames`);
-  const initialHideUsernameValue = localStorageInitialHideUsernameValue === null ? false : (localStorageInitialHideUsernameValue.toLowerCase() !== "false");
-
-  const localStorageInitialShowIPValue = localStorage.getItem(`${me?.user?.user_id || 0}-showIP`);
-  const initialShowIPValue = localStorageInitialShowIPValue === null ? false : (localStorageInitialShowIPValue.toLowerCase() !== "false");
-  const ipValue = JSON.parse(task.callback.ip)[0];
-  const localStorageInitialShowHostnameValue = localStorage.getItem(`${me?.user?.user_id || 0}-showHostname`);
-  const initialShowHostnameValue = localStorageInitialShowHostnameValue === null ? false : (localStorageInitialShowHostnameValue.toLowerCase() !== "false");
-
-  const localStorageInitialShowCallbackGroupsValue = localStorage.getItem(`${me?.user?.user_id || 0}-showCallbackGroups`);
-  const initialShowCallbackGroupsValue = localStorageInitialShowCallbackGroupsValue === null ? false : (localStorageInitialShowCallbackGroupsValue.toLowerCase() !== "false");
-
-  const toggleDisplayComment = (evt) => {
-    evt.stopPropagation();
-    setDisplayComment(!displayComment);
-  }
   useLayoutEffect( () => {
     if(task.operator.username === (me?.user?.username || "")){
       scrollContent();
@@ -903,46 +833,11 @@ const TaskLabelConsole = ({task, me}) => {
     }
 
   }
-  const preventPropagation = (e) => {
-    e.stopPropagation();
-    //e.preventDefault();
-  }
 
   return (
       <StyledPaper className={classes.root + " no-box-shadow"} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
-            <ColoredTaskDisplay task={task} theme={theme}  >
-              <div id={'scrolltotaskconsole' + task.id} style={{width: "100%"}}>
-                {displayComment ? (
-                    <React.Fragment>
-                      <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>{task.commentOperator.username}</Typography><br/>
-                      <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
-                    </React.Fragment>
-                ) : null}
-                  <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
-                    [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
-                    / {task.display_id} {initialHideUsernameValue ? '' : `/ ${task.operator.username} `}
-                    / <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + task.callback.display_id}>{ task.callback.display_id}</Link>
-                    {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}
-                    {initialShowIPValue ? `/ ${ipValue} ` : ''}
-                    {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
-                  </Typography>
-                  <TaskStatusDisplay task={task} theme={theme}/>
-                  <TaskTagDisplay task={task} />
-                <div>
-                  {task.comment !== "" ? (
-                      <div className={classes.column}>
-                        <IconButton size="small" style={{padding: "0"}} color="primary" onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
-                      </div>
-                  ) : null}
-                  <div className={classes.column} onClick={preventPropagation}>
-                      <Typography className={classes.heading} >
-                        {(task?.command?.cmd || task.command_name) + " " + task.display_params}
-                      </Typography>
-                  </div>
-                </div>
-              </div>
-            </ColoredTaskDisplay>
-            <TaskDisplayContainerConsole me={me} task={task} />
+          <ColoredTaskLabel theme={theme} task={task} me={me} taskDivID={`scrolltotaskconsole${task.id}`} />
+          <TaskDisplayContainerConsole me={me} task={task} />
       </StyledPaper>
   );
 }

@@ -33,6 +33,7 @@
     "ip6": "^0.2.10",
     "json5": "^2.2.3",
     "jwt-decode": "^3.1.2",
+    "material-react-table": "^2.9.2",
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.43",
     "randexp": "^0.5.3",

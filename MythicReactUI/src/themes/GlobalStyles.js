@@ -268,4 +268,20 @@ tspan {
     background-color: ${(props) => props.theme.palette.primary.main};
     color: white;
 }
+// gets the title of the table
+.MuiPaper-root > .MuiBox-root:first-child {
+    margin: 0;
+    padding: 0 0 0 5px;
+    min-height: 2rem;
+}
+.MuiPaper-root > .MuiTableContainer-root {
+    display: flex;
+    flex-grow: 1;
+}
+// gets the footer of the table
+.MuiPaper-root > .MuiBox-root > * {
+    margin: 0;
+    padding: 0 0 0 5px;
+    min-height: 2rem;
+}
 `

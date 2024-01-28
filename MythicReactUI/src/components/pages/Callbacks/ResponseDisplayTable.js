@@ -253,7 +253,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "dictionary":
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || "Display Data"} >
+            <MythicStyledTooltip title={cellData?.button?.hoverText || " "} >
               <Button size="small" variant="contained" color="primary" 
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
@@ -271,7 +271,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "string":
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || "Display Data"} >
+            <MythicStyledTooltip title={cellData?.button?.hoverText || " "} >
               <Button size="small" variant="contained" color="primary" 
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
@@ -287,7 +287,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "table": 
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || "Display Data"} >
+            <MythicStyledTooltip title={cellData?.button?.hoverText || " "} >
               <Button size="small" variant="contained" color="primary" 
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
@@ -305,7 +305,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "task":
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || "Issues Task to Agent"}>
+            <MythicStyledTooltip title={cellData?.button?.hoverText || " "}>
               <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false} variant="contained" color="warning" 
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
               >{cellData?.button?.name || " "}</Button>
@@ -396,6 +396,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
     </div>
   );
 }
+
 
 export const ResponseDisplayTable = ({table, callback_id, expand}) =>{
   const theme = useTheme();
@@ -557,7 +558,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand}) =>{
     return expand ? {flexGrow: 1, width: "99%",} : {height: dataHeight}
   }, [expand, dataHeight]);
   return (
-        <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative"}}>
+        <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", width: "100%"}}>
             {table?.title ? (
                 <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                   <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>

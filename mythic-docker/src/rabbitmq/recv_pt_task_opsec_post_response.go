@@ -72,7 +72,8 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 					task.StatusTimestampProcessed.Time = task.StatusTimestampSubmitted.Time
 					if _, err := database.DB.NamedExec(`UPDATE task SET 
                 			status_timestamp_submitted=:status_timestamp_submitted,
-                			status_timestamp_processed=:status_timestamp_processed
+                			status_timestamp_processed=:status_timestamp_processed,
+                			completed=:completed
                 			WHERE id=:id`, task); err != nil {
 						logging.LogError(err, "Failed to update submitted timestamp")
 					} else {
@@ -99,12 +100,14 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 		} else {
 			task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST_ERROR
 			task.Stderr = payloadMsg.Error
+			task.Completed = true
 			if _, err := database.DB.NamedExec(`UPDATE task SET
-			status=:status, stderr=:stderr 
+			status=:status, stderr=:stderr, completed:=completed
 			WHERE id=:id`, task); err != nil {
 				logging.LogError(err, "Failed to update task status")
 				return
 			}
+			go CheckAndProcessTaskCompletionHandlers(task.ID)
 		}
 	}
 }

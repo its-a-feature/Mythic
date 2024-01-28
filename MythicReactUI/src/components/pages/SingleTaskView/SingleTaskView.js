@@ -229,8 +229,6 @@ export function SingleTaskView(props){
                 onClick={getShareableLink}>Get Shareable link</Button>
             <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.warning.main}} 
                 onClick={removeTasksButton}>Remove Tasks From View</Button>
-            <Button variant="contained" color={"primary"} size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px"}} 
-                onClick={(evt) => {evt.stopPropagation(); snackActions.warning("Not implemented yet");}}>Add Tags To All</Button>
             
         </Paper>
         {tasks.map( (task) => (

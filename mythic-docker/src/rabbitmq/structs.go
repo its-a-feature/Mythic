@@ -155,7 +155,7 @@ const (
 	PT_TASK_FUNCTION_STATUS_SUBTASK_COMPLETED_FUNCTION_ERROR                         = "Error: subtask completion function - check task stdout/stderr"
 	PT_TASK_FUNCTION_STATUS_GROUP_COMPLETED_FUNCTION                                 = "Group Completion Function Running..."
 	PT_TASK_FUNCTION_STATUS_GROUP_COMPLETED_FUNCTION_ERROR                           = "Error: group completion function - check task stdout/stderr"
-	PT_TASK_FUNCTION_STATUS_COMPLETED                                                = "completed"
+	PT_TASK_FUNCTION_STATUS_COMPLETED                                                = "success"
 	PT_TASK_FUNCTION_STATUS_PROCESSED                                                = "processed, waiting for more messages..."
 )
 

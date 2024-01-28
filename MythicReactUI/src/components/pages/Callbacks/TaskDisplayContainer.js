@@ -33,6 +33,9 @@ import { Backdrop } from '@mui/material';
 import {downloadFileFromMemory} from '../../utilities/Clipboard';
 import InsertPhotoIcon from '@mui/icons-material/InsertPhoto';
 import html2canvas from 'html2canvas';
+import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
+import CodeOffIcon from '@mui/icons-material/CodeOff';
+import SettingsTwoToneIcon from '@mui/icons-material/SettingsTwoTone';
 
 const ReissueTaskMutationGQL = gql`
 mutation reissueTaskMutation($task_id: Int!){
@@ -63,6 +66,7 @@ export const TaskDisplayContainer = ({task, me}) => {
     const [commandID, setCommandID] = React.useState(0);
     const [searchOutput, setSearchOutput] = React.useState(false);
     const [selectAllOutput, setSelectAllOutput] = React.useState(false);
+    const responseRef = React.useRef(null);
     useEffect( () => {
         setCommandID(task.command === null ? 0 : task.command.id);
     }, [task.command]);
@@ -79,11 +83,15 @@ export const TaskDisplayContainer = ({task, me}) => {
     return (
       <>
         <Grid container spacing={0} style={{width: "100%"}}>
-            <SpeedDialDisplay toggleViewBrowserScript={toggleViewBrowserScript}
+            <SpeedDialDisplayGeneric toggleViewBrowserScript={toggleViewBrowserScript}
               toggleSelectAllOutput={toggleSelectAllOutput} 
               toggleOpenSearch={toggleOpenSearch} 
               taskData={task} 
               me={me}
+              responseRef={responseRef}
+              viewBrowserScript={viewBrowserScript}
+              style={{position: "relative", zIndex: 2, display: "flex", flexDirection: "row-reverse", width: '100%', bottom: "20px", right: "5px", height: 0}}
+              fabStyle={{   }}
               viewAllOutput={selectAllOutput}/>
             <Grid item xs={12}>
               <ResponseDisplay 
@@ -91,7 +99,8 @@ export const TaskDisplayContainer = ({task, me}) => {
                 me={me}
                 command_id={commandID} 
                 viewBrowserScript={viewBrowserScript} 
-                searchOutput={searchOutput} 
+                searchOutput={searchOutput}
+                responseRef={responseRef}
                 selectAllOutput={selectAllOutput}/>
             </Grid>
         </Grid>
@@ -132,11 +141,14 @@ export const TaskDisplayContainerFlat = ({task, me}) => {
                 expand={true}
                 responseRef={responseRef}
             />
-          <SpeedDialDisplayFlat toggleViewBrowserScript={toggleViewBrowserScript}
+          <SpeedDialDisplayGeneric toggleViewBrowserScript={toggleViewBrowserScript}
                                 toggleSelectAllOutput={toggleSelectAllOutput}
                                 toggleOpenSearch={toggleOpenSearch}
                                 taskData={task}
+                                viewBrowserScript={viewBrowserScript}
                                 me={me} responseRef={responseRef}
+                                style={{position: "absolute", bottom: 0, zIndex: 2}}
+                                fabStyle={{  }}
                                 viewAllOutput={selectAllOutput}/>
         </div>
 
@@ -147,6 +159,7 @@ export const TaskDisplayContainerConsole = ({task, me}) => {
   const [commandID, setCommandID] = React.useState(0);
   const [searchOutput, setSearchOutput] = React.useState(false);
   const [selectAllOutput, setSelectAllOutput] = React.useState(false);
+  const responseRef = React.useRef(null);
   useEffect( () => {
     setCommandID(task.command === null ? 0 : task.command.id);
   }, [task.command]);
@@ -162,11 +175,15 @@ export const TaskDisplayContainerConsole = ({task, me}) => {
 
   return (
       <>
-          <SpeedDialDisplayConsole toggleViewBrowserScript={toggleViewBrowserScript}
+          <SpeedDialDisplayGeneric toggleViewBrowserScript={toggleViewBrowserScript}
                             toggleSelectAllOutput={toggleSelectAllOutput}
                             toggleOpenSearch={toggleOpenSearch}
                             taskData={task}
                             me={me}
+                            viewBrowserScript={viewBrowserScript}
+                            responseRef={responseRef}
+                            style={{  bottom: "20px", right: "5px", zIndex: 2, height: "0px", position: "relative", display: "flex", flexDirection: "row-reverse"}}
+                            fabStyle={{ }}
                             viewAllOutput={true}/>
             <ResponseDisplayConsole
                 task={task}
@@ -174,6 +191,7 @@ export const TaskDisplayContainerConsole = ({task, me}) => {
                 command_id={commandID}
                 viewBrowserScript={viewBrowserScript}
                 searchOutput={searchOutput}
+                responseRef={responseRef}
                 selectAllOutput={true}/>
       </>
   );
@@ -190,272 +208,10 @@ function b64DecodeUnicode(str) {
     //console.log("Failed to base64 decode response", error)
     return atob(str);
   }
-  
 }
-const SpeedDialDisplay = ({toggleViewBrowserScript, toggleSelectAllOutput, toggleOpenSearch, taskData, viewAllOutput, me}) => {
-  const tooltipPlacement = "top";
-  const theme = useTheme();
-
-  const [task, setTask] = React.useState(taskData || {});
-  const [openSpeedDial, setOpenSpeedDial] = React.useState(false);
-  const [openTaskTagDialog, setOpenTaskTagDialog] = React.useState(false);
-  const [openCommentDialog, setOpenCommentDialog] = React.useState(false);
-  const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
-  const [openTokenDialog, setOpenTokenDialog] = React.useState(false);
-  const [openStdoutStderrDialog, setOpenStdoutStderrDialog] = React.useState(false);
-  const [openOpsecDialog, setOpenOpsecDialog] = React.useState({open: false, view: "pre"});
-  const [downloadResponses] = useLazyQuery(getAllResponsesLazyQuery, {
-    fetchPolicy: "network-only",
-    onCompleted: (data) => {
-        const output = data.response.reduce( (prev, cur) => {
-          return prev + b64DecodeUnicode(cur.response);
-        }, b64DecodeUnicode(""));
-        downloadFileFromMemory(output, "task_" + task.id + ".txt");
-    },
-    onError: (data) => {
-
-    }
-  });
-  React.useEffect( () => {
-    setTask(taskData);
-  }, [taskData.id, taskData.token, taskData.original_params, taskData.opsec_pre_blocked, taskData.opsec_pre_bypassed, taskData.opsec_post_blocked, taskData.opsec_post_bypassed])
-  const onDownloadResponses = () => {
-    downloadResponses({variables: {task_id: task.id}});
-    setOpenSpeedDial(false);
-  };
-  const copyToClipboard = () => {
-    let result = copyStringToClipboard(task.original_params);
-    if(result){
-      snackActions.success("Copied text!");
-    }else{
-      snackActions.error("Failed to copy text");
-    }
-    setOpenSpeedDial(false);
-  };
-  const [reissueTask] = useMutation(ReissueTaskMutationGQL, {
-    onCompleted: data => {
-      if(data.reissue_task.status === "success"){
-        snackActions.success("Successfully re-issued task to Mythic");
-      }else{
-        snackActions.error("Failed to re-issue task to Mythic: " + data.reissue_task.error);
-      }
-    },  
-    onError: data => {
-      console.log(data);
-      snackActions.error("Failed to re-issue task: " + data);
-    }
-  });
-  const [reissueTaskHandler] = useMutation(ReissueTaskHandlerMutationGQL, {
-    onCompleted: data => {
-      if(data.reissue_task_handler.status === "success"){
-        snackActions.success("Successfully resubmitted task for handling");
-      }else{
-        snackActions.warning("Failed to resubmit task for handling: " + data.reissue_task_handler.error);
-      }
-      
-    },
-    onError: data => {
-      console.log(data);
-      snackActions.error("Error resubmitting task for handling: " + data);
-    }
-  });
-  
-  const onReissueTask = () => {
-    reissueTask({variables: {task_id: task.id}});
-  }
-  const onReissueTaskHandler = () => {
-    reissueTaskHandler({variables: {task_id: task.id}});
-  }
-  return (
-    <React.Fragment>
-      <Backdrop open={openSpeedDial} onClick={()=>{setOpenSpeedDial(false);}} style={{zIndex: 2, position: "absolute"}}/>
-      {openTaskTagDialog ?
-        (<MythicDialog fullWidth={true} maxWidth="md" open={openTaskTagDialog} 
-          onClose={()=>{setOpenTaskTagDialog(false);}} 
-          innerDialog={<ViewEditTagsDialog me={me} target_object={"task_id"} target_object_id={task.id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
-      />) : null}
-      {openCommentDialog ?
-        (<MythicDialog fullWidth={true} maxWidth="md" open={openCommentDialog} 
-          onClose={()=>{setOpenCommentDialog(false);}} 
-          innerDialog={<TaskCommentDialog task_id={task.id} onClose={()=>{setOpenCommentDialog(false);}} />}
-      />) : null
-      }
-      {openParametersDialog ? 
-        (<MythicDialog fullWidth={true} maxWidth="md" open={openParametersDialog} 
-          onClose={()=>{setOpenParametersDialog(false);}} 
-          innerDialog={<TaskViewParametersDialog task_id={task.id} onClose={()=>{setOpenParametersDialog(false);}} />}
-      />) : null
-      }
-      {openTokenDialog ? 
-        (<MythicDialog fullWidth={true} maxWidth="md" open={openTokenDialog} 
-          onClose={()=>{setOpenTokenDialog(false);}} 
-          innerDialog={<TaskTokenDialog token_id={task.token === undefined ? 0 : task.token.id} onClose={()=>{setOpenTokenDialog(false);}} />}
-      />) : null
-      }
-      {openOpsecDialog.open ?
-        (<MythicDialog fullWidth={true} maxWidth="md" open={openOpsecDialog.open} 
-          onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} 
-          innerDialog={<TaskOpsecDialog task_id={task.id} view={openOpsecDialog.view} onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} />}
-      />) : null
-      }
-      
-      {openStdoutStderrDialog ? 
-        (<MythicDialog fullWidth={true} maxWidth="md" open={openStdoutStderrDialog} 
-          onClose={()=>{setOpenStdoutStderrDialog(false);}} 
-          innerDialog={<TaskViewStdoutStderrDialog task_id={task.id} onClose={()=>{setOpenStdoutStderrDialog(false);}} />}
-      />) : null
-      }
-      <SpeedDial
-        ariaLabel="Task Speeddial"
-        icon={<SpeedDialIcon />}
-        style={{position: "absolute", bottom: 0, zIndex: 2}}
-        onClick={()=>{setOpenSpeedDial(!openSpeedDial)}}
-        FabProps={{ color: "primary", size: "small", }}
-        open={openSpeedDial}
-        direction="right"
-      >
-        <SpeedDialAction
-          icon={<CodeIcon/>}
-          arrow
-          tooltipPlacement={tooltipPlacement}
-          tooltipTitle={"Toggle BrowserScript"}
-          onClick={() => {toggleViewBrowserScript();setOpenSpeedDial(false);}}
-        />
-        <SpeedDialAction
-          icon={<FontAwesomeIcon icon={faExpandArrowsAlt} size="lg" />}
-          arrow
-          tooltipPlacement={tooltipPlacement}
-          tooltipTitle={viewAllOutput ? "View Paginated Output" : "View All Output"}
-          onClick={() => {toggleSelectAllOutput();setOpenSpeedDial(false);}}
-        />
-        <SpeedDialAction
-          icon={<SearchIcon />}
-          arrow
-          tooltipPlacement={tooltipPlacement}
-          tooltipTitle={"Search Output"}
-          onClick={() => {toggleOpenSearch();setOpenSpeedDial(false);}}
-        />
-        <SpeedDialAction
-          icon={<GetAppIcon/>}
-          arrow
-          tooltipPlacement={tooltipPlacement}
-          tooltipTitle={"Download output"}
-          onClick={onDownloadResponses}
-        />
-        <SpeedDialAction
-          icon={<LocalOfferOutlinedIcon/>}
-          arrow
-          tooltipPlacement={tooltipPlacement}
-          tooltipTitle={"Edit Tags"}
-          onClick={()=>{setOpenTaskTagDialog(true);setOpenSpeedDial(false);}}
-        />
-        <SpeedDialAction
-          icon={<FontAwesomeIcon icon={faExternalLinkAlt} size="lg" />}
-          arrow
-          tooltipPlacement={tooltipPlacement}
-          tooltipTitle={"Open Task in New Window"}
-          onClick={()=> {window.open('/new/task/' + task.display_id, "_blank")}}
-        />
-        <SpeedDialAction
-          icon={<FileCopyOutlinedIcon/>}
-          arrow
-          tooltipPlacement={tooltipPlacement}
-          tooltipTitle={"Copy original params to clipboard"}
-          onClick={copyToClipboard}
-        />
-        <SpeedDialAction
-          icon={<RateReviewOutlinedIcon/>}
-          arrow
-          tooltipPlacement={tooltipPlacement}
-          tooltipTitle={"Edit Comment"}
-          onClick={()=>{setOpenCommentDialog(true);setOpenSpeedDial(false);}}
-        />
-        <SpeedDialAction
-          icon={<KeyboardIcon/>}
-          arrow
-          tooltipPlacement={tooltipPlacement}
-          tooltipTitle={"View All Parameters"}
-          onClick={()=>{setOpenParametersDialog(true);setOpenSpeedDial(false);}}
-        />
-        <SpeedDialAction
-          icon={<FontAwesomeIcon style={{color: theme.palette.error.main}} icon={faExclamationTriangle} size="lg" />}
-          arrow
-          tooltipPlacement={tooltipPlacement}
-          tooltipTitle={"View Stdout/Stderr of Task"}
-          onClick={()=>{setOpenStdoutStderrDialog(true);setOpenSpeedDial(false);}}
-        />
-        {task.opsec_pre_blocked === null ? null : (  task.opsec_pre_bypassed === false ? (
-                <SpeedDialAction
-                  icon={<LockIcon style={{color: theme.palette.error.main}}/>}
-                  arrow
-                  tooltipPlacement={tooltipPlacement}
-                  tooltipTitle={"Submit OPSEC PreCheck Bypass Request"}
-                  onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"});setOpenSpeedDial(false);}}
-                />
-                ): (
-                  <SpeedDialAction
-                  icon={<LockOpenIcon style={{color: theme.palette.success.main}}/>}
-                  arrow
-                  tooltipPlacement={tooltipPlacement}
-                  tooltipTitle={"View OPSEC PreCheck Data"}
-                  onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"});setOpenSpeedDial(false);}}
-                />
-                )             
-          ) 
-        }
-        {task.opsec_post_blocked === null ? null : (  task.opsec_post_bypassed === false ? (
-                <SpeedDialAction
-                  icon={<LockIcon style={{color: theme.palette.error.main}}/>}
-                  arrow
-                  tooltipPlacement={tooltipPlacement}
-                  tooltipTitle={"Submit OPSEC PostCheck Bypass Request"}
-                  onClick={()=>{setOpenOpsecDialog({open: true, view: "post"});setOpenSpeedDial(false);}}
-                />
-                ): (
-                  <SpeedDialAction
-                    icon={<LockOpenIcon style={{color: theme.palette.success.main}}/>}
-                    arrow
-                    tooltipPlacement={tooltipPlacement}
-                    tooltipTitle={"View OPSEC PostCheck Data"}
-                    onClick={()=>{setOpenOpsecDialog({open: true, view: "post"});setOpenSpeedDial(false);}}
-                  />
-                )             
-          ) 
-        }
-        {task.token === null ? null : (
-            <SpeedDialAction
-              icon={<ConfirmationNumberIcon />}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={"View Token Information"}
-              onClick={()=>{setOpenTokenDialog(true);setOpenSpeedDial(false);}}
-            />
-        )}
-        {task.status.toLowerCase().includes("error: container") ? (
-          <SpeedDialAction
-            icon={<ReplayIcon style={{color: theme.palette.warning.main}}/>}
-            arrow
-            tooltipPlacement={tooltipPlacement}
-            tooltipTitle={"Resubmit Tasking"}
-            onClick={onReissueTask}
-          />
-        ) : null}
-        {task.status.toLowerCase().includes("error: task") ? (
-          <SpeedDialAction
-            icon={<ReplayIcon style={{color: theme.palette.warning.main}}/>}
-            arrow
-            tooltipPlacement={tooltipPlacement}
-            tooltipTitle={"Resubmit Task Handler"}
-            onClick={onReissueTaskHandler}
-          />
-        ):null}
-        
-    </SpeedDial>
-    </React.Fragment>
-    
-  )
-}
-const SpeedDialDisplayFlat = ({toggleViewBrowserScript, toggleSelectAllOutput, toggleOpenSearch, taskData, viewAllOutput, me, responseRef}) => {
+const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
+                                   toggleOpenSearch, taskData, viewAllOutput, me,
+                                   responseRef, style, fabStyle, viewBrowserScript}) => {
   const theme = useTheme();
   const [task, setTask] = React.useState(taskData || {});
   const [openSpeedDial, setOpenSpeedDial] = React.useState(false);
@@ -589,36 +345,36 @@ const SpeedDialDisplayFlat = ({toggleViewBrowserScript, toggleSelectAllOutput, t
         }
         <SpeedDial
             ariaLabel="Task Speeddial"
-            icon={<SpeedDialIcon />}
-            style={{position: "absolute", bottom: 0}}
+            icon={<SettingsTwoToneIcon fontSize={"large"} />}
+            style={{...style}}
             onClick={()=>{setOpenSpeedDial(!openSpeedDial)}}
-            FabProps={{ color: "primary", size: "small" }}
+            FabProps={{...fabStyle, color: "secondary",  size: "small", sx: {minHeight: "30px", height: "30px", width: "30px"}}}
             open={openSpeedDial}
             direction="right"
         >
           <SpeedDialAction
-              icon={<CodeIcon/>}
+              icon={viewBrowserScript ? <CodeOffIcon color={"error"} /> : <CodeIcon color={"success"}/>}
               arrow
               tooltipPlacement={"top"}
               tooltipTitle={"Toggle BrowserScript"}
               onClick={() => {toggleViewBrowserScript();setOpenSpeedDial(false);}}
           />
           <SpeedDialAction
-              icon={<FontAwesomeIcon icon={faExpandArrowsAlt} size="lg" />}
+              icon={viewAllOutput ? <CloseFullscreenIcon color={"error"} /> : <FontAwesomeIcon style={{color: theme.palette.success.main}} icon={faExpandArrowsAlt} size="lg" />}
               arrow
               tooltipPlacement={"top"}
               tooltipTitle={viewAllOutput ? "View Paginated Output" : "View All Output"}
               onClick={() => {toggleSelectAllOutput();setOpenSpeedDial(false);}}
           />
           <SpeedDialAction
-              icon={<SearchIcon />}
+              icon={<SearchIcon color={"info"} />}
               arrow
               tooltipPlacement={"top"}
               tooltipTitle={"Search Output"}
               onClick={() => {toggleOpenSearch();setOpenSpeedDial(false);}}
           />
           <SpeedDialAction
-              icon={<GetAppIcon/>}
+              icon={<GetAppIcon color={"success"}/>}
               arrow
               tooltipPlacement={"top"}
               tooltipTitle={"Download output"}
@@ -738,268 +494,6 @@ const SpeedDialDisplayFlat = ({toggleViewBrowserScript, toggleSelectAllOutput, t
                   onClick={onReissueTaskHandler}
               />
           ):null}
-        </SpeedDial>
-      </React.Fragment>
-
-  )
-}
-const SpeedDialDisplayConsole = ({toggleViewBrowserScript, toggleSelectAllOutput, toggleOpenSearch, taskData, viewAllOutput, me}) => {
-  const tooltipPlacement = "top";
-  const theme = useTheme();
-
-  const [task, setTask] = React.useState(taskData || {});
-  const [openSpeedDial, setOpenSpeedDial] = React.useState(false);
-  const [openTaskTagDialog, setOpenTaskTagDialog] = React.useState(false);
-  const [openCommentDialog, setOpenCommentDialog] = React.useState(false);
-  const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
-  const [openTokenDialog, setOpenTokenDialog] = React.useState(false);
-  const [openStdoutStderrDialog, setOpenStdoutStderrDialog] = React.useState(false);
-  const [openOpsecDialog, setOpenOpsecDialog] = React.useState({open: false, view: "pre"});
-  const [downloadResponses] = useLazyQuery(getAllResponsesLazyQuery, {
-    fetchPolicy: "network-only",
-    onCompleted: (data) => {
-      const output = data.response.reduce( (prev, cur) => {
-        return prev + b64DecodeUnicode(cur.response);
-      }, b64DecodeUnicode(""));
-      downloadFileFromMemory(output, "task_" + task.id + ".txt");
-    },
-    onError: (data) => {
-
-    }
-  });
-  React.useEffect( () => {
-    setTask(taskData);
-  }, [taskData.id, taskData.token, taskData.original_params, taskData.opsec_pre_blocked, taskData.opsec_pre_bypassed, taskData.opsec_post_blocked, taskData.opsec_post_bypassed])
-  const onDownloadResponses = () => {
-    downloadResponses({variables: {task_id: task.id}});
-    setOpenSpeedDial(false);
-  };
-  const copyToClipboard = () => {
-    let result = copyStringToClipboard(task.original_params);
-    if(result){
-      snackActions.success("Copied text!");
-    }else{
-      snackActions.error("Failed to copy text");
-    }
-    setOpenSpeedDial(false);
-  };
-  const [reissueTask] = useMutation(ReissueTaskMutationGQL, {
-    onCompleted: data => {
-      if(data.reissue_task.status === "success"){
-        snackActions.success("Successfully re-issued task to Mythic");
-      }else{
-        snackActions.error("Failed to re-issue task to Mythic: " + data.reissue_task.error);
-      }
-    },
-    onError: data => {
-      console.log(data);
-      snackActions.error("Failed to re-issue task: " + data);
-    }
-  });
-  const [reissueTaskHandler] = useMutation(ReissueTaskHandlerMutationGQL, {
-    onCompleted: data => {
-      if(data.reissue_task_handler.status === "success"){
-        snackActions.success("Successfully resubmitted task for handling");
-      }else{
-        snackActions.warning("Failed to resubmit task for handling: " + data.reissue_task_handler.error);
-      }
-
-    },
-    onError: data => {
-      console.log(data);
-      snackActions.error("Error resubmitting task for handling: " + data);
-    }
-  });
-
-  const onReissueTask = () => {
-    reissueTask({variables: {task_id: task.id}});
-  }
-  const onReissueTaskHandler = () => {
-    reissueTaskHandler({variables: {task_id: task.id}});
-  }
-  return (
-      <React.Fragment>
-        {openTaskTagDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openTaskTagDialog}
-                           onClose={()=>{setOpenTaskTagDialog(false);}}
-                           innerDialog={<ViewEditTagsDialog me={me} target_object={"task_id"} target_object_id={task.id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
-            />) : null}
-        {openCommentDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openCommentDialog}
-                           onClose={()=>{setOpenCommentDialog(false);}}
-                           innerDialog={<TaskCommentDialog task_id={task.id} onClose={()=>{setOpenCommentDialog(false);}} />}
-            />) : null
-        }
-        {openParametersDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openParametersDialog}
-                           onClose={()=>{setOpenParametersDialog(false);}}
-                           innerDialog={<TaskViewParametersDialog task_id={task.id} onClose={()=>{setOpenParametersDialog(false);}} />}
-            />) : null
-        }
-        {openTokenDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openTokenDialog}
-                           onClose={()=>{setOpenTokenDialog(false);}}
-                           innerDialog={<TaskTokenDialog token_id={task.token === undefined ? 0 : task.token.id} onClose={()=>{setOpenTokenDialog(false);}} />}
-            />) : null
-        }
-        {openOpsecDialog.open ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openOpsecDialog.open}
-                           onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}}
-                           innerDialog={<TaskOpsecDialog task_id={task.id} view={openOpsecDialog.view} onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} />}
-            />) : null
-        }
-
-        {openStdoutStderrDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openStdoutStderrDialog}
-                           onClose={()=>{setOpenStdoutStderrDialog(false);}}
-                           innerDialog={<TaskViewStdoutStderrDialog task_id={task.id} onClose={()=>{setOpenStdoutStderrDialog(false);}} />}
-            />) : null
-        }
-        <SpeedDial
-            ariaLabel="Task Speeddial"
-            icon={<SpeedDialIcon  />}
-            style={{  bottom: "0px", zIndex: 2, height: "0px", flexDirection: "row", alignItems: "flex-start", position: "relative"}}
-            onClick={()=>{setOpenSpeedDial(!openSpeedDial)}}
-            FabProps={{color: "primary", sx: {width: 25, height: 25, minHeight: 20}  }}
-            open={openSpeedDial}
-            direction="right"
-        >
-          <SpeedDialAction
-              icon={<CodeIcon/>}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={"Toggle BrowserScript"}
-              onClick={() => {toggleViewBrowserScript();setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<FontAwesomeIcon icon={faExpandArrowsAlt} size="lg" />}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={viewAllOutput ? "View Paginated Output" : "View All Output"}
-              onClick={() => {toggleSelectAllOutput();setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<SearchIcon />}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={"Search Output"}
-              onClick={() => {toggleOpenSearch();setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<GetAppIcon/>}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={"Download output"}
-              onClick={onDownloadResponses}
-          />
-          <SpeedDialAction
-              icon={<LocalOfferOutlinedIcon/>}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={"Edit Tags"}
-              onClick={()=>{setOpenTaskTagDialog(true);setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<FontAwesomeIcon icon={faExternalLinkAlt} size="lg" />}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={"Open Task in New Window"}
-              onClick={()=> {window.open('/new/task/' + task.display_id, "_blank")}}
-          />
-          <SpeedDialAction
-              icon={<FileCopyOutlinedIcon/>}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={"Copy original params to clipboard"}
-              onClick={copyToClipboard}
-          />
-          <SpeedDialAction
-              icon={<RateReviewOutlinedIcon/>}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={"Edit Comment"}
-              onClick={()=>{setOpenCommentDialog(true);setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<KeyboardIcon/>}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={"View All Parameters"}
-              onClick={()=>{setOpenParametersDialog(true);setOpenSpeedDial(false);}}
-          />
-          <SpeedDialAction
-              icon={<FontAwesomeIcon style={{color: theme.palette.error.main}} icon={faExclamationTriangle} size="lg" />}
-              arrow
-              tooltipPlacement={tooltipPlacement}
-              tooltipTitle={"View Stdout/Stderr of Task"}
-              onClick={()=>{setOpenStdoutStderrDialog(true);setOpenSpeedDial(false);}}
-          />
-          {task.opsec_pre_blocked === null ? null : (  task.opsec_pre_bypassed === false ? (
-                  <SpeedDialAction
-                      icon={<LockIcon style={{color: theme.palette.error.main}}/>}
-                      arrow
-                      tooltipPlacement={tooltipPlacement}
-                      tooltipTitle={"Submit OPSEC PreCheck Bypass Request"}
-                      onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"});setOpenSpeedDial(false);}}
-                  />
-              ): (
-                  <SpeedDialAction
-                      icon={<LockOpenIcon style={{color: theme.palette.success.main}}/>}
-                      arrow
-                      tooltipPlacement={tooltipPlacement}
-                      tooltipTitle={"View OPSEC PreCheck Data"}
-                      onClick={()=>{setOpenOpsecDialog({open: true, view: "pre"});setOpenSpeedDial(false);}}
-                  />
-              )
-          )
-          }
-          {task.opsec_post_blocked === null ? null : (  task.opsec_post_bypassed === false ? (
-                  <SpeedDialAction
-                      icon={<LockIcon style={{color: theme.palette.error.main}}/>}
-                      arrow
-                      tooltipPlacement={tooltipPlacement}
-                      tooltipTitle={"Submit OPSEC PostCheck Bypass Request"}
-                      onClick={()=>{setOpenOpsecDialog({open: true, view: "post"});setOpenSpeedDial(false);}}
-                  />
-              ): (
-                  <SpeedDialAction
-                      icon={<LockOpenIcon style={{color: theme.palette.success.main}}/>}
-                      arrow
-                      tooltipPlacement={tooltipPlacement}
-                      tooltipTitle={"View OPSEC PostCheck Data"}
-                      onClick={()=>{setOpenOpsecDialog({open: true, view: "post"});setOpenSpeedDial(false);}}
-                  />
-              )
-          )
-          }
-          {task.token === null ? null : (
-              <SpeedDialAction
-                  icon={<ConfirmationNumberIcon />}
-                  arrow
-                  tooltipPlacement={tooltipPlacement}
-                  tooltipTitle={"View Token Information"}
-                  onClick={()=>{setOpenTokenDialog(true);setOpenSpeedDial(false);}}
-              />
-          )}
-          {task.status.toLowerCase().includes("error: container") ? (
-              <SpeedDialAction
-                  icon={<ReplayIcon style={{color: theme.palette.warning.main}}/>}
-                  arrow
-                  tooltipPlacement={tooltipPlacement}
-                  tooltipTitle={"Resubmit Tasking"}
-                  onClick={onReissueTask}
-              />
-          ) : null}
-          {task.status.toLowerCase().includes("error: task") ? (
-              <SpeedDialAction
-                  icon={<ReplayIcon style={{color: theme.palette.warning.main}}/>}
-                  arrow
-                  tooltipPlacement={tooltipPlacement}
-                  tooltipTitle={"Resubmit Task Handler"}
-                  onClick={onReissueTaskHandler}
-              />
-          ):null}
-
         </SpeedDial>
       </React.Fragment>
 

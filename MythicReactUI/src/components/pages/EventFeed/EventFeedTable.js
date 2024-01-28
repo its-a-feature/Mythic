@@ -66,9 +66,9 @@ export function EventFeedTable(props){
                             style: {padding: 0}
                         }}/>
                     </Grid>
-                    <Grid item xs={1}>
+                    <Grid item xs={2}>
                         <Select
-                            style={{width: "100%", display: "inline-block"}}
+                            style={{width: "100%"}}
                             value={level}
                             onChange={handleLevelValueChange}
                         >

@@ -522,6 +522,13 @@ const InteractivePaginationBar = ({totalCount, currentPage, onSubmitPageChange, 
         onSubmitPageChange(value);
     };
     const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
+    if(pageCount < 2){
+        return (
+            <div style={{height: "50px"}}>
+
+            </div>
+        )
+    }
     return (
         <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "10px",}} >
             <Pagination count={pageCount} page={currentPage} variant="contained" color="primary"

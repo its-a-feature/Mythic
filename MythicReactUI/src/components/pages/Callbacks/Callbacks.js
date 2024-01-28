@@ -30,6 +30,7 @@ const StyledSpeedDial = styled(SpeedDial)(({theme}) => ({
             top: theme.spacing(2),
             right: theme.spacing(2),
         },
+        zIndex: 1,
     },
 
     [`& .${classes.speedDialAction}`]: {

@@ -87,9 +87,13 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			task.Status = *payloadMsg.TaskStatus
 		}
 		if task.Completed {
-			if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
-				task.Status = "completed"
-			}
+			/*
+				if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
+					task.Status = "completed"
+				}
+
+			*/
+			task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
 			task.Timestamp = time.Now().UTC()
 			updateColumns = append(updateColumns, "timestamp=:timestamp")
 			task.StatusTimestampSubmitted.Valid = true
@@ -119,15 +123,21 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 						logging.LogError(err, "In processPtTaskCreateMessages, but failed to SendPtTaskOPSECPost ")
 					}
 				}
+				if task.Completed {
+					go CheckAndProcessTaskCompletionHandlers(task.ID)
+				}
 			} else {
+				task.Completed = true
 				task.Stderr += payloadMsg.Error
 				if _, err := database.DB.NamedExec(`UPDATE task SET
-					status=:status, stderr=:stderr 
+					status=:status, stderr=:stderr, completed=:completed 
 					WHERE
 					id=:id`, task); err != nil {
 					logging.LogError(err, "Failed to update task status")
 					return
 				}
+				// we hit an error in processing, so check if others are waiting on us to finish
+				go CheckAndProcessTaskCompletionHandlers(task.ID)
 			}
 		}
 	}

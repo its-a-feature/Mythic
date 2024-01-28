@@ -67,13 +67,15 @@ func processPtTaskOPSECPreMessages(msg amqp.Delivery) {
 			task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_PRE_ERROR
 			logging.LogInfo("response", "task", payloadMsg)
 			task.Stderr = payloadMsg.Error
+			task.Completed = true
 			if _, err := database.DB.NamedExec(`UPDATE task SET
-			status=:status, stderr=:stderr 
+			status=:status, stderr=:stderr, completed=:completed 
 			WHERE
 			id=:id`, task); err != nil {
 				logging.LogError(err, "Failed to update task status")
 				return
 			}
+			go CheckAndProcessTaskCompletionHandlers(task.ID)
 		}
 	}
 }

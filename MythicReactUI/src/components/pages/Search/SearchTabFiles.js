@@ -824,12 +824,11 @@ export const SearchTabFilesPanel = (props) =>{
                 break;
         }
     }
-    
     return (
         <MythicTabPanel {...props} >
             <SearchTabFilesSearchPanel onChangeSearchField={onChangeSearchField} onFilenameSearch={onFilenameSearch}
                                        value={props.value} index={props.index} queryParams={props.queryParams}
-                                        onHashSearch={onHashSearch} onCommentSearch={onCommentSearch}
+                                       onHashSearch={onHashSearch} onCommentSearch={onCommentSearch}
                                        onTagSearch={onTagSearch}
                                        onChangeSearchLocation={onChangeSearchLocation}
                                        changeSearchParam={props.changeSearchParam}/>

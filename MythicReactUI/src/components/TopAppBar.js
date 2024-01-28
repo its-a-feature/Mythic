@@ -20,42 +20,43 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import { useReactiveVar } from '@apollo/client';
 import { menuOpen, FailedRefresh } from '../cache';
-import Switch from '@mui/material/Switch';
 import { TopAppBarNotifications } from './TopAppBarNotifications';
 import { EventFeedNotifications } from './EventFeedNotifications';
 import HelpIcon from '@mui/icons-material/Help';
 import PhoneCallbackIcon from '@mui/icons-material/PhoneCallback';
 import {ReactComponent as ReactLogo} from './mythic_red_small.svg';
-import HomeIcon from '@mui/icons-material/Home';
+import SpaceDashboardTwoToneIcon from '@mui/icons-material/SpaceDashboardTwoTone';
 import ListSubheader from '@mui/material/ListSubheader';
 import Collapse from '@mui/material/Collapse';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import LayersIcon from '@mui/icons-material/Layers';
-import TableChartIcon from '@mui/icons-material/TableChart';
+import LayersTwoToneIcon from '@mui/icons-material/LayersTwoTone';
+import TableChartTwoToneIcon from '@mui/icons-material/TableChartTwoTone';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
 import EditIcon from '@mui/icons-material/Edit';
 import { Typography } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import HeadsetIcon from '@mui/icons-material/Headset';
+import HeadsetTwoToneIcon from '@mui/icons-material/HeadsetTwoTone';
 import CodeIcon from '@mui/icons-material/Code';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faBiohazard, faFlagCheckered} from '@fortawesome/free-solid-svg-icons';
 import AttachmentIcon from '@mui/icons-material/Attachment';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import {faSocks} from '@fortawesome/free-solid-svg-icons';
-import {faCamera} from '@fortawesome/free-solid-svg-icons';
+import CameraAltTwoToneIcon from '@mui/icons-material/CameraAltTwoTone';
 import {mythicVersion, mythicUIVersion} from '../index';
 import {MythicStyledTooltip} from './MythicComponents/MythicStyledTooltip';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
-import ThumbDownOffAltIcon from '@mui/icons-material/ThumbDownOffAlt';
+import ThumbDownTwoTone from '@mui/icons-material/ThumbDownTwoTone';
 import { MythicDialog } from './MythicComponents/MythicDialog';
 import {MythicFeedbackDialog} from './MythicComponents/MythicFeedbackDialog';
-import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import LocalOfferTwoToneIcon from '@mui/icons-material/LocalOfferTwoTone';
 import StorageIcon from '@mui/icons-material/Storage';
 import PublicIcon from '@mui/icons-material/Public';
+import LightModeTwoToneIcon from '@mui/icons-material/LightModeTwoTone';
+import DarkModeTwoToneIcon from '@mui/icons-material/DarkModeTwoTone';
 
 
 const PREFIX = 'TopAppBar';
@@ -203,24 +204,29 @@ export function TopAppBar(props) {
               className={clsx(isOpen && classes.hide)}
               color="inherit"
               aria-label="menu"
+              disableFocusRipple={true}
+              disableRipple={true}
               onClick={handleDrawerOpen}
-              size="large">
-                <MenuIcon />
+              >
+                <MenuIcon fontSize={"large"} />
             </IconButton>
             <div style={{width: "100%"}}>
                 <MythicStyledTooltip title="C2 Profiles and Payload Types">
-                  <IconButton component={Link} to='/new/payloadtypes' color="inherit" size="large">
-                    <HeadsetIcon className="mythicElement"/>
+                  <IconButton component={Link} to='/new/payloadtypes' color="inherit" size="large" disableFocusRipple={true}
+                              disableRipple={true}>
+                    <HeadsetTwoToneIcon fontSize={"large"} className="mythicElement"/>
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Payloads">
-                    <IconButton component={Link} to='/new/payloads' color="inherit" size="medium">
-                      <FontAwesomeIcon icon={faBiohazard} />
+                    <IconButton component={Link} to='/new/payloads' color="inherit" disableFocusRipple={true}
+                                disableRipple={true}>
+                      <FontAwesomeIcon size={"lg"} icon={faBiohazard} />
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Search Operation">
-                  <IconButton component={Link} to='/new/search' color="inherit" size="large">
-                    <SearchIcon className="mythicElement"/>
+                  <IconButton component={Link} to='/new/search?tab=callbacks&searchField=Host&search=' color="inherit"  disableFocusRipple={true}
+                              disableRipple={true}>
+                    <SearchIcon fontSize={"large"} className="mythicElement"/>
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Files">
@@ -228,22 +234,25 @@ export function TopAppBar(props) {
                     component={Link}
                     to='/new/search?searchField=Filename&tab=files&location=Downloads'
                     color="inherit"
-                    size="large">
-                    <AttachmentIcon className="mythicElement"/>
+                    disableFocusRipple={true}
+                    disableRipple={true}>
+                    <AttachmentIcon fontSize={"large"} className="mythicElement"/>
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Artifacts">
                   <IconButton
+                      disableFocusRipple={true}
+                      disableRipple={true}
                     component={Link}
                     to='/new/search?searchField=Artifact&tab=artifacts'
-                    color="inherit"
-                    size="large">
-                    <FingerprintIcon className="mythicElement"/>
+                    color="inherit">
+                    <FingerprintIcon fontSize={"large"} className="mythicElement"/>
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Proxies">
-                  <IconButton component={Link} to='/new/search?tab=socks' color="inherit" size="medium">
-                      <FontAwesomeIcon icon={faSocks} />
+                  <IconButton component={Link} to='/new/search?tab=socks' color="inherit" disableFocusRipple={true}
+                              disableRipple={true}>
+                      <FontAwesomeIcon size={"lg"} icon={faSocks} />
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Screenshots" arrow >
@@ -251,8 +260,10 @@ export function TopAppBar(props) {
                     component={Link}
                     to='/new/search?searchField=Filename&tab=files&location=Screenshots'
                     color="inherit"
-                    size="medium">
-                      <FontAwesomeIcon icon={faCamera} />
+                    disableFocusRipple={true}
+                    disableRipple={true}
+                    >
+                      <CameraAltTwoToneIcon fontSize={"large"} />
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Credentials" arrow >
@@ -260,28 +271,33 @@ export function TopAppBar(props) {
                     component={Link}
                     to='/new/search?searchField=Account&tab=credentials'
                     color="inherit"
-                    size="large">
-                      <VpnKeyIcon className="mythicElement" />
+                    disableFocusRipple={true}
+                    disableRipple={true}>
+                      <VpnKeyIcon fontSize={"large"} className="mythicElement" />
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Active Callbacks">
-                  <IconButton component={Link} to='/new/callbacks' color="inherit" size="large">
-                    <PhoneCallbackIcon className="mythicElement"/>
+                  <IconButton component={Link} to='/new/callbacks' color="inherit"  disableFocusRipple={true}
+                              disableRipple={true}>
+                    <PhoneCallbackIcon fontSize={"large"} className="mythicElement"/>
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Reporting" >
-                  <IconButton component={Link} to='/new/reporting' color="inherit" size="medium">
-                      <FontAwesomeIcon icon={faFlagCheckered} />
+                  <IconButton component={Link} to='/new/reporting' color="inherit" disableFocusRipple={true}
+                              disableRipple={true}>
+                      <FontAwesomeIcon size={"lg"} icon={faFlagCheckered} />
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="MITRE ATT&CK" >
-                  <IconButton component={Link} to='/new/mitre' color="inherit" size="medium">
-                    <TableChartIcon className="mythicElement"/>
+                  <IconButton component={Link} to='/new/mitre' color="inherit" disableFocusRipple={true}
+                              disableRipple={true}>
+                    <TableChartTwoToneIcon fontSize={"large"} className="mythicElement"/>
                   </IconButton>
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title="Operation Tags" >
-                  <IconButton component={Link} to='/new/tagtypes' color="inherit" size="medium">
-                    <LocalOfferIcon className="mythicElement"/>
+                  <IconButton component={Link} to='/new/tagtypes' color="inherit"  disableFocusRipple={true}
+                              disableRipple={true}>
+                    <LocalOfferTwoToneIcon fontSize={"large"} className="mythicElement"/>
                   </IconButton>
                 </MythicStyledTooltip>
                 <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "white", textDecoration: "none"}} to="/new/operations">
@@ -317,9 +333,10 @@ export function TopAppBar(props) {
                   ref={feedbackRef}
                   color="inherit"
                   style={{float: "right", }}
-                  size="large">
+                  disableFocusRipple={true}
+                  disableRipple={true}>
                   <MythicStyledTooltip title="Send Support Feedback">
-                    <ThumbDownOffAltIcon className="mythicElement" />
+                    <ThumbDownTwoTone fontSize={"large"} className="mythicElement" />
                   </MythicStyledTooltip>
                 </IconButton>
                 {openFeedbackForm && 
@@ -338,9 +355,10 @@ export function TopAppBar(props) {
                   ref={documentationRef}
                   color="inherit"
                   style={{float:"right"}}
-                  size="large">
+                  disableFocusRipple={true}
+                  disableRipple={true}>
                   <MythicStyledTooltip title="Help">
-                    <HelpIcon className="mythicElement"/>  
+                    <HelpIcon fontSize={"large"} className="mythicElement"/>
                   </MythicStyledTooltip>
                 </IconButton>
                 <Menu
@@ -372,12 +390,38 @@ export function TopAppBar(props) {
                   ref={settingsRef}
                   color="inherit"
                   style={{float: "right", }}
-                  size="large">
+                  disableFocusRipple={true}
+                  disableRipple={true} >
                   <MythicStyledTooltip title="Settings or Logout">
-                    <ManageAccountsIcon className="mythicElement" />
+                    <ManageAccountsIcon fontSize={"large"} className="mythicElement" />
                   </MythicStyledTooltip>
                 </IconButton>
-                
+                  {props.theme === 'dark' &&
+                  <IconButton
+                      disableFocusRipple={true}
+                      disableRipple={true}
+                    onClick={props.toggleTheme}
+                    style={{float: "right", paddingRight: "0px", color: '#2f0e67'}}
+
+                    >
+                    <MythicStyledTooltip title="Change to Light Mode">
+                      <DarkModeTwoToneIcon fontSize={"large"} className="mythicElement" />
+                    </MythicStyledTooltip>
+                  </IconButton>
+                  }
+                  {props.theme === 'light' &&
+                      <IconButton
+                          disableFocusRipple={true}
+                          disableRipple={true}
+                          onClick={props.toggleTheme}
+                          style={{float: "right", paddingRight: "0px", color: '#eacc1b'}}
+
+                      >
+                        <MythicStyledTooltip title="Change to Dark Mode">
+                          <LightModeTwoToneIcon fontSize={"large"} className="mythicElement" />
+                        </MythicStyledTooltip>
+                      </IconButton>
+                  }
                 
                 </div>
             </div>
@@ -414,8 +458,8 @@ export function TopAppBar(props) {
             </div>
             
             <ListItem button component={Link} to='/new' key={"home"} onClick={handleDrawerClose}>
-              <ListItemIcon ><HomeIcon className="mythicElement" /></ListItemIcon>
-              <ListItemText primary={"Home"} />
+              <ListItemIcon ><SpaceDashboardTwoToneIcon fontSize={"large"} className="mythicElement" /></ListItemIcon>
+              <ListItemText primary={"Dashboard"} />
             </ListItem>
         </List>
         <Divider />
@@ -426,7 +470,7 @@ export function TopAppBar(props) {
               </ListSubheader>
             }>
               <ListItem button onClick={handleToggleGlobal}>
-                <ListItemIcon><LayersIcon /></ListItemIcon>
+                <ListItemIcon><LayersTwoToneIcon fontSize={"large"} /></ListItemIcon>
                 <ListItemText>Services</ListItemText>
                 {openGlobal ? <ExpandLess /> : <ExpandMore />}
               </ListItem>
@@ -434,15 +478,15 @@ export function TopAppBar(props) {
                 <List component="div" disablePadding>
                   
                   <ListItem button className={classes.nested} target="_blank" component={Link} to='/jupyter' key={"jupyter"} onClick={handleDrawerClose}>
-                    <ListItemIcon><CodeIcon className="mythicElement"/></ListItemIcon>
+                    <ListItemIcon><CodeIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                     <ListItemText primary={"Jupyter Notebooks"} />
                   </ListItem>
                   <ListItem button className={classes.nested} target="_blank" component={Link} to='/console' key={"console"} onClick={handleDrawerClose}>
-                    <ListItemIcon><StorageIcon className="mythicElement"/></ListItemIcon>
+                    <ListItemIcon><StorageIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                     <ListItemText primary={"GraphQL Console"} />
                   </ListItem>
                   <ListItem button className={classes.nested} component={Link} to='/new/consuming_services' key={"consuming"} onClick={handleDrawerClose}>
-                    <ListItemIcon><PublicIcon className="mythicElement"/></ListItemIcon>
+                    <ListItemIcon><PublicIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                     <ListItemText primary={"Consuming Services"} />
                   </ListItem>
                 </List>
@@ -455,32 +499,32 @@ export function TopAppBar(props) {
               <Collapse in={openCreate} unmountOnExit>
                   <List component="div" disablePadding>
                     <ListItem button className={classes.nested} component={Link} to='/new/createpayload' key={"createpayload"} onClick={handleDrawerClose} state={{from: 'TopAppBar'}}>
-                      <ListItemIcon><PostAddIcon className="mythicElement"/></ListItemIcon>
+                      <ListItemIcon><PostAddIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                       <ListItemText primary={"Create Payload"} />
                     </ListItem>
                     <ListItem button className={classes.nested} component={Link} to='/new/createwrapper' key={"createwrapper"} onClick={handleDrawerClose}>
-                      <ListItemIcon><PostAddIcon className="mythicElement"/></ListItemIcon>
+                      <ListItemIcon><PostAddIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                       <ListItemText primary={"Create Wrapper"} />
                     </ListItem>
                   </List>
                 </Collapse>
               <ListItem button onClick={handleToggleOperations}>
-                <ListItemIcon><SupervisorAccountIcon /></ListItemIcon>
+                <ListItemIcon><SupervisorAccountIcon fontSize={"large"} /></ListItemIcon>
                 <ListItemText>Operation Config</ListItemText>
                 {openOperations ? <ExpandLess /> : <ExpandMore />}
               </ListItem>
               <Collapse in={openOperations} unmountOnExit>
                 <List component="div" disablePadding>
                   <ListItem button className={classes.nested} component={Link} to='/new/payloadtypes' key={"payloadtypes"} onClick={handleDrawerClose}>
-                    <ListItemIcon><HeadsetIcon className="mythicElement"/></ListItemIcon>
+                    <ListItemIcon><HeadsetTwoToneIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                     <ListItemText primary={"Agents & C2"} />
                   </ListItem>
                     <ListItem button className={classes.nested} component={Link} to='/new/operations' key={"modifyoperations"} onClick={handleDrawerClose}>
-                      <ListItemIcon><EditIcon className="mythicElement"/></ListItemIcon>
+                      <ListItemIcon><EditIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                       <ListItemText primary={"Modify Operations"} />
                     </ListItem>
                     <ListItem button className={classes.nested} component={Link} to='/new/browserscripts' key={"browserscripts"} onClick={handleDrawerClose}>
-                      <ListItemIcon><CodeIcon className="mythicElement"/></ListItemIcon>
+                      <ListItemIcon><CodeIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                       <ListItemText primary={"BrowserScripts"} />
                     </ListItem>
                 </List>
@@ -494,46 +538,28 @@ export function TopAppBar(props) {
               </ListSubheader>
             }>
               <ListItem button onClick={handleToggleData}>
-                <ListItemIcon><BarChartIcon /></ListItemIcon>
+                <ListItemIcon><BarChartIcon fontSize={"large"} /></ListItemIcon>
                 <ListItemText>Operational Data</ListItemText>
                 {openData ? <ExpandLess /> : <ExpandMore />}
               </ListItem>
               <Collapse in={openData} unmountOnExit>
                 <List component="div" disablePadding>
                     <ListItem button className={classes.nested} component={Link} to='/new/payloads' key={"payloads"} onClick={handleDrawerClose}>
-                      <ListItemIcon><FontAwesomeIcon icon={faBiohazard} size="lg"/></ListItemIcon>
+                      <ListItemIcon><FontAwesomeIcon icon={faBiohazard} size="2x"/></ListItemIcon>
                       <ListItemText primary={"Payloads"} />
                     </ListItem>
-                    <ListItem button className={classes.nested} component={Link} to='/new/search' key={"search"} onClick={handleDrawerClose}>
-                      <ListItemIcon><SearchIcon className="mythicElement"/></ListItemIcon>
+                    <ListItem button className={classes.nested} component={Link} to='/new/search?tab=callbacks&searchField=Host&search=' key={"search"} onClick={handleDrawerClose}>
+                      <ListItemIcon><SearchIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                       <ListItemText primary={"Search"} />
                     </ListItem>
                 </List>
               </Collapse>
                 <ListItem button component={Link} to='/new/callbacks' key={"callbacks"} onClick={handleDrawerClose}>
-                  <ListItemIcon><PhoneCallbackIcon className="mythicElement"/></ListItemIcon>
+                  <ListItemIcon><PhoneCallbackIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                   <ListItemText primary={"Active Callbacks"} />
                 </ListItem>
             </List>
         <Divider />
-        <List
-            subheader={
-              <ListSubheader className={classes.listSubHeader} component="div" id="nested-list-subheader">
-                Optional Configurations
-              </ListSubheader>
-            }>
-              <ListItem>
-              <Switch
-            checked={props.theme === 'dark'}
-            onChange={props.toggleTheme}
-            color="info"
-            inputProps={{ 'aria-label': 'primary checkbox' }}
-            name="darkMode"
-          />
-          <div style={{display: "inline-block"}}> Enable Dark Mode </div>
-              </ListItem>
-              </List>
-        
       </StyledDrawer>
     </>
   );
