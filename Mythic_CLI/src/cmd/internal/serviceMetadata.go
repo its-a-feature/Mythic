@@ -157,15 +157,22 @@ func AddMythicService(service string) {
 				"./hasura-docker/metadata:/metadata",
 			}
 		} else {
-			pStruct["volumes"] = []string{
-				"mythic_graphql_volume:/metadata",
-			}
+			delete(pStruct, "volumes")
+			/*
+				pStruct["volumes"] = []string{
+					"mythic_graphql_volume:/metadata",
+				}
+
+			*/
 		}
-		if _, ok := volumes["mythic_graphql"]; !ok {
-			volumes["mythic_graphql_volume"] = map[string]interface{}{
-				"name": "mythic_graphql_volume",
+		/*
+			if _, ok := volumes["mythic_graphql"]; !ok {
+				volumes["mythic_graphql_volume"] = map[string]interface{}{
+					"name": "mythic_graphql_volume",
+				}
 			}
-		}
+
+		*/
 	case "mythic_nginx":
 		if mythicEnv.GetBool("nginx_use_build_context") {
 			pStruct["build"] = map[string]interface{}{

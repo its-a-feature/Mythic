@@ -927,12 +927,28 @@ func (d *DockerComposeManager) RemoveVolume(volumeName string) error {
 	}
 	for _, currentVolume := range volumes.Volumes {
 		if currentVolume.Name == volumeName {
-			err = cli.VolumeRemove(ctx, currentVolume.Name, true)
+			containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
 			if err != nil {
-				return err
+				log.Fatalf("[-] Failed to get container list: %v\n", err)
 			}
+			for _, c := range containers {
+				for _, m := range c.Mounts {
+					if m.Name == volumeName {
+						containerName := c.Labels["name"]
+						err = cli.ContainerRemove(ctx, c.ID, types.ContainerRemoveOptions{Force: true})
+						if err != nil {
+							log.Printf(fmt.Sprintf("[!] Failed to remove container that's using the volume: %v\n", err))
+						} else {
+							log.Printf("[+] Removed container %s, which was using that container", containerName)
+						}
+					}
+				}
+			}
+			err = cli.VolumeRemove(ctx, currentVolume.Name, true)
+			return err
 		}
 	}
+	log.Printf("[*] Volume not found")
 	return nil
 }
 func (d *DockerComposeManager) CopyIntoVolume(sourceFile io.Reader, destinationFileName string, destinationVolume string) {
