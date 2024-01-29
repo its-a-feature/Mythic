@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 // configSetCmd represents the configSet command
@@ -23,5 +22,4 @@ func init() {
 
 func configSet(cmd *cobra.Command, args []string) {
 	config.SetConfigStrings(args[0], args[1])
-	log.Println("[+] Configuration successfully updated. Bring containers down and up for changes to take effect.")
 }

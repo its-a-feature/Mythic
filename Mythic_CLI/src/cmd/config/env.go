@@ -342,6 +342,7 @@ func SetConfigStrings(key string, value string) {
 		log.Printf("[-] Failed to find any matching keys")
 		return
 	}
+	log.Println("[+] Configuration successfully updated. Bring containers down and up for changes to take effect.")
 	writeMythicEnvironmentVariables()
 }
 func SetNewConfigStrings(key string, value string) {
