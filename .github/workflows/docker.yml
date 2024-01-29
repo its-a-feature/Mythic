@@ -44,7 +44,7 @@ env:
   VERSION: ${{ github.ref_name }}
 
   # Branch for pushing release changes (TODO: Change this to the main branch when the rewrite is finished)
-  RELEASE_BRANCH: docker_updates
+  RELEASE_BRANCH: master
 
 jobs:
   # Builds the base container image and pushes it to the container registry
