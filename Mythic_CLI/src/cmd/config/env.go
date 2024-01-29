@@ -313,7 +313,7 @@ func GetConfigStrings(args []string) map[string]string {
 			log.Fatalf("[!] bad regex: %v", err)
 		}
 		for _, setting := range allSettings {
-			if searchRegex.MatchString(setting) {
+			if searchRegex.MatchString(strings.ToUpper(setting)) || searchRegex.MatchString(strings.ToLower(setting)) {
 				val := mythicEnv.GetString(setting)
 				if val == "" {
 					log.Fatalf("Config variable `%s` not found", setting)
@@ -333,7 +333,7 @@ func SetConfigStrings(key string, value string) {
 	}
 	found := false
 	for _, setting := range allSettings {
-		if searchRegex.MatchString(setting) {
+		if searchRegex.MatchString(strings.ToUpper(setting)) || searchRegex.MatchString(strings.ToLower(setting)) {
 			mythicEnv.Set(setting, value)
 			found = true
 		}
