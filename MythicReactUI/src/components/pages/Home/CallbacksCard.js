@@ -185,7 +185,7 @@ export function CallbacksCard() {
             if(search[0] === "*"){
                 search = search.substring(1);
             }
-            navigate("/new/search?searchField=User&search=" + search);
+            navigate("/new/search?tab=callbacks&searchField=User&search=" + search);
         }
 
     }
@@ -193,7 +193,7 @@ export function CallbacksCard() {
         let search = host.split(" ");
         search = search[search.length - 1];
         if(search.length > 0){
-            navigate("/new/search?searchField=Host&search=" + search);
+            navigate("/new/search?tab=callbacks&searchField=Host&search=" + search);
         }
 
     }

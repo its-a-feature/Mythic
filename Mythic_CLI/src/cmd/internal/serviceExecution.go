@@ -131,12 +131,9 @@ func DockerHealth(containers []string) {
 
 func DockerBuildReactUI() error {
 	if config.GetMythicEnv().GetBool("MYTHIC_REACT_DEBUG") {
-		err := manager.GetManager().BuildUI()
-		if err != nil {
-			log.Fatalf("[-] Failed to build new UI from debug build")
-		}
+		return manager.GetManager().BuildUI()
 	}
-	log.Printf("[-] Not using MYTHIC_REACT_DEBUG to generate new UI, aborting...\n")
+	log.Fatalf("[-] Not using MYTHIC_REACT_DEBUG to generate new UI, aborting...\n")
 	return nil
 }
 

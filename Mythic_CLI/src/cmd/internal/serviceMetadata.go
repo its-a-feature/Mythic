@@ -581,6 +581,7 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 				volumeName + ":/Mythic/",
 			}
 			// blow away the old volume just in case to make sure we don't carry over old data
+			log.Printf("[*] Removing old volume if it exists")
 			manager.GetManager().RemoveVolume(volumeName)
 			// add our new volume to the list of volumes if needed
 			volumes, _ := manager.GetManager().GetVolumes()
