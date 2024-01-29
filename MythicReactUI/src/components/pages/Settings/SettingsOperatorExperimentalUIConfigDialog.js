@@ -17,7 +17,7 @@ import {snackActions} from "../../utilities/Snackbar";
 
 export function SettingsOperatorExperimentalUIConfigDialog(props) {
     const me = props.me;
-    const initialNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: false});
+    const initialNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: "false"});
     const [newBrowserScriptTables, setNewBrowserScriptTables] = React.useState(initialNewBrowserScriptTable);
     const initialResponseStreamLimit = useMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 10, output: "number"})
     const [newResponseStreamLimit, setNewResponseStreamLimit] = React.useState(initialResponseStreamLimit);

@@ -271,11 +271,11 @@ const ColoredTaskDisplay = ({task, theme, children}) => {
 const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick }) => {
   const [displayComment, setDisplayComment] = React.useState(false);
   const [alertBadges, setAlertBadges] = React.useState(0);
-  const initialHideUsernameValue = useMythicSetting({setting_name: "hideUsernames", default_value: false});
-  const initialShowIPValue = useMythicSetting({setting_name: "showIP", default_value: false});
+  const initialHideUsernameValue = useMythicSetting({setting_name: "hideUsernames", default_value: "false"});
+  const initialShowIPValue = useMythicSetting({setting_name: "showIP", default_value: "false"});
   const ipValue = JSON.parse(task.callback.ip)[0];
-  const initialShowHostnameValue = useMythicSetting({setting_name: "showHostname", default_value: false});
-  const initialShowCallbackGroupsValue = useMythicSetting({setting_name: "showCallbackGroups", default_value: false});
+  const initialShowHostnameValue = useMythicSetting({setting_name: "showHostname", default_value: "false"});
+  const initialShowCallbackGroupsValue = useMythicSetting({setting_name: "showCallbackGroups", default_value: "false"});
   const toggleDisplayComment = (evt) => {
     evt.stopPropagation();
     setDisplayComment(!displayComment);

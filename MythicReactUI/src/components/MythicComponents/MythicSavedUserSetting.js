@@ -13,15 +13,15 @@ setting_name options:
 export function useMythicSetting({setting_name, default_value, output="boolean"}){
     const me = useReactiveVar(meState);
     // get the initial value we have stored
+
     const localStorageSetting = localStorage.getItem(`${me?.user?.user_id || 0}-${setting_name}`);
     let initialStorageSetting = localStorageSetting === null ? default_value : localStorageSetting;
-
     switch(output){
         case "boolean":
-            initialStorageSetting = (localStorageSetting.toLowerCase() === "true");
+            initialStorageSetting = (initialStorageSetting.toLowerCase() === "true");
             break;
         case "number":
-            initialStorageSetting = Number(localStorageSetting);
+            initialStorageSetting = Number(initialStorageSetting);
             break;
         default:
             console.log("unknown output type", output);
@@ -35,10 +35,10 @@ export function useMythicSetting({setting_name, default_value, output="boolean"}
 
         switch(output){
             case "boolean":
-                initialStorageSetting = (localStorageSetting.toLowerCase() === "true");
+                initialStorageSetting = (initialStorageSetting.toLowerCase() === "true");
                 break;
             case "number":
-                initialStorageSetting = Number(localStorageSetting);
+                initialStorageSetting = Number(initialStorageSetting);
                 break;
             default:
                 console.log("unknown output type", output);

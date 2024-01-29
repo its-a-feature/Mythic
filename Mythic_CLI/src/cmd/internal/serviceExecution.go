@@ -67,7 +67,7 @@ func ServiceStart(containers []string) error {
 			finalContainers = append(finalContainers, val)
 		}
 	}
-	// make sure we always update the config when starting in case .env variables changed
+	// make sure we always update the config when starting in case .env variables changed\
 	for _, service := range finalContainers {
 		if utils.StringInSlice(service, config.MythicPossibleServices) {
 			AddMythicService(service)

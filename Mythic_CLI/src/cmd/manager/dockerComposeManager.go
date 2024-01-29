@@ -301,6 +301,9 @@ func (d *DockerComposeManager) GetServiceConfiguration(service string) (map[stri
 func (d *DockerComposeManager) SetServiceConfiguration(service string, pStruct map[string]interface{}) error {
 	curConfig := d.readInDockerCompose()
 	allConfigValues := curConfig.AllSettings()
+	if _, ok := allConfigValues["services"]; !ok {
+		allConfigValues["services"] = map[string]interface{}{}
+	}
 	for key, _ := range allConfigValues {
 		if key == "services" {
 			allServices := allConfigValues["services"].(map[string]interface{})
@@ -1207,13 +1210,16 @@ func (d *DockerComposeManager) GetAllInstalled3rdPartyServiceNames() ([]string, 
 		}
 	}
 	servicesSub := groupNameConfig.Sub("services")
-	services := servicesSub.AllSettings()
 	containerList := []string{}
-	for service := range services {
-		if !utils.StringInSlice(service, config.MythicPossibleServices) {
-			containerList = append(containerList, service)
+	if servicesSub != nil {
+		services := servicesSub.AllSettings()
+		for service := range services {
+			if !utils.StringInSlice(service, config.MythicPossibleServices) {
+				containerList = append(containerList, service)
+			}
 		}
 	}
+
 	return containerList, nil
 }
 
@@ -1233,12 +1239,16 @@ func (d *DockerComposeManager) GetCurrentMythicServiceNames() ([]string, error) 
 		}
 	}
 	servicesSub := groupNameConfig.Sub("services")
-	services := servicesSub.AllSettings()
+
 	containerList := []string{}
-	for service := range services {
-		if utils.StringInSlice(service, config.MythicPossibleServices) {
-			containerList = append(containerList, service)
+	if servicesSub != nil {
+		services := servicesSub.AllSettings()
+		for service := range services {
+			if utils.StringInSlice(service, config.MythicPossibleServices) {
+				containerList = append(containerList, service)
+			}
 		}
 	}
+
 	return containerList, nil
 }

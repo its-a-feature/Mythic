@@ -16,7 +16,7 @@ func AddMythicService(service string) {
 		log.Fatalf("[-] Failed to get current configuration information: %v\n", err)
 	}
 	if _, ok := pStruct["environment"]; !ok {
-		pStruct["environment"] = []string{}
+		pStruct["environment"] = []interface{}{}
 	}
 	mythicEnv := config.GetMythicEnv()
 	volumes, _ := manager.GetManager().GetVolumes()

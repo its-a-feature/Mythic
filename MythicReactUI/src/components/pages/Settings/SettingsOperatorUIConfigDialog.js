@@ -39,19 +39,19 @@ export function SettingsOperatorUIConfigDialog(props) {
     const [fontFamily, setFontFamily] = React.useState(initialLocalStorageFontFamilyValue);
     const [topColor, setTopColor] = React.useState(initialLocalStorageTopColorValue);
 
-    const initialShowMediaValue = useMythicSetting({setting_name: "showMedia", default_value: true});
+    const initialShowMediaValue = useMythicSetting({setting_name: "showMedia", default_value: "true"});
     const [showMedia, setShowMedia] = React.useState(initialShowMediaValue);
 
-    const initialHideUsernameValue = useMythicSetting({setting_name: "hideUsernames", default_value: false});
+    const initialHideUsernameValue = useMythicSetting({setting_name: "hideUsernames", default_value: "false"});
     const [hideUsernames, setHideUsernames] = React.useState(initialHideUsernameValue);
 
-    const initialShowIPValue = useMythicSetting({setting_name: "showIP", default_value: false});
+    const initialShowIPValue = useMythicSetting({setting_name: "showIP", default_value: "false"});
     const [showIP, setShowIP] = React.useState(initialShowIPValue);
 
-    const initialShowHostnameValue = useMythicSetting({setting_name: "showHostname", default_value: false});
+    const initialShowHostnameValue = useMythicSetting({setting_name: "showHostname", default_value: "false"});
     const [showHostname, setShowHostname] = React.useState(initialShowHostnameValue);
 
-    const initialShowCallbackGroupsValue = useMythicSetting({setting_name: "showCallbackGroups", default_value: false});
+    const initialShowCallbackGroupsValue = useMythicSetting({setting_name: "showCallbackGroups", default_value: "false"});
     const [showCallbackGroups, setShowCallbackGroups] = React.useState(initialShowCallbackGroupsValue);
 
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
