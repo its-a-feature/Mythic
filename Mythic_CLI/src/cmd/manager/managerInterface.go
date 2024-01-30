@@ -67,6 +67,10 @@ type CLIManager interface {
 	PrintAllServices()
 	// ResetDatabase deletes the current database or volume
 	ResetDatabase(useVolume bool)
+	// BackupDatabase saves a copy of the database to the specified path
+	BackupDatabase(backupPath string, useVolume bool)
+	// RestoreDatabase restores a saved copy of the datababse to the specified path
+	RestoreDatabase(backupPath string, useVolume bool)
 	// PrintVolumeInformation prints out all the volumes in use by Mythic
 	PrintVolumeInformation()
 	// RemoveVolume removes the named volume

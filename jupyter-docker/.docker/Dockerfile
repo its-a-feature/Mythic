@@ -12,6 +12,7 @@ WORKDIR /projects
 #CMD start.sh jupyter lab --ServerApp.open_browser=false --IdentityProvider.token='' --ServerApp.base_url="/jupyter" --ServerApp.default_url="/jupyter"
 
 ENV JUPYTERHUB_SERVICE_PREFIX "/jupyter/"
+ENV JUPYTER_TOKEN "mythic"
 
 COPY ["jupyter/", "."]
 

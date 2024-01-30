@@ -851,6 +851,40 @@ func (d *DockerComposeManager) ResetDatabase(useVolume bool) {
 		}
 	}
 }
+func (d *DockerComposeManager) BackupDatabase(backupPath string, useVolume bool) {
+	/*
+		if !useVolume {
+			workingPath := utils.GetCwdFromExe()
+			err := utils.CopyDir(filepath.Join(workingPath, "postgres-docker", "database"), backupPath)
+			if err != nil {
+				log.Fatalf("[-] Failed to copy database files\n%v\n", err)
+			} else {
+				log.Printf("[+] Successfully copied datbase files\n")
+			}
+		} else {
+			d.CopyFromVolume("mythic_postgres_volume", "/var/lib/postgresql/data", backupPath)
+			log.Printf("[+] Successfully copied database files")
+		}
+
+	*/
+}
+func (d *DockerComposeManager) RestoreDatabase(backupPath string, useVolume bool) {
+	/*
+		if !useVolume {
+			workingPath := utils.GetCwdFromExe()
+			err := utils.CopyDir(backupPath, filepath.Join(workingPath, "postgres-docker", "database"))
+			if err != nil {
+				log.Fatalf("[-] Failed to copy database files\n%v\n", err)
+			} else {
+				log.Printf("[+] Successfully copied datbase files\n")
+			}
+		} else {
+			d.CopyIntoVolume("mythic_postgres_volume", "/var/lib/postgresql/data", backupPath)
+			log.Printf("[+] Successfully copied database files")
+		}
+
+	*/
+}
 func (d *DockerComposeManager) PrintVolumeInformation() {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -942,7 +976,7 @@ func (d *DockerComposeManager) RemoveVolume(volumeName string) error {
 						if err != nil {
 							log.Printf(fmt.Sprintf("[!] Failed to remove container that's using the volume: %v\n", err))
 						} else {
-							log.Printf("[+] Removed container %s, which was using that container", containerName)
+							log.Printf("[+] Removed container %s, which was using that volume", containerName)
 						}
 					}
 				}
@@ -1121,9 +1155,41 @@ func (d *DockerComposeManager) runDockerCompose(args []string) error {
 	command.Env = d.getMythicEnvList()
 	f, err := pty.Start(command)
 	if err != nil {
-		log.Fatalf("[-] Failed to run docker command: %v\n", err)
+		stdout, err := command.StdoutPipe()
+		if err != nil {
+			log.Fatalf("[-] Failed to get stdout pipe for running docker-compose\n")
+		}
+		stderr, err := command.StderrPipe()
+		if err != nil {
+			log.Fatalf("[-] Failed to get stderr pipe for running docker-compose\n")
+		}
+
+		stdoutScanner := bufio.NewScanner(stdout)
+		stderrScanner := bufio.NewScanner(stderr)
+		go func() {
+			for stdoutScanner.Scan() {
+				fmt.Printf("%s\n", stdoutScanner.Text())
+			}
+		}()
+		go func() {
+			for stderrScanner.Scan() {
+				fmt.Printf("%s\n", stderrScanner.Text())
+			}
+		}()
+		err = command.Start()
+		if err != nil {
+			log.Fatalf("[-] Error trying to start docker-compose: %v\n", err)
+		}
+		err = command.Wait()
+		if err != nil {
+			fmt.Printf("[-] Error from docker-compose: %v\n", err)
+			fmt.Printf("[*] Docker compose command: %v\n", args)
+			return err
+		}
+	} else {
+		io.Copy(os.Stdout, f)
 	}
-	io.Copy(os.Stdout, f)
+
 	return nil
 }
 func (d *DockerComposeManager) setDockerComposeDefaultsAndWrite(curConfig map[string]interface{}) error {

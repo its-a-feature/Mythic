@@ -54,7 +54,7 @@ func ServiceStart(containers []string) error {
 				add := config.AskConfirm(fmt.Sprintf("\n%s isn't in docker-compose, but is on disk. Would you like to add it? ", val))
 				if add {
 					finalContainers = append(finalContainers, val)
-					Add3rdPartyService(val, map[string]interface{}{})
+					Add3rdPartyService(val, map[string]interface{}{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
 				}
 			} else {
 				add := config.AskConfirm(fmt.Sprintf("\n%s isn't in docker-compose and is not on disk. Would you like to install it from https://github.com/? ", val))
@@ -72,7 +72,7 @@ func ServiceStart(containers []string) error {
 		if utils.StringInSlice(service, config.MythicPossibleServices) {
 			AddMythicService(service)
 		} else {
-			Add3rdPartyService(service, map[string]interface{}{})
+			Add3rdPartyService(service, map[string]interface{}{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
 		}
 	}
 	manager.GetManager().TestPorts(finalContainers)
@@ -102,7 +102,7 @@ func ServiceBuild(containers []string) error {
 			// update the necessary docker compose entries for mythic services
 			AddMythicService(container)
 		} else if utils.StringInSlice(container, composeServices) {
-			Add3rdPartyService(container, map[string]interface{}{})
+			Add3rdPartyService(container, map[string]interface{}{}, true)
 		}
 	}
 	err = manager.GetManager().BuildServices(containers)

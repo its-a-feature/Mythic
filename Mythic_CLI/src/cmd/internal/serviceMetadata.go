@@ -538,7 +538,7 @@ func AddMythicService(service string) {
 	manager.GetManager().SetVolumes(volumes)
 	_ = manager.GetManager().SetServiceConfiguration(service, pStruct)
 }
-func Add3rdPartyService(service string, additionalConfigs map[string]interface{}) error {
+func Add3rdPartyService(service string, additionalConfigs map[string]interface{}, removeVolume bool) error {
 	existingConfig, _ := manager.GetManager().GetServiceConfiguration(service)
 	if _, ok := existingConfig["environment"]; !ok {
 		existingConfig["environment"] = []string{}
@@ -580,9 +580,12 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 			pStruct["volumes"] = []string{
 				volumeName + ":/Mythic/",
 			}
-			// blow away the old volume just in case to make sure we don't carry over old data
-			log.Printf("[*] Removing old volume if it exists")
-			manager.GetManager().RemoveVolume(volumeName)
+			if removeVolume {
+				// blow away the old volume just in case to make sure we don't carry over old data
+				log.Printf("[*] Removing old volume, %s, if it exists", volumeName)
+				manager.GetManager().RemoveVolume(volumeName)
+			}
+
 			// add our new volume to the list of volumes if needed
 			volumes, _ := manager.GetManager().GetVolumes()
 			volumes[volumeName] = map[string]string{

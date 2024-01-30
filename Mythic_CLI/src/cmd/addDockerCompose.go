@@ -26,7 +26,7 @@ func addDockerCompose(cmd *cobra.Command, args []string) {
 		internal.AddMythicService(args[0])
 		return
 	}
-	err := internal.Add3rdPartyService(args[0], make(map[string]interface{}))
+	err := internal.Add3rdPartyService(args[0], make(map[string]interface{}), true)
 	if err != nil {
 		log.Printf("[-] Failed to add service")
 	}

@@ -82,14 +82,14 @@ func InstallFolder(installPath string, overWrite bool) error {
 				}
 				log.Printf("[*] Adding service into docker-compose\n")
 				if installConfig.IsSet("docker-compose") {
-					err := Add3rdPartyService(f.Name(), installConfig.GetStringMap("docker-compose"))
+					err := Add3rdPartyService(f.Name(), installConfig.GetStringMap("docker-compose"), true)
 					if err != nil {
 						log.Printf("[-] Failed to add service to docker-compose: %v\n", err)
 					} else if err := ServiceBuild([]string{f.Name()}); err != nil {
 						log.Printf("[-] Failed to start service: %v\n", err)
 					}
 				} else {
-					if err := Add3rdPartyService(f.Name(), make(map[string]interface{})); err != nil {
+					if err := Add3rdPartyService(f.Name(), make(map[string]interface{}), true); err != nil {
 						log.Printf("[-] Failed to add service to docker-compose: %v\n", err)
 					} else if err := ServiceBuild([]string{f.Name()}); err != nil {
 						log.Printf("[-] Failed to start service: %v\n", err)
@@ -144,7 +144,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 				}
 				// now add payload type to yaml installConfig
 				log.Printf("[*] Adding c2, %s, into docker-compose\n", f.Name())
-				if err = Add3rdPartyService(f.Name(), make(map[string]interface{})); err != nil {
+				if err = Add3rdPartyService(f.Name(), make(map[string]interface{}), true); err != nil {
 					log.Printf("[-] Failed to add %s to docker-compose: %v\n", f.Name(), err)
 				} else if err := ServiceBuild([]string{f.Name()}); err != nil {
 					log.Printf("[-] Failed to start service: %v\n", err)
