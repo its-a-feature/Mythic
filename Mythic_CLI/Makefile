@@ -11,11 +11,11 @@ default: build_linux ;
 export
 
 build_binary_linux:
-	docker run -v ${LOCAL_PATH}/copy_file/:/copy_file/ --rm -ti ${BUILDER_IMAGE} sh -c "cp /mythic-cli_linux /copy_file/mythic-cli"
+	docker run -v ${LOCAL_PATH}/copy_file/:/copy_file/ --rm ${BUILDER_IMAGE} sh -c "cp /mythic-cli_linux /copy_file/mythic-cli"
 	mv ./copy_file/${BINARY_NAME} . && rm -rf ./copy_file && chmod +x ${BINARY_NAME}
 
 build_binary_macos:
-	docker run -v ${LOCAL_PATH}/copy_file/:/copy_file/ --rm -ti ${BUILDER_IMAGE} sh -c "cp /mythic-cli_macos /copy_file/mythic-cli"
+	docker run -v ${LOCAL_PATH}/copy_file/:/copy_file/ --rm ${BUILDER_IMAGE} sh -c "cp /mythic-cli_macos /copy_file/mythic-cli"
 	mv ./copy_file/${BINARY_NAME} . && rm -rf ./copy_file && chmod +x ${BINARY_NAME}
 
 build_binary_macos_local:
