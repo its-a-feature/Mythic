@@ -34,6 +34,7 @@ type PayloadConfiguration struct {
 }
 type PayloadConfigurationC2Profile struct {
 	Name       string                 `json:"c2_profile"`
+	IsP2P      bool                   `json:"c2_profile_is_p2p"`
 	Parameters map[string]interface{} `json:"c2_profile_parameters"`
 }
 type PayloadConfigurationBuildParameter struct {

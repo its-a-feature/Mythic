@@ -121,7 +121,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand}) => {
 const MaxRenderSize = 2000000;
 const DisplayText = ({agent_file_id, expand}) => {
     const theme = useTheme();
-    const [mode, setMode] = React.useState("json");
+    const [mode, setMode] = React.useState("html");
     const [content, setContent] = React.useState("");
     const [wrapText, setWrapText] = React.useState(true);
     React.useEffect( () => {
@@ -186,7 +186,8 @@ const DisplayText = ({agent_file_id, expand}) => {
                     fontSize={14}
                     showGutter={true}
                     //onLoad={onLoad}
-                    highlightActiveLine={true}
+                    highlightActiveLine={false}
+                    showPrintMargin={false}
                     value={content}
                     height={expand ? "100%": undefined}
                     maxLines={expand ? undefined : 20}

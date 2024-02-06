@@ -17,5 +17,5 @@ func init() {
 }
 
 func database(cmd *cobra.Command, args []string) {
-
+	cmd.Help()
 }

@@ -126,7 +126,7 @@ export function DetailedPayloadTable(props){
         )
 }
 
-export const ParseForDisplay = ({cmd}) => {
+export const ParseForDisplay = ({cmd, filename}) => {
     const [renderObj, setRenderObj] = React.useState(cmd.value);
 
     React.useEffect( () => {
@@ -439,10 +439,10 @@ function DetailedPayloadInnerTable(props){
                                         <TableCell>{cmd.description}</TableCell>
                                         <TableCell>
                                             <ParseForDisplay cmd={cmd} />
-                                          {cmd.enc_key === null ? (null) : (<React.Fragment>
+                                          {cmd.enc_key === null ? null : (<React.Fragment>
                                             <br/><b>Encryption Key: </b> {cmd.enc_key}
                                           </React.Fragment>) }
-                                        {cmd.dec_key === null ? (null) : (<React.Fragment>
+                                        {cmd.dec_key === null ? null : (<React.Fragment>
                                             <br/><b>Decryption Key: </b> {cmd.dec_key}
                                         </React.Fragment>) }
                                         </TableCell>

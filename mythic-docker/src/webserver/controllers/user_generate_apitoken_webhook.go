@@ -28,7 +28,8 @@ type GenerateAPITokenResponse struct {
 func GenerateAPITokenWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input GenerateAPITokenInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, GenerateAPITokenResponse{
 			Status: "error",
 			Error:  err.Error(),
@@ -37,51 +38,55 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 	}
 	// get the associated database information
 	// an api token is just the same as a JWT
-	if userID, err := GetUserIDFromGin(c); err != nil {
+	userID, err := GetUserIDFromGin(c)
+	if err != nil {
 		c.JSON(http.StatusOK, GenerateAPITokenResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
-	} else if access_token, _, _, err := authentication.GenerateJWT(databaseStructs.Operator{
+	}
+	access_token, _, _, err := authentication.GenerateJWT(databaseStructs.Operator{
 		ID: userID,
-	}, authentication.AUTH_METHOD_API); err != nil {
+	}, authentication.AUTH_METHOD_API)
+	if err != nil {
 		c.JSON(http.StatusOK, GenerateAPITokenResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
-	} else {
-		// save off the access_token as an API token and then return it
-		apiToken := databaseStructs.Apitokens{
-			TokenValue: access_token,
-			OperatorID: userID,
-			TokenType:  input.Input.TokenType,
-			Active:     true,
-		}
-		if statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens 
+	}
+	// save off the access_token as an API token and then return it
+	apiToken := databaseStructs.Apitokens{
+		TokenValue: access_token,
+		OperatorID: userID,
+		TokenType:  input.Input.TokenType,
+		Active:     true,
+	}
+	statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens 
 		(token_value, operator_id, token_type, active) 
 		VALUES
 		(:token_value, :operator_id, :token_type, :active)
-		RETURNING id`); err != nil {
-			c.JSON(http.StatusOK, GenerateAPITokenResponse{
-				Status: "error",
-				Error:  err.Error(),
-			})
-			return
-		} else if err := statement.Get(&apiToken.ID, apiToken); err != nil {
-			c.JSON(http.StatusOK, GenerateAPITokenResponse{
-				Status: "error",
-				Error:  err.Error(),
-			})
-			return
-		} else {
-			c.JSON(http.StatusOK, GenerateAPITokenResponse{
-				Status:     "success",
-				TokenValue: access_token,
-				OperatorID: userID,
-				ID:         apiToken.ID,
-			})
-		}
+		RETURNING id`)
+	if err != nil {
+		c.JSON(http.StatusOK, GenerateAPITokenResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
 	}
+	err = statement.Get(&apiToken.ID, apiToken)
+	if err != nil {
+		c.JSON(http.StatusOK, GenerateAPITokenResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, GenerateAPITokenResponse{
+		Status:     "success",
+		TokenValue: access_token,
+		OperatorID: userID,
+		ID:         apiToken.ID,
+	})
 }

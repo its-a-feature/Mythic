@@ -11,4 +11,5 @@ type Apitokens struct {
 	Active       bool      `db:"active"`
 	CreationTime time.Time `db:"creation_time"`
 	OperatorID   int       `db:"operator_id"`
+	Operator     Operator  `db:"operator"`
 }

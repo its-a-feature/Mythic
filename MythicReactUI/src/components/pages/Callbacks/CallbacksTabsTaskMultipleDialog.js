@@ -158,7 +158,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
         }
     }
     const onTasked = ({tasked, variables}) => {
-        onClose();
+        //onClose();
     }
     const onSubmitCommandLine = (message, cmd, parsed, force_parsed_popup, cmdGroupNames, previousTaskingLocation) => {
         //console.log(message, cmd, parsed);

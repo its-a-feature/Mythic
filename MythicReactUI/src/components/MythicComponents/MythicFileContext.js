@@ -74,7 +74,9 @@ export const MythicFileContext = ({agent_file_id, display_link, filename}) => {
         onCompleted: (data) => {
             setFileData( {...fileData, filename: b64DecodeUnicode(data.filemeta[0].filename_text)});
             if(display_link === "" || display_link === undefined){
-                setFileData( {...fileData, display_link: b64DecodeUnicode(data.filemeta[0].filename_text)});
+                setFileData( {...fileData,
+                    filename: b64DecodeUnicode(data.filemeta[0].filename_text),
+                    display_link: b64DecodeUnicode(data.filemeta[0].filename_text)});
             }
         },
         onError: (data) => {

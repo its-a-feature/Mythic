@@ -1397,6 +1397,13 @@
           table:
             name: loadedcommands
             schema: public
+    - name: mythictrees
+      using:
+        foreign_key_constraint_on:
+          column: callback_id
+          table:
+            name: mythictree
+            schema: public
     - name: tasks
       using:
         foreign_key_constraint_on:
@@ -3741,6 +3748,13 @@
           column: operation_id
           table:
             name: payload
+            schema: public
+    - name: responses
+      using:
+        foreign_key_constraint_on:
+          column: operation_id
+          table:
+            name: response
             schema: public
     - name: tags
       using:

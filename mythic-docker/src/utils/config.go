@@ -26,6 +26,7 @@ type Config struct {
 	ServerBindLocalhostOnly bool
 	ServerDynamicPorts      []uint32
 	ServerGRPCPort          uint
+	GlobalServerName        string
 
 	// rabbitmq configuration
 	RabbitmqHost     string
@@ -79,6 +80,7 @@ func Initialize() {
 	mythicEnv.SetDefault("default_operation_name", "Operation Chimera")
 	mythicEnv.SetDefault("default_operation_webhook_url", "")
 	mythicEnv.SetDefault("default_operation_webhook_channel", "")
+	mythicEnv.SetDefault("global_server_name", "mythic")
 	// pull in environment variables and configuration from .env if needed
 	mythicEnv.SetConfigName(".env")
 	mythicEnv.SetConfigType("env")
@@ -146,6 +148,7 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 	MythicConfig.DefaultOperationName = mythicEnv.GetString("default_operation_name")
 	MythicConfig.DefaultOperationWebhook = mythicEnv.GetString("default_operation_webhook_url")
 	MythicConfig.DefaultOperationChannel = mythicEnv.GetString("default_operation_webhook_channel")
+	MythicConfig.GlobalServerName = mythicEnv.GetString("global_server_name")
 	allowedIPBlocks := []*net.IPNet{}
 	for _, ipBlock := range strings.Split(mythicEnv.GetString("allowed_ip_blocks"), ",") {
 		if _, subnet, err := net.ParseCIDR(ipBlock); err != nil {

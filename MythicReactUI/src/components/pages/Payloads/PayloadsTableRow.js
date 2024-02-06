@@ -206,7 +206,8 @@ export function PayloadsTableRow(props){
                   ) : (
                     <React.Fragment>
                       <MythicStyledTooltip title={"Delete the payload from disk and mark as deleted. No new callbacks can be generated from this payload"}>
-                        <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/></IconButton>
+                        <IconButton size="small" disableFocusRipple={true}
+                                    disableRipple={true} onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/></IconButton>
                       </MythicStyledTooltip>
                       
                       {openDelete && 
@@ -312,7 +313,8 @@ export function PayloadsTableRow(props){
                   </MythicStyledTooltip>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton size="small" color="info" onClick={() => setOpenDetailedView(true)}>
+                    <IconButton disableFocusRipple={true}
+                                disableRipple={true} size="small" color="info" onClick={() => setOpenDetailedView(true)}>
                         <InfoIconOutline />
                     </IconButton>
                 </MythicStyledTableCell>

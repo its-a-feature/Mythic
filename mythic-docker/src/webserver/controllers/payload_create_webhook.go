@@ -22,27 +22,32 @@ type BuildPayloadPayloadDefinition struct {
 func CreatePayloadWebhook(c *gin.Context) {
 	var input BuildPayloadInput
 	payloadConfig := rabbitmq.PayloadConfiguration{}
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to get JSON parameters for CreatePayloadWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
-	} else if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	}
+	ginOperatorOperation, ok := c.Get("operatorOperation")
+	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for CreatePayloadWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
 		return
-	} else if err := json.Unmarshal([]byte(input.Input.PayloadDefinition), &payloadConfig); err != nil {
+	}
+	err = json.Unmarshal([]byte(input.Input.PayloadDefinition), &payloadConfig)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal payload definition", "input", input.Input.PayloadDefinition)
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-	} else {
-		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
-		// now actually create the payload
-		if newUUID, _, err := rabbitmq.RegisterNewPayload(payloadConfig, operatorOperation); err != nil {
-			logging.LogError(err, "Failed to register payload for CreatePayloadWebhook")
-			c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-			return
-		} else {
-			c.JSON(http.StatusOK, gin.H{"status": "success", "uuid": newUUID})
-			return
-		}
 	}
+	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+	// now actually create the payload
+	newUUID, _, err := rabbitmq.RegisterNewPayload(payloadConfig, operatorOperation)
+	if err != nil {
+		logging.LogError(err, "Failed to register payload for CreatePayloadWebhook")
+		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "uuid": newUUID})
+	return
+
 }

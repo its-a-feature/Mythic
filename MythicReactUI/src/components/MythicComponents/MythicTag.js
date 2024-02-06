@@ -21,8 +21,10 @@ import { snackActions } from '../utilities/Snackbar';
 import { MythicDialog } from './MythicDialog';
 import {MythicConfirmDialog} from './MythicConfirmDialog';
 import DeleteIcon from '@mui/icons-material/Delete';
+import WebhookIcon from '@mui/icons-material/Webhook';
 import Chip from '@mui/material/Chip';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
+import {MythicStyledTooltip} from "./MythicStyledTooltip";
 
 const createNewTagMutationTemplate = ({target_object}) => {
   // target_object should be something like "task_id"
@@ -120,12 +122,67 @@ const TagChipDisplay = ({tag}) => {
     <React.Fragment>
       <Chip label={tag.tagtype.name} size="small" onClick={(e) => onSelectTag(e)} style={{float: "right", backgroundColor:tag.tagtype.color}} />
       {openTagDisplay && 
-        <MythicDialog fullWidth={true} maxWidth="md" open={openTagDisplay}
+        <MythicDialog fullWidth={true} maxWidth="xl" open={openTagDisplay}
           onClose={onClose}
           innerDialog={<ViewTagDialog onClose={onClose} target_object_id={tag.id}/>}
       />}
     </React.Fragment>
   )
+}
+const StringTagDataEntry = ({name, value}) => {
+  // want to match markdown [display](url)
+  const regex = "^\\[.*\\]\\(.*\\)";
+  const captureRegex = "^\\[(?<display>.*)\\]\\((?<url>.*)\\)(?<other>.*)";
+  const targetRegex = ":target=[\"\'](?<target>.*?)[\"\']";
+  const colorRegex = ":color=[\"\'](?<color>.*?)[\"\']";
+  const onClick = (e, url) => {
+    e.preventDefault();
+    fetch(url).then((response) => {
+      if (response.status !== 200) {
+        snackActions.warning("HTTP " + response.status + " response");
+      } else {
+        snackActions.success("Successfully contacted url");
+      }
+    }).catch(error => {
+      if(error.toString() === "TypeError: Failed to fetch"){
+        snackActions.warning("Failed to make connection - this could be networking issues or ssl certs that need to be accepted first");
+      } else {
+        snackActions.warning("Error talking to server: " + error.toString());
+      }
+      console.log("There was an error!", error);
+    })
+  }
+  if(RegExp(regex).test(value)){
+    const capturePieces = RegExp(captureRegex).exec(value);
+    const targetPieces = RegExp(targetRegex).exec(capturePieces[3]);
+    const colorPieces = RegExp(colorRegex).exec(capturePieces[3]);
+    if(targetPieces && targetPieces["groups"]["target"] === "api"){
+      let color = "textPrimary";
+      if(colorPieces && colorPieces["groups"]["color"]){
+        color = colorPieces["groups"]["color"];
+      }
+      return (
+          <MythicStyledTooltip title={"Make API Request"}>
+            <WebhookIcon style={{cursor: "pointer", marginRight: "10px"}}
+                         onClick={(e) => onClick(e, capturePieces[2])}
+                         color={color}
+            />
+            {capturePieces[1]}
+          </MythicStyledTooltip>
+      )
+    }
+    return (
+          <Link href={capturePieces[2]} color="textPrimary" target={"_blank"} referrerPolicy='no'>{capturePieces[1]}</Link>
+    )
+  } else if(value.startsWith("http")){
+    return (
+        <>
+          {"Click for: "}
+          <Link href={value} color="textPrimary" target="_blank" referrerPolicy='no'>{name}</Link>
+        </>
+    )
+  }
+  return value;
 }
 function ViewTagDialog(props) {
   const theme = useTheme();
@@ -165,7 +222,7 @@ return (
               <TableBody>
                 <TableRow hover>
                   <TableCell style={{width: "20%"}}>Tag Type</TableCell>
-                  <TableCell style={{display: "inline-flex", flexDirection: "row-reverse"}}>
+                  <TableCell style={{display: "inline-flex", flexDirection: "row", width: "100%"}}>
                     <Chip label={selectedTag?.tagtype?.name||""} size="small" style={{float: "right", backgroundColor:selectedTag?.tagtype?.color||""}} />
                   </TableCell>
                 </TableRow>
@@ -182,26 +239,23 @@ return (
                 <TableRow hover>
                   <TableCell>Reference URL</TableCell>
                   <TableCell>
-                    <Link href={selectedTag?.url || "#"} color="textPrimary" target="_blank" referrerPolicy='no'>{selectedTag?.url ? "click here" : "No link provided"}</Link>
+                    <Link href={selectedTag?.url || "#"} color="textPrimary" target="_blank" referrerPolicy='no'>{selectedTag?.url ? "click here" : "No reference link provided"}</Link>
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Data</TableCell>
                   <TableCell>
                     {selectedTag?.is_json || false ? (
-                      <TableContainer component={Paper} className="mythicElement">
+                      <TableContainer  className="mythicElement">
                         <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                           <TableBody>
                             {Object.keys(selectedTag.data).map( key => (
                               <TableRow key={key} hover>
                                 <TableCell>{key}</TableCell>
                                 {typeof selectedTag.data[key] === "string" ? (
-                                    <TableCell>{selectedTag.data[key].startsWith("http") ? (
-                                        <>
-                                          {"Click for: "}
-                                          <Link href={selectedTag.data[key]} color="textPrimary" target="_blank" referrerPolicy='no'>{key}</Link>
-                                        </>
-                                    ) : (selectedTag.data[key])}</TableCell>
+                                    <TableCell>
+                                      <StringTagDataEntry name={key} value={selectedTag.data[key]} />
+                                    </TableCell>
                                 ) : typeof selectedTag.data[key] === "object" ? (
                                     <TableCell>{selectedTag.data[key].toString()}</TableCell>
                                 ) : typeof selectedTag.data[key] === "boolean" ? (
@@ -224,7 +278,7 @@ return (
                         fontSize={14}
                         showGutter={true}
                         maxLines={20}
-                        highlightActiveLine={true}
+                        highlightActiveLine={false}
                         value={selectedTag?.data || ""}
                         width={"100%"}
                         setOptions={{
@@ -296,7 +350,8 @@ export function ViewEditTagsDialog(props) {
 });
   const [updateTag] = useMutation(updateTagMutationTemplate, {
     onCompleted: data => {
-      
+      snackActions.success("Successfully updated tag");
+      props.onClose();
     },
     onError: error => {
       snackActions.error("Failed to update: " + error.message);
@@ -308,8 +363,6 @@ const onSubmit = () => {
   if(props.onSubmit !== undefined){
     props.onSubmit({source:newSource, url:newURL, data:newData, tag_id:selectedTag.id});
   }
-  
-  props.onClose();
 }
 const onChangeSource = (name, value, error) => {
   setNewSource(value);
@@ -341,7 +394,7 @@ return (
       </DialogTitle>
       <DialogContent dividers={true}>
       {openNewDialog ?
-        (<MythicDialog fullWidth={true} maxWidth="md" open={openNewDialog} 
+        (<MythicDialog fullWidth={true} maxWidth="xl" open={openNewDialog}
           onClose={()=>{setOpenNewDialog(false);}} 
           innerDialog={<NewTagDialog me={props.me} 
             target_object={props.target_object} 
@@ -567,7 +620,7 @@ export const ViewEditTags = ({target_object, target_object_id, me}) => {
     <React.Fragment>
     <IconButton onClick={(e) => toggleTagDialog(e, true)} size="small" style={{display: "inline-block", float: "right"}}><LocalOfferOutlinedIcon /></IconButton>
     {openTagDialog ?
-      (<MythicDialog fullWidth={true} maxWidth="md" open={openTagDialog} 
+      (<MythicDialog fullWidth={true} maxWidth="xl" open={openTagDialog}
         onClose={(e)=>{toggleTagDialog(e, false)}}
         innerDialog={<ViewEditTagsDialog me={me} target_object={target_object} target_object_id={target_object_id} onClose={(e)=>{toggleTagDialog(e, false)}} />}
     />) : null}

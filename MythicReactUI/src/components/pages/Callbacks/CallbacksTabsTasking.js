@@ -325,7 +325,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                     setCommandInfo({...cmd, "parsedParameters": parsed});
                 }
                 setOpenParametersDialog(true);
-                return;
+
             }else{
                 delete parsed["_"];
                 onCreateTask({callback_id: tabInfo.displayID, 

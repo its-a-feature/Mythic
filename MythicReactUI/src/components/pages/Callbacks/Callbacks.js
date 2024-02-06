@@ -8,6 +8,10 @@ import TocIcon from '@mui/icons-material/Toc';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import { CallbacksTop } from './CallbacksTop';
 import Split from 'react-split';
+import PhoneForwardedIcon from '@mui/icons-material/PhoneForwarded';
+import {ImportPayloadConfigDialog} from "../Payloads/ImportPayloadConfigDialog";
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {ImportCallbackConfigDialog} from "./ImportCallbackConfigDialog";
 
 const PREFIX = 'Callbacks';
 
@@ -216,7 +220,7 @@ export function Callbacks({me}) {
  */
 function SpeedDialWrapperPreMemo({ setTopDisplay }) {
     const [open, setOpen] = React.useState(false);
-
+    const [openCallbackImport, setOpenCallbackImport] = React.useState(false);
     const actions = React.useMemo(
         () => [
             {
@@ -233,11 +237,24 @@ function SpeedDialWrapperPreMemo({ setTopDisplay }) {
                     setTopDisplay('graph');
                 },
             },
+            {
+                icon: <PhoneForwardedIcon />,
+                name: "Import Callback",
+                onClick: () => {
+                    setOpenCallbackImport(true);
+                }
+            }
         ],
         [] // eslint-disable-line react-hooks/exhaustive-deps
     );
     return (
         <React.Fragment>
+            {openCallbackImport &&
+                <MythicDialog fullWidth={true} maxWidth="sm" open={openCallbackImport}
+                              onClose={()=>{setOpenCallbackImport(false);}}
+                              innerDialog={<ImportCallbackConfigDialog onClose={()=>{setOpenCallbackImport(false);}} />}
+                />
+            }
             <StyledSpeedDial
                 ariaLabel='SpeedDial example'
                 className={classes.speedDial}

@@ -287,7 +287,7 @@ const NonInteractiveResponseDisplay = (props) => {
         {!openBackdrop &&
             <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
 
-              <div style={{overflowY: "auto", flexGrow: 1, width: "100%", height: props.expand ? "100%": undefined, display: "flex"}} ref={props.responseRef}>
+              <div style={{overflowY: "auto", flexGrow: 1, width: "100%", height: props.expand ? "100%": undefined, display: "flex", flexDirection: "column"}} ref={props.responseRef}>
                 <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
                                           output={output} command_id={props.command_id}
                                           task={props.task} search={search.current} expand={props.expand}/>

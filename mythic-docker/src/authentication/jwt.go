@@ -42,7 +42,12 @@ var (
 )
 
 var (
-	SQLGetIDForActiveToken = "SELECT id FROM apitokens WHERE token_value=$1 and active=true"
+	SQLGetIDForActiveToken = `SELECT 
+    	apitokens.id, apitokens.operator_id,
+    	operator.username "operator.username" 
+		FROM apitokens 
+		JOIN operator ON apitokens.operator_id = operator.id
+		WHERE apitokens.token_value=$1 and apitokens.active=true`
 )
 
 func GetClaims(c *gin.Context) (*CustomClaims, error) {
@@ -66,6 +71,7 @@ func GetClaims(c *gin.Context) (*CustomClaims, error) {
 	}
 
 	if claims, ok := token.Claims.(*CustomClaims); ok {
+		c.Set("user_id", claims.UserID)
 		return claims, nil
 	}
 
@@ -86,11 +92,14 @@ func TokenValid(c *gin.Context) error {
 			logging.LogError(err, "Failed to get apitoken from database", "apitoken", tokenString)
 			return err
 		}
+		c.Request.Header.Add("MythicSource", "scripting")
+		c.Set("user_id", databaseApiToken.OperatorID)
+		c.Set("username", databaseApiToken.Operator.Username)
 		return nil
 	}
-
+	claims := CustomClaims{}
 	if len(tokenString) > 0 {
-		_, err = jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		_, err = jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				logging.LogError(ErrUnexpectedSigningMethod, "signing method", token.Header["alg"])
 				return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
@@ -101,8 +110,14 @@ func TokenValid(c *gin.Context) error {
 			logging.LogError(err, "Failed to parse JWT with claims", "JWT", tokenString)
 			return err
 		}
+		operator, err := database.GetUserFromID(claims.UserID)
+		if err == nil {
+			c.Set("username", operator.Username)
+		}
+		c.Set("user_id", claims.UserID)
+		return nil
 	}
-	return nil
+	return errors.New("failed to get token")
 }
 
 func ExtractToken(c *gin.Context) (string, error) {
@@ -130,7 +145,7 @@ func ExtractAPIToken(c *gin.Context) (string, error) {
 		return "", ErrMissingJWTToken
 	}
 
-	logging.LogTrace("got apitoken header", "apitoken", token)
+	//logging.LogTrace("got apitoken header", "apitoken", token)
 	return token, nil
 }
 
@@ -139,7 +154,8 @@ func CookieTokenValid(c *gin.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+	claims := CustomClaims{}
+	_, err = jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			logging.LogError(ErrUnexpectedSigningMethod, "signing method", token.Header["alg"])
 			return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
@@ -149,6 +165,11 @@ func CookieTokenValid(c *gin.Context) error {
 	if err != nil {
 		logging.LogError(err, "Failed to parse JWT with claims", "JWT", tokenString)
 		return err
+	}
+	c.Set("user_id", claims.UserID)
+	operator, err := database.GetUserFromID(claims.UserID)
+	if err == nil {
+		c.Set("username", operator.Username)
 	}
 	c.Request.Header.Add("Authorization", fmt.Sprintf("Bearer: %s", tokenString))
 	return nil
@@ -218,7 +239,6 @@ func RefreshJWT(access_token string, refresh_token string) (string, string, int,
 
 	delete(RefreshTokenCache, access_token)
 	RefreshTokenCache[newAccessToken] = newRefreshToken
-
 	return newAccessToken, newRefreshToken, userID, nil
 }
 

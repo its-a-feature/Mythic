@@ -30,10 +30,12 @@ export function PayloadsTableRowBuildStatus(props){
                 (<MythicStyledTooltip title="Payload still building">
                     <IconButton variant="contained" size="large"><CircularProgress size={20} thickness={4} color="info"/></IconButton>
                 </MythicStyledTooltip>) : 
-                (<MythicStyledTooltip title="Failed to build payload">
+                (<>
                     <IconButton
                         variant="contained"
                         onClick={onErrorClick}
+                        disableFocusRipple={true}
+                        disableRipple={true}
                         size="large">
                         <ReportProblemIcon color="error" />
                     </IconButton>
@@ -42,8 +44,8 @@ export function PayloadsTableRowBuildStatus(props){
                         onClose={()=>{setOpenBuildMessageDialog(false);}} 
                         innerDialog={<PayloadBuildMessageDialog payload_id={props.id} viewError={true} onClose={()=>{setOpenBuildMessageDialog(false);}} />}
                     />
-                ): (null) }
-                </MythicStyledTooltip>
+                ): null }
+                </>
                 ) 
                 )
             }

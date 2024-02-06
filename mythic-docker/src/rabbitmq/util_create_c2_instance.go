@@ -21,7 +21,7 @@ func CreateC2Instance(input CreateC2InstanceInput, operatorOperation *databaseSt
 	response := CreateC2InstanceResponse{
 		Status: "error",
 	}
-	logging.LogDebug("got a request to create a c2 instance", "input", input)
+	//logging.LogDebug("got a request to create a c2 instance", "input", input)
 	// saved value from the UI/Scripting will be key-value pairs with the final values (except for crypto generation)
 	c2ProfileParameters := []databaseStructs.C2profileparameters{}
 	if err := database.DB.Select(&c2ProfileParameters, `SELECT
@@ -46,7 +46,7 @@ func CreateC2Instance(input CreateC2InstanceInput, operatorOperation *databaseSt
 			for key, val := range input.Parameters {
 				if key == dbParam.Name {
 					found = true
-					if dbStringValue, err := getFinalStringForDatabaseInstanceValueFromUserSuppliedValue(dbParam.ParameterType, val); err != nil {
+					if dbStringValue, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(dbParam.ParameterType, val); err != nil {
 						logging.LogError(err, "Failed to get string from user supplied value for saved c2 instance")
 						response.Error = "Failed to get string from user supplied value for saved c2 instance: " + err.Error()
 						return response

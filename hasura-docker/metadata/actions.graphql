@@ -198,6 +198,12 @@ type Mutation {
 }
 
 type Query {
+  exportCallbackConfig(
+    agent_callback_id: String!
+  ): exportCallbackConfigOutput
+}
+
+type Query {
   export_payload_config(
     uuid: String!
   ): PayloadConfig
@@ -223,6 +229,12 @@ type Query {
   getProfileOutput(
     id: Int!
   ): ProfileOutput
+}
+
+type Mutation {
+  importCallbackConfig(
+    config: jsonb!
+  ): importCallbackConfigOutput
 }
 
 type Mutation {
@@ -810,5 +822,16 @@ type updateGlobalSettingsOutput {
 
 type globalSettingsOutput {
   settings: jsonb!
+}
+
+type exportCallbackConfigOutput {
+  status: String!
+  error: String
+  config: String
+}
+
+type importCallbackConfigOutput {
+  status: String!
+  error: String
 }
 

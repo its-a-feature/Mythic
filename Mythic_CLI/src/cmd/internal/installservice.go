@@ -82,17 +82,24 @@ func InstallFolder(installPath string, overWrite bool) error {
 				}
 				log.Printf("[*] Adding service into docker-compose\n")
 				if installConfig.IsSet("docker-compose") {
-					err := Add3rdPartyService(f.Name(), installConfig.GetStringMap("docker-compose"), true)
+					err = Add3rdPartyService(f.Name(), installConfig.GetStringMap("docker-compose"), true)
 					if err != nil {
 						log.Printf("[-] Failed to add service to docker-compose: %v\n", err)
-					} else if err := ServiceBuild([]string{f.Name()}); err != nil {
-						log.Printf("[-] Failed to start service: %v\n", err)
+					} else {
+						err = manager.GetManager().BuildServices([]string{f.Name()})
+						if err != nil {
+							log.Printf("[-] Failed to start service: %v\n", err)
+						}
 					}
 				} else {
-					if err := Add3rdPartyService(f.Name(), make(map[string]interface{}), true); err != nil {
+					err = Add3rdPartyService(f.Name(), make(map[string]interface{}), true)
+					if err != nil {
 						log.Printf("[-] Failed to add service to docker-compose: %v\n", err)
-					} else if err := ServiceBuild([]string{f.Name()}); err != nil {
-						log.Printf("[-] Failed to start service: %v\n", err)
+					} else {
+						err = manager.GetManager().BuildServices([]string{f.Name()})
+						if err != nil {
+							log.Printf("[-] Failed to start service: %v\n", err)
+						}
 					}
 				}
 
@@ -144,10 +151,14 @@ func InstallFolder(installPath string, overWrite bool) error {
 				}
 				// now add payload type to yaml installConfig
 				log.Printf("[*] Adding c2, %s, into docker-compose\n", f.Name())
-				if err = Add3rdPartyService(f.Name(), make(map[string]interface{}), true); err != nil {
+				err = Add3rdPartyService(f.Name(), make(map[string]interface{}), true)
+				if err != nil {
 					log.Printf("[-] Failed to add %s to docker-compose: %v\n", f.Name(), err)
-				} else if err := ServiceBuild([]string{f.Name()}); err != nil {
-					log.Printf("[-] Failed to start service: %v\n", err)
+				} else {
+					err = manager.GetManager().BuildServices([]string{f.Name()})
+					if err != nil {
+						log.Printf("[-] Failed to start service: %v\n", err)
+					}
 				}
 			}
 		}
@@ -164,7 +175,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 			for _, f := range files {
 				if f.IsDir() {
 					log.Printf("[*] Processing Documentation for %s\n", f.Name())
-					if !config.GetMythicEnv().GetBool("documentation_bind_use_volume") {
+					if !config.GetMythicEnv().GetBool("documentation_use_volume") {
 						if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "Agents", f.Name())) {
 							if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
 								log.Printf("[*] Removing current version\n")
@@ -214,7 +225,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 			for _, f := range files {
 				if f.IsDir() {
 					log.Printf("[*] Processing Documentation for %s\n", f.Name())
-					if !config.GetMythicEnv().GetBool("document_bind_use_volume") {
+					if !config.GetMythicEnv().GetBool("document_use_volume") {
 						if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name())) {
 							if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
 								log.Printf("[*] Removing current version\n")

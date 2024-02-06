@@ -26,6 +26,7 @@ import (
 	"strings"
 	"sync"
 	"text/tabwriter"
+	"time"
 )
 
 type DockerComposeManager struct {
@@ -721,7 +722,11 @@ func (d *DockerComposeManager) Status(verbose bool) {
 			}
 		}
 		if !foundMountInfo {
-			info += "local"
+			if container.Labels["name"] == "mythic_graphql" {
+				info += "N/A"
+			} else {
+				info += "local"
+			}
 		}
 		info += "\t"
 		if utils.StringInSlice(container.Labels["name"], config.MythicPossibleServices) {
@@ -851,39 +856,181 @@ func (d *DockerComposeManager) ResetDatabase(useVolume bool) {
 		}
 	}
 }
-func (d *DockerComposeManager) BackupDatabase(backupPath string, useVolume bool) {
-	/*
-		if !useVolume {
-			workingPath := utils.GetCwdFromExe()
-			err := utils.CopyDir(filepath.Join(workingPath, "postgres-docker", "database"), backupPath)
-			if err != nil {
-				log.Fatalf("[-] Failed to copy database files\n%v\n", err)
-			} else {
-				log.Printf("[+] Successfully copied datbase files\n")
-			}
+func (d *DockerComposeManager) BackupDatabase(backupPath string, useVolume bool) error {
+	if !useVolume {
+		workingPath := utils.GetCwdFromExe()
+		log.Printf("[*] Staring to copy, this might take a minute...")
+		err := utils.CopyDir(filepath.Join(workingPath, "postgres-docker", "database"), backupPath)
+		if err != nil {
+			log.Printf("[-] Failed to copy database files\n%v\n", err)
+			return err
 		} else {
-			d.CopyFromVolume("mythic_postgres_volume", "/var/lib/postgresql/data", backupPath)
-			log.Printf("[+] Successfully copied database files")
+			log.Printf("[+] Successfully copied database files from disk\n")
+			return nil
 		}
+	} else {
+		ctx := context.Background()
+		cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+		if err != nil {
+			return err
+		}
+		defer cli.Close()
+		execID, err := cli.ContainerExecCreate(ctx, "mythic_postgres", types.ExecConfig{
+			AttachStderr: true,
+			AttachStdout: true,
+			AttachStdin:  true,
+			Cmd:          []string{"/bin/bash", "-i"},
+		})
+		if err != nil {
+			log.Fatalf("[!] Failed to exec into container: %v", err)
+		} else {
+			log.Printf("[*] Created docker exec session")
+		}
+		session, err := cli.ContainerExecAttach(ctx, execID.ID, types.ExecStartCheck{})
+		if err != nil {
+			log.Fatalf("[!] Failed to attach to exec session: %v", err)
+		} else {
+			log.Printf("[*] Attached to docker exec session")
+		}
+		todayString := time.Now().Format("2006-01-02-150405")
+		tarFileName := fmt.Sprintf("%s-mythic_postgres.tar", todayString)
+		defer session.Close()
+		dumpCommand := fmt.Sprintf("PGPASSWORD=%s pg_dump -n public --format=tar -U mythic_user -f /var/lib/postgresql/data/%s mythic_db\n",
+			config.GetMythicEnv().GetString("postgres_password"), tarFileName)
+		_, err = session.Conn.Write([]byte(dumpCommand))
+		if err != nil {
+			log.Fatalf("[!] Failed to write to exec bash: %v", err)
+		} else {
+			log.Printf("[*] Issued pg_dump command")
+		}
+		_, err = session.Conn.Write([]byte("exit\n"))
+		if err != nil {
+			log.Fatalf("[!] Failed to authenticate to exec bash: %v", err)
+		}
+		inspect, err := cli.ContainerExecInspect(ctx, execID.ID)
+		for inspect.Running {
+			time.Sleep(1 * time.Second)
+			log.Printf("[*] Waiting for pg_dump to finish...")
+			inspect, err = cli.ContainerExecInspect(ctx, execID.ID)
+		}
+		log.Printf("[*] Finished docker exec session")
+		err = d.CopyFromVolume("mythic_postgres_volume", tarFileName, backupPath)
+		if err != nil {
+			return err
+		}
+		log.Printf("[+] Successfully copied database files from volume")
 
-	*/
+		return nil
+	}
 }
-func (d *DockerComposeManager) RestoreDatabase(backupPath string, useVolume bool) {
-	/*
-		if !useVolume {
-			workingPath := utils.GetCwdFromExe()
-			err := utils.CopyDir(backupPath, filepath.Join(workingPath, "postgres-docker", "database"))
-			if err != nil {
-				log.Fatalf("[-] Failed to copy database files\n%v\n", err)
-			} else {
-				log.Printf("[+] Successfully copied datbase files\n")
-			}
-		} else {
-			d.CopyIntoVolume("mythic_postgres_volume", "/var/lib/postgresql/data", backupPath)
-			log.Printf("[+] Successfully copied database files")
-		}
+func (d *DockerComposeManager) RestoreDatabase(backupPath string, useVolume bool) error {
 
-	*/
+	if !useVolume {
+		workingPath := utils.GetCwdFromExe()
+		log.Printf("[*] Staring to copy, this might take a minute...")
+		err := utils.CopyDir(backupPath, filepath.Join(workingPath, "postgres-docker", "database"))
+		if err != nil {
+			log.Printf("[-] Failed to copy database files\n%v\n", err)
+			return err
+		} else {
+			log.Printf("[+] Successfully copied database files\n")
+			return nil
+		}
+	} else {
+		err := d.CopyIntoVolume(backupPath, "dump.tar", "mythic_postgres_volume")
+		if err != nil {
+			return err
+		}
+		log.Printf("[+] Successfully copied database files")
+		ctx := context.Background()
+		cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+		if err != nil {
+			return err
+		}
+		defer cli.Close()
+		execID, err := cli.ContainerExecCreate(ctx, "mythic_postgres", types.ExecConfig{
+			AttachStderr: true,
+			AttachStdout: true,
+			AttachStdin:  true,
+			Cmd:          []string{"/bin/bash", "-i"},
+		})
+		if err != nil {
+			log.Fatalf("[!] Failed to exec into container: %v", err)
+		} else {
+			log.Printf("[*] Created docker exec session")
+		}
+		session, err := cli.ContainerExecAttach(ctx, execID.ID, types.ExecStartCheck{})
+		if err != nil {
+			log.Fatalf("[!] Failed to attach to exec session: %v", err)
+		} else {
+			log.Printf("[*] Attached to docker exec session")
+		}
+		defer session.Close()
+		dumpCommand := fmt.Sprintf("PGPASSWORD=%s pg_restore -U mythic_user -n public --clean --if-exists -d mythic_db /var/lib/postgresql/data/dump.tar\n",
+			config.GetMythicEnv().GetString("postgres_password"))
+		_, err = session.Conn.Write([]byte(dumpCommand))
+		if err != nil {
+			log.Fatalf("[!] Failed to write to exec bash: %v", err)
+		} else {
+			log.Printf("[*] Issued pg_dump command")
+		}
+		_, err = session.Conn.Write([]byte("rm /var/lib/postgresql/data/dump.tar; exit\n"))
+		if err != nil {
+			log.Fatalf("[!] Failed to authenticate to exec bash: %v", err)
+		}
+		inspect, err := cli.ContainerExecInspect(ctx, execID.ID)
+		for inspect.Running {
+			time.Sleep(1 * time.Second)
+			log.Printf("[*] Waiting for pg_dump to finish...")
+			inspect, err = cli.ContainerExecInspect(ctx, execID.ID)
+		}
+		log.Printf("[*] Finished docker exec session")
+		return nil
+	}
+}
+func (d *DockerComposeManager) BackupFiles(backupPath string, useVolume bool) error {
+	if !useVolume {
+		workingPath := utils.GetCwdFromExe()
+		log.Printf("[*] Staring to copy, this might take a minute...")
+		err := utils.CopyDir(filepath.Join(workingPath, "mythic-docker", "src", "files"), backupPath)
+		if err != nil {
+			log.Printf("[-] Failed to copy Mythic's uploads/downloads\n%v\n", err)
+			return err
+		} else {
+			log.Printf("[+] Successfully copied Mythic's uploads/downloads from disk\n")
+			return nil
+		}
+	} else {
+		err := d.CopyFromVolume("mythic_server_volume", "", backupPath)
+		if err != nil {
+			return err
+		}
+		log.Printf("[+] Successfully copied Mythic's uploads/downloads from volume")
+		return nil
+	}
+}
+func (d *DockerComposeManager) RestoreFiles(backupPath string, useVolume bool) error {
+
+	if !useVolume {
+		workingPath := utils.GetCwdFromExe()
+		log.Printf("[*] Staring to copy, this might take a minute...")
+		err := utils.CopyDir(backupPath, filepath.Join(workingPath, "mythic-docker", "src", "files"))
+		if err != nil {
+			log.Printf("[-] Failed to copy Mythic's uploads/downloads\n%v\n", err)
+			return err
+		} else {
+			log.Printf("[+] Successfully copied Mythic's uploads/downloads\n")
+			return nil
+		}
+	} else {
+		err := d.CopyIntoVolume(backupPath, "/", "mythic_server_volume")
+		if err != nil {
+			return err
+		}
+		log.Printf("[+] Successfully copied Mythic's uploads/downloads")
+		return nil
+	}
+
 }
 func (d *DockerComposeManager) PrintVolumeInformation() {
 	ctx := context.Background()
@@ -986,9 +1133,9 @@ func (d *DockerComposeManager) RemoveVolume(volumeName string) error {
 		}
 	}
 	log.Printf("[*] Volume not found")
-	return nil
+	return errors.New("[*] Volume not found")
 }
-func (d *DockerComposeManager) CopyIntoVolume(sourceFile io.Reader, destinationFileName string, destinationVolume string) {
+func (d *DockerComposeManager) CopyIntoVolume(sourceFile string, destinationFileName string, destinationVolume string) error {
 	err := d.ensureVolume(destinationVolume)
 	if err != nil {
 		log.Fatalf("[-] Failed to ensure volume exists: %v\n", err)
@@ -1006,21 +1153,18 @@ func (d *DockerComposeManager) CopyIntoVolume(sourceFile io.Reader, destinationF
 	for _, container := range containers {
 		for _, mnt := range container.Mounts {
 			if mnt.Name == destinationVolume {
-				err = cli.CopyToContainer(ctx, container.ID, mnt.Destination+"/"+destinationFileName, sourceFile, types.CopyToContainerOptions{
-					CopyUIDGID: true,
-				})
-				if err != nil {
-					log.Fatalf("[-] Failed to write file: %v\n", err)
-				} else {
-					log.Printf("[+] Successfully wrote file\n")
-				}
-				return
+				log.Printf("[*] Staring to copy, this might take a minute...")
+				log.Printf("[*] Copying %s to %s", sourceFile, container.Labels["name"]+":"+mnt.Destination+"/"+destinationFileName)
+				output, err := d.runDocker([]string{"cp", sourceFile, container.Labels["name"] + ":" + mnt.Destination + "/" + destinationFileName})
+				log.Printf(output)
+				return err
 			}
 		}
 	}
-	log.Fatalf("[-] Failed to find that volume name in use by any containers")
+	log.Printf("[-] Failed to find %s in use by any containers", destinationVolume)
+	return errors.New("[-] failed to find that volume")
 }
-func (d *DockerComposeManager) CopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string) {
+func (d *DockerComposeManager) CopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string) error {
 	err := d.ensureVolume(sourceVolumeName)
 	if err != nil {
 		log.Fatalf("[-] Failed to ensure volume exists: %v\n", err)
@@ -1038,28 +1182,15 @@ func (d *DockerComposeManager) CopyFromVolume(sourceVolumeName string, sourceFil
 	for _, container := range containers {
 		for _, mnt := range container.Mounts {
 			if mnt.Name == sourceVolumeName {
-				reader, _, err := cli.CopyFromContainer(ctx, container.ID, mnt.Destination+"/"+sourceFileName)
-				if err != nil {
-					log.Printf("[-] Failed to read file: %v\n", err)
-					return
-				}
-				destination, err := os.Create(destinationName)
-				if err != nil {
-					log.Printf("[-] Failed to open destination filename: %v\n", err)
-					return
-				}
-				_, err = io.Copy(destination, reader)
-				destination.Close()
-				if err != nil {
-					log.Printf("[-] Failed to get file from volume: %v\n", err)
-					return
-				}
-				log.Printf("[+] Successfully wrote file\n")
-				return
+				log.Printf("[*] Staring to copy, this might take a minute...")
+				output, err := d.runDocker([]string{"cp", container.Labels["name"] + ":" + mnt.Destination + "/" + sourceFileName, destinationName})
+				log.Printf(output)
+				return err
 			}
 		}
 	}
-	log.Fatalf("[-] Failed to find that volume name in use by any containers")
+	log.Printf("[-] Failed to find that volume name in use by any containers")
+	return errors.New("[-] failed to find that volume")
 }
 
 // Internal Support Commands
@@ -1218,7 +1349,7 @@ func (d *DockerComposeManager) readInDockerCompose() *viper.Viper {
 }
 func (d *DockerComposeManager) ensureVolume(volumeName string) error {
 	containerNamePieces := strings.Split(volumeName, "_")
-	containerName := strings.Join(containerNamePieces[0:2], "_")
+	containerName := strings.Join(containerNamePieces[0:len(containerNamePieces)-1], "_")
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -1247,7 +1378,7 @@ func (d *DockerComposeManager) ensureVolume(volumeName string) error {
 		return err
 	}
 	for _, container := range containers {
-		if container.Image == containerName {
+		if container.Labels["name"] == containerName {
 			for _, mnt := range container.Mounts {
 				if mnt.Name == volumeName {
 					// container is running and has this mount associated with it

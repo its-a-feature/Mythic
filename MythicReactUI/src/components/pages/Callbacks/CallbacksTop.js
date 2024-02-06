@@ -123,9 +123,6 @@ export function CallbacksTop(props){
         onError: ({data}) => {
             console.log(data)
         },
-        onComplete: ({data}) => {
-            console.log(data)
-        }
     });
     useSubscription(SUB_Edges, {
         fetchPolicy: "network-only",

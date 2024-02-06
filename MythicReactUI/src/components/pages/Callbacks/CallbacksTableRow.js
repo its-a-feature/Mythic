@@ -22,9 +22,10 @@ import {
     hideCallbackMutation,
     lockCallbackMutation,
     unlockCallbackMutation,
-    updateIPsCallbackMutation
+    updateIPsCallbackMutation,
+    exportCallbackConfigQuery
 } from './CallbackMutations';
-import {useMutation } from '@apollo/client';
+import {useMutation, useLazyQuery } from '@apollo/client';
 import SnoozeIcon from '@mui/icons-material/Snooze';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import {useTheme} from '@mui/material/styles';
@@ -47,6 +48,8 @@ import moment from 'moment';
 import WidgetsIcon from '@mui/icons-material/Widgets';
 import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
 import TerminalIcon from '@mui/icons-material/Terminal';
+import ImportExportIcon from '@mui/icons-material/ImportExport';
+import {b64DecodeUnicode} from "./ResponseDisplay";
 
 export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDescription, setOpenHideMultipleDialog, setOpenTaskMultipleDialog}) =>{
     const dropdownAnchorRef = React.useRef(null);
@@ -161,6 +164,33 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
             lockCallback({variables: {callback_display_id: rowDataStatic.display_id}})
         }
     }
+    const [exportConfig] = useLazyQuery(exportCallbackConfigQuery, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            if(data.exportCallbackConfig.status === "success"){
+                const dataBlob = new Blob([data.exportCallbackConfig.config], {type: 'text/plain'});
+                const ele = document.getElementById("download_config");
+                if(ele !== null){
+                    ele.href = URL.createObjectURL(dataBlob);
+                    ele.download = rowDataStatic.agent_callback_id + ".json";
+                    ele.click();
+                }else{
+                    const element = document.createElement("a");
+                    element.id = "download_config";
+                    element.href = URL.createObjectURL(dataBlob);
+                    element.download = rowDataStatic.agent_callback_id + ".json";
+                    document.body.appendChild(element);
+                    element.click();
+                }
+            }else{
+                snackActions.error("Failed to export configuration: " + data.exportCallbackConfig.error);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to export configuration: " + data.message)
+        }
+    })
     const options =  [
         {name: 'Hide Callback', icon: <VisibilityOffIcon style={{color: theme.palette.warning.main, paddingRight: "5px"}}/>, click: (evt) => {
             evt.stopPropagation();
@@ -210,6 +240,10 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
         {name: "Expand Callback", icon: <OpenInNewIcon style={{paddingRight: "5px"}} />, click: (evt) => {
             evt.stopPropagation();
             window.open("/new/callbacks/" + rowDataStatic.display_id, "_blank").focus();
+        }},
+        {name: "Export Callback", icon: <ImportExportIcon style={{paddingRight: "5px"}} />, click: (evt) => {
+            evt.stopPropagation();
+            exportConfig({variables: {agent_callback_id: rowDataStatic.agent_callback_id}});
         }},
         {name: "View Metadata", icon: <InfoIcon style={{color: theme.infoOnMain, paddingRight: "5px"}} />, click: (evt) => {
             evt.stopPropagation();

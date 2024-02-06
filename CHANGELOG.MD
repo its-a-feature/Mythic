@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.17] - 2024-02-06
+
+### Changed
+
+- Added ability to export a callback (via callback dropdown) and import callback (via speeddial on top right of callbacks page)
+- Added a new environment variable, `global_server_name`, that gets passed down to webhook and logging containers
+- Added new `mythic-cli config help` subcommand to get helpful descriptions of all environment variables in .env file
+- Updated logging to track user_id, username, and source of requests
+- Updated internal MITRE ATT&CK to the latest as of 2024-02-06
+
 ## [3.2.16] - 2024-01-28
 
 ### Changed

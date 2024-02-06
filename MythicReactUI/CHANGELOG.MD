@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.62] - 2024-02-06
+
+### Changed
+
+- Added syntax highlighter and wrap option to plaintext output
+- Added a little buffer above the task input field so it's a bit more obvious when the last task's output is done
+- Fixed a bug where multiple browserscript elements would be aligned horizontally instead of vertically
+- Fixed a bug where cancelling a dialog modal would prevent future dialog modals until page refresh
+- Added new features for tagging data:
+  - Tag data values can now be formatted in partial markdown for additional configuration options
+    - The following format is available: `"key": "[display data](url){:target=\"_blank\"}"`
+      - This is displayed as a clickable link text "display data" that opens a new page to `url`
+    - The following format is available: `"key": "[display data](url){:target=\"api\",:color=\"success\"}"`
+      - This is displayed as a colored webhook icon that hits the url api with a GET request to `url` and has "display data" next to it
+
 ## [0.1.61] - 2024-01-29
 
 ### Changed

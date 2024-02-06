@@ -14,8 +14,8 @@ import {snackActions} from './components/utilities/Snackbar';
 import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 
-export const mythicVersion = "3.2.16";
-export const mythicUIVersion = "0.1.61";
+export const mythicVersion = "3.2.17";
+export const mythicUIVersion = "0.1.62";
 
 let fetchingNewToken = false;
 
@@ -51,7 +51,8 @@ let httpLink = new HttpLink({
         reconnect: true,   
         connectionParams: {
           headers: {
-            Authorization: () => `Bearer ${localStorage.getItem('access_token')}`
+              Authorization: () => `Bearer ${localStorage.getItem('access_token')}`,
+              MythicSource: "web"
           }
        }     
     }
@@ -104,6 +105,7 @@ const authLink = setContext( async (_, {headers}) => {
               return{
                   headers: {
                       Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+                      MythicSource: "web"
                   }
               }
           } else {
@@ -118,6 +120,7 @@ const authLink = setContext( async (_, {headers}) => {
               return{
                   headers: {
                       Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+                      MythicSource: "web"
                   }
               }
           }
@@ -130,7 +133,8 @@ const authLink = setContext( async (_, {headers}) => {
     return {
       Authorization: `Bearer ${localStorage.getItem('access_token')}`,
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          MythicSource: "web"
       }
     }
 });
@@ -213,8 +217,9 @@ export const GetNewToken = async () =>{
   const requestOptions = {
       method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          MythicSource: "web"
       },
       body: JSON.stringify({"refresh_token": localStorage.getItem("refresh_token"),
         "access_token": localStorage.getItem("access_token")})
@@ -268,7 +273,8 @@ const wsClient = createClient({
         return {
             Authorization: `Bearer ${localStorage.getItem('access_token')}`,
             headers: {
-                Authorization: `Bearer ${localStorage.getItem('access_token')}`
+                Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+                MythicSource: "web"
             }
         }
     }});

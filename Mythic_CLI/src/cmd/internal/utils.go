@@ -216,18 +216,17 @@ func tarStringToBytes(sourceName string, data string) (*bytes.Buffer, error) {
 	return &buf, nil
 }
 func moveFileToVolume(volumeName string, destinationName string, sourceName string) error {
-	contentBytes, err := tarFileToBytes(sourceName)
-	if err != nil {
-		return err
-	}
-	DockerCopyIntoVolume(contentBytes, destinationName, volumeName)
+	DockerCopyIntoVolume(sourceName, destinationName, volumeName)
 	return nil
 }
 func moveStringToVolume(volumeName string, destinationName string, sourceName string, content string) error {
-	contentBytes, err := tarStringToBytes(sourceName, content)
+	file, err := os.CreateTemp("", "*")
 	if err != nil {
+		log.Printf("[-] failed to create temp file for moving a string into a container: %v", err)
 		return err
 	}
-	DockerCopyIntoVolume(contentBytes, destinationName, volumeName)
+	file.WriteString(content)
+	file.Sync()
+	DockerCopyIntoVolume(file.Name(), destinationName, volumeName)
 	return nil
 }

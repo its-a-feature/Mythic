@@ -203,7 +203,6 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
     }
     const onCancelConfirm = () => {
         setOpenConfirmDialog(false);
-        console.log("in onCancelConfirm")
         onTasked({tasked: false});
     }
     useEffect( () => {
@@ -267,7 +266,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
             {openSelectCommandDialog && 
                 <MythicDialog fullWidth={true} maxWidth="md" open={openSelectCommandDialog}
                         onClose={()=>{setOpenSelectCommandDialog(false);onTasked({tasked: false});}} 
-                        innerDialog={<MythicSelectFromListDialog onClose={()=>{setOpenSelectCommandDialog(false);}}
+                        innerDialog={<MythicSelectFromListDialog onClose={()=>{setOpenSelectCommandDialog(false);onTasked({tasked: false});}}
                                             onSubmit={onSubmitSelectedCommand} options={fileBrowserCommands} title={"Select Command"} 
                                             action={"select"} identifier={"id"} display={"cmd"}/>}
                     />
@@ -277,7 +276,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
                     onClose={()=>{setOpenParametersDialog(false);onTasked({tasked: false});}} 
                     innerDialog={<TaskParametersDialog command={selectedCommand} callback_id={callback_id} payloadtype_id={callbackData.callback_by_pk.payload.payloadtype.id}
                         operation_id={callbackData.callback_by_pk.operation_id} 
-                        onSubmit={submitParametersDialog} onClose={()=>{setOpenParametersDialog(false);}} />}
+                        onSubmit={submitParametersDialog} onClose={()=>{setOpenParametersDialog(false);onTasked({tasked: false});}} />}
                 />
             }
             {openCallbackTokenSelectDialog &&

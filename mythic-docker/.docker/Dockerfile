@@ -1,4 +1,4 @@
-FROM itsafeaturemythic/mythic_go_base:latest
+FROM golang:1.21 as builder
 
 WORKDIR /usr/src/app
 
@@ -14,8 +14,8 @@ RUN make build_final
 
 FROM alpine
 
-COPY --from=0 /mythic_server /mythic_server
-COPY --from=0 /usr/src/app /usr/src/app
+COPY --from=builder /mythic_server /mythic_server
+COPY --from=builder /usr/src/app /usr/src/app
 
 WORKDIR /usr/src/app
 

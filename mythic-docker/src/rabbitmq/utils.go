@@ -183,7 +183,7 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 		return "", errors.New("Unknown parameter type")
 	}
 }
-func getFinalStringForDatabaseInstanceValueFromUserSuppliedValue(parameterType string, userSuppliedValue interface{}) (string, error) {
+func GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(parameterType string, userSuppliedValue interface{}) (string, error) {
 	switch parameterType {
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE:
 		fallthrough
@@ -516,11 +516,12 @@ func GetInterfaceValueForContainer(parameterType string, finalString string, enc
 }
 
 // Payload information for exporting, rebuilding
-func GetC2ProfileInformation(payload databaseStructs.Payload) *[]PayloadConfigurationC2Profile {
+func GetPayloadC2ProfileInformation(payload databaseStructs.Payload) *[]PayloadConfigurationC2Profile {
 	c2profileParameterInstances := []databaseStructs.C2profileparametersinstance{}
 	if err := database.DB.Select(&c2profileParameterInstances, `SELECT 
 	c2profile.name "c2profile.name",
 	c2profile.id "c2profile.id",
+	c2profile.is_p2p "c2profile.is_p2p",
 	value, enc_key, dec_key,
 	c2profileparameters.crypto_type "c2profileparameters.crypto_type", 
 	c2profileparameters.parameter_type "c2profileparameters.parameter_type",
@@ -544,8 +545,12 @@ func GetC2ProfileInformation(payload databaseStructs.Payload) *[]PayloadConfigur
 	}
 	finalC2Profiles := []PayloadConfigurationC2Profile{}
 	for c2ProfileName, c2ProfileGroup := range parametersMap {
+		isP2P := false
 		parametersValueDictionary := make(map[string]interface{})
 		for _, parameter := range c2ProfileGroup {
+			if parameter.C2Profile.IsP2p {
+				isP2P = true
+			}
 			if interfaceParam, err := GetInterfaceValueForContainer(
 				parameter.C2ProfileParameter.ParameterType,
 				parameter.Value,
@@ -561,6 +566,62 @@ func GetC2ProfileInformation(payload databaseStructs.Payload) *[]PayloadConfigur
 		finalC2Profiles = append(finalC2Profiles, PayloadConfigurationC2Profile{
 			Name:       c2ProfileName,
 			Parameters: parametersValueDictionary,
+			IsP2P:      isP2P,
+		})
+	}
+	return &finalC2Profiles
+}
+func GetCallbackC2ProfileInformation(callback databaseStructs.Callback) *[]PayloadConfigurationC2Profile {
+	c2profileParameterInstances := []databaseStructs.C2profileparametersinstance{}
+	if err := database.DB.Select(&c2profileParameterInstances, `SELECT 
+	c2profile.name "c2profile.name",
+	c2profile.id "c2profile.id",
+	c2profile.is_p2p "c2profile.is_p2p",
+	value, enc_key, dec_key,
+	c2profileparameters.crypto_type "c2profileparameters.crypto_type", 
+	c2profileparameters.parameter_type "c2profileparameters.parameter_type",
+	c2profileparameters.name "c2profileparameters.name"
+	FROM c2profileparametersinstance 
+	JOIN c2profileparameters ON c2profileparametersinstance.c2_profile_parameters_id = c2profileparameters.id 
+	JOIN c2profile ON c2profileparametersinstance.c2_profile_id = c2profile.id
+	WHERE callback_id=$1`, callback.ID); err != nil {
+		logging.LogError(err, "Failed to fetch c2 profile parameters from database for callback", "callback_id", callback.ID)
+		return nil
+	}
+	parametersMap := make(map[string][]databaseStructs.C2profileparametersinstance)
+	for _, parameter := range c2profileParameterInstances {
+		if _, ok := parametersMap[parameter.C2Profile.Name]; ok {
+			// we've already seen parameter.C2Profile.Name before, add to the array
+			parametersMap[parameter.C2Profile.Name] = append(parametersMap[parameter.C2Profile.Name], parameter)
+		} else {
+			// we haven't seen parameter.C2Profile.Name before, create the array
+			parametersMap[parameter.C2Profile.Name] = []databaseStructs.C2profileparametersinstance{parameter}
+		}
+	}
+	finalC2Profiles := []PayloadConfigurationC2Profile{}
+	for c2ProfileName, c2ProfileGroup := range parametersMap {
+		parametersValueDictionary := make(map[string]interface{})
+		isP2P := false
+		for _, parameter := range c2ProfileGroup {
+			if parameter.C2Profile.IsP2p {
+				isP2P = true
+			}
+			if interfaceParam, err := GetInterfaceValueForContainer(
+				parameter.C2ProfileParameter.ParameterType,
+				parameter.Value,
+				parameter.EncKey,
+				parameter.DecKey,
+				parameter.C2ProfileParameter.IsCryptoType); err != nil {
+				logging.LogError(err, "Failed to get c2 profile parameter instance interface")
+				parametersValueDictionary[parameter.C2ProfileParameter.Name] = parameter.Value
+			} else {
+				parametersValueDictionary[parameter.C2ProfileParameter.Name] = interfaceParam
+			}
+		}
+		finalC2Profiles = append(finalC2Profiles, PayloadConfigurationC2Profile{
+			Name:       c2ProfileName,
+			Parameters: parametersValueDictionary,
+			IsP2P:      isP2P,
 		})
 	}
 	return &finalC2Profiles
@@ -570,8 +631,11 @@ func GetBuildParameterInformation(payloadID int) *[]PayloadConfigurationBuildPar
 	buildParameters := []databaseStructs.Buildparameterinstance{}
 	if err := database.DB.Select(&buildParameters, `SELECT
 	buildparameterinstance.value,
+	buildparameterinstance.enc_key,
+	buildparameterinstance.dec_key,
 	buildparameter.name "buildparameter.name",
-	buildparameter.parameter_type "buildparameter.parameter_type"
+	buildparameter.parameter_type "buildparameter.parameter_type",
+	buildparameter.crypto_type "buildparameter.crypto_type"
 	FROM
 	buildparameterinstance
 	JOIN buildparameter ON buildparameterinstance.build_parameter_id = buildparameter.id
@@ -584,36 +648,50 @@ func GetBuildParameterInformation(payloadID int) *[]PayloadConfigurationBuildPar
 		buildValues := make([]PayloadConfigurationBuildParameter, len(buildParameters))
 		for index, parameter := range buildParameters {
 			buildValues[index].Name = parameter.BuildParameter.Name
-			if parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_ARRAY || parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE {
-				// we need to parse the value into a []interface{}
-				var arrayValues []interface{}
-				if err := json.Unmarshal([]byte(parameter.Value), &arrayValues); err != nil {
-					logging.LogError(err, "Failed to unmarshal build parameter array values")
-					return nil
-				} else {
-					buildValues[index].Value = arrayValues
-				}
-			} else if parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_DICTIONARY {
-				// we need to parse the value into a []map[string]interface{}{}
-				var dictionaryInitialValues map[string]interface{}
-				if err := json.Unmarshal([]byte(parameter.Value), &dictionaryInitialValues); err != nil {
-					logging.LogError(err, "Failed to unmarshal build parameter dictionary values")
-					return nil
-				} else {
-					buildValues[index].Value = dictionaryInitialValues
-				}
-			} else if parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_TYPED_ARRAY {
-				// we need to parse the value into [][]interface{}
-				var arrayValues [][]interface{}
-				if err := json.Unmarshal([]byte(parameter.Value), &arrayValues); err != nil {
-					logging.LogError(err, "Failed to unmarshal build parameter typed array values")
-					return nil
-				} else {
-					buildValues[index].Value = arrayValues
-				}
-			} else {
+			if interfaceParam, err := GetInterfaceValueForContainer(
+				parameter.BuildParameter.ParameterType,
+				parameter.Value,
+				parameter.EncKey,
+				parameter.DecKey,
+				parameter.BuildParameter.IsCryptoType); err != nil {
+				logging.LogError(err, "Failed to get c2 profile parameter instance interface")
 				buildValues[index].Value = parameter.Value
+			} else {
+				buildValues[index].Value = interfaceParam
 			}
+			/*
+				if parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_ARRAY || parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE {
+					// we need to parse the value into a []interface{}
+					var arrayValues []interface{}
+					if err := json.Unmarshal([]byte(parameter.Value), &arrayValues); err != nil {
+						logging.LogError(err, "Failed to unmarshal build parameter array values")
+						return nil
+					} else {
+						buildValues[index].Value = arrayValues
+					}
+				} else if parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_DICTIONARY {
+					// we need to parse the value into a []map[string]interface{}{}
+					var dictionaryInitialValues map[string]interface{}
+					if err := json.Unmarshal([]byte(parameter.Value), &dictionaryInitialValues); err != nil {
+						logging.LogError(err, "Failed to unmarshal build parameter dictionary values")
+						return nil
+					} else {
+						buildValues[index].Value = dictionaryInitialValues
+					}
+				} else if parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_TYPED_ARRAY {
+					// we need to parse the value into [][]interface{}
+					var arrayValues [][]interface{}
+					if err := json.Unmarshal([]byte(parameter.Value), &arrayValues); err != nil {
+						logging.LogError(err, "Failed to unmarshal build parameter typed array values")
+						return nil
+					} else {
+						buildValues[index].Value = arrayValues
+					}
+				} else {
+					buildValues[index].Value = parameter.Value
+				}
+
+			*/
 		}
 		return &buildValues
 	}
@@ -626,6 +704,23 @@ func GetPayloadCommandInformation(payload databaseStructs.Payload) []string {
 	FROM payloadcommand 
 	JOIN command ON payloadcommand.command_id = command.id
 	WHERE payloadcommand.payload_id=$1`, payload.ID); err != nil {
+		logging.LogError(err, "Failed to fetch commands for payload")
+		return []string{}
+	} else {
+		commandStrings := make([]string, len(commands))
+		for index, command := range commands {
+			commandStrings[index] = command.Command.Cmd
+		}
+		return commandStrings
+	}
+}
+func GetCallbackCommandInformation(callback databaseStructs.Callback) []string {
+	commands := []databaseStructs.Loadedcommands{}
+	if err := database.DB.Select(&commands, `SELECT 
+	command.cmd "command.cmd" 
+	FROM loadedcommands 
+	JOIN command ON loadedcommands.command_id = command.id
+	WHERE loadedcommands.callback_id=$1`, callback.ID); err != nil {
 		logging.LogError(err, "Failed to fetch commands for payload")
 		return []string{}
 	} else {

@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"fmt"
+	"github.com/its-a-feature/Mythic/utils"
 	"time"
 )
 
@@ -26,6 +27,7 @@ type WebhookMessage struct {
 	OperatorUsername string                 `json:"operator_username,omitempty"`
 	Action           WEBHOOK_TYPE           `json:"action"`
 	Data             map[string]interface{} `json:"data"`
+	ServerName       string                 `json:"server_name"`
 }
 
 type NewCallbackWebhookData struct {
@@ -65,11 +67,13 @@ func GetWebhookRoutingKey(webhookAction WEBHOOK_TYPE) string {
 }
 
 func (r *rabbitMQConnection) EmitWebhookMessage(webhookMessage WebhookMessage) error {
+	localWebhookMessage := webhookMessage
+	localWebhookMessage.ServerName = utils.MythicConfig.GlobalServerName
 	if err := r.SendStructMessage(
 		MYTHIC_TOPIC_EXCHANGE,
 		GetWebhookRoutingKey(webhookMessage.Action),
 		"",
-		webhookMessage,
+		localWebhookMessage,
 		true,
 	); err != nil {
 		//logging.LogError(err, "Failed to emit webhook Message")

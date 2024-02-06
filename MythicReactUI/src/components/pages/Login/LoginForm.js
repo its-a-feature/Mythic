@@ -7,6 +7,7 @@ import { meState, successfulLogin, FailedRefresh } from '../../../cache';
 import { useReactiveVar } from '@apollo/client';
 import {restartWebsockets, isJWTValid} from '../../../index';
 import { snackActions } from '../../utilities/Snackbar';
+import CardContent from '@mui/material/CardContent';
 
 export function LoginForm(props){
     const me = useReactiveVar(meState);
@@ -65,8 +66,7 @@ export function LoginForm(props){
         setPassword(value);
     }
     const redirectPath = () => {
-        const locationState = props.state;
-        return locationState && locationState.from ? locationState.from.pathname : '/new/';
+        return  '/new/';
     }
     return (
         <div style={{justifyContent: "center", display: "flex"}}>
@@ -76,13 +76,15 @@ export function LoginForm(props){
                     <Navigate replace to={redirectPath()}/>
                 )
                : (
-                    <div>
-                    <img src={logo} height="400px" alt="Mythic logo"/>
-                        <form onSubmit={submit}>
-                            <MythicTextField name='username' value={username} onChange={onUsernameChange} width={30} />
-                            <MythicTextField name='password' type="password" onEnter={submit} value={password} onChange={onPasswordChange} width={30} />
-                            <Button type="submit" color="primary" onClick={submit} variant="contained" style={{marginRight: "10px"}}>Login</Button>
-                        </form>
+                    <div style={{backgroundColor: "transparent"}}>
+                        <CardContent>
+                            <img src={logo} height="400px" alt="Mythic logo"/>
+                            <form onSubmit={submit}>
+                                <MythicTextField name='username' value={username} onChange={onUsernameChange} width={30} />
+                                <MythicTextField name='password' type="password" onEnter={submit} value={password} onChange={onPasswordChange} width={30} />
+                                <Button type="submit" color="primary" onClick={submit} variant="contained" style={{marginRight: "10px"}}>Login</Button>
+                            </form>
+                        </CardContent>
                     </div>
                 )
         }

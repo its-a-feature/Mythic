@@ -5,7 +5,6 @@ import (
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
-	"io"
 	"log"
 )
 
@@ -146,7 +145,7 @@ func DockerRemoveVolume(volumeName string) error {
 	return manager.GetManager().RemoveVolume(volumeName)
 }
 
-func DockerCopyIntoVolume(sourceFile io.Reader, destinationFileName string, destinationVolume string) {
+func DockerCopyIntoVolume(sourceFile string, destinationFileName string, destinationVolume string) {
 	manager.GetManager().CopyIntoVolume(sourceFile, destinationFileName, destinationVolume)
 }
 func DockerCopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string) {

@@ -160,7 +160,7 @@ func getPayloadConfigFromUUID(payloadUUID string) (PayloadConfiguration, error) 
 		payloadConfiguration.Description = payload.Description
 		payloadConfiguration.SelectedOS = payload.Os
 		payloadConfiguration.PayloadType = payload.Payloadtype.Name
-		payloadConfiguration.C2Profiles = GetC2ProfileInformation(payload)
+		payloadConfiguration.C2Profiles = GetPayloadC2ProfileInformation(payload)
 		payloadConfiguration.BuildParameters = GetBuildParameterInformation(payload.ID)
 		payloadConfiguration.Commands = GetPayloadCommandInformation(payload)
 		payloadConfiguration.Filename = string(payload.Filemeta.Filename)

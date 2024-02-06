@@ -1,9 +1,9 @@
 import json as js
 import pprint
 # JSON pulled from here:
-# https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack.json
+# curl https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack.json -o full_attack.json
 file = open("full_attack.json", "r")
-output = open("default_files/other_info/attack.json", "w")
+output = open("attack.json", "w")
 attack = js.load(file)
 attack_list = []
 

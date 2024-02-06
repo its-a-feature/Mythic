@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"fmt"
+	"github.com/its-a-feature/Mythic/utils"
 	"time"
 )
 
@@ -28,6 +29,7 @@ type LoggingMessage struct {
 	Timestamp     time.Time   `json:"timestamp"`
 	Action        LOG_TYPE    `json:"action"`
 	Data          interface{} `json:"data"`
+	ServerName    string      `json:"server_name"`
 }
 
 func GetLoggingRoutingKey(loggingAction LOG_TYPE) string {
@@ -35,11 +37,13 @@ func GetLoggingRoutingKey(loggingAction LOG_TYPE) string {
 }
 
 func (r *rabbitMQConnection) EmitSiemMessage(loggingMessage LoggingMessage) error {
+	localLoggingMessage := loggingMessage
+	localLoggingMessage.ServerName = utils.MythicConfig.GlobalServerName
 	if err := r.SendStructMessage(
 		MYTHIC_TOPIC_EXCHANGE,
 		GetLoggingRoutingKey(loggingMessage.Action),
 		"",
-		loggingMessage,
+		localLoggingMessage,
 		true,
 	); err != nil {
 		//logging.LogError(err, "Failed to emit SIEM Message")

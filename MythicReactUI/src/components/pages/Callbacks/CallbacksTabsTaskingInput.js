@@ -1168,7 +1168,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 value={message}
                 autoFocus={true}
                 fullWidth={true}
-                style={{marginBottom: "10px"}}
+                style={{marginBottom: "10px", marginTop: "10px"}}
                 InputProps={{ type: 'search',
                     endAdornment:
                     <React.Fragment>
@@ -1189,7 +1189,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     startAdornment: <React.Fragment>
                         {tokenOptions.length > 0 ? (
                             <CallbacksTabsTaskingInputTokenSelect options={tokenOptions} changeSelectedToken={props.changeSelectedToken}/>
-                        ) : (null)}
+                        ) : null}
                         
                     </React.Fragment>
                 

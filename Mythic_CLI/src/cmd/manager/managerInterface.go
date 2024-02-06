@@ -3,7 +3,6 @@ package manager
 import (
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
-	"io"
 	"log"
 	"path/filepath"
 )
@@ -68,17 +67,21 @@ type CLIManager interface {
 	// ResetDatabase deletes the current database or volume
 	ResetDatabase(useVolume bool)
 	// BackupDatabase saves a copy of the database to the specified path
-	BackupDatabase(backupPath string, useVolume bool)
-	// RestoreDatabase restores a saved copy of the datababse to the specified path
-	RestoreDatabase(backupPath string, useVolume bool)
+	BackupDatabase(backupPath string, useVolume bool) error
+	// RestoreDatabase restores a saved copy of the database from the specified path
+	RestoreDatabase(backupPath string, useVolume bool) error
+	// BackupFiles saves the files associated with Mythic's uploads/downloads to the specified path
+	BackupFiles(backupPath string, useVolume bool) error
+	// RestoreFiles restores a saved copy of Mythic's uploads/downloads from the specified path
+	RestoreFiles(backupPath string, useVolume bool) error
 	// PrintVolumeInformation prints out all the volumes in use by Mythic
 	PrintVolumeInformation()
 	// RemoveVolume removes the named volume
 	RemoveVolume(volumeName string) error
 	// CopyIntoVolume copies from a source io.Reader to the destination filename on the destination volume
-	CopyIntoVolume(sourceFile io.Reader, destinationFileName string, destinationVolume string)
+	CopyIntoVolume(sourceFile string, destinationFileName string, destinationVolume string) error
 	// CopyFromVolume copies from the source filename in the volume to the destination filename outside of the volume
-	CopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string)
+	CopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string) error
 }
 
 var currentManager CLIManager

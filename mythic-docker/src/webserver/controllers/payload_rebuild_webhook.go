@@ -64,7 +64,7 @@ func PayloadRebuildWebhook(c *gin.Context) {
 			payloadConfiguration.Description = payload.Description
 			payloadConfiguration.SelectedOS = payload.Os
 			payloadConfiguration.PayloadType = payload.Payloadtype.Name
-			payloadConfiguration.C2Profiles = rabbitmq.GetC2ProfileInformation(payload)
+			payloadConfiguration.C2Profiles = rabbitmq.GetPayloadC2ProfileInformation(payload)
 			payloadConfiguration.BuildParameters = rabbitmq.GetBuildParameterInformation(payload.ID)
 			payloadConfiguration.Commands = rabbitmq.GetPayloadCommandInformation(payload)
 			payloadConfiguration.Filename = string(payload.Filemeta.Filename)

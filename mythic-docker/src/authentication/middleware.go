@@ -15,7 +15,8 @@ import (
 func JwtAuthMiddleware() gin.HandlerFunc {
 	// verify that all authenticated requests have valid signatures and aren't expired
 	return func(c *gin.Context) {
-		if err := TokenValid(c); err != nil {
+		err := TokenValid(c)
+		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 			c.Abort()
 			return
@@ -26,13 +27,14 @@ func JwtAuthMiddleware() gin.HandlerFunc {
 
 func CookieAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if err := CookieTokenValid(c); err != nil {
+		err := CookieTokenValid(c)
+		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 			c.Abort()
 			return
-		} else {
-			c.Next()
 		}
+		c.Request.Header.Add("MythicSource", "cookie")
+		c.Next()
 	}
 }
 
@@ -65,15 +67,19 @@ func IPBlockMiddleware() gin.HandlerFunc {
 
 func RBACMiddleware(allowedRoles []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if customClaims, err := GetClaims(c); err != nil {
+		customClaims, err := GetClaims(c)
+		if err != nil {
 			logging.LogError(err, "Failed to get claims for RBACMiddleware")
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 			c.Abort()
-		} else if operatorOperation, err := database.GetUserCurrentOperation(customClaims.UserID); err != nil {
+		}
+		operatorOperation, err := database.GetUserCurrentOperation(customClaims.UserID)
+		if err != nil {
 			logging.LogError(err, "Failed to get user current operation")
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 			c.Abort()
-		} else if operatorOperation.CurrentOperator.Admin || utils.SliceContains(allowedRoles, operatorOperation.ViewMode) {
+		}
+		if operatorOperation.CurrentOperator.Admin || utils.SliceContains(allowedRoles, operatorOperation.ViewMode) {
 			c.Set("operatorOperation", operatorOperation)
 			c.Next()
 			return

@@ -18,5 +18,5 @@ func init() {
 }
 
 func installDisplay(cmd *cobra.Command, args []string) {
-
+	cmd.Help()
 }

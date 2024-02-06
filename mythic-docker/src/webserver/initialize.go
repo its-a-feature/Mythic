@@ -52,13 +52,12 @@ func StartServer(r *gin.Engine) {
 }
 
 func InitializeGinLogger() gin.HandlerFunc {
-	ignorePaths := []string{"/graphql/webhook", "/agent_message", "/health"}
+	ignorePaths := []string{"/agent_message", "/health"}
 	return func(c *gin.Context) {
 		// Start timer
 		start := time.Now()
 		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery
-
 		// Process request
 		c.Next()
 		param := gin.LogFormatterParams{
@@ -78,11 +77,14 @@ func InitializeGinLogger() gin.HandlerFunc {
 			param.StatusCode = c.Writer.Status()
 			param.ErrorMessage = c.Errors.ByType(gin.ErrorTypePrivate).String()
 			param.BodySize = c.Writer.Size()
-
 			if raw != "" {
 				path = path + "?" + raw
 			}
-			logging.LogDebug("WebServer Logging",
+			source := c.GetHeader("MythicSource")
+			if source == "" {
+				source = "scripting"
+			}
+			logging.LogInfo("WebServer Logging",
 				"ClientIP", param.ClientIP,
 				"method", param.Method,
 				"path", param.Path,
@@ -90,6 +92,9 @@ func InitializeGinLogger() gin.HandlerFunc {
 				"statusCode", param.StatusCode,
 				"latency", param.Latency,
 				"responseSize", param.BodySize,
+				"source", source,
+				"user_id", c.GetInt("user_id"),
+				"username", c.GetString("username"),
 				"error", param.ErrorMessage)
 		}
 		c.Next()
@@ -112,7 +117,6 @@ func setRoutes(r *gin.Engine) {
 		// unauthenticated file download based on file UUID
 		// this is for payload hosting and payload containers to fetch files via web
 		r.GET("/direct/download/:file_uuid", webcontroller.FileDirectDownloadWebhook)
-		r.GET("/direct/view/:file_uuid", webcontroller.FileDirectViewWebhook)
 		// unauthenticated file upload based on file UUID
 		// this is for payload containers to upload files that are too big for rabbitmq
 		r.POST("/direct/upload/:file_uuid", webcontroller.FileDirectUploadWebhook)
@@ -125,7 +129,8 @@ func setRoutes(r *gin.Engine) {
 			// allow access to getting images for agent icons, still blocked by IP range
 			allowAuthenticatedCookies.Use(authentication.CookieAuthMiddleware())
 			{
-				r.Static("/static", "./static")
+				allowAuthenticatedCookies.Static("/static", "./static")
+				allowAuthenticatedCookies.GET("direct/view/:file_uuid", webcontroller.FileDirectViewWebhook)
 				allOperationMembersWithCookies := allowAuthenticatedCookies.Group("/api/v1.4/")
 				allOperationMembersWithCookies.Use(authentication.RBACMiddlewareAll())
 				{
@@ -162,6 +167,7 @@ func setRoutes(r *gin.Engine) {
 				// payload
 				allOperationMembers.POST("config_check_webhook", webcontroller.C2ProfileConfigCheckWebhook)
 				allOperationMembers.POST("export_payload_config_webhook", webcontroller.ExportPayloadConfigWebhook)
+				allOperationMembers.POST("export_callback_config_webhook", webcontroller.ExportCallbackConfigWebhook)
 				allOperationMembers.POST("redirect_rules_webhook", webcontroller.C2ProfileRedirectRulesWebhook)
 				allOperationMembers.POST("get_ioc_webhook", webcontroller.C2ProfileGetIOCWebhook)
 				allOperationMembers.POST("sample_message_webhook", webcontroller.C2ProfileSampleMessageWebhook)
@@ -174,7 +180,6 @@ func setRoutes(r *gin.Engine) {
 				// global config
 				allOperationMembers.POST("get_global_settings_webhook", webcontroller.GetGlobalSettingWebhook)
 			}
-
 			noSpectators := protected.Group("/api/v1.4/")
 			noSpectators.Use(authentication.RBACMiddlewareNoSpectators())
 			{
@@ -209,6 +214,7 @@ func setRoutes(r *gin.Engine) {
 				// callback
 				noSpectators.POST("toggle_proxy_webhook", webcontroller.ProxyToggleWebhook)
 				noSpectators.POST("update_callback_webhook", webcontroller.UpdateCallbackWebhook)
+				noSpectators.POST("callback_import_config_webhook", webcontroller.ImportCallbackConfigWebhook)
 				// reporting
 				noSpectators.POST("reporting_webhook", webcontroller.ReportingWebhook)
 				// tagtypes

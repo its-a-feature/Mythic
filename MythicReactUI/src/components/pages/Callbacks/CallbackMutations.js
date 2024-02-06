@@ -190,3 +190,12 @@ mutation createTasking($callback_id: Int, $callback_ids: [Int], $command: String
   }
 }
 `;
+export const exportCallbackConfigQuery = gql`
+query exportCallbackConfigQuery($agent_callback_id: String!) {
+  exportCallbackConfig(agent_callback_id: $agent_callback_id) {
+      status
+      error 
+      config 
+  }
+}
+`;

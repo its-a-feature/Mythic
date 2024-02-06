@@ -74,7 +74,7 @@ func MythicRPCPayloadCreateFromUUID(input MythicRPCPayloadCreateFromUUIDMessage)
 		}
 		payloadConfiguration.SelectedOS = payload.Os
 		payloadConfiguration.PayloadType = payload.Payloadtype.Name
-		payloadConfiguration.C2Profiles = GetC2ProfileInformation(payload)
+		payloadConfiguration.C2Profiles = GetPayloadC2ProfileInformation(payload)
 		payloadConfiguration.BuildParameters = GetBuildParameterInformation(payload.ID)
 		payloadConfiguration.Commands = GetPayloadCommandInformation(payload)
 		if payload.WrappedPayloadID.Valid {
@@ -165,7 +165,7 @@ func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload
 						} else {
 							found = true
 							// the user supplied an explicit value for this build parameter, so use it
-							if val, err := getFinalStringForDatabaseInstanceValueFromUserSuppliedValue(databaseBuildParameter.ParameterType, suppliedBuildParam.Value); err != nil {
+							if val, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(databaseBuildParameter.ParameterType, suppliedBuildParam.Value); err != nil {
 								//if val, err := GetStrippedValueForBuildParameter(databaseBuildParameter, suppliedBuildParam.Value); err != nil {
 								logging.LogError(err, "Failed to strip value of build parameter", "value", suppliedBuildParam.Value, "build_parameter", databaseBuildParameter)
 								return nil, err
@@ -306,7 +306,7 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 						if suppliedParameterName == databaseC2ProfileParameter.Name {
 							// we have a supplied parameter that matches the one we're looking at from the database for this c2 profile
 							found = true
-							if strippedValue, err := getFinalStringForDatabaseInstanceValueFromUserSuppliedValue(
+							if strippedValue, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(
 								databaseC2ProfileParameter.ParameterType, suppliedParameterValue,
 							); err != nil {
 								//if strippedValue, err := GetStrippedValueForC2Parameter(databaseC2ProfileParameter, suppliedParameterValue); err != nil {

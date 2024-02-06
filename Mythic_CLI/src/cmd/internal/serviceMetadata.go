@@ -454,6 +454,7 @@ func AddMythicService(service string) {
 			"NGINX_PORT=${NGINX_PORT}",
 			"NGINX_HOST=${NGINX_HOST}",
 			"MYTHIC_SERVER_DYNAMIC_PORTS=${MYTHIC_SERVER_DYNAMIC_PORTS}",
+			"GLOBAL_SERVER_NAME=${GLOBAL_SERVER_NAME}",
 		}
 		mythicServerPorts := []string{
 			"${MYTHIC_SERVER_PORT}:${MYTHIC_SERVER_PORT}",
@@ -520,6 +521,7 @@ func AddMythicService(service string) {
 				"GHOSTWRITER_API_KEY=${GHOSTWRITER_API_KEY}",
 				"GHOSTWRITER_URL=${GHOSTWRITER_URL}",
 				"GHOSTWRITER_OPLOG_ID=${GHOSTWRITER_OPLOG_ID}",
+				"GLOBAL_SERVER_NAME=${GLOBAL_SERVER_NAME}",
 			}
 			if !mythicEnv.InConfig("GHOSTWRITER_API_KEY") {
 				config.AskVariable("Please enter your GhostWriter API Key", "GHOSTWRITER_API_KEY")
@@ -625,6 +627,7 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 		"WEBHOOK_DEFAULT_ALERT_CHANNEL=${WEBHOOK_DEFAULT_ALERT_CHANNEL}",
 		"WEBHOOK_DEFAULT_CUSTOM_CHANNEL=${WEBHOOK_DEFAULT_CUSTOM_CHANNEL}",
 		"DEBUG_LEVEL=${DEBUG_LEVEL}",
+		"GLOBAL_SERVER_NAME=${GLOBAL_SERVER_NAME}",
 	}
 	if _, ok := pStruct["environment"]; ok {
 		pStruct["environment"] = utils.UpdateEnvironmentVariables(existingConfig["environment"].([]interface{}), environment)

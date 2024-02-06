@@ -287,6 +287,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: exportCallbackConfig
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/export_callback_config_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: export_payload_config
     definition:
       kind: ""
@@ -329,6 +339,16 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
+  - name: importCallbackConfig
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/callback_import_config_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: importTagtypes
     definition:
       kind: synchronous
@@ -636,4 +656,6 @@ custom_types:
     - name: updateOperatorStatusOutput
     - name: updateGlobalSettingsOutput
     - name: globalSettingsOutput
+    - name: exportCallbackConfigOutput
+    - name: importCallbackConfigOutput
   scalars: []

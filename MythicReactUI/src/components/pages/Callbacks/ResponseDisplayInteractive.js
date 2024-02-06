@@ -116,11 +116,14 @@ const GetOutputFormat = ({data, useASNIColor, messagesEndRef, showTaskStatus, wr
             )
         }
     }, [data.timestamp, useASNIColor, showTaskStatus, wrapText]);
+    /*
     React.useEffect( () => {
         if(messagesEndRef.current){
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
-    }, [dataElement])
+    }, [dataElement]);
+
+     */
     return (
         dataElement
     )
@@ -333,7 +336,7 @@ export const ResponseDisplayInteractive = (props) =>{
             />
         </div>
             <InteractivePaginationBar totalCount={totalCount} currentPage={page.current}
-                                      onSubmitPageChange={onSubmitPageChange}
+                                      onSubmitPageChange={onSubmitPageChange} expand={props.expand}
                                       pageSize={pageSize.current} />
     </div>
   )
@@ -517,17 +520,22 @@ const InteractiveTaskingBar = ({task, taskData, useASNIColor, toggleANSIColor,
         </>
     )
 }
-const InteractivePaginationBar = ({totalCount, currentPage, onSubmitPageChange, pageSize}) => {
+const InteractivePaginationBar = ({totalCount, currentPage, onSubmitPageChange, pageSize, expand}) => {
     const onChangePage =  (event, value) => {
         onSubmitPageChange(value);
     };
     const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
     if(pageCount < 2){
-        return (
-            <div style={{height: "50px"}}>
+        if(expand){
+            return (
+                <div style={{height: "50px"}}>
 
-            </div>
-        )
+                </div>
+            )
+        } else {
+            return null
+        }
+
     }
     return (
         <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "10px",}} >

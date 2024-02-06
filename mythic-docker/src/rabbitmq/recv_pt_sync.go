@@ -195,7 +195,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		logging.LogError(nil, "attempting to sync bad payload container version")
 		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
 	}
-	if err := database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE name=$1`, in.PayloadType.Name); err != nil {
+	if err := database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE "name"=$1`, in.PayloadType.Name); err != nil {
 		// this means we don't have the payload, so we need to create it and all the associated components
 		//logging.LogDebug("Failed to find payload type, syncing new data", "payload", payloadtype)
 		payloadtype.Name = in.PayloadType.Name
