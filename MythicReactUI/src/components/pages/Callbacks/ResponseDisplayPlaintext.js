@@ -19,8 +19,10 @@ import 'ace-builds/src-noconflict/mode-java';
 import 'ace-builds/src-noconflict/mode-javascript';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
+import TextField from '@mui/material/TextField';
 import { IconButton } from '@mui/material';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 
 const MaxRenderSize = 2000000;
 export const ResponseDisplayPlaintext = (props) =>{
@@ -28,6 +30,7 @@ export const ResponseDisplayPlaintext = (props) =>{
   const [plaintextView, setPlaintextView] = React.useState("");
   const [mode, setMode] = React.useState("html");
   const [wrapText, setWrapText] = React.useState(true);
+  const [showOptions, setShowOptions] = React.useState(false);
   useEffect( () => {
       if(props.plaintext.length > MaxRenderSize){
           snackActions.warning("Response too large (> 2MB), truncating the render. Download task output to view entire response.");
@@ -48,30 +51,48 @@ export const ResponseDisplayPlaintext = (props) =>{
     const toggleWrapText = () => {
         setWrapText(!wrapText);
     }
+    const onChangeShowOptions = (e) => {
+        setShowOptions(!showOptions);
+    }
   return (
       <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
-          <div>
-              <FormControl sx={{ width: "20%", display: "inline-block" }} size="small">
-                  <Select
-                      style={{display: "inline-block", width: "100%"}}
-                      value={mode}
-                      onChange={onChangeMode}
-                  >
-                      {
-                          modeOptions.map((opt, i) => (
-                              <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
-                          ))
-                      }
-                  </Select>
-              </FormControl>
-              <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
-                  <IconButton onClick={toggleWrapText} style={{}}>
-                      <WrapTextIcon color={wrapText ? "success" : "secondary"}
-                                    style={{cursor: "pointer"}}
-                      />
-                  </IconButton>
-              </MythicStyledTooltip>
+          {showOptions &&
+              <div style={{display: "inline-flex", flexDirection: "row"}}>
+                  <FormControl sx={{ display: "inline-block" }} size="small">
+                      <TextField
+                          label={"Syntax"}
+                          select
+                          margin={"dense"}
+                          size={"small"}
+                          style={{display: "inline-block", width: "100%"}}
+                          value={mode}
+                          onChange={onChangeMode}
+                      >
+                          {
+                              modeOptions.map((opt, i) => (
+                                  <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
+                              ))
+                          }
+                      </TextField>
+                  </FormControl>
+                  <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
+                      <IconButton onClick={toggleWrapText} style={{}}>
+                          <WrapTextIcon color={wrapText ? "success" : "secondary"}
+                                        style={{cursor: "pointer"}}
+                          />
+                      </IconButton>
+                  </MythicStyledTooltip>
+              </div>
+          }
+          <div style={{height: "1px", width: "100%", display: "flex", zIndex: 1, justifyContent: "space-around", backgroundColor: theme.palette.secondary.main}}>
+              {showOptions &&
+                <UnfoldLessIcon onClick={onChangeShowOptions} style={{cursor: "pointer", position: "relative", top: "-8px"}} />
+              }
+              {!showOptions &&
+                <UnfoldMoreIcon onClick={onChangeShowOptions} style={{cursor: "pointer", position: "relative", top: "-7px"}} />
+              }
           </div>
+
           <div style={{display: "flex", flexGrow: 1, height: "100%"}}>
                 <AceEditor
                     mode={mode}

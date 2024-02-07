@@ -4,7 +4,7 @@ import { Button, IconButton } from '@mui/material';
 import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {modeOptions} from "../Search/PreviewFileStringDialog";
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
+import TextField from '@mui/material/TextField';
 import AceEditor from 'react-ace';
 import {useTheme} from '@mui/material/styles';
 import {snackActions} from "../../utilities/Snackbar";
@@ -27,6 +27,8 @@ import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 export const ResponseDisplayMedia = ({media, expand}) =>{
      return <DisplayMedia agent_file_id={media?.agent_file_id || ""} filename={media?.filename || undefined} expand={expand} />
 }
+const textExtensionTypes = ["txt", "ps1", "php", "json", "yml", "yaml", "config", "cfg", "go",
+    "html", "xml", "js", "java", "conf", "cs", "rb", "toml"];
 const mimeType = (path) => {
     if(!path){return undefined}
     let extension = path.split(".");
@@ -35,7 +37,7 @@ const mimeType = (path) => {
         if(["png", "jpg", "gif", "jpeg", "pdf"].includes(extension)){
             return "object";
         }
-        if(["txt", "ps1", "php", "json", "yml", "yaml", "config", "cfg", "go", "html", "xml", "js", "java"].includes(extension)){
+        if(textExtensionTypes.includes(extension)){
             return "text";
         }
         return undefined;
@@ -157,11 +159,16 @@ const DisplayText = ({agent_file_id, expand}) => {
     }
     return (
         <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
-            <div>
-                <FormControl sx={{ width: "20%", display: "inline-block" }} size="small">
-                    <Select
-                        style={{display: "inline-block", width: "100%"}}
+            <div style={{display: "inline-flex", flexDirection: "row"}}>
+                <FormControl sx={{ display: "inline-block" }} size="small" color={"secondary"}>
+                    <TextField
+                        select
+                        label={"Syntax"}
+                        margin={"dense"}
+                        size={"small"}
+                        style={{display: "inline-block", width: "100%",}}
                         value={mode}
+                        sx={{padding: 0}}
                         onChange={onChangeMode}
                     >
                         {
@@ -169,7 +176,7 @@ const DisplayText = ({agent_file_id, expand}) => {
                                 <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
                             ))
                         }
-                    </Select>
+                    </TextField>
                 </FormControl>
                 <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
                     <IconButton onClick={toggleWrapText} style={{}}>

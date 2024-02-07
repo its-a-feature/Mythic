@@ -1,6 +1,5 @@
 import React from 'react';
 import { styled } from '@mui/material/styles';
-import {useTheme} from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { Link } from '@mui/material';
 
@@ -78,7 +77,7 @@ export const MythicSnackDownload = (props) => {
             </Typography>
                 <React.Fragment>
                     <Typography gutterBottom>File ready for download</Typography>
-                    <Link download={true} href={"/direct/download/" + props.file_id} target="_blank">
+                    <Link color="textPrimary" download={true} href={"/direct/download/" + props.file_id} target="_blank">
                         Download here
                     </Link>
                 </React.Fragment>

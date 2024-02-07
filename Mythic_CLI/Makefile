@@ -10,16 +10,26 @@ default: build_linux ;
 
 export
 
-build_binary_linux:
+copy_binary_linux:
 	docker run -v ${LOCAL_PATH}/copy_file/:/copy_file/ --rm ${BUILDER_IMAGE} sh -c "cp /mythic-cli_linux /copy_file/mythic-cli"
 	mv ./copy_file/${BINARY_NAME} . && rm -rf ./copy_file && chmod +x ${BINARY_NAME}
 
-build_binary_macos:
+copy_binary_macos:
 	docker run -v ${LOCAL_PATH}/copy_file/:/copy_file/ --rm ${BUILDER_IMAGE} sh -c "cp /mythic-cli_macos /copy_file/mythic-cli"
 	mv ./copy_file/${BINARY_NAME} . && rm -rf ./copy_file && chmod +x ${BINARY_NAME}
 
-build_binary_macos_local:
+build_local:
 	cd src && go build -o ../../mythic-cli .
 
-build_linux: build_binary_linux
-build_macos: build_binary_macos
+build_linux_docker:
+	docker build -t mythic-cli-builder -f Dockerfile .
+	docker run -v ${LOCAL_PATH}/copy_file/:/copy_file/ --rm mythic-cli-builder sh -c "cp /mythic-cli_linux /copy_file/mythic-cli"
+	mv ./copy_file/${BINARY_NAME} . && rm -rf ./copy_file && chmod +x ${BINARY_NAME}
+
+build_macos_docker:
+	docker build -t mythic-cli-builder -f Dockerfile .
+	docker run -v ${LOCAL_PATH}/copy_file/:/copy_file/ --rm mythic-cli-builder sh -c "cp /mythic-cli_macos /copy_file/mythic-cli"
+	mv ./copy_file/${BINARY_NAME} . && rm -rf ./copy_file && chmod +x ${BINARY_NAME}
+
+build_linux: copy_binary_linux
+build_macos: copy_binary_macos
