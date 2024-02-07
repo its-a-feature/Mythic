@@ -238,7 +238,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnvInfo["postgres_use_build_context"] = `The mythic_postgres container by default pulls configuration from a pre-compiled Docker image hosted on GitHub's Container Registry (ghcr.io). Setting this to "true" means that the local Mythic/postgres-docker/Dockerfile is used to generate the image used for the mythic_postgres container instead of the hosted image. `
 
 	// rabbitmq configuration ---------------------------------------------
-	mythicEnv.SetDefault("rabbitmq_host", "rabbitmq_host")
+	mythicEnv.SetDefault("rabbitmq_host", "mythic_rabbitmq")
 	mythicEnvInfo["rabbitmq_host"] = `This specifies the ip/hostname for where the RabbitMQ container executes. If this is 'rabbitmq_host' or '127.0.0.1', then mythic-cli assumes this container is running locally. If it's anything else, mythic-cli will not spin up this container as it assumes it lives elsewhere`
 
 	mythicEnv.SetDefault("rabbitmq_port", 5672)

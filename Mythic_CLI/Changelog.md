@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added a `restore` command with subcommands for `database` and `files`
 - Updated commands with Help displays when subcommands are available
 - Updated `*_build_build_context` to default to false
+- Fixed an issue with a typo in mythic-cli's default value for the rabbitmq_host variable
 
 ## 0.2.8 - 2024-01-29
 
