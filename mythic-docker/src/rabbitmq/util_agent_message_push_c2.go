@@ -98,7 +98,7 @@ type interceptProxyToAgentMessage struct {
 	CallbackID                 int
 }
 
-var interceptProxyToAgentMessageChan = make(chan interceptProxyToAgentMessage, 200)
+var interceptProxyToAgentMessageChan = make(chan interceptProxyToAgentMessage, 2000)
 
 // interceptProxyDataToAgentForPushC2 checks if Proxy messages can be sent to a PushC2 agent first
 func interceptProxyDataToAgentForPushC2() {
@@ -155,14 +155,20 @@ func interceptProxyDataToAgentForPushC2() {
 			// we don't have a PushC2 client available, so save it like normal
 			switch msg.ProxyType {
 			case CALLBACK_PORT_TYPE_INTERACTIVE:
-				msg.InteractiveMessagesToAgent <- msg.InteractiveMessage
+				select {
+				case msg.InteractiveMessagesToAgent <- msg.InteractiveMessage:
+				default:
+				}
 				//.LogInfo("saved to msg")
 			case CALLBACK_PORT_TYPE_SOCKS:
 				fallthrough
 			case CALLBACK_PORT_TYPE_RPORTFWD:
-				msg.MessagesToAgent <- msg.Message
+				select {
+				case msg.MessagesToAgent <- msg.Message:
+				default:
+					logging.LogError(nil, "dropping message because channel is full", "type", msg.ProxyType)
+				}
 			}
-
 		}
 	}
 }
