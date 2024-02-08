@@ -93,7 +93,11 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				}
 
 			*/
-			task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
+			if payloadMsg.TaskStatus != nil {
+				task.Status = *payloadMsg.TaskStatus
+			} else {
+				task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
+			}
 			task.Timestamp = time.Now().UTC()
 			updateColumns = append(updateColumns, "timestamp=:timestamp")
 			task.StatusTimestampSubmitted.Valid = true
@@ -106,7 +110,11 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING && payloadMsg.Success {
 				task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST
 			} else if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING && !payloadMsg.Success {
-				task.Status = PT_TASK_FUNCTION_STATUS_PREPROCESSING_ERROR
+				if payloadMsg.TaskStatus != nil {
+					task.Status = *payloadMsg.TaskStatus
+				} else {
+					task.Status = PT_TASK_FUNCTION_STATUS_PREPROCESSING_ERROR
+				}
 			}
 		}
 		updateColumns = append(updateColumns, "status=:status")
