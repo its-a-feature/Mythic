@@ -9,7 +9,6 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import { CallbacksTop } from './CallbacksTop';
 import Split from 'react-split';
 import PhoneForwardedIcon from '@mui/icons-material/PhoneForwarded';
-import {ImportPayloadConfigDialog} from "../Payloads/ImportPayloadConfigDialog";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {ImportCallbackConfigDialog} from "./ImportCallbackConfigDialog";
 
@@ -34,7 +33,7 @@ const StyledSpeedDial = styled(SpeedDial)(({theme}) => ({
             top: theme.spacing(2),
             right: theme.spacing(2),
         },
-        zIndex: 1,
+        zIndex: 2,
     },
 
     [`& .${classes.speedDialAction}`]: {

@@ -321,6 +321,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
                 />
             }
             <DrawC2PathElementsFlowWithProvider
+                providedNodes={[callback]}
                 edges={callbackgraphedges}
                 view_config={viewConfig}
                 theme={theme}
@@ -621,7 +622,7 @@ export const DrawC2PathElementsFlowWithProvider = (props) => {
         </ReactFlowProvider>
     )
 }
-export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contextMenu}) =>{
+export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes}) =>{
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: []});
     const [nodes, setNodes] = React.useState();
     const [edgeFlow, setEdgeFlow] = React.useState([]);
@@ -1012,6 +1013,13 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
             }
             return tempNewEdges
         }
+        if(providedNodes){
+            for(let i = 0; i < providedNodes.length; i++){
+                if(view_config["include_disconnected"]) {
+                    add_node(providedNodes[i], view_config);
+                }
+            }
+        }
         let updatedEdges = createNewEdges();
         // need to add fake edges between parent groups and Mythic so that rendering will be preserved
         updatedEdges.forEach( (edge) => {
@@ -1175,7 +1183,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
             nodes: tempNodes,
             edges: tempEdges
         })
-    }, [edges, view_config, theme]);
+    }, [edges, view_config, theme, providedNodes]);
     React.useEffect( () => {
         (async () => {
             if(graphData.nodes.length > 0){

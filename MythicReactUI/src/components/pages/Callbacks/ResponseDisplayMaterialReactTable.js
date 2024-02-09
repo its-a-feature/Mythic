@@ -87,7 +87,7 @@ const getIconName = (iconName) => {
 
 const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
   return (
-    <div style={{...(cellData?.cellStyle || null)}}>
+    <div style={{...cellData?.cellStyle}}>
       {cellData?.startIcon? 
         <MythicStyledTooltip title={cellData?.startIconHoverText || ""} >
             <FontAwesomeIcon icon={getIconName(cellData?.startIcon)} style={{marginRight: "5px", color: cellData?.startIconColor  || ""}}/>
@@ -492,19 +492,19 @@ export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand}) 
       grow: h.fillWidth,
       accessorFn: (row) => {
         if(h.type === "date"){
-          return new Date(row[h.plaintext].plaintext);
+          return new Date(row[h.plaintext]?.plaintext || 0);
         }
         if(h.type === "number" || h.type === "size"){
           try{
-            return Number(row[h.plaintext].plaintext);
+            return Number(row[h.plaintext]?.plaintext || NaN);
           }catch(error){
-            return row[h.plaintext].plaintext;
+            return row[h.plaintext]?.plaintext || "";
           }
         }
-        return row[h.plaintext].plaintext;
+        return row[h.plaintext]?.plaintext || "";
       },
       Cell: ({cell, renderedCellValue}) => {
-        let cellData = {...cell.row.original[h.plaintext], plaintext: renderedCellValue};
+        let cellData = {...cell.row?.original?.[h.plaintext], plaintext: renderedCellValue};
         switch(h.type){
           case "string":
             return (
@@ -576,9 +576,12 @@ export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand}) 
     muiTableHeadRowProps: {
       sx: {}
     },
-    muiTableBodyCellProps: {
-      sx: {
-        padding: "0 0 0 0",
+    muiTableBodyCellProps: ({ cell, table }) => {
+      return {
+        sx: {
+          ...cell.row.original[cell.column.id]?.cellStyle,
+          padding: "0 0 0 10px",
+        }
       }
     },
     muiTableBodyRowProps: ({ row }) => ({
@@ -587,7 +590,7 @@ export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand}) 
       },
       style: {padding: 0}
     }),
-    enableRowActions: true,
+    enableRowActions: false,
     /*
     renderRowActions: ({ row }) => (
     <Box>

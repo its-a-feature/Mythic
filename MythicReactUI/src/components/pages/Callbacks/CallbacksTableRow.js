@@ -49,7 +49,6 @@ import WidgetsIcon from '@mui/icons-material/Widgets';
 import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
 import TerminalIcon from '@mui/icons-material/Terminal';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
-import {b64DecodeUnicode} from "./ResponseDisplay";
 
 export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDescription, setOpenHideMultipleDialog, setOpenTaskMultipleDialog}) =>{
     const dropdownAnchorRef = React.useRef(null);
@@ -557,7 +556,8 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
                     onClose={()=>{setOpenC2Dialog(false);}} 
                     innerDialog={
                         <C2PathDialog 
-                            onClose={()=>{setOpenC2Dialog(false);}}  
+                            onClose={()=>{setOpenC2Dialog(false);}}
+
                             callback={localRowData}
                             callbackgraphedges={callbackgraphedgesAll}
                             onOpenTab={onOpenTab}

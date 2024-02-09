@@ -18,6 +18,8 @@ func FileDirectUploadWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "bad input"})
 		return
 	}
+	// set this for logging later
+	c.Set("file_id", agentFileID)
 	file, err := c.FormFile("file")
 	if err != nil {
 		logging.LogError(err, "Failed to get 'file' from web request for FileDirectUploadWebhook")

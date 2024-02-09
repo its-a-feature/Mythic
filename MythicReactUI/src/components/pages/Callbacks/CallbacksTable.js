@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useContext} from 'react';
 import {MythicTransferListDialog} from '../../MythicComponents/MythicTransferList';
 import {MythicDialog} from '../../MythicComponents/MythicDialog';
 import {
@@ -21,6 +21,7 @@ import {TableFilterDialog} from './TableFilterDialog';
 import {CallbacksTabsHideMultipleDialog} from "./CallbacksTabsHideMultipleDialog";
 import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog";
 import ip6 from 'ip6';
+import {CallbackGraphEdgesContext, CallbacksContext} from "./CallbacksTop";
 
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
@@ -61,6 +62,7 @@ export const ipCompare = (a, b) => {
     }
 }
 function CallbacksTablePreMemo(props){
+    const callbacks = useContext(CallbacksContext);
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [openAdjustColumnsDialog, setOpenAdjustColumnsDialog] = React.useState(false);
@@ -227,7 +229,7 @@ function CallbacksTablePreMemo(props){
       return false;
     }
     const sortedData = React.useMemo(() => {
-      const tempData = [...props.callbacks];
+      const tempData = [...callbacks];
 
       if (sortData.sortType === 'number' || sortData.sortType === 'size' || sortData.sortType === 'date') {
           tempData.sort((a, b) => (parseInt(a[sortData.sortKey]) > parseInt(b[sortData.sortKey]) ? 1 : -1));
@@ -308,7 +310,7 @@ function CallbacksTablePreMemo(props){
                 })];
             }
         }, [])
-    }, [props.callbacks, sortData, filterOptions, columnVisibility]);
+    }, [callbacks, sortData, filterOptions, columnVisibility]);
 
     const onSubmitFilterOptions = (newFilterOptions) => {
       setFilterOptions(newFilterOptions);

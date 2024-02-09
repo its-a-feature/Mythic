@@ -100,7 +100,7 @@ export function TaskParametersDialogRow(props){
                     usingDynamicParamChoices.current = true;
                     if(props.type === "ChooseOne"){
                         if(data.dynamic_query_function.choices.length > 0){
-                            if(data.dynamic_query_function.choices.includes(props.value)){
+                            if(data.dynamic_query_function.choices.includes(props.value) && props.value !== ""){
                                 setValue(props.value);
                                 props.onChange(props.name, props.value, false);
                             } else {

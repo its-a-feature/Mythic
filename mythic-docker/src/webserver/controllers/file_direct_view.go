@@ -18,6 +18,8 @@ func FileDirectViewWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "bad input"})
 		return
 	}
+	// set this for logging later
+	c.Set("file_id", agentFileID)
 	// get the associated database information
 	filemeta := databaseStructs.Filemeta{}
 	payload := databaseStructs.Payload{}

@@ -95,6 +95,7 @@ func InitializeGinLogger() gin.HandlerFunc {
 				"source", source,
 				"user_id", c.GetInt("user_id"),
 				"username", c.GetString("username"),
+				"file_id", c.GetString("file_id"),
 				"error", param.ErrorMessage)
 		}
 		c.Next()

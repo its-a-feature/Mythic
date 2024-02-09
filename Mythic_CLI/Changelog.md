@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 0.2.11 - 2024-02-09
+
+### Changed
+
+- When installing an agent/c2, check for the *_use_build_context and *_use_volume keys before setting them
+
 ## 0.2.10 - 2024-02-06
 
 ### Changed

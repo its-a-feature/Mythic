@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.18-rc3] - 2024-02-09
+
+### Changed
+
+- [UI Fixes](/MythicReactUI/CHANGELOG.MD)
+- [mythic-cli updates](/Mythic_CLI/Changelog.md)
+- Updated file-based routes to also log file_id
+
 ## [3.2.17.1] - 2024-02-08
 
 ### Changed

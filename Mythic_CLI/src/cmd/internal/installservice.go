@@ -36,8 +36,12 @@ func InstallFolder(installPath string, overWrite bool) error {
 	latestVersion := installConfig.GetStringMapString("remote_images")
 	for key, val := range latestVersion {
 		config.SetNewConfigStrings(fmt.Sprintf("%s_remote_image", key), val)
-		config.SetNewConfigStrings(fmt.Sprintf("%s_use_volume", key), "true")
-		config.SetNewConfigStrings(fmt.Sprintf("%s_use_build_context", key), "false")
+		if !config.GetMythicEnv().InConfig(fmt.Sprintf("%s_use_volume", key)) {
+			config.SetNewConfigStrings(fmt.Sprintf("%s_use_volume", key), "true")
+		}
+		if !config.GetMythicEnv().InConfig(fmt.Sprintf("%s_use_build_context", key)) {
+			config.SetNewConfigStrings(fmt.Sprintf("%s_use_build_context", key), "false")
+		}
 	}
 	if !installConfig.GetBool("exclude_payload_type") {
 		// handle the payload type copying here

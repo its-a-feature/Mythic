@@ -867,14 +867,15 @@ export function TaskParametersDialog(props) {
     }
     const onChange = (name, value, error) => {
         //console.log("called props.onChange to update a value for submission, have these parameters: ", [...parameters]);
-        const params = parameters.map( (param) => {
-            if(param.name === name){
-                return {...param, value: value};
-            }else{
-                return {...param};
-            }
+        setParameters((previousState, currentProps) => {
+            return previousState.map( (param) => {
+                if(param.name === name){
+                    return {...param, value: value};
+                }else{
+                    return {...param};
+                }
+            })
         });
-        setParameters(params);
         //console.log("just set new params from props.onChange with a new value: ", [...params])
     }
     const onChangeParameterGroup = (event) => {

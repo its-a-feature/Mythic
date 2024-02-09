@@ -38,7 +38,7 @@ const Root = styled('div')((
 
 const getP2PProfilesAndCallbacks = gql`
 query getP2PProfilesAndCallbacks{
-  c2profile(where: {is_p2p: {_eq: true}}) {
+  c2profile(where: {is_p2p: {_eq: true}, deleted: {_eq: false}}) {
     callbackc2profiles(where: {callback: {active: {_eq: true}}}) {
       id
       callback {

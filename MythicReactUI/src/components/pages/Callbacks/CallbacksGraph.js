@@ -24,7 +24,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import {CallbackGraphEdgesContext, OnOpenTabContext} from './CallbacksTop';
+import {CallbackGraphEdgesContext, CallbacksContext, OnOpenTabContext} from './CallbacksTop';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 1;
@@ -213,6 +213,7 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
 }
 export function CallbacksGraph({}){
     const theme = useTheme();
+    const callbacks = useContext(CallbacksContext);
     const callbackgraphedges = useContext(CallbackGraphEdgesContext);
     const onOpenTab = useContext(OnOpenTabContext);
     //used for creating a task to do a link command
@@ -407,7 +408,7 @@ export function CallbacksGraph({}){
                                         action={"select"} display={"display"} identifier={"display"}/>}
                 />
             }
-            <DrawC2PathElementsFlowWithProvider edges={callbackgraphedges} view_config={viewConfig} theme={theme}
+            <DrawC2PathElementsFlowWithProvider providedNodes={callbacks} edges={callbackgraphedges} view_config={viewConfig} theme={theme}
                 panel={<GraphViewOptions setViewConfig={setViewConfig} viewConfig={viewConfig} />}
                                                 contextMenu={contextMenu}/>
         </div>
