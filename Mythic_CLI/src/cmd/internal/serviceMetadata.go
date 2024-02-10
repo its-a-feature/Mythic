@@ -38,11 +38,11 @@ func AddMythicService(service string) {
 		}
 		if mythicEnv.GetBool("postgres_bind_localhost_only") {
 			pStruct["ports"] = []string{
-				"127.0.0.1:${POSTGRES_PORT}:${POSTGRES_PORT}",
+				"127.0.0.1:${POSTGRES_PORT}:5432",
 			}
 		} else {
 			pStruct["ports"] = []string{
-				"${POSTGRES_PORT}:${POSTGRES_PORT}",
+				"${POSTGRES_PORT}:5432",
 			}
 		}
 		environment := []string{
