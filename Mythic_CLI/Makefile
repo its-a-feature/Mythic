@@ -1,6 +1,6 @@
 BINARY_NAME=mythic-cli
 LOCAL_PATH=$(shell pwd)
-BUILDER_IMAGE=ghcr.io/its-a-feature/mythic_cli:v0.0.3.16
+BUILDER_IMAGE=ghcr.io/its-a-feature/mythic_cli:v0.0.3.17
 .PHONY: default
 default: build_linux ;
 
