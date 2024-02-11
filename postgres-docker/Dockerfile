@@ -5,6 +5,3 @@ COPY ["postgres.conf", "/etc/postgres.conf"]
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 --start-period=20s \
   CMD pg_isready -d mythic_db -U mythic_user || exit 1
-ENV POSTGRES_PORT=5432
-USER postgres
-ENTRYPOINT postgres -c config_file=/etc/postgres.conf -c max_connections=100 -p ${POSTGRES_PORT}

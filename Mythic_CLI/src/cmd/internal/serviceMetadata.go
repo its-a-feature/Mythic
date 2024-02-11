@@ -45,6 +45,7 @@ func AddMythicService(service string) {
 				"${POSTGRES_PORT}:${POSTGRES_PORT}",
 			}
 		}
+		pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf"
 		environment := []string{
 			"POSTGRES_DB=${POSTGRES_DB}",
 			"POSTGRES_USER=${POSTGRES_USER}",
