@@ -226,6 +226,10 @@ type Query {
 }
 
 type Query {
+  getOperatorSecrets: getOperatorSecretsOutput
+}
+
+type Query {
   getProfileOutput(
     id: Int!
   ): ProfileOutput
@@ -361,6 +365,12 @@ type Mutation {
     view_mode_spectators: [Int]
     disabled_command_map: [disabledCommand]
   ): updateOperatorOperationOutput
+}
+
+type Mutation {
+  updateOperatorSecrets(
+    secrets: jsonb!
+  ): updateOperatorSecretsOutput
 }
 
 type Mutation {
@@ -831,6 +841,17 @@ type exportCallbackConfigOutput {
 }
 
 type importCallbackConfigOutput {
+  status: String!
+  error: String
+}
+
+type getOperatorSecretsOutput {
+  status: String!
+  error: String
+  secrets: jsonb
+}
+
+type updateOperatorSecretsOutput {
   status: String!
   error: String
 }

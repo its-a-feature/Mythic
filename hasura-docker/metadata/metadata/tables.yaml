@@ -1397,6 +1397,13 @@
           table:
             name: loadedcommands
             schema: public
+    - name: mythictrees
+      using:
+        foreign_key_constraint_on:
+          column: callback_id
+          table:
+            name: mythictree
+            schema: public
     - name: tasks
       using:
         foreign_key_constraint_on:
@@ -1896,15 +1903,17 @@
     - role: developer
       permission:
         columns:
-          - deleted
+          - bytes_received
+          - bytes_sent
           - callback_id
+          - deleted
           - id
           - local_port
           - operation_id
-          - remote_port
-          - task_id
           - port_type
           - remote_ip
+          - remote_port
+          - task_id
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -1912,15 +1921,17 @@
     - role: mythic_admin
       permission:
         columns:
-          - deleted
+          - bytes_received
+          - bytes_sent
           - callback_id
+          - deleted
           - id
           - local_port
           - operation_id
-          - remote_port
-          - task_id
           - port_type
           - remote_ip
+          - remote_port
+          - task_id
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -1928,6 +1939,8 @@
     - role: operation_admin
       permission:
         columns:
+          - bytes_received
+          - bytes_sent
           - callback_id
           - deleted
           - id
@@ -1944,6 +1957,8 @@
     - role: operator
       permission:
         columns:
+          - bytes_received
+          - bytes_sent
           - callback_id
           - deleted
           - id
@@ -1960,6 +1975,8 @@
     - role: spectator
       permission:
         columns:
+          - bytes_received
+          - bytes_sent
           - callback_id
           - deleted
           - id
@@ -2913,7 +2930,6 @@
           - complete
           - delete_after_fetch
           - deleted
-          - mythictree_id
           - filename
           - full_remote_path
           - host
@@ -2922,10 +2938,12 @@
           - is_payload
           - is_screenshot
           - md5
+          - mythictree_id
           - operation_id
           - operator_id
           - path
           - sha1
+          - size
           - task_id
           - timestamp
           - total_chunks
@@ -2948,7 +2966,6 @@
           - complete
           - delete_after_fetch
           - deleted
-          - mythictree_id
           - filename
           - full_remote_path
           - host
@@ -2957,10 +2974,12 @@
           - is_payload
           - is_screenshot
           - md5
+          - mythictree_id
           - operation_id
           - operator_id
           - path
           - sha1
+          - size
           - task_id
           - timestamp
           - total_chunks
@@ -2983,7 +3002,6 @@
           - complete
           - delete_after_fetch
           - deleted
-          - mythictree_id
           - filename
           - full_remote_path
           - host
@@ -2992,10 +3010,12 @@
           - is_payload
           - is_screenshot
           - md5
+          - mythictree_id
           - operation_id
           - operator_id
           - path
           - sha1
+          - size
           - task_id
           - timestamp
           - total_chunks
@@ -3018,7 +3038,6 @@
           - complete
           - delete_after_fetch
           - deleted
-          - mythictree_id
           - filename
           - full_remote_path
           - host
@@ -3027,10 +3046,12 @@
           - is_payload
           - is_screenshot
           - md5
+          - mythictree_id
           - operation_id
           - operator_id
           - path
           - sha1
+          - size
           - task_id
           - timestamp
           - total_chunks
@@ -3053,7 +3074,6 @@
           - complete
           - delete_after_fetch
           - deleted
-          - mythictree_id
           - filename
           - full_remote_path
           - host
@@ -3062,10 +3082,12 @@
           - is_payload
           - is_screenshot
           - md5
+          - mythictree_id
           - operation_id
           - operator_id
           - path
           - sha1
+          - size
           - task_id
           - timestamp
           - total_chunks
@@ -3727,6 +3749,13 @@
           table:
             name: payload
             schema: public
+    - name: responses
+      using:
+        foreign_key_constraint_on:
+          column: operation_id
+          table:
+            name: response
+            schema: public
     - name: tags
       using:
         foreign_key_constraint_on:
@@ -4142,6 +4171,9 @@
     - role: mythic_admin
       permission:
         columns:
+          - active
+          - admin
+          - deleted
           - username
           - view_utc_time
         filter: {}

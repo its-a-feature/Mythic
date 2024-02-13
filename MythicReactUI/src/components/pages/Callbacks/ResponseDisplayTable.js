@@ -398,7 +398,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
 }
 
 
-export const ResponseDisplayTable = ({table, callback_id, expand}) =>{
+export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const theme = useTheme();
   const rowHeight = 35;
   const headerHeight = 45;
@@ -557,6 +557,17 @@ export const ResponseDisplayTable = ({table, callback_id, expand}) =>{
   const tableStyle = React.useMemo( () => {
     return expand ? {flexGrow: 1, width: "99%",} : {height: dataHeight}
   }, [expand, dataHeight]);
+  const scrollContent = (node, isAppearing) => {
+    // only auto-scroll if you issued the task
+    document.getElementById(`scrolltotaskbutton${task.id}`).scrollIntoView({
+      //behavior: "smooth",
+      block: "end",
+      inline: "nearest"
+    })
+  }
+  React.useLayoutEffect( () => {
+    scrollContent()
+  }, []);
   return (
         <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", width: "100%"}}>
             {table?.title ? (

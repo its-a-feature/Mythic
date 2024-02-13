@@ -109,6 +109,9 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("global_manager", "docker")
 	mythicEnvInfo["global_manager"] = `This sets the management software used to control Mythic. The default is "docker" which uses Docker and Docker Compose. Valid options are currently: docker. Additional PRs can be made to implement the CLIManager Interface and provide more options.`
 
+	mythicEnv.SetDefault("global_restart_policy", "always")
+	mythicEnvInfo["global_restart_policy"] = `This sets the restart policy for the containers within Mythic. Valid options should only be 'always', 'unless-stopped', and 'on-failure'. The default of 'always' will ensure that Mythic comes back up even when the server reboots. The 'unless-stopped' value means that Mythic should come back online after reboot unless you specifically ran './mythic-cli stop' first.`
+
 	// nginx configuration ---------------------------------------------
 	mythicEnv.SetDefault("nginx_port", 7443)
 	mythicEnvInfo["nginx_port"] = `This sets the port used for the Nginx reverse proxy - this port is used by the React UI and Mythic's Scripting`

@@ -4,7 +4,17 @@ import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 
 export const ResponseDisplaySearch = (props) =>{
-
+    const scrollContent = (node, isAppearing) => {
+        // only auto-scroll if you issued the task
+        document.getElementById(`scrolltotaskbutton${props.task.id}`).scrollIntoView({
+            //behavior: "smooth",
+            block: "end",
+            inline: "nearest"
+        })
+    }
+    React.useLayoutEffect( () => {
+        scrollContent()
+    }, []);
   return (
     <>
       <pre style={{display: "inline-block", whiteSpace: "pre-wrap"}}>

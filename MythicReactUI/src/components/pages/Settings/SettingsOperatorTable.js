@@ -19,7 +19,6 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import TuneIcon from '@mui/icons-material/Tune';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { IconButton } from '@mui/material';
-import {SettingsOperatorDeleteDialog} from "./SettingsOperatorDeleteDialog";
 import {SettingsGlobalDialog} from "./SettingsGlobalDialog";
 
 
@@ -85,7 +84,7 @@ export function SettingsOperatorTable(props){
                         <TableCell >Username</TableCell>
                         <TableCell style={{width: "6rem"}}>Login</TableCell>
                         <TableCell style={{width: "6rem"}}>Use UTC</TableCell>
-                        <TableCell style={{width: "8rem"}}>Preferences</TableCell>
+                        <TableCell style={{width: "10rem"}}>Preferences</TableCell>
                         <TableCell style={{width: "6rem"}}>Active</TableCell>
                         <TableCell >Last Login</TableCell>
                         <TableCell >Creation Date</TableCell>

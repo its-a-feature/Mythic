@@ -198,6 +198,12 @@ type Mutation {
 }
 
 type Query {
+  exportCallbackConfig(
+    agent_callback_id: String!
+  ): exportCallbackConfigOutput
+}
+
+type Query {
   export_payload_config(
     uuid: String!
   ): PayloadConfig
@@ -216,9 +222,23 @@ type Mutation {
 }
 
 type Query {
+  getGlobalSettings: globalSettingsOutput
+}
+
+type Query {
+  getOperatorSecrets: getOperatorSecretsOutput
+}
+
+type Query {
   getProfileOutput(
     id: Int!
   ): ProfileOutput
+}
+
+type Mutation {
+  importCallbackConfig(
+    config: jsonb!
+  ): importCallbackConfigOutput
 }
 
 type Mutation {
@@ -319,6 +339,12 @@ type Mutation {
 }
 
 type Mutation {
+  updateGlobalSettings(
+    settings: jsonb!
+  ): updateGlobalSettingsOutput
+}
+
+type Mutation {
   updateOperation(
     operation_id: Int!
     name: String
@@ -339,6 +365,12 @@ type Mutation {
     view_mode_spectators: [Int]
     disabled_command_map: [disabledCommand]
   ): updateOperatorOperationOutput
+}
+
+type Mutation {
+  updateOperatorSecrets(
+    secrets: jsonb!
+  ): updateOperatorSecretsOutput
 }
 
 type Mutation {
@@ -791,5 +823,36 @@ type updateOperatorStatusOutput {
   admin: Boolean
   active: Boolean
   deleted: Boolean
+}
+
+type updateGlobalSettingsOutput {
+  status: String!
+  error: String
+}
+
+type globalSettingsOutput {
+  settings: jsonb!
+}
+
+type exportCallbackConfigOutput {
+  status: String!
+  error: String
+  config: String
+}
+
+type importCallbackConfigOutput {
+  status: String!
+  error: String
+}
+
+type getOperatorSecretsOutput {
+  status: String!
+  error: String
+  secrets: jsonb
+}
+
+type updateOperatorSecretsOutput {
+  status: String!
+  error: String
 }
 

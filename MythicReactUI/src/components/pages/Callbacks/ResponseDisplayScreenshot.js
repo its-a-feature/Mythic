@@ -12,7 +12,17 @@ export const ResponseDisplayScreenshot = (props) =>{
   const clickOpenScreenshot = () => {
     setOpenScreenshot(true);
   }
-
+    const scrollContent = (node, isAppearing) => {
+        // only auto-scroll if you issued the task
+        document.getElementById(`scrolltotaskbutton${props.task.id}`).scrollIntoView({
+            //behavior: "smooth",
+            block: "end",
+            inline: "nearest"
+        })
+    }
+    React.useLayoutEffect( () => {
+        scrollContent()
+    }, []);
   return (
     <>
       {openScreenshot &&

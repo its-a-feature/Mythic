@@ -58,10 +58,9 @@ func ImportCallbackConfigWebhook(c *gin.Context) {
 			if err == sql.ErrNoRows {
 				// payload type doesn't exist, so we need to create it
 				statement, err := database.DB.PrepareNamed(`INSERT INTO translationcontainer 
-			("name") 
-			VALUES (:name) 
-			RETURNING id`,
-				)
+					("name") 
+					VALUES (:name) 
+					RETURNING id`)
 				if err != nil {
 					logging.LogError(err, "Failed to create new translationcontainer statement")
 					c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
@@ -155,97 +154,107 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 	}
 	payload.FileID.Valid = true
 	payload.FileID.Int64 = int64(fileMeta.ID)
-	statement, err = database.DB.PrepareNamed(`INSERT INTO payload 
+	err = database.DB.Get(&payload, `SELECT * FROM payload WHERE uuid=$1`, payload.UuID)
+	if err == sql.ErrNoRows {
+		statement, err = database.DB.PrepareNamed(`INSERT INTO payload 
 			(uuid,description,payload_type_id,operation_id,os,build_phase, build_container, build_message, build_stderr, build_stdout, operator_id, file_id) 
 			VALUES (:uuid, :description, :payload_type_id, :operation_id, :os, :build_phase, :build_container, :build_message, :build_stderr, :build_stdout, :operator_id, :file_id) 
 			RETURNING id`,
-	)
-	if err != nil {
-		logging.LogError(err, "Failed to create new payload statement")
-		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-		return
-	}
-	err = statement.Get(&payload.ID, payload)
-	if err != nil {
-		logging.LogError(err, "Failed to create new payload")
-		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-		return
-	}
-	// make sure callbackConfig.PayloadType has callbackConfig.PayloadBuild parameters (and create if needed)
-	for _, build := range callbackConfig.PayloadBuild {
-		buildParameter := databaseStructs.Buildparameter{Name: build.Name, PayloadTypeID: payloadtype.ID,
-			Description: build.Name}
-		err = database.DB.Get(&buildParameter, `SELECT id, crypto_type FROM buildparameter WHERE "name"=$1 AND payload_type_id=$2`,
-			buildParameter.Name, buildParameter.PayloadTypeID)
+		)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				// need to create the build parameter
-				switch v := build.Value.(type) {
-				case map[string]interface{}:
-					if _, ok = v["enc_key"]; ok {
-						buildParameter.IsCryptoType = true
-						buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_CHOOSE_ONE
-					} else {
-						buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_DICTIONARY
+			logging.LogError(err, "Failed to create new payload statement")
+			c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+			return
+		}
+		err = statement.Get(&payload.ID, payload)
+		if err != nil {
+			logging.LogError(err, "Failed to create new payload")
+			c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+			return
+		}
+		// make sure callbackConfig.PayloadType has callbackConfig.PayloadBuild parameters (and create if needed)
+		for _, build := range callbackConfig.PayloadBuild {
+			buildParameter := databaseStructs.Buildparameter{Name: build.Name, PayloadTypeID: payloadtype.ID,
+				Description: build.Name}
+			err = database.DB.Get(&buildParameter, `SELECT id, crypto_type FROM buildparameter WHERE "name"=$1 AND payload_type_id=$2`,
+				buildParameter.Name, buildParameter.PayloadTypeID)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					// need to create the build parameter
+					switch v := build.Value.(type) {
+					case map[string]interface{}:
+						if _, ok = v["enc_key"]; ok {
+							buildParameter.IsCryptoType = true
+							buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_CHOOSE_ONE
+						} else {
+							buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_DICTIONARY
+						}
+					case bool:
+						buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_BOOLEAN
+					case float64:
+						buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_NUMBER
+					case []interface{}:
+						buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_ARRAY
+					default:
+						buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_STRING
 					}
-				case bool:
-					buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_BOOLEAN
-				case float64:
-					buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_NUMBER
-				case []interface{}:
-					buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_ARRAY
-				default:
-					buildParameter.ParameterType = rabbitmq.BUILD_PARAMETER_TYPE_STRING
-				}
-				statement, err = database.DB.PrepareNamed(`INSERT INTO buildparameter 
+					statement, err = database.DB.PrepareNamed(`INSERT INTO buildparameter 
 					("name", payload_type_id, crypto_type, parameter_type) 
 					VALUES (:name, :payload_type_id, :crypto_type, :parameter_type) 
 					RETURNING id`,
-				)
-				if err != nil {
-					logging.LogError(err, "Failed to create new build parameter statement")
+					)
+					if err != nil {
+						logging.LogError(err, "Failed to create new build parameter statement")
+						c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+						return
+					}
+					err = statement.Get(&buildParameter.ID, buildParameter)
+					if err != nil {
+						logging.LogError(err, "Failed to create build parameter")
+						c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+						return
+					}
+				} else {
+					// actually ran into an error
+					logging.LogError(err, "Failed to query build parameters")
 					c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 					return
 				}
-				err = statement.Get(&buildParameter.ID, buildParameter)
-				if err != nil {
-					logging.LogError(err, "Failed to create build parameter")
-					c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-					return
-				}
-			} else {
-				// actually ran into an error
-				logging.LogError(err, "Failed to query build parameters")
-				c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-				return
 			}
-		}
-		buildParameterInstance := databaseStructs.Buildparameterinstance{
-			BuildParameterID: buildParameter.ID,
-			PayloadID:        payload.ID,
-		}
-		// need to create the build parameter
-		switch v := build.Value.(type) {
-		case map[string]interface{}:
-			if _, ok = v["enc_key"]; ok {
-				buildParameterInstance.Value = v["value"].(string)
-				encKey, err := base64.StdEncoding.DecodeString(v["enc_key"].(string))
-				if err != nil {
-					logging.LogError(err, "Failed to decode encryption key")
-					c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-					return
+			buildParameterInstance := databaseStructs.Buildparameterinstance{
+				BuildParameterID: buildParameter.ID,
+				PayloadID:        payload.ID,
+			}
+			// need to create the build parameter
+			switch v := build.Value.(type) {
+			case map[string]interface{}:
+				if _, ok = v["enc_key"]; ok {
+					buildParameterInstance.Value = v["value"].(string)
+					encKey, err := base64.StdEncoding.DecodeString(v["enc_key"].(string))
+					if err != nil {
+						logging.LogError(err, "Failed to decode encryption key")
+						c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+						return
+					} else {
+						buildParameterInstance.EncKey = &encKey
+					}
+					decKey, err := base64.StdEncoding.DecodeString(v["dec_key"].(string))
+					if err != nil {
+						logging.LogError(err, "Failed to decode decryption key")
+						c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+						return
+					} else {
+						buildParameterInstance.DecKey = &decKey
+					}
 				} else {
-					buildParameterInstance.EncKey = &encKey
+					buildParameterInstance.Value, err = rabbitmq.GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(buildParameter.ParameterType, build.Value)
+					if err != nil {
+						logging.LogError(err, "Failed to save build parameter")
+						c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+						return
+					}
 				}
-				decKey, err := base64.StdEncoding.DecodeString(v["dec_key"].(string))
-				if err != nil {
-					logging.LogError(err, "Failed to decode decryption key")
-					c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-					return
-				} else {
-					buildParameterInstance.DecKey = &decKey
-				}
-			} else {
+			default:
 				buildParameterInstance.Value, err = rabbitmq.GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(buildParameter.ParameterType, build.Value)
 				if err != nil {
 					logging.LogError(err, "Failed to save build parameter")
@@ -253,23 +262,20 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 					return
 				}
 			}
-		default:
-			buildParameterInstance.Value, err = rabbitmq.GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(buildParameter.ParameterType, build.Value)
+			// we now know that the build parameter exists, so we can create our instance and tie to the payload
+			_, err = database.DB.NamedExec(`INSERT INTO buildparameterinstance 
+			(build_parameter_id, payload_id, "value", enc_key, dec_key)
+			VALUES (:build_parameter_id, :payload_id, :value, :enc_key, :dec_key)`, buildParameterInstance)
 			if err != nil {
-				logging.LogError(err, "Failed to save build parameter")
+				logging.LogError(err, "Failed to save build parameter instance")
 				c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 				return
 			}
 		}
-		// we now know that the build parameter exists, so we can create our instance and tie to the payload
-		_, err = database.DB.NamedExec(`INSERT INTO buildparameterinstance 
-			(build_parameter_id, payload_id, "value", enc_key, dec_key)
-			VALUES (:build_parameter_id, :payload_id, :value, :enc_key, :dec_key)`, buildParameterInstance)
-		if err != nil {
-			logging.LogError(err, "Failed to save build parameter instance")
-			c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-			return
-		}
+	} else if err != nil {
+		logging.LogError(err, "Failed to get payload data")
+		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+		return
 	}
 	// make sure payload C2 profiles exist (and create if needed)
 	callbackConfig.Callback.OperationID = operatorOperation.CurrentOperation.ID
@@ -293,13 +299,31 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 		return
 	}
 	// make sure payload commands exist and add them if needed
+	for _, cmd := range callbackConfig.PayloadCommands {
+		err = ensureCommands(cmd, payloadtype.ID, 0, payload.ID, operatorOperation.CurrentOperator.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to ensure command in payload")
+		}
+	}
+	for _, cmd := range callbackConfig.CallbackCommands {
+		err = ensureCommands(cmd, payloadtype.ID, callbackConfig.Callback.ID, 0, operatorOperation.CurrentOperator.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to ensure command in callback")
+		}
+	}
+	// make sure callback c2 profiles exist
 	for _, c2 := range callbackConfig.CallbackC2 {
 		err = ensureC2Profile(c2, callbackConfig.Callback.OperationID, callbackConfig.Callback.ID, 0)
+		if err != nil {
+			logging.LogError(err, "Failed to ensure callback c2 profile")
+		}
 	}
 	for _, c2 := range callbackConfig.PayloadC2 {
 		err = ensureC2Profile(c2, callbackConfig.Callback.OperationID, 0, payload.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to ensure payload c2 profile")
+		}
 	}
-	// make sure callback c2 profiles exist
 	// make sure callback commands exist and add them if needed
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
 	return
@@ -422,6 +446,38 @@ func ensureC2Profile(c2Info rabbitmq.PayloadConfigurationC2Profile, operationID 
 			logging.LogError(err, "Failed to save c2 profile parameters instance")
 			return err
 		}
+	}
+	return nil
+}
+func ensureCommands(cmdName string, payloadTypeID int, callbackID int, payloadID int, operatorID int) error {
+	command := databaseStructs.Command{Cmd: cmdName, PayloadTypeID: payloadTypeID}
+	err := database.DB.Get(&command, `SELECT id FROM command WHERE cmd=$1 AND payload_type_id=$2`,
+		cmdName, payloadTypeID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// need to create it
+			statement, err := database.DB.PrepareNamed(`INSERT INTO command (cmd, payload_type_id)
+			VALUES (:cmd, :payload_type_id) RETURNING id`)
+			if err != nil {
+				return err
+			}
+			err = statement.Get(&command.ID, command)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+	if callbackID > 0 {
+		_, err = database.DB.Exec(`INSERT INTO loadedcommands (command_id, callback_id, operator_id)
+			VALUES ($1, $2, $3)`, command.ID, callbackID, operatorID)
+		return err
+	}
+	if payloadID > 0 {
+		_, err = database.DB.Exec(`INSERT INTO payloadcommand (payload_id, command_id)
+			VALUES ($1, $2)`, payloadID, command.ID)
+		return err
 	}
 	return nil
 }

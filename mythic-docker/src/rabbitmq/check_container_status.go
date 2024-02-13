@@ -160,6 +160,8 @@ func checkContainerStatus() {
 								getDownContainerMessage(container),
 								0, fmt.Sprintf("%s_container_down", container), "warning")
 							go updateDownContainerBuildingPayloads(container)
+						} else {
+							go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						}
 					}
 
@@ -189,6 +191,8 @@ func checkContainerStatus() {
 							SendAllOperationsMessage(
 								getDownContainerMessage(container),
 								0, fmt.Sprintf("%s_container_down", container), "warning")
+						} else {
+							go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						}
 					}
 				} else {
@@ -216,6 +220,8 @@ func checkContainerStatus() {
 							SendAllOperationsMessage(
 								getDownContainerMessage(container),
 								0, fmt.Sprintf("%s_container_down", container), "warning")
+						} else {
+							go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						}
 					}
 				} else {

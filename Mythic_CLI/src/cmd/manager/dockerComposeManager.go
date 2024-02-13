@@ -278,22 +278,6 @@ func (d *DockerComposeManager) GetServiceConfiguration(service string) (map[stri
 		delete(pStruct, "command")
 		delete(pStruct, "image")
 		delete(pStruct, "healthcheck")
-	} else {
-		pStruct = map[string]interface{}{
-			"logging": map[string]interface{}{
-				"driver": "json-file",
-				"options": map[string]string{
-					"max-file": "1",
-					"max-size": "10m",
-				},
-			},
-			"restart": "always",
-			"labels": map[string]string{
-				"name": service,
-			},
-			"container_name": service,
-			"image":          service,
-		}
 	}
 	return pStruct, nil
 }

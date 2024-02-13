@@ -28,6 +28,8 @@ import PasswordIcon from '@mui/icons-material/Password';
 import {SettingsOperatorExperimentalUIConfigDialog} from "./SettingsOperatorExperimentalUIConfigDialog";
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import {SettingsOperatorSecretsConfigDialog} from "./SettingsOperatorSecretsConfigDialog";
 
 export function SettingsOperatorTableRow(props){
     const [open, setOpen] = React.useState(false);
@@ -35,6 +37,7 @@ export function SettingsOperatorTableRow(props){
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [openUIConfig, setOpenUIConfig] = React.useState(false);
     const [openExperimentalUIConfig, setOpenExperimentalUIConfig] = React.useState(false);
+    const [openSecretsConfig, setOpenSecretsConfig] = React.useState(false);
     const me = props.me;
     const isMe = ( me?.user?.user_id || 0 ) === props.id;
     const onViewUTCChanged = (evt) => {
@@ -118,12 +121,21 @@ export function SettingsOperatorTableRow(props){
                           innerDialog={<SettingsOperatorUIConfigDialog  onClose={()=>{setOpenUIConfig(false);}} {...props} />}
                           />
                         }
+                          <MythicStyledTooltip title={"Secrets"} >
+                              <IconButton size="large" onClick={()=>{setOpenSecretsConfig(true);}} color="error" variant='contained'>
+                                  <VpnKeyIcon />
+                              </IconButton>
+                          </MythicStyledTooltip>
+                          {openSecretsConfig &&
+                              <MythicDialog open={openSecretsConfig} onClose={()=>{setOpenSecretsConfig(false)}} maxWidth={"xl"} fullWidth
+                                            innerDialog={<SettingsOperatorSecretsConfigDialog  onClose={()=>{setOpenSecretsConfig(false);}} {...props} />}
+                              />
+                          }
                         <MythicStyledTooltip title={"Experimental UI Settings"} >
                             <IconButton size="large" onClick={()=>{setOpenExperimentalUIConfig(true);}} color="warning" variant='contained'>
                                 <RocketLaunchIcon />
                             </IconButton>
                         </MythicStyledTooltip>
-
                           {openExperimentalUIConfig &&
                               <MythicDialog open={openExperimentalUIConfig} onClose={()=>{setOpenExperimentalUIConfig(false)}} maxWidth={"md"} fullWidth
                                             innerDialog={<SettingsOperatorExperimentalUIConfigDialog  onClose={()=>{setOpenExperimentalUIConfig(false);}} {...props} />}

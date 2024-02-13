@@ -54,6 +54,17 @@ export const ResponseDisplayPlaintext = (props) =>{
     const onChangeShowOptions = (e) => {
         setShowOptions(!showOptions);
     }
+    const scrollContent = (node, isAppearing) => {
+        // only auto-scroll if you issued the task
+        document.getElementById(`scrolltotaskbutton${props.task.id}`).scrollIntoView({
+            //behavior: "smooth",
+            block: "end",
+            inline: "nearest"
+        })
+    }
+    React.useLayoutEffect( () => {
+        scrollContent()
+    }, []);
   return (
       <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
           {showOptions &&

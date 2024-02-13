@@ -293,10 +293,10 @@ const NonInteractiveResponseDisplay = (props) => {
                                           task={props.task} search={search.current} expand={props.expand}/>
 
               </div>
-              {!props.selectAllOutput && initialResponseStreamLimit !== 0 &&
+
                   <PaginationBar selectAllOutput={props.selectAllOutput} totalCount={totalCount} pageSize={initialResponseStreamLimit}
                                  onSubmitPageChange={onSubmitPageChange} task={props.task} search={search.current} />
-              }
+
             </div>
 
         }
@@ -392,7 +392,7 @@ export const PaginationBar = ({selectAllOutput, totalCount, onSubmitPageChange, 
   const pageCount = Math.max(1, Math.ceil(localTotalCount / pageSize));
   // don't bother people with pagination information if they haven't even started paginating
   if(pageCount < 2){
-    return null
+    return (<div id={'scrolltotaskbutton' + task.id}></div>)
   }
   return (
     <div id={'scrolltotaskbottom' + task.id} style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "10px",}} >
@@ -545,33 +545,33 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     localViewBrowserScript && browserScriptData ? (
       <React.Fragment>
           {browserScriptData?.screenshot?.map( (scr, index) => (
-              <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} {...scr} />
+              <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} task={task} {...scr} />
             )) || null
           }
           {browserScriptData?.plaintext !== undefined &&
-            <ResponseDisplayPlaintext plaintext={browserScriptData["plaintext"]} expand={expand} />
+            <ResponseDisplayPlaintext plaintext={browserScriptData["plaintext"]} task={task} expand={expand} />
           }
           {browserScriptData?.table?.map( (table, index) => {
           if(useNewBrowserScriptTable){
-            return <ResponseDisplayMaterialReactTable callback_id={task.callback_id} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
+            return <ResponseDisplayMaterialReactTable callback_id={task.callback_id} task={task} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
           }
-            return <ResponseDisplayTable callback_id={task.callback_id} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
+            return <ResponseDisplayTable callback_id={task.callback_id} task={task} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
           }) || null
           }
           {browserScriptData?.download?.map( (dl, index) => (
-              <ResponseDisplayDownload download={dl} key={"download" + index + "fortask" + task.id} />
+              <ResponseDisplayDownload download={dl} task={task} key={"download" + index + "fortask" + task.id} />
             )) || null
           }
           {browserScriptData?.search?.map( (s, index) => (
-              <ResponseDisplaySearch search={s} key={"searchlink" + index + "fortask" + task.id} />
+              <ResponseDisplaySearch search={s} task={task} key={"searchlink" + index + "fortask" + task.id} />
           )) || null
           }
           {browserScriptData?.media?.map( (s, index) => (
-              <ResponseDisplayMedia key={"searchmedia" + index + "fortask" + task.id} media={s} expand={expand} />
+              <ResponseDisplayMedia key={"searchmedia" + index + "fortask" + task.id} task={task} media={s} expand={expand} />
           )) || null}
       </React.Fragment>
     ) : (
-      <ResponseDisplayPlaintext plaintext={output} expand={expand}/>
+      <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand}/>
     )
   )
 }

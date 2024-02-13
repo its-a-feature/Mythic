@@ -18,14 +18,15 @@ const (
 )
 
 type PTRPCDynamicQueryFunctionMessage struct {
-	Command           string `json:"command" binding:"required"`
-	ParameterName     string `json:"parameter_name" binding:"required"`
-	PayloadType       string `json:"payload_type" binding:"required"`
-	PayloadOS         string `json:"payload_os"`
-	PayloadUUID       string `json:"payload_uuid"`
-	AgentCallbackID   string `json:"agent_callback_id"`
-	Callback          int    `json:"callback" binding:"required"`
-	CallbackDisplayID int    `json:"callback_display_id"`
+	Command           string                 `json:"command" binding:"required"`
+	ParameterName     string                 `json:"parameter_name" binding:"required"`
+	PayloadType       string                 `json:"payload_type" binding:"required"`
+	PayloadOS         string                 `json:"payload_os"`
+	PayloadUUID       string                 `json:"payload_uuid"`
+	AgentCallbackID   string                 `json:"agent_callback_id"`
+	Callback          int                    `json:"callback" binding:"required"`
+	CallbackDisplayID int                    `json:"callback_display_id"`
+	Secrets           map[string]interface{} `json:"secrets"`
 }
 
 type PTRPCDynamicQueryFunctionMessageResponse struct {
@@ -54,21 +55,26 @@ func (r *rabbitMQConnection) SendPtRPCDynamicQueryFunction(dynamicQuery PTRPCDyn
 	dynamicQuery.PayloadOS = callback.Payload.Os
 	dynamicQuery.AgentCallbackID = callback.AgentCallbackID
 	dynamicQuery.CallbackDisplayID = callback.DisplayID
-	if configBytes, err := json.Marshal(dynamicQuery); err != nil {
+	configBytes, err := json.Marshal(dynamicQuery)
+	if err != nil {
 		logging.LogError(err, "Failed to convert configCheck to JSON", "dynamicQuery", dynamicQuery)
 		return nil, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetPtRPCDynamicQueryFunctionRoutingKey(dynamicQuery.PayloadType),
 		configBytes,
 		exclusiveQueue,
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err
-	} else if err := json.Unmarshal(response, &dynamicQueryResponse); err != nil {
+	}
+	err = json.Unmarshal(response, &dynamicQueryResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to parse response back to struct", "response", response)
 		return nil, err
-	} else {
-		return &dynamicQueryResponse, nil
 	}
+	return &dynamicQueryResponse, nil
+
 }

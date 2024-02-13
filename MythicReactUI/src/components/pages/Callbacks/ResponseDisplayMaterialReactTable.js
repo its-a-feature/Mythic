@@ -415,7 +415,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
 }
 
 
-export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand}) =>{
+export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand, task}) =>{
   const theme = useTheme();
   const [allData, setAllData] = React.useState([]);
   const filterOutButtonsFromRowData = (data) => {
@@ -538,7 +538,7 @@ export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand}) 
 
   useEffect( () => {
     setAllData([...table.rows]);
-  }, [table.rows])
+  }, [table.rows]);
   const materialReactTable = useMaterialReactTable({
     columns,
     data: allData,
@@ -622,9 +622,19 @@ export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand}) 
           </Typography>
         </div>
     ),
-  })
+  });
+  const scrollContent = (node, isAppearing) => {
+    // only auto-scroll if you issued the task
+    document.getElementById(`scrolltotaskbutton${task.id}`).scrollIntoView({
+      //behavior: "smooth",
+      block: "end",
+      inline: "nearest"
+    })
+  }
+  React.useLayoutEffect( () => {
+    scrollContent()
+  }, []);
   return (
         <MaterialReactTable table={materialReactTable} />
-
   )   
 }

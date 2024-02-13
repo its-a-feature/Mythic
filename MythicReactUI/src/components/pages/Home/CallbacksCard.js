@@ -19,6 +19,7 @@ import {
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {useNavigate} from 'react-router-dom';
 import { BarChart } from '@mui/x-charts/BarChart';
+import {getStringSize} from "../Callbacks/ResponseDisplayTable";
 
 const GetCallbacks = gql`
 query GetCallbacks {
@@ -68,6 +69,8 @@ query GetCallbacks {
     id
     deleted
     port_type
+    bytes_sent
+    bytes_received
   }
   callbackgraphedge {
     c2profile {
@@ -311,7 +314,6 @@ export function CallbacksCard() {
             for (let i = 0; i < c2profileLabels.length; i++) {
                 c2profileAliveOptions.push(c2profileOptions[c2profileLabels[i]].count - c2profileOptions[c2profileLabels[i]].dead);
                 c2ProfileDeadOptions.push(c2profileOptions[c2profileLabels[i]].dead);
-
             }
             // bar char will freak out if series has data but labels is empty
             if(c2profileLabels.length > 0){
@@ -333,7 +335,6 @@ export function CallbacksCard() {
                         ],
                     labels: c2profileLabels});
             }
-
             // process artifact types
             const artifactOptions = data.taskartifact.reduce( (prev, cur) => {
                 if(prev[cur.base_artifact]){
@@ -535,12 +536,11 @@ export function CallbacksCard() {
             // process callback port types
             const callbackPortOptions = data.callbackport.reduce( (prev, cur) => {
                 if(!prev[cur.port_type]){
-                    prev[cur.port_type] = {"total": 0, "active": 0};
+                    prev[cur.port_type] = {"total": 0, "sent": 0, "received": 0};
                 }
                 prev[cur.port_type]["total"] += 1;
-                if(!cur.deleted){
-                    prev[cur.port_type]["active"] += 1;
-                }
+                prev[cur.port_type]["sent"] += cur.bytes_sent;
+                prev[cur.port_type]["received"] += cur.bytes_received;
                 return prev;
             }, {});
             let callbackPortArrayOptions = [];
@@ -552,16 +552,16 @@ export function CallbacksCard() {
                     value: value.total
                 })
                 callbackPortActiveArrayOptions.push({
-                    id: key + " active",
-                    label: key + " active",
-                    value: value.active,
-                    color: theme.palette.success.main,
+                    id: key + " sent",
+                    label: key + " Tx: " + getStringSize({cellData: {"plaintext": String(value.sent)}}),
+                    value: value.sent,
+                    //color: theme.palette.success.main,
                 })
                 callbackPortActiveArrayOptions.push({
-                    id: key + " dead",
-                    label: key + " closed",
-                    value: value.total - value.active,
-                    color: 'rgba(164,164,164,0.07)',
+                    id: key + " received",
+                    label: key + " Rx: " + getStringSize({cellData: {"plaintext": String(value.received)}}),
+                    value: value.received,
+                    //color: 'rgba(164,164,164,0.07)',
                 })
             }
             setCallbackPorts([

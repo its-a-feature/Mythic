@@ -1,10 +1,10 @@
 BINARY_NAME?=mythic_server
 JWT_SECRET?=
-POSTGRES_HOST=?"192.168.53.153"
-POSTGRES_PASSWORD?=
+POSTGRES_HOST?="127.0.0.1"
+POSTGRES_PASSWORD?="0zoHFSTbiT7AzJvnbvQ5Lt65YkIsuT"
 DEBUG_LEVEL?="debug"
-RABBITMQ_HOST?="192.168.53.153"
-RABBITMQ_PASSWORD?=
+RABBITMQ_HOST?="127.0.0.1"
+RABBITMQ_PASSWORD?="PqR9XJ957sfHqcxj6FsBMj4p"
 ALLOWED_IP_BLOCKS?="0.0.0.0/0"
 MYTHIC_SERVER_GRPC_PORT?="17444"
 MYTHIC_SERVER_BIND_LOCALHOST_ONLY?="false"
@@ -61,7 +61,7 @@ build_protobuf: build_protobuf_go
 build_and_build_protobuf: build_protobuf build
 build_final: build copy_to_final
 build_and_run: build_and_build_protobuf run_local_build
-local_testing: build_and_build_protobuf run_custom_values
+local_testing: build run_custom_values
 
 clean:
 	go clean

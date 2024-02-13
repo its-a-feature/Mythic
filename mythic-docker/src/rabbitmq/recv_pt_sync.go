@@ -75,6 +75,7 @@ type PayloadType struct {
 	BuildParameters              []BuildParameter `json:"build_parameters"`
 	BuildSteps                   []BuildStep      `json:"build_steps"`
 	AgentIcon                    *[]byte          `json:"agent_icon"`
+	MessageFormat                string           `json:"message_format"`
 }
 
 type Command struct {
@@ -207,6 +208,14 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.SupportedOs = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedOS)
 		payloadtype.SupportsDynamicLoading = in.PayloadType.SupportsDynamicLoading
 		payloadtype.Wrapper = in.PayloadType.Wrapper
+		if in.PayloadType.MessageFormat == "" {
+			payloadtype.MessageFormat = "json"
+		} else if utils.SliceContains([]string{"json", "xml"}, in.PayloadType.MessageFormat) {
+			payloadtype.MessageFormat = in.PayloadType.MessageFormat
+		} else {
+			logging.LogError(nil, "Unknown message format", "message_format", in.PayloadType.MessageFormat)
+			payloadtype.MessageFormat = "json"
+		}
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO payloadtype 
 			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper) 
 			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper) 

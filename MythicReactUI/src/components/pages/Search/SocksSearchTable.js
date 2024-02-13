@@ -14,6 +14,7 @@ import {useTheme} from '@mui/material/styles';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Tooltip from '@mui/material/Tooltip';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
+import {getStringSize} from '../Callbacks/ResponseDisplayTable';
 
 const toggleProxy = gql`
 mutation ToggleProxyMutation($callbackport_id: Int!, $action: String!){
@@ -46,14 +47,15 @@ export function SocksSearchTable(props){
             <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "5rem"}}>Action</TableCell>
+                        <TableCell style={{width: "1rem"}}></TableCell>
                         <TableCell >User</TableCell>
                         <TableCell >Host</TableCell>
                         <TableCell >Description</TableCell>
-                        <TableCell >Callback / Task</TableCell>
-                        <TableCell >Local Port</TableCell>
+                        <TableCell style={{width: "10rem"}}>Callback / Task</TableCell>
+                        <TableCell style={{width: "6rem"}}>Local Port</TableCell>
                         <TableCell >Remote Connection</TableCell>
-                        <TableCell >Proxy Type</TableCell>
+                        <TableCell >Agent Rx/Tx</TableCell>
+                        <TableCell style={{width: "7rem"}}>Proxy Type</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -149,6 +151,10 @@ function CallbackSearchTableRow(props){
                         <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.remote_ip}:{props.remote_port}</Typography>
                     }
 
+                </TableCell>
+                <TableCell>
+                    <b>Rx: </b>{getStringSize({cellData: {"plaintext": String(props.bytes_received)}})}<br/>
+                    <b>Tx: </b>{getStringSize({cellData: {"plaintext": String(props.bytes_sent)}})}
                 </TableCell>
                 <TableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.port_type}</Typography>

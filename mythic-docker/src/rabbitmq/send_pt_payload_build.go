@@ -167,6 +167,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 					OperatorID:      operatorOperation.CurrentOperator.ID,
 					PayloadFileUUID: fileMeta.AgentFileID,
 					Filename:        payloadDefinition.Filename,
+					Secrets:         GetSecrets(operatorOperation.CurrentOperator.ID),
 				}
 				SendPayloadBuildMessage(databasePayload, rabbitmqPayloadBuildMsg)
 				return databasePayload.UuID, databasePayload.ID, nil
@@ -200,6 +201,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 					OperatorID:         operatorOperation.CurrentOperator.ID,
 					PayloadFileUUID:    fileMeta.AgentFileID,
 					Filename:           string(fileMeta.Filename),
+					Secrets:            GetSecrets(operatorOperation.CurrentOperator.ID),
 				}
 				SendPayloadBuildMessage(databasePayload, rabbitmqPayloadBuildMsg)
 				return databasePayload.UuID, databasePayload.ID, nil
@@ -298,25 +300,29 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 		SendAllOperationsMessage(fmt.Sprintf("C2 Profile aborted build process due to OPSEC or Configuration error"), databasePayload.OperationID,
 			"mythic_payload_build", database.MESSAGE_LEVEL_WARNING)
 		database.UpdatePayloadWithError(databasePayload, errors.New(buildOutput))
-	} else if err := RabbitMQConnection.SendStructMessage(
+		return
+	}
+	err := RabbitMQConnection.SendStructMessage(
 		MYTHIC_EXCHANGE,
 		GetPtBuildRoutingKey(buildMessage.PayloadType),
 		"",
 		buildMessage,
 		false,
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send build message")
 		buildOutput += fmt.Sprintf("\nSending Build command\n")
 		buildOutput += err.Error()
 		database.UpdatePayloadWithError(databasePayload, errors.New(buildOutput))
-	} else {
-		buildOutput += fmt.Sprintf("\nSending Build command\n")
-		databasePayload.BuildMessage += buildOutput
-		if _, updateError := database.DB.NamedExec(`UPDATE payload SET 
+		return
+	}
+	buildOutput += fmt.Sprintf("\nSending Build command\n")
+	databasePayload.BuildMessage += buildOutput
+	if _, updateError := database.DB.NamedExec(`UPDATE payload SET 
 			build_message=:build_message 
 			WHERE id=:id`, databasePayload,
-		); updateError != nil {
-			logging.LogError(updateError, "Failed to update payload's build message")
-		}
+	); updateError != nil {
+		logging.LogError(updateError, "Failed to update payload's build message")
 	}
+
 }

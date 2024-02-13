@@ -22,4 +22,5 @@ type Payloadtype struct {
 	TranslationContainerID sql.NullInt64        `db:"translation_container_id"`
 	Translationcontainer   Translationcontainer `db:"translationcontainer"`
 	ContainerCount         int                  `db:"container_count"`
+	MessageFormat          string               `db:"message_format"`
 }

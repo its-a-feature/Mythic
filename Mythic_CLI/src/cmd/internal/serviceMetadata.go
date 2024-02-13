@@ -547,41 +547,68 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 	if _, ok := existingConfig["environment"]; !ok {
 		existingConfig["environment"] = []string{}
 	}
-	pStruct := map[string]interface{}{
-		"labels": map[string]string{
-			"name": service,
-		},
-		"image":    strings.ToLower(service),
-		"hostname": service,
-		"logging": map[string]interface{}{
-			"driver": "json-file",
-			"options": map[string]string{
-				"max-file": "1",
-				"max-size": "10m",
-			},
-		},
-		"restart":        "always",
-		"container_name": strings.ToLower(service),
-		"cpus":           config.GetMythicEnv().GetInt("INSTALLED_SERVICE_CPUS"),
+	existingConfig["labels"] = map[string]string{
+		"name": service,
 	}
-	pStruct["build"] = map[string]interface{}{
+	existingConfig["image"] = strings.ToLower(service)
+	existingConfig["hostname"] = strings.ToLower(service)
+	existingConfig["logging"] = map[string]interface{}{
+		"driver": "json-file",
+		"options": map[string]string{
+			"max-file": "1",
+			"max-size": "10m",
+		},
+	}
+	existingConfig["restart"] = config.GetMythicEnv().GetString("global_restart_policy")
+	existingConfig["container_name"] = strings.ToLower(service)
+	existingConfig["cpus"] = config.GetMythicEnv().GetInt("INSTALLED_SERVICE_CPUS")
+	existingConfig["build"] = map[string]interface{}{
 		"context": filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service),
 		"args":    config.GetBuildArguments(),
 	}
+	existingConfig["network_mode"] = "host"
+	existingConfig["extra_hosts"] = []string{
+		"mythic_server:127.0.0.1",
+		"mythic_rabbitmq:127.0.0.1",
+	}
+	/*
+		pStruct := map[string]interface{}{
+			"labels": map[string]string{
+				"name": service,
+			},
+			"image":    strings.ToLower(service),
+			"hostname": service,
+			"logging": map[string]interface{}{
+				"driver": "json-file",
+				"options": map[string]string{
+					"max-file": "1",
+					"max-size": "10m",
+				},
+			},
+			"restart":        config.GetMythicEnv().GetString("global_restart_policy"),
+			"container_name": strings.ToLower(service),
+			"cpus":           config.GetMythicEnv().GetInt("INSTALLED_SERVICE_CPUS"),
+		}
+		pStruct["build"] = map[string]interface{}{
+			"context": filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service),
+			"args":    config.GetBuildArguments(),
+		}
+
+	*/
 	agentConfigs := config.GetConfigStrings([]string{fmt.Sprintf("%s_.*", service)})
 	agentUseBuildContextKey := fmt.Sprintf("%s_use_build_context", service)
 	agentRemoteImageKey := fmt.Sprintf("%s_remote_image", service)
 	agentUseVolumeKey := fmt.Sprintf("%s_use_volume", service)
 	if useBuildContext, ok := agentConfigs[agentUseBuildContextKey]; ok {
 		if useBuildContext == "false" {
-			delete(pStruct, "build")
-			pStruct["image"] = agentConfigs[agentRemoteImageKey]
+			delete(existingConfig, "build")
+			existingConfig["image"] = agentConfigs[agentRemoteImageKey]
 		}
 	}
 	if useVolume, ok := agentConfigs[agentUseVolumeKey]; ok {
 		if useVolume == "true" {
 			volumeName := fmt.Sprintf("%s_volume", service)
-			pStruct["volumes"] = []string{
+			existingConfig["volumes"] = []string{
 				volumeName + ":/Mythic/",
 			}
 			if removeVolume {
@@ -597,21 +624,16 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 			}
 			manager.GetManager().SetVolumes(volumes)
 		} else {
-			delete(pStruct, "volumes")
+			delete(existingConfig, "volumes")
 		}
 	}
 	if config.GetMythicEnv().GetString("installed_service_mem_limit") != "" {
-		pStruct["mem_limit"] = config.GetMythicEnv().GetString("installed_service_mem_limit")
+		existingConfig["mem_limit"] = config.GetMythicEnv().GetString("installed_service_mem_limit")
 	}
 	for key, element := range additionalConfigs {
-		pStruct[key] = element
+		existingConfig[key] = element
 	}
 
-	pStruct["network_mode"] = "host"
-	pStruct["extra_hosts"] = []string{
-		"mythic_server:127.0.0.1",
-		"mythic_rabbitmq:127.0.0.1",
-	}
 	environment := []string{
 		"MYTHIC_ADDRESS=http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/agent_message",
 		"MYTHIC_WEBSOCKET=ws://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/ws/agent_message",
@@ -631,18 +653,14 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 		"DEBUG_LEVEL=${DEBUG_LEVEL}",
 		"GLOBAL_SERVER_NAME=${GLOBAL_SERVER_NAME}",
 	}
-	if _, ok := pStruct["environment"]; ok {
-		pStruct["environment"] = utils.UpdateEnvironmentVariables(existingConfig["environment"].([]interface{}), environment)
-	} else {
-		pStruct["environment"] = environment
-	}
+	existingConfig["environment"] = utils.UpdateEnvironmentVariables(existingConfig["environment"].([]interface{}), environment)
 	// only add in volumes if some aren't already listed
-	if _, ok := pStruct["volumes"]; !ok {
-		pStruct["volumes"] = []string{
+	if _, ok := existingConfig["volumes"]; !ok {
+		existingConfig["volumes"] = []string{
 			filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service) + ":/Mythic/",
 		}
 	}
-	return manager.GetManager().SetServiceConfiguration(service, pStruct)
+	return manager.GetManager().SetServiceConfiguration(service, existingConfig)
 }
 func RemoveService(service string) error {
 	return manager.GetManager().RemoveServices([]string{service})

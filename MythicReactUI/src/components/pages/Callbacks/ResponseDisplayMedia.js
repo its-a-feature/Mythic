@@ -44,7 +44,7 @@ const mimeType = (path) => {
     }
     return undefined;
 }
-export const DisplayMedia = ({agent_file_id, filename, expand}) => {
+export const DisplayMedia = ({agent_file_id, filename, expand, task}) => {
     const showMediaSetting = useMythicSetting({setting_name: "showMedia", default_value: "true"});
     const [showMedia, setShowMedia] = React.useState(showMediaSetting);
     const [fileData, setFileData] = React.useState({
@@ -74,6 +74,17 @@ export const DisplayMedia = ({agent_file_id, filename, expand}) => {
             });
         }
     }, [agent_file_id, filename]);
+    const scrollContent = (node, isAppearing) => {
+        // only auto-scroll if you issued the task
+        document.getElementById(`scrolltotaskbutton${task.id}`).scrollIntoView({
+            //behavior: "smooth",
+            block: "end",
+            inline: "nearest"
+        })
+    }
+    React.useLayoutEffect( () => {
+        scrollContent()
+    }, []);
     if(!showMedia){
         return (
             <>

@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.18-rc4] - 2024-02-12
+
+### Changed
+
+- Added `secrets` and `preferences` as fields for the `operator` table
+  - Added migration to add these two fields
+  - User secrets are now available in:
+    - payload builds
+    - new callback functions
+    - opsec pre
+    - create tasking
+    - opsec post
+    - completion handlers
+    - dynamic query functions
+  - The secrets field allows your agent functions to interact with services on behalf of the tasking operator without storing auth tokens on disk
+  - Updated the callback import feature to also support commands and allow duplicate payloads UUIDs (not duplicate callback UUIDs though)
+  - Updated SOCKS handling to hopefully prevent a few more cases of deadlocking
+  - Updated SOCKS/RPFWD/Interactive Tasking to track bytes sent/received through the agent
+    - Data is streamed to the SOCKS search page
+    - Data is aggregated on the main dashboard
+  
+- [UI Fixes](/MythicReactUI/CHANGELOG.MD)
+- [mythic-cli updates](/Mythic_CLI/Changelog.md)
+
 ## [3.2.18-rc3] - 2024-02-09
 
 ### Changed

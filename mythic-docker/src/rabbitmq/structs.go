@@ -49,6 +49,7 @@ type PTOnNewCallbackAllData struct {
 	Payload         PTTaskMessagePayloadData             `json:"payload"`
 	C2Profiles      []PayloadConfigurationC2Profile      `json:"c2info"`
 	PayloadType     string                               `json:"payload_type"`
+	Secrets         map[string]interface{}               `json:"secrets"`
 }
 
 // PT_TASK_* structs
@@ -61,6 +62,7 @@ type PTTaskMessageAllData struct {
 	Payload         PTTaskMessagePayloadData             `json:"payload"`
 	C2Profiles      []PayloadConfigurationC2Profile      `json:"c2info"`
 	PayloadType     string                               `json:"payload_type"`
+	Secrets         map[string]interface{}               `json:"secrets"`
 }
 
 type PTTaskMessageTaskData struct {
@@ -79,6 +81,7 @@ type PTTaskMessageTaskData struct {
 	Stderr                             string `json:"stderr"`
 	Completed                          bool   `json:"completed"`
 	OperatorUsername                   string `json:"operator_username"`
+	OperatorID                         int    `json:"operator_id"`
 	OpsecPreBlocked                    bool   `json:"opsec_pre_blocked"`
 	OpsecPreMessage                    string `json:"opsec_pre_message"`
 	OpsecPreBypassed                   bool   `json:"opsec_pre_bypassed"`

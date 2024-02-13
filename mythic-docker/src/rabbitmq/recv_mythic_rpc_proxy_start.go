@@ -57,7 +57,8 @@ func MythicRPCProxyStart(input MythicRPCProxyStartMessage) MythicRPCProxyStartMe
 			}
 		}
 		response.LocalPort = input.LocalPort
-		if err := proxyPorts.Add(task.CallbackID, input.PortType, input.LocalPort, input.RemotePort, input.RemoteIP, task.ID, task.OperationID); err != nil {
+		if err := proxyPorts.Add(task.CallbackID, input.PortType, input.LocalPort, input.RemotePort, input.RemoteIP, task.ID, task.OperationID,
+			0, 0, 0); err != nil {
 			logging.LogError(err, "Failed to add new callback port")
 			response.Error = err.Error()
 			return response

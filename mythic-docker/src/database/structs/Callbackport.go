@@ -10,6 +10,6 @@ type Callbackport struct {
 	RemotePort    int    `db:"remote_port"`
 	RemoteIP      string `db:"remote_ip"`
 	Deleted       bool   `db:"deleted"`
-	BytesReceived int    `db:"bytes_received"`
-	BytesSent     int    `db:"bytes_sent"`
+	BytesReceived int64  `db:"bytes_received"`
+	BytesSent     int64  `db:"bytes_sent"`
 }

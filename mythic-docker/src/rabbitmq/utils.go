@@ -659,39 +659,6 @@ func GetBuildParameterInformation(payloadID int) *[]PayloadConfigurationBuildPar
 			} else {
 				buildValues[index].Value = interfaceParam
 			}
-			/*
-				if parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_ARRAY || parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE {
-					// we need to parse the value into a []interface{}
-					var arrayValues []interface{}
-					if err := json.Unmarshal([]byte(parameter.Value), &arrayValues); err != nil {
-						logging.LogError(err, "Failed to unmarshal build parameter array values")
-						return nil
-					} else {
-						buildValues[index].Value = arrayValues
-					}
-				} else if parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_DICTIONARY {
-					// we need to parse the value into a []map[string]interface{}{}
-					var dictionaryInitialValues map[string]interface{}
-					if err := json.Unmarshal([]byte(parameter.Value), &dictionaryInitialValues); err != nil {
-						logging.LogError(err, "Failed to unmarshal build parameter dictionary values")
-						return nil
-					} else {
-						buildValues[index].Value = dictionaryInitialValues
-					}
-				} else if parameter.BuildParameter.ParameterType == BUILD_PARAMETER_TYPE_TYPED_ARRAY {
-					// we need to parse the value into [][]interface{}
-					var arrayValues [][]interface{}
-					if err := json.Unmarshal([]byte(parameter.Value), &arrayValues); err != nil {
-						logging.LogError(err, "Failed to unmarshal build parameter typed array values")
-						return nil
-					} else {
-						buildValues[index].Value = arrayValues
-					}
-				} else {
-					buildValues[index].Value = parameter.Value
-				}
-
-			*/
 		}
 		return &buildValues
 	}
@@ -739,7 +706,7 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	task := databaseStructs.Task{}
 	parentTask := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT
-		task.parent_task_id, 
+		task.parent_task_id, task.operator_id,
 		task.subtask_callback_function, task.subtask_callback_function_completed,
 		task.group_callback_function, task.group_callback_function_completed, task.completed_callback_function,
 		task.completed_callback_function_completed, task.subtask_group_name, task.id, task.status
@@ -954,27 +921,63 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 	data := PTTaskMessageTaskData{}
 	databaseTask := databaseStructs.Task{}
 	// select task data, then marshal/unmarshal it as a quick way to filter out attributes
-	if err := database.DB.Get(&databaseTask, `SELECT 
+	err := database.DB.Get(&databaseTask, `SELECT 
     	task.*,
 		operator.username "operator.username"
     	FROM task 
     	JOIN operator ON task.operator_id = operator.id
-    	WHERE task.id=$1`, taskID); err != nil {
+    	WHERE task.id=$1`, taskID)
+	if err != nil {
 		logging.LogError(err, "Failed to get task information")
 		return data
-	} else if err := database.DB.Get(&databaseTask.CommandName, `SELECT cmd FROM command WHERE id=$1`, databaseTask.CommandID); err != nil {
+	}
+	err = database.DB.Get(&databaseTask.CommandName, `SELECT cmd FROM command WHERE id=$1`, databaseTask.CommandID)
+	if err != nil {
 		logging.LogError(err, "Failed to get command name for task information")
-	} else if taskJSON, err := json.Marshal(databaseTask); err != nil {
-		logging.LogError(err, "Failed to marshal task data into JSON")
 		return data
-	} else if err := json.Unmarshal(taskJSON, &data); err != nil {
-		logging.LogError(err, "Failed to unmarshal task JSON data to GetTaskMessageTaskInformation ")
-	} else if databaseTask.TokenID.Valid {
-		if err := database.DB.Get(&data.TokenID, `SELECT token_id FROM token WHERE id=$1`, databaseTask.TokenID.Int64); err != nil {
+	}
+	data = PTTaskMessageTaskData{
+		ID:                                 databaseTask.ID,
+		DisplayID:                          databaseTask.DisplayID,
+		AgentTaskID:                        databaseTask.AgentTaskID,
+		CommandName:                        databaseTask.CommandName,
+		Params:                             databaseTask.Params,
+		Timestamp:                          databaseTask.Timestamp.String(),
+		CallbackID:                         databaseTask.CallbackID,
+		Status:                             databaseTask.Status,
+		OriginalParams:                     databaseTask.OriginalParams,
+		DisplayParams:                      databaseTask.DisplayParams,
+		Comment:                            databaseTask.Comment,
+		Stdout:                             databaseTask.Stdout,
+		Stderr:                             databaseTask.Stderr,
+		Completed:                          databaseTask.Completed,
+		OperatorUsername:                   databaseTask.Operator.Username,
+		OperatorID:                         databaseTask.OperatorID,
+		OpsecPreBlocked:                    databaseTask.OpsecPreBlocked.Bool,
+		OpsecPreMessage:                    databaseTask.OpsecPreMessage,
+		OpsecPreBypassed:                   databaseTask.OpsecPreBypassed,
+		OpsecPreBypassRole:                 databaseTask.OpsecPreBypassRole,
+		OpsecPostBlocked:                   databaseTask.OpsecPostBlocked.Bool,
+		OpsecPostMessage:                   databaseTask.OpsecPostMessage,
+		OpsecPostBypassed:                  databaseTask.OpsecPostBypassed,
+		OpsecPostBypassRole:                databaseTask.OpsecPostBypassRole,
+		ParentTaskID:                       int(databaseTask.ParentTaskID.Int64),
+		SubtaskCallbackFunction:            databaseTask.SubtaskCallbackFunction,
+		SubtaskCallbackFunctionCompleted:   databaseTask.SubtaskCallbackFunctionCompleted,
+		GroupCallbackFunction:              databaseTask.GroupCallbackFunction,
+		GroupCallbackFunctionCompleted:     databaseTask.GroupCallbackFunctionCompleted,
+		CompletedCallbackFunction:          databaseTask.CompletedCallbackFunction,
+		CompletedCallbackFunctionCompleted: databaseTask.CompletedCallbackFunctionCompleted,
+		SubtaskGroupName:                   databaseTask.SubtaskGroupName,
+		TaskingLocation:                    databaseTask.TaskingLocation,
+		ParameterGroupName:                 databaseTask.ParameterGroupName,
+	}
+	if databaseTask.TokenID.Valid {
+		err = database.DB.Get(&data.TokenID, `SELECT token_id FROM token WHERE id=$1`, databaseTask.TokenID.Int64)
+		if err != nil {
 			logging.LogError(err, "Failed to get token information")
 		}
 	}
-	data.OperatorUsername = databaseTask.Operator.Username
 	return data
 }
 
@@ -999,11 +1002,20 @@ func getTaskMessagePayloadInformation(payloadID int) PTTaskMessagePayloadData {
 	data.PayloadType = databaseData.Payloadtype.Name
 	return data
 }
-
+func GetSecrets(userID int) map[string]interface{} {
+	user := databaseStructs.Operator{}
+	err := database.DB.Get(&user, `SELECT secrets FROM operator WHERE id=$1`, userID)
+	if err != nil {
+		logging.LogError(err, "Failed to get user secrets", "user_id", userID)
+		return map[string]interface{}{}
+	}
+	return user.Secrets.StructValue()
+}
 func GetTaskConfigurationForContainer(taskID int) PTTaskMessageAllData {
 	taskMessage := PTTaskMessageAllData{
 		Task: GetTaskMessageTaskInformation(taskID),
 	}
+	taskMessage.Secrets = GetSecrets(taskMessage.Task.OperatorID)
 	taskMessage.Callback = GetTaskMessageCallbackInformation(taskMessage.Task.CallbackID)
 	taskMessage.Payload = getTaskMessagePayloadInformation(taskMessage.Callback.RegisteredPayloadID)
 	taskMessage.Commands = GetTaskMessageCommandList(taskMessage.Task.CallbackID)
@@ -1020,6 +1032,7 @@ func GetOnNewCallbackConfigurationForContainer(callbackId int) PTOnNewCallbackAl
 	callbackMessage.C2Profiles = GetTaskMessageCallbackC2ProfileInformation(callbackId)
 	callbackMessage.BuildParameters = *GetBuildParameterInformation(callbackMessage.Callback.RegisteredPayloadID)
 	callbackMessage.PayloadType = callbackMessage.Payload.PayloadType
+	callbackMessage.Secrets = GetSecrets(callbackMessage.Callback.OperatorID)
 	return callbackMessage
 }
 

@@ -166,7 +166,7 @@ func interceptProxyDataToAgentForPushC2() {
 				select {
 				case msg.MessagesToAgent <- msg.Message:
 				default:
-					logging.LogError(nil, "dropping message because channel is full", "type", msg.ProxyType)
+					logging.LogError(nil, "dropping message because channel is full", "type", msg.ProxyType, "len(msg.MessagesToAgent)", len(msg.MessagesToAgent))
 				}
 			}
 		}

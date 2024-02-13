@@ -329,6 +329,17 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: getOperatorSecrets
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_get_secrets_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: getProfileOutput
     definition:
       kind: ""
@@ -528,6 +539,17 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: updateOperatorSecrets
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_update_secrets_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: updateOperatorStatus
     definition:
       kind: synchronous
@@ -658,4 +680,6 @@ custom_types:
     - name: globalSettingsOutput
     - name: exportCallbackConfigOutput
     - name: importCallbackConfigOutput
+    - name: getOperatorSecretsOutput
+    - name: updateOperatorSecretsOutput
   scalars: []
