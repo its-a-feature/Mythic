@@ -18,8 +18,22 @@ func AddMythicService(service string) {
 	if _, ok := pStruct["environment"]; !ok {
 		pStruct["environment"] = []interface{}{}
 	}
+	pStruct["labels"] = map[string]string{
+		"name": service,
+	}
+	pStruct["hostname"] = strings.ToLower(service)
+	pStruct["logging"] = map[string]interface{}{
+		"driver": "json-file",
+		"options": map[string]string{
+			"max-file": "1",
+			"max-size": "10m",
+		},
+	}
+	pStruct["restart"] = config.GetMythicEnv().GetString("global_restart_policy")
+	pStruct["container_name"] = strings.ToLower(service)
 	mythicEnv := config.GetMythicEnv()
 	volumes, _ := manager.GetManager().GetVolumes()
+
 	switch service {
 	case "mythic_postgres":
 		if mythicEnv.GetBool("postgres_use_build_context") {
