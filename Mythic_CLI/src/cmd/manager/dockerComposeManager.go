@@ -706,7 +706,7 @@ func (d *DockerComposeManager) Status(verbose bool) {
 			}
 		}
 		if !foundMountInfo {
-			if container.Labels["name"] == "mythic_graphql" {
+			if container.Labels["name"] == "mythic_graphql" || container.Labels["name"] == "mythic_react" {
 				info += "N/A"
 			} else {
 				info += "local"

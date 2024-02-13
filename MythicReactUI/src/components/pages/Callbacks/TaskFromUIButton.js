@@ -156,6 +156,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
         }
     });
     const onSubmitSelectedCommand = (cmd) => {
+        setOpenSelectCommandDialog(false);
         setSelectedCommand(cmd);
     }
     const onSubmitTasking = ({variables}) => {
@@ -268,7 +269,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
                         onClose={()=>{setOpenSelectCommandDialog(false);onTasked({tasked: false});}} 
                         innerDialog={<MythicSelectFromListDialog onClose={()=>{setOpenSelectCommandDialog(false);onTasked({tasked: false});}}
                                             onSubmit={onSubmitSelectedCommand} options={fileBrowserCommands} title={"Select Command"} 
-                                            action={"select"} identifier={"id"} display={"cmd"}/>}
+                                            action={"select"} identifier={"id"} display={"cmd"} dontCloseOnSubmit={true} />}
                     />
             }
             {openParametersDialog &&

@@ -15,7 +15,7 @@ import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 
 export const mythicVersion = "3.2.18-rc4";
-export const mythicUIVersion = "0.1.65";
+export const mythicUIVersion = "0.1.66";
 
 let fetchingNewToken = false;
 

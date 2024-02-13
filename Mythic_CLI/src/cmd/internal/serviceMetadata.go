@@ -359,10 +359,14 @@ func AddMythicService(service string) {
 					"./mythic-react-docker/mythic/public:/mythic/new",
 				}
 			} else {
-				pStruct["volumes"] = []string{
-					"mythic_react_volume_config:/etc/nginx",
-					"mythic_react_volume_public:/mythic/new",
-				}
+				delete(pStruct, "volumes")
+				/*
+					pStruct["volumes"] = []string{
+						"mythic_react_volume_config:/etc/nginx",
+						"mythic_react_volume_public:/mythic/new",
+					}
+
+				*/
 			}
 		}
 		if _, ok := volumes["mythic_react"]; !ok {
