@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## 0.2.17 - 2024-02-13
+## 0.2.18 - 2024-02-13
 
 ### Changed
 
 - Updated mythic_react to not use volumes since they keep old UI pieces around
+- Fixed improper golang type when adding new services
 
 ## 0.2.16 - 2024-02-13
 

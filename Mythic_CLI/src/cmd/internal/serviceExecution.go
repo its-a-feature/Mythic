@@ -37,7 +37,7 @@ func ServiceStart(containers []string) error {
 		}
 	}
 	for _, val := range intendedMythicServices {
-		AddMythicService(val)
+		AddMythicService(val, false)
 	}
 	// if the user didn't explicitly call out starting certain containers, then do all of them
 	if len(containers) == 0 {
@@ -69,7 +69,7 @@ func ServiceStart(containers []string) error {
 	// make sure we always update the config when starting in case .env variables changed\
 	for _, service := range finalContainers {
 		if utils.StringInSlice(service, config.MythicPossibleServices) {
-			AddMythicService(service)
+			AddMythicService(service, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
 		} else {
 			Add3rdPartyService(service, map[string]interface{}{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
 		}
@@ -99,7 +99,7 @@ func ServiceBuild(containers []string) error {
 	for _, container := range containers {
 		if utils.StringInSlice(container, config.MythicPossibleServices) {
 			// update the necessary docker compose entries for mythic services
-			AddMythicService(container)
+			AddMythicService(container, true)
 		} else if utils.StringInSlice(container, composeServices) {
 			Add3rdPartyService(container, map[string]interface{}{}, true)
 		}

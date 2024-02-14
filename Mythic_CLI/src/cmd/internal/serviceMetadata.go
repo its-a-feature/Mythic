@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func AddMythicService(service string) {
+func AddMythicService(service string, removeVolume bool) {
 	pStruct, err := manager.GetManager().GetServiceConfiguration(service)
 	if err != nil {
 		log.Fatalf("[-] Failed to get current configuration information: %v\n", err)
@@ -359,14 +359,16 @@ func AddMythicService(service string) {
 					"./mythic-react-docker/mythic/public:/mythic/new",
 				}
 			} else {
-				delete(pStruct, "volumes")
-				/*
-					pStruct["volumes"] = []string{
-						"mythic_react_volume_config:/etc/nginx",
-						"mythic_react_volume_public:/mythic/new",
-					}
-
-				*/
+				if removeVolume {
+					log.Printf("[*] Removing old volume, %s, if it exists to make room for updated configs", "mythic_react_volume_config")
+					manager.GetManager().RemoveVolume("mythic_react_volume_config")
+					log.Printf("[*] Removing old volume, %s, if it exists to make room for updated UI", "mythic_react_volume_public")
+					manager.GetManager().RemoveVolume("mythic_react_volume_public")
+				}
+				pStruct["volumes"] = []string{
+					"mythic_react_volume_config:/etc/nginx",
+					"mythic_react_volume_public:/mythic/new",
+				}
 			}
 		}
 		if _, ok := volumes["mythic_react"]; !ok {
@@ -563,7 +565,7 @@ func AddMythicService(service string) {
 func Add3rdPartyService(service string, additionalConfigs map[string]interface{}, removeVolume bool) error {
 	existingConfig, _ := manager.GetManager().GetServiceConfiguration(service)
 	if _, ok := existingConfig["environment"]; !ok {
-		existingConfig["environment"] = []string{}
+		existingConfig["environment"] = []interface{}{}
 	}
 	existingConfig["labels"] = map[string]string{
 		"name": service,
@@ -692,7 +694,7 @@ func Initialize() {
 	// based on .env, find out which mythic services are supposed to be running and add them to docker compose
 	intendedMythicContainers, _ := config.GetIntendedMythicServiceNames()
 	for _, container := range intendedMythicContainers {
-		AddMythicService(container)
+		AddMythicService(container, false)
 	}
 
 }

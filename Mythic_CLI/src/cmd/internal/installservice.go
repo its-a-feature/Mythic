@@ -477,7 +477,7 @@ func InstallMythicSyncFolder(installPath string) error {
 		log.Printf("[-] Failed to create %s directory to install mythic_sync: %v\n", service, err)
 		return err
 	}
-	AddMythicService(service)
+	AddMythicService(service, true)
 	log.Printf("[+] Successfully installed mythic_sync!\n")
 	if manager.GetManager().IsServiceRunning("mythic_server") {
 		log.Printf("[*] Starting mythic_sync")
