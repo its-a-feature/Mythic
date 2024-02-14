@@ -76,7 +76,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task}) => {
     }, [agent_file_id, filename]);
     const scrollContent = (node, isAppearing) => {
         // only auto-scroll if you issued the task
-        document.getElementById(`scrolltotaskbutton${task.id}`).scrollIntoView({
+        document.getElementById(`scrolltotaskbottom${task.id}`)?.scrollIntoView({
             //behavior: "smooth",
             block: "end",
             inline: "nearest"

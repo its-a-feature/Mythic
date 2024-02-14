@@ -559,7 +559,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   }, [expand, dataHeight]);
   const scrollContent = (node, isAppearing) => {
     // only auto-scroll if you issued the task
-    document.getElementById(`scrolltotaskbutton${task.id}`).scrollIntoView({
+    document.getElementById(`scrolltotaskbottom${task.id}`)?.scrollIntoView({
       //behavior: "smooth",
       block: "end",
       inline: "nearest"

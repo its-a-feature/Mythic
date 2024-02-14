@@ -625,7 +625,7 @@ export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand, t
   });
   const scrollContent = (node, isAppearing) => {
     // only auto-scroll if you issued the task
-    document.getElementById(`scrolltotaskbutton${task.id}`).scrollIntoView({
+    document.getElementById(`scrolltotaskbottom${task.id}`)?.scrollIntoView({
       //behavior: "smooth",
       block: "end",
       inline: "nearest"

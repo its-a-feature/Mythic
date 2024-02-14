@@ -145,6 +145,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }
             const cmds = data.data.loadedcommands.map( c => {
                 let cmdData = {...c.command};
+                cmdData.commandparameters.sort( (a,b) => a.ui_position > b.ui_position ? 1 : -1);
                 return cmdData;
             })
             cmds.push({cmd: "help", description: "Get help for a command or info about loaded commands", commandparameters: [], attributes: {supported_os: []}});
@@ -235,6 +236,29 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     snackActions.warning("unknown command");
                     return
                 }
+                if(cmd.cmd === "help"){
+                    // somebody hit tab with either a blank message or a partial word
+                    let helpCmd = message.split(" ");
+                    if (helpCmd.length > 1) {
+                        helpCmd = helpCmd[1];
+                    } else {
+                        helpCmd = "";
+                    }
+                    if(tabOptions.length === 0){
+                        let opts = loadedOptions.filter( l => l.cmd.toLowerCase().startsWith(helpCmd.toLocaleLowerCase()) && (l.attributes.supported_os.length === 0 || l.attributes.supported_os.includes(props.callback_os)));
+                        setTabOptions(opts);
+                        setTabOptionsIndex(0);
+                        if(opts.length > 0){
+                            setMessage("help " + opts[0].cmd);
+                        }
+                    }else{
+                        let newIndex = forwardOrBackwardTabIndex(event, tabOptionsIndex, tabOptions);
+                        setTabOptionsIndex(newIndex);
+                        setMessage("help " + tabOptions[newIndex].cmd);
+                    }
+                    return;
+                }
+                console.log(cmd.commandparameters);
                 if(cmd.commandparameters.length > 0){
                     if(message[message.length -1] === " "){
                         // somebody hit tab after a parameter name or after a parameter value
