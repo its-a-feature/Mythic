@@ -33,7 +33,7 @@ const StyledSpeedDial = styled(SpeedDial)(({theme}) => ({
             top: theme.spacing(2),
             right: theme.spacing(2),
         },
-        zIndex: 2,
+        zIndex: 4,
     },
 
     [`& .${classes.speedDialAction}`]: {

@@ -553,7 +553,7 @@ export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand, t
     //enableColumnOrdering: true,
     //columnResizeMode: 'onEnd',
     defaultDisplayColumn: { enableResizing: true },
-    muiTableContainerProps: { sx: {  } },
+    muiTableContainerProps: { sx: { alignItems: "flex-start" } },
     mrtTheme: (theme) => ({
       baseBackgroundColor: theme.palette.background.default, //change default background color
     }),

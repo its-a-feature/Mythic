@@ -1,7 +1,8 @@
 import React, {createContext} from 'react';
 import {useSubscription, gql } from '@apollo/client';
-import {CallbacksTable} from './CallbacksTable';
+import {CallbacksTable, CallbacksTableMaterialReactTable} from './CallbacksTable';
 import {CallbacksGraph} from './CallbacksGraph';
+import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 export const CallbackGraphEdgesContext = createContext([]);
 export const OnOpenTabContext = createContext( () => {});
 export const CallbacksContext = createContext([]);
@@ -155,7 +156,8 @@ export function CallbacksTop(props){
         mountedRef.current = false;
       }
        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, []);
+    const initialNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: "false"});
     return (
       <div style={{height: "100%", width: "100%"}}>
           <CallbackGraphEdgesContext.Provider value={callbackEdges}>
@@ -163,10 +165,14 @@ export function CallbacksTop(props){
                   <CallbacksContext.Provider value={callbacks}>
                       {props.topDisplay === "graph" ? (
                           <CallbacksGraph maxHeight={"100%"}  />
+                      ) : initialNewBrowserScriptTable ? (
+                          <CallbacksTableMaterialReactTable onOpenTab={onOpenTabLocal}
+                                          parentMountedRef={mountedRef} me={me}/>
                       ) : (
                           <CallbacksTable onOpenTab={onOpenTabLocal}
                                           parentMountedRef={mountedRef} me={me}/>
-                      )}
+                      )
+                      }
                   </CallbacksContext.Provider>
               </OnOpenTabContext.Provider>
           </CallbackGraphEdgesContext.Provider>

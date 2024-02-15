@@ -21,7 +21,13 @@ import {TableFilterDialog} from './TableFilterDialog';
 import {CallbacksTabsHideMultipleDialog} from "./CallbacksTabsHideMultipleDialog";
 import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog";
 import ip6 from 'ip6';
-import {CallbackGraphEdgesContext, CallbacksContext} from "./CallbacksTop";
+import {CallbacksContext} from "./CallbacksTop";
+import {
+    MaterialReactTable,
+    useMaterialReactTable,
+} from 'material-react-table';
+import {useTheme} from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
 
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
@@ -375,48 +381,274 @@ function CallbacksTablePreMemo(props){
     )
 }
 export const CallbacksTable = React.memo(CallbacksTablePreMemo);
+function CallbacksTableMaterialReactTablePreMemo(props){
+    const callbacks = useContext(CallbacksContext);
+    const theme = useTheme();
+    const [openHideMultipleDialog, setOpenHideMultipleDialog] = React.useState(false);
+    const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState({open: false, data: {}});
+    const [updateDescription] = useMutation(updateDescriptionCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Updated Callback");
+            }else{
+                snackActions.warning(data.updateCallback.error);
+            }
 
-/*
+        },
+        onError: data => {
+            console.log(data);
+            snackActions.warning(data);
+        }
+    });
+    const [updateSleep] = useMutation(updateSleepInfoCallbackMutation, {
+        update: (cache, {data}) => {
+            snackActions.success("Updated Callback");
 
+        },
+        onError: data => {
+            console.log(data);
+            snackActions.warning(data);
+        }
+    });
+    const updateDescriptionSubmit = React.useCallback( ({callback_display_id, description}) => {
+        updateDescription({variables: {callback_display_id: callback_display_id, description}})
+    }, []);
+    const updateSleepInfo = React.useCallback( ({callback_display_id, sleep_info}) => {
+        updateSleep({variables: {callback_display_id: callback_display_id, sleep_info}})
+    }, [])
 
-                      switch(c.name){
-                          case "Interact":
-                            return {
-                                "column": c.name,
-                                "rowData": row,
-                                "key": `callback${row.id}_${c.name}`,
-                                "onOpenTab": props.onOpenTab,
-                                "updateDescription": updateDescriptionSubmit,
-                                "setOpenHideMultipleDialog": setOpenHideMultipleDialog,
-                                "setOpenTaskMultipleDialog": setOpenTaskMultipleDialog,
-                              }
-                          case "IP":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "cellData": row.ip, "rowData": row, "callback_id": row.id};
-                          case "External IP":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "cellData": row.external_ip, "rowData": row};
-                          case "Host":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "cellData": row.host, "rowData": row};
-                          case "User":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "cellData": row.user, "rowData": row};
-                          case "Domain":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "cellData": row.domain, "rowData": row};
-                          case "OS":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "rowData": row , "cellData": row.os};
-                          case "Arch":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "rowData": row , "cellData": row.architecture};
-                          case "PID":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "cellData": row.pid, "rowData": row};
-                          case "Last Checkin":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "rowData": row , "cellData": row.last_checkin, "parentMountedRef": props.parentMountedRef};
-                          case "Description":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "cellData": row.description, "rowData": row};
-                          case "Sleep":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "rowData": row , "cellData": row.sleep_info, "updateSleepInfo": updateSleepInfo};
-                          case "Agent":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "rowData": row , "cellData": row.payload.payloadtype.name};
-                          case "C2":
-                              return {"key": `callback${row.id}_c2`,"column": c.name, "rowData": row};
-                          case "Process Name":
-                              return {"key": `callback${row.id}_${c.name}`,"column": c.name, "cellData": row.process_name, "rowData": row};
-                      }
- */
+    const columnFields = [
+                {key: "id", type: 'number', name: "Interact", width: 150, disableCopy: true, enableHiding: false},
+                {key: "mythictree_groups", type: 'array', name: "Groups", enableHiding: true},
+                {key: "ip", type: 'ip', name: "IP", width: 150, enableHiding: true},
+                {key: "external_ip",type: 'string', name: "External IP", width: 150, enableHiding: true},
+                {key: "host", type: 'string', name: "Host", fillWidth: true, enableHiding: true},
+                {key: "user", type: 'string', name: "User", fillWidth: true, enableHiding: true},
+                {key: "domain", type: 'string', name: "Domain", fillWidth: true, enableHiding: true},
+                {key: "os", type: 'string', name: "OS", width: 75, disableCopy: true, enableHiding: true},
+                {key: "architecture", type: 'string', name: "Arch", width: 75, enableHiding: true},
+                {key: "pid", type: 'number', name: "PID", width: 75, enableHiding: true},
+                {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true, enableHiding: true},
+                {key: "description", type: 'string', name: "Description", width: 400, enableHiding: true},
+                {key: "sleep", type: 'string', name: "Sleep", width: 75, disableSort: true, disableCopy: true, enableHiding: true},
+                {key: "agent", type: 'string', name: "Agent", width: 100, disableSort: true, disableCopy: true, enableHiding: true},
+                {key: "c2", type: 'string', name: "C2", width: 75, disableSort: true, disableFilterMenu: true, disableCopy: true, enableHiding: true},
+                {key: "process_name", type: 'string', name: "Process Name", fillWidth: true, enableHiding: true},
+            ];
+    const columns = React.useMemo( () => columnFields.map( h => {
+        return {
+            accessorKey: h.key,
+            header: h.key,
+            size: h.width,
+            id: h.key,
+            enableClickToCopy: !h.disableCopy,
+            filterVariant: h.type === 'number' || h.type === 'size' ? 'range' : 'text',
+            enableResizing: true,
+            enableHiding: h.enableHiding,
+            enableSorting: !h.disableSort,
+            enableColumnFilter: true,
+            grow: h.fillWidth,
+            accessorFn: (row) => {
+                if(h.type === "date"){
+                    return new Date(row[h.key] || 0);
+                }
+                if(h.type === "number" || h.type === "size"){
+                    try{
+                        return Number(row[h.key] || NaN);
+                    }catch(error){
+                        return row[h.key] || 0;
+                    }
+                }
+                if(h.name === "Groups"){
+                    return row.mythictree_groups.join(", ");
+                }
+                if(h.name === "IP"){
+                    try{
+                        return JSON.parse(row[h.key])[0];
+                    }catch(error){
+                        return row[h.key];
+                    }
+                }
+                if(h.name === "Agent"){
+                    return row.payload.payloadtype.name;
+                }
+                return row[h.key] || "";
+            },
+            Cell: ({cell, renderedCellValue}) => {
+                let row = cell.row?.original;
+                switch(h.name){
+                    case "Interact":
+                        return <CallbacksTableIDCell
+                            rowData={row}
+                            //onOpenTab={props.onOpenTab}
+                            updateDescription={updateDescriptionSubmit}
+                            setOpenHideMultipleDialog={setOpenHideMultipleDialog}
+                            setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
+                        />;
+                    case "Groups":
+                        return <CallbacksTableStringCell cellData={row.mythictree_groups.join(", ")} />;
+                    case "IP":
+                        return <CallbacksTableIPCell  cellData={row.ip} rowData={row} callback_id={row.id} />;
+                    case "External IP":
+                        return <CallbacksTableStringCell  cellData={row.external_ip} rowData={row} />;
+                    case "Host":
+                        return <CallbacksTableStringCell cellData={row.host} rowData={row} />;
+                    case "User":
+                        return <CallbacksTableStringCell  cellData={row.user} rowData={row} />;
+                    case "Domain":
+                        return <CallbacksTableStringCell  cellData={row.domain} rowData={row} />;
+                    case "OS":
+                        return <CallbacksTableOSCell rowData={row} cellData={row.os} />;
+                    case "Arch":
+                        return <CallbacksTableStringCell  rowData={row} cellData={row.architecture} />;
+                    case "PID":
+                        return <CallbacksTableStringCell  cellData={row.pid} rowData={row} />;
+                    case "Last Checkin":
+                        return <CallbacksTableLastCheckinCell  rowData={row} cellData={row.last_checkin} />;
+                    case "Description":
+                        return <CallbacksTableStringCell  cellData={row.description} rowData={row} />;
+                    case "Sleep":
+                        return <CallbacksTableSleepCell rowData={row} cellData={row.sleep_info} updateSleepInfo={updateSleepInfo} />;
+                    case "Agent":
+                        return <CallbacksTablePayloadTypeCell  rowData={row} cellData={row.payload.payloadtype.name}/>;
+                    case "C2":
+                        return <CallbacksTableC2Cell  rowData={row} />
+                    case "Process Name":
+                        return <CallbacksTableStringCell  cellData={row.process_name} rowData={row} />;
+                }
+            }
+        }
+    }), [columnFields])
+    const materialReactTable = useMaterialReactTable({
+        columns,
+        data: callbacks,
+        layoutMode: "grid",
+        autoResetPageIndex: false,
+        enableFacetedValues: true,
+        enablePagination: true,
+        //enablePagination: false,
+        //enableRowVirtualization: true,
+        enableBottomToolbar: true,
+        enableStickyHeader: true,
+        enableDensityToggle: false,
+        enableColumnResizing: true,
+        enableRowPinning: true,
+        columnFilterDisplayMode: 'popover', //filter inputs will show in a popover (like excel)
+        rowPinningDisplayMode: 'top-and-bottom',
+        //enableColumnOrdering: true,
+        //columnResizeMode: 'onEnd',
+        initialState: {
+            density: 'compact',
+            columnVisibility: {
+                id: true,
+                host: true,
+                domain:true,
+                user:true,
+                description:true,
+                last_checkin: true,
+                agent: true,
+                ip: true,
+                pid: true,
+                architecture: false,
+                sleep: false,
+                process_name: false,
+                external_ip: false,
+                c2: true,
+                os: false,
+                mythictree_groups: false
+            }
+        },
+        defaultDisplayColumn: { enableResizing: true },
+        muiTableContainerProps: { sx: { alignItems: "flex-start" } },
+        mrtTheme: (theme) => ({
+            baseBackgroundColor: theme.palette.background.default, //change default background color
+        }),
+        muiSearchTextFieldProps: {
+            placeholder: 'Search loaded data',
+            size: 'small',
+            sx: { minWidth: '300px' },
+            variant: 'outlined',
+        },
+        muiTableHeadCellProps: {
+            sx: {
+                border: '1px solid rgba(81, 81, 81, .5)',
+                fontStyle: 'italic',
+                fontWeight: 'bold',
+            },
+            style: {
+                zIndex: 1,
+                height: "36px",
+            }
+        },
+        muiTableHeadRowProps: {
+            sx: {
+                alignItems: "flex-start",
+                height: "36px",
+            }
+        },
+        muiTableBodyCellProps: ({ cell, table }) => {
+            return {
+                sx: {
+                    padding: "0 0 0 10px",
+                }
+            }
+        },
+        muiTableBodyRowProps: ({ row }) => ({
+            sx: {
+                height: "40px",
+            },
+            style: {padding: 0}
+        }),
+        enableRowActions: false,
+        muiTablePaperProps: {
+            sx: { display: "flex", flexDirection: "column", width: "100%"}
+        },
+        muiTopToolbarProps: {
+            sx: {
+                backgroundColor: theme.materialReactTableHeader,
+                paddingRight: "70px !important",
+            },
+        },
+        renderTopToolbarCustomActions: () => (
+            <Typography variant="h5" >{"Callbacks"}</Typography>
+        ),
+        renderEmptyRowsFallback: ({ table }) => (
+            <div style={{display: "flex", width: "100%", height: "100%", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
+                <Typography variant={"h4"} >
+                    {"No Data"}
+                </Typography>
+            </div>
+        ),
+    });
+    return (
+        <div style={{ width: '100%', height: '100%', position: "relative", display: "flex" }}>
+            <MaterialReactTable table={materialReactTable} />
+            {openHideMultipleDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="xl"
+                    open={openHideMultipleDialog}
+                    onClose={() => {setOpenHideMultipleDialog(false);}}
+                    innerDialog={
+                        <CallbacksTabsHideMultipleDialog onClose={() => {setOpenHideMultipleDialog(false);}} />
+                    }
+                />
+            }
+            {openTaskMultipleDialog.open &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="xl"
+                    open={openTaskMultipleDialog.open}
+                    onClose={() => {setOpenTaskMultipleDialog({open: false, data: {}});}}
+                    innerDialog={
+                        <CallbacksTabsTaskMultipleDialog callback={openTaskMultipleDialog.data}
+                                                         onClose={() => {setOpenTaskMultipleDialog({open: false, data: {}});}}
+                                                         me={props.me}/>
+                    }
+                />
+            }
+        </div>
+
+    )
+}
+export const CallbacksTableMaterialReactTable = React.memo(CallbacksTableMaterialReactTablePreMemo)
