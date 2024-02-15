@@ -24,8 +24,8 @@ import 'ace-builds/src-noconflict/theme-xcode';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 
-export const ResponseDisplayMedia = ({media, expand}) =>{
-     return <DisplayMedia agent_file_id={media?.agent_file_id || ""} filename={media?.filename || undefined} expand={expand} />
+export const ResponseDisplayMedia = ({media, expand, task}) =>{
+     return <DisplayMedia agent_file_id={media?.agent_file_id || ""} task={task} filename={media?.filename || undefined} expand={expand} />
 }
 const textExtensionTypes = ["txt", "ps1", "php", "json", "yml", "yaml", "config", "cfg", "go",
     "html", "xml", "js", "java", "conf", "cs", "rb", "toml"];
@@ -76,7 +76,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task}) => {
     }, [agent_file_id, filename]);
     const scrollContent = (node, isAppearing) => {
         // only auto-scroll if you issued the task
-        document.getElementById(`scrolltotaskbottom${task.id}`)?.scrollIntoView({
+        document.getElementById(`scrolltotaskbottom${task?.id}`)?.scrollIntoView({
             //behavior: "smooth",
             block: "end",
             inline: "nearest"
