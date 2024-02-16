@@ -409,8 +409,7 @@ export function CallbacksGraph({}){
                 />
             }
             <DrawC2PathElementsFlowWithProvider providedNodes={callbacks} edges={callbackgraphedges} view_config={viewConfig} theme={theme}
-                panel={<GraphViewOptions setViewConfig={setViewConfig} viewConfig={viewConfig} />}
-                                                contextMenu={contextMenu}/>
+                panel={<GraphViewOptions setViewConfig={setViewConfig} viewConfig={viewConfig} />} contextMenu={contextMenu}/>
         </div>
     );
 }

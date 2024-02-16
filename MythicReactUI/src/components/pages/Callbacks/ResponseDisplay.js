@@ -17,6 +17,8 @@ import {ResponseDisplayInteractive} from "./ResponseDisplayInteractive";
 import {ResponseDisplayMedia} from "./ResponseDisplayMedia";
 import {ResponseDisplayMaterialReactTable} from "./ResponseDisplayMaterialReactTable";
 import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {DrawBrowserScriptElementsFlow} from "./C2PathDialog";
+import {ResponseDisplayGraph} from "./ResponseDisplayGraph";
 
 const subResponsesStream = gql`
 subscription subResponsesStream($task_id: Int!){
@@ -540,7 +542,6 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
   if(loadingBrowserScript){
     return null
   }
-  //console.log(browserScriptData);
   return (
     localViewBrowserScript && browserScriptData ? (
       <React.Fragment>
@@ -569,6 +570,9 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
           {browserScriptData?.media?.map( (s, index) => (
               <ResponseDisplayMedia key={"searchmedia" + index + "fortask" + task.id} task={task} media={s} expand={expand} />
           )) || null}
+          {browserScriptData?.graph !== undefined &&
+            <ResponseDisplayGraph graph={browserScriptData.graph} task={task} expand={expand} />
+          }
       </React.Fragment>
     ) : (
       <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand}/>

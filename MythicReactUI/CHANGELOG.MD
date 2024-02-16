@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.70] - 2024-02-16
+
+### Changed
+
+- Updated the experimental callbacks table to save state in a way that's usable with the old table
+- Added new ability to render graphs with browser scripts in the format:
+  - {graph: {nodes: [], edges: [], group_by: ""} }
+  - nodes have
+    - a unique `id` string field
+    - a `style` dictionary to configure the display of the node
+    - an `img` field which is either a URL to an image to render or one of the following strings:
+      - group, computer, user, lan, language, list, container, help
+      - This list of available icons will grow over time. If you have a request from https://mui.com/material-ui/material-icons/, just let me know!
+    - a `data` dictionary
+      - the `data` dictionary must have a `label` string that's displayed with the node and any other fields you want
+  - group_by can either be `""` or `"label"` for now, but this will expand in time
+- Updated graphs to allow you to click on a node and view just that node's edges
+- Updated the browserscripts page to show the agent's icon instead of just name to make it easier to find what you're looking for
+
 ## [0.1.69] - 2024-02-15
 
 ### Changed

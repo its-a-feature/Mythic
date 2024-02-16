@@ -325,6 +325,10 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 					} else {
 						mythicResponse["file_id"] = newFileID
 					}
+					if agentResponse.Download.ChunkNum != nil {
+						mythicResponse["chunk_num"] = *agentResponse.Download.ChunkNum
+					}
+
 				}
 				if agentResponse.Upload != nil {
 					if uploadResponse, err := handleAgentMessagePostResponseUpload(currentTask, agentResponse); err != nil {

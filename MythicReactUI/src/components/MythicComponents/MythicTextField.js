@@ -55,12 +55,16 @@ class MythicTextField extends React.Component {
         return this.props.validate ? this.props.validate(this.props.value) : false
     }
     onKeyPress = (event) => {
-      if(event.key === "Enter"){
-        if(this.props.onEnter !== undefined){
-            event.stopPropagation();
-            event.preventDefault();
-          this.props.onEnter(event);
-        }
+      if(event.key === "Enter") {
+          if(event.shiftKey){
+              this.onChange(event);
+              return;
+          }
+          if (this.props.onEnter !== undefined) {
+              event.stopPropagation();
+              event.preventDefault();
+              this.props.onEnter(event);
+          }
       }else{
         this.onChange(event);
       }

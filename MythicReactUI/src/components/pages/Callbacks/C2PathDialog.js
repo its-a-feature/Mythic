@@ -13,7 +13,8 @@ import { Typography } from '@mui/material';
 import ReactFlow, {
     applyEdgeChanges, applyNodeChanges,
     Handle, Position, useReactFlow, ReactFlowProvider, Panel,
-    MiniMap, Controls, ControlButton, useUpdateNodeInternals
+    MiniMap, Controls, ControlButton, useUpdateNodeInternals,
+    getConnectedEdges, updateEdge
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { toPng, toSvg } from 'html-to-image';
@@ -403,6 +404,18 @@ function TaskNode({data}) {
         </div>
     )
 }
+function BrowserscriptNode({data}) {
+    const sourcePosition = getSourcePosition(data["elk.direction"]);
+    const targetPosition = getTargetPosition(data["elk.direction"]);
+    return (
+        <div style={{padding: 0, margin: 0, display: "flex", flexDirection: "column"}}>
+            <Handle type={"source"} position={sourcePosition} />
+            {data.img}
+            <Handle type={"target"} position={targetPosition} />
+            <Typography style={{textAlign: "center", margin: 0, padding: 0}} >{data.data.label}</Typography>
+        </div>
+    )
+}
 function GroupNode({data}) {
     const sourcePosition = getSourcePosition(data["elk.direction"]);
     const targetPosition = getTargetPosition(data["elk.direction"]);
@@ -418,12 +431,15 @@ function GroupNode({data}) {
 
     )
 }
-const nodeTypes = { "agentNode": AgentNode, "groupNode": GroupNode, "taskNode": TaskNode };
+const nodeTypes = { "agentNode": AgentNode, "groupNode": GroupNode, "taskNode": TaskNode, "browserscriptNode": BrowserscriptNode };
 
 const elk = new ELK();
 const getWidth = (node) => {
     if(node.type === "taskNode"){
         return getTaskWidth(node);
+    }
+    if(node.type === "browserscriptNode"){
+        return getBrowserscriptWidth(node);
     }
     return Math.max(100, node.data.label.length * 7);
 }
@@ -433,6 +449,16 @@ const getTaskWidth = (node) => {
         nodeText = getLabelText(node.data, true);
     }
     return Math.max(325, (nodeText.length * 8) + 10)
+}
+const getBrowserscriptWidth = (node) => {
+    let nodeText = " ";
+    if(node?.data?.width){
+        return node.data.width;
+    }
+    if(node?.data?.label){
+        nodeText = getLabelText(node.data, true);
+    }
+    return Math.max(100, (nodeText.length * 10) + 10)
 }
 const getHeight = (node) => {
     if(node.hidden){
@@ -625,6 +651,7 @@ export const DrawC2PathElementsFlowWithProvider = (props) => {
 export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes}) =>{
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: []});
     const [nodes, setNodes] = React.useState();
+    const extraNodes = React.useRef(providedNodes);
     const [edgeFlow, setEdgeFlow] = React.useState([]);
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [contextMenuCoord, setContextMenuCord] = React.useState({});
@@ -645,7 +672,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
         // we then overwrite the transform of the `.react-flow__viewport` element
         // with the style option of the html-to-image library
         snackActions.info("Saving image to svg...");
-        toSvg(document.querySelector('.react-flow__viewport'), {
+        toSvg(viewportRef.current, {
             width: viewportRef.current.offsetWidth,
             height: viewportRef.current.offsetHeight,
             style: {
@@ -664,7 +691,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
         // we then overwrite the transform of the `.react-flow__viewport` element
         // with the style option of the html-to-image library
         snackActions.info("Saving image to png...");
-        toPng(document.querySelector('.react-flow__viewport'), {
+        toPng(viewportRef.current, {
             width: viewportRef.current.offsetWidth,
             height: viewportRef.current.offsetHeight,
             style: {
@@ -693,7 +720,46 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
     }, [contextMenu])
     const onPaneClick = useCallback( () => {
         setOpenContextMenu(false);
-    }, [setOpenContextMenu])
+        const updatedEdges = graphData.edges.map( e => {
+            return {...e,
+                animated: e.oldAnimated ? e.oldAnimated : e.animated,
+                style: e.oldStyle ? e.oldStyle : e.style,
+                oldAnimated: null,
+                oldStyle: null
+            }
+        });
+        setEdgeFlow(updatedEdges);
+        //setGraphData({...graphData, edges: updatedEdges});
+    }, [setOpenContextMenu, graphData]);
+    const onNodeSelected = useCallback( (event, node) => {
+        const connectedEdges = getConnectedEdges([node], graphData.edges);
+        const updatedEdges = graphData.edges.map( e => {
+            let included = connectedEdges.filter( ce => ce.id === e.id).length > 0;
+            if(included){
+                return {...e,
+                    animated: e.animated,
+                    oldAnimated: e.oldAnimated ? e.oldAnimated : e.animated,
+                    oldStyle: e.oldStyle ? e.oldStyle : e.style,
+                    style: {
+                        stroke: e.style.stroke,
+                        strokeWidth: 4,
+                    }
+                }
+            } else {
+                return {...e,
+                    animated: false,
+                    oldAnimated: e.oldAnimated  ? e.oldAnimated : e.animated,
+                    oldStyle: e.oldStyle ? e.oldStyle : e.style,
+                    style: {
+                        stroke: theme.palette.secondary.main,
+                        strokeWidth: 0.25,
+                    }
+                }
+            }
+        })
+        //setGraphData({...graphData, edges: updatedEdges});
+        setEdgeFlow(updatedEdges);
+    }, [graphData])
     React.useEffect( () => {
         let tempNodes = [{
             id: "Mythic",
@@ -1013,10 +1079,10 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
             }
             return tempNewEdges
         }
-        if(providedNodes){
-            for(let i = 0; i < providedNodes.length; i++){
+        if(extraNodes.current){
+            for(let i = 0; i < extraNodes.current.length; i++){
                 if(view_config["include_disconnected"]) {
-                    add_node(providedNodes[i], view_config);
+                    add_node(extraNodes.current[i], view_config);
                 }
             }
         }
@@ -1167,10 +1233,10 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
                 })
             }
         }
-        for(let i = 0; i < tempNodes.length; i++){
+        for(let i = 0; i < tempNodes.length; i++) {
             let sourceCount = 0;
-            for(let j = 0; j < tempEdges.length; j++){
-                if(tempEdges[j].source === tempNodes[i].id){
+            for (let j = 0; j < tempEdges.length; j++) {
+                if (tempEdges[j].source === tempNodes[i].id) {
                     sourceCount += 1;
                     tempEdges[j].sourceHandle = `${sourceCount}`;
                 }
@@ -1183,7 +1249,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
             nodes: tempNodes,
             edges: tempEdges
         })
-    }, [edges, view_config, theme, providedNodes]);
+    }, [edges, view_config, theme]);
     React.useEffect( () => {
         (async () => {
             if(graphData.nodes.length > 0){
@@ -1219,6 +1285,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
                     nodeTypes={nodeTypes}
                     onPaneClick={onPaneClick}
                     onNodeContextMenu={onNodeContextMenu}
+                    onNodeClick={onNodeSelected}
                 >
                     <Panel position={"top-left"} >{panel}</Panel>
                     <Controls showInteractive={false} >
@@ -1229,7 +1296,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
                             <InsertPhotoIcon />
                         </ControlButton>
                     </Controls>
-                    <MiniMap pannable={true} />
+                    <MiniMap pannable={true} zoomable={true}  />
                 </ReactFlow>
             {openContextMenu &&
             <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
@@ -1536,7 +1603,7 @@ export const DrawTaskElementsFlow = ({edges, panel, view_config, theme, contextM
                 </Controls>
             </ReactFlow>
             {openContextMenu &&
-                <div style={{...contextMenuCoord}} className="context-menu">
+                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
                     {contextMenu.map( (m) => (
                         <Button key={m.title} variant={"contained"} className="context-menu-button" onClick={() => {
                             m.onClick(contextMenuNode.current);
@@ -1550,3 +1617,368 @@ export const DrawTaskElementsFlow = ({edges, panel, view_config, theme, contextM
     )
 }
 
+const getGroupBrowserscriptBy = (node, view_config) => {
+    if(view_config.group_by === undefined){return ""}
+    if(view_config.group_by === "None" || view_config.group_by === ""){return ""}
+    try{
+        return node?.[view_config["group_by"]] || "";
+    }catch(error){
+        console.log(error)
+    }
+}
+export const DrawBrowserScriptElementsFlowWithProvider = (props) => {
+    return (
+        <ReactFlowProvider>
+            <DrawBrowserScriptElementsFlow {...props} />
+        </ReactFlowProvider>
+    )
+}
+const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes}) => {
+    const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: [], view_config});
+    const [nodes, setNodes] = React.useState();
+    const [edgeFlow, setEdgeFlow] = React.useState([]);
+    const [openContextMenu, setOpenContextMenu] = React.useState(false);
+    const [contextMenuCoord, setContextMenuCord] = React.useState({});
+    const viewportRef = React.useRef(null);
+    const contextMenuNode = React.useRef(null);
+    const [localViewConfig, setLocalViewConfig] = React.useState(view_config);
+    const {fitView} = useReactFlow();
+    const updateNodeInternals = useUpdateNodeInternals();
+    const onNodesChange = useCallback(
+        (changes) => {
+            setNodes((nds) => applyNodeChanges(changes, nds));
+        },
+        []
+    );
+    const onEdgesChange = useCallback(
+        (changes) => setEdgeFlow((eds) => applyEdgeChanges(changes, eds)),
+        []
+    );
+    const onNodeContextMenu = useCallback( (event, node) => {
+        if(!contextMenu){return}
+        if(node.type === "groupNode"){
+            return;
+        }
+        event.preventDefault();
+        contextMenuNode.current = {...node.data, id: node.data.id};
+        setContextMenuCord({
+            top:  event.clientY,
+            left:  event.clientX,
+        });
+        setOpenContextMenu(true);
+    }, [contextMenu])
+    const onPaneClick = useCallback( () => {
+        setOpenContextMenu(false);
+        const updatedEdges = graphData.edges.map( e => {
+            return {...e,
+                animated: e.oldAnimated ? e.oldAnimated : e.animated,
+                style: e.oldStyle ? e.oldStyle : e.style,
+                oldAnimated: null,
+                oldStyle: null
+            }
+        });
+        setEdgeFlow(updatedEdges);
+        //setGraphData({...graphData, edges: updatedEdges});
+    }, [setOpenContextMenu, graphData]);
+    const onNodeSelected = useCallback( (event, node) => {
+        const connectedEdges = getConnectedEdges([node], graphData.edges);
+        const updatedEdges = graphData.edges.map( e => {
+            let included = connectedEdges.filter( ce => ce.id === e.id).length > 0;
+            if(included){
+                return {...e,
+                    animated: e.animated,
+                    oldAnimated: e.oldAnimated ? e.oldAnimated : e.animated,
+                    oldStyle: e.oldStyle ? e.oldStyle : e.style,
+                    style: {
+                        stroke: e.style.stroke,
+                        strokeWidth: 4,
+                    }
+                }
+            } else {
+                return {...e,
+                    animated: false,
+                    oldAnimated: e.oldAnimated  ? e.oldAnimated : e.animated,
+                    oldStyle: e.oldStyle ? e.oldStyle : e.style,
+                    style: {
+                        stroke: theme.palette.secondary.main,
+                        strokeWidth: 0.25,
+                    }
+                }
+            }
+        })
+        //setGraphData({...graphData, edges: updatedEdges});
+        setEdgeFlow(updatedEdges);
+    }, [graphData]);
+    React.useEffect( () => {
+        let tempNodes = [];
+        let tempEdges = [];
+        let parentNodes = [];
+
+        const add_node = (node, localViewConfig) => {
+
+            let groupByValue = getGroupBrowserscriptBy(node, localViewConfig);
+            let nodeID = `${node.id}`;
+            let found = false;
+            for(let i = 0; i < tempNodes.length; i++){
+                if(tempNodes[i].id === nodeID){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                //console.log("adding node", node)
+                tempNodes.push(
+                    {
+                        id: `${node.id}`,
+                        position: { x: 0, y: 0 },
+                        type: "browserscriptNode",
+                        height: 50,
+                        width: 50,
+                        parentNode: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? groupByValue : null,
+                        group: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? groupByValue : null,
+                        extent: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? "parent" : null,
+                        data: {
+                            ...node,
+                            parentNode: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? groupByValue : null,
+                            label: "",
+                        }
+                    }
+                )
+            }
+            found = false;
+            for(let i = 0; i < parentNodes.length; i++){
+                if(parentNodes[i].id === groupByValue){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found && groupByValue !== ""){
+                //console.log("adding parent", node)
+                parentNodes.push({
+                    id: groupByValue,
+                    position: { x: 110, y: 110 },
+                    type: "groupNode",
+                    width: 200,
+                    height: 200,
+                    data: {
+                        label: groupByValue,
+                    },
+
+                });
+            }
+        }
+        const add_edge_p2p = (edge, localViewConfig) => {
+            add_node(edge.source, localViewConfig);
+            add_node(edge.destination, localViewConfig);
+            //if(edge.source.id === edge.destination.id){
+            //    return
+            //}
+            createEdge(edge, localViewConfig);
+        }
+        const createEdge = (edge, localViewConfig) =>{
+            let edgeID = `e${edge.source.id}-${edge.destination.id}-${edge.label}`;
+            //console.log("adding edge", edge);
+            let groupByValueSource = getGroupTaskBy(edge.source, localViewConfig);
+            let groupByValueDestination = getGroupTaskBy(edge.destination, localViewConfig);
+            let dupEdges = tempEdges.filter( e => e.id === edgeID)
+            if(dupEdges.length > 0){return}
+            tempEdges.push(
+                {
+                    id: edgeID,
+                    source: `${edge.source.id}`,
+                    target: `${edge.destination.id}`,
+                    animated: true,
+                    label: `${edge.label}`,
+                    data: {
+                        label: `${edge.label}`,
+                        source: {...edge.source, parentNode: shouldUseTaskGroups(localViewConfig) && groupByValueSource !== "" ? groupByValueSource : null},
+                        target: {...edge.destination, parentNode: shouldUseTaskGroups(localViewConfig) && groupByValueDestination !== "" ? groupByValueDestination : null},
+                    }
+                },
+            )
+        }
+        const hasFakeEdge = (sourceID) => {
+            for(let i = 0; i < tempEdges.length; i++){
+                if(tempEdges[i].data.source.parentNode === sourceID &&
+                    tempEdges[i].data.label === ""
+                ){
+                    return true;
+                }
+            }
+            return false;
+        }
+        if(providedNodes){
+            for(let i = 0; i < providedNodes.length; i++){
+                add_node(providedNodes[i], view_config);
+            }
+        }
+        edges.forEach( (edge) => {
+            add_edge_p2p(edge, localViewConfig);
+        });
+        for(let i = 0; i < tempEdges.length; i++){
+            tempEdges[i].markerEnd = {
+                color: theme.palette.info.main,
+            }
+            tempEdges[i].style = {
+                stroke: theme.palette.info.main,
+                strokeWidth: 2,
+            }
+
+            tempEdges[i].markerEnd.type = "arrowclosed"
+            tempEdges[i].labelBgStyle = {
+                fill: theme.tableHover,
+                fillOpacity: 0.6,
+            }
+            tempEdges[i].labelStyle = {
+                fill: theme.palette.background.contrast,
+            }
+            tempEdges[i].labelShowBg = true
+            tempEdges[i].zIndex = 20;
+        }
+        if(shouldUseTaskGroups(localViewConfig)){
+            // only add in edges from parents to parents/mythic if we're doing egress flow
+            for(let i = 0; i < parentNodes.length; i++){
+                // every parentNode needs a connection to _something_ - either to Mythic or another parentNode
+                for(let j = 0; j < tempEdges.length; j++){
+                    //console.log("checking", parentNodes[i].id, tempEdges[j].data.target.parentNode, tempEdges[j].data.source.id)
+                    if(tempEdges[j].data.target.parentNode === parentNodes[i].id){
+                        // don't process where source.parentNode == target.parentNode
+                        //console.log("found match")
+                        if(parentNodes[i].id === tempEdges[j].data.source.parentNode){
+                            //console.log("skipping")
+                            continue
+                        }
+                        if(!hasFakeEdge(`${parentNodes[i].id}`)){
+                            //console.log("adding new fake edge")
+                            tempEdges.push(
+                                {
+                                    id: `e${parentNodes[i].id}-${tempEdges[j].data.source.id}`,
+                                    target: `${parentNodes[i].id}`,
+                                    source: `${tempEdges[j].data.source.id}`,
+                                    label: "",
+                                    hidden: true,
+                                    data: {
+                                        source: {...parentNodes[i], parentNode: `${parentNodes[i].id}`},
+                                        target: tempEdges[j].data.target,
+                                        label: "",
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+
+                tempNodes.push({
+                    id: `${parentNodes[i].id}-widthAdjuster`,
+                    position: { x: 0, y: 0 },
+                    type: "browserscriptNode",
+                    height: 100,
+                    width: 50,
+                    parentNode: `${parentNodes[i].id}`,
+                    group: `${parentNodes[i].id}`,
+                    hidden: true,
+                    data: {label: `${parentNodes[i].id}`}
+                })
+            }
+        }
+
+        //console.log("parent groups", shouldUseTaskGroups(view_config), [...parentNodes, ...tempNodes], tempEdges);
+        setGraphData({
+            groups: shouldUseTaskGroups(localViewConfig) ? parentNodes : [],
+            nodes: tempNodes,
+            edges: tempEdges,
+            view_config: {...localViewConfig},
+        });
+    }, [edges, localViewConfig, theme]);
+    React.useEffect( () => {
+        (async () => {
+            if(graphData.nodes.length > 0){
+                const {newNodes, newEdges} = await createLayout({
+                    initialGroups: graphData.groups,
+                    initialNodes: graphData.nodes,
+                    initialEdges: graphData.edges,
+                    alignment: graphData.view_config.rankDir
+                });
+                setNodes(newNodes);
+                setEdgeFlow(newEdges);
+                for(let i = 0; i < newNodes.length; i++){
+                    updateNodeInternals(newNodes[i].id);
+                }
+                //console.log("new graph data", newNodes, newEdges)
+                window.requestAnimationFrame(() => {
+                    for(let i = 0; i < newNodes.length; i++){
+                        updateNodeInternals(newNodes[i].id);
+                    }
+                    fitView();
+                });
+            }
+        })();
+    }, [graphData]);
+    const toggleViewConfig = () => {
+        if(localViewConfig.rankDir === "LR"){
+            setLocalViewConfig({...localViewConfig, rankDir: "BT", group_by: ""});
+        } else {
+            setLocalViewConfig({...localViewConfig, rankDir: "LR", group_by: ""});
+        }
+    }
+    const onDownloadImageClickSvg = () => {
+        // we calculate a transform for the nodes so that all nodes are visible
+        // we then overwrite the transform of the `.react-flow__viewport` element
+        // with the style option of the html-to-image library
+        snackActions.info("Saving image to svg...");
+        toSvg(viewportRef.current, {
+            width: viewportRef.current.offsetWidth,
+            height: viewportRef.current.offsetHeight,
+            style: {
+                width: viewportRef.current.clientWidth,
+                height: viewportRef.current.clientHeight,
+            },
+        }).then((dataUrl) => {
+            const a = document.createElement('a');
+            a.setAttribute('download', 'task_output.svg');
+            a.setAttribute('href', dataUrl);
+            a.click();
+        });
+    };
+    return (
+        <div style={{height: "100%", width: "100%", overflow: "hidden"}} ref={viewportRef}>
+            <ReactFlow
+                fitView
+                onlyRenderVisibleElements={false}
+                panOnScrollSpeed={50}
+                maxZoom={100}
+                minZoom={0}
+                nodes={nodes}
+                edges={edgeFlow}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                nodeTypes={nodeTypes}
+                onPaneClick={onPaneClick}
+                onNodeContextMenu={onNodeContextMenu}
+                onNodeClick={onNodeSelected}
+            >
+                <Panel position={"top-left"} >{panel}</Panel>
+                <Controls showInteractive={false} style={{marginLeft: "40px"}} >
+                    <ControlButton onClick={toggleViewConfig} title={"Toggle View"}>
+                        <SwapCallsIcon />
+                    </ControlButton>
+                    <ControlButton onClick={onDownloadImageClickSvg} title={"Download SVG"}>
+                        <InsertPhotoIcon />
+                    </ControlButton>
+                </Controls>
+                <MiniMap pannable={true} zoomable={true} />
+            </ReactFlow>
+            {openContextMenu &&
+                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
+                    {contextMenu.map( (m) => (
+                        <Button key={m.title} variant={"contained"} className="context-menu-button" onClick={() => {
+                            m.onClick(contextMenuNode.current);
+                            setOpenContextMenu(false);
+                        }}>{m.title}</Button>
+                    ))}
+                </div>
+            }
+        </div>
+
+    )
+}

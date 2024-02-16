@@ -416,25 +416,75 @@ function CallbacksTableMaterialReactTablePreMemo(props){
     const updateSleepInfo = React.useCallback( ({callback_display_id, sleep_info}) => {
         updateSleep({variables: {callback_display_id: callback_display_id, sleep_info}})
     }, [])
-
     const columnFields = [
-                {key: "id", type: 'number', name: "Interact", width: 150, disableCopy: true, enableHiding: false},
-                {key: "mythictree_groups", type: 'array', name: "Groups", enableHiding: true},
-                {key: "ip", type: 'ip', name: "IP", width: 150, enableHiding: true},
-                {key: "external_ip",type: 'string', name: "External IP", width: 150, enableHiding: true},
-                {key: "host", type: 'string', name: "Host", fillWidth: true, enableHiding: true},
-                {key: "user", type: 'string', name: "User", fillWidth: true, enableHiding: true},
-                {key: "domain", type: 'string', name: "Domain", fillWidth: true, enableHiding: true},
-                {key: "os", type: 'string', name: "OS", width: 75, disableCopy: true, enableHiding: true},
-                {key: "architecture", type: 'string', name: "Arch", width: 75, enableHiding: true},
-                {key: "pid", type: 'number', name: "PID", width: 75, enableHiding: true},
-                {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true, enableHiding: true},
-                {key: "description", type: 'string', name: "Description", width: 400, enableHiding: true},
-                {key: "sleep", type: 'string', name: "Sleep", width: 75, disableSort: true, disableCopy: true, enableHiding: true},
-                {key: "agent", type: 'string', name: "Agent", width: 100, disableSort: true, disableCopy: true, enableHiding: true},
-                {key: "c2", type: 'string', name: "C2", width: 75, disableSort: true, disableFilterMenu: true, disableCopy: true, enableHiding: true},
-                {key: "process_name", type: 'string', name: "Process Name", fillWidth: true, enableHiding: true},
-            ];
+        {key: "id", type: 'number', name: "Interact", width: 150, disableCopy: true, enableHiding: false},
+        {key: "mythictree_groups", type: 'array', name: "Groups", enableHiding: true},
+        {key: "ip", type: 'ip', name: "IP", width: 150, enableHiding: true},
+        {key: "external_ip",type: 'string', name: "External IP", width: 150, enableHiding: true},
+        {key: "host", type: 'string', name: "Host", fillWidth: true, enableHiding: true},
+        {key: "user", type: 'string', name: "User", fillWidth: true, enableHiding: true},
+        {key: "domain", type: 'string', name: "Domain", fillWidth: true, enableHiding: true},
+        {key: "os", type: 'string', name: "OS", width: 75, disableCopy: true, enableHiding: true},
+        {key: "architecture", type: 'string', name: "Arch", width: 75, enableHiding: true},
+        {key: "pid", type: 'number', name: "PID", width: 75, enableHiding: true},
+        {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true, enableHiding: true},
+        {key: "description", type: 'string', name: "Description", width: 400, enableHiding: true},
+        {key: "sleep", type: 'string', name: "Sleep", width: 75, disableSort: true, disableCopy: true, enableHiding: true},
+        {key: "agent", type: 'string', name: "Agent", width: 100, disableSort: true, disableCopy: true, enableHiding: true},
+        {key: "c2", type: 'string', name: "C2", width: 75, disableSort: true, disableFilterMenu: true, disableCopy: true, enableHiding: true},
+        {key: "process_name", type: 'string', name: "Process Name", fillWidth: true, enableHiding: true},
+    ];
+    const [columnVisibility, setColumnVisibility] = React.useState({
+        id: true,
+        host: true,
+        domain:true,
+        user:true,
+        description:true,
+        last_checkin: true,
+        agent: true,
+        ip: true,
+        pid: true,
+        architecture: false,
+        sleep: false,
+        process_name: false,
+        external_ip: false,
+        c2: true,
+        os: false,
+        mythictree_groups: false
+    });
+    React.useEffect( () => {
+        // on startup, want to see if `callbacks_table_columns` exists in storage and load it if possible
+        try {
+            const storageItem = localStorage.getItem("callbacks_table_columns");
+            if(storageItem !== null){
+                let loadedColumnNames = JSON.parse(storageItem);
+                if(loadedColumnNames === null){return}
+                let currentVisibility = {...columnVisibility};
+                for( const[key, val] of Object.entries(currentVisibility)){
+                    let col = columnFields.filter( c => c.key === key)[0];
+                    currentVisibility[key] = !!loadedColumnNames.includes(col.name);
+                }
+                setColumnVisibility(currentVisibility);
+            }
+        }catch(error){
+            console.log("Failed to load callbacks_table_columns", error);
+        }
+    }, [])
+
+    const onColumnVisibilityChange = (visibility) => {
+        setColumnVisibility(visibility);
+    }
+    React.useEffect(  () => {
+        let shown = [];
+        for(const [key, val] of Object.entries(columnVisibility)){
+            if(val){
+                let newKey = columnFields.filter(c => c.key === key);
+                shown.push(newKey[0].name);
+            }
+        }
+        localStorage.setItem("callbacks_table_columns", JSON.stringify(shown));
+    }, [columnVisibility]);
+
     const columns = React.useMemo( () => columnFields.map( h => {
         return {
             accessorKey: h.key,
@@ -528,36 +578,21 @@ function CallbacksTableMaterialReactTablePreMemo(props){
         enablePagination: true,
         //enablePagination: false,
         //enableRowVirtualization: true,
-        enableBottomToolbar: true,
+        enableBottomToolbar: false,
         enableStickyHeader: true,
         enableDensityToggle: false,
         enableColumnResizing: true,
         enableRowPinning: true,
+        positionPagination: "top",
         columnFilterDisplayMode: 'popover', //filter inputs will show in a popover (like excel)
         rowPinningDisplayMode: 'top-and-bottom',
         //enableColumnOrdering: true,
         //columnResizeMode: 'onEnd',
         initialState: {
             density: 'compact',
-            columnVisibility: {
-                id: true,
-                host: true,
-                domain:true,
-                user:true,
-                description:true,
-                last_checkin: true,
-                agent: true,
-                ip: true,
-                pid: true,
-                architecture: false,
-                sleep: false,
-                process_name: false,
-                external_ip: false,
-                c2: true,
-                os: false,
-                mythictree_groups: false
-            }
         },
+        state: {columnVisibility},
+        onColumnVisibilityChange: onColumnVisibilityChange,
         defaultDisplayColumn: { enableResizing: true },
         muiTableContainerProps: { sx: { alignItems: "flex-start" } },
         mrtTheme: (theme) => ({
@@ -606,19 +641,18 @@ function CallbacksTableMaterialReactTablePreMemo(props){
         muiTopToolbarProps: {
             sx: {
                 backgroundColor: theme.materialReactTableHeader,
-                paddingRight: "70px !important",
-            },
+                display: "flex",
+                justifyContent: "flex-start"
+            }
         },
-        renderTopToolbarCustomActions: () => (
-            <Typography variant="h5" >{"Callbacks"}</Typography>
-        ),
         renderEmptyRowsFallback: ({ table }) => (
             <div style={{display: "flex", width: "100%", height: "100%", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
                 <Typography variant={"h4"} >
-                    {"No Data"}
+                    {callbacks.length === 0 ? "No Data" : null}
                 </Typography>
             </div>
         ),
+
     });
     return (
         <div style={{ width: '100%', height: '100%', position: "relative", display: "flex" }}>

@@ -6,6 +6,7 @@ import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {EditScriptDialog} from './EditScriptDialog';
 import SettingsIcon from '@mui/icons-material/Settings';
 import IconButton from '@mui/material/IconButton';
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 export function BrowserScriptsTableRow(props){
     const [openEdit, setOpenEdit] = React.useState(false);
@@ -33,7 +34,14 @@ export function BrowserScriptsTableRow(props){
                         name="Active"
                       />
                 </TableCell>
-                <TableCell>{props.payloadtype.name}</TableCell>
+                <TableCell>
+                    <MythicStyledTooltip title={props.payloadtype.name}>
+                        <img
+                            style={{width: "35px", height: "35px"}}
+                            src={"/static/" + props.payloadtype.name + ".svg"}
+                        />
+                    </MythicStyledTooltip>
+                </TableCell>
                 <TableCell>{props.command.cmd}</TableCell>
                 <TableCell>{props.author}</TableCell>
                 <TableCell>{props.user_modified ? "User Modified" : "" } </TableCell>

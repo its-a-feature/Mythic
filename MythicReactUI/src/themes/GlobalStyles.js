@@ -270,7 +270,7 @@ tspan {
 }
 // gets the title of the table
 .MuiPaper-root > .MuiBox-root:first-child {
-    margin: 0;
+    margin: 0 0 0 0;
     padding: 0 0 0 5px;
     min-height: 2rem;
 }
@@ -281,7 +281,7 @@ tspan {
 // gets the footer of the table
 .MuiPaper-root > .MuiBox-root > * {
     margin: 0;
-    padding: 0 0 0 5px;
+    padding: 0 60px 0 5px;
     min-height: 2rem;
 }
 `

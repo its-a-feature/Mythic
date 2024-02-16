@@ -40,7 +40,7 @@ export function BrowserScriptsTable(props){
                     <TableRow>
                         <TableCell style={{width: "3rem"}}>Edit</TableCell>
                         <TableCell style={{width: "5rem"}}>Active</TableCell>
-                        <TableCell style={{width: "15rem"}}>Payload</TableCell>
+                        <TableCell style={{width: "5rem"}}>Payload</TableCell>
                         <TableCell style={{width: "20rem"}}>Command</TableCell>
                         <TableCell style={{width: "12rem"}}> Author</TableCell>
                         <TableCell style={{textAlign: "left"}}>User Modified?</TableCell>
