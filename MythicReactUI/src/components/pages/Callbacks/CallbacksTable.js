@@ -479,7 +479,10 @@ function CallbacksTableMaterialReactTablePreMemo(props){
         for(const [key, val] of Object.entries(columnVisibility)){
             if(val){
                 let newKey = columnFields.filter(c => c.key === key);
-                shown.push(newKey[0].name);
+                if(newKey.length > 0){
+                    shown.push(newKey[0].name);
+                }
+
             }
         }
         localStorage.setItem("callbacks_table_columns", JSON.stringify(shown));
@@ -576,7 +579,6 @@ function CallbacksTableMaterialReactTablePreMemo(props){
         autoResetPageIndex: false,
         enableFacetedValues: true,
         enablePagination: true,
-        //enablePagination: false,
         //enableRowVirtualization: true,
         enableBottomToolbar: false,
         enableStickyHeader: true,

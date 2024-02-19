@@ -10,14 +10,17 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import Inventory2TwoToneIcon from '@mui/icons-material/Inventory2TwoTone';
 import {MythicDialog, MythicViewJSONAsTableDialog} from "../../MythicComponents/MythicDialog";
 import HelpTwoToneIcon from '@mui/icons-material/HelpTwoTone';
+import DiamondIcon from '@mui/icons-material/Diamond';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {faSkullCrossbones} from '@fortawesome/free-solid-svg-icons';
 
-const getIcons = (node) => {
-    if(node.img === undefined){return null}
-    const style = {...node?.style, fontSize: 40, margin: "auto"};
-    if(node.img.startsWith("http")){
-        return <img alt={node.img} src={node.img} className={"circleImageNode"} />
+const getIcons = (img, nodeStyle) => {
+    if(img === undefined){return null}
+    const style = {...nodeStyle, fontSize: 30, height: "50%", width: "50%", margin: "auto"};
+    if(img.startsWith("http")){
+        return <img alt={img} src={img} className={"circleImageNode"} />
     }
-    switch(node.img){
+    switch(img){
         case "group":
             return <GroupsIcon sx={style} />
         case "computer":
@@ -34,6 +37,10 @@ const getIcons = (node) => {
             return <Inventory2TwoToneIcon sx={style} />
         case "help":
             return <HelpTwoToneIcon sx={style} />
+        case "diamond":
+            return <DiamondIcon sx={style} />
+        case "skull":
+            return <FontAwesomeIcon icon={faSkullCrossbones} style={style} />
         default:
             return null
     }
@@ -54,20 +61,19 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
         scrollContent()
     }, []);
     const finalGraphNodes = graph?.nodes?.map( n => {
-        return {...n, img: getIcons(n)}
+        return {...n, img: getIcons(n?.img, n?.style || {}), overlay_img: getIcons(n?.overlay_img, n?.overlay_style)}
     })
     const contextMenu = React.useMemo(() => {return [
         {
             title: 'View All Data',
             onClick: function(node) {
-                console.log(node)
                 dictionaryData.current = node.data;
                 setViewAllDataDialogOpen(true);
             }
-        },
+        }
     ]}, []);
   return (
-    <div style={{height: expand ? "100%" : "600px", width: "100%", position: "relative"}}>
+    <div style={{height: expand ? "100%" : "400px", width: "100%", position: "relative"}}>
         {viewAllDataDialog &&
             <MythicDialog fullWidth={true} maxWidth="lg" open={viewAllDataDialog}
                           onClose={()=>{setViewAllDataDialogOpen(false);}}
@@ -80,7 +86,7 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
         }
         <DrawBrowserScriptElementsFlowWithProvider theme={theme} edges={graph.edges} providedNodes={finalGraphNodes}
                                        view_config={{group_by: graph?.group_by || "", rankDir: "LR",}}
-                                       contextMenu={contextMenu}
+                                       contextMenu={contextMenu} task={task}
         />
     </div>
   );   

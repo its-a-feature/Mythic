@@ -78,6 +78,9 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
         if(rowData.description !== rowDataStatic.description){
             update = true;
         }
+        if(rowData.id !== rowDataStatic.id){
+            update = true;
+        }
         if(update){
             setRowDataStatic(rowData);
         }
@@ -378,12 +381,11 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData}) =
     )
 });
 export const CallbacksTablePayloadTypeCell = React.memo( ({rowData}) => {
-    const payloadTypeName = React.useRef(rowData.payload.payloadtype.name)
     return (
-        <MythicStyledTooltip title={payloadTypeName.current}>
+        <MythicStyledTooltip title={rowData?.payload?.payloadtype?.name}>
             <img
                 style={{width: "35px", height: "35px"}}
-                src={"/static/" + payloadTypeName.current + ".svg"}
+                src={"/static/" + rowData?.payload?.payloadtype?.name + ".svg"}
             />
         </MythicStyledTooltip>
     )
@@ -478,7 +480,7 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
         }else if(routes === 0 && hasEgressRoute){
             setHasEgressRoute(false);
         }
-    }, [callbackgraphedgesAll]);
+    }, [callbackgraphedgesAll, localRowData]);
     useEffect( () => {
         const getEdges = (activeOnly) => {
             //update our aggregate of callbackgraphedges for both src and dst that involve us
@@ -527,7 +529,7 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
         setCallbackgraphedges(myActiveEdges);
         setCallbackgraphedgesAll(myEdges);
 
-    }, [initialCallbackGraphEdges]);
+    }, [initialCallbackGraphEdges, localRowData]);
     useEffect( () => {
         //determine if there are any active routes left at all
         const activeRoutes = callbackgraphedges.filter( (edge) => {
@@ -542,6 +544,11 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
             setActiveEgress(theme.palette.success.main);
         }
     }, [callbackgraphedges, theme.palette.success.main, theme.palette.error.main]);
+    useEffect( () => {
+        if(rowData.id !== localRowData.id){
+            setLocalRowData(rowData);
+        }
+    }, [rowData]);
     return (
         <div>
             {hasEgressRoute ? 
@@ -592,7 +599,7 @@ export const CallbacksTableOSCell = React.memo( ({rowData, cellData}) => {
             default:
                 return <FontAwesomeIcon icon={faQuestion} size="2x" style={{cursor: "pointer"}} onClick={displayOSInfo} />
         }
-    }, []);
+    }, [rowData?.payload?.os]);
     const displayOSInfo = React.useCallback( () => {
         setOpenOSDialog(true);
     }, []);

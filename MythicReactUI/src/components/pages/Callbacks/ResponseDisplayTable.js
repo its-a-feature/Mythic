@@ -29,7 +29,7 @@ const onCopyToClipboard = (data) => {
     snackActions.error("Failed to copy text");
   }
 }
-const getIconName = (iconName) => {
+export const getIconName = (iconName) => {
   switch(iconName.toLowerCase()){
     case "openfolder":
     case "folder":

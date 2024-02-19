@@ -23,13 +23,19 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import SwapCallsIcon from '@mui/icons-material/SwapCalls';
 import {snackActions} from "../../utilities/Snackbar";
 import {TaskLabelFlat, getLabelText} from './TaskDisplay';
-import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {MythicDialog, MythicViewJSONAsTableDialog} from "../../MythicComponents/MythicDialog";
 import {MythicSelectFromListDialog} from "../../MythicComponents/MythicSelectFromListDialog";
 import {ManuallyAddEdgeDialog} from "./ManuallyAddEdgeDialog";
 import {TaskParametersDialog} from "./TaskParametersDialog";
 import {addEdgeMutation, createTaskingMutation, hideCallbackMutation, removeEdgeMutation} from "./CallbackMutations";
 import {loadedLinkCommandsQuery} from "./CallbacksGraph";
 import {useMutation, gql, useLazyQuery } from '@apollo/client';
+import {TaskFromUIButton} from "./TaskFromUIButton";
+import {MythicDisplayTextDialog} from "../../MythicComponents/MythicDisplayTextDialog";
+import {ResponseDisplayTableDialogTable} from "./ResponseDisplayTableDialogTable";
+import SendIcon from '@mui/icons-material/Send';
+import {getIconName} from "./ResponseDisplayTable";
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -411,6 +417,9 @@ function BrowserscriptNode({data}) {
         <div style={{padding: 0, margin: 0, display: "flex", flexDirection: "column"}}>
             <Handle type={"source"} position={sourcePosition} />
             {data.img}
+            <div style={{top: 0, right: 0, height: "50%", width: "50%", position: "absolute"}}>
+                {data.overlay_img}
+            </div>
             <Handle type={"target"} position={targetPosition} />
             <Typography style={{textAlign: "center", margin: 0, padding: 0}} >{data.data.label}</Typography>
         </div>
@@ -828,7 +837,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
                         position: { x: 0, y: 0 },
                         type: "agentNode",
                         height: 50,
-                        width: 100,
+                        width: 50,
                         parentNode: shouldUseGroups(view_config) ? groupByValue : null,
                         group: shouldUseGroups(view_config) ? groupByValue : null,
                         extent: shouldUseGroups(view_config) ? "parent" : null,
@@ -1633,8 +1642,21 @@ export const DrawBrowserScriptElementsFlowWithProvider = (props) => {
         </ReactFlowProvider>
     )
 }
-const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes}) => {
+const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes, task}) => {
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: [], view_config});
+    const [localContextMenu, setLocalContextMenu] = React.useState(contextMenu);
+    const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
+    const [openDictionaryButton, setOpenDictionaryButton] = React.useState(false);
+    const [openStringButton, setOpenStringButton] = React.useState(false);
+    const [openTableButton, setOpenTableButton] = React.useState(false);
+    const [taskingData, setTaskingData] = React.useState({});
+    const finishedTasking = () => {
+        setOpenTaskingButton(false);
+        setOpenDictionaryButton(false);
+        setOpenStringButton(false);
+        setOpenTableButton(false);
+        setTaskingData({});
+    }
     const [nodes, setNodes] = React.useState();
     const [edgeFlow, setEdgeFlow] = React.useState([]);
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
@@ -1665,8 +1687,44 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
             top:  event.clientY,
             left:  event.clientX,
         });
+        if(node?.data?.buttons?.length > 0){
+            setLocalContextMenu([...contextMenu, ...node?.data?.buttons?.map(b => {
+                let title = b.name;
+                if( b?.startIcon){
+                    title = <><FontAwesomeIcon icon={getIconName(b?.startIcon)} style={{color: b?.startIconColor  || ""}}/> {title}</>;
+                } else if(b.type === "task"){
+                    title =  <><SendIcon fontSize={"sm"} /> {b.name}</>
+                }
+                return {
+                    title: title,
+                    onClick: function(node) {
+                        switch(b.type){
+                            case "task":
+                                setTaskingData(b);
+                                setOpenTaskingButton(true);
+                                break;
+                            case "dictionary":
+                                setTaskingData(b);
+                                setOpenDictionaryButton(true);
+                                break;
+                            case "string":
+                                setTaskingData(b);
+                                setOpenStringButton(true);
+                                break;
+                            case "table":
+                                setTaskingData(b);
+                                setOpenTableButton(true);
+                                break;
+                        }
+                    }
+                }
+            })]);
+        } else {
+            setLocalContextMenu([...contextMenu]);
+        }
+
         setOpenContextMenu(true);
-    }, [contextMenu])
+    }, [contextMenu]);
     const onPaneClick = useCallback( () => {
         setOpenContextMenu(false);
         const updatedEdges = graphData.edges.map( e => {
@@ -1970,13 +2028,41 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
             </ReactFlow>
             {openContextMenu &&
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
-                    {contextMenu.map( (m) => (
+                    {localContextMenu.map( (m) => (
                         <Button key={m.title} variant={"contained"} className="context-menu-button" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>
                     ))}
                 </div>
+            }
+            {openTaskingButton &&
+                <TaskFromUIButton ui_feature={taskingData.ui_feature}
+                                  callback_id={task.callback_id}
+                                  parameters={taskingData.parameters}
+                                  openDialog={taskingData?.openDialog || false}
+                                  getConfirmation={taskingData?.getConfirmation || false}
+                                  acceptText={taskingData?.acceptText || "confirm"}
+                                  onTasked={finishedTasking}/>
+            }
+            {openDictionaryButton &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openDictionaryButton}
+                              onClose={finishedTasking}
+                              innerDialog={<MythicViewJSONAsTableDialog title={taskingData.title} leftColumn={taskingData.leftColumnTitle}
+                                                                        rightColumn={taskingData.rightColumnTitle} value={taskingData.value} onClose={finishedTasking} />}
+                />
+            }
+            {openStringButton &&
+                <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openStringButton} title={taskingData?.title || "Title Here"} value={taskingData?.value || ""}
+                                         onClose={finishedTasking}
+                />
+            }
+            {openTableButton &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openTableButton}
+                              onClose={finishedTasking}
+                              innerDialog={<ResponseDisplayTableDialogTable title={taskingData?.title || "Title Here"}
+                                                                            table={taskingData?.value || {}} callback_id={task.callback_id} onClose={finishedTasking} />}
+                />
             }
         </div>
 

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.71] - 2024-02-19
+
+### Changed
+
+- Fixed a bug in the new experimental tables where new callbacks would make all entries offset and wrong until refresh
+- Updated `graph` browserscript to support `overlay_img` and `overlay_style` for superimposing two icons on top of each other
+  - Updated list of graph icons to include `diamond` and `skull`
 ## [0.1.70] - 2024-02-16
 
 ### Changed
