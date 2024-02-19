@@ -85,12 +85,14 @@ func SplitFilePathGetHost(parentPath string, currentPath string, additionalPaths
 		} else if strings.Contains(currentPath, "/") {
 			returnedPathInfo.PathSeparator = "/"
 		} else {
-			// unable to determine, so assuming parent path is windodws
+			// unable to determine, so assuming parent path is windows
 			returnedPathInfo.PathSeparator = "\\"
 		}
 	} else {
-		err := errors.New(fmt.Sprintf("invalid absolute path format: %s", parentPath))
-		return returnedPathInfo, err
+		// treat this as if this is a windows path with this being the name of an unknown share
+		returnedPathInfo.PathSeparator = "\\"
+		stringSplit := strings.Split(parentPath, "\\")
+		returnedPathInfo.PathPieces = append(stringSplit[:], returnedPathInfo.PathPieces...)
 	}
 	// remove potential blank spots from pathPieces
 	if SliceContains(returnedPathInfo.PathPieces, "") {
