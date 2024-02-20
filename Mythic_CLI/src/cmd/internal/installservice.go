@@ -229,7 +229,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 			for _, f := range files {
 				if f.IsDir() {
 					log.Printf("[*] Processing Documentation for %s\n", f.Name())
-					if !config.GetMythicEnv().GetBool("document_use_volume") {
+					if !config.GetMythicEnv().GetBool("documentation_use_volume") {
 						if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "C2 Profiles", f.Name())) {
 							if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
 								log.Printf("[*] Removing current version\n")
@@ -281,7 +281,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 			for _, f := range files {
 				if f.IsDir() {
 					log.Printf("[*] Processing Documentation for %s\n", f.Name())
-					if config.GetMythicEnv().GetBool("document_local_bind_mount") {
+					if config.GetMythicEnv().GetBool("documentation_use_volume") {
 						if utils.DirExists(filepath.Join(workingPath, "documentation-docker", "content", "Wrappers", f.Name())) {
 							if overWrite || config.AskConfirm("[*] "+f.Name()+" documentation already exists. Replace current version? ") {
 								log.Printf("[*] Removing current version\n")
