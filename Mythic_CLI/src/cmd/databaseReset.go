@@ -16,8 +16,15 @@ THIS DELETES THE CURRENT DATABASE AND ALL DATA WITHIN IT`,
 
 func init() {
 	databaseCmd.AddCommand(databaseResetCmd)
+	databaseResetCmd.Flags().BoolVarP(
+		&force,
+		"force",
+		"f",
+		false,
+		`Force deleting the database and don't prompt for confirmation`,
+	)
 }
 
 func databaseReset(cmd *cobra.Command, args []string) {
-	internal.DatabaseReset()
+	internal.DatabaseReset(force)
 }

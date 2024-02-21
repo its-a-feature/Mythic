@@ -14,7 +14,7 @@ import ReactFlow, {
     applyEdgeChanges, applyNodeChanges,
     Handle, Position, useReactFlow, ReactFlowProvider, Panel,
     MiniMap, Controls, ControlButton, useUpdateNodeInternals,
-    getConnectedEdges, updateEdge
+    getConnectedEdges
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { toPng, toSvg } from 'html-to-image';
@@ -36,6 +36,7 @@ import {ResponseDisplayTableDialogTable} from "./ResponseDisplayTableDialogTable
 import SendIcon from '@mui/icons-material/Send';
 import {getIconName} from "./ResponseDisplayTable";
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -1644,6 +1645,7 @@ export const DrawBrowserScriptElementsFlowWithProvider = (props) => {
 }
 const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes, task}) => {
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: [], view_config});
+    const selectedNodes = React.useRef([]);
     const [localContextMenu, setLocalContextMenu] = React.useState(contextMenu);
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
     const [openDictionaryButton, setOpenDictionaryButton] = React.useState(false);
@@ -1657,7 +1659,7 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
         setOpenTableButton(false);
         setTaskingData({});
     }
-    const [nodes, setNodes] = React.useState();
+    const [nodes, setNodes] = React.useState([]);
     const [edgeFlow, setEdgeFlow] = React.useState([]);
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [contextMenuCoord, setContextMenuCord] = React.useState({});
@@ -1687,8 +1689,29 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
             top:  event.clientY,
             left:  event.clientX,
         });
+        let tempContextMenu = [...contextMenu, {
+            title: selectedNodes.current.length > 0 ? "Hide Selected Nodes" : "Hide Node",
+            onClick: function(node) {
+                if(selectedNodes.current.length > 0){
+
+                    const newEdges = edgeFlow.filter( e => {
+                        return selectedNodes.current.findIndex((node) => node.id === e.source || node.id === e.destination) < 0;
+                    })
+                    const newNodes = nodes.filter( n => {
+                        return selectedNodes.current.findIndex((node) => node.id === n.id) < 0;
+                    })
+                    setEdgeFlow(newEdges);
+                    setNodes(newNodes);
+                } else {
+                    const newEdges = edgeFlow.filter( e => e.source !== node.id && e.destination !== node.id)
+                    const newNodes = nodes.filter( n => n.id !== node.id)
+                    setEdgeFlow(newEdges);
+                    setNodes(newNodes);
+                }
+            }
+        }];
         if(node?.data?.buttons?.length > 0){
-            setLocalContextMenu([...contextMenu, ...node?.data?.buttons?.map(b => {
+            setLocalContextMenu([...tempContextMenu, ...node?.data?.buttons?.map(b => {
                 let title = b.name;
                 if( b?.startIcon){
                     title = <><FontAwesomeIcon icon={getIconName(b?.startIcon)} style={{color: b?.startIconColor  || ""}}/> {title}</>;
@@ -1720,13 +1743,31 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
                 }
             })]);
         } else {
-            setLocalContextMenu([...contextMenu]);
+            setLocalContextMenu([...tempContextMenu]);
         }
 
         setOpenContextMenu(true);
-    }, [contextMenu]);
+    }, [contextMenu, edgeFlow, nodes, selectedNodes.current]);
+    const onEdgeContextMenu = useCallback( (event, edge) => {
+        event.preventDefault();
+        contextMenuNode.current = {...edge};
+        setContextMenuCord({
+            top:  event.clientY,
+            left:  event.clientX,
+        });
+        let tempContextMenu = [{
+            title: "Hide Edge",
+            onClick: function(edge) {
+                const newEdges = edgeFlow.filter( e => e.id !== edge.id)
+                setEdgeFlow(newEdges);
+            }
+        }];
+        setLocalContextMenu([...tempContextMenu]);
+        setOpenContextMenu(true);
+    }, [edgeFlow, nodes]);
     const onPaneClick = useCallback( () => {
         setOpenContextMenu(false);
+        selectedNodes.current = [];
         const updatedEdges = graphData.edges.map( e => {
             return {...e,
                 animated: e.oldAnimated ? e.oldAnimated : e.animated,
@@ -1739,7 +1780,17 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
         //setGraphData({...graphData, edges: updatedEdges});
     }, [setOpenContextMenu, graphData]);
     const onNodeSelected = useCallback( (event, node) => {
-        const connectedEdges = getConnectedEdges([node], graphData.edges);
+        if(event.shiftKey){
+            let alreadySelected = selectedNodes.current.filter( s => s.id === node.id).length > 0;
+            if(alreadySelected){
+                selectedNodes.current = selectedNodes.current.filter(s => s.id !== node.id);
+            } else {
+                selectedNodes.current.push(node);
+            }
+        } else {
+            selectedNodes.current = [node];
+        }
+        const connectedEdges = getConnectedEdges(selectedNodes.current, graphData.edges);
         const updatedEdges = graphData.edges.map( e => {
             let included = connectedEdges.filter( ce => ce.id === e.id).length > 0;
             if(included){
@@ -1766,7 +1817,7 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
         })
         //setGraphData({...graphData, edges: updatedEdges});
         setEdgeFlow(updatedEdges);
-    }, [graphData]);
+    }, [graphData, selectedNodes.current]);
     React.useEffect( () => {
         let tempNodes = [];
         let tempEdges = [];
@@ -1998,6 +2049,14 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
             a.click();
         });
     };
+    const revertHidden = () => {
+        if(localViewConfig?.revert){
+            setLocalViewConfig({...localViewConfig, revert: true});
+        } else {
+            setLocalViewConfig({...localViewConfig, revert: false});
+        }
+
+    }
     return (
         <div style={{height: "100%", width: "100%", overflow: "hidden"}} ref={viewportRef}>
             <ReactFlow
@@ -2014,6 +2073,7 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
                 onPaneClick={onPaneClick}
                 onNodeContextMenu={onNodeContextMenu}
                 onNodeClick={onNodeSelected}
+                onEdgeContextMenu={onEdgeContextMenu}
             >
                 <Panel position={"top-left"} >{panel}</Panel>
                 <Controls showInteractive={false} style={{marginLeft: "40px"}} >
@@ -2022,6 +2082,9 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
                     </ControlButton>
                     <ControlButton onClick={onDownloadImageClickSvg} title={"Download SVG"}>
                         <InsertPhotoIcon />
+                    </ControlButton>
+                    <ControlButton onClick={revertHidden} title={"Revert Hidden"}>
+                        <RestartAltIcon />
                     </ControlButton>
                 </Controls>
                 <MiniMap pannable={true} zoomable={true} />

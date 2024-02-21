@@ -531,8 +531,10 @@ export function TaskParametersDialogRow(props){
                             <TableBody>
                                 {arrayValue.map( (a, i) => (
                                     <TableRow key={'array' + props.name + i} >
-                                        <MythicStyledTableCell style={{width: "2rem", paddingLeft:"0"}}>
-                                            <IconButton onClick={(e) => {removeArrayValue(i)}} size="large"><DeleteIcon color="error" /> </IconButton>
+                                        <MythicStyledTableCell style={{width: "2rem"}}>
+                                            <DeleteIcon onClick={(e) => {removeArrayValue(i)}} color="error"
+                                                        style={{cursor: "pointer"}}
+                                            />
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
                                             <MythicTextField required={props.required} fullWidth={true} placeholder={""} value={a} multiline={true} autoFocus={props.autoFocus || i > 0}

@@ -62,7 +62,7 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
     }, []);
     const finalGraphNodes = graph?.nodes?.map( n => {
         return {...n, img: getIcons(n?.img, n?.style || {}), overlay_img: getIcons(n?.overlay_img, n?.overlay_style)}
-    })
+    });
     const contextMenu = React.useMemo(() => {return [
         {
             title: 'View All Data',
@@ -70,7 +70,7 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
                 dictionaryData.current = node.data;
                 setViewAllDataDialogOpen(true);
             }
-        }
+        },
     ]}, []);
   return (
     <div style={{height: expand ? "100%" : "400px", width: "100%", position: "relative"}}>

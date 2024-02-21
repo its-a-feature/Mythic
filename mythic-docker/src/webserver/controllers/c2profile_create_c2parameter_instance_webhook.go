@@ -25,23 +25,28 @@ func CreateC2ParameterInstanceWebhook(c *gin.Context) {
 	var input createC2ParameterInstanceInput
 	var structInput rabbitmq.CreateC2InstanceInput
 	var parameters map[string]interface{}
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to get JSON parameters for CreateC2ParameterInstanceWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
-	} else if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	}
+	ginOperatorOperation, ok := c.Get("operatorOperation")
+	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for CreateC2ParameterInstanceWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
 		return
-	} else if err := json.Unmarshal([]byte(input.Input.Config), &parameters); err != nil {
+	}
+	err = json.Unmarshal([]byte(input.Input.Config), &parameters)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal c2 instance definition, should be key value pairs", "input", input.Input.Config)
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-	} else {
-		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
-		structInput.InstanceName = input.Input.InstanceName
-		structInput.Parameters = parameters
-		structInput.C2ID = input.Input.C2ProfileID
-		response := rabbitmq.CreateC2Instance(structInput, operatorOperation)
-		c.JSON(http.StatusOK, response)
+		return
 	}
+	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+	structInput.InstanceName = input.Input.InstanceName
+	structInput.Parameters = parameters
+	structInput.C2ID = input.Input.C2ProfileID
+	response := rabbitmq.CreateC2Instance(structInput, operatorOperation)
+	c.JSON(http.StatusOK, response)
 }

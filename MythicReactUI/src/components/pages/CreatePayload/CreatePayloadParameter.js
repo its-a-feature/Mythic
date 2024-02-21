@@ -244,12 +244,19 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         let values = [...arrayValue];
         if(value.includes("\n")){
             let new_values = value.split("\n");
-            values = [...values, ...new_values.slice(1)];
-            values[index] = values[index] + new_values[0];
+            if(values[index] === ""){
+                values = [...values.slice(0, index+1), ...new_values.slice(1), ...values.slice(index+1)];
+                values[index] = values[index] + new_values[0];
+            } else if(values[index] === new_values[0]){
+                values = [...values.slice(0, index+1), ...new_values.slice(1), ...values.slice(index+1)];
+            } else {
+                new_values[0] = new_values[0].slice(values[index].length)
+                values = [...values.slice(0, index+1), ...new_values, ...values.slice(index+1)];
+            }
+            console.log(values);
         }else{
             values[index] = value;
         }
-        
         setArrayValue(values);
         onChange(name, values, false);
     }
@@ -345,17 +352,19 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 );
             case "Array":
                 return (
-                    <TableContainer component={Paper} className="mythicElement">
+                    <TableContainer >
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {arrayValue.map( (a, i) => (
-                                    <TableRow key={'array' + name + i} >
-                                        <MythicStyledTableCell style={{width: "3rem"}}>
-                                            <IconButton onClick={(e) => {removeArrayValue(i)}} size="large"><DeleteIcon color="error" /> </IconButton>
+                                    <TableRow key={'array' + name + i} style={{}} >
+                                        <MythicStyledTableCell style={{width: "2rem"}}>
+                                            <DeleteIcon onClick={(e) => {removeArrayValue(i)}} color="error"
+                                                        style={{cursor: "pointer"}}
+                                            />
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
                                             <MythicTextField required={required} fullWidth={true} placeholder={""} value={a} multiline={true}
-                                                onChange={(n,v,e) => onChangeArrayText(v, e, i)} display="inline-block"
+                                                onChange={(n,v,e) => onChangeArrayText(v, e, i)} display="inline-block" autoFocus={a === ""}
                                                 validate={testParameterValues} errorText={"Must match: " + verifier_regex}
                                             />
                                         </MythicStyledTableCell>

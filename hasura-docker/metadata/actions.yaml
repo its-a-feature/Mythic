@@ -370,6 +370,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: import_c2_instance
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/import_c2parameter_instance_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: meHook
     definition:
       kind: ""

@@ -16,8 +16,6 @@ var installGitHubCmd = &cobra.Command{
 	Run:     installGitHub,
 	Args:    cobra.RangeArgs(1, 2),
 }
-var force bool
-var branch string
 
 func init() {
 	installCmd.AddCommand(installGitHubCmd)

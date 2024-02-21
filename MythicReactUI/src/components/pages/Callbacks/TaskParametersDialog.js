@@ -914,7 +914,7 @@ export function TaskParametersDialog(props) {
                     
                 }
             </Typography>
-            <TableContainer component={Paper} elevation={5} className="mythicElement" style={{backgroundColor: theme.tableHover, marginTop: "10px"}}> 
+            <TableContainer>
                 <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                     <TableHead>
                         <TableRow>

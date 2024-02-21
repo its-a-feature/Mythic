@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 0.2.20 - 2024-02-21
+
+### Changed
+
+- Added a -f (--force) flag for the `sudo ./mythic-cli database reset` command to not prompt for confirmation to help with automation
+
 ## 0.2.19 - 2024-02-20
 
 ### Changed

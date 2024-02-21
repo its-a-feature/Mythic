@@ -203,6 +203,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("request_opsec_bypass_webhook", webcontroller.RequestOpsecBypassWebhook)
 				// payloadtype / c2profile
 				noSpectators.POST("create_c2parameter_instance_webhook", webcontroller.CreateC2ParameterInstanceWebhook)
+				noSpectators.POST("import_c2parameter_instance_webhook", webcontroller.ImportC2ParameterInstanceWebhook)
 				noSpectators.POST("c2profile_upload_file_webhook", webcontroller.C2ProfileWriteFileWebhook)
 				noSpectators.POST("c2profile_remove_file_webhook", webcontroller.C2ProfileRemoveFileWebhook)
 				noSpectators.POST("start_stop_profile_webhook", webcontroller.StartStopC2ProfileWebhook)

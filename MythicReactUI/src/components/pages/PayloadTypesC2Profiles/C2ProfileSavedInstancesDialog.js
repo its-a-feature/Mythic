@@ -16,6 +16,9 @@ import {useTheme} from '@mui/material/styles';
 import { snackActions } from '../../utilities/Snackbar';
 import {getDefaultValueForType, getDefaultChoices} from '../CreatePayload/Step2SelectPayloadType';
 import {UploadTaskFile} from "../../MythicComponents/MythicFileUpload";
+import IosShareIcon from '@mui/icons-material/IosShare';
+import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const getProfileConfigQuery = gql`
 query getProfileParameters($id: Int!) {
@@ -69,6 +72,18 @@ mutation deleteSavedInstance($name: String!, $c2_profile_id: Int!){
 const createInstanceMutation = gql`
 mutation createNewC2Instance($instance_name: String!, $c2_instance: String!, $c2profile_id: Int!){
   create_c2_instance(c2_instance: $c2_instance, instance_name: $instance_name, c2profile_id: $c2profile_id){
+    status
+    error
+  }
+}
+`;
+const importInstanceMutation = gql`
+mutation importNewC2Instance($c2_instance: jsonb!, $instance_name: String!, $c2profile_name: String!){
+import_c2_instance(
+    c2_instance: $c2_instance,
+    instance_name: $instance_name
+    c2profile_name: $c2profile_name
+  ){
     status
     error
   }
@@ -189,6 +204,19 @@ export function C2ProfileSavedInstancesDialog(props) {
       onError: (data) => {
         snackActions.error("Failed to create instance: " + data);
       }
+    });
+    const [importInstance] = useMutation(importInstanceMutation, {
+        onCompleted: (data) => {
+            if(data.import_c2_instance.status === "success"){
+                snackActions.success("Successfully imported instance")
+            } else {
+                snackActions.error(data.import_c2_instance.error);
+            }
+        },
+        onError: (error) => {
+            snackActions.error("Failed to import file")
+            console.log(error)
+        }
     })
     if (loading) {
      return <LinearProgress />;
@@ -255,6 +283,48 @@ export function C2ProfileSavedInstancesDialog(props) {
       setCurrentParameters([]);
       deleteInstance({variables: {name: selectedInstance, c2_profile_id: props.id}})
     }
+    const exportInstanceButton = () => {
+        let configuration = {
+            c2profile_name: props.name,
+            c2_instance: {},
+            instance_name: instanceName
+        };
+        configuration.c2_instance = currentParameters.reduce( (prev, cur) => {
+            return {...prev, [cur.name]:cur.value};
+        }, {});
+        const dataBlob = new Blob([JSON.stringify(configuration, null, 2)], {type: 'text/plain'});
+        const ele = document.getElementById("download_instance");
+        if(ele !== null){
+            ele.href = URL.createObjectURL(dataBlob);
+            ele.download = instanceName +  ".json";
+            ele.click();
+        }else{
+            const element = document.createElement("a");
+            element.id = "download_instance";
+            element.href = URL.createObjectURL(dataBlob);
+            element.download = instanceName + ".json";
+            document.body.appendChild(element);
+            element.click();
+        }
+    }
+    const onFileChange = (evt) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            snackActions.info("Uploading...");
+            try{
+                let data = JSON.parse(String(e.target.result));
+                importInstance({variables: {
+                        c2_instance: data["c2_instance"],
+                        instance_name: data["instance_name"],
+                        c2profile_name: data["c2profile_name"]
+                    }});
+            }catch(error){
+                console.log(error);
+                snackActions.error("Failed to import file");
+            }
+        }
+        reader.readAsBinaryString(evt.target.files[0]);
+    }
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Save an Instance of {props.name}'s Parameters</DialogTitle>
@@ -284,12 +354,31 @@ export function C2ProfileSavedInstancesDialog(props) {
                 </Grid>
                 <Grid item xs={6}>
                   {selectedInstance.length > 0 ? (
-                    <Button style={{backgroundColor: theme.palette.error.main, color: "white"}} variant="contained" onClick={deleteInstanceButton}> Delete Instance</Button>
-                  ) : null}
+                      <>
+                          <Button style={{backgroundColor: theme.palette.error.main, color: "white", marginRight: "10px"}} variant="contained" onClick={deleteInstanceButton}>
+                              <DeleteIcon style={{marginRight: "5px"}} /> Delete</Button>
+                          <Button style={{backgroundColor: theme.palette.success.main, color: "white"}} variant="contained" onClick={exportInstanceButton}>
+                              <IosShareIcon style={{marginRight: "5px"}} /> Export</Button>
+                      </>
+                    ) : null}
+                    <Button style={{backgroundColor: theme.palette.warning.main, color: "white", marginLeft: "10px"}} component="label" variant="contained">
+                        <SystemUpdateAltIcon style={{marginRight: "5px"}} />Import
+                        <input onChange={onFileChange} type="file" hidden />
+                    </Button>
                 </Grid>
             </Grid>
             ) : null}
-            <MythicTextField name="Instance Name" onChange={onChange} value={instanceName} style={{paddingTop: "10px"}}/>
+            <MythicTextField name="Instance Name" onChange={onChange} value={instanceName} width={createdInstances.length === 0 ? 20 : undefined}
+                             style={{paddingTop: "10px"}}
+                             inline={createdInstances.length === 0}/>
+            {createdInstances.length === 0 &&
+                <>
+                    <Button style={{backgroundColor: theme.palette.warning.main, color: "white", marginLeft: "10px",  marginTop: "20px"}} component="label" variant="contained">
+                        <SystemUpdateAltIcon style={{marginRight: "5px"}} />Import
+                        <input onChange={onFileChange} type="file" hidden />
+                    </Button>
+                </>
+            }
             <CreatePayloadC2ProfileParametersTable {...props} returnAllDictValues={true} c2profileparameters={currentParameters} onChange={updateC2Parameter} />
         </DialogContent>
         <DialogActions>

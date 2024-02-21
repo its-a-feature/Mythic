@@ -21,6 +21,9 @@ Commands are grouped by their use and all support '-h' for help.
 For a list of available services to install, check out: https://mythicmeta.github.io/overview/`,
 }
 
+var force bool
+var branch string
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {

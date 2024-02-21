@@ -44,6 +44,7 @@ import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import BiotechIcon from '@mui/icons-material/Biotech';
 import {PayloadGetIOCDialog} from "./PayloadGetIOCDialog";
 import {PayloadGetSampleMessageDialog} from "./PayloadGetSampleMessageDialog";
+import IosShareIcon from '@mui/icons-material/IosShare';
 
 const rebuildPayloadMutation = gql`
 mutation triggerRebuildMutation($uuid: String!) {
@@ -157,7 +158,7 @@ export function PayloadsTableRow(props){
                      {name: <><CachedIcon style={{marginRight: "10px"}} />{'Trigger New Build'}</>, click: () => {
                       triggerRebuild({variables: {uuid: props.uuid}});
                     }},
-                    {name: <><SettingsIcon style={{marginRight: "10px"}} />{'Export Payload Config'}</>, click: () => {
+                    {name: <><IosShareIcon style={{marginRight: "10px"}} />{'Export Payload Config'}</>, click: () => {
                       exportConfig({variables: {uuid: props.uuid}});
                     }},
                     {name: <><PhoneMissedIcon style={{marginRight: "10px"}} />{'Generate Redirect Rules'}</>, click: () => {
@@ -325,10 +326,10 @@ export function PayloadsTableRow(props){
                   onClose={()=>{setOpenDetailedView(false);}} 
                   innerDialog={<DetailedPayloadTable {...props} payload_id={props.id} onClose={()=>{setOpenDetailedView(false);}} />}
               />
-            ) : (null) }
+            ) : null }
           </TableRow>
         </React.Fragment>
-      ) : (null)
+      ) : null
     )
 }
 

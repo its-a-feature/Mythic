@@ -6,7 +6,14 @@ import (
 	"log"
 )
 
-func DatabaseReset() {
+func DatabaseReset(force bool) {
+	if force {
+		log.Printf("[*] Stopping Mythic\n")
+		manager.GetManager().StopServices([]string{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
+		manager.GetManager().ResetDatabase(config.GetMythicEnv().GetBool("postgres_use_volume"))
+		log.Printf("[*] Removing database files\n")
+		return
+	}
 	confirm := config.AskConfirm("Are you sure you want to reset the database? ")
 	if confirm {
 		confirm = config.AskConfirm("Are you absolutely sure? This will delete ALL data with your database forever. ")

@@ -15,7 +15,7 @@ export function CreatePayloadC2ProfileParametersTable(props){
         props.onChange(props.name, paramName, value, error);
     }
     return (
-    <TableContainer component={Paper} className="mythicElement">
+    <TableContainer >
   
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "auto"}}>
                 <TableHead>

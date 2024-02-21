@@ -247,6 +247,14 @@ type Mutation {
   ): importTagtypesOutput
 }
 
+type Mutation {
+  import_c2_instance(
+    c2_instance: jsonb!
+    instance_name: String!
+    c2profile_name: String!
+  ): createc2instanceOutput
+}
+
 type Query {
   meHook: meHookOutput
 }
