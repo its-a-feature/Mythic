@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.72]
+## [0.1.73] - 2024-02-22
+
+### Changed
+
+- Fixed a bug where the download link for an uploaded file wasn't working
+- Added token tracking to the file browser
+- Fixed an issue with the experimental table when a size value was 0
+- Fixed an issue where opening the process browser wouldn't go to that host's data automatically
+- Updated FileBrowser tree to accept clicks anywhere
+- Updated FileBrowser tree to accept contextMenu anywhere
+
+## [0.1.72] 2024-02-21
 
 ### Changed
 

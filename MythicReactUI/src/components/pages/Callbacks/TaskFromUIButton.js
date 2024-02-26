@@ -58,7 +58,7 @@ const getLoadedCommandsBasedOnInput = ({cmd, ui_feature}) => {
     }
     `;
 }
-export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, parameters, onTasked, tasking_location, getConfirmation, openDialog, acceptText, dontShowSuccessDialog}) =>{
+export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, parameters, onTasked, tasking_location, getConfirmation, openDialog, acceptText, dontShowSuccessDialog, token}) =>{
     const [fileBrowserCommands, setFileBrowserCommands] = React.useState([]);
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
@@ -167,8 +167,16 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
         }
 
         if(callbackTokenOptions.length > 0){
-            setOpenCallbackTokenSelectDialog(true);
             setTaskingVariables(variables);
+            console.log("token", token)
+            if(token){
+                console.log("setting token")
+                setSelectedCallbackToken(token);
+            } else {
+                console.log("opening token select dialog")
+                setOpenCallbackTokenSelectDialog(true);
+            }
+
         }else if(callback_ids){
             createTask({variables: {...variables, callback_ids: callback_ids}})
         } else {
@@ -207,7 +215,8 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
         onTasked({tasked: false});
     }
     useEffect( () => {
-        if(selectedCallbackToken === ""){
+        console.log(selectedCallbackToken);
+        if(selectedCallbackToken === "" || selectedCallbackToken === "Default Token"){
             // we selected the default token to use
             if(callback_ids){
                 createTask({variables: {...taskingVariables, callback_ids: callback_ids}});
@@ -225,7 +234,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
 
         }
         
-    }, [selectedCallbackToken])
+    }, [selectedCallbackToken]);
     useEffect( () => {
         if(selectedCommand.commandparameters === undefined){
             return;

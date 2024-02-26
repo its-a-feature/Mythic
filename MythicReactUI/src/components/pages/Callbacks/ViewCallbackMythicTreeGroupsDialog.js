@@ -18,6 +18,9 @@ import Paper from '@mui/material/Paper';
 import {IconButton, Typography} from '@mui/material';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import LinearProgress from '@mui/material/LinearProgress';
+import { Backdrop } from '@mui/material';
+import {CircularProgress} from '@mui/material';
+import {snackActions} from "../../utilities/Snackbar";
 
 
 const getCallbackMythicTreeGroups = gql`
@@ -61,12 +64,17 @@ query getCallbackMythicTreeGroups {
 `;
 export function ViewCallbackMythicTreeGroupsDialog(props){
     const theme = useTheme();
+    const [backdropOpen, setBackdropOpen] = React.useState(true);
     const [groups, setGroups] = React.useState([]);
     const [openViewAllCallbacksDialog, setOpenViewAllCallbacksDialog] = React.useState(false);
+    React.useEffect( () => {
+        snackActions.info("Loading callbacks...");
+    }, []);
     useQuery(getCallbackMythicTreeGroups, {
         fetchPolicy: "no-cache",
         variables: {group_name: [props.group_name]},
         onCompleted: data => {
+
             const groupData = data.callback.map( c => {
                 try{
                     let cIP = JSON.parse(c.ip);
@@ -80,8 +88,12 @@ export function ViewCallbackMythicTreeGroupsDialog(props){
                 }
             })
             setGroups(groupData);
+            setBackdropOpen(false);
         }
         });
+    React.useLayoutEffect(() => {
+        snackActions.clearAll();
+    }, [groups]);
     return (
         <React.Fragment>
           <DialogTitle id="form-dialog-title" style={{display: "flex", justifyContent: "space-between"}}>
@@ -94,6 +106,9 @@ export function ViewCallbackMythicTreeGroupsDialog(props){
                 All of these callbacks are contributing data that's aggregated together for the "{props.group_name}" group.
             </div>
           <DialogContent dividers={true} style={{paddingLeft: 0, paddingRight: 0}}>
+              <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+                  <CircularProgress color="inherit" />
+              </Backdrop>
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word", width: "100%"}}>
                 <TableHead>
                     <TableRow>

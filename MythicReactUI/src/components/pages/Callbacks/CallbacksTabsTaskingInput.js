@@ -34,7 +34,7 @@ subscription GetLoadedCommandsSubscription($callback_id: Int!){
     
 }
 `;
-const subscriptionCallbackTokens = gql`
+export const subscriptionCallbackTokens = gql`
 subscription subscriptionCallbackTokens ($callback_id: Int!){
   callbacktoken(where: {deleted: {_eq: false}, callback_id: {_eq: $callback_id}}) {
     token {

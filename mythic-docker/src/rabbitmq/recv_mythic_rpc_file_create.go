@@ -91,13 +91,11 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 	if len(input.Filename) != 0 {
 		fileData.Filename = []byte(input.Filename)
 	}
-	if input.Comment == "" {
-		fileData.Comment = fmt.Sprintf("Created from task %d", input.TaskID)
-	}
+
 	if input.TaskID > 0 {
 		task := databaseStructs.Task{}
 		err = database.DB.Get(&task, `SELECT
-		task.operator_id, 
+		task.operator_id, task.display_id,
 		callback.operation_id "callback.operation_id",
 		callback.host "callback.host"
 		FROM
@@ -118,11 +116,14 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 		fileData.TaskID.Valid = true
 		fileData.OperationID = task.Callback.OperationID
 		fileData.OperatorID = task.OperatorID
+		if input.Comment == "" {
+			fileData.Comment = fmt.Sprintf("Created from task %d", task.DisplayID)
+		}
 	} else if input.PayloadUUID != "" {
 		payload := databaseStructs.Payload{}
 		err = database.DB.Get(&payload, `SELECT
 		payload.operator_id, 
-		payload.operation_id
+		payload.operation_id,
 		FROM
 		payload
 		WHERE
@@ -138,11 +139,15 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 		}
 		fileData.OperationID = payload.OperationID
 		fileData.OperatorID = payload.OperatorID
+		if input.Comment == "" {
+			fileData.Comment = fmt.Sprintf("Created from payload %s", input.PayloadUUID)
+		}
 	} else if input.AgentCallbackID != "" {
 		callback := databaseStructs.Callback{}
 		err = database.DB.Get(&callback, `SELECT
 		callback.operator_id, 
 		callback.operation_id,
+		callback.display_id,
 		callback.host 
 		FROM
 		callback
@@ -159,6 +164,9 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 		}
 		fileData.OperationID = callback.OperationID
 		fileData.OperatorID = callback.OperatorID
+		if input.Comment == "" {
+			fileData.Comment = fmt.Sprintf("Created from callback %d", callback.DisplayID)
+		}
 	} else {
 		response.Error = "Must supply a task ID, payload UUID, or agent callback id"
 		return response

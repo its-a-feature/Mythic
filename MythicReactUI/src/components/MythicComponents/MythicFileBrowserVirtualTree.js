@@ -208,7 +208,7 @@ const VirtualTreeRow = ({
       setOpenContextMenu(false);
     };
   return (
-    <div className={"hoverme"} style={ListProps.style}>
+    <div className={"hoverme"} style={ListProps.style} onContextMenu={handleContextClick} ref={dropdownAnchorRef} onClick={handleOnClickRow}>
     <div style={{display: 'flex' , marginBottom: "1px", flexGrow: 1, width: "100%"}}>
         {[...Array(itemTreeData.depth)].map((o, i) => (
             <div
@@ -223,16 +223,14 @@ const VirtualTreeRow = ({
         <div
           className={classes.root}
           style={{ backgroundColor: theme.body, color: theme.text, alignItems: 'center', display: 'flex', paddingRight: "10px", textDecoration: itemTreeData.deleted ? 'line-through' : ''  }}
-          onClick={handleOnClickRow}
-          onContextMenu={handleContextClick}
-          ref={dropdownAnchorRef}
+
           >
-            <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
+            <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}>
                   {({ TransitionProps, placement }) => (
                     <Grow
                       {...TransitionProps}
                       style={{
-                        transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
+                        transformOrigin: placement === 'bottom' ? 'left top' : 'left bottom',
                       }}
                     >
                       <Paper variant="outlined" className={"dropdownMenuColored"}>

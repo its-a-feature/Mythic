@@ -320,7 +320,6 @@ function FileMetaDownloadTableRow(props){
         if(event.target.localName === "td"){
             setOpenDetails(!openDetails);
         }
-
     }
     const onOpenCloseComment = (event, open) => {
         if(event){
@@ -723,11 +722,9 @@ function FileMetaUploadTableRow(props){
         if(event.target.nodeName === 'INPUT'){
             return
         }
-        if(event){
-            event.preventDefault();
-            event.stopPropagation();
+        if(event.target.localName === "td"){
+            setOpenDetails(!openDetails);
         }
-        setOpenDetails(!openDetails);
     }
     const onOpenCloseComment = (event, open) => {
         if(event){

@@ -1,14 +1,12 @@
-import React, {useRef, useEffect} from 'react';
+import React, {useEffect} from 'react';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import InputLabel from '@mui/material/InputLabel';
 import Input from '@mui/material/Input';
 
 export function CallbacksTabsTaskingInputTokenSelect(props) {
     const [options, setOptions] = React.useState([]);
     const [selected, setSelected] = React.useState('');
-    const inputRef = useRef(null); 
     const handleChange = (event) => {
         setSelected(event.target.value);
         props.changeSelectedToken(event.target.value);
@@ -45,7 +43,6 @@ export function CallbacksTabsTaskingInputTokenSelect(props) {
     }
   return (
       <FormControl style={{width: "20%"}}>
-        <InputLabel ref={inputRef}>Tokens</InputLabel>
         <Select
           labelId="demo-dialog-select-label"
           id="demo-dialog-select"

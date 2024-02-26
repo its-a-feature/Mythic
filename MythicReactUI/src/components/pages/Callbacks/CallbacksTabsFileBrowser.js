@@ -18,6 +18,8 @@ import {CircularProgress} from '@mui/material';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import Split from 'react-split';
+import {subscriptionCallbackTokens} from "./CallbacksTabsTaskingInput";
+import {CallbacksTabsTaskingInputTokenSelect} from "./CallbacksTabsTaskingInputTokenSelect";
 
 const fileDataFragment = gql`
     fragment fileObjData on mythictree {
@@ -293,14 +295,20 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         tableOpenedPathIdRef.current = nodeData.id;
         setSelectedFolderData(nodeData);
     }, []);
-    const onListFilesButton = ({ fullPath, callback_id, callback_display_id }) => {
+    const localSelectedToken = React.useRef("");
+    const onChangeSelectedToken = (token) => {
+        localSelectedToken.current = token;
+    }
+    const onListFilesButton = ({ fullPath, callback_id, callback_display_id, token }) => {
         taskingData.current = ({
+            "token": token,
             "parameters": {path: fullPath, full_path: fullPath, host: selectedFolderData.host, file: ""},
             "ui_feature": "file_browser:list", callback_id, callback_display_id});
         setOpenTaskingButton(true);
     };
-    const onUploadFileButton = ({ fullPath, callback_id, callback_display_id }) => {
+    const onUploadFileButton = ({ fullPath, callback_id, callback_display_id, token }) => {
         taskingData.current = ({
+            "token": token,
             "parameters": {path: fullPath, full_path: fullPath, host: selectedFolderData.host},
             "ui_feature": "file_browser:upload", "openDialog": true,
             callback_id, callback_display_id
@@ -309,6 +317,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
     };
     const onTaskRowAction = useCallback(({ path, full_path, filename, uifeature, openDialog, getConfirmation, callback_id, callback_display_id }) => {
         taskingData.current = ({
+            "token": localSelectedToken.current,
             "parameters": {
                 host: selectedFolderData.host,
                 path: path,
@@ -317,7 +326,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             }, "ui_feature": uifeature,
             openDialog, getConfirmation, callback_id, callback_display_id});
         setOpenTaskingButton(true);
-    }, [selectedFolderData]);
+    }, [selectedFolderData, localSelectedToken.current]);
     const toggleShowDeletedFiles = (showStatus) => {
         setShowDeletedFiles(showStatus);
     };
@@ -329,6 +338,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
     }, [])
     const taskListing = (nodeData, callback_id, callback_display_id) => {
         taskingData.current = ({
+            "token": localSelectedToken.current,
             "parameters": {path: nodeData.full_path_text, full_path: nodeData.full_path_text, host: selectedFolderData.host, file: ""},
             "ui_feature": "file_browser:list", callback_id, callback_display_id});
         setOpenTaskingButton(true);
@@ -357,6 +367,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         <div style={{ flexGrow: 0 }}>
                             <FileBrowserTableTop
                                 tabInfo={tabInfo}
+                                onChangeSelectedToken={onChangeSelectedToken}
                                 selectedFolderData={selectedFolderData}
                                 onListFilesButton={onListFilesButton}
                                 onUploadFileButton={onUploadFileButton}
@@ -382,7 +393,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                 </div>
             </Split>
             {openTaskingButton && 
-                <TaskFromUIButton ui_feature={taskingData.current?.ui_feature || " "} 
+                <TaskFromUIButton
+                    token={taskingData.current?.token || undefined}
+                    ui_feature={taskingData.current?.ui_feature || " "}
                     callback_id={taskingData.current?.callback_id || tabInfo.callbackID}
                     parameters={taskingData.current?.parameters || ""}
                     tasking_location={"file_browser"}
@@ -395,17 +408,37 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
 };
 const FileBrowserTableTop = ({
     selectedFolderData,
+    onChangeSelectedToken,
     onListFilesButton,
     onUploadFileButton,
     toggleShowDeletedFiles,
     tabInfo
 }) => {
     const [fullPath, setFullPath] = React.useState('');
+    const selectedToken = React.useRef("Default Token");
+    const [tokenOptions, setTokenOptions] = React.useState([]);
     const [placeHolder, setPlaceHolder] = React.useState(selectedFolderData.host);
     const [showDeletedFiles, setLocalShowDeletedFiles] = React.useState(false);
     const onChangePath = (_, value) => {
         setFullPath(value);
     };
+    const changeSelectedToken = (token) => {
+        onChangeSelectedToken(token);
+        if(token === "Default Token"){
+            selectedToken.current = "Default Token";
+            return;
+        }
+        if(token.token_id !== selectedToken.current.token_id){
+            selectedToken.current = token;
+        }
+    }
+    useSubscription(subscriptionCallbackTokens, {
+        variables: {callback_id: tabInfo.callbackID}, fetchPolicy: "no-cache",
+        shouldResubscribe: true,
+        onData: ({data}) => {
+            setTokenOptions(data.data.callbacktoken);
+        }
+    });
     useEffect(() => {
         if (selectedFolderData.full_path_text !== undefined) {
             setFullPath(selectedFolderData.full_path_text);
@@ -423,10 +456,10 @@ const FileBrowserTableTop = ({
             snackActions.warning('Must provide a path to list');
             return;
         }
-        onListFilesButton({ fullPath });
+        onListFilesButton({ fullPath, token: selectedToken.current });
     };
     const onLocalUploadFileButton = () => {
-        onUploadFileButton({ fullPath });
+        onUploadFileButton({ fullPath, token: selectedToken.current });
     };
     const onLocalToggleShowDeletedFiles = () => {
         setLocalShowDeletedFiles(!showDeletedFiles);
@@ -468,6 +501,12 @@ const FileBrowserTableTop = ({
                                 </MythicStyledTooltip>
                             </React.Fragment>
                         ),
+                        startAdornment: (
+                            <React.Fragment>
+                                {tokenOptions.length > 0 ? (
+                                    <CallbacksTabsTaskingInputTokenSelect options={tokenOptions} changeSelectedToken={changeSelectedToken}/>
+                                ) : null}
+                        </React.Fragment>),
                         style: { padding: 0 },
                     }}
                 />

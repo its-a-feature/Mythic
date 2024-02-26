@@ -163,10 +163,21 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                 return prev;
             }, {...treeAdjMtx});
            setTreeAdjMtx(newMatrix);
-           const groups = Object.keys(newMatrix).sort();
+           // first see if we can find a group that matches our host, if not, then we can do first of each
+            let groups = Object.keys(newMatrix).sort();
            if(groups.length > 0){
+               for(let i = 0; i < groups.length; i++){
+                   const hosts = Object.keys(newMatrix[groups[i]]).sort();
+                   if(hosts.length > 0){
+                       if(hosts.includes(tabInfo.host)){
+                           setSelectedGroup(groups[i]);
+                           setSelectedHost(tabInfo.host);
+                           return;
+                       }
+                   }
+               }
                setSelectedGroup(groups[0]);
-               const hosts = Object.keys(groups[0]).sort();
+               const hosts = Object.keys(newMatrix[groups[0]]).sort();
                if(hosts.length > 0){
                    setSelectedHost(hosts[0]);
                }
@@ -210,7 +221,6 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                 return prev;
             }, {...treeAdjMtx});
             setTreeAdjMtx(newMatrix);
-            
         }
     })
     const onListFilesButton = () => {
@@ -234,6 +244,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
     const updateSelectedGroup = (group) => {
         setSelectedGroup(group);
         const hosts = Object.keys(treeAdjMtx[group]);
+        console.log("updated selected group, new hosts", hosts);
         if(hosts.length > 0){
             setSelectedHost(hosts[0]);
         } else {
@@ -373,7 +384,7 @@ const ProcessBrowserTableTop = ({
                 {openViewGroupsDialog &&
                     <MythicDialog
                         fullWidth={true}
-                        maxWidth={"lg"}
+                        maxWidth={"xl"}
                         open={openViewGroupsDialog}
                         onClose={() => {setOpenViewGroupDialog(false);}}
                         innerDialog={

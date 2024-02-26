@@ -496,7 +496,7 @@ export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand, t
         }
         if(h.type === "number" || h.type === "size"){
           try{
-            return Number(row[h.plaintext]?.plaintext || NaN);
+            return Number(row[h.plaintext]?.plaintext);
           }catch(error){
             return row[h.plaintext]?.plaintext || "";
           }

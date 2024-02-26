@@ -65,7 +65,7 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
           {openViewGroupsDialog &&
               <MythicDialog
                   fullWidth={true}
-                  maxWidth={"lg"}
+                  maxWidth={"xl"}
                   open={openViewGroupsDialog}
                   onClose={() => {setOpenViewGroupDialog(false);}}
                   innerDialog={
