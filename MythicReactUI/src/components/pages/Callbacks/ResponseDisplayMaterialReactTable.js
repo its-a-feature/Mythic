@@ -334,6 +334,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
                 openDialog={cellData?.button?.openDialog || false}
                 getConfirmation={cellData?.button?.getConfirmation || false}
                 acceptText={cellData?.button?.acceptText || "confirm"}
+                selectCallback={cellData?.button?.selectCallback || false}
                 onTasked={() => setOpenTaskingButton(false)}/>
             }
           </React.Fragment>
@@ -348,6 +349,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
                 openDialog={taskingData?.openDialog || false}
                 getConfirmation={taskingData?.getConfirmation || false}
                 acceptText={taskingData?.acceptText || "confirm"}
+                selectCallback={taskingData?.selectCallback || false}
                 onTasked={finishedTasking}/>
             }
             {openDictionaryButton && 

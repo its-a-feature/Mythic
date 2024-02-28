@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.74] - 2024-02-28
+
+### Changed
+
+- Updated graph views to allow you to select multiple nodes
+- Updated graph views to highlight the currently selected nodes
+- Updated browserscript graphs to allow you to highlight/hide single edges at a time
+- Updated browserscript graphs to allow custom edge actions in addition to node actions
+- Updated browserscript "task" buttons to specify "selectCallback"
+  - This allows scripts to expose functionality to _other_ callbacks besides the one currently displaying data
+- Updated homepage to show timezone selection for chart of activity
+  
 ## [0.1.73] - 2024-02-22
 
 ### Changed

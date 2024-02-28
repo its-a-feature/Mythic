@@ -371,6 +371,7 @@ const getTargetPosition = (direction) => {
     }
 }
 function AgentNode({data}) {
+    const theme = useTheme();
     const sourcePosition = getSourcePosition(data["elk.direction"]);
     const targetPosition = getTargetPosition(data["elk.direction"]);
     const getOffset = (index) => {
@@ -382,8 +383,12 @@ function AgentNode({data}) {
         return {[offsetComponents.location]: (size * index) + (size / 2)}
 
     }
+    const additionalStyles = data?.selected ? {
+        boxShadow: `5px 5px 25px 5px ${theme.palette.info.main}, inset 0px 0px 60px 0px ${theme.palette.info.main}`,
+        borderRadius: "20px"
+    } : {};
     return (
-        <div style={{padding: 0, margin: 0}}>
+        <div style={{padding: 0, margin: 0, ...additionalStyles}}>
             {
                 [...Array(data.sourceCount)].map((e, i) => (
                     <Handle type={"source"} id={`${i+1}`} key={`${i+1}`} style={data.sourceCount > 1 ? getOffset(i) : {}} position={sourcePosition} />
@@ -412,10 +417,15 @@ function TaskNode({data}) {
     )
 }
 function BrowserscriptNode({data}) {
+    const theme = useTheme();
     const sourcePosition = getSourcePosition(data["elk.direction"]);
     const targetPosition = getTargetPosition(data["elk.direction"]);
+    const additionalStyles = data?.selected ? {
+        boxShadow: `5px 5px 25px 5px ${theme.palette.info.main}, inset 0px 0px 60px 0px ${theme.palette.info.main}`,
+        borderRadius: "20px"
+    } : {};
     return (
-        <div style={{padding: 0, margin: 0, display: "flex", flexDirection: "column"}}>
+        <div style={{padding: 0, margin: 0, display: "flex", flexDirection: "column", ...additionalStyles}}>
             <Handle type={"source"} position={sourcePosition} />
             {data.img}
             <div style={{top: 0, right: 0, height: "50%", width: "50%", position: "absolute"}}>
@@ -661,6 +671,7 @@ export const DrawC2PathElementsFlowWithProvider = (props) => {
 export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes}) =>{
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: []});
     const [nodes, setNodes] = React.useState();
+    const selectedNodes = React.useRef([]);
     const extraNodes = React.useRef(providedNodes);
     const [edgeFlow, setEdgeFlow] = React.useState([]);
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
@@ -730,6 +741,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
     }, [contextMenu])
     const onPaneClick = useCallback( () => {
         setOpenContextMenu(false);
+        selectedNodes.current = [];
         const updatedEdges = graphData.edges.map( e => {
             return {...e,
                 animated: e.oldAnimated ? e.oldAnimated : e.animated,
@@ -739,10 +751,24 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
             }
         });
         setEdgeFlow(updatedEdges);
+        const updatedNodes = nodes.map( n => {
+            return {...n, data: {...n.data, selected: false}};
+        });
+        setNodes(updatedNodes);
         //setGraphData({...graphData, edges: updatedEdges});
-    }, [setOpenContextMenu, graphData]);
+    }, [setOpenContextMenu, graphData, selectedNodes.current, nodes]);
     const onNodeSelected = useCallback( (event, node) => {
-        const connectedEdges = getConnectedEdges([node], graphData.edges);
+        if(event.shiftKey){
+            let alreadySelected = selectedNodes.current.filter( s => s.id === node.id).length > 0;
+            if(alreadySelected){
+                selectedNodes.current = selectedNodes.current.filter(s => s.id !== node.id);
+            } else {
+                selectedNodes.current.push(node);
+            }
+        } else {
+            selectedNodes.current = [node];
+        }
+        const connectedEdges = getConnectedEdges(selectedNodes.current, graphData.edges);
         const updatedEdges = graphData.edges.map( e => {
             let included = connectedEdges.filter( ce => ce.id === e.id).length > 0;
             if(included){
@@ -767,9 +793,17 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
                 }
             }
         })
-        //setGraphData({...graphData, edges: updatedEdges});
         setEdgeFlow(updatedEdges);
-    }, [graphData])
+        const updatedNodes = nodes.map( n => {
+            let isSelected = selectedNodes.current.filter( s => s.id === n.id).length > 0;
+            if(isSelected){
+                return {...n, data: {...n.data, selected: true}};
+            } else {
+                return {...n, data: {...n.data, selected: false}};
+            }
+        });
+        setNodes(updatedNodes);
+    }, [graphData, nodes, selectedNodes.current])
     React.useEffect( () => {
         let tempNodes = [{
             id: "Mythic",
@@ -1646,6 +1680,7 @@ export const DrawBrowserScriptElementsFlowWithProvider = (props) => {
 const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes, task}) => {
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: [], view_config});
     const selectedNodes = React.useRef([]);
+    const selectedEdges = React.useRef([]);
     const [localContextMenu, setLocalContextMenu] = React.useState(contextMenu);
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
     const [openDictionaryButton, setOpenDictionaryButton] = React.useState(false);
@@ -1678,6 +1713,40 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
         (changes) => setEdgeFlow((eds) => applyEdgeChanges(changes, eds)),
         []
     );
+    const onPaneContextMenu = useCallback( (event) => {
+        event.preventDefault();
+        contextMenuNode.current = {};
+        setContextMenuCord({
+            top:  event.clientY,
+            left:  event.clientX,
+        });
+        let tempContextMenu = [{
+            title: "Unselect All",
+            onClick: function() {
+                selectedNodes.current = [];
+                selectedEdges.current = [];
+                const updatedEdges = edgeFlow.map( e => {
+                    const graphEdge = graphData.edges.filter((edge) => edge.id === e.id);
+                    if(graphEdge.length > 0){
+                        return {...graphEdge[0],
+                            animated: graphEdge[0].oldAnimated ? graphEdge[0].oldAnimated : graphEdge[0].animated,
+                            style: graphEdge[0].oldStyle ? graphEdge[0].oldStyle : graphEdge[0].style,
+                            oldAnimated: null,
+                            oldStyle: null
+                        }
+                    }
+
+                });
+                const updatedNodes = nodes.map( n => {
+                    return {...n, data: {...n.data, selected: false}};
+                });
+                setNodes(updatedNodes);
+                setEdgeFlow(updatedEdges);
+            }
+        }];
+        setLocalContextMenu(tempContextMenu);
+        setOpenContextMenu(true);
+    }, [edgeFlow, nodes, setOpenContextMenu, graphData.edges])
     const onNodeContextMenu = useCallback( (event, node) => {
         if(!contextMenu){return}
         if(node.type === "groupNode"){
@@ -1693,7 +1762,6 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
             title: selectedNodes.current.length > 0 ? "Hide Selected Nodes" : "Hide Node",
             onClick: function(node) {
                 if(selectedNodes.current.length > 0){
-
                     const newEdges = edgeFlow.filter( e => {
                         return selectedNodes.current.findIndex((node) => node.id === e.source || node.id === e.destination) < 0;
                     })
@@ -1702,14 +1770,36 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
                     })
                     setEdgeFlow(newEdges);
                     setNodes(newNodes);
+                    selectedNodes.current = [];
                 } else {
                     const newEdges = edgeFlow.filter( e => e.source !== node.id && e.destination !== node.id)
                     const newNodes = nodes.filter( n => n.id !== node.id)
                     setEdgeFlow(newEdges);
                     setNodes(newNodes);
                 }
+            },
+        },
+            {
+                title: "Show Only Selected",
+                onClick: function (node) {
+                    if (selectedNodes.current.length > 0) {
+                        const newEdges = edgeFlow.filter(e => {
+                            return selectedEdges.current.findIndex((edge) => edge.id === e.id) >= 0;
+                        })
+                        const newNodes = nodes.filter(n => {
+                            return selectedNodes.current.findIndex((node) => node.id === n.id) >= 0;
+                        })
+                        setEdgeFlow(newEdges);
+                        setNodes(newNodes);
+                    } else {
+                        const newEdges = edgeFlow.filter(e => e.source === node.id && e.destination === node.id)
+                        const newNodes = nodes.filter(n => n.id === node.id)
+                        setEdgeFlow(newEdges);
+                        setNodes(newNodes);
+                    }
+                }
             }
-        }];
+        ];
         if(node?.data?.buttons?.length > 0){
             setLocalContextMenu([...tempContextMenu, ...node?.data?.buttons?.map(b => {
                 let title = b.name;
@@ -1720,6 +1810,7 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
                 }
                 return {
                     title: title,
+                    key: b.name,
                     onClick: function(node) {
                         switch(b.type){
                             case "task":
@@ -1756,29 +1847,61 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
             left:  event.clientX,
         });
         let tempContextMenu = [{
-            title: "Hide Edge",
+            title: selectedEdges.current.length > 0 ? "Hide Selected Edges" : "Hide Edge",
             onClick: function(edge) {
-                const newEdges = edgeFlow.filter( e => e.id !== edge.id)
-                setEdgeFlow(newEdges);
+                if(selectedEdges.current.length > 0){
+                    const newEdges = edgeFlow.filter( e => {
+                        return selectedEdges.current.findIndex((n) => n.id === e.id) < 0;
+                    })
+                    setEdgeFlow(newEdges);
+                } else {
+                    const newEdges = edgeFlow.filter( e => e.id !== edge.id);
+                    setEdgeFlow(newEdges);
+                }
+                selectedEdges.current = [];
             }
         }];
-        setLocalContextMenu([...tempContextMenu]);
+        if(edge?.data?.buttons?.length > 0){
+            setLocalContextMenu([...tempContextMenu, ...edge?.data?.buttons?.map(b => {
+                let title = b.name;
+                if( b?.startIcon){
+                    title = <><FontAwesomeIcon icon={getIconName(b?.startIcon)} style={{color: b?.startIconColor  || ""}}/> {title}</>;
+                } else if(b.type === "task"){
+                    title =  <><SendIcon fontSize={"sm"} /> {b.name}</>
+                }
+                return {
+                    title: title,
+                    onClick: function(edge) {
+                        switch(b.type){
+                            case "task":
+                                setTaskingData(b);
+                                setOpenTaskingButton(true);
+                                break;
+                            case "dictionary":
+                                setTaskingData(b);
+                                setOpenDictionaryButton(true);
+                                break;
+                            case "string":
+                                setTaskingData(b);
+                                setOpenStringButton(true);
+                                break;
+                            case "table":
+                                setTaskingData(b);
+                                setOpenTableButton(true);
+                                break;
+                        }
+                    }
+                }
+            })]);
+        } else {
+            setLocalContextMenu([...tempContextMenu]);
+        }
         setOpenContextMenu(true);
-    }, [edgeFlow, nodes]);
+    }, [edgeFlow, nodes, selectedEdges.current]);
     const onPaneClick = useCallback( () => {
         setOpenContextMenu(false);
-        selectedNodes.current = [];
-        const updatedEdges = graphData.edges.map( e => {
-            return {...e,
-                animated: e.oldAnimated ? e.oldAnimated : e.animated,
-                style: e.oldStyle ? e.oldStyle : e.style,
-                oldAnimated: null,
-                oldStyle: null
-            }
-        });
-        setEdgeFlow(updatedEdges);
         //setGraphData({...graphData, edges: updatedEdges});
-    }, [setOpenContextMenu, graphData]);
+    }, [setOpenContextMenu, edgeFlow, nodes, graphData.edges]);
     const onNodeSelected = useCallback( (event, node) => {
         if(event.shiftKey){
             let alreadySelected = selectedNodes.current.filter( s => s.id === node.id).length > 0;
@@ -1790,34 +1913,130 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
         } else {
             selectedNodes.current = [node];
         }
-        const connectedEdges = getConnectedEdges(selectedNodes.current, graphData.edges);
-        const updatedEdges = graphData.edges.map( e => {
+        const connectedEdges = getConnectedEdges(selectedNodes.current, edgeFlow);
+        const updatedEdges = edgeFlow.map( e => {
+            const graphEdge = graphData.edges.filter((edge) => edge.id === e.id);
             let included = connectedEdges.filter( ce => ce.id === e.id).length > 0;
             if(included){
-                return {...e,
-                    animated: e.animated,
-                    oldAnimated: e.oldAnimated ? e.oldAnimated : e.animated,
-                    oldStyle: e.oldStyle ? e.oldStyle : e.style,
+                //this edge is supposed to be highlighted
+                let alreadySelected = selectedEdges.current.filter( s => s.id === e.id).length > 0;
+                // if the edge isn't already selected, mark it as selected
+                if(!alreadySelected){
+                    selectedEdges.current.push(e);
+                }
+                return {...graphEdge[0],
+                    animated: graphEdge[0].animated,
+                    oldAnimated: graphEdge[0].oldAnimated ? graphEdge[0].oldAnimated : graphEdge[0].animated,
+                    oldStyle: graphEdge[0].oldStyle ? graphEdge[0].oldStyle : graphEdge[0].style,
                     style: {
-                        stroke: e.style.stroke,
+                        stroke: graphEdge[0].style.stroke,
                         strokeWidth: 4,
+                    },
+                    oldLabelBgStyle: graphEdge[0].oldLabelBgStyle ? graphEdge[0].oldLabelBgStyle : graphEdge[0].labelBgStyle,
+                    labelBgStyle: {
+                        fill: theme.tableHover,
+                        fillOpacity: 0.6,
+                    },
+                    oldLabelStyle: graphEdge[0].oldLabelStyle ? graphEdge[0].oldLabelStyle : graphEdge[0].labelStyle,
+                    labelStyle: {
+                        fill: theme.palette.background.contrast,
+                        //fill: "transparent"
                     }
                 }
             } else {
-                return {...e,
+                // this edge isn't supposed to be included, so make sure it's not highlighted
+                selectedEdges.current = selectedEdges.current.filter(s => s.id !== e.id);
+                return {...graphEdge[0],
                     animated: false,
-                    oldAnimated: e.oldAnimated  ? e.oldAnimated : e.animated,
-                    oldStyle: e.oldStyle ? e.oldStyle : e.style,
+                    oldAnimated: graphEdge[0].oldAnimated  ? graphEdge[0].oldAnimated : graphEdge[0].animated,
+                    oldStyle: graphEdge[0].oldStyle ? graphEdge[0].oldStyle : graphEdge[0].style,
                     style: {
                         stroke: theme.palette.secondary.main,
                         strokeWidth: 0.25,
+                    },
+                    oldLabelBgStyle: graphEdge[0].oldLabelBgStyle ? graphEdge[0].oldLabelBgStyle : graphEdge[0].labelBgStyle,
+                    labelBgStyle: {
+                        fill: theme.tableHover,
+                        fillOpacity: 0.0,
+                    },
+                    oldLabelStyle: graphEdge[0].oldLabelStyle ? graphEdge[0].oldLabelStyle : graphEdge[0].labelStyle,
+                    labelStyle: {
+                        fill: "transparent"
+                    }
+                }
+            }
+        });
+        const updatedNodes = nodes.map( n => {
+            let isSelected = selectedNodes.current.filter( s => s.id === n.id).length > 0;
+            if(isSelected){
+                return {...n, data: {...n.data, selected: true}};
+            } else {
+                return {...n, data: {...n.data, selected: false}};
+            }
+        });
+        //setGraphData({...graphData, edges: updatedEdges});
+        setEdgeFlow(updatedEdges);
+        setNodes(updatedNodes);
+    }, [edgeFlow, selectedNodes.current, selectedEdges.current, nodes, graphData]);
+    const onEdgeSelected = useCallback( (event, edge) => {
+        if(event.shiftKey){
+            let alreadySelected = selectedEdges.current.filter( s => s.id === edge.id).length > 0;
+            if(alreadySelected){
+                selectedEdges.current = selectedEdges.current.filter(s => s.id !== edge.id);
+            } else {
+                selectedEdges.current.push(edge);
+            }
+        } else {
+            selectedEdges.current = [edge];
+        }
+        const updatedEdges = edgeFlow.map( e => {
+            let included = selectedEdges.current.filter( ce => ce.id === e.id).length > 0;
+            const graphEdge = graphData.edges.filter((edge) => edge.id === e.id)
+            if(included){
+                return {...graphEdge[0],
+                    animated: graphEdge[0].animated,
+                    oldAnimated: graphEdge[0].oldAnimated ? graphEdge[0].oldAnimated : graphEdge[0].animated,
+                    oldStyle: graphEdge[0].oldStyle ? graphEdge[0].oldStyle : graphEdge[0].style,
+                    style: {
+                        stroke: graphEdge[0].style.stroke,
+                        strokeWidth: 4,
+                    },
+                    oldLabelBgStyle: graphEdge[0].oldLabelBgStyle ? graphEdge[0].oldLabelBgStyle : graphEdge[0].labelBgStyle,
+                    labelBgStyle: {
+                        fill: theme.tableHover,
+                        fillOpacity: 0.6,
+                    },
+                    oldLabelStyle: graphEdge[0].oldLabelStyle ? graphEdge[0].oldLabelStyle : graphEdge[0].labelStyle,
+                    labelStyle: {
+                        fill: theme.palette.background.contrast,
+                        //fill: "transparent"
+                    }
+                }
+            } else {
+                return {...graphEdge[0],
+                    animated: false,
+                    oldAnimated: graphEdge[0].oldAnimated  ? graphEdge[0].oldAnimated : graphEdge[0].animated,
+                    oldStyle: graphEdge[0].oldStyle ? graphEdge[0].oldStyle : graphEdge[0].style,
+                    style: {
+                        stroke: theme.palette.secondary.main,
+                        strokeWidth: 0.25,
+                    },
+                    oldLabelBgStyle: graphEdge[0].oldLabelBgStyle ? graphEdge[0].oldLabelBgStyle : graphEdge[0].labelBgStyle,
+                    labelBgStyle: {
+                        fill: theme.tableHover,
+                        fillOpacity: 0.0,
+                    },
+                    oldLabelStyle: graphEdge[0].oldLabelStyle ? graphEdge[0].oldLabelStyle : graphEdge[0].labelStyle,
+                    labelStyle: {
+                        //fill: theme.palette.background.contrast,
+                        fill: "transparent"
                     }
                 }
             }
         })
         //setGraphData({...graphData, edges: updatedEdges});
         setEdgeFlow(updatedEdges);
-    }, [graphData, selectedNodes.current]);
+    }, [edgeFlow, selectedEdges.current, graphData.edges]);
     React.useEffect( () => {
         let tempNodes = [];
         let tempEdges = [];
@@ -1896,9 +2115,11 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
                     id: edgeID,
                     source: `${edge.source.id}`,
                     target: `${edge.destination.id}`,
-                    animated: true,
+                    animated: edge?.animate || true,
+                    color: `${edge?.color}`,
                     label: `${edge.label}`,
                     data: {
+                        ...edge,
                         label: `${edge.label}`,
                         source: {...edge.source, parentNode: shouldUseTaskGroups(localViewConfig) && groupByValueSource !== "" ? groupByValueSource : null},
                         target: {...edge.destination, parentNode: shouldUseTaskGroups(localViewConfig) && groupByValueDestination !== "" ? groupByValueDestination : null},
@@ -1925,11 +2146,35 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
             add_edge_p2p(edge, localViewConfig);
         });
         for(let i = 0; i < tempEdges.length; i++){
+            let edgeColor = theme.palette.info.main;
+            switch(tempEdges[i].color){
+                case "primary":
+                    edgeColor = theme.palette.primary.main;
+                    break;
+                case "secondary":
+                    edgeColor = theme.palette.secondary.main;
+                    break;
+                case "error":
+                    edgeColor = theme.palette.error.main;
+                    break;
+                case "warning":
+                    edgeColor = theme.palette.warning.main;
+                    break;
+                case "success":
+                    edgeColor = theme.palette.success.main;
+                    break;
+                case undefined:
+                    break;
+                default:
+                    if(tempEdges[i].color.startsWith("#")){
+                        edgeColor = tempEdges[i].color;
+                    }
+            }
             tempEdges[i].markerEnd = {
-                color: theme.palette.info.main,
+                color: edgeColor,
             }
             tempEdges[i].style = {
-                stroke: theme.palette.info.main,
+                stroke: edgeColor,
                 strokeWidth: 2,
             }
 
@@ -1940,9 +2185,10 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
             }
             tempEdges[i].labelStyle = {
                 fill: theme.palette.background.contrast,
+                //fill: "transparent"
             }
-            tempEdges[i].labelShowBg = true
-            tempEdges[i].zIndex = 20;
+            //tempEdges[i].labelShowBg = true
+            //tempEdges[i].zIndex = 20;
         }
         if(shouldUseTaskGroups(localViewConfig)){
             // only add in edges from parents to parents/mythic if we're doing egress flow
@@ -2071,9 +2317,11 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
                 onPaneClick={onPaneClick}
+                onPaneContextMenu={onPaneContextMenu}
                 onNodeContextMenu={onNodeContextMenu}
                 onNodeClick={onNodeSelected}
                 onEdgeContextMenu={onEdgeContextMenu}
+                onEdgeClick={onEdgeSelected}
             >
                 <Panel position={"top-left"} >{panel}</Panel>
                 <Controls showInteractive={false} style={{marginLeft: "40px"}} >
@@ -2092,7 +2340,7 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
             {openContextMenu &&
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
                     {localContextMenu.map( (m) => (
-                        <Button key={m.title} variant={"contained"} className="context-menu-button" onClick={() => {
+                        <Button key={m?.key ? m.key : m.title} variant={"contained"} className="context-menu-button" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>
@@ -2106,6 +2354,7 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
                                   openDialog={taskingData?.openDialog || false}
                                   getConfirmation={taskingData?.getConfirmation || false}
                                   acceptText={taskingData?.acceptText || "confirm"}
+                                  selectCallback={taskingData?.selectCallback || false}
                                   onTasked={finishedTasking}/>
             }
             {openDictionaryButton &&

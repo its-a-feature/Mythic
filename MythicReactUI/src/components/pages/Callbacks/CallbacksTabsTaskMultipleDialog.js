@@ -288,6 +288,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
                 openDialog={taskingData.current?.openDialog || false}
                 tasking_location={taskingData.current?.tasking_location || "command_line"}
                 dontShowSuccessDialog={taskingData.current?.dontShowSuccessDialog || false}
+                selectCallback={taskingData.current?.selectCallback || false}
                 onTasked={onTasked}/>
         }
         <DialogActions>

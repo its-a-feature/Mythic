@@ -290,6 +290,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         parameters={taskingData.current?.parameters || ""}
                         openDialog={taskingData.current?.openDialog || false}
                         getConfirmation={taskingData.current?.getConfirmation || false}
+                        selectCallback={taskingData.current?.selectCallback || false}
                         onTasked={() => setOpenTaskingButton(false)}/>
                     }
             </div>            

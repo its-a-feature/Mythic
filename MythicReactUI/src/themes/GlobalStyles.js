@@ -149,6 +149,9 @@ tspan {
      display: block;
      border-radius: 0%;
 }
+.react-flow__edge-path, .react-flow__edge-text, .react-flow__edge-textbg, .react-flow__edge, .react-flow__edges {
+   z-index: -1 !important;
+}
 .context-menu {
     background-color: ${(props) => props.theme.palette.primary.main};
     border: 1px solid #eee;

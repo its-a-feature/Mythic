@@ -20,6 +20,7 @@ import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {useNavigate} from 'react-router-dom';
 import { BarChart } from '@mui/x-charts/BarChart';
 import {getStringSize} from "../Callbacks/ResponseDisplayTable";
+import {toLocalTime} from "../../utilities/Time";
 
 const GetCallbacks = gql`
 query GetCallbacks {
@@ -47,10 +48,8 @@ query GetCallbacks {
     status
     completed
     callback_id
-    is_interactive_task
     command_name
     status_timestamp_preprocessing
-    status_timestamp_processing
   }
   taskartifact {
     base_artifact
@@ -146,7 +145,7 @@ const errorColors = [
     "#832f0b",
 
 ]
-export function CallbacksCard() {
+export function CallbacksCard({me}) {
     const theme = useTheme();
     const navigate = useNavigate();
     const [active, setActive] = React.useState({"active": 0, "recent": 0, "total": 0});
@@ -209,10 +208,10 @@ export function CallbacksCard() {
             const newActive = data.callback.reduce( (prev, cur) => {
                 if(!callbackData[cur.id]){
                     callbackData[cur.id] = {...cur,
-                        init_callback: new Date(cur.init_callback + "Z"),
-                        last_checkin: new Date(cur.last_checkin + "Z"),
-                        init_callback_day: new Date(cur.init_callback.substr(0, 10) + "T00:00Z"),
-                        last_checkin_day: new Date(cur.last_checkin.substr(0, 10) + "T00:00Z")}
+                        init_callback: new Date(cur.init_callback + (me?.user?.view_utc_time ? "" : "Z") ),
+                        last_checkin: new Date(cur.last_checkin + (me?.user?.view_utc_time ? "" : "Z")),
+                        init_callback_day: new Date(cur.init_callback + (me?.user?.view_utc_time ? "" : "Z")),
+                        last_checkin_day: new Date(cur.last_checkin + (me?.user?.view_utc_time ? "" : "Z"))}
                 }
                 if(now - callbackData[cur.id].last_checkin <= ONE_HOUR){
                     recent += 1;
@@ -420,8 +419,13 @@ export function CallbacksCard() {
                 return [...prev, cur.operator.username];
             }, []);
             const taskDayOptions = data.task.reduce( (prev, cur) => {
-                let curDate = new Date(cur.status_timestamp_preprocessing);
-                curDate = curDate.toISOString().substr(0, 10) + "T00:00Z";
+                let curDate = new Date(cur.status_timestamp_preprocessing + (me?.user?.view_utc_time ? "" : "Z"));
+                if(me?.user?.view_utc_time){
+                    curDate = curDate.toDateString();
+                    //curDate = curDate.toISOString().substr(0, 10) + "T00:00";
+                } else {
+                    curDate = curDate.toLocaleDateString();
+                }
                 if(prev[curDate]){
                     prev[curDate][cur.operator.username] = prev[curDate][cur.operator.username] + 1;
                 }else{
@@ -444,8 +448,14 @@ export function CallbacksCard() {
                 let currentOperatorData = [];
                 for (const [key, value] of Object.entries(taskDayOptions)) {
                     if(i === 0){
-                        let taskingDate = new Date(key);
-                        taskDayArrayOptions.push(taskingDate);
+                        let taskingDate = new Date(key );
+                        if(me?.user?.view_utc_time){
+                            taskDayArrayOptions.push(taskingDate);
+                        } else {
+                            taskingDate.setTime(taskingDate.getTime() + (taskingDate.getTimezoneOffset() * 60 * 1000));
+                            taskDayArrayOptions.push(taskingDate);
+                        }
+
                         // sub process active callbacks on this day
                         let callbacksActiveOnThisDay = 0;
                         for(const [callbackID, callbackValues] of Object.entries(callbackData)){
@@ -625,7 +635,7 @@ export function CallbacksCard() {
                                leftColumnTitle={"Host"} rightColumnTitle={"Tasks"} />
             </div>
             <div style={{}}>
-                <LineTimeMultiChartCard data={tasksPerDay} />
+                <LineTimeMultiChartCard data={tasksPerDay} view_utc_time={me?.user?.view_utc_time} />
             </div>
             <div style={{display: "flex"}}>
                 <PieChartCard data={taskSuccessRate}
@@ -950,7 +960,7 @@ const LineTimeChartCard = ({data, additionalStyles}) => {
 
     )
 }
-const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPalette}) => {
+const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPalette, view_utc_time}) => {
     const [value, setValue] = React.useState([0, 0]);
     const [range, setRange] = React.useState([0, 0]);
     React.useEffect( () => {
@@ -989,7 +999,7 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
             overflow: "hidden",
         }} variant={"elevation"}>
             <Typography variant={"h3"} style={{margin: 0, padding: 0, position: "relative", left: "30%"}}>
-                Activity per Day
+                Activity per Day {view_utc_time ? "( UTC )" : "( " + Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone + " )"}
             </Typography>
             <LineChart
                 colors={colors}
@@ -1010,7 +1020,7 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
                             textAnchor: 'start',
                             fontSize: 5,
                         },
-
+                        hideTooltip: true
                     },
                 ]}
                 yAxis={[

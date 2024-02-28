@@ -401,6 +401,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                     tasking_location={"file_browser"}
                     openDialog={taskingData.current?.openDialog || false}
                     getConfirmation={taskingData.current?.getConfirmation || false}
+                    selectCallback={taskingData.current?.selectCallback || false}
                     onTasked={() => setOpenTaskingButton(false)}/>
             }
         </MythicTabPanel>

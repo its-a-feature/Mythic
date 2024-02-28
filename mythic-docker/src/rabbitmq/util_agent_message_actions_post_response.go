@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -219,8 +220,18 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 	*/
 	agentMessage := agentMessagePostResponseMessage{}
 	if err := mapstructure.Decode(incoming, &agentMessage); err != nil {
-		logging.LogError(err, "Failed to decode agent message into struct")
-		return nil, errors.New(fmt.Sprintf("Failed to decode agent message into handleAgentMessagePostResponse struct: %s", err.Error()))
+		logging.LogError(err, "Failed to decode agent message into struct, ignoring and continuing on")
+		delete(*incoming, "responses")
+		badMessageString, err2 := json.MarshalIndent(incoming, "", "    ")
+		if err2 != nil {
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to process agent message: \n%s\n%s\n", err2.Error(), err.Error()),
+				uUIDInfo.OperationID, "agent_message_bad_post_response", database.MESSAGE_LEVEL_WARNING)
+		} else {
+			badMessage := fmt.Sprintf("Failed to process agent message:\n%s\n%s\n", err.Error(), string(badMessageString))
+			go SendAllOperationsMessage(badMessage,
+				uUIDInfo.OperationID, "agent_message_bad_post_response", database.MESSAGE_LEVEL_WARNING)
+		}
+		return map[string]interface{}{}, nil
 	} else {
 		responses := []map[string]interface{}{}
 		// iterate over the agent messages

@@ -313,6 +313,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
                     openDialog={taskingData.current?.openDialog || false}
                     getConfirmation={taskingData.current?.getConfirmation || false}
                     acceptText={taskingData.current?.acceptText || "YES"}
+                    selectCallback={taskingData.current?.selectCallback || false}
                     onTasked={() => setOpenTaskingButton(false)}/>
             }  
             {openMetaDialog && 
