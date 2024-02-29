@@ -28,19 +28,27 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
      return <DisplayMedia agent_file_id={media?.agent_file_id || ""} task={task} filename={media?.filename || undefined} expand={expand} />
 }
 const textExtensionTypes = ["txt", "ps1", "php", "json", "yml", "yaml", "config", "cfg", "go",
-    "html", "xml", "js", "java", "conf", "cs", "rb", "toml"];
+    "html", "xml", "js", "java", "conf", "cs", "rb", "toml", "sh", "md", "ini", "py", "kirbi", "bash_profile", "rc",
+    "local", "gitconfig", "gitignore", "zsh_history", "bash_history", "ps", "psql_history", "lesshst", "gcloudignore",
+    "pem", "boto", "zsh_profile", "pub", "python_history", "sqlite_history", "viminfo", "zprofile", "zshrc",
+    "history", "historynew"
+];
+const knownTextFiles = ["config", "credentials", "known_hosts", "config_default", "id_rsa"];
+const imgExtensionTypes = ["png", "jpg", "gif", "jpeg", "pdf"];
 const mimeType = (path) => {
     if(!path){return undefined}
     let extension = path.split(".");
     if(extension.length > 0){
         extension = extension[extension.length - 1];
-        if(["png", "jpg", "gif", "jpeg", "pdf"].includes(extension)){
+        if(imgExtensionTypes.includes(extension.toLowerCase())){
             return "object";
         }
-        if(textExtensionTypes.includes(extension)){
+        if(textExtensionTypes.includes(extension.toLowerCase())){
             return "text";
         }
         return undefined;
+    } else if(knownTextFiles.includes(path.toLowerCase())){
+        return "text"
     }
     return undefined;
 }
@@ -56,7 +64,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task}) => {
     })
     React.useEffect( () => {
         let display_type = mimeType(filename);
-        if(display_type){
+        if(display_type !== undefined){
             setFileData({
                 display: true,
                 display_type: display_type,

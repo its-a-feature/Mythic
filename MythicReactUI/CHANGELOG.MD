@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.75] - 2024-02-29
+
+### Changed
+
+- Added more files to the `media` browserscript and files search page that are represented as "text"
+- Updated table's dictionary display buttons to break all words and enable word-wrap
+- Updated graphs with more than 50 nodes to be hidden by default and shown after consent
+- Updated graph de-selection to be a right-click context menu so that you can't accidentally unselect
+- Updated graph selection to allow hiding everything except what's currently selected
+
 ## [0.1.74] - 2024-02-28
 
 ### Changed

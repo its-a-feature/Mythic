@@ -36,7 +36,6 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import MessageIcon from '@mui/icons-material/Message';
 import ErrorIcon from '@mui/icons-material/Error';
 import CachedIcon from '@mui/icons-material/Cached';
-import SettingsIcon from '@mui/icons-material/Settings';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import AddIcCallIcon from '@mui/icons-material/AddIcCall';
 import PhoneMissedIcon from '@mui/icons-material/PhoneMissed';
@@ -80,7 +79,6 @@ export function PayloadsTableRow(props){
     const [openGenerateIOCDialog, setOpenGenerateIOCDialog] = React.useState(false);
     const [openGenerateSampleMessageDialog, setOpenGenerateSampleMessageDialog] = React.useState(false);
     const dropdownAnchorRef = useRef(null);
-    const theme = useTheme();
     const [triggerRebuild] = useMutation(rebuildPayloadMutation, {
       onCompleted: (data) => {
         if(data.rebuild_payload.status === "success"){

@@ -145,14 +145,14 @@ export function MythicViewJSONAsTableDialog(props) {
     }, [props.value, props.leftColumn, props.rightColumn]);
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
+        <DialogTitle id="form-dialog-title" style={{wordBreak: "break-all", maxWidth: "100%"}}>{props.title}</DialogTitle>
         <Paper elevation={5} style={{position: "relative"}} variant={"elevation"}>
           <TableContainer  className="mythicElement">
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                   <TableHead>
                       <TableRow>
                           {headers.map( (header, index) => (
-                            <TableCell key={'header' + index} style={index === 0 ? {width: "30%"} : {}}>{header}</TableCell>
+                            <TableCell key={'header' + index} style={index === 0 ? {width: "30%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
                           ))}
                       </TableRow>
                   </TableHead>
@@ -160,7 +160,7 @@ export function MythicViewJSONAsTableDialog(props) {
                     {tableType === "dictionary" ? (
                       comment.map( (element, index) => (
                         <TableRow key={'row' + index} hover>
-                          <TableCell>{element.name}</TableCell>
+                          <TableCell style={{wordBreak: "break-all"}}>{element.name}</TableCell>
                           {element.new_table ? 
                             (
                               <TableContainer  className="mythicElement">
@@ -168,7 +168,7 @@ export function MythicViewJSONAsTableDialog(props) {
                                       <TableHead>
                                           <TableRow>
                                               {element.headers.map( (header, index) => (
-                                                <TableCell key={'eheader' + header + index} style={index === 0 ? {width: "30%"} : {}}>{header}</TableCell>
+                                                <TableCell key={'eheader' + header + index} style={index === 0 ? {width: "30%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
                                               ))}
                                           </TableRow>
                                       </TableHead>
@@ -184,7 +184,7 @@ export function MythicViewJSONAsTableDialog(props) {
                                           element.value.map( (e, elementIndex) => (
                                             <TableRow>
                                               {element.headers.map( (header, headerIndex) => (
-                                                <TableCell key={'element' + elementIndex + "header" + headerIndex} style={headerIndex === 0 ? {width: "30%"} : {}}>{convertValueToContextValue(header, e[header], props.me)}</TableCell>
+                                                <TableCell key={'element' + elementIndex + "header" + headerIndex} style={headerIndex === 0 ? {width: "30%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{convertValueToContextValue(header, e[header], props.me)}</TableCell>
                                               ))}
                                             </TableRow>
                                           ))
@@ -203,7 +203,7 @@ export function MythicViewJSONAsTableDialog(props) {
                       comment.map( (row, index) => (
                         <TableRow key={'row' + index} hover>
                             {Object.keys(row).map( (key) => (
-                              <TableCell key={"row" + index + "cell" + key}>{convertValueToContextValue(key, row[key], props.me)}</TableCell>
+                              <TableCell key={"row" + index + "cell" + key} style={{wordBreak: "break-all"}}>{convertValueToContextValue(key, row[key], props.me)}</TableCell>
                             ))}
                         </TableRow>
                       ))
@@ -252,8 +252,8 @@ export function MythicViewObjectPropertiesAsTableDialog(props) {
                   <TableBody>
                     {comment.map( (element, index) => (
                       <TableRow key={'row' + index}>
-                        <TableCell>{element.name}</TableCell>
-                        <TableCell>{convertValueToContextValue(element.name, element.value)}</TableCell>
+                        <TableCell style={{wordBreak: "break-all"}}>{element.name}</TableCell>
+                        <TableCell style={{wordBreak: "break-all"}}>{convertValueToContextValue(element.name, element.value)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

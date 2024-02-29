@@ -1935,7 +1935,7 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
                     oldLabelBgStyle: graphEdge[0].oldLabelBgStyle ? graphEdge[0].oldLabelBgStyle : graphEdge[0].labelBgStyle,
                     labelBgStyle: {
                         fill: theme.tableHover,
-                        fillOpacity: 0.6,
+                        fillOpacity: 1.0,
                     },
                     oldLabelStyle: graphEdge[0].oldLabelStyle ? graphEdge[0].oldLabelStyle : graphEdge[0].labelStyle,
                     labelStyle: {
@@ -2004,7 +2004,8 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
                     oldLabelBgStyle: graphEdge[0].oldLabelBgStyle ? graphEdge[0].oldLabelBgStyle : graphEdge[0].labelBgStyle,
                     labelBgStyle: {
                         fill: theme.tableHover,
-                        fillOpacity: 0.6,
+                        fillOpacity: 1.0,
+                        filter: `drop-shadow (#${theme.palette.info.main} 0px 0px 10px)`
                     },
                     oldLabelStyle: graphEdge[0].oldLabelStyle ? graphEdge[0].oldLabelStyle : graphEdge[0].labelStyle,
                     labelStyle: {

@@ -13,6 +13,8 @@ import HelpTwoToneIcon from '@mui/icons-material/HelpTwoTone';
 import DiamondIcon from '@mui/icons-material/Diamond';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {faSkullCrossbones} from '@fortawesome/free-solid-svg-icons';
+import {Typography} from '@mui/material';
+import { Button } from '@mui/material';
 
 const getIcons = (img, nodeStyle) => {
     if(img === undefined){return null}
@@ -49,6 +51,7 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
     const theme = useTheme();
     const [viewAllDataDialog, setViewAllDataDialogOpen] = React.useState(false);
     const dictionaryData = React.useRef(null);
+    const [showGraph, setShowGraph] = React.useState(graph.nodes.length < 50);
     const scrollContent = (node, isAppearing) => {
         // only auto-scroll if you issued the task
         document.getElementById(`scrolltotaskbottom${task.id}`)?.scrollIntoView({
@@ -72,6 +75,31 @@ export const ResponseDisplayGraph = ({graph, task, expand}) =>{
             }
         },
     ]}, []);
+    if(!showGraph){
+        return (
+            <>
+                <div style={{display: "flex", width: "100%", height: "100%", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
+                    <Typography variant={"h4"} >
+                        {`Graph Hidden by Default Due to Size: Nodes (${graph.nodes.length}), Edges (${graph.edges.length}) `}
+                    </Typography>
+                    <Button variant={"contained"} color={"error"} onClick={() => {setShowGraph(!showGraph)}}>
+                        {"Show Graph"}
+                    </Button>
+                </div>
+            </>
+        )
+    }
+    if(graph.nodes.length === 0){
+        return (
+            <>
+                <div style={{display: "flex", width: "100%", height: "100%", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
+                    <Typography variant={"h4"} >
+                        {`Empty Graph`}
+                    </Typography>
+                </div>
+            </>
+        )
+    }
   return (
     <div style={{height: expand ? "100%" : "400px", width: "100%", position: "relative"}}>
         {viewAllDataDialog &&
