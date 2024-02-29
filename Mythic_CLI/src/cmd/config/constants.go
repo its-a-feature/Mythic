@@ -1,4 +1,4 @@
 package config
 
 // MythicDockerLatest is the most recent tagged version pushed to GitHub packages
-const MythicDockerLatest = "v0.0.3.32"
+const MythicDockerLatest = "v0.0.3.33"
