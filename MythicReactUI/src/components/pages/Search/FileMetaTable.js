@@ -317,9 +317,12 @@ function FileMetaDownloadTableRow(props){
         setOpenPreviewMediaDialog(true);
     }
     const expandRow = (event) => {
-        if(event.target.localName === "td"){
+        if(event.target.localName === "td" || event.target.localName === "p"){
             setOpenDetails(!openDetails);
         }
+    }
+    const expandRowButton = (event) => {
+        setOpenDetails(!openDetails);
     }
     const onOpenCloseComment = (event, open) => {
         if(event){
@@ -406,14 +409,14 @@ function FileMetaDownloadTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton size="small" aria-label="expand row" onClick={expandRow}>
+                    <IconButton size="small" aria-label="expand row" onClick={expandRowButton}>
                             {openDetails ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
                         </IconButton>
                 </MythicStyledTableCell>
             </TableRow>
                 {openDetails ? (
                     <TableRow>
-                        <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+                        <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
                             <Collapse in={openDetails}>
                                 <Box margin={1}>
                                 <TableContainer component={Paper} className="mythicElement" elevation={3}>   
@@ -722,7 +725,7 @@ function FileMetaUploadTableRow(props){
         if(event.target.nodeName === 'INPUT'){
             return
         }
-        if(event.target.localName === "td"){
+        if(event.target.localName === "td" || event.target.localName === "p"){
             setOpenDetails(!openDetails);
         }
     }
@@ -731,6 +734,9 @@ function FileMetaUploadTableRow(props){
             event.stopPropagation();
         }
         setEditCommentDialogOpen(open);
+    }
+    const expandRowButton = (event) => {
+        setOpenDetails(!openDetails);
     }
     return (
         <React.Fragment>
@@ -814,14 +820,14 @@ function FileMetaUploadTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton size="small" aria-label="expand row" onClick={expandRow}>
+                    <IconButton size="small" aria-label="expand row" onClick={expandRowButton}>
                             {openDetails ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
                         </IconButton>
                 </MythicStyledTableCell>
             </TableRow>
                 {openDetails ? (
                     <TableRow>
-                        <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+                        <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
                             <Collapse in={openDetails}>
                                 <Box margin={1}>
                                 <TableContainer component={Paper} className="mythicElement" elevation={3}>   
@@ -999,10 +1005,15 @@ function FileMetaScreenshotTableRow(props){
     const onAcceptDelete = () => {
         deleteFile({variables: {file_id: props.id}})
     }
-    
+    const expandRowButton = (event) => {
+        if(event.target.localName === "td" || event.target.localName === "p"){
+            setOpenDetails(!openDetails);
+        }
+        event.stopPropagation();
+    }
     return (
         <React.Fragment>
-            <TableRow hover>
+            <TableRow hover onClick={expandRowButton}>
                 {openDelete && <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>}
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
@@ -1043,7 +1054,7 @@ function FileMetaScreenshotTableRow(props){
             </TableRow>
                 {openDetails ? (
                     <TableRow>
-                        <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+                        <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
                             <Collapse in={openDetails}>
                                 <Box margin={1}>
                                 <TableContainer component={Paper} className="mythicElement">   

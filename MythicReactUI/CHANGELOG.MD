@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.75] - 2024-02-29
+## [0.1.75-76] - 2024-02-29
 
 ### Changed
 
@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated graphs with more than 50 nodes to be hidden by default and shown after consent
 - Updated graph de-selection to be a right-click context menu so that you can't accidentally unselect
 - Updated graph selection to allow hiding everything except what's currently selected
+
+### Changed
+- Fixed an issue on file search pages where the expand icon wouldn't work and clicking text wouldn't auto-expand 
 
 ## [0.1.74] - 2024-02-28
 
