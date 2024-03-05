@@ -49,6 +49,7 @@ const SUB_Payload_Types = gql`
     deleted
     supported_os
     wrapper
+    agent_type
     translationcontainer {
         id
         name

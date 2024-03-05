@@ -38,6 +38,7 @@ subscription CallbacksSubscription{
       os
       payloadtype {
         name
+        agent_type
         id
       }
       description

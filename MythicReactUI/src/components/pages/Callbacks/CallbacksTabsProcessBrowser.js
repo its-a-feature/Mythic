@@ -69,12 +69,12 @@ const treeSubscription = gql`
 const rootQuery = gql`
     ${treeFragment}
     query myRootFolderQuery($operation_id: Int!) {
-        mythictree(where: { operation_id: { _eq: $operation_id }, tree_type: {_eq: "process"} }) {
+        mythictree(where: { operation_id: { _eq: $operation_id }, tree_type: {_eq: "process"} }, order_by: {id: asc}) {
             ...treeObjData
         }
     }
 `;
-
+export const uniqueSplitString = "$&%^";
 export function CallbacksTabsProcessBrowserLabel(props){
     const [description, setDescription] = React.useState("Processes: " + props.tabInfo.displayID)
     const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
@@ -140,7 +140,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         // new host discovered
                         treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] = {};
                     }
-                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
+                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"] /*+ uniqueSplitString + data.mythictree[i]["callback_id"]*/] = {...data.mythictree[i]}
                 }
             }
             // create the top level data in the adjacency matrix
@@ -154,11 +154,18 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         // the current host isn't tracked in the adjacency matrix, so add it
                         prev[currentGroups[j]][cur["host"]] = {}
                     }
-                    if (prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]] === undefined) {
-                        // the current parent's path isn't tracked, so add it and ourselves as children
-                        prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]] = {};
+                    if(cur["parent_path_text"] === ""){
+                        if(prev[currentGroups[j]][cur['host']][""] === undefined){
+                            prev[currentGroups[j]][cur['host']][""] = {}
+                        }
+                        prev[currentGroups[j]][cur['host']][""][cur["full_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = 1;
+                        continue
                     }
-                    prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]][cur["full_path_text"]] = 1;
+                    if (prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] === undefined) {
+                        // the current parent's path isn't tracked, so add it and ourselves as children
+                        prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = {};
+                    }
+                    prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/][cur["full_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = 1;
                 }
                 return prev;
             }, {...treeAdjMtx});
@@ -199,7 +206,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         // new host discovered
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]] = {};
                     }
-                    treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]};
+                    treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"] /*+ uniqueSplitString + data.data.mythictree_stream[i]["callback_id"]*/] = {...data.data.mythictree_stream[i]};
                 }
             }
             const newMatrix = data.data.mythictree_stream.reduce( (prev, cur) => {
@@ -212,11 +219,18 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         // the current host isn't tracked in the adjacency matrix, so add it
                         prev[currentGroups[j]][cur["host"]] = {}
                     }
-                    if (prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]] === undefined) {
-                        // the current parent's path isn't tracked, so add it and ourselves as children
-                        prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]] = {};
+                    if(cur["parent_path_text"] === ""){
+                        if(prev[currentGroups[j]][cur['host']][""] === undefined){
+                            prev[currentGroups[j]][cur['host']][""] = {}
+                        }
+                        prev[currentGroups[j]][cur['host']][""][cur["full_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = 1;
+                        continue
                     }
-                    prev[currentGroups[j]][cur["host"]][cur["parent_path_text"]][cur["full_path_text"]] = 1;
+                    if (prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] === undefined) {
+                        // the current parent's path isn't tracked, so add it and ourselves as children
+                        prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = {};
+                    }
+                    prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/][cur["full_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = 1;
                 }
                 return prev;
             }, {...treeAdjMtx});
@@ -244,7 +258,6 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
     const updateSelectedGroup = (group) => {
         setSelectedGroup(group);
         const hosts = Object.keys(treeAdjMtx[group]);
-        console.log("updated selected group, new hosts", hosts);
         if(hosts.length > 0){
             setSelectedHost(hosts[0]);
         } else {

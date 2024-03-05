@@ -5108,15 +5108,18 @@
     - role: developer
       permission:
         columns:
+          - agent_type
           - author
+          - container_count
           - container_running
           - creation_time
           - deleted
           - file_extension
           - id
+          - message_format
           - mythic_encrypts
-          - note
           - name
+          - note
           - supported_os
           - supports_dynamic_loading
           - translation_container_id
@@ -5125,70 +5128,82 @@
     - role: mythic_admin
       permission:
         columns:
-          - author
           - container_running
-          - creation_time
           - deleted
-          - file_extension
-          - id
           - mythic_encrypts
-          - note
-          - name
-          - supported_os
           - supports_dynamic_loading
-          - translation_container_id
           - wrapper
+          - container_count
+          - id
+          - translation_container_id
+          - supported_os
+          - agent_type
+          - author
+          - file_extension
+          - message_format
+          - name
+          - note
+          - creation_time
         filter: {}
     - role: operation_admin
       permission:
         columns:
-          - author
           - container_running
-          - creation_time
           - deleted
-          - file_extension
-          - id
           - mythic_encrypts
-          - note
-          - name
-          - supported_os
           - supports_dynamic_loading
-          - translation_container_id
           - wrapper
+          - container_count
+          - id
+          - translation_container_id
+          - supported_os
+          - agent_type
+          - author
+          - file_extension
+          - message_format
+          - name
+          - note
+          - creation_time
         filter: {}
     - role: operator
       permission:
         columns:
-          - author
           - container_running
-          - creation_time
           - deleted
-          - file_extension
-          - id
           - mythic_encrypts
-          - note
-          - name
-          - supported_os
           - supports_dynamic_loading
-          - translation_container_id
           - wrapper
+          - container_count
+          - id
+          - translation_container_id
+          - supported_os
+          - agent_type
+          - author
+          - file_extension
+          - message_format
+          - name
+          - note
+          - creation_time
         filter: {}
     - role: spectator
       permission:
         columns:
-          - author
           - container_running
-          - creation_time
           - deleted
-          - file_extension
-          - id
           - mythic_encrypts
-          - note
-          - name
-          - supported_os
           - supports_dynamic_loading
-          - translation_container_id
           - wrapper
+          - container_count
+          - id
+          - translation_container_id
+          - supported_os
+          - agent_type
+          - author
+          - file_extension
+          - message_format
+          - name
+          - note
+          - creation_time
         filter: {}
   update_permissions:
     - role: mythic_admin

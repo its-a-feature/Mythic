@@ -45,6 +45,7 @@ type acceptedConnection struct {
 	interactiveMessagesFromAgent chan agentMessagePostResponseInteractive
 	ServerID                     uint32
 	TaskUUID                     *string
+	AgentClosedConnection        bool
 }
 type bytesSentToAgentMessage struct {
 	CallbackPortID int `json:"id"`
@@ -740,21 +741,23 @@ func (p *callbackPortUsage) manageConnections() {
 					close(connectionMap[removeCon.ServerID].messagesFromAgent)
 					connectionMap[removeCon.ServerID].conn.Close()
 					delete(connectionMap, removeCon.ServerID)
-					select {
-					case interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
-						Message: proxyToAgentMessage{
-							Message:  nil,
-							IsExit:   true,
-							ServerID: removeCon.ServerID,
-							Port:     p.LocalPort,
-						},
-						MessagesToAgent: p.messagesToAgent,
-						ProxyType:       p.PortType,
-						CallbackID:      p.CallbackID,
-					}:
-					default:
+					if !removeCon.AgentClosedConnection {
+						// we're closing the connection, not the agent, so tell the agent to close
+						select {
+						case interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
+							Message: proxyToAgentMessage{
+								Message:  nil,
+								IsExit:   true,
+								ServerID: removeCon.ServerID,
+								Port:     p.LocalPort,
+							},
+							MessagesToAgent: p.messagesToAgent,
+							ProxyType:       p.PortType,
+							CallbackID:      p.CallbackID,
+						}:
+						default:
+						}
 					}
-
 				}
 			}
 
@@ -890,7 +893,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 		//logging.LogInfo("got new connection")
 		go func(conn net.Conn) {
 			// this reads from the connection and writes data for the agent to process
-			initial := make([]byte, 4)
+			initial := make([]byte, 20)
 			_, err = conn.Read(initial)
 			if err != nil {
 				logging.LogError(err, "failed to read initial SOCKS connection data")
@@ -941,7 +944,8 @@ func (p *callbackPortUsage) handleSocksConnections() {
 
 						if agentMessage.IsExit {
 							//logging.LogDebug("got message isExit", "server_id", newConnection.ServerID)
-							// cleanup the connection data
+							// cleanup the connection data, but don't tell the agent to close
+							newConnection.AgentClosedConnection = true
 							p.removeConnectionsChannel <- &newConnection
 							return
 						}
@@ -1027,7 +1031,8 @@ func (p *callbackPortUsage) handleRpfwdConnections(newConnection *acceptedConnec
 				}
 				if agentMessage.IsExit {
 					//logging.LogDebug("got message isExit", "server_id", newConnection.ServerID)
-					// cleanup the connection data
+					// cleanup the connection data, but don't send an exit back to the agent
+					newConnection.AgentClosedConnection = true
 					p.removeConnectionsChannel <- newConnection
 					return
 				}
@@ -1138,6 +1143,7 @@ func (p *callbackPortUsage) handleInteractiveConnections() {
 							if agentMessage.MessageType == InteractiveTask.Exit {
 								//logging.LogDebug("got message isExit", "server_id", newConnection.ServerID)
 								// cleanup the connection data
+								newConnection.AgentClosedConnection = true
 								p.removeConnectionsChannel <- &newConnection
 								return
 							}

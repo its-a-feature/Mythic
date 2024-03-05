@@ -76,6 +76,7 @@ type PayloadType struct {
 	BuildSteps                   []BuildStep      `json:"build_steps"`
 	AgentIcon                    *[]byte          `json:"agent_icon"`
 	MessageFormat                string           `json:"message_format"`
+	AgentType                    string           `json:"agent_type"`
 }
 
 type Command struct {
@@ -186,6 +187,9 @@ func processPayloadSyncMessages(msg amqp.Delivery) interface{} {
 	return response
 }
 
+var messageFormats = []string{"xml", "json"}
+var agentTypes = []string{"agent", "service"}
+
 func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	//logging.LogDebug("Received connection to PayloadTypeSync", "syncMessage", in)
 	payloadtype := databaseStructs.Payloadtype{}
@@ -210,15 +214,23 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.Wrapper = in.PayloadType.Wrapper
 		if in.PayloadType.MessageFormat == "" {
 			payloadtype.MessageFormat = "json"
-		} else if utils.SliceContains([]string{"json", "xml"}, in.PayloadType.MessageFormat) {
+		} else if utils.SliceContains(messageFormats, in.PayloadType.MessageFormat) {
 			payloadtype.MessageFormat = in.PayloadType.MessageFormat
 		} else {
 			logging.LogError(nil, "Unknown message format", "message_format", in.PayloadType.MessageFormat)
 			payloadtype.MessageFormat = "json"
 		}
+		if in.PayloadType.AgentType == "" {
+			payloadtype.AgentType = "agent"
+		} else if utils.SliceContains(agentTypes, in.PayloadType.AgentType) {
+			payloadtype.AgentType = in.PayloadType.AgentType
+		} else {
+			logging.LogError(nil, "Unknown agent type", "agent_type", in.PayloadType.AgentType)
+			payloadtype.AgentType = "agent"
+		}
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO payloadtype 
-			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper) 
-			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper) 
+			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper,agent_type,message_format) 
+			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper,:agent_type, :message_format) 
 			RETURNING id`,
 		); err != nil {
 			logging.LogError(err, "Failed to create new payloadtype statement")
@@ -244,9 +256,26 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.SupportsDynamicLoading = in.PayloadType.SupportsDynamicLoading
 		payloadtype.Deleted = false
 		payloadtype.Wrapper = in.PayloadType.Wrapper
+		if in.PayloadType.MessageFormat == "" {
+			payloadtype.MessageFormat = "json"
+		} else if utils.SliceContains(messageFormats, in.PayloadType.MessageFormat) {
+			payloadtype.MessageFormat = in.PayloadType.MessageFormat
+		} else {
+			logging.LogError(nil, "Unknown message format", "message_format", in.PayloadType.MessageFormat)
+			payloadtype.MessageFormat = "json"
+		}
+		if in.PayloadType.AgentType == "" {
+			payloadtype.AgentType = "agent"
+		} else if utils.SliceContains(agentTypes, in.PayloadType.AgentType) {
+			payloadtype.AgentType = in.PayloadType.AgentType
+		} else {
+			logging.LogError(nil, "Unknown agent type", "agent_type", in.PayloadType.AgentType)
+			payloadtype.AgentType = "agent"
+		}
 		_, err = database.DB.NamedExec(`UPDATE payloadtype SET 
 			author=:author, container_running=:container_running, file_extension=:file_extension, mythic_encrypts=:mythic_encrypts,
-			note=:note, supported_os=:supported_os, supports_dynamic_loading=:supports_dynamic_loading, wrapper=:wrapper, deleted=:deleted 
+			note=:note, supported_os=:supported_os, supports_dynamic_loading=:supports_dynamic_loading, wrapper=:wrapper, deleted=:deleted,
+			agent_type=:agent_type, message_format=:message_format
 			WHERE id=:id`, payloadtype,
 		)
 		if err != nil {

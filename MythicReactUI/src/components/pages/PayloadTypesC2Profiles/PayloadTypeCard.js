@@ -82,7 +82,7 @@ export function PayloadTypeRow({service, showDeleted}){
                     {service.name}
                 </MythicTableCell>
                 <MythicTableCell>
-                    {service.wrapper ? "Wrapper" : "Agent"}
+                    {service.wrapper ? "Wrapper" : service.agent_type === "agent" ? "Agent" : "3rd Party Service"}
                 </MythicTableCell>
                 <MythicTableCell>
                     <Typography variant="body1" component="p">

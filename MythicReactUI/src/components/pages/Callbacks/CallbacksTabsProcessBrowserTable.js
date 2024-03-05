@@ -28,6 +28,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ListSubheader from '@mui/material/ListSubheader';
+import {uniqueSplitString} from './CallbacksTabsProcessBrowser';
 
 const getPermissionsDataQuery = gql`
     query getPermissionsQuery($mythictree_id: Int!) {
@@ -55,7 +56,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     const [openNodes, setOpenNodes] = React.useState({});
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [filterOptions, setFilterOptions] = React.useState({});
-    const [selectedColumn, setSelectedColumn] = React.useState({});
+    const selectedColumn = React.useRef({});
     const [columnVisibility, setColumnVisibility] = React.useState({
         "visible": ["Info","PID", "PPID", "Name", "User", "Arch", "Tags", "Comment"],
         "hidden": [ "Session" ]
@@ -69,26 +70,36 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         for(const [group, hosts] of Object.entries(updatedTreeAdjMatrix)){
             for(const [host, matrix] of Object.entries(hosts)){
                 for(const [key, children] of Object.entries(matrix)){
-                    try{
-                        onodes[parseInt(key)] = true;
-                    }catch(error){
-                        console.log("couldn't parse int on", key)
-                    }
+                    onodes[key] = true;
                     //if(treeRootData[host][key] !== undefined){
                     //onodes[treeRootData[host][key].id] = true;
-                    onodes[parseInt(key)] = true;
+                    //onodes[parseInt(key)] = true;
                     //}
                 }
             }
         }
-
         setOpenNodes(onodes);
     }
     React.useEffect( () => {
         // need to update the matrix in case there are notes that don't trace back to root
         let adjustedMatrix = {};
+        // check for cycles
+        let tempMatrix = {...treeAdjMatrix};
+        for(const[group, groupMatrix] of Object.entries(tempMatrix)){
+            for(const[host, hostMatrix] of Object.entries(tempMatrix[group])){
+                for(const[key, val] of Object.entries(tempMatrix[group][host])){
+                    for(const[key2, val2] of Object.entries(tempMatrix[group][host])){
+                        if(val2[key] !== undefined && val[key2] !== undefined){
+                            let tmp = {...val2};
+                            delete tmp[key];
+                            tempMatrix[group][host][key2] = tmp;
+                        }
+                    }
+                }
+            }
+        }
         //console.log("treeAdjMatrix updated", treeAdjMatrix)
-        for(const [group, hosts] of Object.entries(treeAdjMatrix)){
+        for(const [group, hosts] of Object.entries(tempMatrix)){
             if(adjustedMatrix[group] === undefined){adjustedMatrix[group] = {}}
             for(const [host, matrix] of Object.entries(hosts)){
                 // looping through the hosts to adjust their entries
@@ -124,7 +135,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     }, [treeAdjMatrix]);
     React.useEffect( () => {
         openAllNodes();
-    }, [updatedTreeAdjMatrix])
+    }, [host, group])
     React.useEffect(() => {
         setViewSingleTreeData(false);
     }, [host]);
@@ -142,13 +153,13 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
       };
     const handleOnClickButton = (nodeId) => {
         //console.log("handleOnClickButton", "nodeId", nodeId, "openNodes", openNodes)
-        if(openNodes[nodeId] !== undefined){
+        //if(openNodes[nodeId] !== undefined){
             if (openNodes[nodeId]) {
                 onCollapseNode(nodeId);
             } else {
                 onExpandNode(nodeId);
             }
-        }
+       // }
         
     };
     const columnDefaults = [
@@ -186,7 +197,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
           if(depth === 0){
             return [
               {
-                id: treeRootData[group][host][node]?.id || parseInt(node),
+                id: treeRootData[group][host][node]?.id || node,
                 name: treeRootData[group][host][node]?.full_path_text || node,
                 full_path_text: treeRootData[group][host][node]?.full_path_text || node,
                 name_text: treeRootData[group][host][node]?.name_text || node,
@@ -208,17 +219,17 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
           }
           //console.log("openNodes", openNodes, "node", node, "nodeid", treeRootData[host][node])
           //if (openNodes[treeRootData[host][node]?.id] === true) {
-            if(openNodes[parseInt(node)] === true){
+            if(openNodes[node] === true){
             return [
               {
-                id: treeRootData[group][host][node]?.id || parseInt(node),
+                id: treeRootData[group][host][node]?.id || node ,
                 name: treeRootData[group][host][node]?.full_path_text || node + " - " + treeRootData[group][host][node]?.name_text || "UNKNOWN",
                 full_path_text: treeRootData[group][host][node]?.full_path_text || node,
                 name_text: treeRootData[group][host][node]?.name_text || node,
                 deleted: treeRootData[group][host][node]?.deleted || true,
                 depth,
                 isLeaf: Object.keys(treeToUse[group][host]?.[node] || {}).length === 0,
-                can_have_children: treeRootData[group][host][node]?.can_have_children || true,
+                can_have_children: treeRootData[group][host]?.[node]?.can_have_children || true,
                 isOpen: true,
                 children: (treeToUse[group][host]?.[node] || {}),
                 host,
@@ -233,7 +244,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
           }
           return [
             {
-              id: treeRootData[group][host][node]?.id ||  parseInt(node),
+              id: treeRootData[group][host][node]?.id || node,
               name: treeRootData[group][host][node]?.full_path_text || node  + " - " + treeRootData[group][host][node]?.name_text || "UNKNOWN",
               full_path_text: treeRootData[group][host][node]?.full_path_text || node,
               name_text: treeRootData[group][host][node]?.name_text || node,
@@ -294,12 +305,12 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                 }
                 else if(b.root){return -1}
                 else if(sortData.inMetadata){
-                    let aData = parseInt(treeRootData[group][host][a.full_path_text]?.metadata[sortData.sortKey] || a.full_path_text);
-                    let bData = parseInt(treeRootData[group][host][b.full_path_text]?.metadata[sortData.sortKey] || b.full_path_text);
+                    let aData = parseInt(treeRootData[group][host][a.full_path_text /*+ uniqueSplitString + a.callback_id*/]?.metadata[sortData.sortKey] || a.full_path_text);
+                    let bData = parseInt(treeRootData[group][host][b.full_path_text /*+ uniqueSplitString + b.callback_id*/]?.metadata[sortData.sortKey] || b.full_path_text);
                     return aData > bData ? 1 : bData > aData ? -1 : 0;
                 } else {
-                    let aData = parseInt(treeRootData[group][host][a.full_path_text][sortData.sortKey]);
-                    let bData = parseInt(treeRootData[group][host][b.full_path_text][sortData.sortKey]);
+                    let aData = parseInt(treeRootData[group][host][a.full_path_text /*+ uniqueSplitString + a.callback_id*/][sortData.sortKey]);
+                    let bData = parseInt(treeRootData[group][host][b.full_path_text /*+ uniqueSplitString + b.callback_id*/][sortData.sortKey]);
                     return aData > bData ? 1 : bData > aData ? -1 : 0;
                 }
                 
@@ -307,20 +318,20 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         } else if (sortData.sortType === 'string') {
             tempData.sort((a, b) => {
                 //console.log(treeRootData[host][a.full_path_text], treeRootData[host][b.full_path_text])
-                if(treeRootData[group][host][a.full_path_text] === undefined){
-                    if(treeRootData[group][host][b.full_path_text] === undefined){
+                if(treeRootData[group][host][a.full_path_text /*+ uniqueSplitString + a.callback_id*/] === undefined){
+                    if(treeRootData[group][host][b.full_path_text /*+ uniqueSplitString + b.callback_id*/] === undefined){
                         return 0;
                     }
                     return -1;
                 }
-                if(treeRootData[group][host][b.full_path_text] === undefined){
+                if(treeRootData[group][host][b.full_path_text /*+ uniqueSplitString + b.callback_id*/] === undefined){
                     return 1
                 }
-                let aData = treeRootData[group][host][a.full_path_text][sortData.sortKey];
-                let bData = treeRootData[group][host][b.full_path_text][sortData.sortKey];
+                let aData = treeRootData[group][host][a.full_path_text /*+ uniqueSplitString + a.callback_id*/][sortData.sortKey];
+                let bData = treeRootData[group][host][b.full_path_text /*+ uniqueSplitString + b.callback_id*/][sortData.sortKey];
                 if(sortData.inMetadata){
-                    aData = treeRootData[group][host][a.full_path_text]?.metadata[sortData.sortKey];
-                    bData = treeRootData[group][host][b.full_path_text]?.metadata[sortData.sortKey];
+                    aData = treeRootData[group][host][a.full_path_text /*+ uniqueSplitString + a.callback_id*/]?.metadata[sortData.sortKey];
+                    bData = treeRootData[group][host][b.full_path_text /*+ uniqueSplitString + b.callback_id*/]?.metadata[sortData.sortKey];
                 }
                 if(aData === undefined){
                     if(bData === undefined){
@@ -348,7 +359,9 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     }
     const filterRow = (rowData) => {
         if(rowData.root){return true}
-        if(!showDeletedFiles && treeRootData[group][host][rowData.full_path_text] !== undefined && treeRootData[group][host][rowData.full_path_text].deleted){
+        if(!showDeletedFiles &&
+            treeRootData[group][host][rowData.full_path_text /*+ uniqueSplitString + rowData.callback_id*/] !== undefined &&
+            treeRootData[group][host][rowData.full_path_text /*+ uniqueSplitString + rowData.callback_id*/].deleted){
             return true;
         }
         let filterOptionInMetadata = {}
@@ -360,13 +373,13 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
             }
         }
         for(const [key,value] of Object.entries(filterOptions)){
-            if(treeRootData[group][host][rowData.full_path_text] === undefined){return true}
+            if(treeRootData[group][host][rowData.full_path_text /*+ uniqueSplitString + rowData.callback_id*/] === undefined){return true}
             if(filterOptionInMetadata[key]){
-                if(!String(treeRootData[group][host][rowData.full_path_text]?.metadata[key]).toLowerCase().includes(value)){
+                if(!String(treeRootData[group][host][rowData.full_path_text /*+ uniqueSplitString + rowData.callback_id*/]?.metadata[key]).toLowerCase().includes(value)){
                     return true;
                 }
             }else{
-                if(!String(treeRootData[group][host][rowData.full_path_text][key]).toLowerCase().includes(value)){
+                if(!String(treeRootData[group][host][rowData.full_path_text /*+ uniqueSplitString + rowData.callback_id*/][key]).toLowerCase().includes(value)){
                     return true;
                 }
             }
@@ -379,8 +392,8 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         let singleTreeAdjMatrix = {[group]: {[treeElement.host]: {}}};
 
         // get the parent hierarchy all the way up
-        let parent = treeRootData[group][treeElement.host][treeElement.full_path_text].parent_path_text;
-        let current = treeElement.full_path_text;
+        let parent = treeRootData[group][treeElement.host][treeElement.full_path_text /*+ uniqueSplitString + treeElement.callback_id*/].parent_path_text /*+ uniqueSplitString + treeElement.callback_id*/;
+        let current = treeElement.full_path_text /*+ uniqueSplitString + treeElement.callback_id*/;
         //console.log("initial parent", parent, "adj", treeAdjMatrix[treeElement.host][parent])
         while(treeAdjMatrix[group][treeElement.host][parent] !== undefined){
             singleTreeAdjMatrix[group][treeElement.host][parent] = {[current]: 1};
@@ -389,12 +402,12 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                 break;
             }
             current = parent;
-            parent = treeRootData[group][treeElement.host][parent].parent_path_text
+            parent = treeRootData[group][treeElement.host][parent].parent_path_text /*+ uniqueSplitString + treeRootData[group][treeElement.host][parent].callback_id*/;
         }
         // now get all the descendents of the selected element
-        if(treeAdjMatrix[group][treeElement.host][treeElement.full_path_text] !== undefined){
-            singleTreeAdjMatrix[group][treeElement.host][treeElement.full_path_text] = treeAdjMatrix[group][treeElement.host][treeElement.full_path_text]
-            let leftToProcess = Object.keys(treeAdjMatrix[group][treeElement.host][treeElement.full_path_text]);
+        if(treeAdjMatrix[group][treeElement.host][treeElement.full_path_text /*+ uniqueSplitString + treeElement.callback_id*/] !== undefined){
+            singleTreeAdjMatrix[group][treeElement.host][treeElement.full_path_text /*+ uniqueSplitString + treeElement.callback_id*/] = treeAdjMatrix[group][treeElement.host][treeElement.full_path_text /*+ uniqueSplitString + treeElement.callback_id*/];
+            let leftToProcess = Object.keys(treeAdjMatrix[group][treeElement.host][treeElement.full_path_text /*+ uniqueSplitString + treeElement.callback_id*/]);
             while(leftToProcess.length > 0){
                 let nextChild = leftToProcess.shift();
                 if(treeAdjMatrix[group][treeElement.host][nextChild] !== undefined){
@@ -464,7 +477,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             treeRootData={treeRootData[group]}
                                             host={host}
                                             group={group}
-                                            children={updatedTreeAdjMatrix[group][host][row.full_path_text]}
+                                            children={updatedTreeAdjMatrix[group][host]?.[row.full_path_text /*+ uniqueSplitString + row.callback_id*/]}
                                             handleOnClickButton={handleOnClickButton}
                                             rowData={row} />;
                             case "User":
@@ -472,21 +485,21 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                     treeRootData={treeRootData[group]}
                                     host={host}
                                     group={group}
-                                    cellData={treeRootData[group][host][row.full_path_text]?.metadata?.user || ''}
+                                    cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.user || ''}
                                     rowData={row} />;
                             case "Arch":
                                 return <FileBrowserTableRowStringCell
                                     treeRootData={treeRootData[group]}
                                     host={host}
                                     group={group}
-                                    cellData={treeRootData[group][host][row.full_path_text]?.metadata?.architecture || ''}
+                                    cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.architecture || ''}
                                     rowData={row} />;
                             case "Session":
                                 return <FileBrowserTableRowStringCell
                                     treeRootData={treeRootData[group]}
                                     host={host}
                                     group={group}
-                                    cellData={treeRootData[group][host][row.full_path_text]?.metadata?.session_id || ''}
+                                    cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.session_id || ''}
                                     rowData={row} />;
                             case "PID":
                                 return <FileBrowserTableRowStringCell 
@@ -494,14 +507,14 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             host={host}
                                             group={group}
                                             rowData={row} 
-                                            cellData={treeRootData[group][host][row.full_path_text]?.metadata?.process_id || parseInt(row.full_path_text)} />;
+                                            cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.process_id || row.full_path_text} />;
                             case "PPID":
                                 return <FileBrowserTableRowStringCell 
                                             treeRootData={treeRootData[group]}
                                             host={host}
                                             group={group}
                                             rowData={row} 
-                                            cellData={treeRootData[group][host][row.full_path_text]?.metadata?.parent_process_id} />;
+                                            cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.parent_process_id || ""} />;
                             case "Tags":
                                 return <FileBrowserTagsCell 
                                             rowData={row} 
@@ -515,7 +528,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             host={host} 
                                             rowData={row}
                                             group={group}
-                                            cellData={treeRootData[group][host][row.full_path_text]?.comment}
+                                            cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.comment}
                                 />;
                             default:
                                 console.log("hit default case in swith on c.name)")
@@ -555,7 +568,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                     snackActions.warning("Can't filter that column");
                     return;
                 }
-                setSelectedColumn(columns[columnIndex]);
+                selectedColumn.current = columns[columnIndex];
                 setOpenContextMenu(true);
             }
         },
@@ -591,7 +604,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                 <MythicDialog fullWidth={true} maxWidth="xs" open={openContextMenu} 
                     onClose={()=>{setOpenContextMenu(false);}} 
                     innerDialog={<TableFilterDialog 
-                        selectedColumn={selectedColumn} 
+                        selectedColumn={selectedColumn.current}
                         filterOptions={filterOptions} 
                         onSubmit={onSubmitFilterOptions} 
                         onClose={()=>{setOpenContextMenu(false);}} />}
@@ -612,10 +625,10 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
 const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, handleOnClickButton }) => {
     const theme = useTheme();
     return (
-        <div style={{ alignItems: 'center', display: 'flex', flexGrow: 1, width: "100%", textDecoration: treeRootData[host][rowData["full_path_text"]]?.deleted ? 'line-through' : '' }}>
+        <div style={{ alignItems: 'center', display: 'flex', flexGrow: 1, width: "100%", textDecoration: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.deleted ? 'line-through' : '' }}>
             {[...Array(rowData.depth-1)].map((o, i) => (
                 i === rowData.depth-2 && children ? (
-                    i === 0 ? (<div key={'folder' + rowData.full_path_text + i} style={{marginLeft: 10, paddingRight: 10}}></div>) : (null)
+                    i === 0 ? (<div key={'folder' + rowData.full_path_text + i} style={{marginLeft: 10, paddingRight: 10}}></div>) : null
                 ) : (
                     <div
                     key={'folder' + rowData.full_path_text + 'lines' + i}
@@ -640,33 +653,33 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
                     style={{
                         
                     }} 
-                    onClick={() => {handleOnClickButton(rowData.full_path_text)}} />
+                    onClick={() => {handleOnClickButton(rowData.full_path_text /*+ uniqueSplitString + rowData["callback_id"]*/)}} />
                     <TerminalIcon  />
                   </>
               ) : (
                 <>
                 <KeyboardArrowRightIcon 
                     style={{ paddingTop: '5px',   }} 
-                        onClick={() => {handleOnClickButton(rowData.full_path_text)}} />
+                        onClick={() => {handleOnClickButton(rowData.full_path_text /*+ uniqueSplitString + rowData["callback_id"]*/)}} />
                 <TerminalIcon  />
                 </>
                   
               )}
             <pre style={{paddingLeft: "2px"}}>
-                {treeRootData[host][rowData["full_path_text"]]?.name_text || "UNKNOWN - MISSING DATA"}
+                {treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.name_text || "UNKNOWN - MISSING DATA"}
             </pre>
         </div>
     );
 };
 const FileBrowserTagsCell = ({rowData, treeRootData, host, me}) => {
     return (
-        treeRootData[host][rowData["full_path_text"]]?.id ? (
+        treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.id ? (
             <>
                 <ViewEditTags 
                     target_object={"mythictree_id"} 
-                    target_object_id={treeRootData[host][rowData["full_path_text"]]?.id || 0} 
+                    target_object_id={treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.id || 0}
                     me={me} />
-                <TagsDisplay tags={treeRootData[host][rowData["full_path_text"]]?.tags || []} />
+                <TagsDisplay tags={treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.tags || []} />
             </>
         ) : null
     )
@@ -678,7 +691,6 @@ const FileBrowserTableRowStringCell = ({cellData, treeRootData, host, rowData}) 
 }
 const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, host, viewSingleTreeData,setSingleTree, toggleViewSingleTreeData, tabInfo}) => {
     const dropdownAnchorRef = React.useRef(null);
-    const arrowRef = React.useRef(null);
     const theme = useTheme();
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [viewPermissionsDialogOpen, setViewPermissionsDialogOpen] = React.useState(false);
@@ -686,8 +698,14 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
     const [fileCommentDialogOpen, setFileCommentDialogOpen] = React.useState(false);
     const [getPermissions] = useLazyQuery(getPermissionsDataQuery, {
         onCompleted: (data) => {
-            setPermissionData(data.mythictree_by_pk.metadata);
+            console.log(rowData);
+            setPermissionData({...data.mythictree_by_pk.metadata,
+            callback_id: rowData["callback_id"],
+            callback_display_id: rowData["callback_display_id"]});
             setViewPermissionsDialogOpen(true);
+        },
+        onError: (data) => {
+          console.log("get permissions error", data);
         },
         fetchPolicy: "network-only"
     });
@@ -697,7 +715,7 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
         },
     });
     const onSubmitUpdatedComment = (comment) => {
-        updateComment({ variables: { mythictree_id: treeRootData[host][rowData["full_path_text"]].id, comment: comment } });
+        updateComment({ variables: { mythictree_id: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].id, comment: comment } });
     };
     const handleDropdownToggle = (evt) => {
         evt.stopPropagation();
@@ -751,24 +769,24 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                     {name: 'Task Inject', icon: <GetAppIcon style={{paddingRight: "5px", color: theme.palette.success.main}}/>, click: (evt, callback_id, display_id) => {
                         evt.stopPropagation();
                         onTaskRowAction({
-                            process_id: treeRootData[host][rowData["full_path_text"]].metadata.process_id,
-                            architecture: treeRootData[host][rowData["full_path_text"]].metadata.architecture,
+                            process_id: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.process_id,
+                            architecture: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.architecture,
                             uifeature: "process_browser:inject", callback_id, display_id
                         });
                     }},
                     {name: 'Task Token Listing', icon: <ListIcon style={{paddingRight: "5px", color: theme.palette.warning.main}}/>, click: (evt, callback_id, display_id) => {
                         evt.stopPropagation();
                         onTaskRowAction({
-                            process_id: treeRootData[host][rowData["full_path_text"]].metadata.process_id,
-                            architecture: treeRootData[host][rowData["full_path_text"]].metadata.architecture,
+                            process_id: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.process_id,
+                            architecture: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.architecture,
                             uifeature: "process_browser:list_tokens", callback_id, display_id
                         });
                     }, os: ["windows"]},
                     {name: 'Task Steal Token', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>, click: (evt, callback_id, display_id) => {
                         evt.stopPropagation();
                         onTaskRowAction({
-                            process_id: treeRootData[host][rowData["full_path_text"]].metadata.process_id,
-                            architecture: treeRootData[host][rowData["full_path_text"]].metadata.architecture,
+                            process_id: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.process_id,
+                            architecture: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.architecture,
                             uifeature: "process_browser:steal_token", callback_id, display_id
                         });
                         
@@ -776,8 +794,8 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                     {name: 'Task Kill Process', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>, click: (evt, callback_id, display_id) => {
                         evt.stopPropagation();
                         onTaskRowAction({
-                            process_id: treeRootData[host][rowData["full_path_text"]].metadata.process_id,
-                            architecture: treeRootData[host][rowData["full_path_text"]].metadata.architecture,
+                            process_id: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.process_id,
+                            architecture: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.architecture,
                             uifeature: "process_browser:kill",
                             confirm_dialog: true, callback_id, display_id
                         });
@@ -785,7 +803,7 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                     }},
     ];
     return (
-        treeRootData[host][rowData["full_path_text"]]?.id ? (
+        treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.id ? (
         <React.Fragment>
             <IconButton
                 size="small"
@@ -813,7 +831,7 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                     <ClickAwayListener onClickAway={handleClose}>
                     <MenuList id="split-button-menu">
                         {optionsA.map((option, index) => (
-                            option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"]].os) ? (
+                            option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].os) ? (
                                 <MenuItem
                                     key={option.name}
                                     onClick={(event) => handleMenuItemClick("A", event, index)}
@@ -827,7 +845,7 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                             Act from current Callback: {tabInfo["displayID"]}
                         </ListSubheader>
                         {optionsB.map((option, index) => (
-                            option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"]].os) ? (
+                            option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].os) ? (
                                 <MenuItem
                                     key={option.name}
                                     onClick={(event) => handleMenuItemClick("B", event,
@@ -840,20 +858,20 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                             ) : null
                         ))}
                         {
-                            treeRootData[host][rowData["full_path_text"]]?.callback && treeRootData[host][rowData["full_path_text"]]?.callback?.["id"] !== tabInfo["callbackID"] &&
+                            treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.callback && treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.callback?.["id"] !== tabInfo["callbackID"] &&
                             <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                                Act from originating Callback: {treeRootData[host][rowData["full_path_text"]]?.callback?.["display_id"] || tabInfo["displayID"]}
+                                Act from originating Callback: {treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.callback?.["display_id"] || tabInfo["displayID"]}
                             </ListSubheader>
                         }{
-                            treeRootData[host][rowData["full_path_text"]]?.callback && treeRootData[host][rowData["full_path_text"]]?.callback?.["id"] !== tabInfo["callbackID"] &&
+                            treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.callback && treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.callback?.["id"] !== tabInfo["callbackID"] &&
                             optionsB.map((option, index) => (
-                                option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"]].os) ? (
+                                option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].os) ? (
                                     <MenuItem
                                         key={option.name}
                                         onClick={(event) => handleMenuItemClick('B', event,
                                             index,
-                                            treeRootData[host][rowData["full_path_text"]]?.["callback"]?.["id"] || tabInfo["callbackID"],
-                                            treeRootData[host][rowData["full_path_text"]]?.["callback"]?.["display_id"] || tabInfo["displayID"])}>
+                                            treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.["callback"]?.["id"] || tabInfo["callbackID"],
+                                            treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.["callback"]?.["display_id"] || tabInfo["displayID"])}>
                                         {option.icon}
                                         {option.name}
                                     </MenuItem>

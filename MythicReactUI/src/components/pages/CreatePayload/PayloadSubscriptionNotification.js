@@ -1,8 +1,6 @@
 import React from 'react';
 import { styled } from '@mui/material/styles';
 import {gql, useSubscription} from '@apollo/client';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
 import {useTheme} from '@mui/material/styles';
 import {snackActions} from '../../utilities/Snackbar';
 import AceEditor from 'react-ace';
@@ -14,6 +12,7 @@ import { toast } from 'react-toastify';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
+import {Button, Link, Typography} from '@mui/material';
 
 const PREFIX = 'PayloadSubscriptionNotification';
 
@@ -106,9 +105,6 @@ subscription NewPayloadsSubscription($fromNow: timestamp!) {
  `;
 
 const SnackMessage = (props) => {
-    
-    const theme = useTheme();
-
     return (
         <React.Fragment>                    
             <Typography variant="subtitle2" className={classes.typography}>
@@ -123,10 +119,9 @@ const SnackMessage = (props) => {
                     {props.payloadData.build_phase === "success" && 
                         <React.Fragment>
                             <Typography gutterBottom>Agent ready for download</Typography>
-                            
-                            <a href={"/direct/download/" + props.file_id} >
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/direct/download/" + props.file_id}>
                                 Download here
-                            </a>
+                            </Link>
                         </React.Fragment>
                     }
         </React.Fragment>

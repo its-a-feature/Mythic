@@ -11,7 +11,6 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
@@ -97,7 +96,7 @@ query getSingleTag($tag_id: Int!){
 `
 export const TagsDisplay = ({tags}) => {
   return (
-      tags.map( tt => (
+      tags?.map( tt => (
           <TagChipDisplay tag={tt} key={tt.id} />
         ))
   )

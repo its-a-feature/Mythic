@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.18-rc10] - 2024-03-04
+
+### Changed
+
+- Updated SOCKS/rpfwd traffic to not double send close connection messages to the agent
+- Added "AgentType" field to "PayloadType" database table
+- Updated SOCKS initial connection to accept more bytes in case client supports many auth mechanisms
+
 ## [3.2.18-rc9] - 2024-02-28
 
 ### Changed

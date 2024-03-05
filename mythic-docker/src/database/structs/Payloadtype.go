@@ -23,4 +23,5 @@ type Payloadtype struct {
 	Translationcontainer   Translationcontainer `db:"translationcontainer"`
 	ContainerCount         int                  `db:"container_count"`
 	MessageFormat          string               `db:"message_format"`
+	AgentType              string               `db:"agent_type"`
 }

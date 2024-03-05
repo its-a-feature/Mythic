@@ -33,7 +33,7 @@ import LockOpenIcon from '@mui/icons-material/LockOpen';
 import EditIcon from '@mui/icons-material/Edit';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {faQuestion, faSkullCrossbones, faFolderOpen, faList} from '@fortawesome/free-solid-svg-icons';
+import {faQuestion, faSkullCrossbones, faFolderOpen, faList, faRobot} from '@fortawesome/free-solid-svg-icons';
 import {faLinux, faApple, faWindows, faChrome, faAndroid} from '@fortawesome/free-brands-svg-icons';
 import {DetailedCallbackTable} from './DetailedCallbackTable';
 import InfoIcon from '@mui/icons-material/Info';
@@ -368,6 +368,9 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData}) =
         }
         return newTime;
     }
+    if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
+        return "Streaming Now..."
+    }
     return (
         <div>
                 <Moment filter={adjustOutput} interval={500} parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
@@ -550,6 +553,9 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
             setLocalRowData(rowData);
         }
     }, [rowData]);
+    if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
+        return null
+    }
     return (
         <div>
             {hasEgressRoute ? 
@@ -581,6 +587,9 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
 export const CallbacksTableOSCell = React.memo( ({rowData, cellData}) => {
     const [openOSDialog, setOpenOSDialog] = React.useState(false);
     const getOSIcon = useCallback( () => {
+        if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
+            return <FontAwesomeIcon icon={faRobot} size="2x" style={{cursor: "pointer"}} onClick={displayOSInfo} />
+        }
         switch(rowData.payload.os.toLowerCase()){
             case "windows":
                 return <FontAwesomeIcon icon={faWindows} size="2x" style={{cursor: "pointer"}} onClick={displayOSInfo} />
@@ -631,6 +640,9 @@ export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSl
     const onOpenSleepDialog = (event) => {
         event.stopPropagation();
         setOpenSleepDialog(true);
+    }
+    if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
+        return null
     }
     return (
         <div>
