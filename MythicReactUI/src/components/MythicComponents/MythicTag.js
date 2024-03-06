@@ -171,13 +171,13 @@ const StringTagDataEntry = ({name, value}) => {
       )
     }
     return (
-          <Link href={capturePieces[2]} color="textPrimary" target={"_blank"} referrerPolicy='no'>{capturePieces[1]}</Link>
+          <Link href={capturePieces[2]} color="textPrimary" target={"_blank"} >{capturePieces[1]}</Link>
     )
   } else if(value.startsWith("http")){
     return (
         <>
           {"Click for: "}
-          <Link href={value} color="textPrimary" target="_blank" referrerPolicy='no'>{name}</Link>
+          <Link href={value} color="textPrimary" target="_blank" >{name}</Link>
         </>
     )
   }

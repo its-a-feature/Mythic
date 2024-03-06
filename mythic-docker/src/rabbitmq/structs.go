@@ -118,11 +118,13 @@ type PTTaskMessageCallbackData struct {
 	ProcessName         string   `json:"process_name"`
 	Description         string   `json:"description"`
 	OperatorID          int      `json:"operator_id"`
+	OperatorUsername    string   `json:"operator_username"`
 	Active              bool     `json:"active"`
 	RegisteredPayloadID int      `json:"registered_payload_id"`
 	IntegrityLevel      int      `json:"integrity_level"`
 	Locked              bool     `json:"locked"`
 	OperationID         int      `json:"operation_id"`
+	OperationName       string   `json:"operation_name"`
 	CryptoType          string   `json:"crypto_type"`
 	DecKey              []byte   `json:"dec_key"`
 	EncKey              []byte   `json:"enc_key"`

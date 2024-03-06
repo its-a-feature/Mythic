@@ -899,21 +899,55 @@ func GetTaskMessageCallbackC2ProfileInformation(callbackID int) []PayloadConfigu
 func GetTaskMessageCallbackInformation(callbackID int) PTTaskMessageCallbackData {
 	data := PTTaskMessageCallbackData{}
 	databaseData := databaseStructs.Callback{}
-	if err := database.DB.Get(&databaseData, `SELECT * FROM callback WHERE id=$1`,
-		callbackID); err != nil {
+	err := database.DB.Get(&databaseData, `SELECT 
+    	callback.*,
+    	operator.username "operator.username",
+    	operation.name "operation.name"
+		FROM callback 
+		JOIN operation ON callback.operation_id = operation.id
+		JOIN operator ON callback.operator_id = operator.id
+		WHERE callback.id=$1`,
+		callbackID)
+	if err != nil {
 		logging.LogError(err, "Failed to get callback information")
 		return data
-	} else if callbackJSON, err := json.Marshal(databaseData); err != nil {
-		logging.LogError(err, "Failed to marshal callback data into JSON")
-		return data
-	} else {
-		if err := json.Unmarshal(callbackJSON, &data); err != nil {
-			logging.LogError(err, "Failed to unmarshal callback JSON data to PTTaskMessageCallbackData ")
-		} else if err := json.Unmarshal([]byte(databaseData.IP), &data.IPs); err != nil {
-			logging.LogError(err, "Failed to unmarshal IP string back to array")
-		}
-		//logging.LogDebug("converted back to struct", "struct", data)
 	}
+	data.ID = databaseData.ID
+	data.DisplayID = databaseData.DisplayID
+	data.AgentCallbackID = databaseData.AgentCallbackID
+	data.InitCallback = databaseData.InitCallback.String()
+	data.LastCheckin = databaseData.LastCheckin.String()
+	data.User = databaseData.User
+	data.Host = databaseData.Host
+	data.PID = databaseData.PID
+	data.IP = databaseData.IP
+	err = json.Unmarshal([]byte(databaseData.IP), &data.IPs)
+	if err != nil {
+		logging.LogError(err, "Failed to unmarshal IP string back to array")
+	}
+	data.ExternalIp = databaseData.ExternalIp
+	data.ProcessName = databaseData.ProcessName
+	data.Description = databaseData.Description
+	data.OperatorID = databaseData.OperatorID
+	data.OperatorUsername = databaseData.Operator.Username
+	data.Active = databaseData.Active
+	data.RegisteredPayloadID = databaseData.RegisteredPayloadID
+	data.IntegrityLevel = databaseData.IntegrityLevel
+	data.Locked = databaseData.Locked
+	data.OperationID = databaseData.OperationID
+	data.OperationName = databaseData.Operation.Name
+	data.CryptoType = databaseData.CryptoType
+	if databaseData.DecKey != nil {
+		data.DecKey = *databaseData.DecKey
+	}
+	if databaseData.EncKey != nil {
+		data.DecKey = *databaseData.EncKey
+	}
+	data.Os = databaseData.Os
+	data.Architecture = databaseData.Architecture
+	data.Domain = databaseData.Domain
+	data.ExtraInfo = databaseData.ExtraInfo
+	data.SleepInfo = databaseData.SleepInfo
 	return data
 }
 

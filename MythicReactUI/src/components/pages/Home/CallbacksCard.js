@@ -980,15 +980,31 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
         if (newValue[1] - newValue[0] < minDistance) {
             if (activeThumb === 0) {
                 const clamped = Math.min(newValue[0], 100 - minDistance);
-                setValue([clamped, clamped + minDistance]);
+                setValue([Math.max(0, clamped), Math.min(clamped + minDistance, data.x.length > 0 ? data.x.length -1 : 0)]);
             } else {
                 const clamped = Math.max(newValue[1], minDistance);
-                setValue([clamped - minDistance, clamped]);
+                setValue([Math.max(0, clamped - minDistance), Math.min(clamped, data.x.length > 0 ? data.x.length -1 : 0)]);
             }
         } else {
             setValue(newValue);
         }
     };
+    const sliderDate = (sliderVal, view_utc_time) => {
+        if(view_utc_time){
+            try {
+                return data.x?.[sliderVal]?.toISOString()?.substr(0, 10);
+            }catch(error){
+                console.log("sliderDate utc error", error, sliderVal, data.x)
+                return String(sliderVal);
+            }
+        }
+        try {
+            return data.x?.[sliderVal]?.toDateString();
+        }catch(error){
+            console.log("sliderDate error", error, sliderVal, data.x)
+            return String(sliderVal);
+        }
+    }
     return (
         <Paper elevation={5} style={{
             marginBottom: "5px",
@@ -1006,10 +1022,10 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
                 xAxis={[
                     {
                         data: data.x,
-                        //valueFormatter: (v) => (new Date(v)).toISOString().substr(0, 10),
+                        //valueFormatter: (v) => tooltipDate(v, view_utc_time),
                         scaleType: "time",
-                        min: data.x[value[0]] || 0,
-                        max: data.x[value[1]] || 0,
+                        min: data?.x?.[value[0]] || 0,
+                        max: data?.x?.[value[1]] || 0,
                         id: 'bottomAxis',
                         tickMinStep: 86400000,
                         labelStyle: {
@@ -1020,7 +1036,6 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
                             textAnchor: 'start',
                             fontSize: 5,
                         },
-                        hideTooltip: true
                     },
                 ]}
                 yAxis={[
@@ -1048,7 +1063,7 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
                 color={"info"}
                 size={"small"}
                 valueLabelDisplay={"auto"}
-                valueLabelFormat={sliderVal => data.x?.[sliderVal]?.toISOString()?.substr(0, 10) || sliderVal}
+                valueLabelFormat={sliderVal => sliderDate(sliderVal, view_utc_time)}
                 min={range[0]}
                 max={range[1]}
                 sx={{ mt: 2, width: "80%", left: "10%" }}
