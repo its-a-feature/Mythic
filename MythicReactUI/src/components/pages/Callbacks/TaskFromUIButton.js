@@ -21,6 +21,7 @@ const getLoadedCommandsBasedOnInput = ({cmd, ui_feature}) => {
     query GetLoadedCommandsQuery($callback_id: Int!, $ui_feature: jsonb, $cmd: String) {
         callback_by_pk(id: $callback_id){
             operation_id
+            id
             display_id
             active
             payload {
@@ -344,7 +345,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
             {openParametersDialog &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog} 
                     onClose={()=>{setOpenParametersDialog(false);onTasked({tasked: false});}} 
-                    innerDialog={<TaskParametersDialog command={selectedCommand} callback_id={callbackData.callback_by_pk.display_id} payloadtype_id={callbackData.callback_by_pk.payload.payloadtype.id}
+                    innerDialog={<TaskParametersDialog command={selectedCommand} callback_id={callbackData.callback_by_pk.id} payloadtype_id={callbackData.callback_by_pk.payload.payloadtype.id}
                         operation_id={callbackData.callback_by_pk.operation_id} 
                         onSubmit={submitParametersDialog} onClose={()=>{setOpenParametersDialog(false);onTasked({tasked: false});}} />}
                 />
