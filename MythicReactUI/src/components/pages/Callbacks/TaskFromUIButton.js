@@ -173,6 +173,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
                 onTasked({tasked: false});
                 return;
             }
+            callbackOpts.sort( (a, b) => a.id < b.id ? 1 : -1);
             setCallbackOptions(callbackOpts);
             setOpenSelectCallback(true);
         }

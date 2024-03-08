@@ -369,11 +369,11 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData}) =
         return newTime;
     }
     if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
-        return "Streaming Now..."
+        return ""
     }
     return (
         <div>
-                <Moment filter={adjustOutput} interval={500} parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
+                <Moment filter={adjustOutput} interval={1000} parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
                     withTitle
                     titleFormat={"YYYY-MM-DD HH:mm:ss"}
                     fromNow ago
@@ -383,7 +383,7 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData}) =
         </div>
         
     )
-});
+}, areEqual);
 export const CallbacksTablePayloadTypeCell = React.memo( ({rowData}) => {
     return (
         <MythicStyledTooltip title={rowData?.payload?.payloadtype?.name}>
@@ -630,7 +630,7 @@ export const CallbacksTableOSCell = React.memo( ({rowData, cellData}) => {
         
                 
     )
-});
+}, areEqual);
 export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSleepInfo}) => {
     const theme = useTheme();
     const [openSleepDialog, setOpenSleepDialog] = React.useState(false);

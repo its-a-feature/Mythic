@@ -59,7 +59,7 @@ type bytesReceivedFromAgentMessage struct {
 }
 
 type callbackPortUsage struct {
-	CallbackPortID             int              `json:"id"`
+	CallbackPortID             int              `json:"id" db:"id"`
 	CallbackID                 int              `json:"callback_id" db:"callback_id"`
 	TaskID                     int              `json:"task_id" db:"task_id"`
 	LocalPort                  int              `json:"local_port" db:"local_port"`
@@ -252,7 +252,6 @@ func (c *callbackPortsInUse) ListenForNewByteTransferUpdates() {
 			} else {
 				currentByteValues[bytesFromAgentMsg.CallbackPortID]["received"] += bytesFromAgentMsg.ByteCount
 			}
-
 		case bytesSentToAgentMsg := <-c.bytesSentToAgentChan:
 			if _, ok := currentByteValues[bytesSentToAgentMsg.CallbackPortID]; !ok {
 				currentByteValues[bytesSentToAgentMsg.CallbackPortID] = map[string]int64{
@@ -486,14 +485,28 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
                                 operation_id=$1 AND callback_id=$2 AND local_port=$3 AND port_type=$4`,
 		operationId, callbackId, localPort, portType)
 	if err == sql.ErrNoRows {
-		_, err = database.DB.NamedExec(`INSERT INTO callbackport 
+		statement, err := database.DB.PrepareNamed(`INSERT INTO callbackport 
 		(task_id, operation_id, callback_id, local_port, port_type, remote_port, remote_ip)
-		VALUES (:task_id, :operation_id, :callback_id, :local_port, :port_type, :remote_port, :remote_ip)`, &newPort)
-	}
-	if err == nil {
+		VALUES (:task_id, :operation_id, :callback_id, :local_port, :port_type, :remote_port, :remote_ip)
+		RETURNING id`)
+		if err != nil {
+			logging.LogError(err, "Failed to prepare new named statement for callbackports")
+			if err := newPort.Stop(); err != nil {
+				logging.LogError(err, "Failed to stop new callback port")
+			}
+			return err
+		}
+		err = statement.Get(&newPort.CallbackPortID, newPort)
+		if err != nil {
+			logging.LogError(err, "Failed to insert new callback port")
+			if err := newPort.Stop(); err != nil {
+				logging.LogError(err, "Failed to stop new callback port")
+			}
+			return err
+		}
+	} else if err == nil {
 		_, err = database.DB.NamedExec(`UPDATE callbackport SET deleted=false WHERE id=:id`, callbackPort)
-	}
-	if err != nil {
+	} else if err != nil {
 		logging.LogError(err, "Failed to create new callback port mapping")
 		if err := newPort.Stop(); err != nil {
 			logging.LogError(err, "Failed to stop new callback port")
@@ -939,7 +952,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 						}
 						// non-blocking send stats update
 						go func(byteCount int64, callbackPortID int) {
-							p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID}
+							p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}
 						}(int64(len(dataBytes)), p.CallbackPortID)
 
 						if agentMessage.IsExit {
@@ -989,7 +1002,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 						}
 						// non-blocking send stats update
 						go func(byteCount int64, callbackPortID int) {
-							p.bytesSentToAgentChan <- bytesSentToAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID}
+							p.bytesSentToAgentChan <- bytesSentToAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}
 						}(int64(length), p.CallbackPortID)
 
 						//logging.LogDebug("Message sent to p.messagesToAgent channel", "channel_id", newConnection.ServerID)

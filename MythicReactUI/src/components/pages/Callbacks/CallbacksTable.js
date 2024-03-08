@@ -381,6 +381,32 @@ function CallbacksTablePreMemo(props){
     )
 }
 export const CallbacksTable = React.memo(CallbacksTablePreMemo);
+const accessorFn = (row, h) => {
+    if(h.type === "date"){
+        return new Date(row[h.key] || 0);
+    }
+    if(h.type === "number" || h.type === "size"){
+        try{
+            return Number(row[h.key] || NaN);
+        }catch(error){
+            return row[h.key] || 0;
+        }
+    }
+    if(h.name === "Groups"){
+        return row.mythictree_groups.join(", ");
+    }
+    if(h.name === "IP"){
+        try{
+            return JSON.parse(row[h.key])[0];
+        }catch(error){
+            return row[h.key];
+        }
+    }
+    if(h.name === "Agent"){
+        return row.payload.payloadtype.name;
+    }
+    return row[h.key] || "";
+};
 function CallbacksTableMaterialReactTablePreMemo(props){
     const callbacks = useContext(CallbacksContext);
     const theme = useTheme();
@@ -487,7 +513,49 @@ function CallbacksTableMaterialReactTablePreMemo(props){
         }
         localStorage.setItem("callbacks_table_columns", JSON.stringify(shown));
     }, [columnVisibility]);
-
+    const localCellRender = React.useCallback( ({cell, h}) => {
+        let row = cell.row?.original;
+        switch(h.name){
+            case "Interact":
+                return <CallbacksTableIDCell
+                    rowData={row}
+                    //onOpenTab={props.onOpenTab}
+                    updateDescription={updateDescriptionSubmit}
+                    setOpenHideMultipleDialog={setOpenHideMultipleDialog}
+                    setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
+                />;
+            case "Groups":
+                return <CallbacksTableStringCell cellData={row.mythictree_groups.join(", ")} />;
+            case "IP":
+                return <CallbacksTableIPCell  cellData={row.ip} rowData={row} callback_id={row.id} />;
+            case "External IP":
+                return <CallbacksTableStringCell  cellData={row.external_ip} rowData={row} />;
+            case "Host":
+                return <CallbacksTableStringCell cellData={row.host} rowData={row} />;
+            case "User":
+                return <CallbacksTableStringCell  cellData={row.user} rowData={row} />;
+            case "Domain":
+                return <CallbacksTableStringCell  cellData={row.domain} rowData={row} />;
+            case "OS":
+                return <CallbacksTableOSCell rowData={row} cellData={row.os} />;
+            case "Arch":
+                return <CallbacksTableStringCell  rowData={row} cellData={row.architecture} />;
+            case "PID":
+                return <CallbacksTableStringCell  cellData={row.pid} rowData={row} />;
+            case "Last Checkin":
+                return <CallbacksTableLastCheckinCell  rowData={row} cellData={row.last_checkin} />;
+            case "Description":
+                return <CallbacksTableStringCell  cellData={row.description} rowData={row} />;
+            case "Sleep":
+                return <CallbacksTableSleepCell rowData={row} cellData={row.sleep_info} updateSleepInfo={updateSleepInfo} />;
+            case "Agent":
+                return <CallbacksTablePayloadTypeCell  rowData={row} cellData={row.payload.payloadtype.name}/>;
+            case "C2":
+                return <CallbacksTableC2Cell  rowData={row} />
+            case "Process Name":
+                return <CallbacksTableStringCell  cellData={row.process_name} rowData={row} />;
+        }
+    }, []);
     const columns = React.useMemo( () => columnFields.map( h => {
         return {
             accessorKey: h.key,
@@ -501,75 +569,8 @@ function CallbacksTableMaterialReactTablePreMemo(props){
             enableSorting: !h.disableSort,
             enableColumnFilter: true,
             grow: h.fillWidth,
-            accessorFn: (row) => {
-                if(h.type === "date"){
-                    return new Date(row[h.key] || 0);
-                }
-                if(h.type === "number" || h.type === "size"){
-                    try{
-                        return Number(row[h.key] || NaN);
-                    }catch(error){
-                        return row[h.key] || 0;
-                    }
-                }
-                if(h.name === "Groups"){
-                    return row.mythictree_groups.join(", ");
-                }
-                if(h.name === "IP"){
-                    try{
-                        return JSON.parse(row[h.key])[0];
-                    }catch(error){
-                        return row[h.key];
-                    }
-                }
-                if(h.name === "Agent"){
-                    return row.payload.payloadtype.name;
-                }
-                return row[h.key] || "";
-            },
-            Cell: ({cell, renderedCellValue}) => {
-                let row = cell.row?.original;
-                switch(h.name){
-                    case "Interact":
-                        return <CallbacksTableIDCell
-                            rowData={row}
-                            //onOpenTab={props.onOpenTab}
-                            updateDescription={updateDescriptionSubmit}
-                            setOpenHideMultipleDialog={setOpenHideMultipleDialog}
-                            setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
-                        />;
-                    case "Groups":
-                        return <CallbacksTableStringCell cellData={row.mythictree_groups.join(", ")} />;
-                    case "IP":
-                        return <CallbacksTableIPCell  cellData={row.ip} rowData={row} callback_id={row.id} />;
-                    case "External IP":
-                        return <CallbacksTableStringCell  cellData={row.external_ip} rowData={row} />;
-                    case "Host":
-                        return <CallbacksTableStringCell cellData={row.host} rowData={row} />;
-                    case "User":
-                        return <CallbacksTableStringCell  cellData={row.user} rowData={row} />;
-                    case "Domain":
-                        return <CallbacksTableStringCell  cellData={row.domain} rowData={row} />;
-                    case "OS":
-                        return <CallbacksTableOSCell rowData={row} cellData={row.os} />;
-                    case "Arch":
-                        return <CallbacksTableStringCell  rowData={row} cellData={row.architecture} />;
-                    case "PID":
-                        return <CallbacksTableStringCell  cellData={row.pid} rowData={row} />;
-                    case "Last Checkin":
-                        return <CallbacksTableLastCheckinCell  rowData={row} cellData={row.last_checkin} />;
-                    case "Description":
-                        return <CallbacksTableStringCell  cellData={row.description} rowData={row} />;
-                    case "Sleep":
-                        return <CallbacksTableSleepCell rowData={row} cellData={row.sleep_info} updateSleepInfo={updateSleepInfo} />;
-                    case "Agent":
-                        return <CallbacksTablePayloadTypeCell  rowData={row} cellData={row.payload.payloadtype.name}/>;
-                    case "C2":
-                        return <CallbacksTableC2Cell  rowData={row} />
-                    case "Process Name":
-                        return <CallbacksTableStringCell  cellData={row.process_name} rowData={row} />;
-                }
-            }
+            accessorFn: (row) => accessorFn(row, h),
+            Cell: ({cell}) => localCellRender({cell, h})
         }
     }), [columnFields])
     const materialReactTable = useMaterialReactTable({
