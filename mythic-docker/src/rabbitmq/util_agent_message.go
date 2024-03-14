@@ -195,18 +195,18 @@ func MarkCallbackInfoInactive(callbackID int) {
 
 // this is coming in from an agent in the delegates field
 type delegateMessage struct {
-	Message       string `json:"message" mapstructure:"message"`
-	SuppliedUuid  string `json:"uuid" mapstructure:"uuid"`
-	C2ProfileName string `json:"c2_profile" mapstructure:"c2_profile"`
+	Message       string `json:"message" mapstructure:"message" xml:"message"`
+	SuppliedUuid  string `json:"uuid" mapstructure:"uuid" xml:"uuid"`
+	C2ProfileName string `json:"c2_profile" mapstructure:"c2_profile" xml:"c2_profile"`
 }
 
 // this is what mythic is sending back in the delegates field
 type delegateMessageResponse struct {
-	Message       string `json:"message" mapstructure:"message"`
-	SuppliedUuid  string `json:"uuid,omitempty" mapstructure:"uuid,omitempty"`
-	C2ProfileName string `json:"c2_profile" mapstructure:"c2_profile"`
-	MythicUuid    string `json:"mythic_uuid,omitempty" mapstructure:"mythic_uuid,omitempty"`
-	NewUuid       string `json:"new_uuid,omitempty" mapstructure:"new_uuid,omitempty"`
+	Message       string `json:"message" mapstructure:"message" xml:"message"`
+	SuppliedUuid  string `json:"uuid,omitempty" mapstructure:"uuid,omitempty" xml:"uuid,omitempty"`
+	C2ProfileName string `json:"c2_profile" mapstructure:"c2_profile" xml:"c2_profile"`
+	MythicUuid    string `json:"mythic_uuid,omitempty" mapstructure:"mythic_uuid,omitempty" xml:"mythic_uuid,omitempty"`
+	NewUuid       string `json:"new_uuid,omitempty" mapstructure:"new_uuid,omitempty" xml:"new_uuid,omitempty"`
 }
 
 // flow:

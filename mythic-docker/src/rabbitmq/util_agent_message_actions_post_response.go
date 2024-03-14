@@ -29,171 +29,171 @@ import (
 )
 
 type agentMessagePostResponseMessage struct {
-	Responses []agentMessagePostResponse `json:"responses" mapstructure:"responses"`
+	Responses []agentMessagePostResponse `json:"responses" mapstructure:"responses" xml:"responses"`
 	Other     map[string]interface{}     `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
 }
 
 type agentMessagePostResponse struct {
-	TaskID          string                                    `json:"task_id" mapstructure:"task_id"`
-	SequenceNumber  *int64                                    `json:"sequence_num,omitempty" mapstructure:"sequence_num,omitempty"`
-	Completed       *bool                                     `json:"completed,omitempty" mapstructure:"completed,omitempty"`
-	UserOutput      *string                                   `json:"user_output,omitempty" mapstructure:"user_output,omitempty"`
-	Status          *string                                   `json:"status,omitempty" mapstructure:"status,omitempty"`
-	FileBrowser     *agentMessagePostResponseFileBrowser      `json:"file_browser,omitempty" mapstructure:"file_browser,omitempty"`
-	RemovedFiles    *[]agentMessagePostResponseRemovedFiles   `json:"removed_files,omitempty" mapstructure:"removed_files,omitempty"`
-	Credentials     *[]agentMessagePostResponseCredentials    `json:"credentials,omitempty" mapstructure:"credentials,omitempty"`
-	Artifacts       *[]agentMessagePostResponseArtifacts      `json:"artifacts,omitempty" mapstructure:"artifacts,omitempty"`
-	Processes       *[]agentMessagePostResponseProcesses      `json:"processes,omitempty" mapstructure:"processes,omitempty"`
-	Edges           *[]agentMessagePostResponseEdges          `json:"edges,omitempty" mapstructure:"edges,omitempty"`
-	Commands        *[]agentMessagePostResponseCommands       `json:"commands,omitempty" mapstructure:"commands,omitempty"`
-	ProcessResponse *interface{}                              `json:"process_response,omitempty" mapstructure:"process_response,omitempty"`
-	Keylogs         *[]agentMessagePostResponseKeylogs        `json:"keylogs,omitempty" mapstructure:"keylogs,omitempty"`
-	Tokens          *[]agentMessagePostResponseToken          `json:"tokens,omitempty" mapstructure:"tokens,omitempty"`
-	CallbackTokens  *[]agentMessagePostResponseCallbackTokens `json:"callback_tokens,omitempty" mapstructure:"callback_tokens,omitempty"`
-	Download        *agentMessagePostResponseDownload         `json:"download,omitempty" mapstructure:"download,omitempty"`
-	Upload          *agentMessagePostResponseUpload           `json:"upload,omitempty" mapstructure:"upload,omitempty"`
-	Alerts          *[]agentMessagePostResponseAlert          `json:"alerts,omitempty" mapstructure:"alerts,omitempty"`
+	TaskID          string                                    `json:"task_id" mapstructure:"task_id" xml:"task_id"`
+	SequenceNumber  *int64                                    `json:"sequence_num,omitempty" mapstructure:"sequence_num,omitempty" xml:"sequence_num,omitempty"`
+	Completed       *bool                                     `json:"completed,omitempty" mapstructure:"completed,omitempty" xml:"completed,omitempty"`
+	UserOutput      *string                                   `json:"user_output,omitempty" mapstructure:"user_output,omitempty" xml:"user_output,omitempty"`
+	Status          *string                                   `json:"status,omitempty" mapstructure:"status,omitempty" xml:"status,omitempty"`
+	FileBrowser     *agentMessagePostResponseFileBrowser      `json:"file_browser,omitempty" mapstructure:"file_browser,omitempty" xml:"file_browser,omitempty"`
+	RemovedFiles    *[]agentMessagePostResponseRemovedFiles   `json:"removed_files,omitempty" mapstructure:"removed_files,omitempty" xml:"removed_files,omitempty"`
+	Credentials     *[]agentMessagePostResponseCredentials    `json:"credentials,omitempty" mapstructure:"credentials,omitempty" xml:"credentials,omitempty"`
+	Artifacts       *[]agentMessagePostResponseArtifacts      `json:"artifacts,omitempty" mapstructure:"artifacts,omitempty" xml:"artifacts,omitempty"`
+	Processes       *[]agentMessagePostResponseProcesses      `json:"processes,omitempty" mapstructure:"processes,omitempty" xml:"processes,omitempty"`
+	Edges           *[]agentMessagePostResponseEdges          `json:"edges,omitempty" mapstructure:"edges,omitempty" xml:"edges,omitempty"`
+	Commands        *[]agentMessagePostResponseCommands       `json:"commands,omitempty" mapstructure:"commands,omitempty" xml:"commands,omitempty"`
+	ProcessResponse *interface{}                              `json:"process_response,omitempty" mapstructure:"process_response,omitempty" xml:"process_response,omitempty"`
+	Keylogs         *[]agentMessagePostResponseKeylogs        `json:"keylogs,omitempty" mapstructure:"keylogs,omitempty" xml:"keylogs,omitempty"`
+	Tokens          *[]agentMessagePostResponseToken          `json:"tokens,omitempty" mapstructure:"tokens,omitempty" xml:"tokens,omitempty"`
+	CallbackTokens  *[]agentMessagePostResponseCallbackTokens `json:"callback_tokens,omitempty" mapstructure:"callback_tokens,omitempty" xml:"callback_tokens,omitempty"`
+	Download        *agentMessagePostResponseDownload         `json:"download,omitempty" mapstructure:"download,omitempty" xml:"download,omitempty"`
+	Upload          *agentMessagePostResponseUpload           `json:"upload,omitempty" mapstructure:"upload,omitempty" xml:"upload,omitempty"`
+	Alerts          *[]agentMessagePostResponseAlert          `json:"alerts,omitempty" mapstructure:"alerts,omitempty" xml:"alerts,omitempty"`
 	Other           map[string]interface{}                    `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
 }
 
 var ValidCredentialTypesList = []string{"plaintext", "certificate", "hash", "key", "ticket", "cookie", "hex"}
 
 type agentMessagePostResponseFileBrowser struct {
-	Host          string                                         `json:"host" mapstructure:"host"`
-	IsFile        bool                                           `json:"is_file" mapstructure:"is_file"`
-	Permissions   interface{}                                    `json:"permissions" mapstructure:"permissions"`
-	Name          string                                         `json:"name" mapstructure:"name"`
-	ParentPath    string                                         `json:"parent_path" mapstructure:"parent_path"`
-	Success       bool                                           `json:"success" mapstructure:"success"`
-	AccessTime    uint64                                         `json:"access_time" mapstructure:"access_time"`
-	ModifyTime    uint64                                         `json:"modify_time" mapstructure:"modify_time"`
-	Size          uint64                                         `json:"size" mapstructure:"size"`
-	UpdateDeleted *bool                                          `json:"update_deleted,omitempty" mapstructure:"update_deleted,omitempty"` // option to treat this response as full source of truth
-	Files         *[]agentMessagePostResponseFileBrowserChildren `json:"files" mapstructure:"files"`
+	Host          string                                         `json:"host" mapstructure:"host" xml:"host"`
+	IsFile        bool                                           `json:"is_file" mapstructure:"is_file" xml:"is_file"`
+	Permissions   interface{}                                    `json:"permissions" mapstructure:"permissions" xml:"permissions"`
+	Name          string                                         `json:"name" mapstructure:"name" xml:"name"`
+	ParentPath    string                                         `json:"parent_path" mapstructure:"parent_path" xml:"parent_path"`
+	Success       bool                                           `json:"success" mapstructure:"success" xml:"success"`
+	AccessTime    uint64                                         `json:"access_time" mapstructure:"access_time" xml:"access_time"`
+	ModifyTime    uint64                                         `json:"modify_time" mapstructure:"modify_time" xml:"modify_time"`
+	Size          uint64                                         `json:"size" mapstructure:"size" xml:"size"`
+	UpdateDeleted *bool                                          `json:"update_deleted,omitempty" mapstructure:"update_deleted,omitempty" xml:"update_deleted,omitempty"` // option to treat this response as full source of truth
+	Files         *[]agentMessagePostResponseFileBrowserChildren `json:"files" mapstructure:"files" xml:"files"`
 }
 type agentMessagePostResponseFileBrowserChildren struct {
-	IsFile      bool        `json:"is_file" mapstructure:"is_file"`
-	Permissions interface{} `json:"permissions" mapstructure:"permissions"`
-	Name        string      `json:"name" mapstructure:"name"`
-	AccessTime  uint64      `json:"access_time" mapstructure:"access_time"`
-	ModifyTime  uint64      `json:"modify_time" mapstructure:"modify_time"`
-	Size        uint64      `json:"size" mapstructure:"size"`
+	IsFile      bool        `json:"is_file" mapstructure:"is_file" xml:"is_file"`
+	Permissions interface{} `json:"permissions" mapstructure:"permissions" xml:"permissions"`
+	Name        string      `json:"name" mapstructure:"name" xml:"name"`
+	AccessTime  uint64      `json:"access_time" mapstructure:"access_time" xml:"access_time"`
+	ModifyTime  uint64      `json:"modify_time" mapstructure:"modify_time" xml:"modify_time"`
+	Size        uint64      `json:"size" mapstructure:"size" xml:"size"`
 }
 type agentMessagePostResponseRemovedFiles struct {
-	Host *string `json:"host,omitempty" mapstructure:"host,omitempty"`
-	Path string  `json:"path" mapstructure:"path"` // full path to file removed
+	Host *string `json:"host,omitempty" mapstructure:"host,omitempty" xml:"host,omitempty"`
+	Path string  `json:"path" mapstructure:"path" xml:"path"` // full path to file removed
 }
 type agentMessagePostResponseCredentials struct {
-	CredentialType string `json:"credential_type" mapstructure:"credential_type"`
-	Realm          string `json:"realm" mapstructure:"realm"`
-	Account        string `json:"account" mapstructure:"account"`
-	Credential     string `json:"credential" mapstructure:"credential"`
-	Comment        string `json:"comment" mapstructure:"comment"`
-	ExtraData      string `json:"metadata" mapstructure:"metadata"`
+	CredentialType string `json:"credential_type" mapstructure:"credential_type" xml:"credential_type"`
+	Realm          string `json:"realm" mapstructure:"realm" xml:"realm"`
+	Account        string `json:"account" mapstructure:"account" xml:"account"`
+	Credential     string `json:"credential" mapstructure:"credential" xml:"credential"`
+	Comment        string `json:"comment" mapstructure:"comment" xml:"comment"`
+	ExtraData      string `json:"metadata" mapstructure:"metadata" xml:"metadata"`
 }
 type agentMessagePostResponseArtifacts struct {
-	BaseArtifact string  `json:"base_artifact" mapstructure:"base_artifact"`
-	Artifact     string  `json:"artifact" mapstructure:"artifact"`
-	Host         *string `json:"host" mapstructure:"host"`
+	BaseArtifact string  `json:"base_artifact" mapstructure:"base_artifact" xml:"base_artifact"`
+	Artifact     string  `json:"artifact" mapstructure:"artifact" xml:"artifact"`
+	Host         *string `json:"host" mapstructure:"host" xml:"host"`
 }
 type agentMessagePostResponseProcesses struct {
-	Host                   *string                `mapstructure:"host,omitempty" json:"host,omitempty"`
-	ProcessID              int                    `mapstructure:"process_id" json:"process_id"`
-	ParentProcessID        int                    `mapstructure:"parent_process_id" json:"parent_process_id"`
-	Architecture           string                 `mapstructure:"architecture" json:"architecture"`
-	BinPath                string                 `mapstructure:"bin_path" json:"bin_path"`
-	Name                   string                 `mapstructure:"name" json:"name"`
-	User                   string                 `mapstructure:"user" json:"user"`
-	CommandLine            string                 `mapstructure:"command_line" json:"command_line"`
-	IntegrityLevel         int                    `mapstructure:"integrity_level" json:"integrity_level"`
-	StartTime              uint64                 `mapstructure:"start_time" json:"start_time"`
-	Description            string                 `mapstructure:"description" json:"description"`
-	Signer                 string                 `mapstructure:"signer" json:"signer"`
-	ProtectionProcessLevel int                    `mapstructure:"protected_process_level" json:"protected_process_level"`
-	UpdateDeleted          *bool                  `mapstructure:"update_deleted,omitempty" json:"update_deleted,omitempty"`
-	OS                     *string                `mapstructure:"os,omitempty" json:"os,omitempty"`
+	Host                   *string                `mapstructure:"host,omitempty" json:"host,omitempty" xml:"host,omitempty"`
+	ProcessID              int                    `mapstructure:"process_id" json:"process_id" xml:"process_id"`
+	ParentProcessID        int                    `mapstructure:"parent_process_id" json:"parent_process_id" xml:"parent_process_id"`
+	Architecture           string                 `mapstructure:"architecture" json:"architecture" xml:"architecture"`
+	BinPath                string                 `mapstructure:"bin_path" json:"bin_path" xml:"bin_path"`
+	Name                   string                 `mapstructure:"name" json:"name" xml:"name"`
+	User                   string                 `mapstructure:"user" json:"user" xml:"user"`
+	CommandLine            string                 `mapstructure:"command_line" json:"command_line" xml:"command_line"`
+	IntegrityLevel         int                    `mapstructure:"integrity_level" json:"integrity_level" xml:"integrity_level"`
+	StartTime              uint64                 `mapstructure:"start_time" json:"start_time" xml:"start_time"`
+	Description            string                 `mapstructure:"description" json:"description" xml:"description"`
+	Signer                 string                 `mapstructure:"signer" json:"signer" xml:"signer"`
+	ProtectionProcessLevel int                    `mapstructure:"protected_process_level" json:"protected_process_level" xml:"protected_process_level"`
+	UpdateDeleted          *bool                  `mapstructure:"update_deleted,omitempty" json:"update_deleted,omitempty" xml:"update_deleted,omitempty"`
+	OS                     *string                `mapstructure:"os,omitempty" json:"os,omitempty" xml:"os,omitempty"`
 	Other                  map[string]interface{} `json:"-" mapstructure:",remain"`
 }
 type agentMessagePostResponseEdges struct {
-	Source      string `json:"source" mapstructure:"source"`
-	Destination string `json:"destination" mapstructure:"destination"`
-	Action      string `json:"action" mapstructure:"action"`
-	C2Profile   string `json:"c2_profile" mapstructure:"c2_profile"`
-	Metadata    string `json:"metadata" mapstructure:"metadata"`
+	Source      string `json:"source" mapstructure:"source" xml:"source"`
+	Destination string `json:"destination" mapstructure:"destination" xml:"destination"`
+	Action      string `json:"action" mapstructure:"action" xml:"action"`
+	C2Profile   string `json:"c2_profile" mapstructure:"c2_profile" xml:"c2_profile"`
+	Metadata    string `json:"metadata" mapstructure:"metadata" xml:"metadata"`
 }
 type agentMessagePostResponseCommands struct {
-	Action  string `json:"action" mapstructure:"action"`
-	Command string `json:"cmd" mapstructure:"cmd"`
+	Action  string `json:"action" mapstructure:"action" xml:"action"`
+	Command string `json:"cmd" mapstructure:"cmd" xml:"cmd"`
 }
 type agentMessagePostResponseKeylogs struct {
-	WindowTitle string `json:"window_title" mapstructure:"window_title"`
-	User        string `json:"user" mapstructure:"user"`
-	Keystrokes  string `json:"keystrokes" mapstructure:"keystrokes"`
+	WindowTitle string `json:"window_title" mapstructure:"window_title" xml:"window_title"`
+	User        string `json:"user" mapstructure:"user" xml:"user"`
+	Keystrokes  string `json:"keystrokes" mapstructure:"keystrokes" xml:"keystrokes"`
 }
 type agentMessagePostResponseToken struct {
-	Action             string `json:"action" mapstructure:"action"`
-	TokenID            uint64 `json:"token_id" mapstructure:"token_id"`
-	User               string `json:"user" mapstructure:"user"`
-	Groups             string `json:"groups" mapstructure:"groups"`
-	Privileges         string `json:"privileges" mapstructure:"privileges"`
-	ThreadID           int    `json:"thread_id" mapstructure:"thread_id"`
-	ProcessID          int    `json:"process_id" mapstructure:"process_id"`
-	SessionID          int    `json:"session_id" mapstructure:"session_id"`
-	LogonSID           string `json:"logon_sid" mapstructure:"logon_sid"`
-	IntegrityLevelSID  string `json:"integrity_level_sid" mapstructure:"integrity_level_sid"`
-	Restricted         bool   `json:"restricted" mapstructure:"restricted"`
-	DefaultDacl        string `json:"default_dacl" mapstructure:"default_dacl"`
-	Handle             int    `json:"handle" mapstructure:"handle"`
-	Capabilities       string `json:"capabilities" mapstructure:"capabilities"`
-	AppContainerSID    string `json:"app_container_sid" mapstructure:"app_container_sid"`
-	AppContainerNumber int    `json:"app_container_number" mapstructure:"app_container_number"`
+	Action             string `json:"action" mapstructure:"action" xml:"action"`
+	TokenID            uint64 `json:"token_id" mapstructure:"token_id" xml:"token_id"`
+	User               string `json:"user" mapstructure:"user" xml:"user"`
+	Groups             string `json:"groups" mapstructure:"groups" xml:"groups"`
+	Privileges         string `json:"privileges" mapstructure:"privileges" xml:"privileges"`
+	ThreadID           int    `json:"thread_id" mapstructure:"thread_id" xml:"thread_id"`
+	ProcessID          int    `json:"process_id" mapstructure:"process_id" xml:"process_id"`
+	SessionID          int    `json:"session_id" mapstructure:"session_id" xml:"session_id"`
+	LogonSID           string `json:"logon_sid" mapstructure:"logon_sid" xml:"logon_sid"`
+	IntegrityLevelSID  string `json:"integrity_level_sid" mapstructure:"integrity_level_sid" xml:"integrity_level_sid"`
+	Restricted         bool   `json:"restricted" mapstructure:"restricted" xml:"restricted"`
+	DefaultDacl        string `json:"default_dacl" mapstructure:"default_dacl" xml:"default_dacl"`
+	Handle             int    `json:"handle" mapstructure:"handle" xml:"handle"`
+	Capabilities       string `json:"capabilities" mapstructure:"capabilities" xml:"capabilities"`
+	AppContainerSID    string `json:"app_container_sid" mapstructure:"app_container_sid" xml:"app_container_sid"`
+	AppContainerNumber int    `json:"app_container_number" mapstructure:"app_container_number" xml:"app_container_number"`
 }
 type agentMessagePostResponseCallbackTokens struct {
-	Action  string  `json:"action" mapstructure:"action"`
-	Host    *string `json:"host,omitempty" mapstructure:"host,omitempty"`
-	TokenId uint64  `json:"token_id" mapstructure:"token_id"`
+	Action  string  `json:"action" mapstructure:"action" xml:"action"`
+	Host    *string `json:"host,omitempty" mapstructure:"host,omitempty" xml:"host,omitempty"`
+	TokenId uint64  `json:"token_id" mapstructure:"token_id" xml:"token_id"`
 	// optionally also provide all the token information
 	TokenInfo *agentMessagePostResponseToken `mapstructure:"token"`
 }
 type agentMessagePostResponseDownload struct {
 	// Transfer a file from agent -> Mythic
-	TotalChunks  *int                   `json:"total_chunks,omitempty" mapstructure:"total_chunks,omitempty"`
-	ChunkSize    *int                   `json:"chunk_size,omitempty" mapstructure:"chunk_size,omitempty"`
-	ChunkData    *string                `json:"chunk_data,omitempty" mapstructure:"chunk_data,omitempty"`
-	ChunkNum     *int                   `json:"chunk_num,omitempty" mapstructure:"chunk_num,omitempty"`
-	FullPath     *string                `json:"full_path,omitempty" mapstructure:"full_path,omitempty"`
-	FileName     *string                `json:"filename,omitempty" mapstructure:"filename,omitempty"`
-	FileID       *string                `json:"file_id,omitempty" mapstructure:"file_id,omitempty"`
-	Host         *string                `json:"host,omitempty" mapstructure:"host,omitempty"`
-	IsScreenshot *bool                  `json:"is_screenshot,omitempty" mapstructure:"is_screenshot,omitempty"`
+	TotalChunks  *int                   `json:"total_chunks,omitempty" mapstructure:"total_chunks,omitempty" xml:"total_chunks,omitempty"`
+	ChunkSize    *int                   `json:"chunk_size,omitempty" mapstructure:"chunk_size,omitempty" xml:"chunk_size,omitempty"`
+	ChunkData    *string                `json:"chunk_data,omitempty" mapstructure:"chunk_data,omitempty" xml:"chunk_data,omitempty"`
+	ChunkNum     *int                   `json:"chunk_num,omitempty" mapstructure:"chunk_num,omitempty" xml:"chunk_num,omitempty"`
+	FullPath     *string                `json:"full_path,omitempty" mapstructure:"full_path,omitempty" xml:"full_path,omitempty"`
+	FileName     *string                `json:"filename,omitempty" mapstructure:"filename,omitempty" xml:"filename,omitempty"`
+	FileID       *string                `json:"file_id,omitempty" mapstructure:"file_id,omitempty" xml:"file_id,omitempty"`
+	Host         *string                `json:"host,omitempty" mapstructure:"host,omitempty" xml:"host,omitempty"`
+	IsScreenshot *bool                  `json:"is_screenshot,omitempty" mapstructure:"is_screenshot,omitempty" xml:"is_screenshot,omitempty"`
 	Other        map[string]interface{} `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in, so we can reply back with them
 }
 type agentMessagePostResponseUpload struct {
 	// Transfer a file from Mythic -> Agent
-	ChunkSize *int                   `json:"chunk_size,omitempty" mapstructure:"chunk_size,omitempty"`
-	ChunkNum  int                    `json:"chunk_num" mapstructure:"chunk_num"`
-	FullPath  *string                `json:"full_path,omitempty" mapstructure:"full_path,omitempty"`
-	FileID    *string                `json:"file_id,omitempty" mapstructure:"file_id,omitempty"`
-	Host      *string                `json:"host,omitempty" mapstructure:"host,omitempty"`
+	ChunkSize *int                   `json:"chunk_size,omitempty" mapstructure:"chunk_size,omitempty" xml:"chunk_size,omitempty"`
+	ChunkNum  int                    `json:"chunk_num" mapstructure:"chunk_num" xml:"chunk_num"`
+	FullPath  *string                `json:"full_path,omitempty" mapstructure:"full_path,omitempty" xml:"full_path,omitempty"`
+	FileID    *string                `json:"file_id,omitempty" mapstructure:"file_id,omitempty" xml:"file_id,omitempty"`
+	Host      *string                `json:"host,omitempty" mapstructure:"host,omitempty" xml:"host,omitempty"`
 	Other     map[string]interface{} `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in, so we can reply back with them
 }
 type agentMessagePostResponseUploadResponse struct {
-	FileID      string `json:"file_id" mapstructure:"file_id"`
-	TotalChunks int    `json:"total_chunks" mapstructure:"total_chunks"`
-	ChunkData   []byte `json:"chunk_data" mapstructure:"chunk_data"`
-	ChunkNum    int    `json:"chunk_num" mapstructure:"chunk_num"`
+	FileID      string `json:"file_id" mapstructure:"file_id" xml:"file_id"`
+	TotalChunks int    `json:"total_chunks" mapstructure:"total_chunks" xml:"total_chunks"`
+	ChunkData   []byte `json:"chunk_data" mapstructure:"chunk_data" xml:"chunk_data"`
+	ChunkNum    int    `json:"chunk_num" mapstructure:"chunk_num" xml:"chunk_num"`
 }
 type agentMessagePostResponseAlert struct {
-	Source       *string                 `json:"source,omitempty" mapstructure:"source,omitempty"`
-	Alert        string                  `json:"alert" mapstructure:"alert"`
-	WebhookAlert *map[string]interface{} `json:"webhook_alert,omitempty" mapstructure:"webhook_alert"`
-	Level        *string                 `json:"level,omitempty" mapstructure:"level"`
-	SendWebhook  bool                    `json:"send_webhook" mapstructure:"send_webhook"`
+	Source       *string                 `json:"source,omitempty" mapstructure:"source,omitempty" xml:"source,omitempty"`
+	Alert        string                  `json:"alert" mapstructure:"alert" xml:"alert"`
+	WebhookAlert *map[string]interface{} `json:"webhook_alert,omitempty" mapstructure:"webhook_alert" xml:"webhook_alert"`
+	Level        *string                 `json:"level,omitempty" mapstructure:"level" xml:"level"`
+	SendWebhook  bool                    `json:"send_webhook" mapstructure:"send_webhook" xml:"send_webhook"`
 }
 type agentMessagePostResponseInteractive struct {
-	TaskUUID    string                      `json:"task_id" mapstructure:"task_id"`
-	Data        string                      `json:"data" mapstructure:"data"`
-	MessageType InteractiveTask.MessageType `json:"message_type" mapstructure:"message_type"`
+	TaskUUID    string                      `json:"task_id" mapstructure:"task_id" xml:"task_id"`
+	Data        string                      `json:"data" mapstructure:"data" xml:"data"`
+	MessageType InteractiveTask.MessageType `json:"message_type" mapstructure:"message_type" xml:"message_type"`
 }
 
 // writeDownloadChunkToDiskChan is a blocking call intentionally

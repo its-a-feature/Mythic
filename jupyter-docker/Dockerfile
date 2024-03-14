@@ -1,4 +1,4 @@
-FROM jupyter/base-notebook:python-3.11
+FROM jupyter/minimal-notebook:python-3.11
 
 # for offline builds, add ability for custom PIP repositories
 ARG PIP_INDEX

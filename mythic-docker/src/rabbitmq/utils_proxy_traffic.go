@@ -482,8 +482,9 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 	}
 	callbackPort := databaseStructs.Callbackport{}
 	err = database.DB.Get(&callbackPort, `SELECT id FROM callbackport WHERE
-                                operation_id=$1 AND callback_id=$2 AND local_port=$3 AND port_type=$4`,
-		operationId, callbackId, localPort, portType)
+                                operation_id=$1 AND callback_id=$2 AND local_port=$3 AND port_type=$4
+                                AND remote_ip=$5 AND remote_port=$6`,
+		operationId, callbackId, localPort, portType, remoteIP, remotePort)
 	if err == sql.ErrNoRows {
 		statement, err := database.DB.PrepareNamed(`INSERT INTO callbackport 
 		(task_id, operation_id, callback_id, local_port, port_type, remote_port, remote_ip)

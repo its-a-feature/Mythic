@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.20-rc2] - 2024-03-14
+
+### Changed
+
+- Fixed an issue where rpfwd connections with the same local port wouldn't get tracked on the proxies page as new connections
+- Added `xml` tags to agent messages for planned native support of `xml` in addition to `json` message formats
+
 ## [3.2.20-rc1] - 2024-03-08
 
 ### Changed
