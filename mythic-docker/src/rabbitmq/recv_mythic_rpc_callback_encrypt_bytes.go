@@ -75,15 +75,15 @@ func CallbackEncryptMessage(agentCallbackUUID string, message []byte, includeUUI
 			logging.LogError(err, "Failed to encrypt message")
 			return nil, err
 		}
-		logging.LogTrace("CallbackEncryptMessage", "encrypted", cipherText)
+		//logging.LogDebug("CallbackEncryptMessage", "encrypted", cipherText)
 		if includeUUID {
 			cipherText = append([]byte(agentCallbackUUID), cipherText...)
 		}
 		if base64ReturnMessage {
-			logging.LogTrace("CallbackEncryptMessage", "about to base64", cipherText)
+			//logging.LogDebug("CallbackEncryptMessage", "about to base64", cipherText)
 			base64Message := make([]byte, base64.StdEncoding.EncodedLen(len(cipherText)))
 			base64.StdEncoding.Encode(base64Message, cipherText)
-			logging.LogTrace("CallbackEncryptMessage", "base64 encoded", base64Message)
+			//logging.LogDebug("CallbackEncryptMessage", "base64 encoded", base64Message)
 			return base64Message, nil
 		} else {
 			return cipherText, nil

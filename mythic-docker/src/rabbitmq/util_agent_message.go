@@ -854,7 +854,7 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage []byte) (map[string]i
 }
 
 func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map[string]interface{}, agentUUIDLength int, shouldBase64Encode bool) ([]byte, error) {
-	logging.LogTrace("Sending back final message", "response", agentMessage)
+	//logging.LogDebug("Sending back final message", "response", agentMessage)
 	if uuidInfo.MythicEncrypts {
 		if uuidInfo.TranslationContainerName == "" {
 			// we encrypt the JSON bytes and return raw bytes

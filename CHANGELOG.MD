@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.20-rc3] - 2024-03-19
+
+### Changed
+
+- Updated the logging library to just be zerolog and not zerolog/logr which was messing with logging levels
+- Removed a section of socks/rpfwd code that resulted in double closure messages getting sent to the agent
+- Updated a section of socks to do multiple reads with smaller buffers
+
 ## [3.2.20-rc2] - 2024-03-14
 
 ### Changed

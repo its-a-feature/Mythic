@@ -10,6 +10,7 @@ import (
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
+	"io"
 	"math"
 	"math/rand"
 	"net"
@@ -674,7 +675,7 @@ func (p *callbackPortUsage) GetProxyData() []proxyToAgentMessage {
 	for i := 0; i < len(messagesToSendToAgent); i++ {
 		select {
 		case messagesToSendToAgent[i] = <-p.messagesToAgent:
-			//logging.LogDebug("Got message from Mythic to agent", "serverID", messagesToSendToAgent[i].ServerID)
+			//logging.LogDebug("Agent picking up msg from Mythic", "serverID", messagesToSendToAgent[i].ServerID, "exit", messagesToSendToAgent[i].IsExit)
 		default:
 			//logging.LogDebug("returning set of messages to agent from Mythic", "msgs", messagesToSendToAgent)
 			// this is in case we run out of messages for some reason
@@ -726,6 +727,7 @@ func (p *callbackPortUsage) manageConnections() {
 				}
 				continue
 			}
+			//logging.LogDebug("adding new connection", "serverID", newConn.ServerID)
 			connectionMap[newConn.ServerID] = newConn
 		case removeCon := <-p.removeConnectionsChannel:
 			//logging.LogDebug("removing connection channel", "server_id", removeCon.ServerID)
@@ -780,7 +782,7 @@ func (p *callbackPortUsage) manageConnections() {
 			case CALLBACK_PORT_TYPE_SOCKS:
 				//logging.LogInfo("got message from agent in p.messagesFromAgent", "chan", newMsg.ServerID)
 				if _, ok := connectionMap[newMsg.ServerID]; ok {
-					//logging.LogInfo("found supporting connection in connection map", "chan", newMsg.ServerID)
+					//logging.LogInfo("got msg from agent", "serverID", newMsg.ServerID, "exit", newMsg.IsExit)
 					select {
 					case connectionMap[newMsg.ServerID].messagesFromAgent <- newMsg:
 					default:
@@ -907,13 +909,32 @@ func (p *callbackPortUsage) handleSocksConnections() {
 		//logging.LogInfo("got new connection")
 		go func(conn net.Conn) {
 			// this reads from the connection and writes data for the agent to process
-			initial := make([]byte, 20)
+			initial := make([]byte, 2)
 			_, err = conn.Read(initial)
 			if err != nil {
 				logging.LogError(err, "failed to read initial SOCKS connection data")
 				return
 			}
-			//logging.LogInfo("got initial 4 bytes")
+			if initial[0] != '\x05' {
+				logging.LogError(nil, "Initial message from SOCKS client didn't say it was SOCKS5")
+				return
+			}
+			authBytes := make([]byte, initial[1])
+			_, err = conn.Read(authBytes)
+			if err != nil {
+				logging.LogError(err, "failed to read auth bytes", "authSize", initial[1])
+				return
+			}
+			supportsNoAuth := false
+			for i, _ := range authBytes {
+				if authBytes[i] == '\x00' {
+					supportsNoAuth = true
+				}
+			}
+			if !supportsNoAuth {
+				logging.LogError(nil, "Client doesn't support no auth (x00), can't communicate")
+				return
+			}
 			_, err = conn.Write([]byte{'\x05', '\x00'})
 			if err != nil {
 				logging.LogError(err, "Failed to send the \\x05\\x00 no-auth bytes for new socks connection")
@@ -953,11 +974,13 @@ func (p *callbackPortUsage) handleSocksConnections() {
 						}
 						// non-blocking send stats update
 						go func(byteCount int64, callbackPortID int) {
-							p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}
+							select {
+							case p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
+							}
 						}(int64(len(dataBytes)), p.CallbackPortID)
 
 						if agentMessage.IsExit {
-							//logging.LogDebug("got message isExit", "server_id", newConnection.ServerID)
+							//logging.LogDebug("got message from agent isExit", "server_id", newConnection.ServerID)
 							// cleanup the connection data, but don't tell the agent to close
 							newConnection.AgentClosedConnection = true
 							p.removeConnectionsChannel <- &newConnection
@@ -973,23 +996,28 @@ func (p *callbackPortUsage) handleSocksConnections() {
 					//logging.LogDebug("looping to read from connection again", "server_id", newConnection.ServerID)
 					length, err := conn.Read(buf)
 					if err != nil {
-						//logging.LogError(err, "Failed to read from connection, sending exit", "server_id", newConnection.ServerID)
-						interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
-							Message: proxyToAgentMessage{
-								Message:  nil,
-								IsExit:   true,
-								ServerID: newConnection.ServerID,
-								Port:     p.LocalPort,
-							},
-							MessagesToAgent: p.messagesToAgent,
-							CallbackID:      p.CallbackID,
-							ProxyType:       p.PortType,
+						if err != io.EOF {
+							logging.LogError(err, "Failed to read from connection, sending exit", "server_id", newConnection.ServerID)
 						}
+						/*
+							interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
+								Message: proxyToAgentMessage{
+									Message:  nil,
+									IsExit:   true,
+									ServerID: newConnection.ServerID,
+									Port:     p.LocalPort,
+								},
+								MessagesToAgent: p.messagesToAgent,
+								CallbackID:      p.CallbackID,
+								ProxyType:       p.PortType,
+							}
+
+						*/
 						p.removeConnectionsChannel <- &newConnection
 						return
 					}
 					if length > 0 {
-						//fmt.Printf("Message received for chan %d: length %v\n", newConnection.ServerID, length)
+						//logging.LogDebug("Message received from proxychains", "serverID", newConnection.ServerID, "size", length)
 						interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
 							Message: proxyToAgentMessage{
 								Message:  buf[:length],
@@ -1003,7 +1031,9 @@ func (p *callbackPortUsage) handleSocksConnections() {
 						}
 						// non-blocking send stats update
 						go func(byteCount int64, callbackPortID int) {
-							p.bytesSentToAgentChan <- bytesSentToAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}
+							select {
+							case p.bytesSentToAgentChan <- bytesSentToAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
+							}
 						}(int64(length), p.CallbackPortID)
 
 						//logging.LogDebug("Message sent to p.messagesToAgent channel", "channel_id", newConnection.ServerID)
@@ -1061,17 +1091,20 @@ func (p *callbackPortUsage) handleRpfwdConnections(newConnection *acceptedConnec
 			length, err := conn.Read(buf)
 			if err != nil {
 				//logging.LogError(err, "Failed to read from connection, sending exit", "server_id", newConnection.ServerID)
-				interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
-					Message: proxyToAgentMessage{
-						Message:  nil,
-						IsExit:   true,
-						ServerID: newConnection.ServerID,
-						Port:     p.LocalPort,
-					},
-					MessagesToAgent: p.messagesToAgent,
-					CallbackID:      p.CallbackID,
-					ProxyType:       p.PortType,
-				}
+				/*
+					interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
+						Message: proxyToAgentMessage{
+							Message:  nil,
+							IsExit:   true,
+							ServerID: newConnection.ServerID,
+							Port:     p.LocalPort,
+						},
+						MessagesToAgent: p.messagesToAgent,
+						CallbackID:      p.CallbackID,
+						ProxyType:       p.PortType,
+					}
+
+				*/
 				p.removeConnectionsChannel <- newConnection
 				return
 			}

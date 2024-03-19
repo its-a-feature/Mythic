@@ -65,17 +65,17 @@ func GetUserCurrentOperation(userID int) (*databaseStructs.Operatoroperation, er
 
 func GetUserFromID(userID int) (*databaseStructs.Operator, error) {
 	operator := databaseStructs.Operator{}
-	if err := DB.Get(&operator, `SELECT 
+	err := DB.Get(&operator, `SELECT 
 	username, id, "admin", last_login, failed_login_count, salt, "password", secrets, preferences,
 	last_failed_login_timestamp, active, deleted, current_operation_id, view_utc_time, 
 	current_operation_id  
 	FROM operator 
-	WHERE id=$1`, userID); err != nil {
+	WHERE id=$1`, userID)
+	if err != nil {
 		logging.LogError(err, "Failed to find operator", "user_id", userID)
 		return nil, err
-	} else {
-		return &operator, nil
 	}
+	return &operator, nil
 }
 
 func GetOperationsForUser(userID int) (*[]databaseStructs.Operatoroperation, error) {

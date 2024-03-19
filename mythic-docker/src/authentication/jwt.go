@@ -181,7 +181,6 @@ func ExtractCookieToken(c *gin.Context) (string, error) {
 		return "", ErrMissingCookieValue
 	}
 	if len(token) > 0 {
-		logging.LogTrace("got cookie header", "cookie", token)
 		return token, nil
 	}
 	logging.LogDebug("Failed to find cookie value")
