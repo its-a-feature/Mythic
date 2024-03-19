@@ -675,7 +675,7 @@ func (p *callbackPortUsage) GetProxyData() []proxyToAgentMessage {
 	for i := 0; i < len(messagesToSendToAgent); i++ {
 		select {
 		case messagesToSendToAgent[i] = <-p.messagesToAgent:
-			//logging.LogDebug("Agent picking up msg from Mythic", "serverID", messagesToSendToAgent[i].ServerID, "exit", messagesToSendToAgent[i].IsExit)
+			logging.LogDebug("Agent picking up msg from Mythic", "serverID", messagesToSendToAgent[i].ServerID, "exit", messagesToSendToAgent[i].IsExit)
 		default:
 			//logging.LogDebug("returning set of messages to agent from Mythic", "msgs", messagesToSendToAgent)
 			// this is in case we run out of messages for some reason
@@ -727,10 +727,10 @@ func (p *callbackPortUsage) manageConnections() {
 				}
 				continue
 			}
-			//logging.LogDebug("adding new connection", "serverID", newConn.ServerID)
+			logging.LogDebug("adding new connection", "serverID", newConn.ServerID)
 			connectionMap[newConn.ServerID] = newConn
 		case removeCon := <-p.removeConnectionsChannel:
-			//logging.LogDebug("removing connection channel", "server_id", removeCon.ServerID)
+			logging.LogDebug("removing connection channel", "serverID", removeCon.ServerID)
 			if removeCon.TaskUUID != nil {
 				// remove all connections for interactive task
 				closeIDs := []uint32{}
@@ -759,6 +759,7 @@ func (p *callbackPortUsage) manageConnections() {
 					delete(connectionMap, removeCon.ServerID)
 					if !removeCon.AgentClosedConnection {
 						// we're closing the connection, not the agent, so tell the agent to close
+						logging.LogDebug("Telling agent to remove connection", "serverID", removeCon.ServerID)
 						select {
 						case interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
 							Message: proxyToAgentMessage{
@@ -782,7 +783,7 @@ func (p *callbackPortUsage) manageConnections() {
 			case CALLBACK_PORT_TYPE_SOCKS:
 				//logging.LogInfo("got message from agent in p.messagesFromAgent", "chan", newMsg.ServerID)
 				if _, ok := connectionMap[newMsg.ServerID]; ok {
-					//logging.LogInfo("got msg from agent", "serverID", newMsg.ServerID, "exit", newMsg.IsExit)
+					logging.LogInfo("got msg from agent for server mythic still thinks is alive", "serverID", newMsg.ServerID, "exit", newMsg.IsExit)
 					select {
 					case connectionMap[newMsg.ServerID].messagesFromAgent <- newMsg:
 					default:
@@ -805,7 +806,7 @@ func (p *callbackPortUsage) manageConnections() {
 
 					*/
 				} else {
-					//logging.LogInfo("unknown server id in connections map for messagesFromAgent", "serverID", newMsg.ServerID)
+					logging.LogInfo("unknown server id in connections map for messagesFromAgent", "serverID", newMsg.ServerID)
 				}
 			case CALLBACK_PORT_TYPE_RPORTFWD:
 				//logging.LogInfo("got message from agent in p.messagesFromAgent", "chan", newMsg.ServerID)
@@ -995,33 +996,12 @@ func (p *callbackPortUsage) handleSocksConnections() {
 					buf := make([]byte, 4096)
 					//logging.LogDebug("looping to read from connection again", "server_id", newConnection.ServerID)
 					length, err := conn.Read(buf)
-					if err != nil {
-						if err != io.EOF {
-							logging.LogError(err, "Failed to read from connection, sending exit", "server_id", newConnection.ServerID)
-						}
-						/*
-							interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
-								Message: proxyToAgentMessage{
-									Message:  nil,
-									IsExit:   true,
-									ServerID: newConnection.ServerID,
-									Port:     p.LocalPort,
-								},
-								MessagesToAgent: p.messagesToAgent,
-								CallbackID:      p.CallbackID,
-								ProxyType:       p.PortType,
-							}
-
-						*/
-						p.removeConnectionsChannel <- &newConnection
-						return
-					}
 					if length > 0 {
-						//logging.LogDebug("Message received from proxychains", "serverID", newConnection.ServerID, "size", length)
+						logging.LogDebug("Message received from proxychains", "serverID", newConnection.ServerID, "size", length)
 						interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
 							Message: proxyToAgentMessage{
 								Message:  buf[:length],
-								IsExit:   false,
+								IsExit:   err != nil,
 								ServerID: newConnection.ServerID,
 								Port:     p.LocalPort,
 							},
@@ -1038,6 +1018,20 @@ func (p *callbackPortUsage) handleSocksConnections() {
 
 						//logging.LogDebug("Message sent to p.messagesToAgent channel", "channel_id", newConnection.ServerID)
 					}
+					if err != nil {
+						if err != io.EOF {
+							logging.LogError(err, "Failed to read from connection, sending exit", "serverID", newConnection.ServerID)
+						} else {
+							logging.LogInfo("Got normal EOF from connection, exiting on Mythic side", "serverID", newConnection.ServerID)
+						}
+						if length > 0 {
+							// we already indicated for the agent to close, don't send another
+							newConnection.AgentClosedConnection = true
+						}
+						p.removeConnectionsChannel <- &newConnection
+						return
+					}
+
 				}
 
 			}(conn)
