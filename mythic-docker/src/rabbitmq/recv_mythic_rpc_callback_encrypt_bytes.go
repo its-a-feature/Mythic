@@ -92,7 +92,7 @@ func CallbackEncryptMessage(agentCallbackUUID string, message []byte, includeUUI
 		// Mythic doesn't encrypt, and there's a translation container associated
 		translationContainer := databaseStructs.Translationcontainer{}
 		if err := database.DB.Get(&translationContainer, `SELECT
-		id, name, container_running 
+		id, "name", container_running 
 		FROM translationcontainer
 		WHERE id=$1`, payloadtype.TranslationContainerID.Int64); err != nil {
 			logging.LogError(err, "Failed to get translation container data when trying to encrypt")

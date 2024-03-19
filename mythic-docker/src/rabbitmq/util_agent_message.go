@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
@@ -65,6 +66,7 @@ type cachedUUIDInfo struct {
 	PayloadID                int
 	PayloadTypeID            int
 	PayloadTypeName          string
+	PayloadTypeMessageFormat string
 	LastCheckinTime          time.Time
 	CallbackID               int `json:"callback_id" db:"callback_id"`
 	CallbackDisplayID        int `json:"callback_display_id" db:"display_id"`
@@ -230,6 +232,26 @@ type recursiveProcessAgentMessageResponse struct {
 	OuterUuid           string
 	OuterUuidIsCallback bool
 	Err                 error
+}
+
+func unmarshalMessageForAgentFormat(uuidInfo *cachedUUIDInfo, messageBytes []byte, output *map[string]interface{}) error {
+	switch uuidInfo.PayloadTypeMessageFormat {
+	case "json":
+		return json.Unmarshal(messageBytes, output)
+	case "xml":
+		return xml.Unmarshal(messageBytes, output)
+	}
+	return errors.New("unknown message format for agent")
+}
+
+func marshalMessageForAgentFormat(uuidInfo *cachedUUIDInfo, agentMessage map[string]interface{}) ([]byte, error) {
+	switch uuidInfo.PayloadTypeMessageFormat {
+	case "json":
+		return json.Marshal(agentMessage)
+	case "xml":
+		return xml.Marshal(agentMessage)
+	}
+	return nil, errors.New("unknown message format for agent")
 }
 
 func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recursiveProcessAgentMessageResponse {
@@ -634,7 +656,8 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		payloadtype.id "payload.payloadtype.id", 
 		payloadtype.name "payload.payloadtype.name", 
 		payloadtype.mythic_encrypts "payload.payloadtype.mythic_encrypts",
-		payloadtype.translation_container_id "payload.payloadtype.translation_container_id"
+		payloadtype.translation_container_id "payload.payloadtype.translation_container_id",
+		payloadtype.message_format "payload.payloadtype.message_format"
 		FROM callback
 		JOIN payload ON callback.registered_payload_id = payload.id
 		JOIN payloadtype ON payload.payload_type_id = payloadtype.id
@@ -645,6 +668,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		newCache.PayloadID = callback.Payload.ID
 		newCache.PayloadTypeID = callback.Payload.Payloadtype.ID
 		newCache.PayloadTypeName = callback.Payload.Payloadtype.Name
+		newCache.PayloadTypeMessageFormat = callback.Payload.Payloadtype.MessageFormat
 		newCache.MythicEncrypts = callback.Payload.Payloadtype.MythicEncrypts
 		if callback.Payload.Payloadtype.TranslationContainerID.Valid {
 			newCache.TranslationContainerID = int(callback.Payload.Payloadtype.TranslationContainerID.Int64)
@@ -662,7 +686,8 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		payloadtype.id "payloadtype.id",
 		payloadtype.name "payloadtype.name", 
 		payloadtype.mythic_encrypts "payloadtype.mythic_encrypts",
-		payloadtype.translation_container_id "payloadtype.translation_container_id"
+		payloadtype.translation_container_id "payloadtype.translation_container_id",
+		payloadtype.message_format "payloadtype.message_format"
 		FROM payload
 		JOIN payloadtype on payload.payload_type_id = payloadtype.id
 		WHERE payload.uuid=$1`, messageUUID); err == nil {
@@ -677,6 +702,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		newCache.PayloadID = payload.ID
 		newCache.PayloadTypeID = payload.Payloadtype.ID
 		newCache.PayloadTypeName = payload.Payloadtype.Name
+		newCache.PayloadTypeMessageFormat = payload.Payloadtype.MessageFormat
 		newCache.MythicEncrypts = payload.Payloadtype.MythicEncrypts
 		if payload.Payloadtype.TranslationContainerID.Valid {
 			newCache.TranslationContainerID = int(payload.Payloadtype.TranslationContainerID.Int64)
@@ -734,7 +760,8 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		payloadtype.id "payload.payloadtype.id", 
 		payloadtype.name "payload.payloadtype.name", 
 		payloadtype.mythic_encrypts "payload.payloadtype.mythic_encrypts",
-		payloadtype.translation_container_id "payload.payloadtype.translation_container_id"
+		payloadtype.translation_container_id "payload.payloadtype.translation_container_id",
+		payloadtype.message_format "payload.payloadtype.message_format"
 		FROM staginginfo
 		JOIN payload ON staginginfo.payload_id = payload.id
 		JOIN payloadtype ON payload.payload_type_id = payloadtype.id
@@ -748,6 +775,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		newCache.PayloadID = stager.PayloadID
 		newCache.PayloadTypeID = stager.Payload.Payloadtype.ID
 		newCache.PayloadTypeName = stager.Payload.Payloadtype.Name
+		newCache.PayloadTypeMessageFormat = stager.Payload.Payloadtype.MessageFormat
 		newCache.MythicEncrypts = stager.Payload.Payloadtype.MythicEncrypts
 		if stager.Payload.Payloadtype.TranslationContainerID.Valid {
 			newCache.TranslationContainerID = int(stager.Payload.Payloadtype.TranslationContainerID.Int64)
@@ -785,7 +813,8 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage []byte) (map[string]i
 			if err != nil {
 				return nil, err
 			}
-			err = json.Unmarshal(decrypted, &jsonAgentMessage)
+			err = unmarshalMessageForAgentFormat(uuidInfo, decrypted, &jsonAgentMessage)
+			//err = json.Unmarshal(decrypted, &jsonAgentMessage)
 			if err != nil {
 				return nil, err
 			}
@@ -821,11 +850,13 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage []byte) (map[string]i
 		// we don't decrypt
 		if uuidInfo.TranslationContainerName == "" {
 			// no translation container and we're not in charge of decrypting, so just return it
-			if err := json.Unmarshal(agentMessage, &jsonAgentMessage); err != nil {
+			err := unmarshalMessageForAgentFormat(uuidInfo, agentMessage, &jsonAgentMessage)
+			//err := json.Unmarshal(agentMessage, &jsonAgentMessage)
+			if err != nil {
 				return nil, err
-			} else {
-				return jsonAgentMessage, nil
 			}
+			return jsonAgentMessage, nil
+
 		} else {
 			// we don't decrypt and there's a translation container
 			// translation container should decrypt and convert
@@ -858,91 +889,111 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 	if uuidInfo.MythicEncrypts {
 		if uuidInfo.TranslationContainerName == "" {
 			// we encrypt the JSON bytes and return raw bytes
-			if jsonBytes, err := json.Marshal(agentMessage); err != nil {
+			jsonBytes, err := marshalMessageForAgentFormat(uuidInfo, agentMessage)
+			//jsonBytes, err := json.Marshal(agentMessage)
+			if err != nil {
 				logging.LogError(err, "Failed to marshal the final agent message before encrypting")
 				return nil, err
-			} else if encryptedBytes, err := uuidInfo.IterateAndAct(jsonBytes, "encrypt"); err != nil {
+			}
+			encryptedBytes, err := uuidInfo.IterateAndAct(jsonBytes, "encrypt")
+			if err != nil {
 				logging.LogError(err, "Failed to encrypt bytes")
 				return nil, err
-			} else if uuidBytes, err := GetUUIDBytes(outerUUID, agentUUIDLength); err != nil {
+			}
+			uuidBytes, err := GetUUIDBytes(outerUUID, agentUUIDLength)
+			if err != nil {
 				logging.LogError(err, "Failed to get UUID for final message")
 				return nil, err
-			} else {
-				finalBytes := append(uuidBytes, encryptedBytes...)
-				if shouldBase64Encode {
-					return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
-				}
-				return finalBytes, nil
 			}
-		} else if convertedResponse, err := RabbitMQConnection.SendTrRPCMythicC2ToCustomMessage(TrMythicC2ToCustomMessageFormatMessage{
-			TranslationContainerName: uuidInfo.TranslationContainerName,
-			C2Name:                   uuidInfo.C2ProfileName,
-			Message:                  agentMessage,
-			UUID:                     uuidInfo.UUID,
-			MythicEncrypts:           uuidInfo.MythicEncrypts,
-			CryptoKeys:               uuidInfo.getAllKeys(),
-		}); err != nil {
-			// we send to translation container to convert to c2 specific format, then we encrypt
-			//logging.LogError(err, "Failed to send agent message response to translation container")
-			//go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
-			//	"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
-			return nil, err
-		} else if !convertedResponse.Success {
-			logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process message from Mythic->Custom C2")
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message from Mythic->Custom C2: %s\n%s", uuidInfo.TranslationContainerName, convertedResponse.Error), uuidInfo.OperationID,
-				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
-			return nil, errors.New(convertedResponse.Error)
-		} else if encryptedBytes, err := uuidInfo.IterateAndAct(convertedResponse.Message, "encrypt"); err != nil {
-			logging.LogError(err, "Failed to encrypt bytes")
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to encrypt bytes:\n%s", err.Error()), uuidInfo.OperationID,
-				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
-			return nil, err
-		} else if uuidBytes, err := GetUUIDBytes(outerUUID, agentUUIDLength); err != nil {
-			logging.LogError(err, "Failed to generate UUID for final message")
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to generate UUID for final bytes:\n%s", err.Error()), uuidInfo.OperationID,
-				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
-			return nil, err
-		} else {
 			finalBytes := append(uuidBytes, encryptedBytes...)
 			if shouldBase64Encode {
 				return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
 			}
 			return finalBytes, nil
+
 		}
-	} else {
-		if uuidInfo.TranslationContainerName == "" {
-			// mythic doesn't encrypt, but there's no translation container, so just return it
-			if jsonBytes, err := json.Marshal(agentMessage); err != nil {
-				logging.LogError(err, "Failed to marshal agent message into json")
-				return nil, err
-			} else if uuidBytes, err := GetUUIDBytes(outerUUID, agentUUIDLength); err != nil {
-				logging.LogError(err, "Failed to generate final UUID bytes")
-				return nil, err
-			} else {
-				finalBytes := append(uuidBytes, jsonBytes...)
-				if shouldBase64Encode {
-					return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
-				}
-				return finalBytes, nil
-			}
-		} else if convertedResponse, err := RabbitMQConnection.SendTrRPCMythicC2ToCustomMessage(TrMythicC2ToCustomMessageFormatMessage{
+		convertedResponse, err := RabbitMQConnection.SendTrRPCMythicC2ToCustomMessage(TrMythicC2ToCustomMessageFormatMessage{
 			TranslationContainerName: uuidInfo.TranslationContainerName,
 			C2Name:                   uuidInfo.C2ProfileName,
 			Message:                  agentMessage,
 			UUID:                     uuidInfo.UUID,
 			MythicEncrypts:           uuidInfo.MythicEncrypts,
 			CryptoKeys:               uuidInfo.getAllKeys(),
-		}); err != nil {
+		})
+		if err != nil {
+			// we send to translation container to convert to c2 specific format, then we encrypt
+			//logging.LogError(err, "Failed to send agent message response to translation container")
+			//go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container: %s\n%s", uuidInfo.TranslationContainerName, err.Error()), uuidInfo.OperationID,
+			//	"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+			return nil, err
+		}
+		if !convertedResponse.Success {
+			logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process message from Mythic->Custom C2")
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message from Mythic->Custom C2: %s\n%s", uuidInfo.TranslationContainerName, convertedResponse.Error), uuidInfo.OperationID,
+				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+			return nil, errors.New(convertedResponse.Error)
+		}
+		encryptedBytes, err := uuidInfo.IterateAndAct(convertedResponse.Message, "encrypt")
+		if err != nil {
+			logging.LogError(err, "Failed to encrypt bytes")
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to encrypt bytes:\n%s", err.Error()), uuidInfo.OperationID,
+				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+			return nil, err
+		}
+		uuidBytes, err := GetUUIDBytes(outerUUID, agentUUIDLength)
+		if err != nil {
+			logging.LogError(err, "Failed to generate UUID for final message")
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to generate UUID for final bytes:\n%s", err.Error()), uuidInfo.OperationID,
+				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+			return nil, err
+		}
+		finalBytes := append(uuidBytes, encryptedBytes...)
+		if shouldBase64Encode {
+			return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
+		}
+		return finalBytes, nil
+
+	} else {
+		if uuidInfo.TranslationContainerName == "" {
+			// mythic doesn't encrypt, but there's no translation container, so just return it
+			jsonBytes, err := marshalMessageForAgentFormat(uuidInfo, agentMessage)
+			//jsonBytes, err := json.Marshal(agentMessage)
+			if err != nil {
+				logging.LogError(err, "Failed to marshal agent message into json")
+				return nil, err
+			}
+			uuidBytes, err := GetUUIDBytes(outerUUID, agentUUIDLength)
+			if err != nil {
+				logging.LogError(err, "Failed to generate final UUID bytes")
+				return nil, err
+			}
+			finalBytes := append(uuidBytes, jsonBytes...)
+			if shouldBase64Encode {
+				return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
+			}
+			return finalBytes, nil
+
+		}
+		convertedResponse, err := RabbitMQConnection.SendTrRPCMythicC2ToCustomMessage(TrMythicC2ToCustomMessageFormatMessage{
+			TranslationContainerName: uuidInfo.TranslationContainerName,
+			C2Name:                   uuidInfo.C2ProfileName,
+			Message:                  agentMessage,
+			UUID:                     uuidInfo.UUID,
+			MythicEncrypts:           uuidInfo.MythicEncrypts,
+			CryptoKeys:               uuidInfo.getAllKeys(),
+		})
+		if err != nil {
 			//go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container:\n%s", err.Error()), uuidInfo.OperationID,
 			//	"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
 			return nil, err
-		} else if !convertedResponse.Success {
+		}
+		if !convertedResponse.Success {
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container:\n%s", convertedResponse.Error), uuidInfo.OperationID,
 				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
 			return nil, errors.New(convertedResponse.Error)
-		} else {
-			return convertedResponse.Message, nil
 		}
+		return convertedResponse.Message, nil
+
 	}
 }
 

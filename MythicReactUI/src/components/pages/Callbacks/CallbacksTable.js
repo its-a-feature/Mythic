@@ -382,12 +382,17 @@ function CallbacksTablePreMemo(props){
 }
 export const CallbacksTable = React.memo(CallbacksTablePreMemo);
 const accessorFn = (row, h) => {
-    if(h.type === "date"){
-        return new Date(row[h.key] || 0);
+    if(h.type === "timestamp"){
+        let d = new Date(row[h.key] || 0);
+        if (d.getFullYear() === 1970){
+            d = new Date();
+            d = d + d.getTimezoneOffset();
+        }
+        return d;
     }
     if(h.type === "number" || h.type === "size"){
         try{
-            return Number(row[h.key] || NaN);
+            return Number(row[h.key] || 0);
         }catch(error){
             return row[h.key] || 0;
         }

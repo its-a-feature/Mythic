@@ -6,10 +6,13 @@ import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 export const CallbackGraphEdgesContext = createContext([]);
 export const OnOpenTabContext = createContext( () => {});
 export const CallbacksContext = createContext([]);
+//
+//callback(where: {active: {_eq: true}}){
 const SUB_Callbacks = gql`
 subscription CallbacksSubscription{
-  callback(where: {active: {_eq: true}}, order_by: {id: desc}) {
+callback_stream(batch_size: 1000, cursor: {initial_value: {timestamp: "1970-01-01"}}) {
     architecture
+    active
     display_id
     description
     domain
@@ -121,7 +124,20 @@ export function CallbacksTop(props){
           if(!mountedRef.current){
             return;
           }
-          setCallbacks(data.data.callback);
+
+          const updated = data.data.callback_stream.reduce( (prev, cur) => {
+              let existingIndex = prev.findIndex( (element, i, array) => element.id === cur.id);
+              if(existingIndex === -1){
+                  // cur isn't in our current list of callbacks
+                  if(cur.active){return [...prev, cur]}
+              }
+              if(!cur.active){return [...prev]}
+              prev[existingIndex] = {...prev[existingIndex], ...cur};
+              return [...prev];
+          }, callbacks);
+
+          updated.sort( (a, b) => a.display_id > b.display_id ? -1 : 1);
+          setCallbacks(updated);
         },
         onError: ({data}) => {
             console.log(data)
