@@ -35,6 +35,7 @@ type pushC2Server struct {
 	services.UnimplementedPushC2Server
 	sync.RWMutex
 	clients                              map[int]*grpcPushC2ClientConnections
+	clientsOneToMany                     map[string]*grpcPushC2ClientConnections
 	connectionTimeout                    time.Duration
 	channelSendTimeout                   time.Duration
 	rabbitmqProcessPushC2AgentConnection chan PushC2ServerConnected
@@ -66,6 +67,7 @@ type grpcPushC2ClientConnections struct {
 var TranslationContainerServer translationContainerServer
 var PushC2Server pushC2Server
 
+// translationContainerServer functions
 func (t *translationContainerServer) addNewGenerateKeysClient(translationContainerName string) (chan services.TrGenerateEncryptionKeysMessage, chan services.TrGenerateEncryptionKeysMessageResponse, error) {
 	t.Lock()
 	if _, ok := t.clients[translationContainerName]; !ok {
@@ -190,6 +192,7 @@ func (t *translationContainerServer) GetChannelTimeout() time.Duration {
 	return t.channelSendTimeout
 }
 
+// pushC2Server functions
 func (t *pushC2Server) GetRabbitMqProcessAgentMessageChannel() chan PushC2ServerConnected {
 	return t.rabbitmqProcessPushC2AgentConnection
 }
@@ -204,6 +207,20 @@ func (t *pushC2Server) addNewPushC2Client(CallbackAgentID int, callbackUUID stri
 	t.clients[CallbackAgentID].callbackUUID = callbackUUID
 	t.clients[CallbackAgentID].base64Encoded = base64Encoded
 	t.clients[CallbackAgentID].c2ProfileName = c2ProfileName
+	t.Unlock()
+	return fromMythic, nil
+}
+func (t *pushC2Server) addNewPushC2OneToManyClient(c2ProfileName string) (chan services.PushC2MessageFromMythic, error) {
+	t.Lock()
+	if _, ok := t.clientsOneToMany[c2ProfileName]; !ok {
+		t.clientsOneToMany[c2ProfileName] = &grpcPushC2ClientConnections{}
+		t.clientsOneToMany[c2ProfileName].pushC2MessageFromMythic = make(chan services.PushC2MessageFromMythic, 100)
+	}
+	fromMythic := t.clientsOneToMany[c2ProfileName].pushC2MessageFromMythic
+	t.clientsOneToMany[c2ProfileName].connected = true
+	t.clientsOneToMany[c2ProfileName].callbackUUID = ""
+	t.clientsOneToMany[c2ProfileName].base64Encoded = true
+	t.clientsOneToMany[c2ProfileName].c2ProfileName = c2ProfileName
 	t.Unlock()
 	return fromMythic, nil
 }
@@ -233,6 +250,13 @@ func (t *pushC2Server) SetPushC2ChannelExited(CallbackAgentID int) {
 	}
 	t.RUnlock()
 }
+func (t *pushC2Server) SetPushC2OneToManyChannelExited(c2ProfileName string) {
+	t.RLock()
+	if _, ok := t.clientsOneToMany[c2ProfileName]; ok {
+		t.clientsOneToMany[c2ProfileName].connected = false
+	}
+	t.RUnlock()
+}
 func (t *pushC2Server) CheckListening() (listening bool, latestError string) {
 	return t.listening, t.latestError
 }
@@ -252,6 +276,11 @@ func (t *pushC2Server) GetConnectedClients() []int {
 	for clientID, _ := range t.clients {
 		if t.clients[clientID].connected {
 			clientIDs = append(clientIDs, clientID)
+		}
+	}
+	for c2, _ := range t.clientsOneToMany {
+		if t.clientsOneToMany[c2].connected {
+
 		}
 	}
 	return clientIDs

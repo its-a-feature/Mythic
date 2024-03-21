@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type PushC2Client interface {
 	// rpc function(messageFromClient) messageToClient
 	StartPushC2Streaming(ctx context.Context, opts ...grpc.CallOption) (PushC2_StartPushC2StreamingClient, error)
+	StartPushC2StreamingOneToMany(ctx context.Context, opts ...grpc.CallOption) (PushC2_StartPushC2StreamingOneToManyClient, error)
 }
 
 type pushC2Client struct {
@@ -65,12 +66,44 @@ func (x *pushC2StartPushC2StreamingClient) Recv() (*PushC2MessageFromMythic, err
 	return m, nil
 }
 
+func (c *pushC2Client) StartPushC2StreamingOneToMany(ctx context.Context, opts ...grpc.CallOption) (PushC2_StartPushC2StreamingOneToManyClient, error) {
+	stream, err := c.cc.NewStream(ctx, &PushC2_ServiceDesc.Streams[1], "/pushC2Services.PushC2/StartPushC2StreamingOneToMany", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &pushC2StartPushC2StreamingOneToManyClient{stream}
+	return x, nil
+}
+
+type PushC2_StartPushC2StreamingOneToManyClient interface {
+	Send(*PushC2MessageFromAgent) error
+	Recv() (*PushC2MessageFromMythic, error)
+	grpc.ClientStream
+}
+
+type pushC2StartPushC2StreamingOneToManyClient struct {
+	grpc.ClientStream
+}
+
+func (x *pushC2StartPushC2StreamingOneToManyClient) Send(m *PushC2MessageFromAgent) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *pushC2StartPushC2StreamingOneToManyClient) Recv() (*PushC2MessageFromMythic, error) {
+	m := new(PushC2MessageFromMythic)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PushC2Server is the server API for PushC2 service.
 // All implementations must embed UnimplementedPushC2Server
 // for forward compatibility
 type PushC2Server interface {
 	// rpc function(messageFromClient) messageToClient
 	StartPushC2Streaming(PushC2_StartPushC2StreamingServer) error
+	StartPushC2StreamingOneToMany(PushC2_StartPushC2StreamingOneToManyServer) error
 	mustEmbedUnimplementedPushC2Server()
 }
 
@@ -80,6 +113,9 @@ type UnimplementedPushC2Server struct {
 
 func (UnimplementedPushC2Server) StartPushC2Streaming(PushC2_StartPushC2StreamingServer) error {
 	return status.Errorf(codes.Unimplemented, "method StartPushC2Streaming not implemented")
+}
+func (UnimplementedPushC2Server) StartPushC2StreamingOneToMany(PushC2_StartPushC2StreamingOneToManyServer) error {
+	return status.Errorf(codes.Unimplemented, "method StartPushC2StreamingOneToMany not implemented")
 }
 func (UnimplementedPushC2Server) mustEmbedUnimplementedPushC2Server() {}
 
@@ -120,6 +156,32 @@ func (x *pushC2StartPushC2StreamingServer) Recv() (*PushC2MessageFromAgent, erro
 	return m, nil
 }
 
+func _PushC2_StartPushC2StreamingOneToMany_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(PushC2Server).StartPushC2StreamingOneToMany(&pushC2StartPushC2StreamingOneToManyServer{stream})
+}
+
+type PushC2_StartPushC2StreamingOneToManyServer interface {
+	Send(*PushC2MessageFromMythic) error
+	Recv() (*PushC2MessageFromAgent, error)
+	grpc.ServerStream
+}
+
+type pushC2StartPushC2StreamingOneToManyServer struct {
+	grpc.ServerStream
+}
+
+func (x *pushC2StartPushC2StreamingOneToManyServer) Send(m *PushC2MessageFromMythic) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *pushC2StartPushC2StreamingOneToManyServer) Recv() (*PushC2MessageFromAgent, error) {
+	m := new(PushC2MessageFromAgent)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PushC2_ServiceDesc is the grpc.ServiceDesc for PushC2 service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -131,6 +193,12 @@ var PushC2_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "StartPushC2Streaming",
 			Handler:       _PushC2_StartPushC2Streaming_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "StartPushC2StreamingOneToMany",
+			Handler:       _PushC2_StartPushC2StreamingOneToMany_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

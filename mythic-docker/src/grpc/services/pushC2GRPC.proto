@@ -6,6 +6,7 @@ package pushC2Services;
 service PushC2 {
   // rpc function(messageFromClient) messageToClient
   rpc StartPushC2Streaming (stream PushC2MessageFromAgent) returns (stream PushC2MessageFromMythic) {}
+  rpc StartPushC2StreamingOneToMany (stream PushC2MessageFromAgent) returns (stream PushC2MessageFromMythic) {}
 }
 
 // agent sends along the base64 message like normal and c2 profile adds in c2 profile name
