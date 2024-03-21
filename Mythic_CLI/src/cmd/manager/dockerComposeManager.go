@@ -10,6 +10,7 @@ import (
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 	"github.com/creack/pty"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/spf13/viper"
@@ -71,15 +72,15 @@ func (d *DockerComposeManager) IsServiceRunning(service string) bool {
 	if err != nil {
 		log.Fatalf("[-] Failed to get client connection to Docker: %v", err)
 	}
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
 		All: true,
 	})
 	if err != nil {
 		log.Fatalf("[-] Failed to get container list from Docker: %v", err)
 	}
 	if len(containers) > 0 {
-		for _, container := range containers {
-			if container.Labels["name"] == strings.ToLower(service) {
+		for _, c := range containers {
+			if c.Labels["name"] == strings.ToLower(service) {
 				return true
 			}
 		}
@@ -447,12 +448,12 @@ func (d *DockerComposeManager) GetInstalled3rdPartyServicesOnDisk() ([]string, e
 }
 
 func (d *DockerComposeManager) GetHealthCheck(services []string) {
-	for _, container := range services {
-		outputString, err := d.runDocker([]string{"inspect", "--format", "{{json .State.Health }}", container})
+	for _, c := range services {
+		outputString, err := d.runDocker([]string{"inspect", "--format", "{{json .State.Health }}", c})
 		if err != nil {
 			log.Printf("failed to check status: %s", err.Error())
 		} else {
-			log.Printf("%s:\n%s\n\n", container, outputString)
+			log.Printf("%s:\n%s\n\n", c, outputString)
 		}
 	}
 }
@@ -470,16 +471,16 @@ func (d *DockerComposeManager) GetLogs(service string, logCount int, follow bool
 	if err != nil {
 		log.Fatalf("Failed to get client in GetLogs: %v", err)
 	}
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
 	if err != nil {
 		log.Fatalf("Failed to get container list: %v", err)
 	}
 	if len(containers) > 0 {
 		found := false
-		for _, container := range containers {
-			if container.Labels["name"] == service {
+		for _, c := range containers {
+			if c.Labels["name"] == service {
 				found = true
-				reader, err := cli.ContainerLogs(context.Background(), container.ID, types.ContainerLogsOptions{
+				reader, err := cli.ContainerLogs(context.Background(), c.ID, container.LogsOptions{
 					ShowStdout: true,
 					ShowStderr: true,
 					Follow:     follow,
@@ -638,7 +639,7 @@ func (d *DockerComposeManager) Status(verbose bool) {
 	if err != nil {
 		log.Fatalf("[-] Failed to get client in Status check: %v", err)
 	}
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
 		All: true,
 	})
 	if err != nil {
@@ -659,19 +660,19 @@ func (d *DockerComposeManager) Status(verbose bool) {
 	if err != nil {
 		log.Fatalf("[-] Failed to get list of installed services in docker-compose: %v\n", err)
 	}
-	for _, container := range containers {
-		if container.Labels["name"] == "" {
+	for _, c := range containers {
+		if c.Labels["name"] == "" {
 			continue
 		}
 		var portRanges []uint16
 		var portRangeMaps []string
 		portString := ""
-		info := fmt.Sprintf("%s\t%s\t%s\t", container.Labels["name"], container.State, container.Status)
-		if len(container.Ports) > 0 {
-			sort.Slice(container.Ports[:], func(i, j int) bool {
-				return container.Ports[i].PublicPort < container.Ports[j].PublicPort
+		info := fmt.Sprintf("%s\t%s\t%s\t", c.Labels["name"], c.State, c.Status)
+		if len(c.Ports) > 0 {
+			sort.Slice(c.Ports[:], func(i, j int) bool {
+				return c.Ports[i].PublicPort < c.Ports[j].PublicPort
 			})
-			for _, port := range container.Ports {
+			for _, port := range c.Ports {
 				if port.PublicPort > 0 {
 					if port.PrivatePort == port.PublicPort && port.IP == "0.0.0.0" {
 						portRanges = append(portRanges, port.PrivatePort)
@@ -695,8 +696,8 @@ func (d *DockerComposeManager) Status(verbose bool) {
 			portString = portString + strings.Join(stringPortRanges[:], ", ")
 		}
 		foundMountInfo := false
-		for _, mnt := range container.Mounts {
-			if strings.HasPrefix(mnt.Name, container.Labels["name"]+"_volume") {
+		for _, mnt := range c.Mounts {
+			if strings.HasPrefix(mnt.Name, c.Labels["name"]+"_volume") {
 				if foundMountInfo {
 					info += ", " + mnt.Name
 				} else {
@@ -706,22 +707,22 @@ func (d *DockerComposeManager) Status(verbose bool) {
 			}
 		}
 		if !foundMountInfo {
-			if container.Labels["name"] == "mythic_graphql" {
+			if c.Labels["name"] == "mythic_graphql" {
 				info += "N/A"
 			} else {
 				info += "local"
 			}
 		}
 		info += "\t"
-		if utils.StringInSlice(container.Labels["name"], config.MythicPossibleServices) {
+		if utils.StringInSlice(c.Labels["name"], config.MythicPossibleServices) {
 			info = info + portString
 			mythicLocalServices = append(mythicLocalServices, info)
 		} else {
-			if utils.StringInSlice(container.Labels["name"], elementsOnDisk) ||
-				utils.StringInSlice(container.Labels["name"], elementsInCompose) {
+			if utils.StringInSlice(c.Labels["name"], elementsOnDisk) ||
+				utils.StringInSlice(c.Labels["name"], elementsInCompose) {
 				installedServices = append(installedServices, info)
-				elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container.Labels["name"])
-				elementsInCompose = utils.RemoveStringFromSliceNoOrder(elementsInCompose, container.Labels["name"])
+				elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, c.Labels["name"])
+				elementsInCompose = utils.RemoveStringFromSliceNoOrder(elementsInCompose, c.Labels["name"])
 			}
 		}
 	}
@@ -739,15 +740,15 @@ func (d *DockerComposeManager) Status(verbose bool) {
 	}
 	fmt.Fprintln(w, "\t\t\t\t")
 	// remove all elementsInCompose from elementsOnDisk
-	for _, container := range elementsInCompose {
-		elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container)
+	for _, c := range elementsInCompose {
+		elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, c)
 	}
 	if len(elementsInCompose) > 0 && verbose {
 		fmt.Fprintln(w, "Docker Compose services not running, start with: ./mythic-cli start [name]")
 		fmt.Fprintln(w, "NAME\t")
 		sort.Strings(elementsInCompose)
-		for _, container := range elementsInCompose {
-			fmt.Fprintln(w, fmt.Sprintf("%s\t", container))
+		for _, c := range elementsInCompose {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t", c))
 		}
 		fmt.Fprintln(w, "\t")
 	}
@@ -755,8 +756,8 @@ func (d *DockerComposeManager) Status(verbose bool) {
 		fmt.Fprintln(w, "Extra Services, add to docker compose with: ./mythic-cli add [name]")
 		fmt.Fprintln(w, "NAME\t")
 		sort.Strings(elementsOnDisk)
-		for _, container := range elementsOnDisk {
-			fmt.Fprintln(w, fmt.Sprintf("%s\t", container))
+		for _, c := range elementsOnDisk {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t", c))
 		}
 		fmt.Fprintln(w, "\t\t")
 	}
@@ -768,7 +769,7 @@ func (d *DockerComposeManager) PrintAllServices() {
 	if err != nil {
 		log.Fatalf("[-] Failed to get client in List Services: %v", err)
 	}
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
 		All: true,
 	})
 	if err != nil {
@@ -788,21 +789,21 @@ func (d *DockerComposeManager) PrintAllServices() {
 	if err != nil {
 		log.Fatalf("[-] Failed to get list of installed services in docker-compose: %v\n", err)
 	}
-	for _, container := range containers {
-		if container.Labels["name"] == "" {
+	for _, c := range containers {
+		if c.Labels["name"] == "" {
 			continue
 		}
-		for _, mnt := range container.Mounts {
+		for _, mnt := range c.Mounts {
 			if strings.Contains(mnt.Source, d.InstalledServicesPath) {
-				info := fmt.Sprintf("%s\t%s\t%v\t%v", container.Labels["name"], container.Status, true, utils.StringInSlice(container.Labels["name"], elementsInCompose))
+				info := fmt.Sprintf("%s\t%s\t%v\t%v", c.Labels["name"], c.Status, true, utils.StringInSlice(c.Labels["name"], elementsInCompose))
 				installedServices = append(installedServices, info)
-				elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container.Labels["name"])
-				elementsInCompose = utils.RemoveStringFromSliceNoOrder(elementsInCompose, container.Labels["name"])
+				elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, c.Labels["name"])
+				elementsInCompose = utils.RemoveStringFromSliceNoOrder(elementsInCompose, c.Labels["name"])
 			}
 		}
 	}
-	for _, container := range elementsInCompose {
-		elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, container)
+	for _, c := range elementsInCompose {
+		elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, c)
 	}
 	fmt.Fprintln(w, "Name\tContainerStatus\tImageBuilt\tDockerComposeEntry")
 	for _, line := range installedServices {
@@ -810,14 +811,14 @@ func (d *DockerComposeManager) PrintAllServices() {
 	}
 	if len(elementsInCompose) > 0 {
 		sort.Strings(elementsInCompose)
-		for _, container := range elementsInCompose {
-			fmt.Fprintln(w, fmt.Sprintf("%s\t%s\t%v\t%v", container, "N/A", d.DoesImageExist(container), true))
+		for _, c := range elementsInCompose {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t%s\t%v\t%v", c, "N/A", d.DoesImageExist(c), true))
 		}
 	}
 	if len(elementsOnDisk) > 0 {
 		sort.Strings(elementsOnDisk)
-		for _, container := range elementsOnDisk {
-			fmt.Fprintln(w, fmt.Sprintf("%s\t%s\t%v\t%v", container, "N/A", d.DoesImageExist(container), false))
+		for _, c := range elementsOnDisk {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t%s\t%v\t%v", c, "N/A", d.DoesImageExist(c), false))
 		}
 	}
 	w.Flush()
@@ -1030,7 +1031,7 @@ func (d *DockerComposeManager) PrintVolumeInformation() {
 	if err != nil {
 		log.Fatalf("[-] Failed to get disk sizes: %v\n", err)
 	}
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
+	containers, err := cli.ContainerList(ctx, container.ListOptions{Size: true})
 	if err != nil {
 		log.Fatalf("[-] Failed to get container list: %v\n", err)
 	}
@@ -1054,7 +1055,7 @@ func (d *DockerComposeManager) PrintVolumeInformation() {
 		}
 		containerPieces := strings.Split(currentVolume.Name, "_volume")
 		containerName := containerPieces[0]
-		container := "unused (0)"
+		containerUsage := "unused (0)"
 		containerStatus := "offline"
 		for _, c := range containers {
 			if containerName == c.Labels["name"] {
@@ -1062,14 +1063,14 @@ func (d *DockerComposeManager) PrintVolumeInformation() {
 			}
 			for _, m := range c.Mounts {
 				if m.Name == currentVolume.Name {
-					container = containerName + " (" + strconv.Itoa(int(currentVolume.UsageData.RefCount)) + ")"
+					containerUsage = containerName + " (" + strconv.Itoa(int(currentVolume.UsageData.RefCount)) + ")"
 				}
 			}
 		}
 		entries = append(entries, fmt.Sprintf("%s\t%s\t%s\t%s\t%s",
 			name,
 			size,
-			container,
+			containerUsage,
 			containerStatus,
 			currentVolume.Mountpoint,
 		))
@@ -1095,7 +1096,7 @@ func (d *DockerComposeManager) RemoveVolume(volumeName string) error {
 	}
 	for _, currentVolume := range volumes.Volumes {
 		if currentVolume.Name == volumeName {
-			containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
+			containers, err := cli.ContainerList(ctx, container.ListOptions{Size: true})
 			if err != nil {
 				log.Fatalf("[-] Failed to get container list: %v\n", err)
 			}
@@ -1103,7 +1104,7 @@ func (d *DockerComposeManager) RemoveVolume(volumeName string) error {
 				for _, m := range c.Mounts {
 					if m.Name == volumeName {
 						containerName := c.Labels["name"]
-						err = cli.ContainerRemove(ctx, c.ID, types.ContainerRemoveOptions{Force: true})
+						err = cli.ContainerRemove(ctx, c.ID, container.RemoveOptions{Force: true})
 						if err != nil {
 							log.Printf(fmt.Sprintf("[!] Failed to remove container that's using the volume: %v\n", err))
 						} else {
@@ -1130,16 +1131,16 @@ func (d *DockerComposeManager) CopyIntoVolume(sourceFile string, destinationFile
 		log.Fatalf("[-] Failed to connect to docker api: %v\n", err)
 	}
 	defer cli.Close()
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
+	containers, err := cli.ContainerList(ctx, container.ListOptions{Size: true})
 	if err != nil {
 		log.Fatalf("[-] Failed to get container list: %v\n", err)
 	}
-	for _, container := range containers {
-		for _, mnt := range container.Mounts {
+	for _, c := range containers {
+		for _, mnt := range c.Mounts {
 			if mnt.Name == destinationVolume {
 				log.Printf("[*] Staring to copy, this might take a minute...")
-				log.Printf("[*] Copying %s to %s", sourceFile, container.Labels["name"]+":"+mnt.Destination+"/"+destinationFileName)
-				output, err := d.runDocker([]string{"cp", sourceFile, container.Labels["name"] + ":" + mnt.Destination + "/" + destinationFileName})
+				log.Printf("[*] Copying %s to %s", sourceFile, c.Labels["name"]+":"+mnt.Destination+"/"+destinationFileName)
+				output, err := d.runDocker([]string{"cp", sourceFile, c.Labels["name"] + ":" + mnt.Destination + "/" + destinationFileName})
 				log.Printf(output)
 				return err
 			}
@@ -1159,15 +1160,15 @@ func (d *DockerComposeManager) CopyFromVolume(sourceVolumeName string, sourceFil
 		log.Fatalf("[-] Failed to connect to docker api: %v\n", err)
 	}
 	defer cli.Close()
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
+	containers, err := cli.ContainerList(ctx, container.ListOptions{Size: true})
 	if err != nil {
 		log.Fatalf("[-] Failed to get container list: %v\n", err)
 	}
-	for _, container := range containers {
-		for _, mnt := range container.Mounts {
+	for _, c := range containers {
+		for _, mnt := range c.Mounts {
 			if mnt.Name == sourceVolumeName {
 				log.Printf("[*] Staring to copy, this might take a minute...")
-				output, err := d.runDocker([]string{"cp", container.Labels["name"] + ":" + mnt.Destination + "/" + sourceFileName, destinationName})
+				output, err := d.runDocker([]string{"cp", c.Labels["name"] + ":" + mnt.Destination + "/" + sourceFileName, destinationName})
 				log.Printf(output)
 				return err
 			}
@@ -1357,13 +1358,13 @@ func (d *DockerComposeManager) ensureVolume(volumeName string) error {
 		}
 	}
 	// now that we know the volume exists, make sure it's attached to a running container or we can't manipulate files
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Size: true})
+	containers, err := cli.ContainerList(ctx, container.ListOptions{Size: true})
 	if err != nil {
 		return err
 	}
-	for _, container := range containers {
-		if container.Labels["name"] == containerName {
-			for _, mnt := range container.Mounts {
+	for _, c := range containers {
+		if c.Labels["name"] == containerName {
+			for _, mnt := range c.Mounts {
 				if mnt.Name == volumeName {
 					// container is running and has this mount associated with it
 					return nil
