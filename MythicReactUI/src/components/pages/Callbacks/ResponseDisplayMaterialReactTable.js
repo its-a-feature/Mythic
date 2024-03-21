@@ -94,22 +94,22 @@ const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
         </MythicStyledTooltip>
          : null
       }
-      {cellData?.plaintextHoverText? (
+      {cellData?.plaintextHoverText &&
         <MythicStyledTooltip title={cellData.plaintextHoverText}>
           <pre style={{display: "inline-block"}}>
-            {cellData?.plaintext?.replaceAll("\n", "")}
+            {cellData?.plaintext?.replaceAll?.("\n", "") || cellData?.plaintext}
           </pre>
           
         </MythicStyledTooltip>
-      ) : (
-        <pre style={{display: "inline-block"}}>
-            {cellData?.plaintext?.replaceAll("\n", "")}
-          </pre>
-      )}
-      {cellData?.endIcon? 
+      }
+      <pre style={{display: "inline-block"}}>
+          {cellData?.plaintext?.replaceAll?.("\n", "") || cellData?.plaintext}
+      </pre>
+
+      { cellData?.endIcon &&
        <MythicStyledTooltip title={cellData?.endIconHoverText || ""}>
           <FontAwesomeIcon icon={getIconName(cellData?.endIcon)} style={{color: cellData?.endIconColor  || ""}}/>
-        </MythicStyledTooltip>: null
+      </MythicStyledTooltip>
       }
     </div>
   );
@@ -126,13 +126,13 @@ const ResponseDisplayTableDateCell = ({cellData, rowData}) => {
         {cellData?.plaintextHoverText? (
             <MythicStyledTooltip title={cellData.plaintextHoverText}>
           <pre style={{display: "inline-block"}}>
-            {cellData?.plaintext?.toISOString()}
+            {cellData?.plaintext?.toISOString?.()}
           </pre>
 
             </MythicStyledTooltip>
         ) : (
             <pre style={{display: "inline-block"}}>
-            {cellData?.plaintext?.toISOString()}
+            {cellData?.plaintext?.toISOString?.()}
           </pre>
         )}
         {cellData?.endIcon?
@@ -190,7 +190,7 @@ export const getStringSize = ({cellData}) => {
       const i = Math.floor(Math.log(bytes) / Math.log(k));
       return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }catch(error){
-    return cellData?.plaintext?.replaceAll("\n", "") || ""
+    return cellData?.plaintext?.replaceAll?.("\n", "") || ""
     
   }
 }
@@ -627,7 +627,7 @@ export const ResponseDisplayMaterialReactTable = ({table, callback_id, expand, t
   });
   const scrollContent = (node, isAppearing) => {
     // only auto-scroll if you issued the task
-    document.getElementById(`scrolltotaskbottom${task.id}`)?.scrollIntoView({
+    document.getElementById(`scrolltotaskbottom${task.id}`)?.scrollIntoView?.({
       //behavior: "smooth",
       block: "end",
       inline: "nearest"

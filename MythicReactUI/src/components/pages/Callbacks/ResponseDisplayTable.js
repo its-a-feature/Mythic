@@ -103,13 +103,13 @@ const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
       {cellData?.plaintextHoverText? (
         <MythicStyledTooltip title={cellData.plaintextHoverText}>
           <pre style={{display: "inline-block"}}>
-            {cellData?.plaintext?.replaceAll("\n", "") || " "}
+            {cellData?.plaintext?.replaceAll?.("\n", "") || " "}
           </pre>
           
         </MythicStyledTooltip>
       ) : (
         <pre style={{display: "inline-block"}}>
-            {cellData?.plaintext?.replaceAll("\n","") || " "}
+            {cellData?.plaintext?.replaceAll?.("\n","") || " "}
           </pre>
       )}
       {cellData?.endIcon? 
@@ -173,7 +173,7 @@ export const getStringSize = ({cellData}) => {
       const i = Math.floor(Math.log(bytes) / Math.log(k));
       return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }catch(error){
-    return cellData?.plaintext?.replaceAll("\n", "") || ""
+    return cellData?.plaintext?.replaceAll?.("\n", "") || ""
     
   }
 }
@@ -561,7 +561,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   }, [expand, dataHeight]);
   const scrollContent = (node, isAppearing) => {
     // only auto-scroll if you issued the task
-    document.getElementById(`scrolltotaskbottom${task?.id}`)?.scrollIntoView({
+    document.getElementById(`scrolltotaskbottom${task?.id}`)?.scrollIntoView?.({
       //behavior: "smooth",
       block: "end",
       inline: "nearest"

@@ -511,7 +511,7 @@ func SetConfigStrings(key string, value string) {
 		}
 	}
 	if !found {
-		log.Printf("[-] Failed to find any matching keys")
+		log.Printf("[-] Failed to find any matching keys for %s\n", key)
 		return
 	}
 	log.Println("[+] Configuration successfully updated. Bring containers down and up for changes to take effect.")
