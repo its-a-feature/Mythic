@@ -123,12 +123,12 @@ query taskQuery($operation_id: Int!, $task_id: Int!, $offset: Int!, $fetchLimit:
 const callbackSearch = gql`
 ${artifactFragment}
 query taskQuery($operation_id: Int!, $callback_id: Int!, $offset: Int!, $fetchLimit: Int!) {
-    taskartifact_aggregate(distinct_on: id, where: {task: {callback_id: {_eq: $callback_id}}, operation_id: {_eq: $operation_id}}){
+    taskartifact_aggregate(distinct_on: id, where: {task: {callback: { display_id: {_eq: $callback_id}}}, operation_id: {_eq: $operation_id}}){
       aggregate {
         count
       }
     }
-    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task: {callback_id: {_eq: $callback_id}}, operation_id: {_eq: $operation_id}}) {
+    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task: {callback: { display_id: {_eq: $callback_id}}}, operation_id: {_eq: $operation_id}}) {
       ...artifactData
     }
 }

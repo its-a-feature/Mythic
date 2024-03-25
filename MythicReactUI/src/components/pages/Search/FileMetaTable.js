@@ -192,7 +192,7 @@ export function FileMetaDownloadTable(props){
             >
                 <ArchiveIcon/>Zip & Download Selected
             </Button>
-            <div style={{display: "flex", flexGrow: 1, height: "100%", overflowY: "auto"}}>
+            <div style={{height: "100%", overflowY: "auto"}}>
                 <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
@@ -602,7 +602,7 @@ export function FileMetaUploadTable(props){
             >
                 <ArchiveIcon/>Zip & Download Selected
             </Button>
-            <div style={{display: "flex", flexGrow: 1, height: "100%", overflowY: "auto"}}>
+            <div style={{height: "100%", overflowY: "auto"}}>
                 <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                     <TableHead>
                         <TableRow>

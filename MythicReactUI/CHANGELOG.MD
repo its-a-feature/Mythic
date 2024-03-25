@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.83] - 2024-03-25
+
+### Changed
+
+- Added an option to search files by UUID
+- Fixed a few searches that used callback id instead of display id resulting in confusing results
+- Added an option to search callbacks by payload type
+- Added an option to search callback by display id
+
 ## [0.1.82] - 2024-03-21
 
 ### Changed

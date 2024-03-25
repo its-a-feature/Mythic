@@ -112,6 +112,32 @@ query groupQuery($group: String!, $offset: Int!, $fetchLimit: Int!) {
     }
 }
 `;
+const payloadtypeSearch = gql`
+${callbackFragment}
+query hostQuery($operation_id: Int!, $payloadtype: String!, $offset: Int!, $fetchLimit: Int!) {
+    callback_aggregate(distinct_on: id, order_by: {id: desc}, where: {payload: {payloadtype: {name: {_ilike: $payloadtype}}}, operation_id: {_eq: $operation_id}}) {
+      aggregate {
+        count
+      }
+    }
+    callback(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {payload: {payloadtype: {name: {_ilike: $payloadtype}}}, operation_id: {_eq: $operation_id}}) {
+      ...callbackSearchData
+    }
+}
+`;
+const callbackDisplayIDSearch = gql`
+${callbackFragment}
+query hostQuery($operation_id: Int!, $callbackDisplayID: Int!, $offset: Int!, $fetchLimit: Int!) {
+    callback_aggregate(distinct_on: id, order_by: {id: desc}, where: {display_id: {_eq: $callbackDisplayID}, operation_id: {_eq: $operation_id}}) {
+      aggregate {
+        count
+      }
+    }
+    callback(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {display_id: {_eq: $callbackDisplayID}, operation_id: {_eq: $operation_id}}) {
+      ...callbackSearchData
+    }
+}
+`;
 
 export function SearchTabCallbacksLabel(props){
     return (
@@ -123,7 +149,7 @@ const SearchTabCallbacksSearchPanel = (props) => {
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Host");
-    const searchFieldOptions = ["User", "Domain", "Host", "Description", "IP", "Group"];
+    const searchFieldOptions = ["User", "Domain", "Host", "Description", "IP", "Group", "PayloadType", "CallbackDisplayID"];
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
         props.onChangeSearchField(event.target.value);
@@ -155,6 +181,12 @@ const SearchTabCallbacksSearchPanel = (props) => {
                 break;
             case "Group":
                 props.onGroupSearch({search:adjustedSearch, offset: 0});
+                break;
+            case "PayloadType":
+                props.onPayloadTypeSearch({search:adjustedSearch, offset:0});
+                break;
+            case "CallbackDisplayID":
+                props.onCallbackDisplayIDSearch({search:adjustedSearch, offset:0});
                 break;
             default:
                 break;
@@ -240,6 +272,9 @@ export const SearchTabCallbacksPanel = (props) =>{
             case "Group":
                 onGroupSearch({search, offset: 0});
                 break;
+            case "PayloadType":
+                onPayloadTypeSearch({search, offset: 0});
+                break;
             default:
                 break;
         }
@@ -280,6 +315,16 @@ export const SearchTabCallbacksPanel = (props) =>{
         onError: handleCallbackSearchFailure
     })
     const [getGroupSearch] = useLazyQuery(groupSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleCallbackSearchResults,
+        onError: handleCallbackSearchFailure
+    })
+    const [getPayloadTypeSearch] = useLazyQuery(payloadtypeSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleCallbackSearchResults,
+        onError: handleCallbackSearchFailure
+    })
+    const [getCallbackDisplayIDSearch] = useLazyQuery(callbackDisplayIDSearch, {
         fetchPolicy: "no-cache",
         onCompleted: handleCallbackSearchResults,
         onError: handleCallbackSearchFailure
@@ -367,6 +412,39 @@ export const SearchTabCallbacksPanel = (props) =>{
                 group: "%" + new_search + "%",
             }})
     }
+    const onPayloadTypeSearch = ({search, offset}) => {
+        //snackActions.info("Searching...", {persist:true});
+        setSearch(search);
+        let new_search = search;
+        if(new_search === ""){
+            new_search = "_";
+        }
+        getPayloadTypeSearch({variables:{
+                operation_id: me?.user?.current_operation_id || 0,
+                offset: offset,
+                fetchLimit: fetchLimit,
+                payloadtype: "%" + new_search + "%",
+            }})
+    }
+    const onCallbackDisplayIDSearch = ({search, offset}) => {
+        //snackActions.info("Searching...", {persist:true});
+        setSearch(search);
+        if(search === ""){
+            snackActions.warning("Must supply an ID to search for");
+            return;
+        }
+        try{
+            let new_search = parseInt(search);
+            getCallbackDisplayIDSearch({variables:{
+                    operation_id: me?.user?.current_operation_id || 0,
+                    offset: offset,
+                    fetchLimit: fetchLimit,
+                    callbackDisplayID: new_search,
+                }})
+        }catch(error){
+            snackActions.warning("ID must be an integer");
+        }
+    }
     const onChangePage = (event, value) => {
         switch(searchField){
             case "User":
@@ -387,6 +465,12 @@ export const SearchTabCallbacksPanel = (props) =>{
             case "Group":
                 onGroupSearch({search, offset: (value - 1) * fetchLimit});
                 break;
+            case "PayloadType":
+                onPayloadTypeSearch({search, offset: (value -1) * fetchLimit});
+                break;
+            case "CallbackDisplayID":
+                onCallbackDisplayIDSearch({search, offset: (value-1) * fetchLimit});
+                break;
             default:
                 break;
         }
@@ -396,8 +480,10 @@ export const SearchTabCallbacksPanel = (props) =>{
                 <SearchTabCallbacksSearchPanel onChangeSearchField={onChangeSearchField}
                                                onUserSearch={onUserSearch}
                                                onIPSearch={onIPSearch} value={props.value} index={props.index}
-                                                onDomainSearch={onDomainSearch}
+                                               onDomainSearch={onDomainSearch}
                                                onGroupSearch={onGroupSearch}
+                                               onPayloadTypeSearch={onPayloadTypeSearch}
+                                               onCallbackDisplayIDSearch={onCallbackDisplayIDSearch}
                                                onHostSearch={onHostSearch} onDescriptionSearch={onDescriptionSearch} changeSearchParam={props.changeSearchParam}/>
                 <div style={{overflowY: "auto", flexGrow: 1}}>
                     {callbackData.length > 0 ? (
