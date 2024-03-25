@@ -90,7 +90,7 @@ func InitializeGinLogger() gin.HandlerFunc {
 				"path", param.Path,
 				"protocol", param.Request.Proto,
 				"statusCode", param.StatusCode,
-				"latency", param.Latency,
+				"latency", param.Latency.String(),
 				"responseSize", param.BodySize,
 				"source", source,
 				"user_id", c.GetInt("user_id"),

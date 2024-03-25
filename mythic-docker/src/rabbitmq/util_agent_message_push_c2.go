@@ -31,6 +31,7 @@ func processAgentMessageFromPushC2() {
 						Base64Message:     agentMessage.Base64Message,
 						Base64Response:    agentMessage.Base64Message != nil,
 						UpdateCheckinTime: agentMessage.UpdateCheckinTime,
+						TrackingID:        agentMessage.TrackingID,
 					})
 					//logging.LogDebug("finished processing message, about to send response back to grpc")
 					select {
@@ -40,6 +41,8 @@ func processAgentMessageFromPushC2() {
 						OuterUuid:           messageResponse.OuterUuid,
 						OuterUuidIsCallback: messageResponse.OuterUuidIsCallback,
 						Err:                 messageResponse.Err,
+						TrackingID:          messageResponse.TrackingID,
+						AgentUUIDSize:       messageResponse.AgentUUIDSize,
 					}:
 					case <-time.After(grpc.PushC2Server.GetChannelTimeout()):
 						err := errors.New("timeout sending agent message response back to agentMessageToProcess.ResponseChannel")
@@ -55,38 +58,37 @@ func processAgentMessageFromPushC2() {
 	}
 }
 func sendMessageToDirectPushC2(callbackID int, message map[string]interface{}, updateCheckinTime bool) error {
-	responseChan, callbackUUID, base64Encoded, c2ProfileName, err := grpc.PushC2Server.GetPushC2ClientInfo(callbackID)
+	responseChan, callbackUUID, base64Encoded, c2ProfileName, trackingID, agentUUIDSize, err := grpc.PushC2Server.GetPushC2ClientInfo(callbackID)
 	if err != nil {
 		logging.LogError(err, "Failed to get push c2 client info")
 		return err
-	} else {
-		uUIDInfo, err := LookupEncryptionData(c2ProfileName, callbackUUID, updateCheckinTime)
-		if err != nil {
-			logging.LogError(err, "Failed to find encryption data for callback")
-			return err
-		} else {
-			responseBytes, err := EncryptMessage(uUIDInfo, callbackUUID, message, 36, base64Encoded)
-			if err != nil {
-				logging.LogError(err, "Failed to encrypt message")
-				return err
-			} else {
-				//logging.LogDebug("new encrypted msg for push c2", "enc", string(responseBytes))
-				select {
-				case responseChan <- services.PushC2MessageFromMythic{
-					Message: responseBytes,
-					Success: true,
-					Error:   "",
-				}:
-					// everything went ok, return from this
-					//logging.LogDebug("Sent message back to responseChan")
-					return nil
-				case <-time.After(grpc.PushC2Server.GetChannelTimeout()):
-					logging.LogError(nil, "timeout trying to send to responseChannel")
-					return errors.New("timeout trying to send to responseChannel")
-				}
-			}
-		}
 	}
+	uUIDInfo, err := LookupEncryptionData(c2ProfileName, callbackUUID, updateCheckinTime)
+	if err != nil {
+		logging.LogError(err, "Failed to find encryption data for callback")
+		return err
+	}
+	responseBytes, err := EncryptMessage(uUIDInfo, callbackUUID, message, agentUUIDSize, base64Encoded)
+	if err != nil {
+		logging.LogError(err, "Failed to encrypt message")
+		return err
+	}
+	//logging.LogDebug("new encrypted msg for push c2", "enc", string(responseBytes))
+	select {
+	case responseChan <- services.PushC2MessageFromMythic{
+		Message:    responseBytes,
+		Success:    true,
+		Error:      "",
+		TrackingID: trackingID,
+	}:
+		// everything went ok, return from this
+		//logging.LogDebug("Sent message back to responseChan")
+		return nil
+	case <-time.After(grpc.PushC2Server.GetChannelTimeout()):
+		logging.LogError(nil, "timeout trying to send to responseChannel")
+		return errors.New("timeout trying to send to responseChannel")
+	}
+
 }
 
 type interceptProxyToAgentMessage struct {

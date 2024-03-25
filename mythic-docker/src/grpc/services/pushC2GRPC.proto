@@ -12,21 +12,25 @@ service PushC2 {
 // agent sends along the base64 message like normal and c2 profile adds in c2 profile name
 // this is all normal c2 profiles pass along to mythic anyway
 // C2ProfileName is required
-// AgentUUID is required if Message is used (so your agent is base64 encoding all messages
-// TaskingSize is also handy if it's known by the C2 Profile, otherwise fine to leave blank and -1 will be used
-// If M
+// RemoteIP should be the IP of the remote connection to the c2 profile if known
+// Message is a base64 decoded message if you want the c2 profile to base64 decode what the agents are saying
+// Base64Message is what an agent would normally send. This is mutually exclusive with Message
+// TrackingID is some custom string that the c2 server provides so that it can correlate input with output from the stream
 message PushC2MessageFromAgent {
-  string C2ProfileName = 1;
-  string RemoteIP      = 2;
-  int32 TaskingSize    = 3;
-  bytes  Message       = 4;
-  bytes Base64Message  = 5;
+  string C2ProfileName      = 1;
+  string RemoteIP           = 2;
+  bytes  Message            = 3;
+  string OuterUUID          = 4;
+  bytes  Base64Message      = 5;
+  string TrackingID         = 6;
+  bool   AgentDisconnected  = 7;
 }
 
 // mythic sends along success/error information if any
 // mythic sends along the messages
 message PushC2MessageFromMythic  {
-bool   Success  = 1;
-string Error    = 2;
-bytes  Message  = 3;
+bool   Success                = 1;
+string Error                  = 2;
+bytes  Message                = 3;
+string TrackingID             = 4;
 }

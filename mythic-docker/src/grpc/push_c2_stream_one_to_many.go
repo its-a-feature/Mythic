@@ -10,6 +10,7 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/jmoiron/sqlx"
 	"io"
+	"sync"
 	"time"
 )
 
@@ -68,6 +69,10 @@ func (t *pushC2Server) StartPushC2StreamingOneToMany(stream services.PushC2_Star
 					failedReadFromAgent <- true
 					return
 				}
+				if fromAgent.AgentDisconnected {
+					go updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName, fromAgent.TrackingID)
+					continue
+				}
 				if len(fromAgent.Message) > 0 {
 					rawMessage = &fromAgent.Message
 				} else {
@@ -86,6 +91,7 @@ func (t *pushC2Server) StartPushC2StreamingOneToMany(stream services.PushC2_Star
 					RawMessage:      rawMessage,
 					Base64Message:   base64Message,
 					RemoteIP:        fromAgent.GetRemoteIP(),
+					TrackingID:      fromAgent.TrackingID,
 				}:
 				case <-time.After(t.GetChannelTimeout()):
 					err = errors.New("timeout sending to rabbitmqProcessAgentMessageChannel")
@@ -102,13 +108,14 @@ func (t *pushC2Server) StartPushC2StreamingOneToMany(stream services.PushC2_Star
 					failedReadFromAgent <- true
 					return
 				}
-				go updatePushC2OneToManyLastCheckinConnectTimestamp(fromMythicResponse, c2ProfileName)
+				go updatePushC2OneToManyLastCheckinConnectTimestamp(fromMythicResponse, len(fromAgent.Base64Message) > 0, c2ProfileName)
 				if fromMythicResponse.Err != nil {
 					// mythic encountered an error with the first message from the agent, return error and wait for the next
 					err = stream.Send(&services.PushC2MessageFromMythic{
-						Success: false,
-						Error:   fromMythicResponse.Err.Error(),
-						Message: nil,
+						Success:    false,
+						Error:      fromMythicResponse.Err.Error(),
+						Message:    nil,
+						TrackingID: fromMythicResponse.TrackingID,
 					})
 					if err != nil {
 						// we failed to send the message back to the agent, bail
@@ -120,9 +127,10 @@ func (t *pushC2Server) StartPushC2StreamingOneToMany(stream services.PushC2_Star
 					continue
 				}
 				err = stream.Send(&services.PushC2MessageFromMythic{
-					Success: true,
-					Error:   "",
-					Message: fromMythicResponse.Message,
+					Success:    true,
+					Error:      "",
+					Message:    fromMythicResponse.Message,
+					TrackingID: fromMythicResponse.TrackingID,
 				})
 				if err != nil {
 					// we failed to send the message back to the agent, bail
@@ -139,19 +147,19 @@ func (t *pushC2Server) StartPushC2StreamingOneToMany(stream services.PushC2_Star
 			case <-failedReadFromAgent:
 				logging.LogError(nil, "hit error reading and processing message from agent, bailing")
 				t.SetPushC2OneToManyChannelExited(c2ProfileName)
-				go updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName)
+				go updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName, "")
 				return errors.New(fmt.Sprintf("c2 disconnected: %s", c2ProfileName))
 			case <-stream.Context().Done():
 				// something closed the grpc connection, bail out
 				logging.LogError(stream.Context().Err(), fmt.Sprintf("c2 disconnected: %s", c2ProfileName))
 				t.SetPushC2OneToManyChannelExited(c2ProfileName)
-				go updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName)
+				go updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName, "")
 				return errors.New(fmt.Sprintf("c2 disconnected: %s", c2ProfileName))
 			case msgToSend, ok := <-newPushMessageFromMythicChannel:
 				if !ok {
 					logging.LogError(nil, "got !ok from messageToSend, channel was closed for push c2")
 					t.SetPushC2OneToManyChannelExited(c2ProfileName)
-					go updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName)
+					go updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName, "")
 					return nil
 				}
 				// msgToSend.Message should be in the form:
@@ -161,7 +169,7 @@ func (t *pushC2Server) StartPushC2StreamingOneToMany(stream services.PushC2_Star
 				if err != nil {
 					logging.LogError(err, "Failed to send message through stream to push c2")
 					t.SetPushC2OneToManyChannelExited(c2ProfileName)
-					go updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName)
+					go updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName, "")
 					return err
 				}
 			}
@@ -172,40 +180,67 @@ func (t *pushC2Server) StartPushC2StreamingOneToMany(stream services.PushC2_Star
 var callbackUUIDToIDMap = make(map[string]int)
 var callbackIDToOperationIDMap = make(map[int]int)
 
-func updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName string) {
+type cachedCallbackInfo struct {
+	CallbackUUID  string
+	Base64Encoded bool
+	TrackingID    string
+	AgentUUIDSize int
+}
+
+var c2ProfileToCallbackIDsMap = make(map[string]map[int]cachedCallbackInfo)
+var c2ProfileToCallbackIDsMapLock sync.RWMutex
+
+func updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName string, trackingID string) {
 	c2ProfileId := -1
-	c2ProfileMapLock.RLock()
+	c2ProfileMapPushC2MapLock.RLock()
 	c2ProfileId, ok := c2ProfileMap[c2ProfileName]
-	c2ProfileMapLock.RUnlock()
+	c2ProfileMapPushC2MapLock.RUnlock()
 	if !ok {
-		c2ProfileMapLock.Lock()
+		c2ProfileMapPushC2MapLock.Lock()
 		err := database.DB.Get(&c2ProfileId, `SELECT id FROM c2profile WHERE "name"=$1`, c2ProfileName)
 		if err != nil {
 			logging.LogError(err, "failed to get c2 profile id from name")
 		} else {
 			c2ProfileMap[c2ProfileName] = c2ProfileId
 		}
-		c2ProfileMapLock.Unlock()
+		c2ProfileMapPushC2MapLock.Unlock()
 		if err != nil {
 			return
 		}
 	}
+	var callbackIDs []int
 	callbacks := []databaseStructs.Callback{}
-	err := database.DB.Select(&callbacks, `SELECT
-    	callback.id
-		FROM callback
-		JOIN callbackc2profiles ON callbackc2profiles.callback_id = callback.id
-		WHERE callback.active = true AND callbackc2profiles.c2_profile_id = $1
-    `, c2ProfileId)
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			logging.LogError(err, "Failed to get callbacks associated with c2 profile one-to-many disconnect")
+	if trackingID != "" {
+		c2ProfileToCallbackIDsMapLock.Lock()
+		if _, ok = c2ProfileToCallbackIDsMap[c2ProfileName]; !ok {
+			c2ProfileToCallbackIDsMap[c2ProfileName] = make(map[int]cachedCallbackInfo)
 		}
-		return
-	}
-	callbackIDs := make([]int, len(callbacks))
-	for i, _ := range callbacks {
-		callbackIDs[i] = callbacks[i].ID
+		for currentCallbackID := range c2ProfileToCallbackIDsMap[c2ProfileName] {
+			if c2ProfileToCallbackIDsMap[c2ProfileName][currentCallbackID].TrackingID == trackingID {
+				logging.LogDebug("Found matching tracking id to disconnect")
+				callbackIDs = []int{currentCallbackID}
+				delete(c2ProfileToCallbackIDsMap[c2ProfileName], currentCallbackID)
+				break
+			}
+		}
+		c2ProfileToCallbackIDsMapLock.Unlock()
+	} else {
+		err := database.DB.Select(&callbacks, `SELECT
+			callback.id
+			FROM callback
+			JOIN callbackc2profiles ON callbackc2profiles.callback_id = callback.id
+			WHERE callback.active = true AND callbackc2profiles.c2_profile_id = $1
+		`, c2ProfileId)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				logging.LogError(err, "Failed to get callbacks associated with c2 profile one-to-many disconnect")
+			}
+			return
+		}
+		callbackIDs = make([]int, len(callbacks))
+		for i, _ := range callbacks {
+			callbackIDs[i] = callbacks[i].ID
+		}
 	}
 	query, args, err := sqlx.Named(`UPDATE callback SET last_checkin=:last_checkin WHERE id IN (:ids)`,
 		map[string]interface{}{"last_checkin": time.Now().UTC(), "ids": callbackIDs})
@@ -233,61 +268,98 @@ func updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName string) {
 			logging.LogError(err, "Failed to update callback edge when push c2 disconnected")
 		}
 	}
+	// now that the c2 disconnected, flush all the cached data about the connections
+	if trackingID == "" {
+		c2ProfileToCallbackIDsMapLock.Lock()
+		delete(c2ProfileToCallbackIDsMap, c2ProfileName)
+		c2ProfileToCallbackIDsMapLock.Unlock()
+	}
+
 }
-func updatePushC2OneToManyLastCheckinConnectTimestamp(agentMessage RabbitMQProcessAgentMessageFromPushC2Response, c2ProfileName string) {
+func updatePushC2OneToManyLastCheckinConnectTimestamp(fromMythicResponse RabbitMQProcessAgentMessageFromPushC2Response,
+	base64Encoded bool,
+	c2ProfileName string) {
 	c2ProfileId := -1
 	callbackId := -1
 	operationId := -1
-	c2ProfileMapLock.RLock()
+	callbackUUID := ""
+	c2ProfileMapPushC2MapLock.RLock()
 	c2ProfileId, ok := c2ProfileMap[c2ProfileName]
-	c2ProfileMapLock.RUnlock()
+	c2ProfileMapPushC2MapLock.RUnlock()
 	if !ok {
-		c2ProfileMapLock.Lock()
+		c2ProfileMapPushC2MapLock.Lock()
 		err := database.DB.Get(&c2ProfileId, `SELECT id FROM c2profile WHERE "name"=$1`, c2ProfileName)
 		if err != nil {
 			logging.LogError(err, "failed to get c2 profile id from name")
 		} else {
 			c2ProfileMap[c2ProfileName] = c2ProfileId
 		}
-		c2ProfileMapLock.Unlock()
+		c2ProfileMapPushC2MapLock.Unlock()
 		if err != nil {
 			return
 		}
 	}
-	if agentMessage.OuterUuidIsCallback {
+	if fromMythicResponse.OuterUuidIsCallback {
+		callbackUUID = fromMythicResponse.OuterUuid
 		callback := databaseStructs.Callback{}
-		callbackId, ok = callbackUUIDToIDMap[agentMessage.OuterUuid]
+		callbackId, ok = callbackUUIDToIDMap[fromMythicResponse.OuterUuid]
 		if !ok {
-			err := database.DB.Get(&callback, `SELECT id, operation_id FROM callback WHERE agent_callback_id=$1`, agentMessage.OuterUuid)
+			err := database.DB.Get(&callback, `SELECT id, operation_id FROM callback WHERE agent_callback_id=$1`, fromMythicResponse.OuterUuid)
 			if err != nil {
 				logging.LogError(err, "Failed to find callback info to update connection time")
 				return
 			}
-			callbackUUIDToIDMap[agentMessage.OuterUuid] = callback.ID
+			callbackUUIDToIDMap[fromMythicResponse.OuterUuid] = callback.ID
 			callbackIDToOperationIDMap[callback.ID] = callback.OperationID
 			callbackId = callback.ID
 			operationId = callback.OperationID
 		} else {
 			operationId = callbackIDToOperationIDMap[callbackId]
 		}
-	} else if agentMessage.NewCallbackUUID != "" {
-		callbackId, ok = callbackUUIDToIDMap[agentMessage.NewCallbackUUID]
+	} else if fromMythicResponse.NewCallbackUUID != "" {
+		callbackUUID = fromMythicResponse.NewCallbackUUID
+		callbackId, ok = callbackUUIDToIDMap[fromMythicResponse.NewCallbackUUID]
 		if !ok {
 			callback := databaseStructs.Callback{}
-			err := database.DB.Get(&callback, `SELECT id, operation_id FROM callback WHERE agent_callback_id=$1`, agentMessage.NewCallbackUUID)
+			err := database.DB.Get(&callback, `SELECT id, operation_id FROM callback WHERE agent_callback_id=$1`, fromMythicResponse.NewCallbackUUID)
 			if err != nil {
 				logging.LogError(err, "Failed to find callback info to update connection time")
 				return
 			}
-			callbackUUIDToIDMap[agentMessage.NewCallbackUUID] = callback.ID
+			callbackUUIDToIDMap[fromMythicResponse.NewCallbackUUID] = callback.ID
 			callbackIDToOperationIDMap[callback.ID] = callback.OperationID
 			callbackId = callback.ID
 			operationId = callback.OperationID
 		} else {
 			operationId = callbackIDToOperationIDMap[callbackId]
 		}
+	} else if callbackId == -1 {
+		// make sure we only save off and track callbacks, not staging sessions
+		return
 	}
-
+	newConnection := false
+	c2ProfileToCallbackIDsMapLock.RLock()
+	if _, ok = c2ProfileToCallbackIDsMap[c2ProfileName]; !ok {
+		newConnection = true
+		c2ProfileToCallbackIDsMap[c2ProfileName] = make(map[int]cachedCallbackInfo)
+	}
+	if _, ok = c2ProfileToCallbackIDsMap[c2ProfileName][callbackId]; !ok {
+		newConnection = true
+		c2ProfileToCallbackIDsMap[c2ProfileName][callbackId] = cachedCallbackInfo{
+			CallbackUUID:  callbackUUID,
+			Base64Encoded: base64Encoded,
+			TrackingID:    fromMythicResponse.TrackingID,
+			AgentUUIDSize: fromMythicResponse.AgentUUIDSize,
+		}
+	}
+	c2ProfileToCallbackIDsMapLock.RUnlock()
+	if newConnection {
+		_, err := database.DB.Exec(`UPDATE callback SET last_checkin=$1 WHERE id=$2`,
+			time.UnixMicro(0), callbackId)
+		if err != nil {
+			logging.LogError(err, "Failed to update callback last checkin time")
+		}
+	}
 	currentEdge := databaseStructs.Callbackgraphedge{}
 	err := database.DB.Get(&currentEdge, `SELECT id FROM callbackgraphedge WHERE
 		 source_id=$1 and destination_id=$2 and c2_profile_id=$3 and end_timestamp IS NULL`,
@@ -299,7 +371,7 @@ func updatePushC2OneToManyLastCheckinConnectTimestamp(agentMessage RabbitMQProce
 						VALUES ($1, $1, $2, $3)`,
 			callbackId, c2ProfileId, operationId)
 		if err != nil {
-			logging.LogError(err, "Failed to add new callback graph edge")
+			logging.LogError(err, "Failed to add new callback graph edge", "callbackID", callbackId)
 		} else {
 			logging.LogInfo("Added new callbackgraph edge in pushC2 one to many", "c2", c2ProfileId, "callback", callbackId)
 		}

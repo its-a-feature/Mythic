@@ -20,6 +20,7 @@ type RabbitMQProcessAgentMessageFromPushC2 struct {
 	RemoteIP          string
 	UpdateCheckinTime bool
 	ResponseChannel   chan RabbitMQProcessAgentMessageFromPushC2Response
+	TrackingID        string
 }
 type RabbitMQProcessAgentMessageFromPushC2Response struct {
 	Message             []byte
@@ -27,6 +28,8 @@ type RabbitMQProcessAgentMessageFromPushC2Response struct {
 	OuterUuid           string
 	OuterUuidIsCallback bool
 	Err                 error
+	TrackingID          string
+	AgentUUIDSize       int
 }
 
 func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2StreamingServer) error {
@@ -50,7 +53,7 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 		// first get a message from stream, process it, and see what we're dealing with
 		fromAgent, err := stream.Recv()
 		if err == io.EOF {
-			logging.LogDebug("Client closed before ever sending anything, err is EOF")
+			logging.LogError(err, "Client closed before ever sending anything, err is EOF")
 			return nil // the client closed before ever sending anything
 		} else if err != nil {
 			logging.LogError(err, "Client ran into an error before sending anything")
@@ -81,6 +84,7 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 			Base64Message:     base64Message,
 			RemoteIP:          fromAgent.GetRemoteIP(),
 			UpdateCheckinTime: true,
+			TrackingID:        fromAgent.TrackingID,
 		}:
 		case <-time.After(t.GetChannelTimeout()):
 			err = errors.New("timeout sending to rabbitmqProcessAgentMessageChannel")
@@ -98,9 +102,10 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 		if fromMythic.Err != nil {
 			// mythic encountered an error with the first message from the agent, return error and wait for the next
 			err = stream.Send(&services.PushC2MessageFromMythic{
-				Success: false,
-				Error:   fromMythic.Err.Error(),
-				Message: nil,
+				Success:    false,
+				Error:      fromMythic.Err.Error(),
+				Message:    nil,
+				TrackingID: fromMythic.TrackingID,
 			})
 			if err != nil {
 				// we failed to send the message back to the agent, bail
@@ -111,9 +116,10 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 			continue
 		}
 		err = stream.Send(&services.PushC2MessageFromMythic{
-			Success: true,
-			Error:   "",
-			Message: fromMythic.Message,
+			Success:    true,
+			Error:      "",
+			Message:    fromMythic.Message,
+			TrackingID: fromMythic.TrackingID,
 		})
 		if err != nil {
 			return err
@@ -148,7 +154,7 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 		updatePushC2LastCheckinConnectTimestamp(callback.ID, c2ProfileName, callback.OperationID)
 		// successfully processed x messages and have a new callback id to process
 		// register that callback as listening
-		newPushMessageFromMythicChannel, err := t.addNewPushC2Client(callback.ID, callbackUUID, base64Message != nil, c2ProfileName)
+		newPushMessageFromMythicChannel, err := t.addNewPushC2Client(callback.ID, callbackUUID, base64Message != nil, c2ProfileName, fromMythic.AgentUUIDSize)
 		if err != nil {
 			// mythic can't keep track of the new connection for some reason, abort it
 			logging.LogError(err, "Failed to add new channels to listen for connection")
@@ -189,6 +195,7 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 					RawMessage:      rawMessage,
 					Base64Message:   base64Message,
 					RemoteIP:        fromAgent.GetRemoteIP(),
+					TrackingID:      fromAgent.TrackingID,
 				}:
 				case <-time.After(t.GetChannelTimeout()):
 					err = errors.New("timeout sending to rabbitmqProcessAgentMessageChannel")
@@ -208,9 +215,10 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 				if fromMythicResponse.Err != nil {
 					// mythic encountered an error with the first message from the agent, return error and wait for the next
 					err = stream.Send(&services.PushC2MessageFromMythic{
-						Success: false,
-						Error:   fromMythicResponse.Err.Error(),
-						Message: nil,
+						Success:    false,
+						Error:      fromMythicResponse.Err.Error(),
+						Message:    nil,
+						TrackingID: fromMythicResponse.TrackingID,
 					})
 					if err != nil {
 						// we failed to send the message back to the agent, bail
@@ -222,9 +230,10 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 					continue
 				}
 				err = stream.Send(&services.PushC2MessageFromMythic{
-					Success: true,
-					Error:   "",
-					Message: fromMythicResponse.Message,
+					Success:    true,
+					Error:      "",
+					Message:    fromMythicResponse.Message,
+					TrackingID: fromMythicResponse.TrackingID,
 				})
 				if err != nil {
 					// we failed to send the message back to the agent, bail
@@ -272,11 +281,11 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 }
 
 var c2ProfileMap = make(map[string]int)
-var c2ProfileMapLock sync.RWMutex
+var c2ProfileMapPushC2MapLock sync.RWMutex
 
 func updatePushC2LastCheckinDisconnectTimestamp(callbackId int, c2ProfileName string) {
 	c2ProfileId := -1
-	c2ProfileMapLock.Lock()
+	c2ProfileMapPushC2MapLock.Lock()
 	if _, ok := c2ProfileMap[c2ProfileName]; ok {
 		c2ProfileId = c2ProfileMap[c2ProfileName]
 	} else {
@@ -287,7 +296,7 @@ func updatePushC2LastCheckinDisconnectTimestamp(callbackId int, c2ProfileName st
 			c2ProfileMap[c2ProfileName] = c2ProfileId
 		}
 	}
-	c2ProfileMapLock.Unlock()
+	c2ProfileMapPushC2MapLock.Unlock()
 	_, err := database.DB.Exec(`UPDATE callback SET
 		last_checkin=$2 WHERE id=$1`, callbackId, time.Now().UTC())
 	if err != nil {
@@ -306,7 +315,7 @@ func updatePushC2LastCheckinDisconnectTimestamp(callbackId int, c2ProfileName st
 }
 func updatePushC2LastCheckinConnectTimestamp(callbackId int, c2ProfileName string, operationId int) {
 	c2ProfileId := -1
-	c2ProfileMapLock.Lock()
+	c2ProfileMapPushC2MapLock.Lock()
 	if _, ok := c2ProfileMap[c2ProfileName]; ok {
 		c2ProfileId = c2ProfileMap[c2ProfileName]
 	} else {
@@ -317,7 +326,7 @@ func updatePushC2LastCheckinConnectTimestamp(callbackId int, c2ProfileName strin
 			c2ProfileMap[c2ProfileName] = c2ProfileId
 		}
 	}
-	c2ProfileMapLock.Unlock()
+	c2ProfileMapPushC2MapLock.Unlock()
 	currentEdge := databaseStructs.Callbackgraphedge{}
 	err := database.DB.Get(&currentEdge, `SELECT id FROM callbackgraphedge WHERE
 		 source_id=$1 and destination_id=$2 and c2_profile_id=$3 and end_timestamp IS NULL`,

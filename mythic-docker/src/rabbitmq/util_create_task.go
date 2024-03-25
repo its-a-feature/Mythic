@@ -130,14 +130,14 @@ func (s *submittedTasksForAgents) addTask(task databaseStructs.Task) {
 
 					*/
 
-					responseChan, callbackUUID, base64Encoded, c2ProfileName, err := grpc.PushC2Server.GetPushC2ClientInfo(clientID)
+					responseChan, callbackUUID, base64Encoded, c2ProfileName, trackingID, agentUUIDSize, err := grpc.PushC2Server.GetPushC2ClientInfo(clientID)
 					logging.LogDebug("new msg for push c2", "task", newTaskMsg)
 					uUIDInfo, err := LookupEncryptionData(c2ProfileName, callbackUUID, false)
 					if err != nil {
 						logging.LogError(err, "Failed to find encryption data for callback")
 						break
 					}
-					responseBytes, err := EncryptMessage(uUIDInfo, callbackUUID, newTaskMsg, 36, base64Encoded)
+					responseBytes, err := EncryptMessage(uUIDInfo, callbackUUID, newTaskMsg, agentUUIDSize, base64Encoded)
 					if err != nil {
 						logging.LogError(err, "Failed to encrypt message")
 						break
@@ -145,9 +145,10 @@ func (s *submittedTasksForAgents) addTask(task databaseStructs.Task) {
 					//logging.LogDebug("new encrypted msg for push c2", "enc", string(responseBytes))
 					select {
 					case responseChan <- services.PushC2MessageFromMythic{
-						Message: responseBytes,
-						Success: true,
-						Error:   "",
+						Message:    responseBytes,
+						Success:    true,
+						Error:      "",
+						TrackingID: trackingID,
 					}:
 						// everything went ok, return from this
 						logging.LogDebug("Sent message back to responseChan")
