@@ -8,7 +8,7 @@
 <a href="https://twitter.com/its_a_feature_">
     <img src="https://img.shields.io/twitter/follow/its_a_feature_?style=social" 
       alt="@its_a_feature_ on Twitter"/></a>
-<a href="https://bloodhoundgang.herokuapp.com/">
+<a href="https://ghst.ly/BHSlack">
     <img src="https://img.shields.io/badge/BloodHound Slack-4A154B?logo=slack&logoColor=white"
         alt="chat on Bloodhound Slack"></a>
 <a href="https://github.com/specterops#mythic">
