@@ -43,6 +43,7 @@ const (
 	C2_PARAMETER_TYPE_DICTIONARY                      = "Dictionary"
 	C2_PARAMETER_TYPE_NUMBER                          = "Number"
 	C2_PARAMETER_TYPE_TYPED_ARRAY                     = "TypedArray"
+	C2_PARAMETER_TYPE_FILE                            = "File"
 )
 
 type C2Parameter struct {

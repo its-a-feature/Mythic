@@ -393,6 +393,8 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 		} else {
 			return strings.TrimSpace(defaultValue), nil
 		}
+	case BUILD_PARAMETER_TYPE_FILE:
+		fallthrough
 	case BUILD_PARAMETER_TYPE_STRING:
 		return strings.TrimSpace(defaultValue), nil
 	case BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE:

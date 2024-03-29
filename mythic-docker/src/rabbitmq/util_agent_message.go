@@ -291,7 +291,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	} else if agentMessageInput.RawMessage != nil {
 		base64DecodedMessage = *agentMessageInput.RawMessage
 	} else {
-		errorMessage := "Failed toget message\n"
+		errorMessage := "Failed to get message\n"
 		errorMessage += fmt.Sprintf("Connection from %s\n", agentMessageInput.RemoteIP)
 		logging.LogError(err, "Failed to get agent message")
 		go SendAllOperationsMessage(errorMessage, 0, "agent_message_base64", database.MESSAGE_LEVEL_WARNING)

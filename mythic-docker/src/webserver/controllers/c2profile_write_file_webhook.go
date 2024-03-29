@@ -40,7 +40,8 @@ func C2ProfileWriteFileWebhook(c *gin.Context) {
 	// get the associated database information
 	c2profile := databaseStructs.C2profile{}
 
-	if err := database.DB.Get(&c2profile, `SELECT "name" FROM c2profile WHERE id=$1`, input.Input.C2ProfileID); err != nil {
+	err := database.DB.Get(&c2profile, `SELECT "name" FROM c2profile WHERE id=$1`, input.Input.C2ProfileID)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch c2 profile from database by ID", "id", input.Input.C2ProfileID)
 		c.JSON(http.StatusOK, WriteContainerFileResponse{
 			Status: "error",
@@ -48,18 +49,22 @@ func C2ProfileWriteFileWebhook(c *gin.Context) {
 		})
 		return
 		// send the RPC request to the container
-	} else if fileContents, err := base64.StdEncoding.DecodeString(input.Input.Data); err != nil {
+	}
+	fileContents, err := base64.StdEncoding.DecodeString(input.Input.Data)
+	if err != nil {
 		logging.LogError(err, "Failed to base64 decode file contents")
 		c.JSON(http.StatusOK, WriteContainerFileResponse{
 			Status: "error",
 			Error:  "Failed to base64 decode file contents",
 		})
 		return
-	} else if c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCWriteFile(rabbitmq.C2WriteFileMessage{
+	}
+	c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCWriteFile(rabbitmq.C2WriteFileMessage{
 		Filename: input.Input.Filename,
 		Name:     c2profile.Name,
 		Contents: fileContents,
-	}); err != nil {
+	})
+	if err != nil {
 		logging.LogError(err, "Failed to send C2ProfileWriteFileWebhook to c2 profile", "c2_profile", c2profile.Name)
 		c.JSON(http.StatusOK, WriteContainerFileResponse{
 			Status: "error",
@@ -67,18 +72,19 @@ func C2ProfileWriteFileWebhook(c *gin.Context) {
 		})
 		return
 		// check the response from the RPC call for success or error
-	} else if !c2ProfileResponse.Success {
+	}
+	if !c2ProfileResponse.Success {
 		logging.LogError(nil, c2ProfileResponse.Error, "Failed to write file to c2 container")
 		c.JSON(http.StatusOK, WriteContainerFileResponse{
 			Status: "error",
 			Error:  c2ProfileResponse.Error,
 		})
 		return
-	} else {
-
-		c.JSON(http.StatusOK, WriteContainerFileResponse{
-			Status: "success",
-		})
-		return
 	}
+	go rabbitmq.RestartC2ServerAfterUpdate(c2profile.Name, false)
+	c.JSON(http.StatusOK, WriteContainerFileResponse{
+		Status: "success",
+	})
+	return
+
 }

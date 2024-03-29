@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"github.com/its-a-feature/Mythic/database"
 
 	"github.com/its-a-feature/Mythic/logging"
 )
@@ -21,6 +22,51 @@ type C2StartServerMessageResponse struct {
 	InternalServerRunning bool   `json:"server_running"`
 }
 
+func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
+	go func() {
+		if sendNotifications {
+			go SendAllOperationsMessage("Stopping C2 Profile after hosting new file...", 0, "host_file", database.MESSAGE_LEVEL_INFO)
+		}
+		stopC2ProfileResponse, err := RabbitMQConnection.SendC2RPCStopServer(C2StopServerMessage{
+			Name: c2ProfileName,
+		})
+		if err != nil {
+			logging.LogError(err, "Failed to send RPC call to c2 profile in C2HostFileMessageWebhook", "c2_profile", c2ProfileName)
+			if sendNotifications {
+				go SendAllOperationsMessage("Failed to stop c2 profile after hosting file", 0, "host_file", database.MESSAGE_LEVEL_WARNING)
+			}
+			return
+		}
+		if !stopC2ProfileResponse.Success {
+			if sendNotifications {
+				go SendAllOperationsMessage(stopC2ProfileResponse.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
+			}
+			return
+		}
+		if sendNotifications {
+			go SendAllOperationsMessage("Starting C2 Profile after hosting new file...", 0, "host_file", database.MESSAGE_LEVEL_INFO)
+		}
+		startC2ProfileResponse, err := RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{
+			Name: c2ProfileName,
+		})
+		if err != nil {
+			logging.LogError(err, "Failed to send RPC call to c2 profile in C2HostFileMessageWebhook", "c2_profile", c2ProfileName)
+			if sendNotifications {
+				go SendAllOperationsMessage("Failed to start c2 profile after hosting file", 0, "", database.MESSAGE_LEVEL_WARNING)
+			}
+			return
+		}
+		if !startC2ProfileResponse.Success {
+			if sendNotifications {
+				go SendAllOperationsMessage(startC2ProfileResponse.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
+			}
+			return
+		}
+		if sendNotifications {
+			go SendAllOperationsMessage("Successfully restarted C2 Profile after hosting a file", 0, "host_file", database.MESSAGE_LEVEL_INFO)
+		}
+	}()
+}
 func (r *rabbitMQConnection) SendC2RPCStartServer(startServer C2StartServerMessage) (*C2StartServerMessageResponse, error) {
 	c2StartServerResponse := C2StartServerMessageResponse{}
 	exclusiveQueue := true

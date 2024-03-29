@@ -82,35 +82,7 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 		})
 		return
 	}
-	go func() {
-		go rabbitmq.SendAllOperationsMessage("Stopping C2 Profile after hosting new file...", 0, "host_file", database.MESSAGE_LEVEL_INFO)
-		stopC2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCStopServer(rabbitmq.C2StopServerMessage{
-			Name: c2Profile.Name,
-		})
-		if err != nil {
-			logging.LogError(err, "Failed to send RPC call to c2 profile in C2HostFileMessageWebhook", "c2_profile", c2Profile.Name)
-			go rabbitmq.SendAllOperationsMessage("Failed to stop c2 profile after hosting file", 0, "host_file", database.MESSAGE_LEVEL_WARNING)
-			return
-		}
-		if !stopC2ProfileResponse.Success {
-			go rabbitmq.SendAllOperationsMessage(stopC2ProfileResponse.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
-			return
-		}
-		go rabbitmq.SendAllOperationsMessage("Starting C2 Profile after hosting new file...", 0, "host_file", database.MESSAGE_LEVEL_INFO)
-		startC2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCStartServer(rabbitmq.C2StartServerMessage{
-			Name: c2Profile.Name,
-		})
-		if err != nil {
-			logging.LogError(err, "Failed to send RPC call to c2 profile in C2HostFileMessageWebhook", "c2_profile", c2Profile.Name)
-			go rabbitmq.SendAllOperationsMessage("Failed to start c2 profile after hosting file", 0, "", database.MESSAGE_LEVEL_WARNING)
-			return
-		}
-		if !startC2ProfileResponse.Success {
-			go rabbitmq.SendAllOperationsMessage(startC2ProfileResponse.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
-			return
-		}
-		go rabbitmq.SendAllOperationsMessage("Successfully restarted C2 Profile after hosting a file", 0, "host_file", database.MESSAGE_LEVEL_INFO)
-	}()
+	go rabbitmq.RestartC2ServerAfterUpdate(c2Profile.Name, true)
 	c.JSON(http.StatusOK, C2HostFileMessageResponse{
 		Status: "success",
 		Error:  "",

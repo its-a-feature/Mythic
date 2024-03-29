@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -199,14 +200,16 @@ func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName
 	g.Add(sourceCallback, destinationCallback, c2profileName)
 	g.Add(destinationCallback, sourceCallback, c2profileName)
 	// can't have a unique constraint with a NULL value, NULL != NULL
-	if err := database.DB.Get(&edge.ID, `SELECT id FROM callbackgraphedge
+	err := database.DB.Get(&edge.ID, `SELECT id FROM callbackgraphedge
 		WHERE operation_id=$1 AND source_id=$2 AND destination_id=$3 AND
 		c2_profile_id=$4 AND end_timestamp IS NULL`,
-		edge.OperationID, edge.SourceID, edge.DestinationID, edge.C2ProfileID); err == sql.ErrNoRows {
+		edge.OperationID, edge.SourceID, edge.DestinationID, edge.C2ProfileID)
+	if errors.Is(err, sql.ErrNoRows) {
 		// this specific combination didn't yield any results, so add it
-		if _, err := database.DB.NamedExec(`INSERT INTO callbackgraphedge
+		_, err := database.DB.NamedExec(`INSERT INTO callbackgraphedge
 			(operation_id, source_id, destination_id, c2_profile_id)
-			VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id)`, edge); err != nil {
+			VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id)`, edge)
+		if err != nil {
 			logging.LogError(err, "Failed to insert new edge for P2P connection")
 		} else {
 			logging.LogInfo("added new callbackgraph edge when updating graph by agent ids")
