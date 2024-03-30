@@ -126,12 +126,20 @@ export function CallbacksTop(props){
           }
 
           const updated = data.data.callback_stream.reduce( (prev, cur) => {
+              console.log(cur)
+
               let existingIndex = prev.findIndex( (element, i, array) => element.id === cur.id);
               if(existingIndex === -1){
                   // cur isn't in our current list of callbacks
                   if(cur.active){return [...prev, cur]}
               }
-              if(!cur.active){return [...prev]}
+              if(!cur.active){
+                  if(existingIndex !== -1){
+                      prev.splice(existingIndex, 1);
+                      return [...prev];
+                  }
+
+              }
               prev[existingIndex] = {...prev[existingIndex], ...cur};
               return [...prev];
           }, callbacks);
