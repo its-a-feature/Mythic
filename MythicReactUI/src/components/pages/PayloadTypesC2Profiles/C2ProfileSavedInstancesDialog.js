@@ -119,58 +119,66 @@ export function C2ProfileSavedInstancesDialog(props) {
     });
     const [getInstanceValues] = useLazyQuery(getProfileInstanceQuery, {
       onCompleted: (data) => {
-        const updates = data.c2profileparametersinstance.map( (cur) => {
-          let inst = {...cur, ...cur.c2profileparameter};
-          if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple"){
-            inst["value"] = JSON.parse(inst["value"]);
-            inst["trackedValue"] = JSON.parse(inst["value"]);
-            inst["choices"] = getDefaultChoices(inst);
-            inst["initialValue"] = getDefaultValueForType(inst);
-          } else if(inst.parameter_type === "Dictionary") {
-              //
-              let defaultValue = getDefaultValueForType(inst);
-              let finalDict = JSON.parse(inst["value"]); // this is a dictionary instead of an array, so fix it back
-              let finalDictKeys = Object.keys(finalDict);
-              let finalArray = [];
-              let choices = getDefaultChoices(inst);
-              for (let i = 0; i < finalDictKeys.length; i++) {
-                  let newDict = {
-                      name: finalDictKeys[i],
-                      value: finalDict[finalDictKeys[i]],
-                      default_show: true
-                  };
-                  for (let j = 0; j < choices.length; j++) {
-                      if (choices[j].name === finalDictKeys[i]) {
-                          newDict["default_value"] = choices[j]["default_value"]
+          console.log(data);
+          try{
+              const updates = data.c2profileparametersinstance.map( (cur) => {
+                  let inst = {...cur, ...cur.c2profileparameter};
+                  if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple"){
+                      console.log(inst);
+                      inst["value"] = inst["value"];
+                      inst["trackedValue"] = JSON.parse(inst["value"]);
+                      inst["choices"] = getDefaultChoices(inst);
+                      inst["initialValue"] = getDefaultValueForType(inst);
+                  } else if(inst.parameter_type === "Dictionary") {
+                      //
+                      let defaultValue = getDefaultValueForType(inst);
+                      let finalDict = JSON.parse(inst["value"]); // this is a dictionary instead of an array, so fix it back
+                      let finalDictKeys = Object.keys(finalDict);
+                      let finalArray = [];
+                      let choices = getDefaultChoices(inst);
+                      for (let i = 0; i < finalDictKeys.length; i++) {
+                          let newDict = {
+                              name: finalDictKeys[i],
+                              value: finalDict[finalDictKeys[i]],
+                              default_show: true
+                          };
+                          for (let j = 0; j < choices.length; j++) {
+                              if (choices[j].name === finalDictKeys[i]) {
+                                  newDict["default_value"] = choices[j]["default_value"]
+                              }
+                          }
+                          finalArray.push(newDict);
                       }
-                  }
-                  finalArray.push(newDict);
-              }
 
-              choices = choices.map(c => {
-                  return {...c, default_show: false}
-              });
-              return {
-                  ...inst,
-                  value: finalArray,
-                  choices: choices,
-                  trackedValue: finalArray,
-                  default_value: defaultValue,
-                  initialValue: defaultValue
-              };
-          } else if(inst.parameter_type === "File") {
-              inst["choices"] = getDefaultChoices(inst);
-              inst["trackedValue"] = {name: inst["value"], legacy: true};
-              inst["initialValue"] = getDefaultValueForType(inst);
-          } else {
-            inst["choices"] = getDefaultChoices(inst);
-            inst["trackedValue"] = inst["value"];
-            inst["initialValue"] = getDefaultValueForType(inst);
+                      choices = choices.map(c => {
+                          return {...c, default_show: false}
+                      });
+                      return {
+                          ...inst,
+                          value: finalArray,
+                          choices: choices,
+                          trackedValue: finalArray,
+                          default_value: defaultValue,
+                          initialValue: defaultValue
+                      };
+                  } else if(inst.parameter_type === "File") {
+                      inst["choices"] = getDefaultChoices(inst);
+                      inst["trackedValue"] = {name: inst["value"], legacy: true};
+                      inst["initialValue"] = getDefaultValueForType(inst);
+                  } else {
+                      inst["choices"] = getDefaultChoices(inst);
+                      inst["trackedValue"] = inst["value"];
+                      inst["initialValue"] = getDefaultValueForType(inst);
+                  }
+                  return inst;
+              })
+              updates.sort( (a, b) => a.description < b.description ? -1 : 1);
+              console.log(updates);
+              setCurrentParameters(updates);
+          }catch(error){
+              console.log(error);
           }
-          return inst;
-        })
-        updates.sort( (a, b) => a.description < b.description ? -1 : 1);
-        setCurrentParameters(updates);
+
       },
       onError: (data) => {
         snackActions.error("Failed to fetch instance data: " + data);

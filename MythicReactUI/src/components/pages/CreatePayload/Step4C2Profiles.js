@@ -195,7 +195,7 @@ export function Step4C2Profiles(props){
           const updates = data.c2profileparametersinstance.map( (cur) => {
             let inst = {...cur, ...cur.c2profileparameter};
             if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple" || inst.parameter_type === "TypedArray"){
-                inst["value"] = JSON.parse(inst["value"]);
+                inst["value"] = inst["value"];
                 inst["initialValue"] = getDefaultValueForType(inst);
                 inst["trackedValue"] = JSON.parse(inst["value"]);
                 inst["choices"] = getDefaultChoices(inst);
