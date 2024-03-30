@@ -119,14 +119,20 @@ export function C2ProfileSavedInstancesDialog(props) {
     });
     const [getInstanceValues] = useLazyQuery(getProfileInstanceQuery, {
       onCompleted: (data) => {
-          console.log(data);
           try{
               const updates = data.c2profileparametersinstance.map( (cur) => {
                   let inst = {...cur, ...cur.c2profileparameter};
                   if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple"){
-                      console.log(inst);
-                      inst["value"] = inst["value"];
-                      inst["trackedValue"] = JSON.parse(inst["value"]);
+                      try{
+                          inst["value"] = JSON.parse(inst["value"]);
+                      }catch(error){
+                          inst["value"] = inst["value"];
+                      }
+                      try{
+                          inst["trackedValue"] = JSON.parse(inst["value"]);
+                      }catch(error){
+                          inst["trackedValue"] = inst["value"];
+                      }
                       inst["choices"] = getDefaultChoices(inst);
                       inst["initialValue"] = getDefaultValueForType(inst);
                   } else if(inst.parameter_type === "Dictionary") {

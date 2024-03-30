@@ -166,10 +166,10 @@ export function Step4C2Profiles(props){
     const canceled = () => {
         props.canceled();
     }
-    const toggleC2Selection = (evt, c2) => {
+    const toggleC2Selection = (evt, c2, selected) => {
         const updatedc2 = c2Profiles.map( (curc2) => {
             if(c2.name === curc2.name){
-                return {...curc2, selected: !curc2.selected}
+                return {...curc2, selected: selected}
             }
             return curc2;
         });
@@ -195,9 +195,17 @@ export function Step4C2Profiles(props){
           const updates = data.c2profileparametersinstance.map( (cur) => {
             let inst = {...cur, ...cur.c2profileparameter};
             if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple" || inst.parameter_type === "TypedArray"){
-                inst["value"] = inst["value"];
+                try{
+                    inst["value"] = JSON.parse(inst["value"]);
+                }catch(error){
+                    inst["value"] = inst["value"];
+                }
+                try{
+                    inst["trackedValue"] = JSON.parse(inst["value"]);
+                }catch(error){
+                    inst["trackedValue"] = inst["value"];
+                }
                 inst["initialValue"] = getDefaultValueForType(inst);
-                inst["trackedValue"] = JSON.parse(inst["value"]);
                 inst["choices"] = getDefaultChoices(inst);
               } else if(inst.parameter_type === "Dictionary"){
                 // 
@@ -277,6 +285,7 @@ export function Step4C2Profiles(props){
         //setSelectedInstance(evt.target.value);
         const updatedc2 = c2Profiles.map( (curc2) => {
             if(c2.name === curc2.name){
+                curc2.selected = true;
                 curc2.c2profileparameters = [];
             }
             return curc2;
@@ -319,7 +328,7 @@ export function Step4C2Profiles(props){
                                     
                                         <Switch
                                             checked={c2.selected}
-                                            onChange={evt => toggleC2Selection(evt, c2)}
+                                            onChange={evt => toggleC2Selection(evt, c2, !c2.selected)}
                                             inputProps={{ 'aria-label': 'primary checkbox' }}
                                             name="active"
                                         />

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.86] - 2024-03-30
+
+### Changed
+
+- Fixed an issue with array values not getting parsed properly when getting set from saved instances in payload creation
+- If you select a pre-created profile instance when generating a payload, then the associated c2 profile is toggled on automatically
+
 ## [0.1.85] - 2024-03-30
 
 ### Changed
