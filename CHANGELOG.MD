@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.20-rc8] - 2024-04-05
+
+### Changed
+
+- Fixed an RPC call for generating a new payload that wasn't calling the right function
+
 ## [3.2.20-rc7] - 2024-03-29
 
 ### Changed
