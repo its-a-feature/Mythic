@@ -11,6 +11,8 @@ import {useTheme} from '@mui/material/styles';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import {TaskOpsecDialog} from './TaskOpsecDialog';
+import BlockIcon from '@mui/icons-material/Block';
+import {TaskDeleteDialog} from './TaskDeleteDialog';
 import {TaskViewParametersDialog} from './TaskViewParametersDialog';
 import {TaskViewStdoutStderrDialog} from './TaskViewStdoutStderrDialog';
 import {snackActions} from '../../utilities/Snackbar';
@@ -220,6 +222,7 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
   const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
   const [openTokenDialog, setOpenTokenDialog] = React.useState(false);
   const [openStdoutStderrDialog, setOpenStdoutStderrDialog] = React.useState(false);
+  const [openDeleteTaskDialog, setOpenDeleteTaskDialog] = React.useState(false);
   const [openOpsecDialog, setOpenOpsecDialog] = React.useState({open: false, view: "pre"});
   const [downloadResponses] = useLazyQuery(getAllResponsesLazyQuery, {
     fetchPolicy: "network-only",
@@ -334,6 +337,12 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
             (<MythicDialog fullWidth={true} maxWidth="md" open={openOpsecDialog.open}
                            onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}}
                            innerDialog={<TaskOpsecDialog task_id={task.id} view={openOpsecDialog.view} onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} />}
+            />) : null
+        }
+        {openDeleteTaskDialog ?
+            (<MythicDialog fullWidth={true} maxWidth="md" open={openDeleteTaskDialog}
+                           onClose={()=>{setOpenDeleteTaskDialog(false);}}
+                           innerDialog={<TaskDeleteDialog task_id={task.id} onClose={()=>{setOpenDeleteTaskDialog(false);}} />}
             />) : null
         }
 
@@ -467,6 +476,15 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
               )
           )
           }
+          {task.status === "submitted" ? "submitted" : (
+              <SpeedDialAction
+                icon={<BlockIcon color={"info"} />}
+                arrow
+                tooltipPlacement={"top"}
+                tooltipTitle={"Block Task Before Submission"}
+                onClick={() => {setOpenDeleteTaskDialog(true);setOpenSpeedDial(false);}}
+              />
+          )}
           {task.token === null ? null : (
               <SpeedDialAction
                   icon={<ConfirmationNumberIcon />}
