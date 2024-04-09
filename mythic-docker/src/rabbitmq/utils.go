@@ -959,9 +959,14 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 	// select task data, then marshal/unmarshal it as a quick way to filter out attributes
 	err := database.DB.Get(&databaseTask, `SELECT 
     	task.*,
-		operator.username "operator.username"
+    	callback.display_id "callback.display_id",
+		operator.username "operator.username",
+		payloadtype.name "callback.payload.payloadtype.name"
     	FROM task 
     	JOIN operator ON task.operator_id = operator.id
+    	JOIN callback ON task.callback_id = callback.id
+    	JOIN payload ON callback.registered_payload_id = payload.id
+    	JOIN payloadtype ON payload.payload_type_id = payloadtype.id
     	WHERE task.id=$1`, taskID)
 	if err != nil {
 		logging.LogError(err, "Failed to get task information")
@@ -980,6 +985,8 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 		Params:                             databaseTask.Params,
 		Timestamp:                          databaseTask.Timestamp.String(),
 		CallbackID:                         databaseTask.CallbackID,
+		CallbackDisplayID:                  databaseTask.Callback.DisplayID,
+		PayloadType:                        databaseTask.Callback.Payload.Payloadtype.Name,
 		Status:                             databaseTask.Status,
 		OriginalParams:                     databaseTask.OriginalParams,
 		DisplayParams:                      databaseTask.DisplayParams,
@@ -1007,6 +1014,8 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 		SubtaskGroupName:                   databaseTask.SubtaskGroupName,
 		TaskingLocation:                    databaseTask.TaskingLocation,
 		ParameterGroupName:                 databaseTask.ParameterGroupName,
+		IsInteractiveTask:                  databaseTask.IsInteractiveTask,
+		InteractiveTaskType:                int(databaseTask.InteractiveTaskType.Int64),
 	}
 	if databaseTask.TokenID.Valid {
 		err = database.DB.Get(&data.TokenID, `SELECT token_id FROM token WHERE id=$1`, databaseTask.TokenID.Int64)

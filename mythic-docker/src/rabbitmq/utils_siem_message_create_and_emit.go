@@ -10,7 +10,6 @@ import (
 func emitTaskLog(taskId int) {
 	task := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT
-    task.*,
     operation.name "operation.name",
     operator.username "operator.username"
     FROM task
@@ -19,13 +18,14 @@ func emitTaskLog(taskId int) {
     WHERE task.id=$1`, taskId); err != nil {
 		logging.LogError(err, "Failed to fetch task data for log emit")
 	} else {
+		data := GetTaskMessageTaskInformation(taskId)
 		go RabbitMQConnection.EmitSiemMessage(LoggingMessage{
 			OperationID:   task.OperationID,
 			OperationName: task.Operation.Name,
 			OperatorName:  task.Operator.Username,
 			Timestamp:     time.Now().UTC(),
 			Action:        LOG_TYPE_TASK,
-			Data:          task,
+			Data:          data,
 		})
 	}
 }

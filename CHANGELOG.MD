@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.20-rc9] - 2024-04-08
+
+### Changed
+
+- Added CallbackDisplayID, PayloadType, IsInteractiveTask, and InteractiveTaskType to RPC Search results and new_task logging data
+- Fixed an issue with SendMythicRPCTaskSearch
+
 ## [3.2.20-rc8] - 2024-04-05
 
 ### Changed
