@@ -73,6 +73,8 @@ type PTTaskMessageTaskData struct {
 	Params                             string `json:"params"`
 	Timestamp                          string `json:"timestamp"`
 	CallbackID                         int    `json:"callback_id"`
+	CallbackDisplayID                  int    `json:"callback_display_id"`
+	PayloadType                        string `json:"payload_type"`
 	Status                             string `json:"status"`
 	OriginalParams                     string `json:"original_params"`
 	DisplayParams                      string `json:"display_params"`
@@ -101,6 +103,8 @@ type PTTaskMessageTaskData struct {
 	TaskingLocation                    string `json:"tasking_location"`
 	ParameterGroupName                 string `json:"parameter_group_name"`
 	TokenID                            int    `json:"token_id"`
+	InteractiveTaskType                int    `json:"interactive_task_type"`
+	IsInteractiveTask                  bool   `json:"is_interactive_task"`
 }
 
 type PTTaskMessageCallbackData struct {

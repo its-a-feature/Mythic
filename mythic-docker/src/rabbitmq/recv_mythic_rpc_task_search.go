@@ -105,6 +105,7 @@ func MythicRPCTaskSearch(input MythicRPCTaskSearchMessage) MythicRPCTaskSearchMe
 			searchString += `AND task.id=:search_id `
 		}
 		paramDict["search_id"] = *input.SearchTaskID
+		setAnySearchValues = true
 	}
 	if input.SearchTaskDisplayID != nil {
 		if !setAnySearchValues {
@@ -113,6 +114,7 @@ func MythicRPCTaskSearch(input MythicRPCTaskSearchMessage) MythicRPCTaskSearchMe
 			searchString += `AND task.display_id=:search_display_id `
 		}
 		paramDict["search_display_id"] = *input.SearchTaskDisplayID
+		setAnySearchValues = true
 	}
 	if !setAnySearchValues {
 		searchString += `WHERE task.id=:id`
