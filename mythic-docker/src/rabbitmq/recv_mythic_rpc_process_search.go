@@ -52,15 +52,13 @@ func MythicRPCProcessSearch(input MythicRPCProcessSearchMessage) MythicRPCProces
 	paramDict := make(map[string]interface{})
 	task := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT 
-	task.id,
-	callback.operation_id "callback.operation_id"
+	task.id, task.operation_id
 	FROM task
-	JOIN callback ON task.callback_id = callback.id
 	WHERE task.id=$1`, input.TaskID); err != nil {
 		response.Error = err.Error()
 		return response
 	} else {
-		paramDict["operation_id"] = task.Callback.OperationID
+		paramDict["operation_id"] = task.OperationID
 		searchString := `SELECT * FROM mythictree WHERE operation_id=:operation_id AND tree_type='process' `
 		if input.SearchProcess.Host != nil {
 			paramDict["host"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.Host)

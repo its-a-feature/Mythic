@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.20-rc10] - 2024-04-10
+
+### Changed
+
+- Fixed a few of the SendMythicRPC* calls to fetch all the same data as normal agent processing
+
 ## [3.2.20-rc9] - 2024-04-08
 
 ### Changed

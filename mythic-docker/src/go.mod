@@ -4,8 +4,6 @@ go 1.19
 
 require (
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-logr/logr v1.4.1
-	github.com/go-logr/zerologr v1.2.3
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.3.5
