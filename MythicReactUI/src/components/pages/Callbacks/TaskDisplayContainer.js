@@ -11,7 +11,7 @@ import {useTheme} from '@mui/material/styles';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import {TaskOpsecDialog} from './TaskOpsecDialog';
-import BlockIcon from '@mui/icons-material/Block';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import {TaskDeleteDialog} from './TaskDeleteDialog';
 import {TaskViewParametersDialog} from './TaskViewParametersDialog';
 import {TaskViewStdoutStderrDialog} from './TaskViewStdoutStderrDialog';
@@ -476,15 +476,24 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
               )
           )
           }
-          {task.status === "submitted" ? "submitted" : (
+          {task.status.toLowerCase().includes("submitted") ? (
               <SpeedDialAction
-                icon={<BlockIcon color={"info"} />}
+                icon={<DeleteForeverIcon color={"info"} />}
                 arrow
                 tooltipPlacement={"top"}
-                tooltipTitle={"Block Task Before Submission"}
+                tooltipTitle={"Delete Task Before Submission"}
                 onClick={() => {setOpenDeleteTaskDialog(true);setOpenSpeedDial(false);}}
               />
-          )}
+          ) : (
+            task.status.toLowerCase().includes("delegating tasks") ? (
+              <SpeedDialAction
+                icon={<DeleteForeverIcon color={"info"} />}
+                arrow
+                tooltipPlacement={"top"}
+                tooltipTitle={"Delete Task Before Submission"}
+                onClick={() => {setOpenDeleteTaskDialog(true);setOpenSpeedDial(false);}}
+              />
+          ) : null )}
           {task.token === null ? null : (
               <SpeedDialAction
                   icon={<ConfirmationNumberIcon />}

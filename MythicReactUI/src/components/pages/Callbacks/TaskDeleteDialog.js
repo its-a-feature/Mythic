@@ -7,30 +7,21 @@ import MythicTextField from '../../MythicComponents/MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
 
-const updateStatusMutation = gql`
-mutation updateStatus($task_id: Int!, $status: String) {
-  update_task(where: {id: {_eq: $task_id}}, _set: {status: $status}) {
-    returning {
-      status
-      commentOperator {
-        username
-      }
-      id
-    }
+const deleteTaskByPkMutation = gql`
+mutation createTask($callback_display_id: Int!, $task_id: String!, $parent_task_id: Int) {
+  createTask(
+            callback_id: $callback_display_id,
+            command: "clear",
+            params: $task_id,
+            token_id: null,
+            is_interactive_task: false,
+            interactive_task_type: null,
+            parent_task_id: $parent_task_id,
+            tasking_location: "scripting",
+            files: null){
+    id
   }
 }
-`;
-
-const updateStatusMutation_by_pk = gql`
-mutation updateStatus ($task_id: Int!, $status: String) {
-    update_task_by_pk(pk_columns: {id: $task_id}, _set: {status: $status}) {
-      status
-      commentOperator {
-        username
-      }
-      id
-    }
-  }
 `;
 
 
@@ -42,27 +33,39 @@ query getStatusQuery ($task_id: Int!) {
       username
     }
     id
+    display_id
+    agent_task_id
+    callback_id
+    parent_task_id
+    callback {
+      display_id
+    }
   }
 }
 `;
 
-
 export function TaskDeleteDialog(props) {
     const [status, setStatus] = useState("");
+    const [callback_display_id, setCallbackID] = useState("");
+    const [task_id, setTaskID] = useState("");
+    const [parent_task_id, setParentTaskID] = useState("");
     const { loading, error } = useQuery(getStatusQuery, {
         variables: {task_id: props.task_id},
         onCompleted: data => {
-            //setStatus(data.task_by_pk.status)
-            setStatus("error:cancelled");
+          setCallbackID(data.task_by_pk.callback.display_id);
+          setTaskID(data.task_by_pk.display_id.toString());
+          setParentTaskID(data.task_by_pk.parent_task_id);
+
+          setStatus("Warning: This will 'clear' the task with display id of " + data.task_by_pk.display_id);
         },
         fetchPolicy: "network-only"
     });
+
+    const [deleteTask] = useMutation(deleteTaskByPkMutation,{
+      variables: {callback_display_id: callback_display_id , task_id: task_id, parent_task_id: parent_task_id}
     
-    const [updateStatus] = useMutation(updateStatusMutation, {
-        update: (cache, {data}) => {
-            console.log(data);
-        }
     });
+
     if (loading) {
      return <LinearProgress />;
     }
@@ -71,7 +74,8 @@ export function TaskDeleteDialog(props) {
      return <div>Error!</div>;
     }
     const onCommitSubmit = () => {
-        updateStatus({variables: {task_id: props.task_id, status: status}});
+        //alert(callback_display_id + ":" + props.task_id + ":" + parent_task_id);
+        deleteTask({variables: {callback_display_id: callback_display_id , task_id: task_id, parent_task_id: parent_task_id}});
         props.onClose();
     }
     const onChange = (name, value, error) => {
