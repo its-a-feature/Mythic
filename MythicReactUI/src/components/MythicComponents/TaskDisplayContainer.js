@@ -11,6 +11,7 @@ import {useTheme} from '@mui/material/styles';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import {TaskOpsecDialog} from './TaskOpsecDialog';
+import BlockIcon from '@mui/icons-material/Block';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import {TaskDeleteDialog} from './TaskDeleteDialog';
 import {TaskViewParametersDialog} from './TaskViewParametersDialog';
