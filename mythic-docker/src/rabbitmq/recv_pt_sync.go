@@ -861,6 +861,7 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 					Type:                     string(newParameter.ParameterType),
 					ParameterGroupName:       newParameterGroup.GroupName,
 					CommandID:                command.ID,
+					DynamicQueryFunction:     newParameter.DynamicQueryFunctionName,
 				}
 				if defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices); err != nil {
 					logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for brand new command parameter", "newParameter", newParameter)
