@@ -6,8 +6,15 @@ body {
 html, body, #root {
     height: 100%;
 }
+@media screen and (max-width: 1100px) {
+    .hideOnSmallWidth {
+        display: none;
+    }
+}
+.MuiAccordion-root {
+    border: 0px !important;
+}
 .MuiAccordionDetails-root{
-
     padding-bottom: 0;
     padding-top: 0;
 }
@@ -144,6 +151,12 @@ tspan {
     border-radius: 5px;
     background: ${(props) => props.theme.palette.graphGroupRGBA} !important;
 }
+.groupEventNode {
+    border: 1px solid ${(props) => props.theme.palette.secondary.main};
+    padding: 2px;
+    border-radius: 5px;
+    background: ${(props) => props.theme.palette.graphGroupRGBA} !important;
+}
 .circleImageNode {
      height: 50px;
      display: block;
@@ -153,8 +166,8 @@ tspan {
    z-index: -1 !important;
 }
 .context-menu {
-    background-color: ${(props) => props.theme.palette.primary.main};
-    border: 1px solid #eee;
+    background-color: ${(props) => props.theme.palette.background.default};
+    border: 1px solid grey;
     border-radius: 5px;
     box-shadow: 10px 19px 20px rgba(0, 0, 0, 10%);
     position: absolute;
@@ -166,15 +179,17 @@ tspan {
     padding: 0.5em;
     text-align: left;
     width: 100%;
+    background-color: ${(props) => props.theme.palette.background.default};
+    color: unset;
 }
 
 .selectedTask {
     padding: 3px 2px 6px 3px;
     background: 
-        linear-gradient(90deg, ${(props) => props.theme.palette.info.main} 50%, transparent 0) repeat-x,
-        linear-gradient(90deg, ${(props) => props.theme.palette.info.main} 50%, transparent 0) repeat-x,
-        linear-gradient(0deg, ${(props) => props.theme.palette.info.main} 50%, transparent 0) repeat-y,
-        linear-gradient(0deg, ${(props) => props.theme.palette.info.main} 50%, transparent 0) repeat-y;
+        linear-gradient(90deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-x,
+        linear-gradient(90deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-x,
+        linear-gradient(0deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-y,
+        linear-gradient(0deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-y;
     background-size: 8px 3px, 8px 3px, 3px 8px, 3px 8px;
     background-position: 0 0, 0 100%, 0 0, 100% 0; // top bottom left right
 }
@@ -187,7 +202,7 @@ tspan {
   -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.00);
 }
 *::-webkit-scrollbar-thumb {
-  background-color: ${(props) => props.theme.palette.primary.main};
+  background-color: ${(props) => props.theme.palette.secondary.dark};
 }
 .MythicResizableGrid-headerCellRow {
     display: flex;
@@ -205,7 +220,7 @@ tspan {
     box-sizing: border-box;
     justify-content: space-between;
     user-select: none;
-    background-color: ${(props) => props.theme.palette.background.paper};
+    background-color: ${(props) => props.theme.tableHeader};
     border-top: 1px solid ${(props) => props.theme.tableHover};
     border-right: 1px solid ${(props) => props.theme.tableHover};
     border-bottom: 1px solid  ${(props) => props.theme.tableHover};
@@ -258,18 +273,28 @@ tspan {
     white-space: pre-wrap !important;
 }
 .MuiPaper-root {
-    box-shadow: 3px 3px 7px ${(props) => props.theme.palette.primary.main};
+    border: 1px solid grey;
+    border-radius: 5px;
 }
 .no-box-shadow {
     box-shadow: unset;
 }
 .MuiList-root > .MuiListSubheader-root {
-    background-color: ${(props) => props.theme.palette.primary.dark};
+    background-color: ${(props) => props.theme.palette.secondary.dark};
     color: white;
+    line-height: 30px;
+}
+.MuiList-root {
+    background-color: ${(props) => props.theme.palette.background.default};
+    border: 1px solid grey;
+    border-radius: 3px;
+    line-height: 30px;
 }
 .dropdownMenuColored {
-    background-color: ${(props) => props.theme.palette.primary.main};
-    color: white;
+    background-color: ${(props) => props.theme.palette.background.default};
+    border: 1px solid grey;
+    border-radius: 5px;
+    //color: white;
 }
 // gets the title of the table
 .MuiPaper-root > .MuiBox-root:first-child {

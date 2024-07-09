@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
@@ -26,16 +27,39 @@ import (
 8. add UUID and base64 encode message
 9. return message response
 */
-
+func requestGetRemoteAddress(c *gin.Context) string {
+	//logging.LogInfo("request headers", "headers", c.Request.Header)
+	CFConnectingIP := c.Request.Header.Get("CF-Connecting-IP")
+	if CFConnectingIP != "" {
+		return CFConnectingIP
+	}
+	XRealIP := c.Request.Header.Get("X-Real-Ip")
+	if XRealIP != "" {
+		return XRealIP
+	}
+	XForwardedFor := c.Request.Header.Get("X-Forwarded-For")
+	if XForwardedFor == "" {
+		return c.ClientIP()
+	}
+	// X-Forwarded-For may contain a comma-separated list of addresses
+	parts := strings.Split(XForwardedFor, ",")
+	for i, p := range parts {
+		parts[i] = strings.TrimSpace(p)
+	}
+	if len(parts) > 0 {
+		return parts[0]
+	}
+	return "127.0.0.1"
+}
 func AgentMessageWebhook(c *gin.Context) {
 	// get variables from the POST request
 	requestUrl := c.Request.URL.RawPath
 	if forwardedURL := c.GetHeader("x-forwarded-url"); forwardedURL != "" {
 		requestUrl = forwardedURL
 	}
-	requestIp := c.ClientIP()
-	defer c.Request.Body.Close()
+	requestIp := requestGetRemoteAddress(c)
 	agentMessage, err := io.ReadAll(c.Request.Body)
+	c.Request.Body.Close()
 	if err != nil {
 		logging.LogError(err, "Failed to read body of agent message")
 		errorMessage := "Error! Failed to read body of agent message. Check the following details for more information about the request:\nConnection to: "
@@ -79,7 +103,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 	if forwardedURL := c.GetHeader("x-forwarded-url"); forwardedURL != "" {
 		requestUrl = forwardedURL
 	}
-	requestIp := c.ClientIP()
+	requestIp := requestGetRemoteAddress(c)
 	c2Header := c.GetHeader("mythic")
 	if c2Header == "" {
 		logging.LogError(nil, "Failed to get 'mythic' header")

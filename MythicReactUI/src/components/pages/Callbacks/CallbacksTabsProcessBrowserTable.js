@@ -698,7 +698,6 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
     const [fileCommentDialogOpen, setFileCommentDialogOpen] = React.useState(false);
     const [getPermissions] = useLazyQuery(getPermissionsDataQuery, {
         onCompleted: (data) => {
-            console.log(rowData);
             setPermissionData({...data.mythictree_by_pk.metadata,
             callback_id: rowData["callback_id"],
             callback_display_id: rowData["callback_display_id"]});

@@ -163,7 +163,7 @@ func getDelegateTaskMessages(callbackID int, agentUUIDLength int, updateCheckinT
 							status=$2, status_timestamp_processing=$3
 							WHERE id=$1`, currentTasks[i].ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC()); err != nil {
 							logging.LogError(err, "Failed to update task status to processing")
-						} else if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
+						} else if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime); err != nil {
 							logging.LogError(err, "Failed to recursively encrypt message")
 						} else {
 							submittedTasksAwaitingFetching.removeTask(currentTasks[i].ID)
@@ -203,7 +203,7 @@ func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckin
 						"action":                 "get_tasking",
 						CALLBACK_PORT_TYPE_SOCKS: messages,
 					}
-					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime); err != nil {
 						logging.LogError(err, "Failed to recursively encrypt message")
 					} else {
 						delegateMessages = append(delegateMessages, delegateMessageResponse{
@@ -221,7 +221,7 @@ func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckin
 						"action":                    "get_tasking",
 						CALLBACK_PORT_TYPE_RPORTFWD: messages,
 					}
-					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime); err != nil {
 						logging.LogError(err, "Failed to recursively encrypt message")
 					} else {
 						delegateMessages = append(delegateMessages, delegateMessageResponse{
@@ -239,7 +239,7 @@ func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckin
 						"action":                       "get_tasking",
 						CALLBACK_PORT_TYPE_INTERACTIVE: messages,
 					}
-					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime); err != nil {
 						logging.LogError(err, "Failed to recursively encrypt message")
 					} else {
 						delegateMessages = append(delegateMessages, delegateMessageResponse{

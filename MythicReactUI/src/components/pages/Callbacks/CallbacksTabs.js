@@ -7,7 +7,7 @@ import { CallbacksTabsProcessBrowserLabel, CallbacksTabsProcessBrowserPanel } fr
 import { CallbacksTabsTaskingSplitLabel, CallbacksTabsTaskingSplitPanel} from "./CallbacksTabsTaskingSplit";
 import {CallbacksTabsTaskingConsoleLabel, CallbacksTabsTaskingConsolePanel} from "./CallbacksTabsTaskingConsole";
 
-export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, onEditTabDescription, contextMenuOptions, me}) {
+export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, setClickedTabId, onEditTabDescription, contextMenuOptions, me}) {
 
     const mountedRef = React.useRef(true);
     const [value, setValue] = React.useState(0);
@@ -15,6 +15,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, o
         setValue(newValue);
         //console.log(newValue);
         localStorage.setItem('clickedTab', openTabs[newValue].tabID);
+        setClickedTabId(openTabs[newValue].tabID);
     };
     React.useEffect( () => {
         return() => {

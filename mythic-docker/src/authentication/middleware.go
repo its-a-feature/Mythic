@@ -48,15 +48,15 @@ func IPBlockMiddleware() gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 			c.Abort()
 			return
-		} else {
-			// make sure the ipAddr is in at least one of the alowed IP blocks
-			for _, subnet := range utils.MythicConfig.AllowedIPBlocks {
-				if subnet.Contains(ipAddr) {
-					c.Next()
-					return
-				}
+		}
+		// make sure the ipAddr is in at least one of the alowed IP blocks
+		for _, subnet := range utils.MythicConfig.AllowedIPBlocks {
+			if subnet.Contains(ipAddr) {
+				c.Next()
+				return
 			}
 		}
+
 		logging.LogError(nil, "Client IP not in allowed IP blocks", "client_ip", ipAddr)
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Client IP, %s, not in allowed IP blocks: %v", ipAddr.String(), utils.MythicConfig.AllowedIPBlocks),
 			0, ipAddr.String(), database.MESSAGE_LEVEL_WARNING)
@@ -81,13 +81,14 @@ func RBACMiddleware(allowedRoles []string) gin.HandlerFunc {
 		}
 		if operatorOperation.CurrentOperator.Admin || utils.SliceContains(allowedRoles, operatorOperation.ViewMode) {
 			c.Set("operatorOperation", operatorOperation)
+			c.Set("apitokens-id", customClaims.APITokensID)
 			c.Next()
 			return
-		} else {
-			logging.LogError(nil, "Unauthorized view mode for operation")
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
-			c.Abort()
 		}
+		logging.LogError(nil, "Unauthorized view mode for operation")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		c.Abort()
+
 	}
 }
 

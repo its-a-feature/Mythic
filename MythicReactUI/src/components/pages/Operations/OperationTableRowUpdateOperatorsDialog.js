@@ -9,7 +9,6 @@ import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
-import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import {OperationTableRowUpdateOperatorsDialogRow} from './OperationTableRowUpdateOperatorsDialogRow';
@@ -26,6 +25,7 @@ query GetOperation($operation_id: Int!) {
       view_mode
       operator {
         username
+        account_type
         id
       }
       disabledcommandsprofile {
@@ -38,6 +38,11 @@ query GetOperation($operation_id: Int!) {
   operator(where: {active: {_eq: true}, deleted: {_eq: false}}) {
     id
     username
+    account_type
+    operation {
+        id
+        name
+    }
   }
   disabledcommandsprofile(where: {operation_id: {_eq: $operation_id}}, distinct_on: name, order_by: {name: asc}) {
     name
@@ -107,6 +112,7 @@ export function OperationTableRowUpdateOperatorsDialog(props) {
           if(data.updateOperatorOperation.status === "error"){
               snackActions.error(data.updateOperatorOperation.error)
           }
+          snackActions.success("Successfully updated operation");
         props.onClose();
       },
       onError: (data) => {
@@ -172,7 +178,7 @@ export function OperationTableRowUpdateOperatorsDialog(props) {
           // op wasnt checked then, isn't checked now, so move on
         }
       });
-      console.log( {operation_id: props.id, add_users: newOperators, remove_users: removeOperators, spectators: spectatorViewMode, operators: operatorViewMode, disabledCommands: disabledCommandMap})
+      //console.log( {operation_id: props.id, add_users: newOperators, remove_users: removeOperators, spectators: spectatorViewMode, operators: operatorViewMode, disabledCommands: disabledCommandMap})
       updateOperationMembers({variables: {operation_id: props.id, add_users: newOperators, remove_users: removeOperators, spectators: spectatorViewMode, operators: operatorViewMode,
       disabledCommands: disabledCommandMap}})
   
@@ -201,21 +207,25 @@ export function OperationTableRowUpdateOperatorsDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Modify Operator Assignments</DialogTitle>
         <DialogContent dividers={true}>
-          <TableContainer className="mythicElement" style={{maxHeight: "calc(50vh)"}}>
-              <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
+          <TableContainer className="mythicElement" style={{marginTop: "0px"}}>
+              <Table stickyHeader={true} size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                   <TableHead>
                       <TableRow>
                           <TableCell style={{width: "8rem"}}>Assign to Operation</TableCell>
-                          <TableCell style={{width: "8rem"}}>Operator</TableCell>
+                          <TableCell style={{}}>Operator</TableCell>
                           <TableCell style={{width: "10rem"}}>Role</TableCell>
                           <TableCell >Block List</TableCell>
+                          <TableCell style={{width: "4rem"}}></TableCell>
                       </TableRow>
                   </TableHead>
                   <TableBody>
                   
                   {operators.map( (op) => (
                       <OperationTableRowUpdateOperatorsDialogRow
-                          key={"operator" + op.id} operator={op} updateOperator={updateOperator} commandBlockLists={commandBlockLists}
+                          key={"operator" + op.id}
+                          operator={op} updateOperator={updateOperator}
+                          commandBlockLists={commandBlockLists}
+                          operation_id={props.id}
                       />
                   ))}
                   </TableBody>

@@ -106,7 +106,6 @@ function getTaskStatusNormalized (taskStatus) {
     if(status.includes("opsec")){
         return "opsec"
     }
-    console.log(status);
     return "submitted"
 
 
@@ -1008,7 +1007,7 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
     return (
         <Paper elevation={5} style={{
             marginBottom: "5px",
-            marginTop: "10px",
+            marginTop: "5px",
             width: "100%",
             height: "100%",
             border: "1px solid gray",
@@ -1022,7 +1021,6 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
                 xAxis={[
                     {
                         data: data.x,
-                        //valueFormatter: (v) => tooltipDate(v, view_utc_time),
                         scaleType: "time",
                         min: data?.x?.[value[0]] || 0,
                         max: data?.x?.[value[1]] || 0,

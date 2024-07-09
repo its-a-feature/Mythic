@@ -7,7 +7,7 @@ import (
 func (r *rabbitMQConnection) SendPtTaskProcessResponse(taskMessage PtTaskProcessResponseMessage) error {
 	if err := r.SendStructMessage(
 		MYTHIC_EXCHANGE,
-		GetPtTaskProcessResponseRoutingKey(taskMessage.TaskData.PayloadType),
+		GetPtTaskProcessResponseRoutingKey(taskMessage.TaskData.CommandPayloadType),
 		"",
 		taskMessage,
 		false,

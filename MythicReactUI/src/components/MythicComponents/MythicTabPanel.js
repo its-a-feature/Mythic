@@ -150,7 +150,7 @@ export function MythicTabLabel(props) {
                         transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                       }}
                     >
-                      <Paper variant="outlined" style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                      <Paper variant="outlined" className={"dropdownMenuColored"}>
                         <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
                           <MenuList id="split-button-menu"  >
                             {contextMenuOptions.map((option, index) => (

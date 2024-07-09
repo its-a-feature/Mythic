@@ -9,6 +9,8 @@ import {CallbacksTabsTaskingInput} from "./CallbacksTabsTaskingInput";
 import {CallbacksTableIPCell, CallbacksTableLastCheckinCell} from "./CallbacksTableRow";
 import { DataGrid } from '@mui/x-data-grid';
 import { validate as uuidValidate } from 'uuid';
+import {snackActions} from "../../utilities/Snackbar";
+import {useTheme} from '@mui/material/styles';
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -24,7 +26,13 @@ query callbacksAndFeatures($payloadtype_id: Int!) {
     display_id
     last_checkin
     ip
+    dead
     mythictree_groups_string
+    payload {
+        payloadtype {
+            agent_type
+        }
+    }
   }
 }`;
 
@@ -81,6 +89,7 @@ const columns = [
 ];
 const CustomSelectTable = ({initialData, selectedData}) => {
     const [data, setData] = React.useState([]);
+    const theme = useTheme();
     const [rowSelectionModel, setRowSelectionModel] = React.useState([]);
     React.useEffect( () => {
         selectedData.current = data.reduce( (prev, cur) => {
@@ -96,6 +105,7 @@ const CustomSelectTable = ({initialData, selectedData}) => {
     return (
         <div style={{height: "calc(80vh)"}}>
             <DataGrid
+                style={{backgroundColor: theme.palette.background.paper}}
                 rows={data}
                 columns={columns}
                 initialState={{
@@ -119,7 +129,7 @@ const CustomSelectTable = ({initialData, selectedData}) => {
 
     )
 }
-export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
+export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
     const mountedRef = React.useRef(true);
     const [selectedToken, setSelectedToken] = React.useState({});
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
@@ -139,8 +149,8 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
     const submitTasking = () => {
       //console.log("selectedFeature", selectedFeature)
       if(selectedData.current.length === 0){
-        onClose();
-        console.log("selectedData.current.length === 0")
+        //onClose();
+          snackActions.warning("No callbacks selected");
         return;
       }
         const callbacks = selectedData.current.map( c => c.display_id)
@@ -163,6 +173,11 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
     }
     const onSubmitCommandLine = (message, cmd, parsed, force_parsed_popup, cmdGroupNames, previousTaskingLocation) => {
         //console.log(message, cmd, parsed);
+        if(selectedData.current.length === 0){
+            //onClose();
+            snackActions.warning("No callbacks selected");
+            return;
+        }
         let params = message.split(" ");
         delete params[0];
         params = params.join(" ").trim();
@@ -272,7 +287,6 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback, me}) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Task Multiple {callback.payload.payloadtype.name} Callbacks at Once</DialogTitle>
-
             <CustomSelectTable initialData={initialData}
                                selectedData={selectedData}  />
         <Grid item xs={12} >

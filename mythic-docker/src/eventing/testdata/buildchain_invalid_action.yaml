@@ -1,0 +1,49 @@
+name: "generate apollo payloads"
+description: "generate apollo exe, shellcode, and service wrapper payloads"
+trigger: "manuale"
+triggerData:
+environment:
+steps:
+  - name: "apollo bin"
+    description: "generate shellcode"
+    action: "payload_create"
+    action_data:
+      payload_type: "apollo"
+      description: "apollo test payload shellcode"
+      selected_os: "Windows"
+      build_parameters:
+        - name: "output_type"
+          value: "Shellcode"
+      filename: "apollo.bin"
+      c2_profiles:
+        - c2_profile: "websocket"
+          c2_profile_parameters:
+            AESPSK: "aes256_hmac"
+            callback_host: "ws://192.168.0.118"
+            tasking_type: "Push"
+      commands:
+        - shell
+        - exit
+        - load
+    outputs:
+      BIN_UUID: "uuid"
+    environment:
+  - name: "apollo service"
+    description: "service exe with apollo shellcode"
+    action: "create_wrapper"
+    inputs:
+      WRAPPER_UUID: "apollo bin.BIN_UUID"
+    outputs:
+    depends_on:
+      - "apollo bin2"
+    action_data:
+      payload_type: "service_wrapper"
+      description: "apollo service exe"
+      selected_os: "Windows"
+      build_parameters:
+        - name: "version"
+          value: "4.0"
+        - name: "arch"
+          value: "x64"
+      filename: "apollo_service.exe"
+      wrapped_payload: WRAPPER_UUID

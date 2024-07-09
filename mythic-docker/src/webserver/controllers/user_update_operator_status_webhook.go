@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -91,29 +92,40 @@ func UpdateOperatorStatusWebhook(c *gin.Context) {
 		targetUser.Deleted = *input.Input.Deleted
 	}
 	if input.Input.Admin != nil {
+		if targetUser.AccountType == databaseStructs.AccountTypeBot && *input.Input.Admin {
+			c.JSON(http.StatusOK, UpdateOperatorStatusResponse{
+				Status: "error",
+				Error:  "Bot accounts can't be admin",
+			})
+			return
+		}
 		targetUser.Admin = *input.Input.Admin
 	}
 	if input.Input.Active != nil {
 		targetUser.Active = *input.Input.Active
 	}
-	if _, err := database.DB.NamedExec(`UPDATE operator SET 
+	_, err = database.DB.NamedExec(`UPDATE operator SET 
                     deleted=:deleted, "admin"=:admin, active=:active
                 WHERE id=:id`,
-		targetUser); err != nil {
+		targetUser)
+	if err != nil {
 		logging.LogError(nil, "Failed to update password")
 		c.JSON(http.StatusOK, UpdateOperatorStatusResponse{
 			Status: "error",
 			Error:  "Failed to update operator",
 		})
 		return
-	} else {
-		c.JSON(http.StatusOK, UpdateOperatorStatusResponse{
-			Status:  "success",
-			Admin:   targetUser.Admin,
-			Active:  targetUser.Active,
-			Deleted: targetUser.Deleted,
-			UserID:  targetUser.ID,
-		})
-		return
 	}
+	err = UpdateHasuraClaims(c, true)
+	if err != nil {
+		logging.LogError(err, "Failed to update claims")
+	}
+	c.JSON(http.StatusOK, UpdateOperatorStatusResponse{
+		Status:  "success",
+		Admin:   targetUser.Admin,
+		Active:  targetUser.Active,
+		Deleted: targetUser.Deleted,
+		UserID:  targetUser.ID,
+	})
+	return
 }

@@ -30,7 +30,7 @@ const importTagtypesMutation = gql`
 
 const exportTagtypesQuery = gql`
 query getAllTagTypes {
-    tagtype {
+    tagtype(order_by: {name: asc}) {
         color
         description
         name
@@ -81,18 +81,22 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
     })
     return (
         <div style={{display: "flex", flexDirection: "column", width: "100%", height: "100%"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
+                marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}} variant={"elevation"}>
                 <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Types of Tags
                 </Typography>
-                <Button variant="contained" component="label" style={{float:"right", marginTop: "5px", marginRight: "5px"}} color="success"> 
+                <Button variant="contained" component="label" size={"small"}
+                        style={{float:"right", marginTop: "5px", marginRight: "5px"}} color="success">
                     <FileUploadIcon /> {"Import"}
                     <input onChange={onFileChange} value={fileValue.current} type="file" hidden /> 
                 </Button>
-                <Button style={{float: "right", marginTop: "5px", marginRight: "5px"}} color="success" variant='contained' 
+                <Button style={{float: "right", marginTop: "5px", marginRight: "5px"}} size={"small"}
+                        color="success" variant='contained'
                     onClick={() => exportTagtypes({variables: {operation_id: me?.user?.current_operation_id || 0}})}>
                     <FileDownloadIcon />Export</Button>
-                <Button onClick={()=>setOpenNewDialog(true)} style={{float: "right", marginTop: "5px", marginRight: "5px"}} color="success" variant='contained'>
+                <Button onClick={()=>setOpenNewDialog(true)} style={{float: "right", marginTop: "5px", marginRight: "5px"}}
+                        color="success" variant='contained' size={"small"}>
                     <AddIcon />New</Button>
                 {openNewDialog &&
                     <MythicDialog fullWidth={true} maxWidth="sm" open={openNewDialog} 
@@ -103,7 +107,7 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
             </Paper>  
             <div style={{display: "flex", flexGrow: 1, overflow: "auto"}}>
                 <TableContainer component={Paper} className="mythicElement">
-                    <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+                    <Table stickyHeader={true} size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableHead>
                             <TableRow>
                                 <TableCell style={{width: "3rem"}}>Delete</TableCell>

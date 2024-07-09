@@ -64,7 +64,8 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
     };
     return (
         <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px",
+                marginLeft: "5px", marginRight: "5px"}} variant={"elevation"}>
                 <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Payloads
                 </Typography>
@@ -102,26 +103,27 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
                 )}
                 </Popper>
                 {openPayloadImport &&
-                    <MythicDialog fullWidth={true} maxWidth="sm" open={openPayloadImport} 
-                        onClose={()=>{setOpenPayloadImport(false);}} 
+                    <MythicDialog fullWidth={true} maxWidth="sm" open={openPayloadImport}
+                        onClose={()=>{setOpenPayloadImport(false);}}
                         innerDialog={<ImportPayloadConfigDialog onClose={()=>{setOpenPayloadImport(false);}} />}
                     />
                 }
-            </Paper>               
+            </Paper>
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
-                <TableContainer component={Paper} className="mythicElement">
-                    <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+                <TableContainer >
+                    <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll", tableLayout: "fixed"}}>
                         <TableHead>
                             <TableRow>
-                                <TableCell style={{width: "4rem"}}>Delete</TableCell>
-                                <TableCell style={{width: "6rem"}}>Modify</TableCell>
-                                <TableCell>Build Progress</TableCell> 
-                                <TableCell style={{width: "4rem"}}>Download</TableCell>
+                                <TableCell style={{width: "2rem"}}></TableCell>
+                                <TableCell style={{width: "6rem"}}></TableCell>
+                                <TableCell>Progress</TableCell>
+                                <TableCell style={{width: "5rem"}}>Download</TableCell>
+                                <TableCell>Tags</TableCell>
                                 <TableCell>File</TableCell>
                                 <TableCell>Description</TableCell>
                                 <TableCell >C2 Status</TableCell>
-                                <TableCell style={{width: "4rem"}}>Agent</TableCell>
-                                <TableCell style={{width: "4rem"}}>Details</TableCell>
+                                <TableCell style={{width: "3rem"}}></TableCell>
+                                <TableCell style={{width: "3rem"}}></TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>

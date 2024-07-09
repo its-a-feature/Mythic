@@ -39,6 +39,7 @@ func MythicRPCProcessCreate(input MythicRPCProcessCreateMessage) MythicRPCProces
 	task := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT
 		task.id, task.status, task.completed, task.status_timestamp_processed, task.operator_id, task.operation_id,
+		task.apitokens_id, task.eventstepinstance_id,
 		callback.host "callback.host",
 		callback.user "callback.user",
 		callback.id "callback.id",
@@ -52,7 +53,7 @@ func MythicRPCProcessCreate(input MythicRPCProcessCreateMessage) MythicRPCProces
 		logging.LogError(err, "Failed to fetch task")
 		response.Error = err.Error()
 		return response
-	} else if err := handleAgentMessagePostResponseProcesses(task, &input.Processes); err != nil {
+	} else if err := HandleAgentMessagePostResponseProcesses(task, &input.Processes, int(task.APITokensID.Int64)); err != nil {
 		logging.LogError(err, "Failed to create processes in MythicRPCProcessCreate")
 		response.Error = err.Error()
 		return response

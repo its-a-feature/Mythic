@@ -492,7 +492,7 @@ export const SearchTabCallbacksPanel = (props) =>{
                     )}
                 </div>
                 <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: "5px", paddingBottom: "5px"}}>
-                    <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="primary" boundaryCount={1}
+                    <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info" boundaryCount={1}
                             siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
                         <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
                 </div>

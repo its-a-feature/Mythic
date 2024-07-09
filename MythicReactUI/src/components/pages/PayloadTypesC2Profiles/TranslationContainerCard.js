@@ -1,6 +1,5 @@
 import React from 'react';
-import { styled } from '@mui/material/styles';
-import Card from '@mui/material/Card';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import Typography from '@mui/material/Typography';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faLanguage } from '@fortawesome/free-solid-svg-icons';
@@ -15,6 +14,8 @@ import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOu
 import TableRow from '@mui/material/TableRow';
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
 
 const PREFIX = 'TranslationContainerCard';
 
@@ -37,7 +38,7 @@ mutation toggleC2ProfileDeleteStatus($translationcontainer_id: Int!, $deleted: B
 
 export function TranslationContainerRow({service, showDeleted}) {
   const theme = useTheme();
-
+  const [openListFilesDialog, setOpenListFilesDialog] = React.useState(false);
   const [openDelete, setOpenDeleteDialog] = React.useState(false);
   const [updateDeleted] = useMutation(toggleDeleteStatus, {
       onCompleted: data => {
@@ -105,7 +106,22 @@ export function TranslationContainerRow({service, showDeleted}) {
                         <MenuBookIcon />
                     </IconButton>
                 </MythicStyledTooltip>
+                <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
+                    <IconButton
+                        color={"secondary"}
+                        disabled={!service.container_running}
+                        onClick={()=>{setOpenListFilesDialog(true);}}
+                        size="large">
+                        <AttachFileIcon />
+                    </IconButton>
+                </MythicStyledTooltip>
             </MythicTableCell>
+            {openListFilesDialog &&
+                <MythicDialog fullWidth={true} maxWidth="md" open={openListFilesDialog}
+                              onClose={()=>{setOpenListFilesDialog(false);}}
+                              innerDialog={<C2ProfileListFilesDialog container_name={service.name} {...service} onClose={()=>{setOpenListFilesDialog(false);}} />}
+                />
+            }
         </TableRow>
 
   );

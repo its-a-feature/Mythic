@@ -1,11 +1,9 @@
 import React from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql, useMutation, useLazyQuery} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
-import Paper from '@mui/material/Paper';
 import { snackActions } from '../../utilities/Snackbar';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -23,35 +21,35 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import {downloadFileFromMemory} from '../../utilities/Clipboard';
 
-const listC2ProfileFilesQuery = gql`
-query listC2ProfileFilesQuery($id: Int!){
-  c2profileListFiles(id: $id){
+export const containerListFilesQuery = gql`
+query listC2ProfileFilesQuery($container_name: String!){
+  containerListFiles(container_name: $container_name){
     status
     error
     files
   }
 }
 `;
-const setProfileConfigMutation = gql`
-mutation setProfileConfiguration($id: Int!, $file_path: String!, $data: String!) {
-  uploadContainerFile(id: $id, file_path: $file_path, data: $data) {
+export const containerWriteFileMutation = gql`
+mutation setProfileConfiguration($container_name: String!, $file_path: String!, $data: String!) {
+  containerWriteFile(container_name: $container_name, file_path: $file_path, data: $data) {
     status
     error
     filename
   }
 }
 `;
-const removeFileMutation = gql`
-mutation removeContainerFileMutation($id: Int!, $filename: String!) {
-  removeContainerFile(id: $id, filename: $filename) {
+export const containerRemoveFileMutation = gql`
+mutation removeContainerFileMutation($container_name: String!, $filename: String!) {
+  containerRemoveFile(container_name: $container_name, filename: $filename) {
     status
     error
   }
 }
 `;
-const getProfileConfigQuery = gql`
-query getProfileConfigOutput($id: Int!, $filename: String!) {
-  downloadContainerFile(id: $id, filename: $filename) {
+export const containerDownloadFileQuery = gql`
+query getProfileConfigOutput($container_name: String!, $filename: String!) {
+  containerDownloadFile(container_name: $container_name, filename: $filename) {
     status
     error
     filename
@@ -63,14 +61,14 @@ query getProfileConfigOutput($id: Int!, $filename: String!) {
 
 export function C2ProfileListFilesDialog(props) {
     
-    const { loading, error, data } = useQuery(listC2ProfileFilesQuery, {
-        variables: {id: props.id},
+    const { loading, error, data } = useQuery(containerListFilesQuery, {
+        variables: {container_name: props.container_name},
         onCompleted: data => {
           
         },
         fetchPolicy: "network-only"
     });
-    const [configSubmit] = useMutation(setProfileConfigMutation, {
+    const [configSubmit] = useMutation(containerWriteFileMutation, {
       update: (cache, {data}) => {
           
       },
@@ -79,20 +77,22 @@ export function C2ProfileListFilesDialog(props) {
       },
       onCompleted: data => {
           //console.log(data);
-          if(data.uploadContainerFile.status === "success"){
+          if(data.containerWriteFile.status === "success"){
               snackActions.success("Updated file");
           }else{
-              snackActions.error("Error updating: " + data.uploadContainerFile.error );
+              snackActions.error("Error updating: " + data.containerWriteFile.error );
           }
       }
     });
     const onFileChange = (evt) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-          const contents = e.target.result;
-          configSubmit({variables: {id: props.id, file_path: evt.target.files[0].name, data: btoa(contents)}});
-      }
-      reader.readAsBinaryString(evt.target.files[0]);
+        for(let i = 0; i < evt.target.files.length; i++){
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const contents = e.target.result;
+                configSubmit({variables: {container_name: props.container_name, file_path: evt.target.files[i].name, data: btoa(contents)}});
+            }
+            reader.readAsBinaryString(evt.target.files[i]);
+        }
   }
   
     if (loading) {
@@ -105,10 +105,10 @@ export function C2ProfileListFilesDialog(props) {
   
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">{props.name}'s Current Files
+        <DialogTitle id="form-dialog-title">{props.container_name}'s Current Files
           <Button color="success" size="small" style={{float: "right"}} variant="contained" component="label">
             <FileUploadIcon /> Upload File
-            <input onChange={onFileChange} type="file" hidden /> 
+            <input onChange={onFileChange} type="file" multiple hidden />
           </Button>
         </DialogTitle>
           <TableContainer >
@@ -122,8 +122,8 @@ export function C2ProfileListFilesDialog(props) {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                  {data.c2profileListFiles.files && data.c2profileListFiles.files.map( f => (
-                    <C2ProfileListFilesDialogTableRow key={"file" + f} id={props.id} name={props.name} filename={f} />
+                  {data.containerListFiles.files && data.containerListFiles.files.map( f => (
+                    <C2ProfileListFilesDialogTableRow key={"file" + f} id={props.id} container_name={props.container_name} filename={f} />
                   ))}
                 </TableBody>
             </Table>
@@ -138,10 +138,10 @@ export function C2ProfileListFilesDialog(props) {
   );
 }
 
-const C2ProfileListFilesDialogTableRow = ({name, id, filename}) => {
+const C2ProfileListFilesDialogTableRow = ({container_name, id, filename}) => {
   const [openProfileConfigDialog, setOpenProfileConfigDialog] = React.useState(false);
   const [openDelete, setOpenDeleteDialog] = React.useState(false);
-  const [configSubmit] = useMutation(setProfileConfigMutation, {
+  const [configSubmit] = useMutation(containerWriteFileMutation, {
     update: (cache, {data}) => {
         
     },
@@ -150,18 +150,18 @@ const C2ProfileListFilesDialogTableRow = ({name, id, filename}) => {
     },
     onCompleted: data => {
         //console.log(data);
-        if(data.uploadContainerFile.status === "success"){
+        if(data.containerWriteFile.status === "success"){
             snackActions.success("Updated file");
         }else{
-            snackActions.error("Error updating: " + data.uploadContainerFile.error );
+            snackActions.error("Error updating: " + data.containerWriteFile.error );
         }
     }
   });
   const onConfigSubmit = (content) => {
     //console.log(content)
-    configSubmit({variables: {id: id, file_path: filename, data: content}});
+    configSubmit({variables: {container_name: container_name, file_path: filename, data: content}});
   }
-  const [removeFile] = useMutation(removeFileMutation, {
+  const [removeFile] = useMutation(containerRemoveFileMutation, {
     update: (cache, {data}) => {
         
     },
@@ -170,22 +170,22 @@ const C2ProfileListFilesDialogTableRow = ({name, id, filename}) => {
     },
     onCompleted: data => {
         //console.log(data);
-        if(data.removeContainerFile.status === "success"){
+        if(data.containerRemoveFile.status === "success"){
             snackActions.success("Removed file");
         }else{
-            snackActions.error("Error removing: " + data.removeContainerFile.error );
+            snackActions.error("Error removing: " + data.containerRemoveFile.error );
         }
     }
   });
   const onAcceptDelete = () => {
-    removeFile({variables: {id: id, filename: filename}})
+    removeFile({variables: {container_name: container_name, filename: filename}})
   }
-  const [getContainerFile] = useLazyQuery(getProfileConfigQuery, {
+  const [getContainerFile] = useLazyQuery(containerDownloadFileQuery, {
     onCompleted: data => {
-      if(data.downloadContainerFile.status === "success"){
-        downloadFileFromMemory(atob(data.downloadContainerFile.data), filename);
+      if(data.containerDownloadFile.status === "success"){
+        downloadFileFromMemory(atob(data.containerDownloadFile.data), filename);
       } else {
-        snackActions.error(data.downloadContainerFile.error);
+        snackActions.error(data.containerDownloadFile.error);
       }
     },
     onError: error => {
@@ -194,7 +194,7 @@ const C2ProfileListFilesDialogTableRow = ({name, id, filename}) => {
     }
   })
   const downloadFile = () => {
-    getContainerFile({variables: {id: id, filename: filename}})
+    getContainerFile({variables: {container_name: container_name, filename: filename}})
   }
   return (
     <React.Fragment>
@@ -213,7 +213,7 @@ const C2ProfileListFilesDialogTableRow = ({name, id, filename}) => {
       {openProfileConfigDialog &&
         <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileConfigDialog} 
           onClose={()=>{setOpenProfileConfigDialog(false);}} 
-          innerDialog={<C2ProfileConfigDialog filename={filename} onConfigSubmit={onConfigSubmit} payload_name={name} onClose={()=>{setOpenProfileConfigDialog(false);}} profile_id={id} />}
+          innerDialog={<C2ProfileConfigDialog filename={filename} onConfigSubmit={onConfigSubmit} container_name={container_name} onClose={()=>{setOpenProfileConfigDialog(false);}} profile_id={id} />}
         />
         }
         {openDelete && 

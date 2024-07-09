@@ -18,11 +18,13 @@ query GetC2AndPayloadType {
   c2profile(where: {deleted: {_eq: false}}) {
     name
     id
+    container_running
   }
-  payloadtype(where: {deleted: {_eq: false}}) {
+  payloadtype(where: {deleted: {_eq: false}, agent_type: {_eq: "agent"}}) {
     name
     wrapper
     id
+    container_running
     payloadtypec2profiles {
       c2profile {
         name
@@ -30,10 +32,11 @@ query GetC2AndPayloadType {
       }
     }
   }
-  wrappers: payloadtype(where: {deleted: {_eq: false}, wrapper: {_eq: true}}) {
+  wrappers: payloadtype(where: {deleted: {_eq: false}, agent_type: {_eq: "agent"}, wrapper: {_eq: true}}) {
     name
     wrapper
     id
+    container_running
     wrap_these_payload_types {
       wrapped {
         wrapper

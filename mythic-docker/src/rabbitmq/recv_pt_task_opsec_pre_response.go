@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"github.com/its-a-feature/Mythic/eventing"
+	"strings"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -29,6 +31,10 @@ func processPtTaskOPSECPreMessages(msg amqp.Delivery) {
 			// we ran into an error and couldn't even get the task information out
 			go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
 			return
+		}
+		_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, task.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to update the apitokens to set to deleted")
 		}
 		if payloadMsg.Success {
 			shouldMoveToCreateTasking := false
@@ -76,6 +82,14 @@ func processPtTaskOPSECPreMessages(msg amqp.Delivery) {
 				return
 			}
 			go CheckAndProcessTaskCompletionHandlers(task.ID)
+			EventingChannel <- EventNotification{
+				Trigger:             eventing.TriggerTaskFinish,
+				OperationID:         task.OperationID,
+				OperatorID:          task.OperatorID,
+				EventStepInstanceID: int(task.EventStepInstanceID.Int64),
+				TaskID:              task.ID,
+				ActionSuccess:       !strings.Contains(task.Status, "error"),
+			}
 		}
 	}
 }

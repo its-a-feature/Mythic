@@ -27,7 +27,6 @@ import {faExclamationTriangle} from '@fortawesome/free-solid-svg-icons';
 import { faExternalLinkAlt, faExpandArrowsAlt } from '@fortawesome/free-solid-svg-icons';
 import SearchIcon from '@mui/icons-material/Search';
 import SpeedDial from '@mui/material/SpeedDial';
-import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
 import { Backdrop } from '@mui/material';
 import {downloadFileFromMemory} from '../../utilities/Clipboard';

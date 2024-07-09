@@ -30,16 +30,18 @@ type PayloadTypeSyncMessage struct {
 type BuildParameterType = string
 
 const (
-	BUILD_PARAMETER_TYPE_STRING          BuildParameterType = "String"
-	BUILD_PARAMETER_TYPE_BOOLEAN                            = "Boolean"
-	BUILD_PARAMETER_TYPE_CHOOSE_ONE                         = "ChooseOne"
-	BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE                    = "ChooseMultiple"
-	BUILD_PARAMETER_TYPE_DATE                               = "Date"
-	BUILD_PARAMETER_TYPE_DICTIONARY                         = "Dictionary"
-	BUILD_PARAMETER_TYPE_ARRAY                              = "Array"
-	BUILD_PARAMETER_TYPE_NUMBER                             = "Number"
-	BUILD_PARAMETER_TYPE_FILE                               = "File"
-	BUILD_PARAMETER_TYPE_TYPED_ARRAY                        = "TypedArray"
+	BUILD_PARAMETER_TYPE_STRING            BuildParameterType = "String"
+	BUILD_PARAMETER_TYPE_BOOLEAN                              = "Boolean"
+	BUILD_PARAMETER_TYPE_CHOOSE_ONE                           = "ChooseOne"
+	BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM                    = "ChooseOneCustom"
+	BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE                      = "ChooseMultiple"
+	BUILD_PARAMETER_TYPE_DATE                                 = "Date"
+	BUILD_PARAMETER_TYPE_DICTIONARY                           = "Dictionary"
+	BUILD_PARAMETER_TYPE_ARRAY                                = "Array"
+	BUILD_PARAMETER_TYPE_NUMBER                               = "Number"
+	BUILD_PARAMETER_TYPE_FILE                                 = "File"
+	BUILD_PARAMETER_TYPE_FILE_MULTIPLE                        = "FileMultiple"
+	BUILD_PARAMETER_TYPE_TYPED_ARRAY                          = "TypedArray"
 )
 
 type BuildParameter struct {
@@ -61,22 +63,25 @@ type BuildStep struct {
 }
 
 type PayloadType struct {
-	Name                         string           `json:"name"`
-	FileExtension                string           `json:"file_extension"`
-	Author                       string           `json:"author"`
-	SupportedOS                  []string         `json:"supported_os"`
-	Wrapper                      bool             `json:"wrapper"`
-	SupportedWrapperPayloadTypes []string         `json:"supported_wrapper_payload_types"`
-	SupportsDynamicLoading       bool             `json:"supports_dynamic_load"`
-	Description                  string           `json:"description"`
-	SupportedC2Profiles          []string         `json:"supported_c2_profiles"`
-	TranslationContainerName     string           `json:"translation_container_name"`
-	MythicEncryptsData           bool             `json:"mythic_encrypts"`
-	BuildParameters              []BuildParameter `json:"build_parameters"`
-	BuildSteps                   []BuildStep      `json:"build_steps"`
-	AgentIcon                    *[]byte          `json:"agent_icon"`
-	MessageFormat                string           `json:"message_format"`
-	AgentType                    string           `json:"agent_type"`
+	Name                          string           `json:"name"`
+	FileExtension                 string           `json:"file_extension"`
+	Author                        string           `json:"author"`
+	SupportedOS                   []string         `json:"supported_os"`
+	Wrapper                       bool             `json:"wrapper"`
+	SupportedWrapperPayloadTypes  []string         `json:"supported_wrapper_payload_types"`
+	SupportsDynamicLoading        bool             `json:"supports_dynamic_load"`
+	Description                   string           `json:"description"`
+	SupportedC2Profiles           []string         `json:"supported_c2_profiles"`
+	TranslationContainerName      string           `json:"translation_container_name"`
+	MythicEncryptsData            bool             `json:"mythic_encrypts"`
+	BuildParameters               []BuildParameter `json:"build_parameters"`
+	BuildSteps                    []BuildStep      `json:"build_steps"`
+	AgentIcon                     *[]byte          `json:"agent_icon,omitempty"`
+	DarkModeAgentIcon             *[]byte          `json:"dark_mode_agent_icon,omitempty"`
+	MessageFormat                 string           `json:"message_format"`
+	AgentType                     string           `json:"agent_type"`
+	MessageUUIDLength             int              `json:"message_uuid_length"`
+	CommandAugmentSupportedAgents []string         `json:"command_augment_supported_agents"`
 }
 
 type Command struct {
@@ -99,18 +104,20 @@ type Command struct {
 type CommandParameterType = string
 
 const (
-	COMMAND_PARAMETER_TYPE_STRING          CommandParameterType = "String"
-	COMMAND_PARAMETER_TYPE_BOOLEAN                              = "Boolean"
-	COMMAND_PARAMETER_TYPE_CHOOSE_ONE                           = "ChooseOne"
-	COMMAND_PARAMETER_TYPE_CHOOSE_MULTIPLE                      = "ChooseMultiple"
-	COMMAND_PARAMETER_TYPE_FILE                                 = "File"
-	COMMAND_PARAMETER_TYPE_ARRAY                                = "Array"
-	COMMAND_PARAMETER_TYPE_CREDENTIAL                           = "CredentialJson"
-	COMMAND_PARAMETER_TYPE_NUMBER                               = "Number"
-	COMMAND_PARAMETER_TYPE_PAYLOAD_LIST                         = "PayloadList"
-	COMMAND_PARAMETER_TYPE_CONNECTION_INFO                      = "AgentConnect"
-	COMMAND_PARAMETER_TYPE_LINK_INFO                            = "LinkInfo"
-	COMMAND_PARAMETER_TYPE_TYPED_ARRAY                          = "TypedArray"
+	COMMAND_PARAMETER_TYPE_STRING            CommandParameterType = "String"
+	COMMAND_PARAMETER_TYPE_BOOLEAN                                = "Boolean"
+	COMMAND_PARAMETER_TYPE_CHOOSE_ONE                             = "ChooseOne"
+	COMMAND_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM                      = "ChooseOneCustom"
+	COMMAND_PARAMETER_TYPE_CHOOSE_MULTIPLE                        = "ChooseMultiple"
+	COMMAND_PARAMETER_TYPE_FILE                                   = "File"
+	COMMAND_PARAMETER_TYPE_FILE_MULTIPLE                          = "FileMultiple"
+	COMMAND_PARAMETER_TYPE_ARRAY                                  = "Array"
+	COMMAND_PARAMETER_TYPE_CREDENTIAL                             = "CredentialJson"
+	COMMAND_PARAMETER_TYPE_NUMBER                                 = "Number"
+	COMMAND_PARAMETER_TYPE_PAYLOAD_LIST                           = "PayloadList"
+	COMMAND_PARAMETER_TYPE_CONNECTION_INFO                        = "AgentConnect"
+	COMMAND_PARAMETER_TYPE_LINK_INFO                              = "LinkInfo"
+	COMMAND_PARAMETER_TYPE_TYPED_ARRAY                            = "TypedArray"
 )
 
 type CommandParameter struct {
@@ -188,7 +195,8 @@ func processPayloadSyncMessages(msg amqp.Delivery) interface{} {
 }
 
 var messageFormats = []string{"xml", "json"}
-var agentTypes = []string{"agent", "service"}
+var agentTypes = []string{"agent", "wrapper", "service", "command_augment"}
+var messageUUIDLengths = []int{16, 36}
 
 func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	//logging.LogDebug("Received connection to PayloadTypeSync", "syncMessage", in)
@@ -224,13 +232,25 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			payloadtype.AgentType = "agent"
 		} else if utils.SliceContains(agentTypes, in.PayloadType.AgentType) {
 			payloadtype.AgentType = in.PayloadType.AgentType
+			if payloadtype.AgentType == "wrapper" {
+				payloadtype.Wrapper = true
+			}
 		} else {
 			logging.LogError(nil, "Unknown agent type", "agent_type", in.PayloadType.AgentType)
 			payloadtype.AgentType = "agent"
 		}
+		payloadtype.CommandAugmentSupportedAgents = GetMythicJSONArrayFromStruct(in.PayloadType.CommandAugmentSupportedAgents)
+		if in.PayloadType.MessageUUIDLength == 0 {
+			payloadtype.MessageUUIDLength = 36
+		} else if utils.SliceContains(messageUUIDLengths, in.PayloadType.MessageUUIDLength) {
+			payloadtype.MessageUUIDLength = in.PayloadType.MessageUUIDLength
+		} else {
+			logging.LogError(nil, "Unknown message UUID length", "MessageUUIDLength", in.PayloadType.MessageUUIDLength)
+			payloadtype.MessageUUIDLength = 36
+		}
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO payloadtype 
-			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper,agent_type,message_format) 
-			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper,:agent_type, :message_format) 
+			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper,agent_type,message_format,command_augment_supported_agents,message_uuid_length) 
+			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper,:agent_type, :message_format, :command_augment_supported_agents, :message_uuid_length) 
 			RETURNING id`,
 		); err != nil {
 			logging.LogError(err, "Failed to create new payloadtype statement")
@@ -268,14 +288,27 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			payloadtype.AgentType = "agent"
 		} else if utils.SliceContains(agentTypes, in.PayloadType.AgentType) {
 			payloadtype.AgentType = in.PayloadType.AgentType
+			if payloadtype.AgentType == "wrapper" {
+				payloadtype.Wrapper = true
+			}
 		} else {
 			logging.LogError(nil, "Unknown agent type", "agent_type", in.PayloadType.AgentType)
 			payloadtype.AgentType = "agent"
 		}
+		if in.PayloadType.MessageUUIDLength == 0 {
+			payloadtype.MessageUUIDLength = 36
+		} else if utils.SliceContains(messageUUIDLengths, in.PayloadType.MessageUUIDLength) {
+			payloadtype.MessageUUIDLength = in.PayloadType.MessageUUIDLength
+		} else {
+			logging.LogError(nil, "Unknown message UUID length", "MessageUUIDLength", in.PayloadType.MessageUUIDLength)
+			payloadtype.MessageUUIDLength = 36
+		}
+		payloadtype.CommandAugmentSupportedAgents = GetMythicJSONArrayFromStruct(in.PayloadType.CommandAugmentSupportedAgents)
 		_, err = database.DB.NamedExec(`UPDATE payloadtype SET 
 			author=:author, container_running=:container_running, file_extension=:file_extension, mythic_encrypts=:mythic_encrypts,
 			note=:note, supported_os=:supported_os, supports_dynamic_loading=:supports_dynamic_loading, wrapper=:wrapper, deleted=:deleted,
-			agent_type=:agent_type, message_format=:message_format
+			agent_type=:agent_type, message_format=:message_format, command_augment_supported_agents=:command_augment_supported_agents,
+			message_uuid_length=:message_uuid_length
 			WHERE id=:id`, payloadtype,
 		)
 		if err != nil {
@@ -283,50 +316,86 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			return err
 		}
 	}
-	if err := updatePayloadTypeC2Profiles(in, payloadtype); err != nil {
+	err := updatePayloadTypeC2Profiles(in, payloadtype)
+	if err != nil {
 		return err
-	} else if err := updatePayloadTypeWrappers(in, payloadtype); err != nil {
+	}
+	err = updatePayloadTypeWrappers(in, payloadtype)
+	if err != nil {
 		return err
-	} else if err := updatePayloadTypeCommands(in, payloadtype); err != nil {
+	}
+	err = updatePayloadTypeCommands(in, payloadtype)
+	if err != nil {
 		return err
-	} else if err := updatePayloadTypeBuildParameters(in, payloadtype); err != nil {
+	}
+	err = updatePayloadTypeBuildParameters(in, payloadtype)
+	if err != nil {
 		return err
-	} else if err := updatePayloadBuildSteps(in, payloadtype); err != nil {
+	}
+	err = updatePayloadBuildSteps(in, payloadtype)
+	if err != nil {
 		return err
-	} else if absPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s.svg", payloadtype.Name))); err != nil {
+	}
+	absPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_light.svg", payloadtype.Name)))
+	if err != nil {
 		return err
-	} else if file, err := os.Create(absPath); err != nil {
+	}
+	file, err := os.Create(absPath)
+	if err != nil {
 		return err
+	}
+	if in.PayloadType.AgentIcon != nil {
+		if _, err = file.Write(*in.PayloadType.AgentIcon); err != nil {
+			return err
+		}
+	}
+	file.Close()
+	darkModeAbsPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_dark.svg", payloadtype.Name)))
+	if err != nil {
+		return err
+	}
+	darkModeFile, err := os.Create(darkModeAbsPath)
+	if err != nil {
+		return err
+	}
+	if in.PayloadType.DarkModeAgentIcon != nil {
+		if _, err = darkModeFile.Write(*in.PayloadType.DarkModeAgentIcon); err != nil {
+			return err
+		}
 	} else {
 		if in.PayloadType.AgentIcon != nil {
-			if _, err := file.Write(*in.PayloadType.AgentIcon); err != nil {
+			if _, err = darkModeFile.Write(*in.PayloadType.AgentIcon); err != nil {
 				return err
 			}
 		}
-		if in.PayloadType.TranslationContainerName != "" {
-			translationContainer := databaseStructs.Translationcontainer{
-				Name: in.PayloadType.TranslationContainerName,
-			}
-			if err := database.DB.Get(&translationContainer, `SELECT id FROM translationcontainer WHERE "name"=$1`, translationContainer.Name); err != nil {
-				logging.LogError(err, "Failed to find corresponding translation container for payload type")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to find translation container, %s, for %s", translationContainer.Name, payloadtype.Name), 0, "", "warning")
-			} else if _, err = database.DB.Exec(`UPDATE payloadtype SET translation_container_id=$1 WHERE id=$2`, translationContainer.ID, payloadtype.ID); err != nil {
-				logging.LogError(err, "Failed to associate translation container with payload type")
-			} else {
-				// translation container information potentially changed, invalidate all the caches and re-do them with the updates
-				InvalidateAllCachedUUIDInfo()
-			}
-		} else if _, err := database.DB.Exec(`UPDATE payloadtype SET translation_container_id=NULL WHERE id=$1`, payloadtype.ID); err != nil {
-			logging.LogError(err, "Failed to update translation container status back to null")
+
+	}
+	darkModeFile.Close()
+	if in.PayloadType.TranslationContainerName != "" {
+		translationContainer := databaseStructs.Translationcontainer{
+			Name: in.PayloadType.TranslationContainerName,
+		}
+		if err := database.DB.Get(&translationContainer, `SELECT id FROM translationcontainer WHERE "name"=$1`, translationContainer.Name); err != nil {
+			logging.LogError(err, "Failed to find corresponding translation container for payload type")
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to find translation container, %s, for %s", translationContainer.Name, payloadtype.Name), 0, "", "warning")
+		} else if _, err = database.DB.Exec(`UPDATE payloadtype SET translation_container_id=$1 WHERE id=$2`, translationContainer.ID, payloadtype.ID); err != nil {
+			logging.LogError(err, "Failed to associate translation container with payload type")
 		} else {
 			// translation container information potentially changed, invalidate all the caches and re-do them with the updates
 			InvalidateAllCachedUUIDInfo()
 		}
-		go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "debug", "info")
-		go database.ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
-		checkContainerStatusAddPtChannel <- payloadtype
-		return nil
+	} else if _, err := database.DB.Exec(`UPDATE payloadtype SET translation_container_id=NULL WHERE id=$1`, payloadtype.ID); err != nil {
+		logging.LogError(err, "Failed to update translation container status back to null")
+	} else {
+		// translation container information potentially changed, invalidate all the caches and re-do them with the updates
+		InvalidateAllCachedUUIDInfo()
 	}
+	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "debug", "info")
+	go database.ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
+	checkContainerStatusAddPtChannel <- payloadtype
+	go createGraphQLSpectatorAPITokenAndSendOnStartMessage(payloadtype.Name)
+	return nil
+
 }
 
 func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype databaseStructs.Payloadtype) error {

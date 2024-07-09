@@ -19,7 +19,6 @@ import {PayloadsTableRowC2Status} from './PayloadsTableRowC2Status';
 import {PayloadsTableRowBuildStatus} from './PayloadsTableRowBuildStatus';
 import {PayloadConfigCheckDialog} from './PayloadConfigCheckDialog';
 import {PayloadRedirectRulesDialog} from './PayloadRedirectRulesDialog';
-import {useTheme} from '@mui/material/styles';
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import {useMutation, gql, useLazyQuery} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
@@ -44,6 +43,8 @@ import BiotechIcon from '@mui/icons-material/Biotech';
 import {PayloadGetIOCDialog} from "./PayloadGetIOCDialog";
 import {PayloadGetSampleMessageDialog} from "./PayloadGetSampleMessageDialog";
 import IosShareIcon from '@mui/icons-material/IosShare';
+import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 
 const rebuildPayloadMutation = gql`
 mutation triggerRebuildMutation($uuid: String!) {
@@ -57,7 +58,7 @@ mutation triggerRebuildMutation($uuid: String!) {
 
 const exportPayloadConfigQuery = gql`
 query exportPayloadConfigQuery($uuid: String!) {
-  export_payload_config(uuid: $uuid) {
+  exportPayloadConfig(uuid: $uuid) {
       status
       error 
       config 
@@ -133,15 +134,16 @@ export function PayloadsTableRow(props){
         options[index].click();
         setOpenUpdateDialog(false);
     };
-    const options = [{name: <><DriveFileRenameOutlineIcon style={{marginRight: "10px"}}/> {"Rename File"}</> , click: () => {
+    const options = [
+                    {name: <><DriveFileRenameOutlineIcon style={{marginRight: "10px"}}/> {"Rename File"}</> , click: () => {
                         setOpenFilenameDialog(true);
                      }},
-                     {name: <><DescriptionIcon style={{marginRight: "10px"}} />{'Edit Description'}</>, click: () => {
+                     {name: <><DescriptionIcon color={"info"} style={{marginRight: "10px"}} />{'Edit Description'}</>, click: () => {
                         setOpenDescriptionDialog(true);
                      }},
                      {name: props.callback_alert ?
-                             <><VisibilityIcon style={{marginRight: "10px"}}  />{'Stop Alerting to New Callbacks'}</> :
-                             <><VisibilityOffIcon style={{marginRight: "10px"}}  />{"Start Alerting to New Callbacks"}</>,
+                             <><VisibilityIcon color={"success"} style={{marginRight: "10px"}}  />{'Stop Alerting to New Callbacks'}</> :
+                             <><VisibilityOffIcon color={"error"} style={{marginRight: "10px"}}  />{"Start Alerting to New Callbacks"}</>,
                          click: () => {
                         onAlertChanged();
                       }},
@@ -149,14 +151,14 @@ export function PayloadsTableRow(props){
                         setViewError(false);
                         setOpenBuildMessageDialog(true);
                      }},
-                     {name: <><ErrorIcon style={{marginRight: "10px"}}  />{'View Build Errors'}</>, click: () => {
+                     {name: <><ErrorIcon color={"error"} style={{marginRight: "10px"}}  />{'View Build Errors'}</>, click: () => {
                         setViewError(true);
                         setOpenBuildMessageDialog(true);
                      }},
-                     {name: <><CachedIcon style={{marginRight: "10px"}} />{'Trigger New Build'}</>, click: () => {
+                     {name: <><CachedIcon color={"success"} style={{marginRight: "10px"}} />{'Trigger New Build'}</>, click: () => {
                       triggerRebuild({variables: {uuid: props.uuid}});
                     }},
-                    {name: <><IosShareIcon style={{marginRight: "10px"}} />{'Export Payload Config'}</>, click: () => {
+                    {name: <><IosShareIcon color={"info"} style={{marginRight: "10px"}} />{'Export Payload Config'}</>, click: () => {
                       exportConfig({variables: {uuid: props.uuid}});
                     }},
                     {name: <><PhoneMissedIcon style={{marginRight: "10px"}} />{'Generate Redirect Rules'}</>, click: () => {
@@ -171,7 +173,7 @@ export function PayloadsTableRow(props){
                     {name: <><BiotechIcon style={{marginRight: "10px"}} />{'Generate Sample Message'}</>, click: () => {
                         setOpenGenerateSampleMessageDialog(true);
                     }},
-                    {name: <><AddIcCallIcon style={{marginRight: "10px"}} />{'Generate Callback'}</>, click: () => {
+                    {name: <><AddIcCallIcon color={"success"} style={{marginRight: "10px"}} />{'Generate Callback'}</>, click: () => {
                       setOpenCreateNewCallbackDialog(true);
                     }}
                      ]
@@ -216,7 +218,8 @@ export function PayloadsTableRow(props){
                   )}
                   
                 </MythicStyledTableCell>
-                <MythicStyledTableCell><Button ref={dropdownAnchorRef} size="small" onClick={()=>{setOpenUpdateDialog(true);}} color="primary" variant="contained">Actions</Button>
+                <MythicStyledTableCell>
+                    <Button ref={dropdownAnchorRef} size="small" onClick={()=>{setOpenUpdateDialog(true);}} color="primary" variant="contained">Actions</Button>
                 <Popper open={openUpdate} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
                   {({ TransitionProps, placement }) => (
                     <Grow
@@ -225,7 +228,7 @@ export function PayloadsTableRow(props){
                         transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                       }}
                     >
-                      <Paper variant="outlined" className={"dropdownMenuColored"}>
+                      <Paper className={"dropdownMenuColored"}>
                         <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
                           <MenuList id="split-button-menu"  >
                             {options.map((option, index) => (
@@ -298,6 +301,10 @@ export function PayloadsTableRow(props){
                 <MythicStyledTableCell>
                     <PayloadsTableRowBuildStatus {...props} />
                 </MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    <ViewEditTags target_object={"filemeta_id"} target_object_id={props.filemetum.id} me={props.me} />
+                    <TagsDisplay tags={props.filemetum.tags} />
+                </MythicStyledTableCell>
                 <MythicStyledTableCell>{b64DecodeUnicode(props.filemetum.filename_text)}</MythicStyledTableCell>
                 <MythicStyledTableCell>{props.description}</MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -305,10 +312,7 @@ export function PayloadsTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                   <MythicStyledTooltip title={props.payloadtype.name}>
-                      <img
-                          style={{width: "35px", height: "35px"}}
-                          src={"/static/" + props.payloadtype.name + ".svg"}
-                      />
+                      <MythicAgentSVGIcon payload_type={props.payloadtype.name} style={{width: "35px", height: "35px"}} />
                   </MythicStyledTooltip>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>

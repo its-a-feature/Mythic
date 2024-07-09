@@ -28,6 +28,7 @@ import {
 } from 'material-react-table';
 import {useTheme} from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
+import {SetMythicSetting, useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
@@ -146,7 +147,7 @@ function CallbacksTablePreMemo(props){
           {key: "sleep", type: 'string', name: "Sleep", width: 75, disableSort: true},
           {key: "agent", type: 'string', name: "Agent", width: 100, disableSort: true},
           {key: "c2", type: 'string', name: "C2", width: 75, disableSort: true, disableFilterMenu: true},
-          {key: "process_name", type: 'string', name: "Process Name", fillWidth: true},
+          {key: "process_short_name", type: 'string', name: "Process Name", fillWidth: true},
         ].reduce( (prev, cur) => {
           if(columnVisibility.visible.includes(cur.name) || cur.name === "Interact"){
             if(filterOptions[cur.key] && String(filterOptions[cur.key]).length > 0){
@@ -277,7 +278,6 @@ function CallbacksTablePreMemo(props){
                             return <CallbacksTableIDCell
                                 rowData={row}
                                 key={`callback${row.id}_${c.name}`}
-                                //onOpenTab={props.onOpenTab}
                                 updateDescription={updateDescriptionSubmit}
                                 setOpenHideMultipleDialog={setOpenHideMultipleDialog}
                                 setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
@@ -311,7 +311,7 @@ function CallbacksTablePreMemo(props){
                         case "C2":
                             return <CallbacksTableC2Cell key={`callback${row.id}_c2`} rowData={row} />
                         case "Process Name":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.process_name} rowData={row} />;
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.process_short_name} rowData={row} />;
                     }
                 })];
             }
@@ -458,73 +458,50 @@ function CallbacksTableMaterialReactTablePreMemo(props){
         {key: "os", type: 'string', name: "OS", width: 75, disableCopy: true, enableHiding: true},
         {key: "architecture", type: 'string', name: "Arch", width: 75, enableHiding: true},
         {key: "pid", type: 'number', name: "PID", width: 75, enableHiding: true},
-        {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true, enableHiding: true},
+        {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true, disableCopy: true, enableHiding: true},
         {key: "description", type: 'string', name: "Description", width: 400, enableHiding: true},
         {key: "sleep", type: 'string', name: "Sleep", width: 75, disableSort: true, disableCopy: true, enableHiding: true},
         {key: "agent", type: 'string', name: "Agent", width: 100, disableSort: true, disableCopy: true, enableHiding: true},
         {key: "c2", type: 'string', name: "C2", width: 75, disableSort: true, disableFilterMenu: true, disableCopy: true, enableHiding: true},
-        {key: "process_name", type: 'string', name: "Process Name", fillWidth: true, enableHiding: true},
+        {key: "process_short_name", type: 'string', name: "Process Name", fillWidth: true, enableHiding: true},
     ];
-    const [columnVisibility, setColumnVisibility] = React.useState({
-        id: true,
-        host: true,
-        domain:true,
-        user:true,
-        description:true,
-        last_checkin: true,
-        agent: true,
-        ip: true,
-        pid: true,
-        architecture: false,
-        sleep: false,
-        process_name: false,
-        external_ip: false,
-        c2: true,
-        os: false,
-        mythictree_groups: false
-    });
-    React.useEffect( () => {
-        // on startup, want to see if `callbacks_table_columns` exists in storage and load it if possible
-        try {
-            const storageItem = localStorage.getItem("callbacks_table_columns");
-            if(storageItem !== null){
-                let loadedColumnNames = JSON.parse(storageItem);
-                if(loadedColumnNames === null){return}
-                let currentVisibility = {...columnVisibility};
-                for( const[key, val] of Object.entries(currentVisibility)){
-                    let col = columnFields.filter( c => c.key === key)[0];
-                    currentVisibility[key] = !!loadedColumnNames.includes(col.name);
-                }
-                setColumnVisibility(currentVisibility);
-            }
-        }catch(error){
-            console.log("Failed to load callbacks_table_columns", error);
-        }
-    }, [])
-
-    const onColumnVisibilityChange = (visibility) => {
-        setColumnVisibility(visibility);
-    }
+    const initialColumnVisibility = useMythicSetting({setting_name: "callbacks_table_columns",
+        output: "json",
+        default_value: {
+            id: true,
+            host: true,
+            domain:true,
+            user:true,
+            description:true,
+            last_checkin: true,
+            agent: true,
+            ip: true,
+            pid: true,
+            architecture: false,
+            sleep: false,
+            process_short_name: false,
+            external_ip: false,
+            c2: true,
+            os: false,
+            mythictree_groups: false
+        }});
+    const initialColumnFilters = useMythicSetting({setting_name: "callbacks_table_filters",
+        output: "json-array",
+        default_value: []});
+    const [columnVisibility, setColumnVisibility] = React.useState(initialColumnVisibility);
+    const [columnFilters, setColumnFilters] = React.useState(initialColumnFilters);
     React.useEffect(  () => {
-        let shown = [];
-        for(const [key, val] of Object.entries(columnVisibility)){
-            if(val){
-                let newKey = columnFields.filter(c => c.key === key);
-                if(newKey.length > 0){
-                    shown.push(newKey[0].name);
-                }
-
-            }
-        }
-        localStorage.setItem("callbacks_table_columns", JSON.stringify(shown));
-    }, [columnVisibility]);
+        SetMythicSetting({setting_name: "callbacks_table_columns",
+            value: columnVisibility, output:"json"});
+        SetMythicSetting({setting_name: "callbacks_table_filters",
+            value: columnFilters, output: "json-array"});
+    }, [columnVisibility, columnFilters]);
     const localCellRender = React.useCallback( ({cell, h}) => {
         let row = cell.row?.original;
         switch(h.name){
             case "Interact":
                 return <CallbacksTableIDCell
                     rowData={row}
-                    //onOpenTab={props.onOpenTab}
                     updateDescription={updateDescriptionSubmit}
                     setOpenHideMultipleDialog={setOpenHideMultipleDialog}
                     setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
@@ -558,7 +535,7 @@ function CallbacksTableMaterialReactTablePreMemo(props){
             case "C2":
                 return <CallbacksTableC2Cell  rowData={row} />
             case "Process Name":
-                return <CallbacksTableStringCell  cellData={row.process_name} rowData={row} />;
+                return <CallbacksTableStringCell  cellData={row.process_short_name} rowData={row} />;
         }
     }, []);
     const columns = React.useMemo( () => columnFields.map( h => {
@@ -598,9 +575,12 @@ function CallbacksTableMaterialReactTablePreMemo(props){
         //columnResizeMode: 'onEnd',
         initialState: {
             density: 'compact',
+            columnVisibility,
+            columnFilters
         },
-        state: {columnVisibility},
-        onColumnVisibilityChange: onColumnVisibilityChange,
+        state: {columnVisibility, columnFilters},
+        onColumnVisibilityChange: setColumnVisibility,
+        onColumnFiltersChange: setColumnFilters,
         defaultDisplayColumn: { enableResizing: true },
         muiTableContainerProps: { sx: { alignItems: "flex-start" } },
         mrtTheme: (theme) => ({

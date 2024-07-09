@@ -34,4 +34,7 @@ type Filemeta struct {
 	Sha1                string            `db:"sha1" json:"sha1" mapstructure:"sha1"`
 	Comment             string            `db:"comment" json:"comment" mapstructure:"comment"`
 	Size                int64             `db:"size" json:"size" mapstructure:"size"`
+	EventGroupID        structs.NullInt64 `db:"eventgroup_id" json:"eventgroup_id" mapstructure:"eventgroup_id"`
+	EventStepInstanceID structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`
+	APITokensID         structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 }

@@ -6,7 +6,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay} from '../../MythicComponents/MythicTag';
 import {MythicDialog, MythicViewJSONAsTableDialog} from "../../MythicComponents/MythicDialog";
@@ -29,7 +28,7 @@ export function TagTable(props){
         setTags(newTags);
     }
     return (
-        <TableContainer component={Paper} className="mythicElement" >
+        <TableContainer className="mythicElement" >
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
@@ -98,7 +97,7 @@ function TagTableRowElement(props){
     const getElement = () => {
         if(props.task) {
             return (
-                <TableContainer component={Paper} className="mythicElement" >
+                <TableContainer className="mythicElement" >
                     <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableBody>
                             <TableRow hover>
@@ -133,7 +132,7 @@ function TagTableRowElement(props){
             )
         } else if(props.credential) {
             return (
-                <TableContainer component={Paper} className="mythicElement" >
+                <TableContainer className="mythicElement" >
                     <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableBody>
                             <TableRow hover>
@@ -166,7 +165,7 @@ function TagTableRowElement(props){
             )
         } else if(props.mythictree) {
             return (
-                <TableContainer component={Paper} className="mythicElement" >
+                <TableContainer className="mythicElement" >
                     <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableBody>
                             <TableRow hover>
@@ -198,7 +197,9 @@ function TagTableRowElement(props){
                             <TableRow hover>
                                 <TableCell>Metadata</TableCell>
                                 <TableCell>
-                                    <Button color="primary" variant="outlined" onClick={() => setViewPermissionsDialogOpen(true)}><PlaylistAddCheckIcon /></Button>
+                                    <Button color="info"  onClick={() => setViewPermissionsDialogOpen(true)}>
+                                        <PlaylistAddCheckIcon style={{marginRight: "5px"}}/> View
+                                    </Button>
                                 </TableCell>
                             </TableRow>
                         </TableBody>
@@ -216,7 +217,7 @@ function TagTableRowElement(props){
             )
         } else if(props.filemetum) {
             return (
-                <TableContainer component={Paper} className="mythicElement" >
+                <TableContainer className="mythicElement" >
                     <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableBody>
                             <TableRow hover>

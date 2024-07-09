@@ -119,8 +119,8 @@ export function AddRemoveCommandsDialog(props) {
       <>
           <CardHeader title={title} />
           <StyledDivider classes={{root: classes.divider}}/>
-          <CardContent style={{display: "flex", flexGrow: 1, overflow: "auto"}}>
-              <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
+          <CardContent style={{display: "flex", overflow: "auto", flexGrow: 1, width: "100%"}}>
+              <List dense component="div" role="list" style={{padding:0, width: "100%", overflow: "auto"}}>
                   {items.map((valueObj) => {
                       const value = valueObj.cmd;
                       const labelId = `transfer-list-item-${value}-label`;
@@ -160,8 +160,8 @@ export function AddRemoveCommandsDialog(props) {
         <DialogContent dividers={true} style={{height: "100%", display: "flex", flexDirection: "column", position: "relative",  maxHeight: "100%"}}>
           This will add or remove commands associated with this payload from Mythic's perspective. 
           This does NOT add or remove commands within the payload itself.
-        <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
-          <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
+        <div style={{display: "flex", flexDirection: "row", overflowY: "auto", height: "100%"}}>
+          <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column", width: "100%" }}>
             {customList(leftTitle, left)}
           </div>
             <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
@@ -207,7 +207,7 @@ export function AddRemoveCommandsDialog(props) {
               </StyledButton>
  
           </div>
-          <div  style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>
+          <div  style={{marginLeft: "10px", position: "relative", display: "flex", flexDirection: "column", width: "100%" }}>
             {customList(rightTitle, right)}
             </div>
         </div>

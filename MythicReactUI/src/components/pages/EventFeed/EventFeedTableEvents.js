@@ -66,8 +66,8 @@ export function EventFeedTableEvents(props){
     const me = useReactiveVar(meState);
 
     return (
-        <StyledListItem alignItems="flex-start" style={{...props.style, margin: 0, padding: "0 0 0 10px"}}>
-            <ListItemText disableTypography style={{margin: "0 0 0 0"}}
+        <StyledListItem alignItems="flex-start" style={{...props.style, margin: 0, width: "100%", padding: "0 0 0 10px"}}>
+            <ListItemText disableTypography style={{margin: "0 0 0 0", flexGrow: 1, overflowX: 'auto'}}
                 primary={
                     <React.Fragment>
                     <Typography
@@ -90,16 +90,16 @@ export function EventFeedTableEvents(props){
                     </React.Fragment>
                 }
                 secondary={
-                <div >
+                <div style={{display: "flex", overflowX: "auto"}}>
                     <GetPreAdornment message={props} />
-                    <pre style={{overflowX: "auto", display: "inline-flex",  maxWidth: "97%", margin: "0 0 0 0px"}}>
+                    <pre style={{  margin: "0 0 0 0px"}}>
                         {props.message}
                     </pre>
                 </div>
                 }
             />
             <EventFeedTableEventsActions id={props.id} level={props.level}
-              onUpdateResolution={props.onUpdateResolution} 
+              onUpdateResolution={props.onUpdateResolution}
               onUpdateLevel={props.onUpdateLevel}
               resolved={props.resolved}/>
         </StyledListItem>

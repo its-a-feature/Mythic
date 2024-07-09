@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"archive/zip"
 	"fmt"
+	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	"io"
 	"net/http"
 	"os"
@@ -61,7 +62,7 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	defer archive.Close()
 	// set this for logging later
-	c.Set("file_id", input.Input.Files)
+	c.Set("file_ids", input.Input.Files)
 	zipWriter := zip.NewWriter(archive)
 	for _, fileUUID := range input.Input.Files {
 		filemeta := databaseStructs.Filemeta{}
@@ -79,6 +80,7 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 			})
 			return
 		}
+		go tagFileAs(filemeta.ID, operatorOperation.CurrentOperator.Username, filemeta.OperationID, tagTypeDownload)
 		file, err := os.Open(filemeta.Path)
 		if err != nil {
 			logging.LogError(err, "Failed to open file", "path", filemeta.Path)
@@ -121,23 +123,40 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 		OperationID:    operatorOperation.CurrentOperation.ID,
 		AgentFileID:    bulkDownloadUUID,
 	}
+	fileSize, err := os.Stat(builkDownloadPath)
+	if err != nil {
+		logging.LogError(err, "Failed to get file size on disk")
+	} else {
+		zipFileMeta.Size = fileSize.Size()
+		zipFileMeta.ChunkSize = int(zipFileMeta.Size)
+	}
+	fileData, err := os.ReadFile(zipFileMeta.Path)
+	if err != nil {
+		logging.LogError(err, "Failed to read new file off of disk")
+		c.JSON(http.StatusOK, gin.H{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	zipFileMeta.Md5 = mythicCrypto.HashMD5(fileData)
+	zipFileMeta.Sha1 = mythicCrypto.HashSha1(fileData)
 	zipFileMeta.Filename = []byte("BulkFileDownload.zip")
 	zipFileMeta.OperatorID = operatorOperation.CurrentOperator.ID
-	if _, err := database.DB.NamedExec(`INSERT INTO filemeta
-		("path", filename, total_chunks, chunks_received, complete, operation_id, operator_id, agent_file_id)
-		VALUES (:path, :filename, :total_chunks, :chunks_received, :complete, :operation_id, :operator_id, :agent_file_id)
-		`, zipFileMeta); err != nil {
+	_, err = database.DB.NamedExec(`INSERT INTO filemeta
+		("path", filename, total_chunks, chunks_received, complete, operation_id, operator_id, agent_file_id, size, md5, sha1, chunk_size)
+		VALUES (:path, :filename, :total_chunks, :chunks_received, :complete, :operation_id, :operator_id, :agent_file_id, :size, :md5, :sha1, :chunk_size)
+		`, zipFileMeta)
+	if err != nil {
 		logging.LogError(err, "Failed to save zip entry in database")
 		c.JSON(http.StatusOK, DownloadBulkFilesResponse{
 			Status: "error",
 			Error:  "Failed to save zip entry in database",
 		})
 		return
-	} else {
-		c.JSON(http.StatusOK, DownloadBulkFilesResponse{
-			Status: "success",
-			FileID: bulkDownloadUUID,
-		})
 	}
-
+	c.JSON(http.StatusOK, DownloadBulkFilesResponse{
+		Status: "success",
+		FileID: bulkDownloadUUID,
+	})
 }

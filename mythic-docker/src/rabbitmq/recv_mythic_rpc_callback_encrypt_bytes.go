@@ -60,7 +60,7 @@ func CallbackEncryptMessage(agentCallbackUUID string, message []byte, includeUUI
 		logging.LogError(err, "Failed to fetch callback in CallbackEncryptMessage")
 		return nil, err
 	} else if err := database.DB.Get(&payloadtype, `SELECT
-	mythic_encrypts, translation_container_id, name
+	mythic_encrypts, translation_container_id, name, message_uuid_length, message_format
 	FROM payloadtype
 	WHERE id=$1`, callback.Payload.PayloadTypeID); err != nil {
 		logging.LogError(err, "Failed to get payloadtype information in CallbackEncryptMessage")
@@ -77,7 +77,11 @@ func CallbackEncryptMessage(agentCallbackUUID string, message []byte, includeUUI
 		}
 		//logging.LogDebug("CallbackEncryptMessage", "encrypted", cipherText)
 		if includeUUID {
-			cipherText = append([]byte(agentCallbackUUID), cipherText...)
+			uuidBytes, err := GetUUIDBytes(agentCallbackUUID, payloadtype.MessageUUIDLength)
+			if err != nil {
+				return nil, err
+			}
+			cipherText = append(uuidBytes, cipherText...)
 		}
 		if base64ReturnMessage {
 			//logging.LogDebug("CallbackEncryptMessage", "about to base64", cipherText)

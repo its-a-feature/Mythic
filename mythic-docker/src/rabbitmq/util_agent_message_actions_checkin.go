@@ -28,7 +28,7 @@ type agentMessageCheckin struct {
 	Other          map[string]interface{} `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
 }
 
-func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
+func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cachedUUIDInfo, remoteIP string) (map[string]interface{}, error) {
 	// got message:
 	/*
 		{
@@ -40,7 +40,7 @@ func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cache
 		// this means we got a new `checkin` message from an existing callback
 		// use this to simply update the callback information rather than creating a new callback
 		// some agents use this a way to re-sync and re-establish p2p links with Mythic
-		return handleAgentMessageUpdateInfo(incoming, UUIDInfo)
+		return handleAgentMessageUpdateInfo(incoming, UUIDInfo, remoteIP)
 	}
 	agentMessage := agentMessageCheckin{}
 	mythicRPCCallbackCreateMessage := MythicRPCCallbackCreateMessage{}
@@ -62,7 +62,9 @@ func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cache
 				mythicRPCCallbackCreateMessage.DecryptionKey = newCryptoKeys[0].DecKey
 			}
 		}
-
+		if mythicRPCCallbackCreateMessage.ExternalIP == "" {
+			mythicRPCCallbackCreateMessage.ExternalIP = remoteIP
+		}
 		//logging.LogDebug("about to create a new callback with data", "callback", mythicRPCCallbackCreateMessage)
 		mythicRPCCallbackCreateMessageResponse := MythicRPCCallbackCreate(mythicRPCCallbackCreateMessage)
 		if !mythicRPCCallbackCreateMessageResponse.Success {

@@ -10,7 +10,6 @@ import Box from '@mui/material/Box';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
-import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import {HexColorInput, HexColorPicker} from 'react-colorful';
 import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
@@ -123,7 +122,7 @@ export function SettingsOperatorUIConfigDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Configure UI Settings</DialogTitle>
-          <TableContainer component={Paper} className="mythicElement">
+          <TableContainer className="mythicElement">
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
@@ -144,8 +143,8 @@ export function SettingsOperatorUIConfigDialog(props) {
                     <Switch
                       checked={hideUsernames}
                       onChange={onHideUsernamesChanged}
-                      color="primary"
-                      inputProps={{ 'aria-label': 'primary checkbox' }}
+                      color="info"
+                      inputProps={{ 'aria-label': 'info checkbox' }}
                       name="hide_usernames"
                     />
                   </TableCell>
@@ -156,8 +155,8 @@ export function SettingsOperatorUIConfigDialog(props) {
                           <Switch
                               checked={showIP}
                               onChange={onShowIPChanged}
-                              color="primary"
-                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                              color="info"
+                              inputProps={{ 'aria-label': 'info checkbox' }}
                               name="show_ip"
                           />
                       </TableCell>
@@ -168,8 +167,8 @@ export function SettingsOperatorUIConfigDialog(props) {
                           <Switch
                               checked={showHostname}
                               onChange={onShowHostnameChanged}
-                              color="primary"
-                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                              color="info"
+                              inputProps={{ 'aria-label': 'info checkbox' }}
                               name="show_hostname"
                           />
                       </TableCell>
@@ -180,8 +179,8 @@ export function SettingsOperatorUIConfigDialog(props) {
                           <Switch
                               checked={showCallbackGroups}
                               onChange={onShowCallbackGroupsChanged}
-                              color="primary"
-                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                              color="info"
+                              inputProps={{ 'aria-label': 'info checkbox' }}
                               name="show_callback_groups"
                           />
                       </TableCell>
@@ -192,8 +191,8 @@ export function SettingsOperatorUIConfigDialog(props) {
                           <Switch
                               checked={showMedia}
                               onChange={onShowMediaChanged}
-                              color="primary"
-                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                              color="info"
+                              inputProps={{ 'aria-label': 'info checkbox' }}
                               name="show_media"
                           />
                       </TableCell>
@@ -204,8 +203,8 @@ export function SettingsOperatorUIConfigDialog(props) {
                           <Switch
                               checked={resumeNotifications}
                               onChange={onResumeNotifications}
-                              color="primary"
-                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                              color="info"
+                              inputProps={{ 'aria-label': 'info checkbox' }}
                               name="resumeNotifications"
                           />
                       </TableCell>

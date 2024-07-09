@@ -6,7 +6,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
@@ -39,10 +38,10 @@ mutation updateCallbacksOfDeletedTokenMutation($token_id: Int!, $deleted: Boolea
 `;
 
 export function TokenTable(props){
-    const [tokens, setTokens] = React.useState([]);
+    const [tokens, setTokens] = React.useState([...props.tokens]);
     useEffect( () => {
         setTokens([...props.tokens]);
-    }, [props.credentials]);
+    }, [props.tokens]);
 
     const onEditDeleted = ({id, deleted}) => {
         const updates = tokens.map( (cred) => {
@@ -76,7 +75,7 @@ export function TokenTable(props){
     }
 
     return (
-        <TableContainer component={Paper} className="mythicElement" >
+        <TableContainer className="mythicElement" >
             <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
@@ -85,15 +84,15 @@ export function TokenTable(props){
                         <TableCell >TokenId</TableCell>
                         <TableCell >Description</TableCell>
                         <TableCell >Task</TableCell>
-                        <TableCell >Callbacks With Handles</TableCell>
+                        <TableCell >Callbacks Using Token</TableCell>
                         <TableCell >Host</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
                 
-                {tokens.map( (op, index) => (
+                {tokens.map( op => (
                     <TokenTableRow
-                        key={"token" + index}
+                        key={"searchedToken" + op.id}
                         onEditDeleted={onEditDeleted}
                         onUpdateDescription={onUpdateDescription}
                         onUpdateUser={onUpdateUser}
@@ -181,7 +180,7 @@ function TokenTableRow(props){
                     </Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.callbacktokens?.map( (cbt) => (
-                    <React.Fragment>
+                    <React.Fragment key={"callbacktoken-" + props.id + "-" + cbt.id}>
                         <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" key={"callbacklink" + cbt.callback_id + "row" + props.id}
                             href={"/new/callbacks/" + cbt.callback_id}>
                                 {cbt.callback_id}

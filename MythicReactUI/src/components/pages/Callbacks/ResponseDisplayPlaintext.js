@@ -95,7 +95,7 @@ export const ResponseDisplayPlaintext = (props) =>{
                   </MythicStyledTooltip>
               </div>
           }
-          <div style={{height: "1px", width: "100%", display: "flex", zIndex: 1, justifyContent: "space-around", backgroundColor: theme.palette.secondary.main}}>
+          <div style={{height: "1px", width: "100%", display: "flex", zIndex: 1,  backgroundColor: theme.palette.secondary.main}}>
               {showOptions &&
                 <UnfoldLessIcon onClick={onChangeShowOptions} style={{cursor: "pointer", position: "relative", top: "-8px"}} />
               }

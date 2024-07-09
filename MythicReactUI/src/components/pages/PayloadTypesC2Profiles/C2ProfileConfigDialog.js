@@ -12,8 +12,8 @@ import 'ace-builds/src-noconflict/theme-xcode';
 import {useTheme} from '@mui/material/styles';
 
 const getProfileConfigQuery = gql`
-query getProfileConfigOutput($id: Int!, $filename: String!) {
-  downloadContainerFile(id: $id, filename: $filename) {
+query getProfileConfigOutput($container_name: String!, $filename: String!) {
+  containerDownloadFile(container_name: $container_name, filename: $filename) {
     status
     error
     filename
@@ -26,13 +26,13 @@ export function C2ProfileConfigDialog(props) {
     const [config, setConfig] = useState("");
     const theme = useTheme();
     const { loading, error } = useQuery(getProfileConfigQuery, {
-        variables: {id: props.profile_id, filename: props.filename},
+        variables: {container_name: props.container_name, filename: props.filename},
         onCompleted: data => {
-            if(data.downloadContainerFile.status === "error"){
-                setConfig("Errored trying to read file from container\n" + data.downloadContainerFile.error);
+            if(data.containerDownloadFile.status === "error"){
+                setConfig("Errored trying to read file from container\n" + data.containerDownloadFile.error);
             }else{
                 //console.log(data);
-                setConfig(atob(data.downloadContainerFile.data));
+                setConfig(atob(data.containerDownloadFile.data));
             }
         },
         fetchPolicy: "network-only"
@@ -55,7 +55,7 @@ export function C2ProfileConfigDialog(props) {
   
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">{props.payload_name}'s Current Configuration</DialogTitle>
+        <DialogTitle id="form-dialog-title">{props.container_name}'s Current Configuration</DialogTitle>
         <DialogContent dividers={true}>
             <AceEditor 
               mode="json"

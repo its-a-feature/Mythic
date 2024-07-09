@@ -235,6 +235,7 @@ export const SearchTabTasksPanel = (props) =>{
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Command");
     const [taskStatus, setTaskStatus] = React.useState("");
+    const alreadySearching = React.useRef(false);
     const onChangeSearchField = (field) => {
         setSearchField(field);
         switch(field){
@@ -268,6 +269,7 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const handleCallbackSearchSuccess = (data) => {
         snackActions.dismiss();
+        alreadySearching.current = false;
         if(searchField === "Tag"){
             setTotalCount(data.tag_aggregate.aggregate.count);
             setTaskingData({task: data.tag.map(t => t.task)});
@@ -279,6 +281,7 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const handleCallbackSearchFailure = (data) => {
         snackActions.dismiss();
+        alreadySearching.current = false;
         snackActions.error("Failed to fetch data for search");
         console.log(data);
     }
@@ -318,7 +321,13 @@ export const SearchTabTasksPanel = (props) =>{
         onError: handleCallbackSearchFailure
     })
     const onOutputSearch = ({search, offset, taskStatus}) => {
-        //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
+        snackActions.info("Searching...", {persist:true});
         setSearch(search);
         let new_search = search;
         if(search === ""){
@@ -337,6 +346,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onParameterSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         setSearch(search);
         let new_search = search;
         if(search === ""){
@@ -355,6 +370,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onCommentSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         let new_search = search;
         if(search === ""){
             new_search = "_";
@@ -373,6 +394,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onCommandSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         let new_search = search;
         if(search === ""){
             new_search = "_";
@@ -391,6 +418,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onTagSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         let new_search = search;
         if(search === ""){
             new_search = "_";
@@ -409,6 +442,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onCallbackIDSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         try{
             let new_search = parseInt(search);
             if(isNaN(new_search)){
@@ -434,6 +473,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onCallbackGroupSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         let new_search = search;
         if(search === ""){
             new_search = "_";
@@ -498,7 +543,7 @@ export const SearchTabTasksPanel = (props) =>{
                 }
             </div>
             <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}}>
-            <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="primary" boundaryCount={1}
+            <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info" boundaryCount={1}
                     siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
                 <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
             </div>

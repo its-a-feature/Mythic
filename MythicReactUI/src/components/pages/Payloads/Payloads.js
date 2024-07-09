@@ -37,6 +37,14 @@ fragment payloadData on payload {
     agent_file_id
     filename_text
     id
+    tags {
+        tagtype {
+            name
+            color
+            id
+          }
+        id
+    }
   }
   payloadc2profiles {
     c2profile {
@@ -69,7 +77,7 @@ query PayloadsQuery($offset: Int!, $limit: Int!, $showDeleted: Boolean!) {
   }
 }
 `;
-const payloadsDelete = gql`
+export const payloadsDelete = gql`
 mutation PayloadsDeletePayloadMutation($id: Int!) {
   deleteFile(file_id: $id) {
       file_ids

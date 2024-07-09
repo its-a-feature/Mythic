@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/mitchellh/mapstructure"
 	"os"
 	"path/filepath"
@@ -22,6 +23,8 @@ import (
 // Build Parameter information for PayloadSyncing and Payload Building
 func getSyncToDatabaseValueForChoices(parameterType string, choices []string, dictionaryChoices []ParameterDictionary) (databaseStructs.MythicJSONArray, error) {
 	switch parameterType {
+	case BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM:
+		fallthrough
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE:
 		fallthrough
 	case BUILD_PARAMETER_TYPE_ARRAY:
@@ -40,6 +43,8 @@ func getSyncToDatabaseValueForChoices(parameterType string, choices []string, di
 		fallthrough
 	case BUILD_PARAMETER_TYPE_FILE:
 		fallthrough
+	case BUILD_PARAMETER_TYPE_FILE_MULTIPLE:
+		fallthrough
 	case BUILD_PARAMETER_TYPE_DATE:
 		return databaseStructs.MythicJSONArray{}, nil
 	default:
@@ -49,6 +54,25 @@ func getSyncToDatabaseValueForChoices(parameterType string, choices []string, di
 }
 func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue interface{}, choices []string) (string, error) {
 	switch parameterType {
+	case BUILD_PARAMETER_TYPE_TYPED_ARRAY:
+		switch v := defaultValue.(type) {
+		case string:
+			return v, nil
+		case nil:
+			if len(choices) > 0 {
+				return choices[0], nil
+			}
+			return "", nil
+		case []interface{}:
+			if len(v) == 0 {
+				return "", nil
+			}
+			return fmt.Sprintf("%v", v[0]), nil
+		default:
+			tmpErr := errors.New(fmt.Sprintf("bad type for *_PARAMETER_TYPE_TYPED_ARRAY: %T", v))
+			logging.LogError(tmpErr, "bad type of default value for parameter type *_PARAMETER_TYPE_STRING", "value", v, "defaultValue", defaultValue)
+			return "", tmpErr
+		}
 	case BUILD_PARAMETER_TYPE_STRING:
 		switch v := defaultValue.(type) {
 		case string:
@@ -64,8 +88,6 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 			return "", tmpErr
 		}
 	case BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE:
-		fallthrough
-	case BUILD_PARAMETER_TYPE_TYPED_ARRAY:
 		fallthrough
 	case BUILD_PARAMETER_TYPE_ARRAY:
 		switch v := defaultValue.(type) {
@@ -83,6 +105,8 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 			logging.LogError(tmpErr, "bad type of default value for parameter type *_PARAMETER_TYPE_ARRAY", "value", v)
 			return "", tmpErr
 		}
+	case BUILD_PARAMETER_TYPE_FILE_MULTIPLE:
+		return "[]", nil
 	case BUILD_PARAMETER_TYPE_BOOLEAN:
 		switch v := defaultValue.(type) {
 		case bool:
@@ -127,6 +151,25 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 		}
 	case BUILD_PARAMETER_TYPE_DICTIONARY:
 		return "", nil
+	case BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM:
+		switch v := defaultValue.(type) {
+		case string:
+			if len(choices) == 0 {
+				return "", nil
+			} else {
+				return v, nil
+			}
+		case nil:
+			if len(choices) > 0 {
+				return choices[0], nil
+			} else {
+				return "", nil
+			}
+		default:
+			tmpErr := errors.New(fmt.Sprintf("bad type for *_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM: %T", v))
+			logging.LogError(tmpErr, "bad type of default value for parameter type *_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM", "value", v)
+			return "", tmpErr
+		}
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE:
 		switch v := defaultValue.(type) {
 		case string:
@@ -187,6 +230,8 @@ func GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(parameterType s
 	switch parameterType {
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE:
 		fallthrough
+	case BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM:
+		fallthrough
 	case BUILD_PARAMETER_TYPE_STRING:
 		switch v := userSuppliedValue.(type) {
 		case string:
@@ -207,6 +252,8 @@ func GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(parameterType s
 			return "", tmpErr
 		}
 	case BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE:
+		fallthrough
+	case BUILD_PARAMETER_TYPE_FILE_MULTIPLE:
 		fallthrough
 	case BUILD_PARAMETER_TYPE_ARRAY:
 		switch v := userSuppliedValue.(type) {
@@ -370,6 +417,8 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 		}
 	}
 	switch parameterType {
+	case BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM:
+		fallthrough
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE:
 		if defaultValue == "" {
 			stringChoices := make([]string, len(choices))
@@ -461,10 +510,13 @@ func GetInterfaceValueForContainer(parameterType string, finalString string, enc
 		} else {
 			return strings.TrimSpace(finalString), nil
 		}
-
+	case BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM:
+		fallthrough
 	case BUILD_PARAMETER_TYPE_STRING:
 		return strings.TrimSpace(finalString), nil
 	case BUILD_PARAMETER_TYPE_CHOOSE_MULTIPLE:
+		fallthrough
+	case BUILD_PARAMETER_TYPE_FILE_MULTIPLE:
 		fallthrough
 	case BUILD_PARAMETER_TYPE_ARRAY:
 		var arrayValues []interface{}
@@ -707,21 +759,28 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	//logging.LogInfo("kicking off CheckAndProcessTaskCompletionHandlers", "taskId", taskId)
 	task := databaseStructs.Task{}
 	parentTask := databaseStructs.Task{}
-	if err := database.DB.Get(&task, `SELECT
+	err := database.DB.Get(&task, `SELECT
 		task.parent_task_id, task.operator_id,
 		task.subtask_callback_function, task.subtask_callback_function_completed,
 		task.group_callback_function, task.group_callback_function_completed, task.completed_callback_function,
 		task.completed_callback_function_completed, task.subtask_group_name, task.id, task.status
 		FROM task
-		WHERE task.id=$1`, taskId); err != nil {
+		WHERE task.id=$1`, taskId)
+	if err != nil {
 		logging.LogError(err, "Failed to check for completion functions for task")
-	} else if task.ParentTaskID.Valid {
-		if err = database.DB.Get(&parentTask, `SELECT 
+	}
+	_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, taskId)
+	if err != nil {
+		logging.LogError(err, "Failed to update the apitokens to set to deleted")
+	}
+	if task.ParentTaskID.Valid {
+		err = database.DB.Get(&parentTask, `SELECT 
     		task.id, task.status, task.completed,
     		c.script_only "command.script_only"
     		from task
     		LEFT OUTER JOIN command c on task.command_id = c.id
-    		WHERE task.id=$1`, task.ParentTaskID.Int64); err != nil {
+    		WHERE task.id=$1`, task.ParentTaskID.Int64)
+		if err != nil {
 			logging.LogError(err, "Failed to get parent task information")
 		}
 	}
@@ -1016,6 +1075,7 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 		ParameterGroupName:                 databaseTask.ParameterGroupName,
 		IsInteractiveTask:                  databaseTask.IsInteractiveTask,
 		InteractiveTaskType:                int(databaseTask.InteractiveTaskType.Int64),
+		EventStepInstanceId:                int(databaseTask.EventStepInstanceID.Int64),
 	}
 	if databaseTask.TokenID.Valid {
 		err = database.DB.Get(&data.TokenID, `SELECT token_id FROM token WHERE id=$1`, databaseTask.TokenID.Int64)
@@ -1047,26 +1107,59 @@ func getTaskMessagePayloadInformation(payloadID int) PTTaskMessagePayloadData {
 	data.PayloadType = databaseData.Payloadtype.Name
 	return data
 }
-func GetSecrets(userID int) map[string]interface{} {
+func GetSecrets(userID int, eventStepInstanceId int) map[string]interface{} {
+	secrets := make(map[string]interface{})
+
 	user := databaseStructs.Operator{}
 	err := database.DB.Get(&user, `SELECT secrets FROM operator WHERE id=$1`, userID)
 	if err != nil {
 		logging.LogError(err, "Failed to get user secrets", "user_id", userID)
-		return map[string]interface{}{}
+	} else {
+		for key, value := range user.Secrets.StructValue() {
+			secrets[key] = value
+		}
 	}
-	return user.Secrets.StructValue()
+	if eventStepInstanceId > 0 {
+		eventStepInstance := databaseStructs.EventStepInstance{}
+		err = database.DB.Get(&eventStepInstance, `SELECT environment, inputs FROM eventstepinstance WHERE id=$1`, eventStepInstanceId)
+		if err != nil {
+			logging.LogError(err, "failed to get event step instance environment and inputs")
+		} else {
+			for key, value := range eventStepInstance.Environment.StructValue() {
+				secrets[key] = value
+			}
+			for key, value := range eventStepInstance.Inputs.StructValue() {
+				secrets[key] = value
+			}
+			secrets["EVENT_STEP_INSTANCE_ID"] = eventStepInstanceId
+		}
+	}
+	return secrets
 }
 func GetTaskConfigurationForContainer(taskID int) PTTaskMessageAllData {
 	taskMessage := PTTaskMessageAllData{
 		Task: GetTaskMessageTaskInformation(taskID),
 	}
-	taskMessage.Secrets = GetSecrets(taskMessage.Task.OperatorID)
+	taskMessage.Secrets = GetSecrets(taskMessage.Task.OperatorID, taskMessage.Task.EventStepInstanceId)
 	taskMessage.Callback = GetTaskMessageCallbackInformation(taskMessage.Task.CallbackID)
 	taskMessage.Payload = getTaskMessagePayloadInformation(taskMessage.Callback.RegisteredPayloadID)
 	taskMessage.Commands = GetTaskMessageCommandList(taskMessage.Task.CallbackID)
 	taskMessage.C2Profiles = GetTaskMessageCallbackC2ProfileInformation(taskMessage.Task.CallbackID)
 	taskMessage.BuildParameters = *GetBuildParameterInformation(taskMessage.Callback.RegisteredPayloadID)
 	taskMessage.PayloadType = taskMessage.Payload.PayloadType
+	commandPayloadType := databaseStructs.Task{}
+	err := database.DB.Get(&commandPayloadType, `SELECT 
+    payloadtype.name "command.payloadtype.name"
+    FROM task 
+    JOIN command ON task.command_id = command.id
+    JOIN payloadtype ON command.payload_type_id = payloadtype.id
+    WHERE task.id=$1`, taskID)
+	if err != nil {
+		logging.LogError(err, "failed to get payload type information from task")
+		taskMessage.CommandPayloadType = taskMessage.PayloadType
+	} else {
+		taskMessage.CommandPayloadType = commandPayloadType.Command.Payloadtype.Name
+	}
 	return taskMessage
 }
 func GetOnNewCallbackConfigurationForContainer(callbackId int) PTOnNewCallbackAllData {
@@ -1077,7 +1170,7 @@ func GetOnNewCallbackConfigurationForContainer(callbackId int) PTOnNewCallbackAl
 	callbackMessage.C2Profiles = GetTaskMessageCallbackC2ProfileInformation(callbackId)
 	callbackMessage.BuildParameters = *GetBuildParameterInformation(callbackMessage.Callback.RegisteredPayloadID)
 	callbackMessage.PayloadType = callbackMessage.Payload.PayloadType
-	callbackMessage.Secrets = GetSecrets(callbackMessage.Callback.OperatorID)
+	callbackMessage.Secrets = GetSecrets(callbackMessage.Callback.OperatorID, 0)
 	return callbackMessage
 }
 
@@ -1105,7 +1198,6 @@ func GetSaveFilePath() (string, string, error) {
 	}
 	return "", "", errors.New("Failed to create file on disk")
 }
-
 func SendAllOperationsMessage(message string, operationID int, source string, messageLevel database.MESSAGE_LEVEL) {
 	/*
 		Send a message to all operation's event logs if operationID is 0, otherwise just send it to the specific operation.
@@ -1131,9 +1223,9 @@ func SendAllOperationsMessage(message string, operationID int, source string, me
 				SELECT id, count, "message", source FROM operationeventlog WHERE
 				level='warning' and source=$1 and operation_id=$2 and resolved=false and deleted=false
 				`, sourceString, operation.ID); err != nil {
-					if err != sql.ErrNoRows {
+					if !errors.Is(err, sql.ErrNoRows) {
 						logging.LogError(err, "Failed to query existing event log message")
-					} else if err == sql.ErrNoRows {
+					} else if errors.Is(err, sql.ErrNoRows) {
 						newMessage := databaseStructs.Operationeventlog{
 							Source:      sourceString,
 							Level:       messageLevel,
@@ -1147,7 +1239,6 @@ func SendAllOperationsMessage(message string, operationID int, source string, me
 						(:source, :level, :message, :operation_id, :count)`, newMessage); err != nil {
 							logging.LogError(err, "Failed to create new operationeventlog message")
 						} else {
-
 							go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
 								OperationID:      operation.ID,
 								OperationName:    operation.Name,
@@ -1162,6 +1253,13 @@ func SendAllOperationsMessage(message string, operationID int, source string, me
 									"timestamp": time.Now().UTC(),
 								},
 							})
+							EventingChannel <- EventNotification{
+								Trigger:     eventing.TriggerAlert,
+								OperationID: operation.ID,
+								Outputs: map[string]interface{}{
+									"alert": newMessage.Message,
+								},
+							}
 
 						}
 					}

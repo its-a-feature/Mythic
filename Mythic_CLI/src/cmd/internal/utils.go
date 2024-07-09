@@ -110,13 +110,13 @@ func updateNginxBlockLists() {
 		outputString += fmt.Sprintf("allow %s;\n", ip)
 	}
 	outputString += "deny all;"
-	if !config.GetMythicEnv().GetBool("nginx_bind_use_volume") {
+	if !config.GetMythicEnv().GetBool("nginx_use_volume") {
 		ipFilePath := filepath.Join(utils.GetCwdFromExe(), "nginx-docker", "config", "blockips.conf")
 		if err := os.WriteFile(ipFilePath, []byte(outputString), 0600); err != nil {
 			log.Fatalf("[-] Failed to write out block list file: %v\n", err)
 		}
 	} else {
-		err := moveStringToVolume("mythic_nginx_volume_config", ".", "blockips.conf", outputString)
+		err := moveStringToVolume("mythic_nginx", "mythic_nginx_volume_config", "blockips.conf", "blockips.conf", outputString)
 		if err != nil {
 			log.Fatalf("[-] Failed to write out block list file: %v\n", err)
 		}
@@ -215,11 +215,11 @@ func tarStringToBytes(sourceName string, data string) (*bytes.Buffer, error) {
 	}
 	return &buf, nil
 }
-func moveFileToVolume(volumeName string, destinationName string, sourceName string) error {
-	DockerCopyIntoVolume(sourceName, destinationName, volumeName)
+func moveFileToVolume(containerName string, volumeName string, destinationName string, sourceName string) error {
+	DockerCopyIntoVolume(containerName, sourceName, destinationName, volumeName)
 	return nil
 }
-func moveStringToVolume(volumeName string, destinationName string, sourceName string, content string) error {
+func moveStringToVolume(containerName string, volumeName string, destinationName string, sourceName string, content string) error {
 	file, err := os.CreateTemp("", "*")
 	if err != nil {
 		log.Printf("[-] failed to create temp file for moving a string into a container: %v", err)
@@ -227,6 +227,6 @@ func moveStringToVolume(volumeName string, destinationName string, sourceName st
 	}
 	file.WriteString(content)
 	file.Sync()
-	DockerCopyIntoVolume(file.Name(), destinationName, volumeName)
+	DockerCopyIntoVolume(containerName, file.Name(), destinationName, volumeName)
 	return nil
 }

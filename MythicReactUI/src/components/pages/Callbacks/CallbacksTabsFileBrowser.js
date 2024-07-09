@@ -140,7 +140,7 @@ export function CallbacksTabsFileBrowserLabel(props) {
     );
 }
 export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => {
-    const [fromNow, setFromNow] = React.useState((new Date()));
+    const fromNow = React.useRef((new Date()));
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const treeRootDataRef = React.useRef({}); // hold all of the actual data
     const [treeAdjMtx, setTreeAdjMtx] = React.useState({}); // hold the simple adjacency matrix for parent/child relationships
@@ -196,7 +196,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         fetchPolicy: 'no-cache',
     });
     useSubscription(fileDataSubscription, {
-        variables: {now: fromNow},
+        variables: {now: fromNow.current},
         fetchPolicy: "no-cache",
         onData: ({data}) => {
             for(let i = 0; i < data.data.mythictree_stream.length; i++){
@@ -468,13 +468,14 @@ const FileBrowserTableTop = ({
     };
     return (
         <Grid container spacing={0} style={{ paddingTop: '10px' }}>
-            <Grid item xs={12}>
+            <Grid item xs={12} >
                 <MythicTextField
                     placeholder={selectedFolderData.host}
                     value={fullPath}
                     onEnter={onLocalListFilesButton}
                     onChange={onChangePath}
                     name={placeHolder}
+
                     InputProps={{
                         endAdornment: (
                             <React.Fragment>
@@ -508,7 +509,7 @@ const FileBrowserTableTop = ({
                                     <CallbacksTabsTaskingInputTokenSelect options={tokenOptions} changeSelectedToken={changeSelectedToken}/>
                                 ) : null}
                         </React.Fragment>),
-                        style: { padding: 0 },
+                        style: {  },
                     }}
                 />
             </Grid>

@@ -6,7 +6,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import { MythicDialog, MythicModifyStringDialog, MythicViewJSONAsTableDialog } from '../../MythicComponents/MythicDialog';
 import {DownloadHistoryDialog} from '../Callbacks/DownloadHistoryDialog';
 import HistoryIcon from '@mui/icons-material/History';
@@ -43,7 +42,7 @@ export function FileBrowserTable(props){
         setFiles(updates);
     }
     return (
-        <TableContainer component={Paper} className="mythicElement" >
+        <TableContainer className="mythicElement" >
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>

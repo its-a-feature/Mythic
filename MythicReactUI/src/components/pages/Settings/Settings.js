@@ -15,11 +15,11 @@ query GetOperators {
     last_login
     username
     view_utc_time
-    apitokens {
-      token_value
-      token_type
-      active
-      id
+    account_type
+    email
+    operation {
+        id
+        name
     }
   }
 }
@@ -71,8 +71,8 @@ mutation SettingsUsernameOperatorMutation($id: Int!, $username: String!) {
 }
 `;
 const newOperatorMutation = gql`
-mutation NewOperator($username: String!, $password: String!) {
-  createOperator(input: {password: $password, username: $username}) {
+mutation NewOperator($username: String!, $password: String!, $bot: Boolean, $email: String) {
+  createOperator(input: {password: $password, username: $username, bot: $bot, email: $email}) {
     active
     creation_time
     deleted
@@ -82,36 +82,22 @@ mutation NewOperator($username: String!, $password: String!) {
     status
     username
     view_utc_time
+    account_type
+    email
   }
 }
 `;
 const operatorsUpdatePassword = gql`
-mutation operatorsUpdatePasswordMutation($user_id: Int!, $new_password: String!, $old_password: String){
-  updatePassword(user_id: $user_id, new_password: $new_password, old_password: $old_password){
+mutation operatorsUpdatePasswordMutation($user_id: Int!, $new_password: String, $old_password: String, $email: String){
+  updatePasswordAndEmail(user_id: $user_id, new_password: $new_password, old_password: $old_password, email: $email){
     status
     error
-  }
-}
-`;
-const createAPITokenMutation = gql`
-mutation createAPITokenMutation{
-  createAPIToken(token_type: "User"){
-    id
-    token_value
-    status
-    error
+    email
     operator_id
   }
 }
 `;
-const deleteAPITokenMutation = gql`
-mutation deleteAPIToken($id: Int!){
-  delete_apitokens_by_pk(id: $id){
-    id
-    operator_id
-  }
-}
-`;
+
 export function Settings({me}){
     const [operators, setOperators] = React.useState([]);
     useQuery(GET_Operator, {fetchPolicy: "no-cache",
@@ -119,7 +105,6 @@ export function Settings({me}){
         setOperators(data.operator);
       }
     });
-    //console.log(me.user);
     const [updateUTC] = useMutation(operatorsUpdateViewUTCTime, {
         onCompleted: (result) => {
           if(result.update_operator_by_pk === null){
@@ -208,41 +193,6 @@ export function Settings({me}){
           snackActions.warning("Unable to update operator active status without Admin permissions");
       }
     });
-    const [createAPIToken] = useMutation(createAPITokenMutation, {
-      onCompleted: (data) => {
-        if(data.createAPIToken.status === "success"){
-          snackActions.success("Successfully created new API Token");
-          const updatedOperators = operators.map( o => {
-            if(o.id === data.createAPIToken.operator_id){
-              return {...o, apitokens: [...o.apitokens, {...data.createAPIToken}]}
-            }else{
-              return {...o}
-            }
-          });
-          setOperators(updatedOperators);
-        }else{
-          snackActions.error(data.createAPIToken.error);
-        }
-      },
-      onError: (result) => {
-        console.log(result);
-      }
-    });
-    const [deleteAPIToken] = useMutation(deleteAPITokenMutation, {
-      onCompleted: (data) => {
-        const updatedOperators = operators.map( o => {
-          if(o.id === data.delete_apitokens_by_pk.operator_id){
-            return {...o, apitokens: o.apitokens.filter(api => api.id !== data.delete_apitokens_by_pk.id)}
-          }else{
-            return {...o}
-          }
-        });
-        setOperators(updatedOperators);
-      },
-      onError: (data) => {
-
-      }
-    });
     const [newOperator] = useMutation(newOperatorMutation, {
         onCompleted: (data) => {
             if(data.createOperator.status === "success"){
@@ -279,13 +229,23 @@ export function Settings({me}){
     });
     const [updatePassword] = useMutation(operatorsUpdatePassword, {
       onCompleted: (result) => {
-        if(result.updatePassword.status === "success"){
+        if(result.updatePasswordAndEmail.status === "success"){
           snackActions.success("Successfully updated password");
+          if(result.updatePasswordAndEmail.operator_id > 0){
+              const updatedOperators = operators.map(o => {
+                  if(o.id === result.updatePasswordAndEmail.operator_id){
+                      return {...o, email: result.updatePasswordAndEmail.email}
+                  }
+                  return {...o}
+              });
+              setOperators(updatedOperators);
+          }
         }else{
-          snackActions.warning(result.updatePassword.error);
+          snackActions.warning(result.updatePasswordAndEmail.error);
         }
       },
-      onError: () => {
+      onError: (data) => {
+          console.log(data);
         snackActions.warning("Unable to update operator's password without Admin permissions");
       }
     })
@@ -298,8 +258,11 @@ export function Settings({me}){
     const onActiveChanged = (id, value) => {
         updateActive({variables: {id, active: value}});
     }
-    const onNewOperator = (username, password) => {
-        newOperator({variables: {username, password}});
+    const onNewOperator = (username, password, email) => {
+        newOperator({variables: {username, password, email}});
+    }
+    const onNewBot = (username) => {
+        newOperator({variables: {username:username, password: "", bot: true}})
     }
     const onDeleteOperator = (id, value) => {
         deleteOperator({variables: {id, deleted: value}});
@@ -307,28 +270,22 @@ export function Settings({me}){
     const onUsernameChanged = (id, value) => {
       updateUsername({variables: {id, username: value}})
     }
-    const onPasswordChanged = ({user_id, old_password, new_password}) => {
-      updatePassword({variables: {user_id, new_password, old_password}})
+    const onPasswordChanged = ({user_id, old_password, new_password, email}) => {
+      updatePassword({variables: {user_id, new_password, old_password, email}})
     }
-    const onCreateAPIToken = () => {
-      createAPIToken({variables: {}})
-    }
-    const onDeleteAPIToken = (id) => {
-      deleteAPIToken({variables: {id}})
-    }
+
     return (
-      <div style={{display: "flex", flexGrow: 1, flexDirection: "column"}}>
+      <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
         <SettingsOperatorTable 
             me={me}
             onViewUTCChanged={onViewUTCChanged}
             onAdminChanged={onAdminChanged}
             onActiveChanged={onActiveChanged}
             onNewOperator={onNewOperator}
+            onNewBot={onNewBot}
             onDeleteOperator={onDeleteOperator}
             onUsernameChanged={onUsernameChanged}
             onPasswordChanged={onPasswordChanged}
-            onCreateAPIToken={onCreateAPIToken}
-            onDeleteAPIToken={onDeleteAPIToken}
             operators={operators} />
         </div>
     );

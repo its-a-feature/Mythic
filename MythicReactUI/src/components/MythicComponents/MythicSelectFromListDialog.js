@@ -57,7 +57,7 @@ export function MythicSelectFromListDialog(props) {
                       <em>None</em>
                     </MenuItem>
                     {options.map( (opt) => (
-                        <MenuItem value={opt} key={opt[props.identifier]}>{opt[props.display]}</MenuItem>
+                        <MenuItem value={opt} key={opt[props.identifier]}>{opt?.[props.display]}</MenuItem>
                     ) )}
                   </Select>
                 </FormControl>

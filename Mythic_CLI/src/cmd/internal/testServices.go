@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 	"net/http"
 	"os"

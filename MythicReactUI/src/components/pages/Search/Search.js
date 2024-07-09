@@ -27,7 +27,6 @@ const Root = styled('div')((
 ) => ({
   [`&.${classes.root}`]: {
     width: "100%",
-    backgroundColor: theme.palette.background.paper,
   }
 }));
 

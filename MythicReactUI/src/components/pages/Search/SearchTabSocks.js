@@ -1,6 +1,6 @@
 import {MythicTabPanel, MythicSearchTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React, { useEffect } from 'react';
-import { gql, useLazyQuery, useQuery, useSubscription} from '@apollo/client';
+import { gql, useSubscription} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import {SocksSearchTable} from './SocksSearchTable';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -8,7 +8,7 @@ import {faSocks} from '@fortawesome/free-solid-svg-icons';
 
 const callbackPortsSub = gql`
 subscription portsSub{
-    callbackport(distinct_on: id, order_by: {id: desc}) {
+    callbackport_stream(cursor: {initial_value: {updated_at: "1970-01-01"}, ordering: ASC}, batch_size: 100, where: {}) {
         callback {
             user
             host
@@ -23,6 +23,7 @@ subscription portsSub{
             init_callback
             last_checkin
         }
+        updated_at
         local_port
         remote_port
         remote_ip
@@ -51,7 +52,7 @@ export const SearchTabSocksPanel = (props) =>{
         fetchPolicy: "no-cache",
         onData: ({data}) => {
             //console.log("got data", subscriptionData.data.payload_stream)
-            const updated = data.data.callbackport.reduce( (prev, cur) => {
+            const updated = data.data.callbackport_stream.reduce( (prev, cur) => {
                 const index = prev.findIndex( (p) => p.id === cur.id );
                 if(index > -1){
                     prev[index] = {...cur};
@@ -74,7 +75,7 @@ export const SearchTabSocksPanel = (props) =>{
 
     return (
         <MythicTabPanel {...props} >
-            <div style={{overflowY: "auto", flexGrow: 1}}>
+            <div style={{overflowY: "auto", height: "100%", display: "flex", flexDirection: "column"}}>
                 {callbackData.length > 0 ? (
                     <SocksSearchTable callbacks={callbackData} />) : (
                     <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>No Search Results</div>

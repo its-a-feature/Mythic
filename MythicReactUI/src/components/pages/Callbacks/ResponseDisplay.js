@@ -1,6 +1,5 @@
 import React, {useEffect} from 'react';
-import {gql, useLazyQuery, useReactiveVar, useSubscription} from '@apollo/client';
-import {meState} from '../../../cache';
+import {gql, useLazyQuery, useSubscription} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import {ResponseDisplayScreenshot} from './ResponseDisplayScreenshot';
 import {ResponseDisplayPlaintext} from './ResponseDisplayPlaintext';
@@ -24,7 +23,7 @@ const subResponsesStream = gql`
 subscription subResponsesStream($task_id: Int!){
   response_stream(
     batch_size: 50,
-    cursor: {initial_value: {id: 0}},
+    cursor: {initial_value: {timestamp: "1970-01-01"}},
     where: {task_id: {_eq: $task_id} }
   ){
     id
@@ -62,8 +61,8 @@ query subResponsesQuery($task_id: Int!, $search: String!) {
   }
 }`;
 const taskScript = gql`
-query getBrowserScriptsQuery($command_id: Int!, $operator_id: Int!){
-  browserscript(where: {active: {_eq: true}, command_id: {_eq: $command_id}, for_new_ui: {_eq: true}, operator_id: {_eq: $operator_id}}) {
+query getBrowserScriptsQuery($command_id: Int!){
+  browserscript(where: {active: {_eq: true}, command_id: {_eq: $command_id}, for_new_ui: {_eq: true}}) {
     script
     id
   }
@@ -200,9 +199,12 @@ const NonInteractiveResponseDisplay = (props) => {
         return;
       }
       // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
-      const currentIDS = rawResponses.map( r => r.id);
       const newerResponses = data.data.response_stream.reduce( (prev, cur) => {
-        if(currentIDS.includes(cur.id)){return prev}
+        let prevIndex = prev.findIndex( (v,i,a) => v.id === cur.id);
+        if(prevIndex >= 0){
+          prev[prevIndex] = {...cur, response: b64DecodeUnicode(cur.response)};
+          return prev;
+        }
         return [...prev, {...cur, response: b64DecodeUnicode(cur.response)}]
       }, rawResponses);
       // sort them to make sure we're still in order
@@ -331,9 +333,12 @@ export const NonInteractiveResponseDisplayConsole = (props) => {
       setRawResponses(responseArray);
     } else {
       // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
-      const currentIDS = rawResponses.map( r => r.id);
       const newerResponses = data.data.response_stream.reduce( (prev, cur) => {
-        if(currentIDS.includes(cur.id)){return prev}
+        let prevIndex = prev.findIndex( (v,i,a) => v.id === cur.id);
+        if(prevIndex >= 0){
+          prev[prevIndex] = {...cur, response: b64DecodeUnicode(cur.response)};
+          return prev;
+        }
         return [...prev, {...cur, response: b64DecodeUnicode(cur.response)}]
       }, rawResponses);
       // sort them to make sure we're still in order
@@ -435,7 +440,6 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
   const [loadingBrowserScript, setLoadingBrowserScript] = React.useState(true);
   const useNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: "false"});
   const script = React.useRef();
-  const me = useReactiveVar(meState);
   useEffect( () => {
     if(script.current !== undefined){
       try{
@@ -464,22 +468,25 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     if(useNewBrowserScriptTable){return copied}
     if(scriptData["table"] !== undefined){
       if(scriptData["table"].length > 0){
-        const tableUpdates = scriptData.table.map( t => {
-          const filteredRows = t.rows.filter( r => {
+        copied["table"] = scriptData.table.map(t => {
+          const filteredRows = t.rows.filter(r => {
             let foundMatch = false;
             for (const entry of Object.values(r)) {
-              if(entry["plaintext"] !== undefined){
-                if(String(entry["plaintext"]).toLowerCase().includes(search)){foundMatch = true;}
+              if (entry["plaintext"] !== undefined) {
+                if (String(entry["plaintext"]).toLowerCase().includes(search)) {
+                  foundMatch = true;
+                }
               }
-              if(entry["button"] !== undefined && entry["button"]["value"] !== undefined){
-                if(JSON.stringify(entry["button"]["value"]).includes(search)){foundMatch = true;}
+              if (entry["button"] !== undefined && entry["button"]["value"] !== undefined) {
+                if (JSON.stringify(entry["button"]["value"]).includes(search)) {
+                  foundMatch = true;
+                }
               }
             }
             return foundMatch;
           });
           return {...t, rows: filteredRows};
         });
-        copied["table"] = tableUpdates;
       }
     }
 
@@ -488,18 +495,17 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
   useEffect( () => {
     if(script.current === undefined){
       setViewBrowserScript(false);
-    }else{
-      setViewBrowserScript(viewBrowserScript);
-      if(viewBrowserScript){
-        try{
-          const rawResponseData = rawResponses.map(c => c.response);
-          let scriptTaskData = JSON.parse(JSON.stringify(task));
-          let res = script.current(scriptTaskData, rawResponseData);
-          setBrowserScriptData(filterOutput(res));
-        }catch(error){
-          setViewBrowserScript(false);
-        }
-          
+      return;
+    }
+    setViewBrowserScript(viewBrowserScript);
+    if(viewBrowserScript){
+      try{
+        const rawResponseData = rawResponses.map(c => c.response);
+        let scriptTaskData = JSON.parse(JSON.stringify(task));
+        let res = script.current(scriptTaskData, rawResponseData);
+        setBrowserScriptData(filterOutput(res));
+      }catch(error){
+        setViewBrowserScript(false);
       }
     }
   }, [viewBrowserScript]);
@@ -536,7 +542,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
   useEffect( () => {
     if(command_id !== undefined){
       setLoadingBrowserScript(true);
-      fetchScripts({variables: {command_id: command_id, operator_id: me.user.user_id}});
+      fetchScripts({variables: {command_id: command_id}});
     }
   }, [command_id, task.id]);
   if(loadingBrowserScript){

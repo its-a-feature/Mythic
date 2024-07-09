@@ -15,7 +15,8 @@ export function MythicStyledTooltip(props){
                     fontSize: 13,
                     '& .MuiTooltip-arrow': {
                         color: theme.palette.background.contrast
-                    }
+                    },
+                    zIndex: 1000
                 }
             }
         }} style={{zIndex:1000}} {...other}>

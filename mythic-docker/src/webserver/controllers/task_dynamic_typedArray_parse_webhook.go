@@ -1,6 +1,8 @@
 package webcontroller
 
 import (
+	"github.com/its-a-feature/Mythic/database"
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -37,12 +39,28 @@ func PayloadTypeDynamicTypedArrayParseWebhook(c *gin.Context) {
 		})
 		return
 	}
+	loadedCommand := databaseStructs.Loadedcommands{}
+	err := database.DB.Get(&loadedCommand, `SELECT
+    payloadtype.name "command.payloadtype.name"
+    FROM loadedcommands 
+    JOIN command ON loadedcommands.command_id = command.id
+    JOIN payloadtype ON command.payload_type_id = payloadtype.id
+    WHERE callback_id = $1 AND command.cmd=$2`, input.Input.Callback, input.Input.Command)
+	if err != nil {
+		logging.LogError(err, "Failed to get command from loaded commands")
+		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
+			Status: rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
+			Error:  err.Error(),
+		})
+		return
+	}
 	if payloadtypeDynamicQueryResponse, err := rabbitmq.RabbitMQConnection.SendPtRPCTypedArrayParse(rabbitmq.PTRPCTypedArrayParseMessage{
-		Command:       input.Input.Command,
-		ParameterName: input.Input.ParameterName,
-		PayloadType:   input.Input.PayloadType,
-		Callback:      input.Input.Callback,
-		InputArray:    input.Input.InputArray,
+		Command:            input.Input.Command,
+		ParameterName:      input.Input.ParameterName,
+		CommandPayloadType: loadedCommand.Command.Payloadtype.Name,
+		PayloadType:        input.Input.PayloadType,
+		Callback:           input.Input.Callback,
+		InputArray:         input.Input.InputArray,
 	}); err != nil {
 		logging.LogError(err, "Failed to send SendPtRPCTypedArrayParse to payload type", "payload_type", input.Input.PayloadType)
 		c.JSON(http.StatusOK, PayloadTypeDynamicTypedArrayParseResponse{

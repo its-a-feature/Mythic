@@ -1,6 +1,6 @@
 import React from 'react';
 import { OperationTable } from './OperationTable';
-import {useQuery, gql} from '@apollo/client';
+import {useQuery, gql, useLazyQuery} from '@apollo/client';
 import {CommandBlockListTable} from './CommandBlockListTable';
 import { snackActions } from '../../utilities/Snackbar';
 
@@ -13,12 +13,14 @@ query GetOperations {
     deleted
     admin {
       username
+      account_type
       id
     }
     operatoroperations {
       view_mode
       operator {
         username
+        account_type
         id
       }
       id
@@ -27,6 +29,7 @@ query GetOperations {
   operator(where: {active: {_eq: true}, deleted: {_eq: false}}) {
     id
     username
+    account_type
   }
 }
 `;
@@ -56,7 +59,7 @@ export function Operations(props){
         snackActions.error("Failed to get list of operations");
       }
     });
-    useQuery(GET_BlockLists, {fetchPolicy: "network-only",
+    const [getBlockLists] = useLazyQuery(GET_BlockLists, {fetchPolicy: "network-only",
       onCompleted: (data) => {
         const condensed = data.disabledcommandsprofile.reduce( (prev, cur) => {
           if(prev[cur.name] === undefined){
@@ -101,9 +104,19 @@ export function Operations(props){
       });
       setOperations(updatedOps);
     }
+    const onUpdateCurrentOperation = (operation_id) => {
+      getBlockLists();
+    }
+    React.useEffect( () => {
+      getBlockLists();
+    }, []);
     return (
       <div style={{  height: "100%", display: "flex", flexDirection: "column"}}>
-        <OperationTable operations={operations} onUpdateOperation={onUpdateOperation} onNewOperation={onNewOperation} me={props.me} updateDeleted={updateDeleted}/>
+        <OperationTable operations={operations}
+                        onUpdateOperation={onUpdateOperation}
+                        onNewOperation={onNewOperation} me={props.me}
+                        onUpdateCurrentOperation={onUpdateCurrentOperation}
+                        updateDeleted={updateDeleted}/>
         <CommandBlockListTable blockLists={blockLists} />
       </div>
     );

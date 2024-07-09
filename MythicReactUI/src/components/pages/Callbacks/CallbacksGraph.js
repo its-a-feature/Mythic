@@ -10,7 +10,6 @@ import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import {useMutation } from '@apollo/client';
-import {saveSvgAsPng} from 'save-svg-as-png';
 import {hideCallbackMutation, removeEdgeMutation, addEdgeMutation} from './CallbackMutations';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {MythicSelectFromListDialog} from '../../MythicComponents/MythicSelectFromListDialog';
@@ -211,11 +210,10 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
         </div>
     )
 }
-export function CallbacksGraph({}){
+export function CallbacksGraph({onOpenTab}){
     const theme = useTheme();
     const callbacks = useContext(CallbacksContext);
     const callbackgraphedges = useContext(CallbackGraphEdgesContext);
-    const onOpenTab = useContext(OnOpenTabContext);
     //used for creating a task to do a link command
     const [linkCommands, setLinkCommands] = React.useState([]);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
@@ -331,7 +329,6 @@ export function CallbacksGraph({}){
 	        {
 		        title: 'Interact',
                 onClick: function(node){
-                    console.log(node);
 		            onOpenTab({tabType: "interact", tabID: node.callback_id + "interact", callbackID: node.callback_id});
 	            }
             },

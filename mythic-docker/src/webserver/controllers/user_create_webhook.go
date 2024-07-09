@@ -1,13 +1,13 @@
 package webcontroller
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
+	"github.com/its-a-feature/Mythic/utils"
+	"net/http"
 )
 
 type CreateOperatorInput struct {
@@ -19,20 +19,28 @@ type CreateOperatorInputInput struct {
 
 type CreateOperator struct {
 	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Password string `json:"password"`
+	IsBot    bool   `json:"bot"`
+	Email    string `json:"email"`
 }
 
 type CreateOperatorResponse struct {
-	Username string `json:"username"`
-	ID       int    `json:"id"`
-	Status   string `json:"status"`
-	Error    string `json:"error"`
+	Username    string `json:"username"`
+	AccountType string `json:"account_type"`
+	Admin       bool   `json:"admin"`
+	Email       string `json:"email"`
+	Active      bool   `json:"active"`
+	ViewUTCTime bool   `json:"view_utc_time"`
+	ID          int    `json:"id"`
+	Status      string `json:"status"`
+	Error       string `json:"error"`
 }
 
 func CreateOperatorWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input CreateOperatorInputInput // we'll fix this after the new stuff comes out to not have the double input
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to get required parameters")
 		c.JSON(http.StatusOK, CreateOperatorResponse{
 			Status: "error",
@@ -46,7 +54,11 @@ func CreateOperatorWebhook(c *gin.Context) {
 			Error:  "Must supply a username",
 		})
 		return
-	} else if len(input.Input.Input.Password) < 12 {
+	}
+	if input.Input.Input.IsBot {
+		input.Input.Input.Password = utils.GenerateRandomPassword(50)
+	}
+	if len(input.Input.Input.Password) < 12 {
 		c.JSON(http.StatusOK, CreateOperatorResponse{
 			Status: "error",
 			Error:  "Password must be at least 12 characters long",
@@ -62,31 +74,79 @@ func CreateOperatorWebhook(c *gin.Context) {
 		FailedLoginCount: 0,
 		Active:           true,
 	}
+	if input.Input.Input.Email != "" {
+		newOperator.Email.Valid = true
+		newOperator.Email.String = input.Input.Input.Email
+	}
+	if input.Input.Input.IsBot {
+		newOperator.AccountType = databaseStructs.AccountTypeBot
+	} else {
+		newOperator.AccountType = databaseStructs.AccountTypeUser
+	}
 	newOperator.Password = database.HashUserPassword(newOperator, input.Input.Input.Password)
-	if statement, err := database.DB.PrepareNamed(`INSERT INTO operator 
-	(admin, username, salt, password, failed_login_count, active) 
-	VALUES (:admin, :username, :salt, :password, :failed_login_count, :active)
-	RETURNING id`); err != nil {
+	operatorID, err := GetUserIDFromGin(c)
+	if err != nil {
+		c.JSON(http.StatusOK, CreateOperatorResponse{
+			Status: "error",
+			Error:  "Failed to get user information",
+		})
+		return
+	}
+	operator, err := database.GetUserFromID(operatorID)
+	if err != nil {
+		c.JSON(http.StatusOK, CreateOperatorResponse{
+			Status: "error",
+			Error:  "Failed to get user information",
+		})
+		return
+	}
+	if !operator.Admin {
+		c.JSON(http.StatusOK, CreateOperatorResponse{
+			Status: "error",
+			Error:  "Only admins can create new operators",
+		})
+		return
+	}
+	if operator.Deleted || !operator.Active {
+		c.JSON(http.StatusOK, CreateOperatorResponse{
+			Status: "error",
+			Error:  "You are not an active operator",
+		})
+		return
+	}
+	statement, err := database.DB.PrepareNamed(`INSERT INTO operator 
+	(admin, username, salt, password, failed_login_count, active, account_type, email) 
+	VALUES (:admin, :username, :salt, :password, :failed_login_count, :active, :account_type, :email)
+	RETURNING id`)
+	if err != nil {
 		logging.LogError(err, "Failed to create named statement for new operator")
 		c.JSON(http.StatusOK, CreateOperatorResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
-	} else if err := statement.Get(&newOperator.ID, newOperator); err != nil {
+	}
+	err = statement.Get(&newOperator.ID, newOperator)
+	if err != nil {
 		logging.LogError(err, "Failed to create new operator", "operator", newOperator)
 		c.JSON(http.StatusOK, CreateOperatorResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
-	} else {
-		go database.AssignNewOperatorAllBrowserScripts(newOperator.ID)
-		c.JSON(http.StatusOK, CreateOperatorResponse{
-			Status:   "success",
-			Username: input.Input.Input.Username,
-			ID:       newOperator.ID,
-		})
-		return
 	}
+	if !input.Input.Input.IsBot {
+		go database.AssignNewOperatorAllBrowserScripts(newOperator.ID)
+	}
+	c.JSON(http.StatusOK, CreateOperatorResponse{
+		Status:      "success",
+		Username:    input.Input.Input.Username,
+		ID:          newOperator.ID,
+		Admin:       newOperator.Admin,
+		AccountType: newOperator.AccountType,
+		Email:       newOperator.Email.String,
+		Active:      newOperator.Active,
+	})
+	return
+
 }

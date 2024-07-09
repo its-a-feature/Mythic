@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/its-a-feature/Mythic/utils"
 	"strings"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -145,11 +146,17 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 	}
 	if input.ProcessName != nil {
 		callback.ProcessName = *input.ProcessName
+		processPieces, err := utils.SplitFilePathGetHost(callback.ProcessName, "", []string{})
+		if err != nil {
+			logging.LogError(err, "failed to split out file path data")
+		} else if len(processPieces.PathPieces) > 0 {
+			callback.ProcessShortName = processPieces.PathPieces[len(processPieces.PathPieces)-1]
+		}
 	}
 	if _, err := database.DB.NamedExec(`UPDATE callback SET
 		"user"=:user, host=:host, pid=:pid, ip=:ip, extra_info=:extra_info, sleep_info=:sleep_info, enc_key=:enc_key, dec_key=:dec_key, 
 		crypto_type=:crypto_type, external_ip=:external_ip, integrity_level=:integrity_level, os=:os, domain=:domain, architecture=:architecture, 
-		description=:description, process_name=:process_name  
+		description=:description, process_name=:process_name, process_short_name=:process_short_name  
 		WHERE id=:id`, callback); err != nil {
 		logging.LogError(err, "Failed to update callback information")
 		response.Error = err.Error()

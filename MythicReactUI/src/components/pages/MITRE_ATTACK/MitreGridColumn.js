@@ -36,7 +36,7 @@ export function MitreGridColumn({column, showCountGrouping}){
       <Box width={"100%"} style={{backgroundColor: theme.tableHover}}>
         <h2 style={{margin: 0, textAlign: "center"}}><b>{column.tactic}</b></h2>
         <p style={{textAlign: "center", margin: 0}}>{techniqueCounts} techniques</p>
-        { showCountGrouping === "" ? (null) : (
+        { showCountGrouping === "" ? null : (
           <p style={{textAlign: "center", margin: 0}}>{groupCounts} {showCountGrouping}s</p>
         )}
       </Box>

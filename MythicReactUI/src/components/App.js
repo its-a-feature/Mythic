@@ -33,6 +33,8 @@ import { RefreshTokenDialog } from './RefreshTokenDialog';
 import { MythicDialog } from './MythicComponents/MythicDialog';
 import { ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
+import {Eventing} from "./pages/Eventing/Eventing";
+import {InviteForm} from "./pages/Login/InviteForm";
 
 
 
@@ -61,7 +63,7 @@ export function App(props) {
             createTheme(adaptV4Theme({
                 palette: {
                     primary: {
-                        main: themeMode === "dark" ? "#465a79" : "rgb(102,121,145)",
+                        main: themeMode === "dark" ? "rgb(70,91,115)" : "rgb(117,133,155)",
                     },
                     error: {
                         main: themeMode === "dark" ? '#da3237' : '#c42c32',
@@ -77,8 +79,10 @@ export function App(props) {
                     },
                     mode: themeMode,
                     background: {
-                        contrast: themeMode === 'dark' ? '#ffffff' : '#30455e',
-                        default: themeMode === "dark" ? 'rgb(31, 31, 31)' : '#ffffff',
+                        contrast: themeMode === 'dark' ? '#e1e0e0' : 'rgb(44, 52, 60)',
+                        default: themeMode === "dark" ? 'rgb(48, 48, 48)' : '#f5f5f5',
+                        paper: themeMode === "dark" ? 'rgb(37,36,36)' : '#ececec',
+                        taskLabel: themeMode === "dark" ? 'rgb(20, 20, 20)' : '#f5f5f5',
                     },
                     listSubHeader: {
                       default: themeMode === "dark" ? 'rgb(50, 50, 50)' : 'rgb(240, 240, 240)',
@@ -94,17 +98,17 @@ export function App(props) {
                     graphGroupRGBA: themeMode === 'dark' ? 'rgba(57, 76, 93, 0.5)' : 'rgba(211, 215, 232, 0.5)',
                     speedDialAction: themeMode === 'dark' ? '#495054' : '#ffffff',
                 },
-                pageHeaderColor: "white",
+                pageHeaderTextColor: "#ffffff",
                 folderColor: '#f1d592',
-                tableHeader: '#484848',
+                tableHeader: themeMode === 'dark' ? '#484848' : '#e0e0e0',
                 successOnMain: '#1ae302',
                 errorOnMain: '#ff656b',
                 infoOnMain: '#67ceff',
                 materialReactTableHeader: themeMode === 'dark' ? '#484848' : '#d5d5d5',
                 tableBorder: themeMode === 'dark' ? 'rgba(81,81,81,1)' : 'rgba(224,224,224,1)',
-                tableHover: themeMode === 'dark' ? 'rgba(85,88,93)' : 'rgba(245, 245, 245)',
+                tableHover: themeMode === 'dark' ? 'rgba(60,60,60)' : 'rgb(232,232,232)',
                 pageHeader: {
-                    main: '#827E80',
+                    main: '#706c6e',
                 },
                 pageHeaderSecondary: {
                     main: '#444343',
@@ -161,6 +165,7 @@ export function App(props) {
                         <div style={{ margin: '0px 5px 5px 5px', flexGrow: 1, flexDirection: 'column', height: "calc(100% - 4rem)",  }}>
                             <Routes>
                                 <Route path='/new/login' element={<LoginForm me={me}/>}/>
+                                <Route path='/new/invite' element={<InviteForm me={me}/>}/>
                                 <Route path='/' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>} />
                                 <Route exact path='/new' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>} />
                                 <Route exact path='/new/settings' element={<LoggedInRoute me={me}><Settings me={me}/></LoggedInRoute>} />
@@ -182,6 +187,7 @@ export function App(props) {
                                 <Route exact path='/new/mitre' element={<LoggedInRoute me={me}><MitreAttack me={me}/></LoggedInRoute>} />
                                 <Route exact path='/new/tagtypes' element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>} />
                                 <Route exact path='/new/consuming_services' element={<LoggedInRoute me={me}><ConsumingServices me={me}/></LoggedInRoute>} />
+                                <Route exact path='/new/eventing' element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>} />
                             </Routes>
                         </div>
                     </div>

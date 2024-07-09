@@ -32,12 +32,13 @@ export function MitreGridRow({row, showCountGrouping}){
       {row?.t_num?.includes(".") ? 
       (
         <Box width={"50px"} height={"1px"} style={{border: "1px dashed grey"}} />
-      ) :  ( null )}
+      ) :  null}
       <Button style={{
           width: "100%",
           justifyContent: "flex-start",
           ...buttonColor
-        }} 
+        }}
+        color={"secondary"}
         variant="outlined"
         onClick={() => setOpenDisplay(true)}
         >
@@ -48,7 +49,7 @@ export function MitreGridRow({row, showCountGrouping}){
               onClose={()=>{setOpenDisplay(false);}} 
               innerDialog={<MitreMapDisplayDialog entry={row} showCountGrouping={showCountGrouping} onClose={()=>{setOpenDisplay(false);}} />}
           />
-        ) : (null) }
+        ) : null }
     </div>
     
   )

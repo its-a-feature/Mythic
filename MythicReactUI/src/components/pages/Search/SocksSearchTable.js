@@ -6,7 +6,7 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
+import Moment from 'react-moment';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import { gql, useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
@@ -15,6 +15,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import Tooltip from '@mui/material/Tooltip';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 import {getStringSize} from '../Callbacks/ResponseDisplayTable';
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {adjustOutput} from "../Eventing/EventGroupInstancesTable";
 
 const toggleProxy = gql`
 mutation ToggleProxyMutation($callbackport_id: Int!, $action: String!){
@@ -43,19 +45,24 @@ export function SocksSearchTable(props){
     }
 
     return (
-        <TableContainer component={Paper} className="mythicElement" style={{overflowY: "auto", flexGrow: 1, marginTop: "5px"}}>
-            <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
+        <TableContainer style={{overflowY: "auto", flexGrow: 1, marginTop: "5px"}}>
+            <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "1rem"}}></TableCell>
                         <TableCell >User</TableCell>
                         <TableCell >Host</TableCell>
                         <TableCell >Description</TableCell>
-                        <TableCell style={{width: "10rem"}}>Callback / Task</TableCell>
+                        <TableCell style={{width: "9rem"}}>Callback / Task</TableCell>
                         <TableCell style={{width: "6rem"}}>Local Port</TableCell>
                         <TableCell >Remote Connection</TableCell>
-                        <TableCell >Agent Rx/Tx</TableCell>
+                        <TableCell style={{width: "9rem"}}>
+                            <MythicStyledTooltip title={"Rx is bytes Mythic received from the agent. Tx is bytes Mythic sent to the agent"} >
+                                Total Rx/Tx
+                            </MythicStyledTooltip>
+                        </TableCell>
                         <TableCell style={{width: "7rem"}}>Proxy Type</TableCell>
+                        <TableCell style={{width: "9rem"}}>Last Updated</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -114,8 +121,6 @@ function CallbackSearchTableRow(props){
                                          dialogText={confirmDialogText}
                     />
                 }
-
-                
                 <TableCell>{props.deleted ? (
                     <Tooltip title="Start Proxy Port on Mythic Server">
                         <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.success.main}} variant="contained"><RestoreFromTrashIcon/></IconButton>
@@ -153,11 +158,25 @@ function CallbackSearchTableRow(props){
 
                 </TableCell>
                 <TableCell>
-                    <b>Rx: </b>{getStringSize({cellData: {"plaintext": String(props.bytes_received)}})}<br/>
-                    <b>Tx: </b>{getStringSize({cellData: {"plaintext": String(props.bytes_sent)}})}
+                    <b><MythicStyledTooltip title={"Rx is bytes Mythic received from the agent"}>{"Rx: "}</MythicStyledTooltip></b>
+                    {getStringSize({cellData: {"plaintext": String(props.bytes_received)}})}
+                    <br/>
+                    <b><MythicStyledTooltip
+                        title={"Tx is bytes Mythic sent to the agent"}>{"Tx: "}</MythicStyledTooltip></b>
+                    {getStringSize({cellData: {"plaintext": String(props.bytes_sent)}})}
                 </TableCell>
                 <TableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.port_type}</Typography>
+                </TableCell>
+                <TableCell>
+                    <Moment filter={(newTime) => adjustOutput(props, newTime)} interval={1000}
+                            parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
+                            withTitle
+                            titleFormat={"YYYY-MM-DD HH:mm:ss"}
+                            fromNow ago
+                    >
+                        {props.updated_at + "Z"}
+                    </Moment>
                 </TableCell>
             </TableRow>
         </React.Fragment>

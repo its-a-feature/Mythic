@@ -7,6 +7,7 @@ import {CreatePayloadBuildParametersTable} from './CreatePayloadBuildParametersT
 import {snackActions} from '../../utilities/Snackbar';
 import Typography from '@mui/material/Typography';
 import {getDefaultValueForType, getDefaultChoices} from '../CreatePayload/Step2SelectPayloadType';
+import MenuItem from '@mui/material/MenuItem';
 
 const GET_Payload_Types = gql`
 query getPayloadTypesBuildParametersQuery($os: jsonb!) {
@@ -147,24 +148,27 @@ export function Step2SelectPayloadType(props){
         return <div>Error! {error.message}</div>;
     }
     return (
-        <div >
-            <Typography variant="h3" align="left" id="selectospage" component="div" 
-                style={{"marginLeft": "10px"}}>
-                  Select Target Payload Type
+        <div style={{height: "100%", display: "flex", flexDirection: "column"}}>
+            <Typography variant="h3" align="left" id="selectospage" component="div"
+                        style={{"marginLeft": "10px"}}>
+                Select Target Payload Type
             </Typography>
             <Select
-              native
-              value={selectedPayloadType}
-              onChange={changePayloadType}
+                value={selectedPayloadType}
+                onChange={changePayloadType}
             >
-            {
-                data.payloadtype.map((opt) => (
-                    <option key={"step2" + opt.name} value={opt.name}>{opt.name}</option>
-                ))
-            }
+                {
+                    data.payloadtype.map((opt) => (
+                        <MenuItem key={"step2" + opt.name} value={opt.name}>{opt.name}</MenuItem>
+                    ))
+                }
             </Select><br/>
-            <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters} />
-            <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={canceled} finished={finished} />
+            <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
+                <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters}/>
+            </div>
+            <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={canceled}
+                                            finished={finished}/>
+            <br/><br/>
         </div>
     );
 } 

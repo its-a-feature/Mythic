@@ -41,16 +41,6 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: c2profileListFiles
-    definition:
-      kind: ""
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_list_files_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: operator
-      - role: operation_admin
-      - role: mythic_admin
-      - role: developer
   - name: callbackgraphedge_add
     definition:
       kind: synchronous
@@ -102,6 +92,46 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: containerDownloadFile
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/container_download_file_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: containerListFiles
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/container_list_files_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: containerRemoveFile
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/container_remove_file_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: containerWriteFile
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/container_write_file_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: createAPIToken
     definition:
       kind: synchronous
@@ -133,6 +163,13 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: createInviteLink
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_invite_link_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: mythic_admin
   - name: createOperation
     definition:
       kind: synchronous
@@ -207,6 +244,17 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: deleteAPIToken
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/delete_apitoken_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: deleteBlockList
     definition:
       kind: synchronous
@@ -237,6 +285,13 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: deleteInviteLink
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/delete_invite_link_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: mythic_admin
   - name: deleteTagtype
     definition:
       kind: synchronous
@@ -255,17 +310,6 @@ actions:
       forward_client_headers: true
     permissions:
       - role: mythic_admin
-  - name: downloadContainerFile
-    definition:
-      kind: ""
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_download_file_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: developer
-      - role: mythic_admin
-      - role: operation_admin
-      - role: operator
-      - role: spectator
   - name: download_bulk
     definition:
       kind: synchronous
@@ -287,6 +331,66 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: eventingTriggerCancel
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_trigger_cancel_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: eventingTriggerKeyword
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_trigger_keyword_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: eventingTriggerManual
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_trigger_manual_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: eventingTriggerRetry
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_trigger_retry_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: eventingTriggerRunAgain
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_trigger_runagain_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: eventingTriggerUpdate
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_trigger_update_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: exportCallbackConfig
     definition:
       kind: ""
@@ -297,7 +401,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: export_payload_config
+  - name: exportPayloadConfig
     definition:
       kind: ""
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/export_payload_config_webhook'
@@ -329,6 +433,13 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: getInviteLinks
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/get_invite_link_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: mythic_admin
   - name: getOperatorSecrets
     definition:
       kind: ""
@@ -364,6 +475,16 @@ actions:
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/tagtype_import_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: import_c2_instance
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/import_c2parameter_instance_webhook'
       forward_client_headers: true
     permissions:
       - role: operator
@@ -427,16 +548,6 @@ actions:
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/reissue_task_handler_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: operator
-      - role: operation_admin
-      - role: mythic_admin
-      - role: developer
-  - name: removeContainerFile
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_remove_file_webhook'
       forward_client_headers: true
     permissions:
       - role: operator
@@ -515,6 +626,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: updateEventGroupApproval
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_update_eventgroupapproval_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: updateGlobalSettings
     definition:
       kind: synchronous
@@ -560,7 +681,7 @@ actions:
       - role: operation_admin
       - role: developer
       - role: mythic_admin
-  - name: updatePassword
+  - name: updatePasswordAndEmail
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_operator_password_webhook'
@@ -571,16 +692,6 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: uploadContainerFile
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_upload_file_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: developer
-      - role: mythic_admin
-      - role: operation_admin
-      - role: operator
 custom_types:
   enums: []
   input_objects:
@@ -682,4 +793,20 @@ custom_types:
     - name: importCallbackConfigOutput
     - name: getOperatorSecretsOutput
     - name: updateOperatorSecretsOutput
+    - name: eventingManualTriggerOutput
+    - name: eventingTriggerManualOutput
+    - name: updateEventGroupApprovalOutput
+    - name: eventingTriggerCancelOutput
+    - name: deleteAPITokenOutput
+    - name: eventingTriggerKeywordOutput
+    - name: eventingTriggerRetryOutput
+    - name: eventingTriggerRunAgainOutput
+    - name: eventingTriggerUpdateOutput
+    - name: createInviteLinkOutput
+    - name: getInviteLinksOutput
+    - name: deleteInviteLinkOutput
+    - name: containerRemoveFileOutput
+    - name: containerListFilesOutput
+    - name: containerUploadFileOutput
+    - name: containerWriteFileOutput
   scalars: []

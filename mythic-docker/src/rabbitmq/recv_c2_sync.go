@@ -34,16 +34,18 @@ type C2Profile struct {
 }
 
 const (
-	C2_PARAMETER_TYPE_STRING          C2ParameterType = "String"
-	C2_PARAMETER_TYPE_BOOLEAN                         = "Boolean"
-	C2_PARAMETER_TYPE_CHOOSE_ONE                      = "ChooseOne"
-	C2_PARAMETER_TYPE_CHOOSE_MULTIPLE                 = "ChooseMultiple"
-	C2_PARAMETER_TYPE_ARRAY                           = "Array"
-	C2_PARAMETER_TYPE_DATE                            = "Date"
-	C2_PARAMETER_TYPE_DICTIONARY                      = "Dictionary"
-	C2_PARAMETER_TYPE_NUMBER                          = "Number"
-	C2_PARAMETER_TYPE_TYPED_ARRAY                     = "TypedArray"
-	C2_PARAMETER_TYPE_FILE                            = "File"
+	C2_PARAMETER_TYPE_STRING            C2ParameterType = "String"
+	C2_PARAMETER_TYPE_BOOLEAN                           = "Boolean"
+	C2_PARAMETER_TYPE_CHOOSE_ONE                        = "ChooseOne"
+	C2_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM                 = "ChooseOneCustom"
+	C2_PARAMETER_TYPE_CHOOSE_MULTIPLE                   = "ChooseMultiple"
+	C2_PARAMETER_TYPE_ARRAY                             = "Array"
+	C2_PARAMETER_TYPE_DATE                              = "Date"
+	C2_PARAMETER_TYPE_DICTIONARY                        = "Dictionary"
+	C2_PARAMETER_TYPE_NUMBER                            = "Number"
+	C2_PARAMETER_TYPE_TYPED_ARRAY                       = "TypedArray"
+	C2_PARAMETER_TYPE_FILE                              = "File"
+	C2_PARAMETER_TYPE_FILE_MULTIPLE                     = "FileMultiple"
 )
 
 type C2Parameter struct {
@@ -170,6 +172,7 @@ func c2Sync(in C2SyncMessage) error {
 	go autoStartC2Profile(c2Profile)
 	reSyncPayloadTypes()
 	checkContainerStatusAddC2Channel <- c2Profile
+	go createGraphQLSpectatorAPITokenAndSendOnStartMessage(c2Profile.Name)
 	return nil
 }
 

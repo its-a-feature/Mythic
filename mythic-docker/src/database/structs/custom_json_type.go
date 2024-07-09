@@ -75,10 +75,13 @@ func (j MythicJSONArray) Value() (driver.Value, error) {
 	return []byte(j), nil
 }
 func (j MythicJSONText) StructValue() map[string]interface{} {
-	newMap := map[string]interface{}{}
+	newMap := make(map[string]interface{})
 	if err := j.Unmarshal(&newMap); err != nil {
 		logging.LogError(err, "Failed to unmarshal types.JSONText into map[string]interface{}")
 		return newMap
+	}
+	if newMap == nil {
+		newMap = make(map[string]interface{})
 	}
 	return newMap
 }
@@ -89,6 +92,18 @@ func (j MythicJSONArray) StructValue() []interface{} {
 		return newArray
 	}
 	return newArray
+}
+func (j MythicJSONArray) StructStringValue() []string {
+	newArray := []interface{}{}
+	if err := j.Unmarshal(&newArray); err != nil {
+		logging.LogError(err, "Failed to unmarshal types.JSONText into []interface{}{}")
+		return nil
+	}
+	stringArray := make([]string, len(newArray))
+	for i, o := range newArray {
+		stringArray[i] = o.(string)
+	}
+	return stringArray
 }
 
 // Scan stores the src in *j.  No validation is done.

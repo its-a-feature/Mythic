@@ -182,6 +182,7 @@ export function Callbacks({me}) {
                         onEditTabDescription={onEditTabDescription}
                         key={'callbackstabs'}
                         clickedTabId={clickedTabId}
+                        setClickedTabId={setClickedTabId}
                         openTabs={openTabs}
                         onDragTab={onDragTab}
                         me={me}

@@ -56,11 +56,11 @@ fragment treeObjData on mythictree {
 `;
 const treeSubscription = gql`
     ${treeFragment}
-    subscription liveData($now: timestamp!, $operation_id: Int!) {
+    subscription liveData($now: timestamp!) {
         mythictree_stream(
             batch_size: 1000,
-            cursor: {initial_value: {timestamp: $now}},
-            where: { operation_id: { _eq: $operation_id }, tree_type: {_eq: "process"} }
+            cursor: {initial_value: {timestamp: $now}}, 
+            where: {tree_type: {_eq: "process"} }
         ) {
             ...treeObjData
         }
@@ -68,8 +68,8 @@ const treeSubscription = gql`
 `;
 const rootQuery = gql`
     ${treeFragment}
-    query myRootFolderQuery($operation_id: Int!) {
-        mythictree(where: { operation_id: { _eq: $operation_id }, tree_type: {_eq: "process"} }, order_by: {id: asc}) {
+    query myRootFolderQuery {
+        mythictree(where: { tree_type: {_eq: "process"} }, order_by: {id: asc}) {
             ...treeObjData
         }
     }
@@ -117,7 +117,7 @@ export function CallbacksTabsProcessBrowserLabel(props){
     )
 }
 export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>{
-    const [fromNow, setFromNow] = React.useState((new Date()));
+    const fromNow = React.useRef((new Date()));
     const treeRootDataRef = React.useRef({}); // hold all the actual data
     const [treeAdjMtx, setTreeAdjMtx] = React.useState({}); // hold the simple adjacency matrix for parent/child relationships
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
@@ -193,7 +193,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         fetchPolicy: 'no-cache',
     });
     useSubscription(treeSubscription, {
-        variables: {now: fromNow, operation_id: me?.user?.current_operation_id ||0},
+        variables: {now: fromNow.current},
         fetchPolicy: "no-cache",
         onData: ({data}) => {
             for(let i = 0; i < data.data.mythictree_stream.length; i++){

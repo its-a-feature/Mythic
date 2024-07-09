@@ -46,7 +46,7 @@ const updateTagMutationTemplate = gql`
 const getObjectTagsQueryTemplate = ({target_object}) => {
 return gql`
 query getObjectTags ($${target_object}: Int!) {
-  tag(where: {${target_object}: {_eq: $${target_object}}}) {
+  tag(where: {${target_object}: {_eq: $${target_object}}}, order_by: {tagtype: {name: asc}}) {
     source
     url
     id
@@ -63,7 +63,7 @@ query getObjectTags ($${target_object}: Int!) {
 }
 const getTagtypesQuery = gql`
 query getTagtype {
-  tagtype {
+  tagtype(order_by: {name: asc}) {
     name
     color
     description
@@ -151,7 +151,7 @@ const StringTagDataEntry = ({name, value}) => {
       console.log("There was an error!", error);
     })
   }
-  if(RegExp(regex).test(value)){
+  if(RegExp(regex)?.test(value)){
     const capturePieces = RegExp(captureRegex).exec(value);
     const targetPieces = RegExp(targetRegex).exec(capturePieces[3]);
     const colorPieces = RegExp(colorRegex).exec(capturePieces[3]);
@@ -192,16 +192,22 @@ function ViewTagDialog(props) {
       let newTag = {...data.tag_by_pk};
       let tagData = newTag;
       try{
-        tagData = JSON.parse(newTag.data);
-        newTag.data = tagData;
-        newTag.is_json = true;
+        if(newTag.data.constructor === Object){
+          newTag.data = {...data.tag_by_pk.data};
+          newTag.is_json = true;
+        } else if(typeof newTag.data === "string"){
+          tagData = JSON.parse(newTag.data);
+          newTag.data = tagData;
+          newTag.is_json = true;
+        }
+
       }catch(error){
         newTag.is_json = false;
       }
       setSelectedTag(newTag);
     },
     onError: error => {
-      console.log(error);
+      console.log("query error", error);
     },
     fetchPolicy: "network-only"
   })
@@ -244,7 +250,7 @@ return (
                 <TableRow>
                   <TableCell>Data</TableCell>
                   <TableCell>
-                    {selectedTag?.is_json || false ? (
+                    {selectedTag?.is_json ? (
                       <TableContainer  className="mythicElement">
                         <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                           <TableBody>
@@ -318,7 +324,12 @@ export function ViewEditTagsDialog(props) {
         setSelectedTag(data.tag[0]);
         setNewSource(data.tag[0].source);
         setNewURL(data.tag[0].url);
-        setNewData(data.tag[0].data);
+        try{
+          setNewData(JSON.stringify(data.tag[0].data, null, 2));
+        }catch(error){
+          setNewData(String(data.tag[0].data));
+        }
+
       }
     },
     onError: error => {
@@ -374,9 +385,13 @@ const onEditorChange = (value, event) => {
 }
 const handleTaskTypeChange = (evt) => {
   setSelectedTag(evt.target.value);
-  setNewData(evt.target.value.data);
   setNewSource(evt.target.value.source);
   setNewURL(evt.target.value.url);
+  try{
+    setNewData(JSON.stringify(evt.target.value.data, null, 2));
+  }catch(error){
+    setNewData(String(evt.target.value.data));
+  }
 }
 const handleNewTagCreate = ({tagtype_id, source, url, data, id}) => {
   props.onClose();

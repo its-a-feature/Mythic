@@ -150,6 +150,7 @@ func AddMythicService(service string, removeVolume bool) {
 			"HASURA_GRAPHQL_METADATA_DIR=/metadata",
 			"HASURA_GRAPHQL_LIVE_QUERIES_MULTIPLEXED_REFETCH_INTERVAL=1000",
 			"HASURA_GRAPHQL_AUTH_HOOK=http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/graphql/webhook",
+			"HASURA_GRAPHQL_AUTH_HOOK_MODE=POST",
 			"MYTHIC_ACTIONS_URL_BASE=http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/api/v1.4",
 			"HASURA_GRAPHQL_CONSOLE_ASSETS_DIR=/srv/console-assets",
 		}
@@ -520,44 +521,45 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_sync":
-		if absPath, err := filepath.Abs(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service)); err != nil {
+		absPath, err := filepath.Abs(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service))
+		if err != nil {
 			fmt.Printf("[-] Failed to get abs path for mythic_sync\n")
 			return
-		} else {
-
-			pStruct["build"] = map[string]interface{}{
-				"context": absPath,
-				"args":    config.GetBuildArguments(),
-			}
-			pStruct["image"] = service
-			pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SYNC_CPUS")
-			if mythicEnv.GetString("mythic_sync_mem_limit") != "" {
-				pStruct["mem_limit"] = mythicEnv.GetString("mythic_sync_mem_limit")
-			}
-			pStruct["environment"] = []string{
-				"MYTHIC_IP=${NGINX_HOST}",
-				"MYTHIC_PORT=${NGINX_PORT}",
-				"MYTHIC_USERNAME=${MYTHIC_ADMIN_USER}",
-				"MYTHIC_PASSWORD=${MYTHIC_ADMIN_PASSWORD}",
-				"MYTHIC_API_KEY=${MYTHIC_API_KEY}",
-				"GHOSTWRITER_API_KEY=${GHOSTWRITER_API_KEY}",
-				"GHOSTWRITER_URL=${GHOSTWRITER_URL}",
-				"GHOSTWRITER_OPLOG_ID=${GHOSTWRITER_OPLOG_ID}",
-				"GLOBAL_SERVER_NAME=${GLOBAL_SERVER_NAME}",
-			}
-			if !mythicEnv.InConfig("GHOSTWRITER_API_KEY") {
-				config.AskVariable("Please enter your GhostWriter API Key", "GHOSTWRITER_API_KEY")
-			}
-			if !mythicEnv.InConfig("GHOSTWRITER_URL") {
-				config.AskVariable("Please enter your GhostWriter URL", "GHOSTWRITER_URL")
-			}
-			if !mythicEnv.InConfig("GHOSTWRITER_OPLOG_ID") {
-				config.AskVariable("Please enter your GhostWriter OpLog ID", "GHOSTWRITER_OPLOG_ID")
-			}
-			if !mythicEnv.InConfig("MYTHIC_API_KEY") {
-				config.AskVariable("Please enter your Mythic API Key (optional)", "MYTHIC_API_KEY")
-			}
 		}
+
+		pStruct["build"] = map[string]interface{}{
+			"context": absPath,
+			"args":    config.GetBuildArguments(),
+		}
+		pStruct["image"] = service
+		pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SYNC_CPUS")
+		if mythicEnv.GetString("mythic_sync_mem_limit") != "" {
+			pStruct["mem_limit"] = mythicEnv.GetString("mythic_sync_mem_limit")
+		}
+		pStruct["environment"] = []string{
+			"MYTHIC_IP=${NGINX_HOST}",
+			"MYTHIC_PORT=${NGINX_PORT}",
+			"MYTHIC_USERNAME=${MYTHIC_ADMIN_USER}",
+			"MYTHIC_PASSWORD=${MYTHIC_ADMIN_PASSWORD}",
+			"MYTHIC_API_KEY=${MYTHIC_API_KEY}",
+			"GHOSTWRITER_API_KEY=${GHOSTWRITER_API_KEY}",
+			"GHOSTWRITER_URL=${GHOSTWRITER_URL}",
+			"GHOSTWRITER_OPLOG_ID=${GHOSTWRITER_OPLOG_ID}",
+			"GLOBAL_SERVER_NAME=${GLOBAL_SERVER_NAME}",
+		}
+		if !mythicEnv.InConfig("GHOSTWRITER_API_KEY") {
+			config.AskVariable("Please enter your GhostWriter API Key", "GHOSTWRITER_API_KEY")
+		}
+		if !mythicEnv.InConfig("GHOSTWRITER_URL") {
+			config.AskVariable("Please enter your GhostWriter URL", "GHOSTWRITER_URL")
+		}
+		if !mythicEnv.InConfig("GHOSTWRITER_OPLOG_ID") {
+			config.AskVariable("Please enter your GhostWriter OpLog ID", "GHOSTWRITER_OPLOG_ID")
+		}
+		if !mythicEnv.InConfig("MYTHIC_API_KEY") {
+			config.AskVariable("Please enter your Mythic API Key (optional)", "MYTHIC_API_KEY")
+		}
+
 	}
 	manager.GetManager().SetVolumes(volumes)
 	_ = manager.GetManager().SetServiceConfiguration(service, pStruct)

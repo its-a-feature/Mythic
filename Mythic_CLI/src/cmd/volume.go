@@ -14,6 +14,7 @@ var volumeCmd = &cobra.Command{
 var volumeName string
 var sourceName string
 var destinationName string
+var containerName string
 
 func init() {
 	rootCmd.AddCommand(volumeCmd)

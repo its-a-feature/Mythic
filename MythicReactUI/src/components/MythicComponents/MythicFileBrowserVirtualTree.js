@@ -233,7 +233,7 @@ const VirtualTreeRow = ({
                         transformOrigin: placement === 'bottom' ? 'left top' : 'left bottom',
                       }}
                     >
-                      <Paper variant="outlined" className={"dropdownMenuColored"}>
+                      <Paper className={"dropdownMenuColored"}>
                         <ClickAwayListener onClickAway={handleClose}>
                           <MenuList id="split-button-menu" style={{paddingTop: 0}} >
                               <ListSubheader component={"li"} className={"MuiListSubheader-root"}>

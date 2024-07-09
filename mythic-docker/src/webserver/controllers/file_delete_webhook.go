@@ -3,6 +3,7 @@ package webcontroller
 import (
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
@@ -51,7 +52,7 @@ func DeleteFileWebhook(c *gin.Context) {
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	err := database.DB.Get(&filemeta, `SELECT
-		path, is_payload, id
+		path, is_payload, id, eventgroup_id
 		FROM filemeta 
 		WHERE
 		id=$1 and operation_id=$2
@@ -79,6 +80,13 @@ func DeleteFileWebhook(c *gin.Context) {
 			if _, err := database.DB.Exec(`UPDATE payload SET deleted=true WHERE id=$1`, payload.ID); err != nil {
 				logging.LogError(err, "Failed to update payload deleted status")
 			}
+		}
+	}
+	if filemeta.EventGroupID.Valid {
+		_, err = database.DB.Exec(`UPDATE eventgroup SET updated_at=$1 WHERE id=$2`,
+			time.Now().UTC(), filemeta.EventGroupID.Int64)
+		if err != nil {
+			logging.LogError(err, "Failed to update eventgroup updated status")
 		}
 	}
 	if _, err := database.DB.Exec(`UPDATE filemeta SET deleted=true WHERE id=$1`, filemeta.ID); err != nil {

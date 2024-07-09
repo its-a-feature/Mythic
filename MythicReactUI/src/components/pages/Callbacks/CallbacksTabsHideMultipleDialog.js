@@ -8,6 +8,7 @@ import {hideCallbacksMutation} from './CallbackMutations';
 import {snackActions} from "../../utilities/Snackbar";
 import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell, CallbacksTableIPCell} from "./CallbacksTableRow";
 import { DataGrid } from '@mui/x-data-grid';
+import {useTheme} from '@mui/material/styles';
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -22,10 +23,12 @@ query callbacksAndFeatures{
     pid
     description
     last_checkin
+    dead
     payload {
         payloadtype {
             name
             id
+            agent_type
         }
     }
     mythictree_groups_string
@@ -92,6 +95,7 @@ const columns = [
 ];
 const CustomSelectTable = ({initialData, selectedData}) => {
     const [data, setData] = React.useState([]);
+    const theme = useTheme();
     const [rowSelectionModel, setRowSelectionModel] = React.useState([]);
     React.useEffect( () => {
         selectedData.current = data.reduce( (prev, cur) => {
@@ -107,6 +111,7 @@ const CustomSelectTable = ({initialData, selectedData}) => {
     return (
         <div style={{height: "calc(80vh)"}}>
             <DataGrid
+                style={{backgroundColor: theme.palette.background.paper}}
                 rows={data}
                 columns={columns}
                 initialState={{

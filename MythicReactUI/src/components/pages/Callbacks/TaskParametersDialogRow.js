@@ -9,7 +9,6 @@ import Switch from '@mui/material/Switch';
 import Input from '@mui/material/Input';
 import {Button, IconButton} from '@mui/material';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import Paper from '@mui/material/Paper';
 import TableHead from '@mui/material/TableHead';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -24,6 +23,7 @@ import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip'
 import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
+import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 
 const getDynamicQueryParams = gql`
 mutation getDynamicParamsMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!){
@@ -77,6 +77,7 @@ export function TaskParametersDialogRow(props){
     const [arrayValue, setArrayValue] = React.useState([""]);
     const [typedArrayValue, setTypedArrayValue] = React.useState([]);
     const [choiceMultipleValue, setChoiceMultipleValue] = React.useState([]);
+    const [chooseOneCustomValue, setChooseOneCustomValue] = React.useState("");
     const [agentConnectNewHost, setAgentConnectNewHost] = React.useState("");
     const [agentConnectHostOptions, setAgentConnectHostOptions] = React.useState([]);
     const [agentConnectNewPayload, setAgentConnectNewPayload] = React.useState(0);
@@ -88,6 +89,7 @@ export function TaskParametersDialogRow(props){
     const [openAdditionalPayloadOnHostMenu, setOpenAdditionalPayloadOnHostmenu] = React.useState(false);
     const [createCredentialDialogOpen, setCreateCredentialDialogOpen] = React.useState(false);
     const [fileValue, setFileValue] = React.useState({name: ""});
+    const [fileMultValue, setFileMultValue] = React.useState([]);
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const usingDynamicParamChoices = React.useRef(false);
     const usingParsedTypedArray = React.useRef(true);
@@ -192,6 +194,8 @@ export function TaskParametersDialogRow(props){
             }
        }else if(props.type === "Array") {
            setArrayValue(props.value);
+       }else if(props.type === "FileMultiple"){
+           setFileMultValue(props.value);
        }else if(props.type === "TypedArray"){
            if(value === ""){
                //console.log(props.value);
@@ -352,6 +356,15 @@ export function TaskParametersDialogRow(props){
         setValue(value);
         props.onChange(props.name, value, error);
     }
+    const onChangeTextChooseOneCustom = (name, newValue, error) => {
+        setChooseOneCustomValue(newValue);
+        if(newValue === ""){
+            props.onChange(props.name, value, error);
+        } else {
+            props.onChange(props.name, newValue, error);
+        }
+
+    }
     const onChangeNumber = (name, value, error) => {
         setValue(parseInt(value));
         props.onChange(props.name, parseInt(value), error);
@@ -364,7 +377,10 @@ export function TaskParametersDialogRow(props){
     const onFileChange = (evt) => {
        setFileValue({name: evt.target.files[0].name});
        props.onChange(props.name, evt.target.files[0]);
-        
+    }
+    const onFileMultChange = (evt) => {
+        setFileMultValue([...evt.target.files]);
+        props.onChange(props.name, [...evt.target.files]);
     }
     const onChangeAgentConnectHost = (event) => {
         setAgentConnectHost(event.target.value); 
@@ -498,6 +514,39 @@ export function TaskParametersDialogRow(props){
     }
     const getParameterObject = () => {
         switch(props.type){
+            case "ChooseOneCustom":
+                return (
+                    <React.Fragment>
+                        <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+                            <CircularProgress color="inherit" />
+                        </Backdrop>
+                        <div style={{width: "100%", display: "flex", alignItems: "center"}}>
+                            <FormControl style={{}}>
+                                <Select
+                                    native
+                                    autoFocus={props.autoFocus}
+                                    multiple={false}
+                                    value={value}
+                                    disabled={chooseOneCustomValue !== ""}
+                                    onChange={onChangeValue}
+                                    input={<Input />}
+                                >
+                                    {
+                                        ChoiceOptions.map((opt, i) => (
+                                            <option key={props.name + i} value={opt}>{opt}</option>
+                                        ))
+                                    }
+                                </Select>
+                            </FormControl>
+                            OR
+                            <MythicTextField required={props.required} placeholder={"Custom Value"} value={chooseOneCustomValue} multiline={true} maxRows={5}
+                                             onChange={onChangeTextChooseOneCustom} display="inline-block" onEnter={props.onSubmit} autoFocus={props.autoFocus}
+                                             name={props.name}
+                            />
+                        </div>
+
+                    </React.Fragment>
+                )
             case "ChooseOne":
             case "ChooseMultiple":
                 return (
@@ -620,9 +669,30 @@ export function TaskParametersDialogRow(props){
                 )
             case "File":
                 return (
-                    <Button variant="contained" component="label"> 
-                        { fileValue.name === "" ? "Select File" : fileValue.name } 
-                    <input onChange={onFileChange} type="file" hidden /> </Button>
+                    <>
+                        <Button variant="contained" component="label">
+                            { fileValue.name === "" ? "Select File" : fileValue.name }
+                            <input onChange={onFileChange} type="file" hidden />
+                        </Button>
+                    </>
+
+                )
+            case "FileMultiple":
+                return (
+                    <>
+                        <Button variant="contained" component="label">
+                            Select Files
+                            <input onChange={onFileMultChange} type="file" hidden multiple />
+                        </Button>
+                        { fileMultValue.length > 0 &&
+                            fileMultValue.map((f, i) => (
+                                <div key={i}>
+                                    {typeof f === "string" && <MythicFileContext agent_file_id={f} />}
+                                    {typeof f !== "string" && (f.name)}
+                                </div>
+                            ))
+                        }
+                    </>
                 )
             case "LinkInfo":
                 return (
@@ -663,7 +733,7 @@ export function TaskParametersDialogRow(props){
                 )
             case "AgentConnect":
                 return (
-                    <TableContainer component={Paper} className="mythicElement"> 
+                    <>
                         <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {openAdditionalPayloadOnHostMenu ? (
@@ -799,7 +869,7 @@ export function TaskParametersDialogRow(props){
                                 </TableBody>
                             </Table>
                         ): null}
-                    </TableContainer>
+                    </>
                 )
             case "CredentialJson":
                 return (

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 )
@@ -99,6 +100,11 @@ func GetMythicEnv() *viper.Viper {
 	return mythicEnv
 }
 func setMythicConfigDefaultValues() {
+	defaultNumberOfCPUs := 2
+	if runtime.NumCPU() < defaultNumberOfCPUs {
+		defaultNumberOfCPUs = runtime.NumCPU()
+		fmt.Printf("WARNING: Setting default number of CPUs to %d, which is less than the recommended 2\n", defaultNumberOfCPUs)
+	}
 	// global configuration ---------------------------------------------
 	mythicEnv.SetDefault("debug_level", "warning")
 	mythicEnvInfo["debug_level"] = `This sets the logging level for mythic_server and all installed services. Valid options are debug, info, and warning`
@@ -208,6 +214,9 @@ func setMythicConfigDefaultValues() {
 
 	mythicEnv.SetDefault("mythic_sync_mem_limit", "")
 	mythicEnvInfo["mythic_sync_mem_limit"] = `Set this to limit the maximum amount of RAM this service is able to consume`
+
+	mythicEnv.SetDefault("mythic_server_allow_invite_links", "false")
+	mythicEnvInfo["mythic_server_allow_invite_links"] = `This configures whether or not admins are allowed to create one-time-use invite links for users to join the server and register their own username/password combinations. They still need to be assigned to operations.'`
 
 	// postgres configuration ---------------------------------------------
 	mythicEnv.SetDefault("postgres_host", "mythic_postgres")
@@ -331,7 +340,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("jupyter_host", "mythic_jupyter")
 	mythicEnvInfo["jupyter_host"] = `This specifies the ip/hostname for where the Jupyter container executes. If this is 'jupyter_host' or '127.0.0.1', then mythic-cli assumes this container is running locally. If it's anything else, mythic-cli will not spin up this container as it assumes it lives elsewhere`
 
-	mythicEnv.SetDefault("jupyter_token", "mythic")
+	mythicEnv.SetDefault("jupyter_token", utils.GenerateRandomPassword(30))
 	mythicEnvInfo["jupyter_token"] = `This value is used to authenticate to the Jupyter instance via the /jupyter route in the React UI`
 
 	mythicEnv.SetDefault("jupyter_cpus", "2")

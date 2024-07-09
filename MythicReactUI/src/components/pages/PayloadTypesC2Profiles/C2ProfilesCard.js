@@ -52,8 +52,8 @@ mutation StartStopProfile($id: Int!, $action: String) {
 }
 `;
 const setProfileConfigMutation = gql`
-mutation setProfileConfiguration($id: Int!, $file_path: String!, $data: String!) {
-  uploadContainerFile(id: $id, file_path: $file_path, data: $data) {
+mutation setProfileConfiguration($container_name: String!, $file_path: String!, $data: String!) {
+  containerWriteFile(container_name: $container_name, file_path: $file_path, data: $data) {
     status
     error
     filename
@@ -120,7 +120,7 @@ export function C2ProfilesRow({service, showDeleted}) {
     });
     const onConfigSubmit = (content) => {
         //console.log(content)
-        configSubmit({variables: {id: service.id, file_path: "config.json", data: content}});
+        configSubmit({variables: {container_name: service.name, file_path: "config.json", data: content}});
     }
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [updateDeleted] = useMutation(toggleDeleteStatus, {
@@ -166,7 +166,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                 <MythicTableCell>
                     {service.name}
                 </MythicTableCell>
-                <MythicTableCell>C2</MythicTableCell>
+                <MythicTableCell>C2 Profile</MythicTableCell>
                 <MythicTableCell>
                     <Typography variant="body1" component="p">
                         <b>Author:</b> {service.author}
@@ -269,16 +269,16 @@ export function C2ProfilesRow({service, showDeleted}) {
                             <SaveIcon />
                         </IconButton>
                     </MythicStyledTooltip>
-                    {service.container_running &&
-                        <MythicStyledTooltip title={"View Files"}>
-                            <IconButton
-                                color={"secondary"}
-                                onClick={()=>{setOpenListFilesDialog(true);}}
-                                size="large">
-                                <AttachFileIcon />
-                            </IconButton>
-                        </MythicStyledTooltip>
-                    }
+                    <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
+                        <IconButton
+                            color={"secondary"}
+                            disabled={!service.container_running}
+                            onClick={()=>{setOpenListFilesDialog(true);}}
+                            size="large">
+                            <AttachFileIcon />
+                        </IconButton>
+                    </MythicStyledTooltip>
+
                     <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
                         {({ TransitionProps, placement }) => (
                             <Grow
@@ -293,7 +293,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                                             <MenuItem key={"dropdownprofile" + service.id + "menu1"} onClick={()=>{setOpenProfileConfigDialog(true);}}>View/Edit Config</MenuItem>
                                             {
                                                 service.running ?
-                                                    (<MenuItem key={"dropdownprofile" + service.id + "menu2"} onClick={()=>{setOpenProfileDialog(true);}}>View Stdout/Stderr</MenuItem>) : (null)
+                                                    (<MenuItem key={"dropdownprofile" + service.id + "menu2"} onClick={()=>{setOpenProfileDialog(true);}}>View Stdout/Stderr</MenuItem>) : null
                                             }
                                         </MenuList>
 
@@ -307,7 +307,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                     <MythicDialog fullWidth={true} maxWidth="lg" open={openBuildingDialog}
                                   onClose={()=>{setOpenBuildingDialog(false);}}
                                   innerDialog={<C2ProfileBuildDialog {...service} onClose={()=>{setOpenBuildingDialog(false);}}
-                                                                     payload_name={service.name} />}
+                                                                     container_name={service.name} />}
                     />
                 }
                 {openProfileStartStopDialog &&
@@ -315,7 +315,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                                   onClose={()=>{setOpenProfileStartStopDialog(false);}}
                                   innerDialog={<C2ProfileStartStopOutputDialog output={output}
                                                                                onClose={()=>{setOpenProfileStartStopDialog(false);}}
-                                                                               payload_name={service.name} />}
+                                                                               container_name={service.name} />}
                     />
                 }
                 {openDelete &&
@@ -327,7 +327,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                 {openProfileDialog &&
                     <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileDialog}
                                   onClose={()=>{setOpenProfileDialog(false);}}
-                                  innerDialog={<C2ProfileOutputDialog {...service}  payload_name={service.name}
+                                  innerDialog={<C2ProfileOutputDialog {...service}  container_name={service.name}
                                                                       onClose={()=>{setOpenProfileDialog(false);}}
                                                                       profile_id={service.id} />}
                     />
@@ -337,7 +337,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                                   onClose={()=>{setOpenProfileConfigDialog(false);}}
                                   innerDialog={<C2ProfileConfigDialog filename={"config.json"}
                                                                       onConfigSubmit={onConfigSubmit}
-                                                                      payload_name={service.name}
+                                                                      container_name={service.name}
                                                                       onClose={()=>{setOpenProfileConfigDialog(false);}}
                                                                       profile_id={service.id} />}
                     />
@@ -352,7 +352,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                 {openListFilesDialog &&
                     <MythicDialog fullWidth={true} maxWidth="md" open={openListFilesDialog}
                                   onClose={()=>{setOpenListFilesDialog(false);}}
-                                  innerDialog={<C2ProfileListFilesDialog {...service} onClose={()=>{setOpenListFilesDialog(false);}} />}
+                                  innerDialog={<C2ProfileListFilesDialog container_name={service.name} {...service} onClose={()=>{setOpenListFilesDialog(false);}} />}
                     />
                 }
             </TableRow>

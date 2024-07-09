@@ -155,7 +155,7 @@ export function CallbacksTabsTaskingFilterDialog(props) {
   }
   return (
     <Root>
-        <DialogTitle id="form-dialog-title">Filter Which Tasks Are Visible</DialogTitle>
+        <DialogTitle id="form-dialog-title">Filter Which Tasks Are Visible in this Callback</DialogTitle>
         <DialogContent dividers={true} style={{overflow: "hidden"}}>
             <React.Fragment>
                 <FormControl className={classes.formControl}>

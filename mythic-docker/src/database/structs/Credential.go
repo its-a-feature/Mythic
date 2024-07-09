@@ -21,4 +21,5 @@ type Credential struct {
 	Comment     string            `db:"comment" json:"comment" mapstructure:"comment"`
 	Deleted     bool              `db:"deleted" json:"deleted" mapstructure:"deleted"`
 	Metadata    string            `db:"metadata" json:"metadata" mapstructure:"metadata"`
+	APITokensID structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 }

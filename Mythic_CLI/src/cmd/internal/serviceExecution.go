@@ -6,6 +6,7 @@ import (
 	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 	"log"
+	"slices"
 )
 
 // ServiceStart is entrypoint from commands to start containers
@@ -76,6 +77,10 @@ func ServiceStart(containers []string) error {
 	}
 	manager.GetManager().TestPorts(finalContainers)
 	err = manager.GetManager().StartServices(finalContainers, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
+	if err != nil {
+		fmt.Printf("[-] Failed to start services: %v", err)
+		return err
+	}
 	err = manager.GetManager().RemoveImages()
 	if err != nil {
 		fmt.Printf("[-] Failed to remove images\n%v\n", err)
@@ -101,13 +106,31 @@ func ServiceBuild(containers []string) error {
 			// update the necessary docker compose entries for mythic services
 			AddMythicService(container, true)
 		} else if utils.StringInSlice(container, composeServices) {
-			Add3rdPartyService(container, map[string]interface{}{}, true)
+			err = Add3rdPartyService(container, map[string]interface{}{}, true)
+			if err != nil {
+				fmt.Printf("[-] Failed to add 3rd party service: %v", err)
+				return err
+			}
 		}
 	}
 	err = manager.GetManager().BuildServices(containers)
 	if err != nil {
 		return err
 	}
+	if slices.Contains(containers, "mythic_nginx") {
+		updateNginxBlockLists()
+		err = generateCerts()
+		if err != nil {
+			fmt.Printf("[-] Failed to generate certs: %v", err)
+			return err
+		}
+		err = ServiceStart([]string{"mythic_nginx"})
+		if err != nil {
+			fmt.Printf("[-] Failed to start services: %v", err)
+			return err
+		}
+	}
+
 	return nil
 }
 func ServiceRemoveContainers(containers []string) error {
@@ -145,9 +168,17 @@ func DockerRemoveVolume(volumeName string) error {
 	return manager.GetManager().RemoveVolume(volumeName)
 }
 
-func DockerCopyIntoVolume(sourceFile string, destinationFileName string, destinationVolume string) {
-	manager.GetManager().CopyIntoVolume(sourceFile, destinationFileName, destinationVolume)
+func DockerCopyIntoVolume(containerName string, sourceFile string, destinationFileName string, destinationVolume string) {
+	err := manager.GetManager().CopyIntoVolume(containerName, sourceFile, destinationFileName, destinationVolume)
+	if err != nil {
+		fmt.Printf("[-] Failed to copy into volume: %v", err)
+		return
+	}
 }
-func DockerCopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string) {
-	manager.GetManager().CopyFromVolume(sourceVolumeName, sourceFileName, destinationName)
+func DockerCopyFromVolume(containerName string, sourceVolumeName string, sourceFileName string, destinationName string) {
+	err := manager.GetManager().CopyFromVolume(containerName, sourceVolumeName, sourceFileName, destinationName)
+	if err != nil {
+		fmt.Printf("[-] Failed to copy from volume: %v", err)
+		return
+	}
 }

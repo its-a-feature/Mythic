@@ -49,6 +49,7 @@ import WidgetsIcon from '@mui/icons-material/Widgets';
 import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
 import TerminalIcon from '@mui/icons-material/Terminal';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 
 export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDescription, setOpenHideMultipleDialog, setOpenTaskMultipleDialog}) =>{
     const dropdownAnchorRef = React.useRef(null);
@@ -194,12 +195,12 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
         }
     })
     const options =  [
-        {name: 'Hide Callback', icon: <VisibilityOffIcon style={{color: theme.palette.warning.main, paddingRight: "5px"}}/>, click: (evt) => {
+        {name: 'Hide Callback', icon: <VisibilityOffIcon color={"warning"} style={{paddingRight: "5px"}}/>, click: (evt) => {
             evt.stopPropagation();
             hideCallback({variables: {callback_display_id: rowDataStatic.display_id}});
         }},
         {
-            name: "Hide Multiple", icon: <VisibilityOffIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
+            name: "Hide Multiple", icon: <VisibilityOffIcon color={"warning"} style={{paddingRight: "5px"}}/>, click: (evt) => {
                 setOpenHideMultipleDialog(true);
             }
         },
@@ -231,7 +232,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
                 localOnOpenTab("interactConsole");
             }
         },
-        {name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback', icon: rowDataStatic.locked ? (<LockOpenIcon style={{color: theme.successOnMain, paddingRight: "5px"}}/>) : (<LockIcon style={{color: theme.errorOnMain, paddingRight: "5px"}} />), click: (evt) => {
+        {name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback', icon: rowDataStatic.locked ? (<LockIcon color={"error"} style={{paddingRight: "5px"}}/>) : (<LockOpenIcon color={"success"} style={{paddingRight: "5px"}} />), click: (evt) => {
             evt.stopPropagation();
             localToggleLock();
         }},
@@ -247,11 +248,11 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
             evt.stopPropagation();
             exportConfig({variables: {agent_callback_id: rowDataStatic.agent_callback_id}});
         }},
-        {name: "View Metadata", icon: <InfoIcon style={{color: theme.infoOnMain, paddingRight: "5px"}} />, click: (evt) => {
+        {name: "View Metadata", icon: <InfoIcon color={"info"} style={{paddingRight: "5px"}} />, click: (evt) => {
             evt.stopPropagation();
             setOpenMetaDialog(true);
         }},
-        {name: "Modify Groupings", icon: <WidgetsIcon style={{paddingRight: "5px"}} />, click: (evt) => {
+        {name: "Modify Groupings", icon: <WidgetsIcon color={"info"} style={{paddingRight: "5px"}} />, click: (evt) => {
             evt.stopPropagation();
             setOpenEditMythicTreeGroupsDialog(true);
         }}
@@ -265,7 +266,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
             >
                 <Button style={{padding: "0 10px 0 10px"}} color={rowDataStatic.integrity_level > 2 ? "error" : "primary"}  variant="contained"
                     onClick={(evt) => {evt.stopPropagation();localOnOpenTab("interact")}}>
-                    { rowDataStatic.locked ? (<LockIcon fontSize="large" style={{color: theme.errorOnMain, marginRight: "10px"}} />):(<KeyboardIcon fontSize="large" style={{marginRight: "10px"}}/>) }
+                    { rowDataStatic.locked ? (<LockIcon fontSize="large" style={{marginRight: "10px"}} />):(<KeyboardIcon fontSize="large" style={{marginRight: "10px"}}/>) }
                     {rowDataStatic.display_id}
                 </Button>
                 <Button
@@ -359,20 +360,39 @@ export const CallbacksTableStringCell = React.memo(({rowData, cellData}) => {
 }, areEqual)
 export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData}) => {
     const adjustOutput = (newTime) => {
-        if(newTime.includes("54 years")){
-            return "Streaming Now"
-        }else if(newTime === "a few seconds"){
+        if(newTime === "a few seconds"){
             moment.relativeTimeThreshold('s', 60);
             moment.relativeTimeThreshold('ss', 0);
             return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").fromNow(true)
         }
         return newTime;
     }
+    const theme = useTheme();
     if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
         return ""
     }
+    if(rowData.last_checkin === "1970-01-01T00:00:00"){
+        return (
+            <>
+            {rowData.dead &&
+                <MythicStyledTooltip title={"Based on callback's last checkin and sleep info, it's likely dead"}>
+                    <FontAwesomeIcon disabled icon={faSkullCrossbones} style={{
+                        color: theme.palette.error.main, cursor: "pointer", marginRight: "10px",}} />
+                </MythicStyledTooltip>
+            }
+            {"Streaming Now"}
+            </>
+
+        )
+    }
     return (
-        <div>
+        <div style={{display: "flex", alignItems: "center"}}>
+            {rowData.dead &&
+                <MythicStyledTooltip title={"Based on callback's last checkin and sleep info, it's likely dead"}>
+                    <FontAwesomeIcon icon={faSkullCrossbones} style={{
+                        color: theme.palette.error.main, cursor: "pointer", marginRight: "10px",}} />
+                </MythicStyledTooltip>
+            }
                 <Moment filter={adjustOutput} interval={1000} parse={"YYYY-MM-DDTHH:mm:ss.SSSSSSZ"}
                     withTitle
                     titleFormat={"YYYY-MM-DD HH:mm:ss"}
@@ -387,10 +407,7 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData}) =
 export const CallbacksTablePayloadTypeCell = React.memo( ({rowData}) => {
     return (
         <MythicStyledTooltip title={rowData?.payload?.payloadtype?.name}>
-            <img
-                style={{width: "35px", height: "35px"}}
-                src={"/static/" + rowData?.payload?.payloadtype?.name + ".svg"}
-            />
+            <MythicAgentSVGIcon payload_type={rowData?.payload?.payloadtype?.name} style={{width: "35px", height: "35px"}} />
         </MythicStyledTooltip>
     )
 }, areEqual)
@@ -645,15 +662,18 @@ export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSl
         return null
     }
     return (
-        <div>
+        <div style={{height: "100%"}}>
             <SnoozeIcon onClick={onOpenSleepDialog} 
                 style={{color: cellData === "" ? theme.palette.warning.main : theme.palette.info.main, cursor: "pointer"}}
             />
             { openSleepDialog &&
-                <MythicDialog fullWidth={true} open={openSleepDialog}  onClose={() => {setOpenSleepDialog(false);}}
+                <MythicDialog fullWidth={true} open={openSleepDialog} maxWidth={"md"}
+                              style={{height: "100%"}}
+                              onClose={() => {setOpenSleepDialog(false);}}
                     innerDialog={
-                        <MythicModifyStringDialog title={"View Sleep Information"} multiline maxRows={10}
-                            onClose={() => {setOpenSleepDialog(false);}} 
+                        <MythicModifyStringDialog title={"View / Edit Sleep Information"}
+                                                  maxRows={20}
+                            onClose={() => {setOpenSleepDialog(false);}}
                             value={cellData} 
                             onSubmit={editSleepSubmit} />
                     }

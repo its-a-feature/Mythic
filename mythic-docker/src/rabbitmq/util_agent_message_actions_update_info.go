@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/utils"
 	"strings"
 
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/mitchellh/mapstructure"
 )
 
-func handleAgentMessageUpdateInfo(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
+func handleAgentMessageUpdateInfo(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo, remoteIP string) (map[string]interface{}, error) {
 	// got message:
 	/*
 		{
@@ -55,6 +56,12 @@ func handleAgentMessageUpdateInfo(incoming *map[string]interface{}, uUIDInfo *ca
 		}
 		if agentMessage.ProcessName != "" {
 			callback.ProcessName = agentMessage.ProcessName
+			processPieces, err := utils.SplitFilePathGetHost(callback.ProcessName, "", []string{})
+			if err != nil {
+				logging.LogError(err, "failed to split out file path data")
+			} else if len(processPieces.PathPieces) > 0 {
+				callback.ProcessShortName = processPieces.PathPieces[len(processPieces.PathPieces)-1]
+			}
 		}
 		if agentMessage.IPs != nil {
 			if ipArrayBytes, err := json.Marshal(agentMessage.IPs); err != nil {
@@ -69,6 +76,8 @@ func handleAgentMessageUpdateInfo(incoming *map[string]interface{}, uUIDInfo *ca
 		}
 		if agentMessage.ExternalIP != "" {
 			callback.ExternalIp = agentMessage.ExternalIP
+		} else if remoteIP != "" {
+			callback.ExternalIp = remoteIP
 		}
 		if agentMessage.IntegrityLevel > 0 {
 			callback.IntegrityLevel = agentMessage.IntegrityLevel
@@ -85,7 +94,8 @@ func handleAgentMessageUpdateInfo(incoming *map[string]interface{}, uUIDInfo *ca
 		if _, err := database.DB.NamedExec(`UPDATE callback SET 
             "user"=:user, host=:host, pid=:pid, extra_info=:extra_info, sleep_info=:sleep_info,
             enc_key=:enc_key, dec_key=:dec_key, process_name=:process_name, ip=:ip, external_ip=:external_ip,
-            integrity_level=:integrity_level, "domain"=:domain, os=:os, architecture=:architecture
+            integrity_level=:integrity_level, "domain"=:domain, os=:os, architecture=:architecture,
+            process_short_name=:process_short_name
 			 WHERE id=:id`, callback); err != nil {
 			response["status"] = "error"
 			response["error"] = err.Error()

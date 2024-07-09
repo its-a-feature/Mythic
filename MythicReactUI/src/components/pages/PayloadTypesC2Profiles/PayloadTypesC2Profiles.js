@@ -139,7 +139,8 @@ export function PayloadTypesC2Profiles({me}){
     }, [payloadTypes, c2Profiles, translationContainers])
     return (
         <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px",
+                marginRight: "5px", marginLeft: "5px"}} variant={"elevation"}>
                 <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Payload / C2 Services
                 </Typography>
@@ -155,8 +156,8 @@ export function PayloadTypesC2Profiles({me}){
                 )}
             </Paper>
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
-                <TableContainer component={Paper} className="mythicElement">
-                    <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+                <TableContainer >
+                    <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableHead>
                             <TableRow>
                                 <MythicTableCell style={{width: "4rem"}}>Delete</MythicTableCell>

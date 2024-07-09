@@ -101,6 +101,17 @@ export const taskingDataFragment = gql`
         commentOperator{
             username
         }
+        eventstepinstance {
+            eventgroupinstance {
+                eventgroup{
+                    id
+                }
+                id
+            }
+            eventstep {
+                name
+            }
+        }
         completed
         id
         display_id
@@ -122,6 +133,7 @@ export const taskingDataFragment = gql`
         opsec_post_blocked
         opsec_post_bypassed
         interactive_task_type
+        has_intercepted_response
         tasks(where: {is_interactive_task: {_eq: false}}, order_by: {id: asc}) {
             id
             comment
@@ -166,6 +178,7 @@ export const taskingDataFragment = gql`
             tasks(order_by: {id: asc}) {
                 id
             }
+            has_intercepted_response
         }
         response_count
         tags {
@@ -182,8 +195,8 @@ export const taskingDataFragment = gql`
     }
 `;
 export const createTaskingMutation = gql`
-mutation createTasking($callback_id: Int, $callback_ids: [Int], $command: String!, $params: String!, $files: [String], $token_id: Int, $tasking_location: String, $original_params: String, $parameter_group_name: String, $parent_task_id: Int, $is_interactive_task: Boolean, $interactive_task_type: Int) {
-  createTask(callback_id: $callback_id, callback_ids: $callback_ids, command: $command, params: $params, files: $files, token_id: $token_id, tasking_location: $tasking_location, original_params: $original_params, parameter_group_name: $parameter_group_name, parent_task_id: $parent_task_id, is_interactive_task: $is_interactive_task, interactive_task_type: $interactive_task_type) {
+mutation createTasking($callback_id: Int, $callback_ids: [Int], $command: String!, $params: String!, $files: [String], $token_id: Int, $tasking_location: String, $original_params: String, $parameter_group_name: String, $parent_task_id: Int, $is_interactive_task: Boolean, $interactive_task_type: Int, $payload_type: String) {
+  createTask(callback_id: $callback_id, callback_ids: $callback_ids, command: $command, params: $params, files: $files, token_id: $token_id, tasking_location: $tasking_location, original_params: $original_params, parameter_group_name: $parameter_group_name, parent_task_id: $parent_task_id, is_interactive_task: $is_interactive_task, interactive_task_type: $interactive_task_type, payload_type: $payload_type) {
     status
     id
     error

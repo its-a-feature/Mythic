@@ -253,11 +253,11 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "dictionary":
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || " "} >
+            <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
               <Button size="small" variant="contained" color="primary" 
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || " "}</Button>
+                >{cellData?.button?.name || "View Dictionary Data"}</Button>
             </MythicStyledTooltip>
             {openButton &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openButton} 
@@ -271,11 +271,11 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "string":
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || " "} >
+            <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
               <Button size="small" variant="contained" color="primary" 
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || " "}</Button>
+                >{cellData?.button?.name || "View Data"}</Button>
             </MythicStyledTooltip>
             {openButton &&
                 <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openButton} title={cellData?.button?.title || "Title Here"} value={cellData?.button?.value || ""}
@@ -287,11 +287,11 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "table": 
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || " "} >
+            <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
               <Button size="small" variant="contained" color="primary" 
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || " "}</Button>
+                >{cellData?.button?.name || "View Data"}</Button>
             </MythicStyledTooltip>
             {openButton &&
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openButton} 
@@ -305,10 +305,10 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "task":
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || " "}>
+            <MythicStyledTooltip title={cellData?.button?.hoverText || "Submit Task"}>
               <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false} variant="contained" color="warning" 
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-              >{cellData?.button?.name || " "}</Button>
+              >{cellData?.button?.name || "Submit Task"}</Button>
             </MythicStyledTooltip>
             {openTaskingButton && 
               <TaskFromUIButton ui_feature={cellData?.button?.ui_feature || " "} 

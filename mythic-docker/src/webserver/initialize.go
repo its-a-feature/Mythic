@@ -52,7 +52,7 @@ func StartServer(r *gin.Engine) {
 }
 
 func InitializeGinLogger() gin.HandlerFunc {
-	ignorePaths := []string{"/agent_message", "/health"}
+	ignorePaths := []string{"/agent_message", "/health", "/static"}
 	return func(c *gin.Context) {
 		// Start timer
 		start := time.Now()
@@ -96,6 +96,7 @@ func InitializeGinLogger() gin.HandlerFunc {
 				"user_id", c.GetInt("user_id"),
 				"username", c.GetString("username"),
 				"file_id", c.GetString("file_id"),
+				"graphql_name", c.GetString("GraphQLName"),
 				"error", param.ErrorMessage)
 		}
 		c.Next()
@@ -115,6 +116,15 @@ func setRoutes(r *gin.Engine) {
 	{
 		// login page
 		r.POST("/auth", webcontroller.Login)
+		r.POST("/invite", webcontroller.UseInviteLink)
+		// get the list of online services for the ui
+		r.GET("/auth_services", webcontroller.GetAvailableAuthContainerIDPs)
+		// get the metadata for a specific container and IDP in json for the web ui
+		r.GET("/auth_metadata/:containerName/:IDPName", webcontroller.GetAuthContainerMetadata)
+		// the /metadata endpoint responds with raw text of the metadata for an IDP to fetch if it can reach Mythic
+		r.GET("/auth_metadata/:containerName/:IDPName/metadata", webcontroller.GetAuthContainerMetadataIDPEndpoint)
+		r.GET("/auth_redirect/:containerName/:IDPName", webcontroller.GetAuthContainerRedirect)
+		r.POST("/auth_acs/:containerName/:IDPName", webcontroller.ProcessIDPResponse)
 		// unauthenticated file download based on file UUID
 		// this is for payload hosting and payload containers to fetch files via web
 		r.GET("/direct/download/:file_uuid", webcontroller.FileDirectDownloadWebhook)
@@ -146,11 +156,13 @@ func setRoutes(r *gin.Engine) {
 		{
 			// EVERYBODY that can authenticate can do the following
 			// hasura's graphql endpoint to get updated claims for access control
-			protected.GET("/graphql/webhook", webcontroller.GetHasuraClaims)
+			//protected.GET("/graphql/webhook", webcontroller.GetHasuraClaims)
+			protected.POST("/graphql/webhook", webcontroller.GetHasuraClaims)
 			// user
 			protected.GET("/me", webcontroller.GetMe)                          // controller.login
 			protected.POST("/api/v1.4/me_webhook", webcontroller.GetMeWebhook) // controller.login
 			protected.POST("/api/v1.4/generate_apitoken_webhook", webcontroller.GenerateAPITokenWebhook)
+			protected.POST("/api/v1.4/delete_apitoken_webhook", webcontroller.DeleteAPITokenWebhook)
 			protected.POST("/api/v1.4/update_current_operation_webhook", webcontroller.UpdateCurrentOperationWebhook)
 			protected.POST("/api/v1.4/update_operator_password_webhook", webcontroller.UpdateOperatorPasswordWebhook)
 			protected.POST("/api/v1.4/create_operator", webcontroller.CreateOperatorWebhook)
@@ -162,11 +174,10 @@ func setRoutes(r *gin.Engine) {
 			allOperationMembers := protected.Group("/api/v1.4/")
 			allOperationMembers.Use(authentication.RBACMiddlewareAll())
 			{
+				// generic all installed services
 
 				// payloadtype / c2profile
-				allOperationMembers.POST("c2profile_download_file_webhook", webcontroller.C2ProfileGetFileWebhook)
 				allOperationMembers.POST("c2profile_status_webhook", webcontroller.C2ProfileStatusWebhook)
-				allOperationMembers.POST("c2profile_list_files_webhook", webcontroller.C2ProfileListFilesWebhook)
 				// payload
 				allOperationMembers.POST("config_check_webhook", webcontroller.C2ProfileConfigCheckWebhook)
 				allOperationMembers.POST("export_payload_config_webhook", webcontroller.ExportPayloadConfigWebhook)
@@ -177,9 +188,6 @@ func setRoutes(r *gin.Engine) {
 				// file
 				allOperationMembers.POST("download_bulk_webhook", webcontroller.DownloadBulkFilesWebhook)
 				allOperationMembers.POST("preview_file_webhook", webcontroller.PreviewFileWebhook)
-				// submitting webhooks
-				allOperationMembers.POST("send_external_webhook", webcontroller.SendExternalWebhookWebhook)
-				allOperationMembers.POST("create_operation_event_log", webcontroller.CreateOperationEventLog)
 				// global config
 				allOperationMembers.POST("get_global_settings_webhook", webcontroller.GetGlobalSettingWebhook)
 			}
@@ -187,6 +195,11 @@ func setRoutes(r *gin.Engine) {
 			noSpectators.Use(authentication.RBACMiddlewareNoSpectators())
 			{
 				// everybody EXCEPT SPECTATORS can do these actions
+				// generic for all installed services
+				noSpectators.POST("container_write_file_webhook", webcontroller.ContainerWriteFileWebhook)
+				noSpectators.POST("container_remove_file_webhook", webcontroller.ContainerRemoveFileWebhook)
+				noSpectators.POST("container_download_file_webhook", webcontroller.ContainerDownloadFileWebhook)
+				noSpectators.POST("container_list_files_webhook", webcontroller.ContainerListFilesWebhook)
 				// external consuming services actions
 				noSpectators.POST("consuming_services_test_webhook", webcontroller.ConsumingServicesTestWebhook)
 				noSpectators.POST("consuming_services_test_log", webcontroller.ConsumingServicesTestLog)
@@ -204,8 +217,6 @@ func setRoutes(r *gin.Engine) {
 				// payloadtype / c2profile
 				noSpectators.POST("create_c2parameter_instance_webhook", webcontroller.CreateC2ParameterInstanceWebhook)
 				noSpectators.POST("import_c2parameter_instance_webhook", webcontroller.ImportC2ParameterInstanceWebhook)
-				noSpectators.POST("c2profile_upload_file_webhook", webcontroller.C2ProfileWriteFileWebhook)
-				noSpectators.POST("c2profile_remove_file_webhook", webcontroller.C2ProfileRemoveFileWebhook)
 				noSpectators.POST("start_stop_profile_webhook", webcontroller.StartStopC2ProfileWebhook)
 				noSpectators.POST("c2profile_host_file_webhook", webcontroller.C2HostFileMessageWebhook)
 				// payload
@@ -224,6 +235,8 @@ func setRoutes(r *gin.Engine) {
 				// tagtypes
 				noSpectators.POST("tagtype_delete_webhook", webcontroller.TagtypeDeleteWebhook)
 				noSpectators.POST("tagtype_import_webhook", webcontroller.TagtypeImportWebhook)
+				noSpectators.POST("tagtype_create_webhook", webcontroller.TagTypeCreateWebhook)
+				noSpectators.POST("tag_create_webhook", webcontroller.TagCreateWebhook)
 				// callbackgraph edges
 				noSpectators.POST("callbackgraphedge_add_webhook", webcontroller.CallbackgraphedgeAddWebhook)
 				noSpectators.POST("callbackgraphedge_remove_webhook", webcontroller.CallbackgraphedgeRemoveWebhook)
@@ -232,6 +245,27 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("delete_tasks_and_callbacks_webhook", webcontroller.DeleteTasksAndCallbacks)
 				// credentials
 				noSpectators.POST("create_credential_webhook", webcontroller.CreateCredentialWebhook)
+				// user output response
+				noSpectators.POST("response_user_output_create_webhook", webcontroller.ResponseUserOutputCreateWebhook)
+				noSpectators.POST("artifact_create_webhook", webcontroller.ArtifactCreateWebhook)
+				// tree data (file browser / process browser)
+				noSpectators.POST("mythictree_create_webhook", webcontroller.MythictreeCreateWebhook)
+				// submitting webhooks
+				noSpectators.POST("send_external_webhook", webcontroller.SendExternalWebhookWebhook)
+				noSpectators.POST("create_operation_event_log", webcontroller.CreateOperationEventLog)
+				// eventing webhooks
+				noSpectators.POST("eventing_import_webhook", webcontroller.EventingImportWebhook)
+				noSpectators.POST("eventing_trigger_manual_webhook", webcontroller.EventingTriggerManualWebhook)
+				noSpectators.POST("eventing_trigger_keyword_webhook", webcontroller.EventingTriggerKeywordWebhook)
+				noSpectators.POST("eventing_update_eventgroupapproval_webhook", webcontroller.UpdateEventGroupApprovalWebhook)
+				noSpectators.POST("eventing_trigger_cancel_webhook", webcontroller.EventingTriggerCancelWebhook)
+				noSpectators.POST("eventing_register_file_webhook", webcontroller.EventGroupRegisterFileWebhook)
+				noSpectators.POST("eventing_trigger_retry_webhook", webcontroller.EventingTriggerRetryWebhook)
+				noSpectators.POST("eventing_trigger_retry_from_step_webhook", webcontroller.EventingTriggerRetryFromStepWebhook)
+				noSpectators.POST("eventing_trigger_runagain_webhook", webcontroller.EventingTriggerRunAgainWebhook)
+				noSpectators.POST("eventing_trigger_update_webhook", webcontroller.EventingTriggerUpdateWebhook)
+				// keylogs
+				noSpectators.POST("keylog_create_webhook", webcontroller.CreateKeylogWebhook)
 			}
 			operationAdminsOnly := protected.Group("/api/v1.4/")
 			operationAdminsOnly.Use(authentication.RBACMiddlewareOperationAdmin())
@@ -242,6 +276,10 @@ func setRoutes(r *gin.Engine) {
 				operationAdminsOnly.POST("delete_disabled_command_profile_entry_webhook", webcontroller.DeleteDisabledCommandProfileEntryWebhook)
 				// global settings
 				operationAdminsOnly.POST("update_global_settings_webhook", webcontroller.UpdateGlobalSettingsWebhook)
+				// generating invite links
+				operationAdminsOnly.POST("create_invite_link_webhook", webcontroller.CreateInviteLink)
+				operationAdminsOnly.POST("get_invite_link_webhook", webcontroller.GetOutstandingInviteLinks)
+				operationAdminsOnly.POST("delete_invite_link_webhook", webcontroller.DeleteInviteLink)
 			}
 		}
 	}

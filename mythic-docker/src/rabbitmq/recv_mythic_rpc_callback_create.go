@@ -7,32 +7,36 @@ import (
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
+	"github.com/its-a-feature/Mythic/utils"
 	"github.com/mitchellh/mapstructure"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"slices"
 	"strings"
 )
 
 type MythicRPCCallbackCreateMessage struct {
-	PayloadUUID    string   `json:"payload_uuid" mapstructure:"uuid"` // required
-	C2ProfileName  string   `json:"c2_profile"`                       // required
-	EncryptionKey  *[]byte  `json:"encryption_key" mapstructure:"enc_key"`
-	DecryptionKey  *[]byte  `json:"decryption_key" mapstructure:"dec_key"`
-	CryptoType     string   `json:"crypto_type"`
-	User           string   `json:"user" mapstructure:"user"`
-	Host           string   `json:"host" mapstructure:"host"`
-	PID            int      `json:"pid" mapstructure:"pid"`
-	ExtraInfo      string   `json:"extra_info"  mapstructure:"extra_info"`
-	SleepInfo      string   `json:"sleep_info" mapstructure:"sleep_info"`
-	Ip             string   `json:"ip" mapstructure:"ip"`
-	IPs            []string `json:"ips" mapstructure:"ips"`
-	ExternalIP     string   `json:"external_ip" mapstructure:"external_ip"`
-	IntegrityLevel *int     `json:"integrity_level" mapstructure:"integrity_level"`
-	Os             string   `json:"os" mapstructure:"os"`
-	Domain         string   `json:"domain" mapstructure:"domain"`
-	Architecture   string   `json:"architecture" mapstructure:"architecture"`
-	Description    string   `json:"description"`
-	ProcessName    string   `json:"process_name" mapstructure:"process_name"`
+	PayloadUUID         string   `json:"payload_uuid" mapstructure:"uuid"`     // required
+	C2ProfileName       string   `json:"c2_profile" mapstructure:"c2_profile"` // required
+	EncryptionKey       *[]byte  `json:"encryption_key" mapstructure:"enc_key"`
+	DecryptionKey       *[]byte  `json:"decryption_key" mapstructure:"dec_key"`
+	CryptoType          string   `json:"crypto_type" mapstructure:"crypto_type"`
+	User                string   `json:"user" mapstructure:"user"`
+	Host                string   `json:"host" mapstructure:"host"`
+	PID                 int      `json:"pid" mapstructure:"pid"`
+	ExtraInfo           string   `json:"extra_info"  mapstructure:"extra_info"`
+	SleepInfo           string   `json:"sleep_info" mapstructure:"sleep_info"`
+	Ip                  string   `json:"ip" mapstructure:"ip"`
+	IPs                 []string `json:"ips" mapstructure:"ips"`
+	ExternalIP          string   `json:"external_ip" mapstructure:"external_ip"`
+	IntegrityLevel      *int     `json:"integrity_level" mapstructure:"integrity_level"`
+	Os                  string   `json:"os" mapstructure:"os"`
+	Domain              string   `json:"domain" mapstructure:"domain"`
+	Architecture        string   `json:"architecture" mapstructure:"architecture"`
+	Description         string   `json:"description" mapstructure:"description"`
+	ProcessName         string   `json:"process_name" mapstructure:"process_name"`
+	EventStepInstanceID *int     `json:"eventstepinstance_id" mapstructure:"eventstepinstance_id"`
 }
 type MythicRPCCallbackCreateMessageResponse struct {
 	Success           bool   `json:"success"`
@@ -93,7 +97,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 	payload := databaseStructs.Payload{}
 	payloadCommands := []databaseStructs.Payloadcommand{}
 	err := database.DB.Get(&payload, `SELECT
-	payload.id, payload.operator_id, payload.description, payload.callback_alert, 
+	payload.id, payload.operator_id, payload.description, payload.callback_alert, payload.os,
 	operator.username "operator.username",
 	payloadtype.Name "payloadtype.name",
 	operation.complete "operation.complete",
@@ -128,6 +132,14 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 	} else {
 		callback.Description = input.Description
 	}
+	if callback.ProcessName != "" {
+		processPieces, err := utils.SplitFilePathGetHost(callback.ProcessName, "", []string{})
+		if err != nil {
+			logging.LogError(err, "failed to split out file path data")
+		} else if len(processPieces.PathPieces) > 0 {
+			callback.ProcessShortName = processPieces.PathPieces[len(processPieces.PathPieces)-1]
+		}
+	}
 	transaction, err := database.DB.Beginx()
 	if err != nil {
 		logging.LogError(err, "Failed to begin transaction")
@@ -141,12 +153,18 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		response.Error = err.Error()
 		return response
 	}
+	if input.EventStepInstanceID != nil {
+		callback.EventStepInstanceID.Valid = true
+		callback.EventStepInstanceID.Int64 = int64(*input.EventStepInstanceID)
+	}
 	statement, err := transaction.PrepareNamed(`
 			INSERT INTO callback 
 			( host, pid, ip, extra_info, sleep_info, external_ip, integrity_level, os, domain, architecture, process_name, registered_payload_id, 
-				operation_id, enc_key, dec_key, operator_id, active, crypto_type, description, agent_callback_id, "user")
+				operation_id, enc_key, dec_key, operator_id, active, crypto_type, description, agent_callback_id, "user", eventstepinstance_id,
+			 process_short_name)
 			VALUES ( :host, :pid, :ip, :extra_info, :sleep_info, :external_ip, :integrity_level, :os, :domain, :architecture, :process_name, :registered_payload_id, 
-				:operation_id, :enc_key, :dec_key, :operator_id, :active, :crypto_type, :description, :agent_callback_id, :user) 
+				:operation_id, :enc_key, :dec_key, :operator_id, :active, :crypto_type, :description, :agent_callback_id, :user, :eventstepinstance_id,
+			        :process_short_name) 
 			RETURNING *`)
 	if err != nil {
 		logging.LogError(err, "Failed to create callback in database in MythicRPCCallbackCreate")
@@ -288,6 +306,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 		}
 
 	}
+	addCommandAugmentsToCallback(callback.ID, payload.Os, payload.Payloadtype.Name, callback.OperatorID)
 	operationsMsg := fmt.Sprintf("New Callback (%d) %s@%s with pid %d", callback.DisplayID, callback.User, callback.Host, callback.PID)
 	go SendAllOperationsMessage(operationsMsg, callback.OperationID, "", "info")
 	// prep data to send for log messages and webhook messages
@@ -337,13 +356,54 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 	response.CallbackDisplayID = callback.DisplayID
 	response.Success = true
 	go sendPtOnNewCallback(callback.ID)
-	return response
+	go func(triggerData databaseStructs.Callback) {
+		EventingChannel <- EventNotification{
+			Trigger:     eventing.TriggerCallbackNew,
+			OperationID: triggerData.OperationID,
+			OperatorID:  triggerData.OperatorID,
+			CallbackID:  triggerData.ID,
+		}
+	}(callback)
 
+	return response
 }
 func sendPtOnNewCallback(callbackId int) {
 	allCallbackData := GetOnNewCallbackConfigurationForContainer(callbackId)
-	if err := RabbitMQConnection.SendPtOnNewCallback(allCallbackData); err != nil {
-		logging.LogError(err, "In sendPtOnNewCallback, but failed to SendPtOnNewCallback ")
+	_ = RabbitMQConnection.SendPtOnNewCallback(allCallbackData)
+}
+func addCommandAugmentsToCallback(callbackID int, payloadOS string, payloadType string, operatorID int) {
+	commandAugmentPayloadTypes := []databaseStructs.Payloadtype{}
+	err := database.DB.Select(&commandAugmentPayloadTypes, `SELECT * FROM payloadtype 
+		WHERE agent_type=$1 AND deleted=false`, "command_augment")
+	if err != nil {
+		logging.LogError(err, "failed to get command augment payload types")
+		return
+	}
+	for i, _ := range commandAugmentPayloadTypes {
+		if !slices.Contains(commandAugmentPayloadTypes[i].SupportedOs.StructStringValue(), payloadOS) &&
+			len(commandAugmentPayloadTypes[i].SupportedOs.StructStringValue()) != 0 {
+			continue
+		}
+		if !slices.Contains(commandAugmentPayloadTypes[i].CommandAugmentSupportedAgents.StructStringValue(), payloadType) &&
+			len(commandAugmentPayloadTypes[i].CommandAugmentSupportedAgents.StructStringValue()) != 0 {
+			continue
+		}
+		commandAugmentCommands := []databaseStructs.Command{}
+		err = database.DB.Select(&commandAugmentCommands, `SELECT id, version FROM command WHERE payload_type_id=$1`,
+			commandAugmentPayloadTypes[i].ID)
+		if err != nil {
+			logging.LogError(err, "failed to get command augment commands")
+			continue
+		}
+		for j, _ := range commandAugmentCommands {
+			_, err = database.DB.Exec(`INSERT INTO loadedcommands  
+                               (command_id, callback_id, operator_id, version)
+                               VALUES ($1, $2, $3, $4)`,
+				commandAugmentCommands[j].ID, callbackID, operatorID, commandAugmentCommands[j].Version)
+			if err != nil {
+				logging.LogError(err, "failed to add loaded command to callback")
+			}
+		}
 	}
 }
 func processMythicRPCCallbackCreate(msg amqp.Delivery) interface{} {

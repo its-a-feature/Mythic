@@ -23,8 +23,16 @@ func FileDirectViewWebhook(c *gin.Context) {
 	// get the associated database information
 	filemeta := databaseStructs.Filemeta{}
 	payload := databaseStructs.Payload{}
-	err := database.DB.Get(&filemeta, `SELECT
-			"path", filename
+	operatorUsername := "unknown"
+	userID, err := GetUserIDFromGinAllowCookies(c)
+	if err == nil {
+		user, err := database.GetUserFromID(userID)
+		if err == nil {
+			operatorUsername = user.Username
+		}
+	}
+	err = database.DB.Get(&filemeta, `SELECT
+			"path", filename, id, operation_id
 			FROM filemeta 
 			WHERE
 			filemeta.agent_file_id=$1
@@ -32,7 +40,9 @@ func FileDirectViewWebhook(c *gin.Context) {
 	if err != nil {
 		err = database.DB.Get(&payload, `SELECT
     			filemeta.path "filemeta.path",
-    			filemeta.filename "filemeta.filename"
+    			filemeta.filename "filemeta.filename",
+    			filemeta.id "filemeta.id",
+    			filemeta.operation_id "filemeta.operation_id"
     			FROM payload
     			JOIN filemeta ON payload.file_id = filemeta.id 
     			WHERE payload.uuid=$1`, agentFileID)
@@ -43,9 +53,11 @@ func FileDirectViewWebhook(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
+		go tagFileAs(payload.Filemeta.ID, operatorUsername, payload.Filemeta.OperationID, tagTypePreview)
 		c.File(payload.Filemeta.Path)
 		return
 	}
+	go tagFileAs(filemeta.ID, operatorUsername, filemeta.OperationID, tagTypePreview)
 	c.File(filemeta.Path)
 	return
 }

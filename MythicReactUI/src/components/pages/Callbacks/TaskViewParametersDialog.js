@@ -25,6 +25,10 @@ query getParametersQuery ($task_id: Int!) {
     command {
       cmd
       id
+      payloadtype {
+        name
+        id
+      }
     }
   }
 }
@@ -46,6 +50,7 @@ export function TaskViewParametersDialog(props) {
                 workingComment += "\n\nOriginal Command: " + data.task_by_pk.command.cmd;
                 workingComment += "\nIssued Command: " + data.task_by_pk.command_name;
               }
+              workingComment += "\n\nPayload Type:\n" + data.task_by_pk.command.payloadtype.name;
             }
             setComment(workingComment);
         },

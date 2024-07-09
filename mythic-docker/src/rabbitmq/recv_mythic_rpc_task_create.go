@@ -10,11 +10,12 @@ import (
 )
 
 type MythicRPCTaskCreateMessage struct {
-	AgentCallbackID    string  `json:"agent_callback_id"`
-	CommandName        string  `json:"command_name"`
-	Params             string  `json:"params"`
-	ParameterGroupName *string `json:"parameter_group_name,omitempty"`
-	Token              *int    `json:"token,omitempty"`
+	AgentCallbackID     string  `json:"agent_callback_id"`
+	CommandName         string  `json:"command_name"`
+	Params              string  `json:"params"`
+	ParameterGroupName  *string `json:"parameter_group_name,omitempty"`
+	Token               *int    `json:"token,omitempty"`
+	EventStepInstanceId *int    `json:"eventstepinstance_id,omitempty"`
 }
 
 // Every mythicRPC function call must return a response that includes the following two values
@@ -48,47 +49,54 @@ func MythicRPCTaskCreate(input MythicRPCTaskCreateMessage) MythicRPCTaskCreateMe
 		TaskingLocation:    &taskingLocation,
 	}
 	callback := databaseStructs.Callback{}
-	operatorOperation := databaseStructs.Operatoroperation{}
-	if err := database.DB.Get(&callback, `SELECT 
-	callback.id,
-	callback.display_id,
-	callback.operation_id,
-	operator.id "operator.id",
-	operator.admin "operator.admin" 
-	FROM callback
-	JOIN operator ON callback.operator_id = operator.id
-	WHERE callback.agent_callback_id=$1`, input.AgentCallbackID); err != nil {
+	err := database.DB.Get(&callback, `SELECT 
+		callback.id,
+		callback.display_id,
+		callback.operation_id,
+		operator.id "operator.id"
+		FROM callback
+		JOIN operator ON callback.operator_id = operator.id
+		WHERE callback.agent_callback_id=$1`, input.AgentCallbackID)
+	if err != nil {
 		response.Error = err.Error()
 		logging.LogError(err, "Failed to fetch task/callback information when creating subtask")
 		return response
-	} else if err := database.DB.Get(&operatorOperation, `SELECT
+	}
+	createTaskInput.CallbackDisplayID = callback.DisplayID
+	createTaskInput.CurrentOperationID = callback.OperationID
+	createTaskInput.OperatorID = callback.Operator.ID
+	createTaskInput.IsOperatorAdmin = false
+	err = automatedTaskCreateAugmentInput(&createTaskInput)
+	if err != nil {
+		response.Error = err.Error()
+		return response
+	}
+	creationResponse := CreateTask(createTaskInput)
+	if creationResponse.Status == "success" {
+		response.Success = true
+		response.TaskID = creationResponse.TaskID
+		response.TaskDisplayID = creationResponse.TaskDisplayID
+	} else {
+		response.Error = creationResponse.Error
+	}
+	return response
+}
+func automatedTaskCreateAugmentInput(input *CreateTaskInput) error {
+	operatorOperation := databaseStructs.Operatoroperation{}
+	err := database.DB.Get(&operatorOperation, `SELECT
 	base_disabled_commands_id
 	FROM operatoroperation
 	WHERE operator_id = $1 AND operation_id = $2
-	`, callback.Operator.ID, callback.OperationID); err != nil {
+	`, input.OperatorID, input.CurrentOperationID)
+	if err != nil {
 		logging.LogError(err, "Failed to get operation information when creating subtask")
-		response.Error = err.Error()
-		return response
-	} else {
-		createTaskInput.IsOperatorAdmin = callback.Operator.Admin
-		createTaskInput.CallbackDisplayID = callback.DisplayID
-		createTaskInput.CurrentOperationID = callback.OperationID
-		if operatorOperation.BaseDisabledCommandsID.Valid {
-			baseDisabledCommandsID := int(operatorOperation.BaseDisabledCommandsID.Int64)
-			createTaskInput.DisabledCommandID = &baseDisabledCommandsID
-		}
-		createTaskInput.OperatorID = callback.Operator.ID
-		creationResponse := CreateTask(createTaskInput)
-		if creationResponse.Status == "success" {
-			response.Success = true
-			response.TaskID = creationResponse.TaskID
-			response.TaskDisplayID = creationResponse.TaskDisplayID
-		} else {
-			response.Error = creationResponse.Error
-		}
-		return response
+		return err
 	}
-
+	if operatorOperation.BaseDisabledCommandsID.Valid {
+		baseDisabledCommandsID := int(operatorOperation.BaseDisabledCommandsID.Int64)
+		input.DisabledCommandID = &baseDisabledCommandsID
+	}
+	return nil
 }
 func processMythicRPCTaskCreate(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCTaskCreateMessage{}

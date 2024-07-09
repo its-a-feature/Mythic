@@ -423,30 +423,6 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
     const [downloadHistory, setDownloadHistory] = React.useState([]);
     const [getPermissions] = useLazyQuery(getPermissionsDataQuery, {
         onCompleted: (data) => {
-            let newPermissions = {};
-            /*
-            Object.keys(data.mythictree_by_pk.metadata).forEach( (key) => {
-                if( key.includes("time") ){
-                    try{
-                        newPermissions[key] = TableRowDateCell({cellData: data.mythictree_by_pk.metadata[key], view_utc_time: me?.user?.view_utc_time})
-                    }catch(error){
-                        console.log("failed to parse metadata as date", key, data.mythictree_by_pk.metadata[key]);
-                        newPermissions[key] = data.mythictree_by_pk.metadata[key];
-                    }
-                } else if( key.includes("size") ){
-                    try{
-                        console.log(data.mythictree_by_pk.metadata, data.mythictree_by_pk.metadata[key])
-                        newPermissions[key] = TableRowSizeCell({cellData: data.mythictree_by_pk.metadata[key]})
-                    }catch(error){
-                        console.log("failed to parse metadata as size", key, data.mythictree_by_pk.metadata[key]);
-                        newPermissions[key] = data.mythictree_by_pk.metadata[key];
-                    }
-                } else {
-                    newPermissions[key] = data.mythictree_by_pk.metadata[key];
-                }
-            });
-
-             */
             setPermissionData(data.mythictree_by_pk.metadata);
             if (data.mythictree_by_pk.metadata !== '') {
                 setViewPermissionsDialogOpen(true);
@@ -598,7 +574,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                 aria-expanded={dropdownOpen ? 'true' : undefined}
                 aria-haspopup='menu'
                 onClick={handleDropdownToggle}
-                color='primary'
+                color='info'
                 variant='contained'
                 ref={dropdownAnchorRef}>
                 <SettingsIcon />

@@ -21,6 +21,20 @@ import 'ace-builds/src-noconflict/mode-java';
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
+import 'ace-builds/src-noconflict/mode-yaml';
+import 'ace-builds/src-noconflict/mode-toml';
+import 'ace-builds/src-noconflict/mode-swift';
+import 'ace-builds/src-noconflict/mode-sql';
+import 'ace-builds/src-noconflict/mode-rust';
+import 'ace-builds/src-noconflict/mode-powershell';
+import 'ace-builds/src-noconflict/mode-pgsql';
+import 'ace-builds/src-noconflict/mode-perl';
+import 'ace-builds/src-noconflict/mode-php';
+import 'ace-builds/src-noconflict/mode-objectivec';
+import 'ace-builds/src-noconflict/mode-nginx';
+import 'ace-builds/src-noconflict/mode-makefile';
+import 'ace-builds/src-noconflict/mode-kotlin';
+import 'ace-builds/src-noconflict/mode-dockerfile';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 
@@ -33,7 +47,31 @@ const textExtensionTypes = ["txt", "ps1", "php", "json", "yml", "yaml", "config"
     "pem", "boto", "zsh_profile", "pub", "python_history", "sqlite_history", "viminfo", "zprofile", "zshrc",
     "history", "historynew"
 ];
-const knownTextFiles = ["config", "credentials", "known_hosts", "config_default", "id_rsa"];
+const textExtensionTypesToSyntax = {
+    "json": "json",
+    "cs": "csharp",
+    "go": "golang",
+    "md": "markdown",
+    "MD": "markdown",
+    "rb": "ruby",
+    "py": "python",
+    "java": "java",
+    "js": "javascript",
+    "yml": "yaml",
+    "yaml": "yaml",
+    "toml": "toml",
+    "swift": "swift",
+    "psql": "sql",
+    "rs": "rust",
+    "ps1": "powershell",
+    "prl": "perl",
+    "php": "php",
+    "m": "objectivec",
+    "mm": "objectivec",
+    "Dockerfile": "Dockerfile",
+    "Makefile": "Makefile"
+}
+const knownTextFiles = ["config", "credentials", "known_hosts", "config_default", "id_rsa", "Dockerfile", "Makefile"];
 const imgExtensionTypes = ["png", "jpg", "gif", "jpeg", "pdf"];
 const mimeType = (path) => {
     if(!path){return undefined}
@@ -132,7 +170,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task}) => {
     if(fileData.display_type === "text"){
         return (
             <div style={{height: "100%", minHeight: "200px", width: "100%"}} >
-                <DisplayText agent_file_id={agent_file_id} expand={expand} />
+                <DisplayText agent_file_id={agent_file_id} expand={expand} filename={filename} />
             </div>
 
         )
@@ -140,7 +178,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task}) => {
     return null;
 }
 const MaxRenderSize = 2000000;
-const DisplayText = ({agent_file_id, expand}) => {
+const DisplayText = ({agent_file_id, expand, filename}) => {
     const theme = useTheme();
     const [mode, setMode] = React.useState("html");
     const [content, setContent] = React.useState("");
@@ -169,6 +207,19 @@ const DisplayText = ({agent_file_id, expand}) => {
             }
             console.log("There was an error!", error);
         });
+        if(filename){
+            let extension = filename.split(".");
+            if(extension.length > 0){
+                extension = extension[extension.length - 1];
+                if(textExtensionTypesToSyntax[extension]){
+                    setMode(textExtensionTypesToSyntax[extension]);
+                }
+            } else {
+                if(textExtensionTypesToSyntax[filename]){
+                    setMode(textExtensionTypesToSyntax[filename]);
+                }
+            }
+        }
     }, []);
     const onChangeMode = (event) => {
         setMode(event.target.value);

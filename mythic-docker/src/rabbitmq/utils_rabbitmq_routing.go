@@ -28,6 +28,9 @@ func GetPtC2BuildRoutingKey(container string) string {
 func GetPtOnNewCallbackRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_ON_NEW_CALLBACK)
 }
+func GetPtCheckIfCallbacksAliveRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, PT_CHECK_IF_CALLBACKS_ALIVE_ROUTING_KEY)
+}
 func GetPtTaskCreateRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_TASK_CREATE_TASKING)
 }
@@ -82,16 +85,16 @@ func GetC2RPCHostFileRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, C2_RPC_HOST_FILE)
 }
 func GetC2RPCGetFileRoutingKey(container string) string {
-	return fmt.Sprintf("%s_%s", container, C2_RPC_GET_FILE)
+	return fmt.Sprintf("%s_%s", container, CONTAINER_RPC_GET_FILE)
 }
 func GetC2RPCRemoveFileRoutingKey(container string) string {
-	return fmt.Sprintf("%s_%s", container, C2_RPC_REMOVE_FILE)
+	return fmt.Sprintf("%s_%s", container, CONTAINER_RPC_REMOVE_FILE)
 }
 func GetC2RPCListFileRoutingKey(container string) string {
-	return fmt.Sprintf("%s_%s", container, C2_RPC_LIST_FILE)
+	return fmt.Sprintf("%s_%s", container, CONTAINER_RPC_LIST_FILE)
 }
 func GetC2RPCWriteFileRoutingKey(container string) string {
-	return fmt.Sprintf("%s_%s", container, C2_RPC_WRITE_FILE)
+	return fmt.Sprintf("%s_%s", container, CONTAINER_RPC_WRITE_FILE)
 }
 
 func GetTrRPCReSyncRoutingKey(container string) string {
@@ -102,6 +105,44 @@ func GetTrRPCEncryptBytesRoutingKey(container string) string {
 }
 func GetTrRPCDecryptBytesRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, TR_RPC_DECRYPT_BYTES)
+}
+
+func GetConsumingContainerRPCReSyncRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, CONSUMING_CONTAINER_RESYNC_ROUTING_KEY)
+}
+func GetEventingContainerCustomFunctionRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, EVENTING_CUSTOM_FUNCTION)
+}
+func GetEventingContainerTaskInterceptRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, EVENTING_TASK_INTERCEPT)
+}
+func GetEventingContainerResponseInterceptRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, EVENTING_RESPONSE_INTERCEPT)
+}
+func GetEventingContainerConditionalCheckRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, EVENTING_CONDITIONAL_CHECK)
+}
+func GetAuthContainerGetIDPRedirectRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, AUTH_RPC_GET_IDP_REDIRECT)
+}
+func GetAuthContainerGetNonIDPRedirectRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, AUTH_RPC_GET_NONIDP_REDIRECT)
+}
+func GetAuthContainerGetIDPMetadataRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, AUTH_RPC_GET_IDP_METADATA)
+}
+func GetAuthContainerProcessIDPResponseRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, AUTH_RPC_PROCESS_IDP_RESPONSE)
+}
+func GetAuthContainerProcessNonIDPResponseRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, AUTH_RPC_PROCESS_NONIDP_RESPONSE)
+}
+func GetAuthContainerGetNonIDPMetadataRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, AUTH_RPC_GET_NONIDP_METADATA)
+}
+
+func GetContainerOnStartRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, CONTAINER_ON_START)
 }
 
 func (r *rabbitMQConnection) GetConnection() (*amqp.Connection, error) {
@@ -306,17 +347,16 @@ func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body 
 			}
 		case ret := <-ch.NotifyReturn(make(chan amqp.Return)):
 			err := errors.New(getMeaningfulRabbitmqError(ret))
-			logging.LogError(err, "failed to deliver message to exchange/queue, NotifyReturn", "errorCode", ret.ReplyCode, "errorText", ret.ReplyText)
 			return nil, err
 		case <-time.After(RPC_TIMEOUT):
 			err := errors.New("message delivery confirmation timed out in SendRPCMessage")
-			logging.LogError(err, "message delivery confirmation to exchange/queue timed out")
+			logging.LogError(err, "message delivery confirmation to exchange/queue timed out", "queue", queue)
 			return nil, err
 		}
-		logging.LogDebug("Sent RPC message", "queue", queue)
+		//logging.LogDebug("Sent RPC message", "queue", queue)
 		select {
 		case m := <-msgs:
-			logging.LogDebug("Got RPC Reply", "queue", queue)
+			//logging.LogDebug("Got RPC Reply", "queue", queue)
 			return m.Body, nil
 		case <-time.After(RPC_TIMEOUT):
 			logging.LogError(nil, "Timeout reached waiting for RPC reply")
