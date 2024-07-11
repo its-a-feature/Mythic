@@ -24,6 +24,10 @@ func processPtTaskProcessResponseMessages(msg amqp.Delivery) {
 		logging.LogError(err, "Failed to process PTTaskProcessResponseMessageResponse into struct")
 	} else {
 		// now process the create_tasking response body to update the task
+		_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, payloadMsg.TaskID)
+		if err != nil {
+			logging.LogError(err, "Failed to update the apitokens to set to deleted")
+		}
 		if !payloadMsg.Success {
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to process response message for task %d:\n%s", payloadMsg.TaskID, payloadMsg.Error),
 				0, "", database.MESSAGE_LEVEL_WARNING)

@@ -184,6 +184,10 @@ export function Eventing({me}){
     const onFileChange = async (evt) => {
         for(let i = 0; i < evt.target.files.length; i++){
             let uploadStatus = await UploadEventFile(evt.target.files[i], "New Eventing Workflow");
+            if(!uploadStatus){
+                snackActions.error("Failed to upload file");
+                continue
+            }
             if(uploadStatus.status === "error"){
                 snackActions.error(uploadStatus.error);
             }

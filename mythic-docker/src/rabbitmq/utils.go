@@ -763,7 +763,7 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 		task.parent_task_id, task.operator_id,
 		task.subtask_callback_function, task.subtask_callback_function_completed,
 		task.group_callback_function, task.group_callback_function_completed, task.completed_callback_function,
-		task.completed_callback_function_completed, task.subtask_group_name, task.id, task.status
+		task.completed_callback_function_completed, task.subtask_group_name, task.id, task.status, task.eventstepinstance_id
 		FROM task
 		WHERE task.id=$1`, taskId)
 	if err != nil {
@@ -775,7 +775,7 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	}
 	if task.ParentTaskID.Valid {
 		err = database.DB.Get(&parentTask, `SELECT 
-    		task.id, task.status, task.completed,
+    		task.id, task.status, task.completed, task.eventstepinstance_id,
     		c.script_only "command.script_only"
     		from task
     		LEFT OUTER JOIN command c on task.command_id = c.id

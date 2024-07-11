@@ -9,7 +9,7 @@ type EventActionDataCreateTask struct {
 	CommandName         string                 `json:"command_name" mapstructure:"command_name"`
 	PayloadType         *string                `json:"payload_type,omitempty" mapstructure:"payload_type,omitempty"`
 	Params              string                 `json:"params" mapstructure:"params"`
-	ParamDictionary     map[string]interface{} `json:"param_dictionary,omitempty" mapstructure:"param_dictionary"`
+	ParamDictionary     map[string]interface{} `json:"params_dictionary,omitempty" mapstructure:"params_dictionary"`
 	ParameterGroupName  *string                `json:"parameter_group_name,omitempty" mapstructure:"parameter_group_name"`
 	Token               *int                   `json:"token,omitempty" mapstructure:"token"`
 	ParentTaskID        *int                   `json:"parent_task_id,omitempty" mapstructure:"parent_task_id"`

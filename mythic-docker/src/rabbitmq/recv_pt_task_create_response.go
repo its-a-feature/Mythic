@@ -37,11 +37,15 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
 		return
 	}
-	err = database.DB.Get(&task, `SELECT status, operation_id FROM task WHERE id=$1`, task.ID)
+	err = database.DB.Get(&task, `SELECT status, operation_id, eventstepinstance_id FROM task WHERE id=$1`, task.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to find task from create_tasking")
 		go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_WARNING)
 		return
+	}
+	_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, task.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to update the apitokens to set to deleted")
 	}
 	//logging.LogInfo("got response back from create message", "resp", payloadMsg, "original", string(msg.Body))
 
@@ -145,7 +149,7 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				OperatorID:          task.OperatorID,
 				EventStepInstanceID: int(task.EventStepInstanceID.Int64),
 				TaskID:              task.ID,
-				ActionSuccess:       !strings.Contains(task.Status, "error"),
+				ActionSuccess:       !strings.Contains(strings.ToLower(task.Status), "error"),
 			}
 			go CheckAndProcessTaskCompletionHandlers(task.ID)
 		}
@@ -166,7 +170,7 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			OperatorID:          task.OperatorID,
 			EventStepInstanceID: int(task.EventStepInstanceID.Int64),
 			TaskID:              task.ID,
-			ActionSuccess:       !strings.Contains(task.Status, "error"),
+			ActionSuccess:       false,
 		}
 		// we hit an error in processing, so check if others are waiting on us to finish
 		go CheckAndProcessTaskCompletionHandlers(task.ID)

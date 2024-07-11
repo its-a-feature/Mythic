@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0-rc2] - 2024-07-11
+
+### Changed
+
+- Updated eventing tasks to properly address when tasks fail and continue on with the eventing steps
+- Updated the LimitByCallback field when searching for files to also account of a fileID was used in a task in a callback
+  - this helps with files that might be uploaded as part of workflows, but still loaded into callbacks
+  
 ## [3.3.0-rc1] - 2024-07-09
 
 ### Changed

@@ -37,6 +37,16 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 		go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
 		return
 	}
+	err = database.DB.Get(&task, `SELECT status, operation_id, eventstepinstance_id FROM task WHERE id=$1`, task.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to find task from create_tasking")
+		go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_WARNING)
+		return
+	}
+	_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, task.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to update the apitokens to set to deleted")
+	}
 	if payloadMsg.Success {
 		if !payloadMsg.OpsecPostBlocked || (payloadMsg.OpsecPostBlocked && payloadMsg.OpsecPostBypassed != nil && *payloadMsg.OpsecPostBypassed) {
 			task.Status = PT_TASK_FUNCTION_STATUS_SUBMITTED
@@ -103,7 +113,7 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 				OperationID:         task.OperationID,
 				EventStepInstanceID: int(task.EventStepInstanceID.Int64),
 				TaskID:              task.ID,
-				ActionSuccess:       !strings.Contains(task.Status, "error"),
+				ActionSuccess:       !strings.Contains(strings.ToLower(task.Status), "error"),
 			}
 		} else {
 			checkForTaskInterception(&task)
@@ -144,7 +154,7 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 			OperationID:         task.OperationID,
 			EventStepInstanceID: int(task.EventStepInstanceID.Int64),
 			TaskID:              task.ID,
-			ActionSuccess:       !strings.Contains(task.Status, "error"),
+			ActionSuccess:       !strings.Contains(strings.ToLower(task.Status), "error"),
 		}
 	}
 }

@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -165,7 +166,18 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 				} else if fileCallbackID == callbackId {
 					finalFiles = append(finalFiles, convertFileMetaToFileData(file))
 				}
+			} else {
+				// this means this file wasn't directly uploaded _just_ for this callback, but could be used in this callback anyway
+				tasks := []databaseStructs.Task{}
+				err := database.DB.Select(&tasks, `SELECT id FROM task WHERE
+                        callback_id=$1 AND params LIKE $2 LIMIT 1`, callbackId, fmt.Sprintf("%%%s%%", file.AgentFileID))
+				if err != nil {
+					logging.LogError(err, "failed to search for tasks with params that include file id")
+				} else if len(tasks) > 0 {
+					finalFiles = append(finalFiles, convertFileMetaToFileData(file))
+				}
 			}
+
 		} else {
 			finalFiles = append(finalFiles, convertFileMetaToFileData(file))
 		}
