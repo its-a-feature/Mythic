@@ -2081,8 +2081,11 @@ func submitAgentAlertToWebhook(operationID int, callbackID int, callbackDisplayI
 		Trigger:     eventing.TriggerAlert,
 		OperationID: operationInfo.ID,
 		Outputs: map[string]interface{}{
-			"alert":         alert.Alert,
-			"webhook_alert": alert.WebhookAlert,
+			"callback_id":         callbackID,
+			"callback_display_id": callbackDisplayID,
+			"source":              alert.Source,
+			"alert":               alert.Alert,
+			"webhook_alert":       alert.WebhookAlert,
 		},
 	}
 }

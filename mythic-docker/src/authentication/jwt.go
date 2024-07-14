@@ -156,6 +156,9 @@ func ExtractToken(c *gin.Context) (string, error) {
 	token := c.Request.Header.Get("Authorization")
 	//logging.LogDebug("got Authorization header", "Authorization", token)
 	if len(token) == 0 {
+		token = c.Request.Header.Get("apitoken")
+	}
+	if len(token) == 0 {
 		if c.Request.Method == "POST" {
 			if _, ok := c.Get("hasura"); !ok {
 				// don't try to double process, only do this once
@@ -190,8 +193,25 @@ func ExtractToken(c *gin.Context) (string, error) {
 func ExtractAPIToken(c *gin.Context) (string, error) {
 	token := c.Request.Header.Get("apitoken")
 	if len(token) == 0 {
-		logging.LogError(nil, "[-] No 'apitoken` or 'Authorization: Bearer' token values supplied")
-		return "", ErrMissingJWTToken
+		if c.Request.Method == "POST" {
+			if _, ok := c.Get("hasura"); !ok {
+				// don't try to double process, only do this once
+				var input HasuraRequest
+				if err := c.ShouldBindJSON(&input); err != nil {
+					logging.LogError(err, "Failed to find hasura request")
+					return "", ErrMissingAuthorizationHeader
+				}
+				for key, value := range input.Headers {
+					c.Request.Header.Add(key, value)
+				}
+				c.Set("hasura", input)
+			}
+		}
+		token = c.Request.Header.Get("apitoken")
+		if len(token) == 0 {
+			logging.LogError(nil, "[-] No 'apitoken` or 'Authorization: Bearer' token values supplied")
+			return "", ErrMissingJWTToken
+		}
 	}
 
 	//logging.LogTrace("got apitoken header", "apitoken", token)
