@@ -36,7 +36,7 @@ query GetPC2Details($payload_name: String!) {
 export function C2ProfileBuildDialog(props) {
     const [buildParams, setBuildParams] = useState([]);
     const { loading, error } = useQuery(GET_C2_Details, {
-        variables: {payload_name: props.payload_name},
+        variables: {payload_name: props.container_name},
         onCompleted: data => {
             const buildParams = data.c2profile[0].c2profileparameters.map((param) => {
               let choices = getDefaultChoices(param);
