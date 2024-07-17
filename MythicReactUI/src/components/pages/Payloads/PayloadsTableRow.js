@@ -98,8 +98,8 @@ export function PayloadsTableRow(props){
       fetchPolicy: "no-cache",
       onCompleted: (data) => {
         //console.log(data)
-        if(data.export_payload_config.status === "success"){
-          const dataBlob = new Blob([data.export_payload_config.config], {type: 'text/plain'});
+        if(data.exportPayloadConfig.status === "success"){
+          const dataBlob = new Blob([data.exportPayloadConfig.config], {type: 'text/plain'});
           const ele = document.getElementById("download_config");
           if(ele !== null){
             ele.href = URL.createObjectURL(dataBlob);
@@ -114,7 +114,7 @@ export function PayloadsTableRow(props){
             element.click();
           }
         }else{
-          snackActions.error("Failed to export configuration: " + data.export_payload_config.error);
+          snackActions.error("Failed to export configuration: " + data.exportPayloadConfig.error);
         }
       },
       onError: (data) => {
