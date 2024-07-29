@@ -99,7 +99,6 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
         "everythingButList": [],
         "hideErrors": false,
     });
-    const [canScroll, setCanScroll] = React.useState(true);
     const [selectedTask, setSelectedTask] = React.useState({id: 0});
     const mountedRef = React.useRef(true);
     const newlyIssuedTasks = useRef(null);
@@ -178,17 +177,11 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             const index = prev.findIndex(element => element.id === cur.id);
             if(index > -1){
                 // need to update an element
-                const updated = prev.map( (element) => {
-                    if(element.id === cur.id){
-                        if(selectedTask.id === cur.id){
-                            return {...cur, selected: true}
-                        }
-                        return {...cur, selected: false};
-                    }else{
-                        return {...element, selected: false};
-                    }
-                });
-                return updated;
+                prev[index] = {...cur}
+                if(prev[index].id === selectedTask.id){
+                    prev[index].selected = true;
+                }
+                return [...prev];
             }else{
                 return [...prev, cur];
             }
@@ -198,8 +191,8 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             setTaskingData({task: mergedData});
         }
         if(mergedData.length > oldLength){
-            setCanScroll(true);
-        }     
+            //setCanScroll(true);
+        }
         if(mergedData.length > taskLimit){
             setTaskLimit(mergedData.length);
         }
@@ -218,17 +211,6 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
         },
         fetchPolicy: "no-cache",
         onData: subscriptionDataCallback});
-    const scrollToBottom = useCallback( () => {
-        if(taskingData && messagesEndRef.current){
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-      }, [taskingData, messagesEndRef]);
-    useLayoutEffect( () => {
-        if(canScroll){
-            scrollToBottom();
-            setCanScroll(false);
-        }
-    }, [canScroll, scrollToBottom]);
     const [getInfiniteScrollTasking, {loading: loadingMore}] = useLazyQuery(getNextBatchTaskingQuery, {
         onError: data => {
             console.error(data);
@@ -275,7 +257,6 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     });
     useEffect( () => {
         getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
-        setCanScroll(true);
         return() => {
             mountedRef.current = false;
         }
@@ -397,7 +378,12 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             let index = taskingDataRef.current.task.findIndex(e => e.id === newlyIssuedTasks.current)
             if(index > -1){
                 newlyIssuedTasks.current = null;
-                changeSelectedTask(taskingDataRef.current.task[index]);
+                if(taskingDataRef.current.task[index]?.operator?.username === (me?.user?.username || "")){
+                    let el = document.getElementById(`taskingPanelSplit${tabInfo.callbackID}`);
+                    if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 100){
+                        changeSelectedTask(taskingDataRef.current.task[index]);
+                    }
+                }
             }
 
         }
@@ -405,16 +391,16 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     return (
         <MythicTabPanel index={index} value={value} >
             <Split direction="horizontal" minSize={[0,0]} style={{width: "100%", height: "100%", overflowY: "auto", display: "flex"}} sizes={[30, 70]} >
-                <div className="bg-gray-base" style={{display: "inline-flex", flexDirection: "column"}}>
+                <div className="bg-gray-base" style={{display: "inline-flex", flexDirection: "column"}} >
 
-                    <div style={{overflowY: "auto", flexGrow: 1}}>
+                    <div style={{overflowY: "auto", flexGrow: 1}} id={`taskingPanelSplit${tabInfo.callbackID}`}>
 
                         {!fetchedAllTasks &&
                             <MythicStyledTooltip title="Fetch Older Tasks">
                             <IconButton
                             onClick={loadMoreTasks}
                             variant="contained"
-                            color="primary"
+                            color="success"
                             style={{marginLeft: "50%"}}
                             size="large"><AutorenewIcon /></IconButton>
                             </MythicStyledTooltip>}

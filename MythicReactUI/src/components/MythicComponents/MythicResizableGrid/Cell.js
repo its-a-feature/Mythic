@@ -22,6 +22,7 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
     const item = data.items[rowIndex][columnIndex];
     const cellStyle = item?.props?.cellData?.cellStyle || {};
     const rowStyle = data.items[rowIndex][columnIndex]?.props?.rowData?.rowStyle || {};
+    const selectedClass = data.items[rowIndex][columnIndex]?.props?.rowData?.selected ? "selectedCallback" : "";
     const onMouseEnter = () => {
         const cells = document.getElementsByClassName(rowClassName);
         if(cells.length > 0){
@@ -56,14 +57,14 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
     );
     return (
         <div style={{...style, ...cellStyle, ...rowStyle}}
-            className={`${classes.cell} ${rowClassName}`}
+            className={`${classes.cell} ${rowClassName} ${selectedClass}`}
             onDoubleClick={handleDoubleClick}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
             onContextMenu={handleContextClick} 
             ref={dropdownAnchorRef}
             >
-            <div className={classes.cellInner}>
+            <div className={classes.cellInner} style={{height: style.height}}>
                 {item}
             </div>
             <ContextMenu dropdownAnchorRef={dropdownAnchorRef} contextMenuOptions={contextMenuOptions}

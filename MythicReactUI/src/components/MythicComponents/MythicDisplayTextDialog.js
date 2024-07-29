@@ -12,7 +12,9 @@ export function MythicDisplayTextDialog(props) {
         <React.Fragment>
             <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
             <DialogContent dividers={true}>
-                <MythicTextField multiline={true} value={props.value} onChange={()=>{}} />
+                <pre style={{whiteSpace: "pre-wrap"}}>
+                    {props.value}
+                </pre>
             </DialogContent>
             <DialogActions>
               <Button onClick={props.onClose} variant="contained" color="primary">

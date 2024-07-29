@@ -439,21 +439,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
   const [browserScriptData, setBrowserScriptData] = React.useState({});
   const [loadingBrowserScript, setLoadingBrowserScript] = React.useState(true);
   const useNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: "false"});
-  const script = React.useRef();
-  useEffect( () => {
-    if(script.current !== undefined){
-      try{
-        const rawResponseData = rawResponses.map(c => c.response);
-        let res = script.current(task, rawResponseData);
-        setBrowserScriptData(filterOutput(res));
-      }catch(error){
-        setViewBrowserScript(false);
-        setBrowserScriptData({});
-        console.log(error);
-      }
-      
-    }
-  }, [rawResponses, task]);
+  const script = React.useRef(undefined);
   const filterOutput = (scriptData) => {
     if(search === ""){
       return scriptData;
@@ -493,41 +479,43 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     return copied;
   }
   useEffect( () => {
+    console.log("in use effect")
+    if(loadingBrowserScript){
+      return;
+    }
     if(script.current === undefined){
       setViewBrowserScript(false);
       return;
     }
-    setViewBrowserScript(viewBrowserScript);
     if(viewBrowserScript){
       try{
         const rawResponseData = rawResponses.map(c => c.response);
-        let scriptTaskData = JSON.parse(JSON.stringify(task));
-        let res = script.current(scriptTaskData, rawResponseData);
+        let res = script.current(task, rawResponseData);
+        if(Object.keys(res).length === 0){
+          // if we run the browser script and there's no data, just display plaintext
+          setViewBrowserScript(false);
+          return;
+        }
+        setViewBrowserScript(viewBrowserScript);
         setBrowserScriptData(filterOutput(res));
       }catch(error){
-        setViewBrowserScript(false);
+        if(rawResponses.length > 0){
+          setViewBrowserScript(false);
+          setBrowserScriptData({});
+          console.log(error);
+        }
       }
     }
-  }, [viewBrowserScript]);
+  }, [rawResponses, task, loadingBrowserScript, viewBrowserScript]);
   const [fetchScripts] = useLazyQuery(taskScript, {
     fetchPolicy: "no-cache",
     onCompleted: (data) => {
       if(data.browserscript.length > 0){
         try{
-          //let unb64script = b64DecodeUnicode(data.browserscript[0]["script"]);
-          //script.current = Function('"use strict";return(' + unb64script + ')')();
           script.current = Function(`"use strict";return(${data.browserscript[0]["script"]})`)();
-          setViewBrowserScript(true);
-          //console.log(rawResponses);
-          const rawResponseData = rawResponses.map(c => c.response);
-          let scriptTaskData = JSON.parse(JSON.stringify(task));
-          let res = script.current(scriptTaskData, rawResponseData);
-          setBrowserScriptData(filterOutput(res));
         }catch(error){
-          //snackActions.error(error.toString());
+          script.current = undefined;
           console.log(error);
-          setViewBrowserScript(false);
-          setBrowserScriptData({});
         }
       }else{
         setViewBrowserScript(false);
@@ -549,7 +537,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     return null
   }
   return (
-    localViewBrowserScript && browserScriptData ? (
+    localViewBrowserScript && Object.keys(browserScriptData).length > 0 ? (
       <React.Fragment>
           {browserScriptData?.screenshot?.map( (scr, index) => (
               <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} task={task} {...scr} />

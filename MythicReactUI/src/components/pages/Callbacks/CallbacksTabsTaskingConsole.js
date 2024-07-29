@@ -374,7 +374,7 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
                 </MythicStyledTooltip>}
             {!fetched && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
             {loadingMore && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
-            <div style={{overflowY: "auto", flexGrow: 1}}>
+            <div style={{overflowY: "auto", flexGrow: 1}} id={`taskingPanelConsole${tabInfo.callbackID}`}>
                 {
                     taskingData.task.map( (task) => (
                         <TaskDisplayConsole key={"taskinteractdisplayconsole" + task.id} me={me} task={task} command_id={task.command == null ? 0 : task.command.id}

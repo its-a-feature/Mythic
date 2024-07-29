@@ -289,13 +289,20 @@ const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren,
 
                       </MythicStyledTooltip>
                   }
-                <Link style={{wordBreak: "break-all"}} color={"textPrimary"} underline={"always"} target={"_blank"}
-                      href={"/new/task/" + task.display_id}>{task.display_id}</Link>
+                  <MythicStyledTooltip title={"View Task in separate page"} >
+                    <Link style={{wordBreak: "break-all"}} color={"textPrimary"} underline={"always"} target={"_blank"}
+                          href={"/new/task/" + task.display_id}>{task.display_id}</Link>
+                  </MythicStyledTooltip>
+
               </span>
               {" "}
               <GetOperatorDisplay initialHideUsernameValue={initialHideUsernameValue} task={task}/>
-              {" / "} <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+              {" / "}
+              <MythicStyledTooltip title={"View Callback in separate page"}>
+                <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                       href={"/new/callbacks/" + task.callback.display_id}>{task.callback.display_id}</Link>
+              </MythicStyledTooltip>
+
               {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}
               {initialShowIPValue ? `/ ${ipValue} ` : ''}
               {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
@@ -702,13 +709,7 @@ const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}
     }
     setDropdownOpen(!dropdownOpen);
   }, [dropdownOpen]);
-  /*
-  useEffect( () => {
-    if(!isFetchingSubtasks && task.tasks.length > 0){
-      getSubTasks();
-    }
-  }, [task.tasks]);
-  */
+
   return (
       shouldDisplay ? (
           <div style={{marginLeft: (indentLevel * 10) + "px"}}>
@@ -729,12 +730,6 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
   const [fromNow, setFromNow] = React.useState(new Date());
   const theme = useTheme();
   const prevResponseMaxId = useRef(0);
-  // only scroll down for your own tasks
-  useLayoutEffect( () => {
-    if(task.operator.username === (me?.user?.username || "")){
-      scrollContent(); // need to change this if we want to prevent auto scroll on expanding subtasks
-    }
-  }, [])
   useEffect( () => {
     //console.log("in use effect", prevResponseCount.current, props.task.responses);
     let currentData = task.response_count;
@@ -760,18 +755,20 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
   const scrollContent = (node, isAppearing) => {
     // only auto-scroll if you issued the task
     if(task.operator.username === (me?.user?.username || "")){
-      document.getElementById(`scrolltotask${task.id}`).scrollIntoView({
-        //behavior: "smooth",
-        block: "start",
-        inline: "start"
-      })
+      let el = document.getElementById(`taskingPanel${task.callback_id}`);
+      if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 100){
+        document.getElementById(`scrolltotask${task.id}`)?.scrollIntoView({
+          //behavior: "smooth",
+          block: "start",
+          inline: "start"
+        });
+      }
     }
-    
   }
 
   return (
     <StyledPaper className={classes.root + " no-box-shadow"} elevation={5}  id={`taskHeader-${task.id}`}>
-      <Accordion TransitionProps={{ unmountOnExit: true, onEntered: scrollContent }} defaultExpanded={false}
+      <Accordion TransitionProps={{ unmountOnExit: true, onEnter: scrollContent }} defaultExpanded={false}
                  onChange={toggleTaskDropdown} expanded={dropdownOpen}
                  style={{backgroundColor: "unset", backgroundImage: "unset"}}
       >
@@ -812,11 +809,14 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
   const scrollContent = (node, isAppearing) => {
     // only auto-scroll if you issued the task
     if(task.operator.username === (me?.user?.username || "")){
-      document.getElementById(`scrolltotasksplit${task.id}`).scrollIntoView({
-        //behavior: "smooth",
-        block: "start",
-        inline: "start"
-      })
+      let el = document.getElementById(`taskingPanelSplit${task.callback_id}`);
+      if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 100){
+        document.getElementById(`scrolltotasksplit${task.id}`)?.scrollIntoView({
+          //behavior: "smooth",
+          block: "start",
+          inline: "start"
+        });
+      }
     }
 
   }
@@ -848,19 +848,21 @@ const TaskLabelConsole = ({task, me}) => {
   const scrollContent = (node, isAppearing) => {
     // only auto-scroll if you issued the task
     if(task.operator.username === (me?.user?.username || "")){
-      document.getElementById(`scrolltotaskconsole${task.id}`).scrollIntoView({
-        //behavior: "smooth",
-        block: "start",
-        inline: "start"
-      })
+      let el = document.getElementById(`taskingPanelConsole${task.callback_id}`);
+      if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 100){
+        document.getElementById(`scrolltotaskconsole${task.id}`)?.scrollIntoView({
+          //behavior: "smooth",
+          block: "start",
+          inline: "start"
+        });
+      }
     }
 
   }
 
   return (
       <StyledPaper className={classes.root + " no-box-shadow"} elevation={5} style={{marginRight: 0}} id={`taskHeader-${task.id}`}>
-          <ColoredTaskLabel theme={theme} task={task} me={me} taskDivID={`scrolltotaskconsole${task.id}`}
-          expanded={true}/>
+          <ColoredTaskLabel theme={theme} task={task} me={me} taskDivID={`scrolltotaskconsole${task.id}`} expanded={true}/>
           <TaskDisplayContainerConsole me={me} task={task} />
       </StyledPaper>
   );

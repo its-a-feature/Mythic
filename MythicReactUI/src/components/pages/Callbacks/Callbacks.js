@@ -174,7 +174,7 @@ export function Callbacks({me}) {
             <SpeedDialWrapper setTopDisplay={setTopDisplay} />
             <Split direction="vertical" sizes={[30, 70]} minSize={[0,0]} style={{ height: "100%" }}>
                 <div className="bg-gray-base">
-                    <CallbacksTop topDisplay={topDisplay} onOpenTab={onOpenTab.current} me={me}/>
+                    <CallbacksTop topDisplay={topDisplay} onOpenTab={onOpenTab.current} me={me} clickedTabId={clickedTabId}/>
                 </div>
                 <div className="bg-gray-mid">
                     <CallbacksTabs

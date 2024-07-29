@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {TaskDisplay} from '../Callbacks/TaskDisplay';
+import {TaskDisplay, TaskDisplayConsole} from '../Callbacks/TaskDisplay';
 import {gql, useLazyQuery } from '@apollo/client';
 import  {useParams} from "react-router-dom";
 import {TaskMetadataTable} from './MetadataTable';
@@ -220,8 +220,8 @@ export function SingleTaskView(props){
         }      
     }, [getTasks, taskId]);
   return (
-    <div style={{marginTop: "10px", maxHeight: "calc(94vh)", width:"100%", marginBottom: "10px" }}>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
+    <div style={{height: "100%", display: "flex", flexDirection: "column", width:"100%",}}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px"}} variant={"elevation"}>
             <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Task View
             </Typography>
@@ -235,7 +235,7 @@ export function SingleTaskView(props){
             task.type === "task" ? (
                     <div key={"taskdisplay:" + task.display_id} style={{marginRight: "5px"}}>
                         <div style={{width: removing ? "95%" : "100%", display: "inline-block"}}>
-                            <TaskDisplay me={me}  task={task} command_id={task.command === null ? 0 : task.command.id} />
+                            <TaskDisplayConsole me={me} task={task} command_id={task.command === null ? 0 : task.command.id} />
                         </div>
                         {removing ? (
                             <Switch

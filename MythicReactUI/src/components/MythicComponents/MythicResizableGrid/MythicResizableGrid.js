@@ -9,7 +9,7 @@ import DraggableHandles from './DraggableHandles';
 import {classes} from './styles';
 const HeaderCellContext = createContext({});
 
-const MIN_COLUMN_WIDTH = 100;
+const MIN_COLUMN_WIDTH = 50;
 
 const CellRenderer = (VariableSizeGridProps) => {
     return VariableSizeGridProps.rowIndex === 0 ? null : <Cell VariableSizeGridProps={VariableSizeGridProps} />;
@@ -137,6 +137,9 @@ const ResizableGridWrapper = ({
     };
 
     const autosizeColumn =  ({columnIndex}) => {
+        if(columns[columnIndex].disableDoubleClick){
+            return
+        }
         const longestElementInColumn = Math.max(...items.map((itemRow) => {
             if(!columns[columnIndex].key){
                 if(columns[columnIndex].plaintext){
@@ -153,6 +156,12 @@ const ResizableGridWrapper = ({
                 if(columns[columnIndex].key === "mythictree_groups"){
                     return itemRow[columnIndex]?.props?.cellData.length;
                 }
+                if(columns[columnIndex].type === "size"){
+                    if(itemRow[columnIndex]?.props?.cellData){
+                        return String(itemRow[columnIndex]?.props?.cellData?.plaintext)?.length;
+                    }
+                    return itemRow[columnIndex].length;
+                }
                 try{
                     items = JSON.parse(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]);
                     if(Array.isArray(items) && items.length > 0){
@@ -162,8 +171,11 @@ const ResizableGridWrapper = ({
                     //console.log(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key])
                 }
                 let data = itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key];
+                if(columns[columnIndex].inMetadata){
+                    return itemRow[columnIndex]?.props?.cellData.length;
+                }
                 if(!data){
-                    return 3;
+                    return MIN_COLUMN_WIDTH;
                 }
                 if(data.plaintext){
                     return String(data.plaintext).length || -1;
@@ -172,7 +184,6 @@ const ResizableGridWrapper = ({
                 }
                 //return String(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]).length || -1;
             } else if(typeof(itemRow[columnIndex]?.props?.cellData) === "string") {
-
                 try {
                     items = JSON.parse(itemRow[columnIndex]?.props?.cellData);
                     if (Array.isArray(items) && items.length > 0) {
@@ -190,10 +201,14 @@ const ResizableGridWrapper = ({
         }));
         const updatedWidths = columnWidths.map((columnWidth, index) => {
             if (columnIndex === index) {
+                if(isNaN(longestElementInColumn)){
+                    return MIN_COLUMN_WIDTH;
+                }
                 return Math.floor(Math.max(longestElementInColumn * 10 + 40, MIN_COLUMN_WIDTH));
             }
             return Math.floor(columnWidth);
         });
+        //console.log(updatedWidths, longestElementInColumn);
         setColumnWidths(updatedWidths);
     };
 
@@ -224,7 +239,7 @@ const ResizableGridWrapper = ({
                     rowHeight={getRowHeight}
                     itemData={{ items: itemsWithHeader, onDoubleClickRow, gridUUID, rowContextMenuOptions}}
                     innerElementType={innerElementType}
-                    overscanRowCount={5}
+                    overscanRowCount={10}
                     onScroll={({ scrollLeft }) => {
                         if (dragHandlesRef.current) {
                             dragHandlesRef.current.scrollTo({ left: scrollLeft });
@@ -259,7 +274,7 @@ const MythicResizableGrid = ({
     contextMenuOptions,
     rowContextMenuOptions,
     widthMeasureKey,
-    rowHeight = 32,
+    rowHeight = 20,
 }) => {
     return (
         <AutoSizer style={{height: "100%"}}>

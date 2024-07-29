@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useContext} from 'react';
 import {MythicTransferListDialog} from '../../MythicComponents/MythicTransferList';
-import {MythicDialog} from '../../MythicComponents/MythicDialog';
+import {MythicDialog, MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import {
   updateDescriptionCallbackMutation,
   updateSleepInfoCallbackMutation} from './CallbackMutations';
@@ -29,6 +29,14 @@ import {
 import {useTheme} from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import {SetMythicSetting, useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {DetailedCallbackTable} from "./DetailedCallbackTable";
+import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
+import Paper from '@mui/material/Paper';
+import Grow from '@mui/material/Grow';
+import Popper from '@mui/material/Popper';
+import MenuItem from '@mui/material/MenuItem';
+import MenuList from '@mui/material/MenuList';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
 
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
@@ -68,8 +76,96 @@ export const ipCompare = (a, b) => {
         return 0;
     }
 }
+export const getCallbackIdFromClickedTab = (tabId) => {
+    if(tabId.includes("fileBrowser")) {
+        return Number(tabId.split("fileBrowser")[0]);
+    }else if(tabId.includes("interact")){
+        return Number(tabId.split("interact")[0]);
+    }else if(tabId.includes("processBrowser")){
+        return Number(tabId.split("processBrowser")[0]);
+    } else {
+        console.log("unknown tab type", tabId);
+        return 0;
+    }
+}
 function CallbacksTablePreMemo(props){
     const callbacks = useContext(CallbacksContext);
+    const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
+    const openMetaDialogRef = React.useRef(0);
+    const metaDialog = (callback_id) => {
+        openMetaDialogRef.current = callback_id;
+        setOpenMetaDialog(true);
+    }
+    const [openEditMythicTreeGroupsDialog, setOpenEditMythicTreeGroupsDialog] = React.useState(false);
+    const mythicTreeGroupsDialogRef = React.useRef(0);
+    const editMythicTreeGroupsDialog = (callback_id) => {
+        mythicTreeGroupsDialogRef.current = callback_id;
+        setOpenEditMythicTreeGroupsDialog(true);
+    }
+    const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
+    const [updateDescriptionMutation] = useMutation(updateDescriptionCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Updated Callback");
+            }else{
+                snackActions.warning(data.updateCallback.error);
+            }
+
+        },
+        onError: data => {
+            console.log(data);
+            snackActions.warning(data);
+        }
+    });
+    const updateDescriptionRef = React.useRef({payload_description: "", callback_display_id: 0, description: ""});
+    const updateDescription = ({payload_description, callback_display_id, description}) => {
+        updateDescriptionRef.current = {
+            payload_description: payload_description,
+            callback_display_id: callback_display_id,
+            description: description
+        };
+        setOpenEditDescriptionDialog(true);
+    }
+    const editDescriptionSubmit = (description) => {
+        setOpenEditDescriptionDialog(false);
+        if(description === ""){
+            updateDescriptionSubmit({
+                description: updateDescriptionRef.current.payload_description,
+                callback_display_id: updateDescriptionRef.current.callback_display_id
+            });
+        } else {
+            updateDescriptionSubmit({
+                description: description,
+                callback_display_id: updateDescriptionRef.current.callback_display_id
+            });
+        }
+    }
+    const updateDescriptionSubmit = React.useCallback( ({callback_display_id, description}) => {
+        updateDescriptionMutation({variables: {callback_display_id: callback_display_id, description}})
+    }, []);
+    const [openCallbackDropdown, setOpenCallbackDropdown] = React.useState(false);
+    const callbackDropdownRef = React.useRef({options: [], callback: {}});
+    const [clickedCallbackID, setClickedCallbackId] = React.useState(0);
+    React.useEffect( () => {
+        setClickedCallbackId(getCallbackIdFromClickedTab(props.clickedTabId));
+    }, [props.clickedTabId])
+    const callbackDropdown = ({options, callback, dropdownAnchorRef, event}) => {
+        callbackDropdownRef.current.options = options;
+        callbackDropdownRef.current.callback = callback;
+        callbackDropdownRef.current.dropdownAnchorRef = event.currentTarget;
+        //callbackDropdownRef.current.dropdownAnchorRef = dropdownAnchorRef;
+        setOpenCallbackDropdown(true);
+    }
+    const handleMenuItemClick = (event, index) => {
+        callbackDropdownRef.current.options[index].click(event);
+        setOpenCallbackDropdown(false);
+    };
+    const handleClose = (event) => {
+        if (callbackDropdownRef.current.dropdownAnchorRef && callbackDropdownRef.current.dropdownAnchorRef.contains(event.target)) {
+            return;
+        }
+        setOpenCallbackDropdown(false);
+    };
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [openAdjustColumnsDialog, setOpenAdjustColumnsDialog] = React.useState(false);
@@ -80,20 +176,6 @@ function CallbacksTablePreMemo(props){
     const [columnVisibility, setColumnVisibility] = React.useState({
         "visible": ["Interact", "Host", "Domain", "User", "Description", "Last Checkin", "Agent",  "IP", "PID"],
         "hidden": ["Arch", "Sleep", "Process Name", "External IP", "C2",  "OS", "Groups"]
-    });
-    const [updateDescription] = useMutation(updateDescriptionCallbackMutation, {
-      update: (cache, {data}) => {
-        if(data.updateCallback.status === "success"){
-            snackActions.success("Updated Callback");
-        }else{
-            snackActions.warning(data.updateCallback.error);
-        }
-        
-      },
-      onError: data => {
-          console.log(data);
-          snackActions.warning(data);
-      }
     });
     const [updateSleep] = useMutation(updateSleepInfoCallbackMutation, {
       update: (cache, {data}) => {
@@ -132,21 +214,21 @@ function CallbacksTablePreMemo(props){
     const columns = useMemo( 
       () => 
         [
-          {key: "id", type: 'number', name: "Interact", width: 150},
+          {key: "id", type: 'number', name: "Interact", width: 120, disableDoubleClick: true},
           {key: "mythictree_groups", type: 'array', name: "Groups"},
           {key: "ip", type: 'ip', name: "IP", width: 150},
           {key: "external_ip",type: 'string', name: "External IP", width: 150},
           {key: "host", type: 'string', name: "Host", fillWidth: true},
           {key: "user", type: 'string', name: "User", fillWidth: true},
           {key: "domain", type: 'string', name: "Domain", fillWidth: true},
-          {key: "os", type: 'string', name: "OS", width: 75},
+          {key: "os", type: 'string', name: "OS", width: 45, disableDoubleClick: true, disableSort: true},
           {key: "architecture", type: 'string', name: "Arch", width: 75},
           {key: "pid", type: 'number', name: "PID", width: 75},
-          {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true},
+          {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true, disableDoubleClick: true},
           {key: "description", type: 'string', name: "Description", width: 400},
-          {key: "sleep", type: 'string', name: "Sleep", width: 75, disableSort: true},
-          {key: "agent", type: 'string', name: "Agent", width: 100, disableSort: true},
-          {key: "c2", type: 'string', name: "C2", width: 75, disableSort: true, disableFilterMenu: true},
+          {key: "sleep", type: 'string', name: "Sleep", width: 50, disableFilterMenu: true, disableSort: true, disableDoubleClick: true},
+          {key: "agent", type: 'agent', name: "Agent", width: 150},
+          {key: "c2", type: 'string', name: "C2", width: 45, disableSort: true, disableFilterMenu: true, disableDoubleClick: true},
           {key: "process_short_name", type: 'string', name: "Process Name", fillWidth: true},
         ].reduce( (prev, cur) => {
           if(columnVisibility.visible.includes(cur.name) || cur.name === "Interact"){
@@ -214,9 +296,6 @@ function CallbacksTablePreMemo(props){
       if(localSettings !== null){
       }
     }, [columns]);
-    const updateDescriptionSubmit = React.useCallback( ({callback_display_id, description}) => {
-      updateDescription({variables: {callback_display_id: callback_display_id, description}})
-    }, []);
     const updateSleepInfo = React.useCallback( ({callback_display_id, sleep_info}) => {
       updateSleep({variables: {callback_display_id: callback_display_id, sleep_info}})
     }, [])
@@ -264,6 +343,8 @@ function CallbacksTablePreMemo(props){
               else if(bDate > aDate){return -1}
               return 0;
           })
+      } else if(sortData.sortType === "agent"){
+          tempData.sort((a, b) => (a?.payload?.payloadtype?.name?.toLowerCase() > b?.payload?.payloadtype?.name?.toLowerCase() ? 1 : -1));
       }
       if (sortData.sortDirection === 'DESC') {
           tempData.reverse();
@@ -276,60 +357,89 @@ function CallbacksTablePreMemo(props){
                     switch(c.name){
                         case "Interact":
                             return <CallbacksTableIDCell
-                                rowData={row}
+                                rowData={{...row, selected: row.id === clickedCallbackID}}
                                 key={`callback${row.id}_${c.name}`}
-                                updateDescription={updateDescriptionSubmit}
+                                updateDescription={updateDescription}
+                                editMythicTreeGroupsDialog={editMythicTreeGroupsDialog}
+                                metaDialog={metaDialog}
+                                callbackDropdown={callbackDropdown}
                                 setOpenHideMultipleDialog={setOpenHideMultipleDialog}
                                 setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
                             />;
                         case "Groups":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.mythictree_groups.join(", ")} />;
+                            return <CallbacksTableStringCell
+                                key={`callback${row.id}_${c.name}`}
+                                cellData={row.mythictree_groups.join(", ")}
+                                rowData={{...row, selected: row.id === clickedCallbackID}}
+                            />;
                         case "IP":
-                            return <CallbacksTableIPCell key={`callback${row.id}_${c.name}`} cellData={row.ip} rowData={row} callback_id={row.id} />;
+                            return <CallbacksTableIPCell
+                                key={`callback${row.id}_${c.name}`}
+                                cellData={row.ip}
+                                rowData={{...row, selected: row.id === clickedCallbackID}}
+                                callback_id={row.id} />;
                         case "External IP":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.external_ip} rowData={row} />;
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.external_ip}
+                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
                         case "Host":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.host} rowData={row} />;
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.host}
+                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
                         case "User":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.user} rowData={row} />;
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.user}
+                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
                         case "Domain":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.domain} rowData={row} />;
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.domain}
+                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
                         case "OS":
-                            return <CallbacksTableOSCell key={`callback${row.id}_${c.name}`} rowData={row} cellData={row.os} />;
+                            return <CallbacksTableOSCell key={`callback${row.id}_${c.name}`}
+                                                         rowData={{...row, selected: row.id === clickedCallbackID}}
+                                                         cellData={row.os} />;
                         case "Arch":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} rowData={row} cellData={row.architecture} />;
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`}
+                                                             rowData={{...row, selected: row.id === clickedCallbackID}}
+                                                             cellData={row.architecture} />;
                         case "PID":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.pid} rowData={row} />;
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.pid}
+                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
                         case "Last Checkin":
-                            return <CallbacksTableLastCheckinCell key={`callback${row.id}_${c.name}`} rowData={row} cellData={row.last_checkin} />;
+                            return <CallbacksTableLastCheckinCell key={`callback${row.id}_${c.name}`}
+                                                                  rowData={{...row, selected: row.id === clickedCallbackID}}
+                                                                  cellData={row.last_checkin} />;
                         case "Description":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.description} rowData={row} />;
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.description}
+                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
                         case "Sleep":
-                            return <CallbacksTableSleepCell key={`callback${row.id}_${c.name}`} rowData={row} cellData={row.sleep_info} updateSleepInfo={updateSleepInfo} />;
+                            return <CallbacksTableSleepCell key={`callback${row.id}_${c.name}`}
+                                                            rowData={{...row, selected: row.id === clickedCallbackID}}
+                                                            cellData={row.sleep_info} updateSleepInfo={updateSleepInfo} />;
                         case "Agent":
-                            return <CallbacksTablePayloadTypeCell key={`callback${row.id}_${c.name}`} rowData={row} cellData={row.payload.payloadtype.name}/>;
+                            return <CallbacksTablePayloadTypeCell key={`callback${row.id}_${c.name}`}
+                                                                  rowData={{...row, selected: row.id === clickedCallbackID}}
+                                                                  cellData={row.payload.payloadtype.name}/>;
                         case "C2":
-                            return <CallbacksTableC2Cell key={`callback${row.id}_c2`} rowData={row} />
+                            return <CallbacksTableC2Cell key={`callback${row.id}_c2`}
+                                                         rowData={{...row, selected: row.id === clickedCallbackID}} />
                         case "Process Name":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.process_short_name} rowData={row} />;
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`}
+                                                             cellData={row.process_short_name}
+                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
                     }
                 })];
             }
         }, [])
-    }, [callbacks, sortData, filterOptions, columnVisibility]);
-
+    }, [callbacks, sortData, filterOptions, columnVisibility, clickedCallbackID]);
     const onSubmitFilterOptions = (newFilterOptions) => {
       setFilterOptions(newFilterOptions);
     }
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
     return (
-        <div style={{ width: '100%', height: '100%', position: "relative" }}>
+        <div style={{ width: '100%', height: '100%', position: "relative",  }} >
           <MythicResizableGrid
               columns={columns}
               sortIndicatorIndex={sortColumn}
               sortDirection={sortData.sortDirection}
               items={sortedData}
-              rowHeight={40}
+              rowHeight={20}
               onClickHeader={onClickHeader}
               onDoubleClickRow={onRowDoubleClick}
               contextMenuOptions={contextMenuOptions}
@@ -344,7 +454,68 @@ function CallbacksTablePreMemo(props){
                       onClose={()=>{setOpenContextMenu(false);}} />}
               />
           }
-          {openAdjustColumnsDialog &&
+            {openEditDescriptionDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    open={openEditDescriptionDialog}
+                    onClose={() => {setOpenEditDescriptionDialog(false);}}
+                    innerDialog={
+                        <MythicModifyStringDialog title={`Edit Callback ${updateDescriptionRef.current.callback_display_id} Description`}
+                                                  onClose={() => {setOpenEditDescriptionDialog(false);}}
+                                                  value={updateDescriptionRef.current.description}
+                                                  onSubmit={editDescriptionSubmit}
+                        />
+                    }
+                />
+            }
+            {openMetaDialog &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openMetaDialog}
+                              onClose={()=>{setOpenMetaDialog(false);}}
+                              innerDialog={<DetailedCallbackTable onClose={()=>{setOpenMetaDialog(false);}} callback_id={openMetaDialogRef.current} />}
+                />
+            }
+            {openEditMythicTreeGroupsDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth={"lg"}
+                    open={openEditMythicTreeGroupsDialog}
+                    onClose={() => {setOpenEditMythicTreeGroupsDialog(false);}}
+                    innerDialog={
+                        <ModifyCallbackMythicTreeGroupsDialog callback_id={mythicTreeGroupsDialogRef.current}
+                                                              onClose={() => {setOpenEditMythicTreeGroupsDialog(false);}} />
+                    }
+                />
+            }
+            <Popper open={openCallbackDropdown} anchorEl={callbackDropdownRef.current.dropdownAnchorRef} role={undefined} transition style={{zIndex: 200}}>
+                {({ TransitionProps, placement }) => (
+                    <Grow
+                        {...TransitionProps}
+                        style={{
+                            transformOrigin: placement === 'bottom' ? 'top left' : 'top center',
+                        }}
+                    >
+                        <Paper className={"dropdownMenuColored"} elevation={5}>
+                            <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+                                <MenuList id="split-button-menu">
+                                    <MenuItem disabled={true}>
+                                        Callback: {callbackDropdownRef.current.callback.display_id}
+                                    </MenuItem>
+
+                                    {callbackDropdownRef.current.options.map((option, index) => (
+                                        <MenuItem
+                                            key={option.name}
+                                            onClick={(event) => handleMenuItemClick(event, index)}
+                                        >
+                                            {option.icon}{option.name}
+                                        </MenuItem>
+                                    ))}
+                                </MenuList>
+                            </ClickAwayListener>
+                        </Paper>
+                    </Grow>
+                )}
+            </Popper>
+            {openAdjustColumnsDialog &&
               <MythicDialog fullWidth={true} maxWidth="md" open={openAdjustColumnsDialog} 
                 onClose={()=>{setOpenAdjustColumnsDialog(false);}} 
                 innerDialog={
@@ -415,9 +586,22 @@ const accessorFn = (row, h) => {
 function CallbacksTableMaterialReactTablePreMemo(props){
     const callbacks = useContext(CallbacksContext);
     const theme = useTheme();
+    const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
+    const openMetaDialogRef = React.useRef(0);
+    const metaDialog = (callback_id) => {
+        openMetaDialogRef.current = callback_id;
+        setOpenMetaDialog(true);
+    }
+    const [openEditMythicTreeGroupsDialog, setOpenEditMythicTreeGroupsDialog] = React.useState(false);
+    const mythicTreeGroupsDialogRef = React.useRef(0);
+    const editMythicTreeGroupsDialog = (callback_id) => {
+        mythicTreeGroupsDialogRef.current = callback_id;
+        setOpenEditMythicTreeGroupsDialog(true);
+    }
     const [openHideMultipleDialog, setOpenHideMultipleDialog] = React.useState(false);
     const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState({open: false, data: {}});
-    const [updateDescription] = useMutation(updateDescriptionCallbackMutation, {
+    const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
+    const [updateDescriptionMutation] = useMutation(updateDescriptionCallbackMutation, {
         update: (cache, {data}) => {
             if(data.updateCallback.status === "success"){
                 snackActions.success("Updated Callback");
@@ -431,6 +615,51 @@ function CallbacksTableMaterialReactTablePreMemo(props){
             snackActions.warning(data);
         }
     });
+    const updateDescriptionRef = React.useRef({payload_description: "", callback_display_id: 0, description: ""});
+    const updateDescription = ({payload_description, callback_display_id, description}) => {
+        updateDescriptionRef.current = {
+            payload_description: payload_description,
+            callback_display_id: callback_display_id,
+            description: description
+        };
+        setOpenEditDescriptionDialog(true);
+    }
+    const editDescriptionSubmit = (description) => {
+        setOpenEditDescriptionDialog(false);
+        if(description === ""){
+            updateDescriptionSubmit({
+                description: updateDescriptionRef.current.payload_description,
+                callback_display_id: updateDescriptionRef.current.callback_display_id
+            });
+        } else {
+            updateDescriptionSubmit({
+                description: description,
+                callback_display_id: updateDescriptionRef.current.callback_display_id
+            });
+        }
+    }
+    const updateDescriptionSubmit = React.useCallback( ({callback_display_id, description}) => {
+        updateDescriptionMutation({variables: {callback_display_id: callback_display_id, description}})
+    }, []);
+    const [openCallbackDropdown, setOpenCallbackDropdown] = React.useState(false);
+    const callbackDropdownRef = React.useRef({options: [], callback: {}});
+
+    const callbackDropdown = ({options, callback, dropdownAnchorRef}) => {
+        callbackDropdownRef.current.options = options;
+        callbackDropdownRef.current.callback = callback;
+        callbackDropdownRef.current.dropdownAnchorRef = dropdownAnchorRef;
+        setOpenCallbackDropdown(true);
+    }
+    const handleMenuItemClick = (event, index) => {
+        callbackDropdownRef.current.options[index].click(event);
+        setOpenCallbackDropdown(false);
+    };
+    const handleClose = (event) => {
+        if (callbackDropdownRef.current.dropdownAnchorRef && callbackDropdownRef.current.dropdownAnchorRef.contains(event.target)) {
+            return;
+        }
+        setOpenCallbackDropdown(false);
+    };
     const [updateSleep] = useMutation(updateSleepInfoCallbackMutation, {
         update: (cache, {data}) => {
             snackActions.success("Updated Callback");
@@ -441,9 +670,6 @@ function CallbacksTableMaterialReactTablePreMemo(props){
             snackActions.warning(data);
         }
     });
-    const updateDescriptionSubmit = React.useCallback( ({callback_display_id, description}) => {
-        updateDescription({variables: {callback_display_id: callback_display_id, description}})
-    }, []);
     const updateSleepInfo = React.useCallback( ({callback_display_id, sleep_info}) => {
         updateSleep({variables: {callback_display_id: callback_display_id, sleep_info}})
     }, [])
@@ -502,7 +728,10 @@ function CallbacksTableMaterialReactTablePreMemo(props){
             case "Interact":
                 return <CallbacksTableIDCell
                     rowData={row}
-                    updateDescription={updateDescriptionSubmit}
+                    updateDescription={updateDescription}
+                    editMythicTreeGroupsDialog={editMythicTreeGroupsDialog}
+                    metaDialog={metaDialog}
+                    callbackDropdown={callbackDropdown}
                     setOpenHideMultipleDialog={setOpenHideMultipleDialog}
                     setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
                 />;
@@ -558,11 +787,13 @@ function CallbacksTableMaterialReactTablePreMemo(props){
     const materialReactTable = useMaterialReactTable({
         columns,
         data: callbacks,
+        memoMode: "cell",
         layoutMode: "grid",
         autoResetPageIndex: false,
         enableFacetedValues: true,
         enablePagination: true,
         //enableRowVirtualization: true,
+        //rowVirtualizerOptions: {overscan: 10},
         enableBottomToolbar: false,
         enableStickyHeader: true,
         enableDensityToggle: false,
@@ -645,6 +876,67 @@ function CallbacksTableMaterialReactTablePreMemo(props){
     return (
         <div style={{ width: '100%', height: '100%', position: "relative", display: "flex" }}>
             <MaterialReactTable table={materialReactTable} />
+            {openEditDescriptionDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    open={openEditDescriptionDialog}
+                    onClose={() => {setOpenEditDescriptionDialog(false);}}
+                    innerDialog={
+                        <MythicModifyStringDialog title={`Edit Callback ${updateDescriptionRef.current.callback_display_id} Description`}
+                                                  onClose={() => {setOpenEditDescriptionDialog(false);}}
+                                                  value={updateDescriptionRef.current.description}
+                                                  onSubmit={editDescriptionSubmit}
+                        />
+                    }
+                />
+            }
+            {openMetaDialog &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openMetaDialog}
+                              onClose={()=>{setOpenMetaDialog(false);}}
+                              innerDialog={<DetailedCallbackTable onClose={()=>{setOpenMetaDialog(false);}} callback_id={openMetaDialogRef.current} />}
+                />
+            }
+            {openEditMythicTreeGroupsDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth={"lg"}
+                    open={openEditMythicTreeGroupsDialog}
+                    onClose={() => {setOpenEditMythicTreeGroupsDialog(false);}}
+                    innerDialog={
+                        <ModifyCallbackMythicTreeGroupsDialog callback_id={mythicTreeGroupsDialogRef.current}
+                                                              onClose={() => {setOpenEditMythicTreeGroupsDialog(false);}} />
+                    }
+                />
+            }
+            <Popper open={openCallbackDropdown} anchorEl={callbackDropdownRef.current.dropdownAnchorRef} role={undefined} transition style={{zIndex: 200}}>
+                {({ TransitionProps, placement }) => (
+                    <Grow
+                        {...TransitionProps}
+                        style={{
+                            transformOrigin: placement === 'bottom' ? 'top left' : 'top center',
+                        }}
+                    >
+                        <Paper className={"dropdownMenuColored"} elevation={5}>
+                            <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+                                <MenuList id="split-button-menu">
+                                    <MenuItem disabled={true}>
+                                        Callback: {callbackDropdownRef.current.callback.display_id}
+                                    </MenuItem>
+
+                                    {callbackDropdownRef.current.options.map((option, index) => (
+                                        <MenuItem
+                                            key={option.name}
+                                            onClick={(event) => handleMenuItemClick(event, index)}
+                                        >
+                                            {option.icon}{option.name}
+                                        </MenuItem>
+                                    ))}
+                                </MenuList>
+                            </ClickAwayListener>
+                        </Paper>
+                    </Grow>
+                )}
+            </Popper>
             {openHideMultipleDialog &&
                 <MythicDialog
                     fullWidth={true}

@@ -210,9 +210,10 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         },
         fetchPolicy: "no-cache",
         onData: subscriptionDataCallback});
+    /*
     const scrollToBottom = useCallback( () => {
         if(taskingData && messagesEndRef.current){
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+            //messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
       }, [taskingData, messagesEndRef]);
     useLayoutEffect( () => {
@@ -221,6 +222,8 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             setCanScroll(false);
         }
     }, [canScroll, scrollToBottom]);
+
+     */
     const [getInfiniteScrollTasking, {loading: loadingMore}] = useLazyQuery(getNextBatchTaskingQuery, {
         onError: data => {
             console.error(data);
@@ -381,7 +384,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
 
             {!fetched && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
             {loadingMore && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
-            <div style={{overflowY: "auto", flexGrow: 1, width: "100%"}}>
+            <div style={{overflowY: "auto", flexGrow: 1, width: "100%"}} id={`taskingPanel${tabInfo.callbackID}`}>
                 {!fetchedAllTasks &&
                     <MythicStyledTooltip style={{marginLeft: "50%"}} title="Fetch Older Tasks">
                         <IconButton
@@ -389,17 +392,19 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                             variant="contained"
                             color="success"
 
-                            size="large"><AutorenewIcon /></IconButton>
+                            size="large"><AutorenewIcon/></IconButton>
                     </MythicStyledTooltip>}
-            {
-                taskingData.task.map( (task) => (
-                    <TaskDisplay key={"taskinteractdisplay" + task.id} me={me} task={task} command_id={task.command == null ? 0 : task.command.id} 
-                        filterOptions={filterOptions} newlyIssuedTasks={newlyIssuedTasks.current}/>
-                ))
-            }
+                {
+                    taskingData.task.map((task) => (
+                        <TaskDisplay key={"taskinteractdisplay" + task.id} me={me} task={task}
+                                     command_id={task.command == null ? 0 : task.command.id}
+                                     filterOptions={filterOptions} newlyIssuedTasks={newlyIssuedTasks.current}/>
+                    ))
+                }
+                <div ref={messagesEndRef}/>
             </div>
-            <div ref={messagesEndRef} />
-        <CallbacksTabsTaskingInput filterTasks={true} me={me} onSubmitFilter={onSubmitFilter} onSubmitCommandLine={onSubmitCommandLine} changeSelectedToken={changeSelectedToken}
+
+            <CallbacksTabsTaskingInput filterTasks={true} me={me} onSubmitFilter={onSubmitFilter} onSubmitCommandLine={onSubmitCommandLine} changeSelectedToken={changeSelectedToken}
             filterOptions={filterOptions} callback_id={tabInfo.callbackID} callback_os={tabInfo.os} parentMountedRef={mountedRef} />
         {openParametersDialog && 
             <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog} 

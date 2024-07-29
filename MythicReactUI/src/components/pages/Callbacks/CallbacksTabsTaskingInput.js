@@ -124,6 +124,17 @@ const IsCLIPossibleParameterType = (parameter_type) => {
             return false;
     }
 }
+const IsRepeatableCLIParameterType = (parameter_type) => {
+    switch(parameter_type){
+        case "Array":
+        case "TypedArray":
+        case "FileMultiple":
+        case "ChooseMultiple":
+            return true;
+        default:
+            return false;
+    }
+}
 export function CallbacksTabsTaskingInputPreMemo(props){
     const snackMessageStyles = {anchorOrigin:{vertical: "bottom", horizontal: "left"}, autoHideDuration: 2000, preventDuplicate: true, maxSnack: 1, style:{marginBottom: "50px"}};
     const snackReverseSearchMessageStyles = {anchorOrigin:{vertical: "bottom", horizontal: "left"}, autoHideDuration: 1000, preventDuplicate: true, maxSnack: 1, style:{marginBottom: "100px"}};
@@ -337,8 +348,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         }
                         console.log("cmdGroupNames in tab", cmdGroupNames);
                         for(let i = 0; i < cmd.commandparameters.length; i++){
-                            if(cmd.commandparameters[i]["required"] && 
-                                !(cmd.commandparameters[i]["cli_name"] in parsed) &&
+                            if(cmd.commandparameters[i]["required"] &&
+                                (!(cmd.commandparameters[i]["cli_name"] in parsed) || (IsRepeatableCLIParameterType(cmd.commandparameters[i]["parameter_type"])) ) &&
                                 IsCLIPossibleParameterType(cmd.commandparameters[i]["parameter_type"]) &&
                                 (cmdGroupNames.includes(cmd.commandparameters[i]["parameter_group_name"]) || cmdGroupNames.length === 0)){
                                 const newMsg = message.trim() + " -" + cmd.commandparameters[i]["cli_name"];
@@ -347,8 +358,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             }
                         }
                         for(let i = 0; i < cmd.commandparameters.length; i++){
-                            if(!cmd.commandparameters[i]["required"] && 
-                                !(cmd.commandparameters[i]["cli_name"] in parsed) &&
+                            if(!cmd.commandparameters[i]["required"] &&
+                                (!(cmd.commandparameters[i]["cli_name"] in parsed) || (IsRepeatableCLIParameterType(cmd.commandparameters[i]["parameter_type"])) ) &&
                                 IsCLIPossibleParameterType(cmd.commandparameters[i]["parameter_type"]) &&
                                 (cmdGroupNames.includes(cmd.commandparameters[i]["parameter_group_name"]) || cmdGroupNames.length === 0)){
                                 const newMsg = message.trim() + " -" + cmd.commandparameters[i]["cli_name"];
@@ -386,7 +397,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                 cmdGroupNames.includes(cur.parameter_group_name) && 
                                 cur.cli_name === lastFlag.slice(1) &&
                                 IsCLIPossibleParameterType(cur.parameter_type) &&
-                                !(cur.cli_name in parsed)
+                                (!(cur.cli_name in parsed) || (IsRepeatableCLIParameterType(cur.parameter_type)) )
                             );
                             let paramOptions = [];
                             if(exactMatch){
@@ -396,7 +407,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                     if(cmdGroupNames.includes(cur.parameter_group_name) && 
                                         cur.cli_name !== lastFlag.slice(1) &&
                                         IsCLIPossibleParameterType(cur.parameter_type) &&
-                                        !(cur.cli_name in parsed)){
+                                        (!(cur.cli_name in parsed) || (IsRepeatableCLIParameterType(cur.parameter_type)) ) ){
                                         return [...prev, cur.cli_name];
                                     }else{
                                         return [...prev];
@@ -409,7 +420,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                     if(cmdGroupNames.includes(cur.parameter_group_name) && 
                                         cur.cli_name.toLowerCase().startsWith(lastFlag.slice(1).toLocaleLowerCase()) &&
                                         IsCLIPossibleParameterType(cur.parameter_type) &&
-                                        !(cur.cli_name in parsed)){
+                                        (!(cur.cli_name in parsed) || (IsRepeatableCLIParameterType(cur.parameter_type)) ) ){
                                         return [...prev, cur.cli_name];
                                     }else{
                                         return [...prev];
@@ -737,7 +748,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             } else {
                 // we have a named argument that we just saw, so interpret this as that argument's value
                 if(allCLINames.includes(value)){
-                    result[current_argument.slice(1)] =  GetDefaultValueForType(current_argument_type);
+                    if(result[current_argument.slice(1)] === undefined) {
+                        result[current_argument.slice(1)] = GetDefaultValueForType(current_argument_type);
+                    }
                     current_argument = "";
                     current_argument_type = "";
                     i -= 1;
@@ -983,13 +996,14 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }
         }
         // now iterate over the unsatisfied arguments and add in the positional paramters
-        for(let i = 0; i < unSatisfiedArguments.length -1; i++){
+        for(let i = 0; i < unSatisfiedArguments.length; i++){
             // we cut this short by one so that the last unSatisifedArgument can do a greedy matching for the rest of what was supplied
             // this parameter hasn't been supplied yet, check if we have any positional parameters in parsedCopy["_"]
             if(parsedCopy["_"].length > 0){
                 let temp = parsedCopy["_"].shift();
                 switch(unSatisfiedArguments[i]["parameter_type"]){
-                    case "Choice":
+                    case "ChooseOne":
+                    case "ChooseOneCustom":
                     case "String":
                         parsedCopy[unSatisfiedArguments[i]["cli_name"]] = temp;
                         break;
@@ -1017,13 +1031,22 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         }
                         break;
                     case "Array":
-                    case "ChoiceMultiple":
-                        parsedCopy[unSatisfiedArguments[i]["cli_name"]] = [temp];
+                    case "TypedArray":
+                    case "FileMultiple":
+                    case "ChooseMultiple":
+                        if(parsedCopy[unSatisfiedArguments[i]["cli_name"]]){
+                            parsedCopy[unSatisfiedArguments[i]["cli_name"]].push(temp);
+                        } else {
+                            parsedCopy[unSatisfiedArguments[i]["cli_name"]] = [temp];
+                        }
+                        i -= 1;
                         break;
                     default:
                         parsedCopy[unSatisfiedArguments[i]["cli_name"]] = temp;
                         break;
                 }
+            } else {
+                break;
             }
         }
         
@@ -1059,7 +1082,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }
             
             switch(unSatisfiedArguments[unSatisfiedArguments.length -1]["parameter_type"]){
-                case "Choice":
+                case "ChooseOne":
+                case "ChooseOneCustom":
                 case "String":
                     parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] = temp;
                     break;
@@ -1087,7 +1111,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     }
                     break;
                 case "Array":
-                case "ChoiceMultiple":
+                case "TypedArray":
+                case "FileMultiple":
+                case "ChooseMultiple":
                     parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] = parsedCopy["_"];
                     break;
                 default:

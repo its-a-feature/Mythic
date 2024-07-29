@@ -23,10 +23,13 @@ import TextField from '@mui/material/TextField';
 import { IconButton } from '@mui/material';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import { useReactiveVar } from '@apollo/client';
+import { meState } from '../../../cache';
 
 const MaxRenderSize = 2000000;
 export const ResponseDisplayPlaintext = (props) =>{
   const theme = useTheme();
+  const me = useReactiveVar(meState);
   const [plaintextView, setPlaintextView] = React.useState("");
   const [mode, setMode] = React.useState("html");
   const [wrapText, setWrapText] = React.useState(true);
@@ -56,11 +59,20 @@ export const ResponseDisplayPlaintext = (props) =>{
     }
     const scrollContent = (node, isAppearing) => {
         // only auto-scroll if you issued the task
-        document.getElementById(`scrolltotaskbottom${props.task.id}`)?.scrollIntoView({
-            //behavior: "smooth",
-            block: "end",
-            inline: "nearest"
-        })
+        if(props.task.operator.username === (me?.user?.username || "")){
+            let el = document.getElementById(`taskingPanel${props.task.callback_id}`);
+            if(props.expand){
+                el = document.getElementById(`taskingPanelConsole${props.task.callback_id}`);
+            }
+            if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 600){
+                document.getElementById(`scrolltotaskbottom${props.task.id}`)?.scrollIntoView({
+                    //behavior: "smooth",
+                    block: "end",
+                    inline: "nearest"
+                });
+            }
+        }
+
     }
     React.useLayoutEffect( () => {
         scrollContent()

@@ -581,9 +581,11 @@ export function TaskParametersDialogRow(props){
                                 {arrayValue.map( (a, i) => (
                                     <TableRow key={'array' + props.name + i} >
                                         <MythicStyledTableCell style={{width: "2rem"}}>
-                                            <DeleteIcon onClick={(e) => {removeArrayValue(i)}} color="error"
-                                                        style={{cursor: "pointer"}}
-                                            />
+                                            <MythicStyledTooltip title={"Remove array element"}>
+                                                <DeleteIcon onClick={(e) => {removeArrayValue(i)}} color="error"
+                                                            style={{cursor: "pointer"}}
+                                                />
+                                            </MythicStyledTooltip>
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
                                             <MythicTextField required={props.required} fullWidth={true} placeholder={""} value={a} multiline={true} autoFocus={props.autoFocus || i > 0}
@@ -595,7 +597,9 @@ export function TaskParametersDialogRow(props){
                                 ))}
                                 <TableRow >
                                     <MythicStyledTableCell style={{width: "5rem", paddingLeft:"0"}}>
-                                        <IconButton onClick={addNewArrayValue} size="large"> <AddCircleIcon color="success"  /> </IconButton>
+                                        <MythicStyledTooltip title={"Add new array element"} >
+                                            <IconButton onClick={addNewArrayValue} size="large"> <AddCircleIcon color="success"  /> </IconButton>
+                                        </MythicStyledTooltip>
                                     </MythicStyledTableCell>
                                     <MythicStyledTableCell></MythicStyledTableCell>
                                 </TableRow>
@@ -820,13 +824,19 @@ export function TaskParametersDialogRow(props){
                                     </TableRow>
                                     <TableRow>
                                         <MythicStyledTableCell>
-                                        <Button component="span" style={{color: theme.palette.success.main, padding: 0}} onClick={() =>{
-                                            setOpenAdditionalPayloadOnHostmenu(true);
-                                            props.setSubmenuOpenPreventTasking(true);
-                                        }}><AddCircleIcon />Register New</Button>
+                                            <MythicStyledTooltip title={"Associate new payload with a specific host for linking"}>
+                                                <Button component="span" style={{color: theme.palette.success.main, padding: 0}} onClick={() =>{
+                                                    setOpenAdditionalPayloadOnHostmenu(true);
+                                                    props.setSubmenuOpenPreventTasking(true);
+                                                }}><AddCircleIcon />Register New</Button>
+                                            </MythicStyledTooltip>
+
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
-                                        <Button component="span" style={{color: theme.palette.error.main, padding: 0}} onClick={onAgentConnectRemovePayloadOnHost}><DeleteIcon />Remove Listed</Button>
+                                            <MythicStyledTooltip title={"Mark associated payload as no longer on host and not available for linking"}>
+                                                <Button component="span" style={{color: theme.palette.error.main, padding: 0}}
+                                                        onClick={onAgentConnectRemovePayloadOnHost}><DeleteIcon />Remove Listed</Button>
+                                            </MythicStyledTooltip>
                                         </MythicStyledTableCell>
                                     </TableRow>
                                     <TableRow>

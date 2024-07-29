@@ -1,9 +1,8 @@
 import React, {useCallback, useEffect, useContext} from 'react';
-import {Button} from '@mui/material';
+import {IconButton, Button} from '@mui/material';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { MythicDisplayTextDialog} from '../../MythicComponents/MythicDisplayTextDialog';
 import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 import LockIcon from '@mui/icons-material/Lock';
@@ -11,12 +10,7 @@ import WifiIcon from '@mui/icons-material/Wifi';
 import InsertLinkTwoToneIcon from '@mui/icons-material/InsertLinkTwoTone';
 import {C2PathDialog} from './C2PathDialog';
 import {snackActions} from '../../utilities/Snackbar';
-import Paper from '@mui/material/Paper';
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
+
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import {
     hideCallbackMutation,
@@ -46,20 +40,14 @@ import {CallbackGraphEdgesContext, OnOpenTabContext} from './CallbacksTop';
 import Moment from 'react-moment';
 import moment from 'moment';
 import WidgetsIcon from '@mui/icons-material/Widgets';
-import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
 import TerminalIcon from '@mui/icons-material/Terminal';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
-import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 
-export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDescription, setOpenHideMultipleDialog, setOpenTaskMultipleDialog}) =>{
+export const CallbacksTableIDCell = React.memo(({rowData, metaDialog, updateDescription, editMythicTreeGroupsDialog, setOpenHideMultipleDialog, setOpenTaskMultipleDialog, callbackDropdown}) =>{
     const dropdownAnchorRef = React.useRef(null);
     const theme = useTheme();
     const onOpenTab = useContext(OnOpenTabContext);
-    const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
-    const [dropdownOpen, setDropdownOpen] = React.useState(false);
-    const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
-    const [openEditMythicTreeGroupsDialog, setOpenEditMythicTreeGroupsDialog] = React.useState(false);
     const taskingData = React.useRef({"parameters": "", "ui_feature": "callback_table:exit"});
     const [rowDataStatic, setRowDataStatic] = React.useState(rowData);
     React.useEffect( () => {
@@ -114,39 +102,14 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
             snackActions.warning(data);
         }
     });
-    const editDescriptionSubmit = (description) => {
-        if(description === ""){
-            updateDescription({description: rowDataStatic.payload.description, callback_display_id: rowDataStatic.display_id});
-        } else {
-            updateDescription({description, callback_display_id: rowDataStatic.display_id});
-        }
-        
-        
-    }
     const handleDropdownToggle = (evt) => {
-            evt.stopPropagation();
-            setDropdownOpen((prevOpen) => !prevOpen);
-      };
-    const localOnOpenTab = (tabType) => {
-        if(tabType === "interact"){
-            onOpenTab({tabType, tabID: rowDataStatic.id + tabType, callbackID: rowDataStatic.id, displayID: rowDataStatic.display_id});
-        }else if(tabType === "processBrowser"){
-            onOpenTab({tabType, tabID: rowDataStatic.host, callbackID: rowDataStatic.id,  displayID: rowDataStatic.display_id});
-        }else{
-            onOpenTab({tabType, tabID: rowDataStatic.id + tabType, callbackID: rowDataStatic.id,  displayID: rowDataStatic.display_id});
-        }
-    }
-    const handleMenuItemClick = (event, index) => {
-        options[index].click(event);
-        setDropdownOpen(false);
+        evt.stopPropagation();
+        callbackDropdown({options: options, callback: rowDataStatic, dropdownAnchorRef: dropdownAnchorRef.current, event: evt});
     };
-    const handleClose = (event) => {
-        if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
-          return;
-        }
+    const localOnOpenTab = (tabType) => {
+        onOpenTab({tabType, tabID: rowDataStatic.id + tabType, callbackID: rowDataStatic.id,  displayID: rowDataStatic.display_id});
+    }
 
-        setDropdownOpen(false);
-      };
     const [hideCallback] = useMutation(hideCallbackMutation, {
         update: (cache, {data}) => {
             if(data.updateCallback.status === "success"){
@@ -230,15 +193,17 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
         {name: "Console View", icon: <TerminalIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
                 evt.stopPropagation();
                 localOnOpenTab("interactConsole");
-            }
-        },
+            }},
         {name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback', icon: rowDataStatic.locked ? (<LockIcon color={"error"} style={{paddingRight: "5px"}}/>) : (<LockOpenIcon color={"success"} style={{paddingRight: "5px"}} />), click: (evt) => {
             evt.stopPropagation();
             localToggleLock();
         }},
         {name: "Edit Description", icon: <EditIcon style={{paddingRight: "5px"}} />, click: (evt) => {
             evt.stopPropagation();
-            setOpenEditDescriptionDialog(true);
+            updateDescription({payload_description: rowDataStatic.payload.description,
+                callback_display_id: rowDataStatic.display_id,
+                description: rowDataStatic.description,
+            });
         }},
         {name: "Expand Callback", icon: <OpenInNewIcon style={{paddingRight: "5px"}} />, click: (evt) => {
             evt.stopPropagation();
@@ -250,62 +215,31 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
         }},
         {name: "View Metadata", icon: <InfoIcon color={"info"} style={{paddingRight: "5px"}} />, click: (evt) => {
             evt.stopPropagation();
-            setOpenMetaDialog(true);
+            metaDialog(rowDataStatic.id);
         }},
         {name: "Modify Groupings", icon: <WidgetsIcon color={"info"} style={{paddingRight: "5px"}} />, click: (evt) => {
             evt.stopPropagation();
-            setOpenEditMythicTreeGroupsDialog(true);
+            editMythicTreeGroupsDialog(rowDataStatic.id);
         }}
     ];
     return (
         <div>
-            <ButtonGroup  
-                color={rowDataStatic.integrity_level > 2 ? "error" : "primary"} 
-                ref={dropdownAnchorRef} 
-                aria-label="split button"
-            >
-                <Button style={{padding: "0 10px 0 10px"}} color={rowDataStatic.integrity_level > 2 ? "error" : "primary"}  variant="contained"
-                    onClick={(evt) => {evt.stopPropagation();localOnOpenTab("interact")}}>
-                    { rowDataStatic.locked ? (<LockIcon fontSize="large" style={{marginRight: "10px"}} />):(<KeyboardIcon fontSize="large" style={{marginRight: "10px"}}/>) }
-                    {rowDataStatic.display_id}
-                </Button>
-                <Button
+                <IconButton style={{padding: 0, margin: 0}} color={rowDataStatic.integrity_level > 2 ? "error" : ""}
+                    onClick={(evt) => {evt.stopPropagation();localOnOpenTab("interact")}}
+                >
+                    {rowDataStatic.locked ? (<LockIcon  style={{marginRight: "10px"}} />):(<KeyboardIcon  style={{marginRight: "10px"}}/>)}
+                </IconButton>
+            {rowDataStatic.display_id}
+                <IconButton
                     style={{margin: 0, padding: 0}}
-                    variant="contained"
-                    aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
-                    aria-expanded={dropdownOpen ? 'true' : undefined}
-                    color={rowDataStatic.integrity_level > 2 ? "error" : "primary"} 
+                    color={rowDataStatic.integrity_level > 2 ? "error" : ""}
                     aria-haspopup="menu"
                     onClick={handleDropdownToggle}
+                    ref={dropdownAnchorRef}
                 >
                 <ArrowDropDownIcon/>
-                </Button>
-            </ButtonGroup>
-            <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 200}}>
-                {({ TransitionProps, placement }) => (
-                <Grow
-                    {...TransitionProps}
-                    style={{
-                    transformOrigin: placement === 'bottom' ? 'top left' : 'top center',
-                    }}
-                >
-                    <Paper className={"dropdownMenuColored"} elevation={5}>
-                    <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
-                        <MenuList id="split-button-menu">
-                        {options.map((option, index) => (
-                            <MenuItem
-                            key={option.name}
-                            onClick={(event) => handleMenuItemClick(event, index)}
-                            >
-                            {option.icon}{option.name}
-                            </MenuItem>
-                        ))}
-                        </MenuList>
-                    </ClickAwayListener>
-                    </Paper>
-                </Grow>
-                )}
-            </Popper>     
+                </IconButton>
+
             {openTaskingButton && 
                 <TaskFromUIButton ui_feature={taskingData.current?.ui_feature || " "} 
                     callback_id={rowDataStatic.id} 
@@ -316,39 +250,8 @@ export const CallbacksTableIDCell = React.memo(({rowData, toggleLock, updateDesc
                     acceptText={taskingData.current?.acceptText || "YES"}
                     selectCallback={taskingData.current?.selectCallback || false}
                     onTasked={() => setOpenTaskingButton(false)}/>
-            }  
-            {openMetaDialog && 
-                <MythicDialog fullWidth={true} maxWidth="lg" open={openMetaDialog}
-                    onClose={()=>{setOpenMetaDialog(false);}} 
-                    innerDialog={<DetailedCallbackTable onClose={()=>{setOpenMetaDialog(false);}} callback_id={rowDataStatic.id} />}
-                />
             }
-            {openEditDescriptionDialog &&
-                <MythicDialog 
-                    fullWidth={true} 
-                    open={openEditDescriptionDialog}  
-                    onClose={() => {setOpenEditDescriptionDialog(false);}}
-                    innerDialog={
-                        <MythicModifyStringDialog title={"Edit Callback's Description"} 
-                            onClose={() => {setOpenEditDescriptionDialog(false);}} 
-                            value={rowDataStatic.description} 
-                            onSubmit={editDescriptionSubmit} 
-                        />
-                    }
-                />
-            }
-            {openEditMythicTreeGroupsDialog &&
-                <MythicDialog
-                    fullWidth={true}
-                    maxWidth={"lg"}
-                    open={openEditMythicTreeGroupsDialog}
-                    onClose={() => {setOpenEditMythicTreeGroupsDialog(false);}}
-                    innerDialog={
-                        <ModifyCallbackMythicTreeGroupsDialog callback_id={rowDataStatic.id}
-                            onClose={() => {setOpenEditMythicTreeGroupsDialog(false);}} />
-                    }
-                />
-            }
+
     </div>
     )
 },
@@ -406,9 +309,7 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData}) =
 }, areEqual);
 export const CallbacksTablePayloadTypeCell = React.memo( ({rowData}) => {
     return (
-        <MythicStyledTooltip title={rowData?.payload?.payloadtype?.name}>
-            <MythicAgentSVGIcon payload_type={rowData?.payload?.payloadtype?.name} style={{width: "35px", height: "35px"}} />
-        </MythicStyledTooltip>
+        rowData?.payload?.payloadtype?.name
     )
 }, areEqual)
 export const CallbacksTableIPCell = React.memo(({cellData, rowData}) => {
@@ -605,26 +506,26 @@ export const CallbacksTableOSCell = React.memo( ({rowData, cellData}) => {
     const [openOSDialog, setOpenOSDialog] = React.useState(false);
     const getOSIcon = useCallback( () => {
         if(rowData?.payload?.payloadtype?.agent_type !== "agent"){
-            return <FontAwesomeIcon icon={faRobot} size="2x" style={{cursor: "pointer"}} onClick={displayOSInfo} />
+            return <FontAwesomeIcon icon={faRobot} style={{cursor: "pointer"}} onClick={displayOSInfo} />
         }
         switch(rowData.payload.os.toLowerCase()){
             case "windows":
-                return <FontAwesomeIcon icon={faWindows} size="2x" style={{cursor: "pointer"}} onClick={displayOSInfo} />
+                return <FontAwesomeIcon icon={faWindows}  style={{cursor: "pointer"}} onClick={displayOSInfo} />
             case "linux":
             case "centos":
             case "redhat":
             case "debian":
             case "fedora":
             case "freebsd":
-                return <FontAwesomeIcon icon={faLinux} size="2x" style={{cursor: "pointer"}} onClick={displayOSInfo} />
+                return <FontAwesomeIcon icon={faLinux}  style={{cursor: "pointer"}} onClick={displayOSInfo} />
             case "macos":
-                return <FontAwesomeIcon icon={faApple} size="2x" style={{cursor: "pointer"}} onClick={displayOSInfo}/>
+                return <FontAwesomeIcon icon={faApple} style={{cursor: "pointer"}} onClick={displayOSInfo}/>
             case "chrome":
-                return <FontAwesomeIcon icon={faChrome} size="2x" style={{cursor: "pointer"}} onClick={displayOSInfo} />
+                return <FontAwesomeIcon icon={faChrome} style={{cursor: "pointer"}} onClick={displayOSInfo} />
             case "android":
-                return <FontAwesomeIcon icon={faAndroid} size="2x" style={{cursor: "pointer"}} onClick={displayOSInfo} />
+                return <FontAwesomeIcon icon={faAndroid}  style={{cursor: "pointer"}} onClick={displayOSInfo} />
             default:
-                return <FontAwesomeIcon icon={faQuestion} size="2x" style={{cursor: "pointer"}} onClick={displayOSInfo} />
+                return <FontAwesomeIcon icon={faQuestion}  style={{cursor: "pointer"}} onClick={displayOSInfo} />
         }
     }, [rowData?.payload?.os]);
     const displayOSInfo = React.useCallback( () => {
@@ -662,7 +563,7 @@ export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSl
         return null
     }
     return (
-        <div style={{height: "100%"}}>
+        <div style={{height: "100%", display: "flex", alignItems: "center"}}>
             <SnoozeIcon onClick={onOpenSleepDialog} 
                 style={{color: cellData === "" ? theme.palette.warning.main : theme.palette.info.main, cursor: "pointer"}}
             />
@@ -671,7 +572,7 @@ export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSl
                               style={{height: "100%"}}
                               onClose={() => {setOpenSleepDialog(false);}}
                     innerDialog={
-                        <MythicModifyStringDialog title={"View / Edit Sleep Information"}
+                        <MythicModifyStringDialog title={"View / Edit Sleep Information - This doesn't issue tasks to the agent, but helps alive/dead tracking"}
                                                   maxRows={20}
                             onClose={() => {setOpenSleepDialog(false);}}
                             value={cellData} 

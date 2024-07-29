@@ -257,11 +257,11 @@ export function CallbacksTop(props){
               <OnOpenTabContext.Provider value={onOpenTabLocal}>
                   <CallbacksContext.Provider value={callbacks.current}>
                       {props.topDisplay === "graph" ? (
-                          <CallbacksGraph onOpenTab={onOpenTabLocal} maxHeight={"100%"}  />
+                          <CallbacksGraph onOpenTab={onOpenTabLocal} maxHeight={"100%"} clickedTabId={props.clickedTabId} />
                       ) : initialNewBrowserScriptTable ? (
-                          <CallbacksTableMaterialReactTable parentMountedRef={mountedRef} me={me}/>
+                          <CallbacksTableMaterialReactTable clickedTabId={props.clickedTabId} parentMountedRef={mountedRef} me={me}/>
                       ) : (
-                          <CallbacksTable parentMountedRef={mountedRef} me={me}/>
+                          <CallbacksTable parentMountedRef={mountedRef} me={me} clickedTabId={props.clickedTabId}/>
                       )
                       }
                   </CallbacksContext.Provider>

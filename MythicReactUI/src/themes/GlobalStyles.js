@@ -247,7 +247,7 @@ tspan {
 .MythicResizableGrid-cellInner {
     width: 100%;
     white-space: nowrap;
-    overflow-x: hidden;
+    overflow: hidden;
     text-overflow: ellipsis;
 }
 .MythicResizableGrid-draggableHandlesContainer {
@@ -311,5 +311,11 @@ tspan {
     margin: 0;
     padding: 0 60px 0 5px;
     min-height: 2rem;
+}
+.selectedCallback {
+    background-color: ${(props) => props.theme.selectedCallbackColor};
+}
+.selectedCallbackHierarchy {
+    background-color: ${(props) => props.theme.selectedCallbackHierarchyColor};
 }
 `

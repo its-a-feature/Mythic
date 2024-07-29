@@ -58,8 +58,8 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     const [filterOptions, setFilterOptions] = React.useState({});
     const selectedColumn = React.useRef({});
     const [columnVisibility, setColumnVisibility] = React.useState({
-        "visible": ["Info","PID", "PPID", "Name", "User", "Arch", "Tags", "Comment"],
-        "hidden": [ "Session" ]
+        "visible": ["Info","PID", "PPID", "Name", "User", "Arch", "CMD"],
+        "hidden": [ "Session", "Comment", "Tags" ]
     })
     const [singleTreeData, setSingleTreeData] = React.useState({});
     const [viewSingleTreeData, setViewSingleTreeData] = React.useState(false);
@@ -171,6 +171,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         { name: "Arch", type: 'string', key: 'architecture', inMetadata: true, width: 100},
         { name: 'Tags', type: 'tags', disableSort: true, disableFilterMenu: true, width: 220 },
         { name: 'Comment', type: 'string', key: 'comment', disableSort: false, width: 200 },
+        { name: "CMD", type: "string", key: 'command_line', inMetadata: true, fillWidth: true},
         { name: 'Session', type: 'number', key: 'session_id', inMetadata: true, width: 100}
     ];
     const columns = React.useMemo(
@@ -530,8 +531,16 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             group={group}
                                             cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.comment}
                                 />;
+                            case "CMD":
+                                return <FileBrowserTableRowStringCell
+                                    treeRootData={treeRootData[group]}
+                                    host={host}
+                                    rowData={row}
+                                    group={group}
+                                    cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.command_line || ""}
+                                />;
                             default:
-                                console.log("hit default case in swith on c.name)")
+                                console.log("hit default case in switch on c.name)")
                         }
                     })];
                 }
@@ -557,7 +566,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         }
     };
     const localOnDoubleClick = (e, rowIndex) => {
-        const rowData = treeRootData[group][host][allData[rowIndex]];
+        const rowData = treeRootData[group][host][sortedData[rowIndex]];
         onRowDoubleClick(rowData);
     };
     const contextMenuOptions = [
@@ -595,7 +604,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                 sortIndicatorIndex={sortColumn}
                 sortDirection={sortData.sortDirection}
                 items={gridData}
-                rowHeight={35}
+                rowHeight={20}
                 onClickHeader={onClickHeader}
                 onDoubleClickRow={localOnDoubleClick}
                 contextMenuOptions={contextMenuOptions}
@@ -625,10 +634,10 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
 const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, handleOnClickButton }) => {
     const theme = useTheme();
     return (
-        <div style={{ alignItems: 'center', display: 'flex', flexGrow: 1, width: "100%", textDecoration: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.deleted ? 'line-through' : '' }}>
+        <div style={{ display: "inline-flex", height: "100%", alignItems: "center", width: "100%", textDecoration: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.deleted ? 'line-through' : '' }}>
             {[...Array(rowData.depth-1)].map((o, i) => (
                 i === rowData.depth-2 && children ? (
-                    i === 0 ? (<div key={'folder' + rowData.full_path_text + i} style={{marginLeft: 10, paddingRight: 10}}></div>) : null
+                    i === 0 ? (<div key={'folder' + rowData.full_path_text + i} style={{marginLeft: 10, paddingRight: 10, height: "100%"}}></div>) : null
                 ) : (
                     <div
                     key={'folder' + rowData.full_path_text + 'lines' + i}
@@ -644,7 +653,7 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
             ))}
             {children === undefined ? (
                 <>
-                    <div style={{display:"inline-block", width: rowData.depth === 1 ? "1.2rem" : ""}}></div>
+                    <div style={{display:"inline-block", height: "100%", width: rowData.depth === 1 ? "1.2rem" : ""}}></div>
                     <TerminalIcon  />
                 </>
             ) : rowData.isOpen ? (
@@ -659,7 +668,7 @@ const FileBrowserTableRowNameCell = ({ rowData, treeRootData, host, children, ha
               ) : (
                 <>
                 <KeyboardArrowRightIcon 
-                    style={{ paddingTop: '5px',   }} 
+                    style={{  }}
                         onClick={() => {handleOnClickButton(rowData.full_path_text /*+ uniqueSplitString + rowData["callback_id"]*/)}} />
                 <TerminalIcon  />
                 </>
@@ -806,6 +815,7 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
         <React.Fragment>
             <IconButton
                 size="small"
+                style={{height: "100%" }}
                 aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                 aria-expanded={dropdownOpen ? 'true' : undefined}
                 aria-haspopup="menu"

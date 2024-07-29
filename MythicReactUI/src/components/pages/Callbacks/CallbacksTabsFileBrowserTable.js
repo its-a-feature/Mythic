@@ -96,7 +96,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
     const columns = React.useMemo(
         () =>
             [
-                { name: 'Info', width: 50, disableAutosize: true, disableSort: true, disableFilterMenu: true },
+                { name: 'Info', width: 50, disableDoubleClick: true, disableSort: true, disableFilterMenu: true },
                 { name: 'Name', type: 'string', key: 'name_text', fillWidth: true },
                 { name: "Size", type: "size", key: "size", inMetadata: true},
                 { name: "Last Modify", type: "date", key: "modify_time", inMetadata: true, width: 300},
@@ -213,7 +213,8 @@ export const CallbacksTabsFileBrowserTable = (props) => {
 
     const onRowDoubleClick = (e, rowIndex) => {
         //console.log(allData, rowIndex, allData[rowIndex], props.selectedFolderData);
-        const rowData = props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][allData[rowIndex]];
+        //const rowData = props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][allData[rowIndex]];
+        const rowData = props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][sortedData[rowIndex]];
         if (!rowData.can_have_children) {
             return;
         }
@@ -272,7 +273,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                 sortIndicatorIndex={sortColumn}
                 sortDirection={sortData.sortDirection}
                 items={gridData}
-                rowHeight={35}
+                rowHeight={20}
                 onClickHeader={onClickHeader}
                 onDoubleClickRow={onRowDoubleClick}
                 contextMenuOptions={contextMenuOptions}
@@ -302,7 +303,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
 const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selectedFolderData }) => {
     const theme = useTheme();
     return (
-        <div style={{ alignItems: 'center', display: 'flex', textDecoration: treeRootData[selectedFolderData.host][cellData]?.deleted ? 'line-through' : '' }}>
+        <div style={{ alignItems: 'center', display: 'flex', maxHeight: "100%", textDecoration: treeRootData[selectedFolderData.host][cellData]?.deleted ? 'line-through' : '' }}>
             {!treeRootData[selectedFolderData.host][cellData]?.can_have_children ? (
                 <DescriptionIcon style={{ marginRight: '5px' }} />
             ) : (
@@ -414,7 +415,6 @@ export const TableRowSizeCell = ({ cellData, rowData }) => {
 };
 const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, treeRootData, selectedFolderData, me, tabInfo }) => {
     const dropdownAnchorRef = React.useRef(null);
-    const theme = useTheme();
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [fileCommentDialogOpen, setFileCommentDialogOpen] = React.useState(false);
     const [viewPermissionsDialogOpen, setViewPermissionsDialogOpen] = React.useState(false);
@@ -568,7 +568,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
     return (
         <React.Fragment>
             <IconButton
-                style={{ }}
+                style={{height: "100%" }}
                 size='small'
                 aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                 aria-expanded={dropdownOpen ? 'true' : undefined}

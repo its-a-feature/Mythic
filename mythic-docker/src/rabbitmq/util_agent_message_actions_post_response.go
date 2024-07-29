@@ -1378,7 +1378,7 @@ func addFilePermissions(fileBrowser *agentMessagePostResponseFileBrowser) map[st
 		"access_time":  fileBrowser.AccessTime,
 		"modify_time":  fileBrowser.ModifyTime,
 		"size":         fileBrowser.Size,
-		"has_children": fileBrowser.Files != nil && len(*fileBrowser.Files) > 0,
+		"has_children": !fileBrowser.IsFile,
 	}
 	switch x := fileBrowser.Permissions.(type) {
 	case []interface{}:
@@ -1951,7 +1951,7 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 		ON CONFLICT (host, operation_id, full_path, tree_type, callback_id)
 		DO UPDATE SET
 		task_id=:task_id, "name"=:name, parent_path=:parent_path, can_have_children=:can_have_children,
-		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false
+		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false, success=:success
 		    RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to create new mythictree statement")

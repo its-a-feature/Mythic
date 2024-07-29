@@ -12,14 +12,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import { useTheme } from '@mui/material/styles';
 import { Typography } from '@mui/material';
 import { MythicStyledTooltip } from "./MythicStyledTooltip";
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Paper from '@mui/material/Paper';
 import WidgetsIcon from '@mui/icons-material/Widgets';
-import ListSubheader from '@mui/material/ListSubheader';
 
 const PREFIX = 'FileBrowserVirtualTree';
 
@@ -151,16 +144,15 @@ const VirtualTreeRow = ({
   onExpandNode,
   onCollapseNode,
   onDoubleClickNode,
-  contextMenuOptions,
+  onContextMenu,
   tabInfo,
+  selectedFolderData,
   ...ListProps
 }) => {
   const itemTreeData = ListProps.data[ListProps.index];
   const item = ListProps.treeRootData[itemTreeData.group]?.[itemTreeData.host]?.[itemTreeData.full_path_text] || itemTreeData;
   //console.log("item", item, "itemlookup", ListProps.treeRootData[itemTreeData.host]?.[itemTreeData.name])
-  const dropdownAnchorRef = React.useRef(null);
   const theme = useTheme();
-
   const handleOnClickButton = (e) => {
     e.stopPropagation();
     if (itemTreeData.isOpen) {
@@ -173,42 +165,25 @@ const VirtualTreeRow = ({
   const handleOnClickRow = (e) => {
       onSelectNode(item.id,  {...item, group: itemTreeData.group, host: itemTreeData.host});
   };
-  const [openContextMenu, setOpenContextMenu] = React.useState(false);
-
-  const handleContextClick = useCallback(
-      (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if(item.root){
-
-          }else if(item.is_group){
-
-          }else {
-              if(contextMenuOptions && contextMenuOptions.length > 0){
-                  setOpenContextMenu(true);
-              }
+  const handleContextClick = (e) => {
+      onContextMenu({event: e, item, itemTreeData});
+  }
+  const selectedPath = () => {
+      if(itemTreeData.group === selectedFolderData.group && itemTreeData.host === selectedFolderData.host){
+          if(itemTreeData.root){
+              return "selectedCallbackHierarchy";
           }
-
-      },
-      [contextMenuOptions] // eslint-disable-line react-hooks/exhaustive-deps
-  );
-  const handleMenuItemClick = (event, index, callback_id, callback_display_id) => {
-      event.preventDefault();
-      event.stopPropagation();
-      contextMenuOptions[index].click({event,
-          node:  {...item, group: itemTreeData.group, host: itemTreeData.host},
-          callback_id, callback_display_id
-      });
-      setOpenContextMenu(false);
-  };
-  const handleClose = (event) => {
-      if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
-        return;
+          if(selectedFolderData.id === itemTreeData.id){
+              return "selectedCallback";
+          }
       }
-      setOpenContextMenu(false);
-    };
+      return "";
+    }
   return (
-    <div className={"hoverme"} style={ListProps.style} onContextMenu={handleContextClick} ref={dropdownAnchorRef} onClick={handleOnClickRow}>
+    <div className={`hoverme ${selectedPath()}`}
+         style={ListProps.style}
+         onContextMenu={handleContextClick}
+         onClick={handleOnClickRow}>
     <div style={{display: 'flex' , marginBottom: "1px", flexGrow: 1, width: "100%"}}>
         {[...Array(itemTreeData.depth)].map((o, i) => (
             <div
@@ -225,54 +200,7 @@ const VirtualTreeRow = ({
           style={{ backgroundColor: theme.body, color: theme.text, alignItems: 'center', display: 'flex', paddingRight: "10px", textDecoration: itemTreeData.deleted ? 'line-through' : ''  }}
 
           >
-            <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}>
-                  {({ TransitionProps, placement }) => (
-                    <Grow
-                      {...TransitionProps}
-                      style={{
-                        transformOrigin: placement === 'bottom' ? 'left top' : 'left bottom',
-                      }}
-                    >
-                      <Paper className={"dropdownMenuColored"}>
-                        <ClickAwayListener onClickAway={handleClose}>
-                          <MenuList id="split-button-menu" style={{paddingTop: 0}} >
-                              <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                                  Act from current Callback: {tabInfo["displayID"]}
-                              </ListSubheader>
-                            {contextMenuOptions.map((option, index) => (
-                              <MenuItem
-                                key={option.name + index}
-                                onClick={(event) => handleMenuItemClick(event, index, tabInfo["callbackID"], tabInfo["displayID"])}
-                              >
-                                {option.name}
-                              </MenuItem>
-                            ))}
-                              {
-                                  item?.callback && item?.["callback"]?.["id"] !== tabInfo["callbackID"] &&
-                                      <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                                          Act from originating Callback: {item?.callback?.["display_id"] || tabInfo["displayID"]}
-                                      </ListSubheader>
-                              }
-                              {
-                                  item?.callback && item?.["callback"]?.["id"] !== tabInfo["callbackID"] &&
-                                  contextMenuOptions.map((option, index) => (
-                                      <MenuItem
-                                          key={option.name + index}
-                                          onClick={(event) => handleMenuItemClick(event, index,
-                                              item?.["callback"]?.["id"] || tabInfo["callbackID"],
-                                              item?.["callback"]?.["display_id"] || tabInfo["displayID"])}
-                                      >
-                                          {option.name}
-                                      </MenuItem>
-                                  ))
-                              }
 
-                          </MenuList>
-                        </ClickAwayListener>
-                      </Paper>
-                    </Grow>
-                  )}
-            </Popper>
           {itemTreeData.is_group ? (
               <WidgetsIcon style={{marginLeft: "3px", marginRight: "5px" }} />
           ): itemTreeData.root  ? (
@@ -328,8 +256,9 @@ const FileBrowserVirtualTree = ({
   onSelectNode,
   onExpandNode,
   onCollapseNode,
-  contextMenuOptions,
+  onContextMenu,
   showDeletedFiles,
+  selectedFolderData,
   tabInfo,
 }) => {
   const flattenNode = useCallback(
@@ -401,7 +330,6 @@ const FileBrowserVirtualTree = ({
     },
     [openNodes, showDeletedFiles] // eslint-disable-line react-hooks/exhaustive-deps
   );
-
   const flattenedNodes = useMemo(() => {
     //console.log("in tree", treeRootData, treeAdjMatrix)
     // need to return an array
@@ -471,11 +399,12 @@ const FileBrowserVirtualTree = ({
           <VirtualTreeRow
             {...ListProps}
             tabInfo={tabInfo}
+            selectedFolderData={selectedFolderData}
             treeRootData={treeRootData}
             onSelectNode={onSelectNode}
             onExpandNode={onExpandNode}
             onCollapseNode={onCollapseNode}
-            contextMenuOptions={contextMenuOptions}
+            onContextMenu={onContextMenu}
           />
         )}
       </List>

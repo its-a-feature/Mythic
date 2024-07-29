@@ -26,6 +26,7 @@ import LayersIcon from '@mui/icons-material/Layers';
 const getCallbackMythicTreeGroups = gql`
 query getCallbackMythicTreeGroups($callback_id: Int!) {
   callback_by_pk(id: $callback_id){
+    display_id
     mythictree_groups
   }
   callback {
@@ -57,12 +58,14 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
       onError: error => {
         snackActions.error(error.message);
       }
-    })
+    });
+    const callbackDisplayID = React.useRef(0);
     const { data } = useQuery(getCallbackMythicTreeGroups, {
         fetchPolicy: "no-cache",
         variables: {callback_id: props.callback_id},
         onCompleted: data => {
             setGroups(data.callback_by_pk.mythictree_groups);
+            callbackDisplayID.current = data.callback_by_pk.display_id;
             let otherGroupOptions = new Set([]);
             for(let i = 0; i < data.callback.length; i++){
                 if(data.callback[i].mythictree_groups.length > 0){
@@ -109,7 +112,7 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
     return (
         <React.Fragment>
           <DialogTitle id="form-dialog-title" style={{display: "flex", justifyContent: "space-between"}}>
-              Updating Callback Groups for Callback {props.callback_id}
+              Updating Callback Groups for Callback {callbackDisplayID.current}
               <MythicStyledTooltip title="View all groups" >
                   <IconButton size="small" onClick={()=>{setOpenViewAllCallbacksDialog(true);}} style={{color: theme.palette.info.main}} variant="contained"><LayersIcon/></IconButton>
               </MythicStyledTooltip>

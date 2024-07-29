@@ -155,13 +155,13 @@ export const TaskDisplayContainerFlat = ({task, me}) => {
 }
 export const TaskDisplayContainerConsole = ({task, me}) => {
   const [viewBrowserScript, setViewBrowserScript] = React.useState(true);
-  const [commandID, setCommandID] = React.useState(0);
+  const [commandID, setCommandID] = React.useState(task?.command?.id || 0);
   const [searchOutput, setSearchOutput] = React.useState(false);
   const [selectAllOutput, setSelectAllOutput] = React.useState(false);
   const responseRef = React.useRef(null);
   useEffect( () => {
     setCommandID(task.command === null ? 0 : task.command.id);
-  }, [task.command]);
+  }, [task.command.id]);
   const toggleViewBrowserScript = React.useCallback( () => {
     setViewBrowserScript(!viewBrowserScript);
   }, [viewBrowserScript]);

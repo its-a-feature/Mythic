@@ -87,7 +87,7 @@ const doubleClickRow = () => {
 const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
 
   return (
-    <div style={{...(cellData?.cellStyle || null)}}>
+    <div style={{...(cellData?.cellStyle || null), height: "100%"}}>
       {cellData?.copyIcon? 
         <MythicStyledTooltip title={"Copy to clipboard"}>
             <IconButton onClick={() => onCopyToClipboard(cellData["plaintext"])} size="small">
@@ -102,13 +102,13 @@ const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
       }
       {cellData?.plaintextHoverText? (
         <MythicStyledTooltip title={cellData.plaintextHoverText}>
-          <pre style={{display: "inline-block"}}>
+          <pre style={{display: "inline-block", margin: 0}}>
             {cellData?.plaintext?.replaceAll?.("\n", "") || " "}
           </pre>
           
         </MythicStyledTooltip>
       ) : (
-        <pre style={{display: "inline-block"}}>
+        <pre style={{display: "inline-block", margin: 0}}>
             {cellData?.plaintext?.replaceAll?.("\n","") || " "}
           </pre>
       )}
@@ -122,7 +122,7 @@ const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
 }
 const ResponseDisplayTableNumberCell = ({cellData, rowData}) => {
   return (
-    <div style={{...(cellData?.cellStyle || null)}}>
+    <div style={{...(cellData?.cellStyle || null), height: "100%"}}>
       {cellData?.copyIcon? 
         <MythicStyledTooltip title={"Copy to clipboard"}>
             <IconButton onClick={() => onCopyToClipboard(cellData["plaintext"])} size="small">
@@ -179,22 +179,23 @@ export const getStringSize = ({cellData}) => {
 }
 const ResponseDisplayTableSizeCell = ({cellData, rowData}) => {
   return (
-    <div style={{...(cellData?.cellStyle || null)}}>
+    <div style={{...(cellData?.cellStyle || null), height: "100%"}}>
         {cellData?.plaintextHoverText? (
         <MythicStyledTooltip title={cellData.plaintextHoverText} >
-          <pre style={{display: "inline-block"}}>
+          <pre style={{display: "inline-block", margin: 0}}>
             {getStringSize({cellData})}
           </pre>
           
         </MythicStyledTooltip>
       ) : (
-        <pre style={{display: "inline-block"}}>
+        <pre style={{display: "inline-block", margin: 0}}>
             {getStringSize({cellData})}
           </pre>
       )}
      </div>
   );
 }
+const actionCellButtonStyle = {paddingTop: 0, paddingBottom: 0};
 const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
   const theme = useTheme();
   const [openButton, setOpenButton] = React.useState(false);
@@ -257,7 +258,8 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
               <Button size="small" variant="contained" color="primary" 
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || "View Dictionary Data"}</Button>
+                style={{...actionCellButtonStyle}}
+              >{cellData?.button?.name || "View Dictionary Data"}</Button>
             </MythicStyledTooltip>
             {openButton &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openButton} 
@@ -275,7 +277,8 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
               <Button size="small" variant="contained" color="primary" 
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || "View Data"}</Button>
+                style={{...actionCellButtonStyle}}
+              >{cellData?.button?.name || "View Data"}</Button>
             </MythicStyledTooltip>
             {openButton &&
                 <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openButton} title={cellData?.button?.title || "Title Here"} value={cellData?.button?.value || ""}
@@ -291,7 +294,8 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
               <Button size="small" variant="contained" color="primary" 
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || "View Data"}</Button>
+                style={{...actionCellButtonStyle}}
+              >{cellData?.button?.name || "View Data"}</Button>
             </MythicStyledTooltip>
             {openButton &&
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openButton} 
@@ -308,6 +312,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
             <MythicStyledTooltip title={cellData?.button?.hoverText || "Submit Task"}>
               <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false} variant="contained" color="warning" 
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
+                style={{...actionCellButtonStyle}}
               >{cellData?.button?.name || "Submit Task"}</Button>
             </MythicStyledTooltip>
             {openTaskingButton && 
@@ -357,7 +362,8 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
               <Button size="small" variant="contained" color="primary" ref={dropdownAnchorRef}
                 onClick={() => setOpenDropdownButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || " "}</Button>
+                style={{...actionCellButtonStyle}}
+              >{cellData?.button?.name || " "}</Button>
                 <Popper open={openDropdownButton} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}>
                   {({ TransitionProps, placement }) => (
                     <Grow
@@ -392,9 +398,9 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
     }
   }
   return (
-    <div style={{...(rowData?.rowStyle || null), ...(cellData?.cellStyle || null)}}>
+    <div style={{...(rowData?.rowStyle || null), ...(cellData?.cellStyle || null), height: "100%"}}>
       {cellData?.plaintext ? cellData.plaintext : null}
-      {cellData?.button ? (getButtonObject()) : (null)}
+      {cellData?.button ? (getButtonObject()) : null}
     </div>
   );
 }
@@ -402,11 +408,10 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
 
 export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const theme = useTheme();
-  const rowHeight = 35;
+  const rowHeight = 20;
   const headerHeight = 45;
   const maxHeight = 375;
   const [dataHeight, setDataHeight] = React.useState(maxHeight);
-  const maxElements = Math.floor(maxHeight / rowHeight);
   const [allData, setAllData] = React.useState([]);
   const [sortData, setSortData] = React.useState({sortKey: null, sortType: null, sortDirection: "ASC"})
   const sortedData = React.useMemo(() => {
@@ -559,17 +564,6 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const tableStyle = React.useMemo( () => {
     return expand ? {flexGrow: 1, width: "99%",} : {height: dataHeight}
   }, [expand, dataHeight]);
-  const scrollContent = (node, isAppearing) => {
-    // only auto-scroll if you issued the task
-    document.getElementById(`scrolltotaskbottom${task?.id}`)?.scrollIntoView?.({
-      //behavior: "smooth",
-      block: "end",
-      inline: "nearest"
-    })
-  }
-  React.useLayoutEffect( () => {
-    scrollContent()
-  }, []);
   return (
         <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", width: "100%"}}>
             {table?.title ? (

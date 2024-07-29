@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2024-07-29
+
+### Changed
+
+- adjusted auto scrolling of tasks to not happen unless you're scrolled to the bottom already
+- using the old callbacks table view, the callback you're interacting with will be highlighted
+- tasks are auto expanded on the single task view page
+- the file browser now has some "history" for the last 20 folders visited with forward/backward arrows
+- the file browser now has an "up" button to go up one folder in addition to double clicking a folder to go down one
+- fixed an issue where sometimes a task's output browser script wouldn't render
+- condensed the views of tables in browser scripts, file browser, process browser, and active callbacks table to be able to view more at once
+  - removed agent icons from the active callbacks table and replaced with text of payload type name to make things cleaner when compact
+- updated interactive callback controls to have a different background color to make the input fields more obvious
+- adjusted task displays to link to both task and callbacks along with tooltips on hover
+- fixed an issue where you could do multiple context menues in the file browser tree view
+- fixed pty's command history to reset after issuing a task so that it's more consistent
+
 ## [0.2.3] - 2024-07-17
 
 ### Changed

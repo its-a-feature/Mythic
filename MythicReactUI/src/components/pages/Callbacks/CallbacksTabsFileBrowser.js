@@ -20,6 +20,9 @@ import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip'
 import Split from 'react-split';
 import {subscriptionCallbackTokens} from "./CallbacksTabsTaskingInput";
 import {CallbacksTabsTaskingInputTokenSelect} from "./CallbacksTabsTaskingInputTokenSelect";
+import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const fileDataFragment = gql`
     fragment fileObjData on mythictree {
@@ -209,7 +212,23 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         // new host discovered
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]] = {};
                     }
-                    treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]};
+                    if(treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] === undefined){
+                        // first time we're seeing this file data, just add it
+                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]};
+                    } else {
+                        // we need to merge data in because we already have some info
+                        let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
+                        if(existingData.success === null || !existingData.success){
+                            existingData.success = data.data.mythictree_stream[i].success;
+                        }
+                        existingData.comment += data.data.mythictree_stream[i].comment;
+                        existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];
+                        if(!existingData.metadata.has_children){
+                            existingData.metadata.has_children = data.data.mythictree_stream[i].metadata.has_children;
+                        }
+                        existingData.metadata.permissions = {...existingData.metadata.permissions, ...data.data.mythictree_stream[i].metadata.permissions};
+                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...existingData};
+                    }
                 }
             }
             const newMatrix = data.data.mythictree_stream.reduce( (prev, cur) => {
@@ -254,7 +273,23 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         // new host discovered
                         treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] = {};
                     }
-                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
+                    if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] === undefined){
+                        // first time we're seeing this file data, just add it
+                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]};
+                    } else {
+                        // we need to merge data in because we already have some info
+                        let existingData = treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
+                        if(existingData.success === null || !existingData.success){
+                            existingData.success = data.mythictree[i].success;
+                        }
+                        existingData.comment += data.mythictree[i].comment;
+                        existingData.tags = [...existingData.tags, ...data.mythictree[i].tags];
+                        if(!existingData.metadata.has_children){
+                            existingData.metadata.has_children = data.mythictree[i].metadata.has_children;
+                        }
+                        existingData.metadata.permissions = {...existingData.metadata.permissions, ...data.mythictree[i].metadata.permissions};
+                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...existingData};
+                    }
                 }
             }
             // create the top level data in the adjacency matrix
@@ -287,14 +322,24 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         //console.log("setTableData", nodeData);
         setSelectedFolderData(nodeData);
     }, []);
-    const fetchFolderData = useCallback((nodeData) => {
+    const fetchFolderData = useCallback((nodeData, fromHistory) => {
         getFolderData({
             variables: { parent_path_text: nodeData.full_path_text},
         });
         setBackdropOpen(true);
         tableOpenedPathIdRef.current = nodeData.id;
-        setSelectedFolderData(nodeData);
+        setSelectedFolderData({...nodeData, fromHistory: fromHistory});
     }, []);
+    const fetchParentFolderData = (nodeData) => {
+        getFolderData({
+            variables: { parent_path_text: nodeData.parent_path_text},
+        });
+        setBackdropOpen(true);
+        let parentData = treeRootDataRef.current[nodeData.group][nodeData.host][nodeData.parent_path_text];
+        parentData.group = nodeData.group;
+        tableOpenedPathIdRef.current = parentData.id;
+        setSelectedFolderData(parentData);
+    };
     const localSelectedToken = React.useRef("");
     const onChangeSelectedToken = (token) => {
         localSelectedToken.current = token;
@@ -355,6 +400,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         showDeletedFiles={showDeletedFiles}
                         treeRootData={treeRootDataRef.current}
                         treeAdjMatrix={treeAdjMtx}
+                        selectedFolderData={selectedFolderData}
                         fetchFolderData={fetchFolderData}
                         setTableData={onSetTableData}
                         taskListing={taskListing}
@@ -372,6 +418,8 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                                 onListFilesButton={onListFilesButton}
                                 onUploadFileButton={onUploadFileButton}
                                 toggleShowDeletedFiles={toggleShowDeletedFiles}
+                                fetchParentFolderData={fetchParentFolderData}
+                                fetchFolderData={fetchFolderData}
                             />
                         </div>
                         <div style={{ flexGrow: 1 }}>
@@ -413,6 +461,8 @@ const FileBrowserTableTop = ({
     onListFilesButton,
     onUploadFileButton,
     toggleShowDeletedFiles,
+    fetchParentFolderData,
+    fetchFolderData,
     tabInfo
 }) => {
     const [fullPath, setFullPath] = React.useState('');
@@ -420,6 +470,8 @@ const FileBrowserTableTop = ({
     const [tokenOptions, setTokenOptions] = React.useState([]);
     const [placeHolder, setPlaceHolder] = React.useState(selectedFolderData.host);
     const [showDeletedFiles, setLocalShowDeletedFiles] = React.useState(false);
+    const [history, setHistory] = React.useState([]);
+    const [historyIndex, setHistoryIndex] = React.useState(0);
     const onChangePath = (_, value) => {
         setFullPath(value);
     };
@@ -450,8 +502,38 @@ const FileBrowserTableTop = ({
         } else {
             setPlaceHolder(selectedFolderData.host + groups);
         }
-
     }, [selectedFolderData]);
+    useEffect( () => {
+        if(selectedFolderData.fromHistory){
+            return;
+        }
+        if(selectedFolderData.id !== ""){
+            if(history[0]?.id !== selectedFolderData.id){
+                // always add newest things to the bottom of the stack
+                setHistory([selectedFolderData, ...history]);
+                if(history.length > 20){
+                    // pop off from the top (the oldest) if we get more than 50
+                    setHistory([selectedFolderData, ...history.splice(history.length-1, 1)])
+                }
+            }
+        }
+    }, [selectedFolderData, history])
+    const moveIndexToPreviousListing = () => {
+        // we're getting closer to the end of the historyRef.current, the oldest listing
+        if(historyIndex >= history.length -1){
+            return
+        }
+        setHistoryIndex(historyIndex + 1);
+        fetchFolderData(history[historyIndex + 1], true);
+    }
+    const moveIndexToNextListing = () => {
+        // we're getting close to index 0, the newest listing
+        if(historyIndex <= 0){
+            return
+        }
+        setHistoryIndex(historyIndex - 1);
+        fetchFolderData(history[historyIndex - 1], true);
+    }
     const onLocalListFilesButton = () => {
         if (fullPath === '') {
             snackActions.warning('Must provide a path to list');
@@ -466,6 +548,11 @@ const FileBrowserTableTop = ({
         setLocalShowDeletedFiles(!showDeletedFiles);
         toggleShowDeletedFiles(!showDeletedFiles);
     };
+    const onLocalMoveUpDirectoryButton = () => {
+        if(selectedFolderData.parent_path_text !== ""){
+            fetchParentFolderData(selectedFolderData)
+        }
+    }
     return (
         <Grid container spacing={0} style={{ paddingTop: '10px' }}>
             <Grid item xs={12} >
@@ -479,6 +566,24 @@ const FileBrowserTableTop = ({
                     InputProps={{
                         endAdornment: (
                             <React.Fragment>
+                                <MythicStyledTooltip title={`Move back to previous listing`}>
+                                    <IconButton style={{ padding: '3px' }}
+                                                disabled={historyIndex >= history.length -1 }
+                                                onClick={moveIndexToPreviousListing}
+                                                color='info'
+                                                size="large">
+                                        <ArrowBackIcon />
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                                <MythicStyledTooltip title={`Move to next listing`}>
+                                    <IconButton style={{ padding: '3px' }}
+                                                disabled={historyIndex <= 0}
+                                                onClick={moveIndexToNextListing}
+                                                size="large"
+                                                color='info'>
+                                        <ArrowForwardIcon  />
+                                    </IconButton>
+                                </MythicStyledTooltip>
                                 <MythicStyledTooltip title={`Task current callback (${tabInfo["displayID"]}) to list contents`}>
                                     <IconButton style={{ padding: '3px' }} onClick={onLocalListFilesButton} size="large">
                                         <RefreshIcon color='info' />
@@ -508,6 +613,15 @@ const FileBrowserTableTop = ({
                                 {tokenOptions.length > 0 ? (
                                     <CallbacksTabsTaskingInputTokenSelect options={tokenOptions} changeSelectedToken={changeSelectedToken}/>
                                 ) : null}
+                                <MythicStyledTooltip title={"Move up a directory"} >
+                                    <IconButton style={{padding: "3px"}}
+                                                onClick={onLocalMoveUpDirectoryButton}
+                                                disabled={selectedFolderData.id === "" || selectedFolderData.parent_path_text === ""}
+                                    >
+                                        <KeyboardReturnIcon style={{rotate: "90deg"}} ></KeyboardReturnIcon>
+                                    </IconButton>
+
+                                </MythicStyledTooltip>
                         </React.Fragment>),
                         style: {  },
                     }}

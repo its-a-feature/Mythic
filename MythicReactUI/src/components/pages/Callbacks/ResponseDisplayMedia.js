@@ -194,7 +194,13 @@ const DisplayText = ({agent_file_id, expand, filename}) => {
                 if(data.length > MaxRenderSize){
                     snackActions.warning("File too large (> 2MB), truncating the render");
                 }
-                setContent(data.substring(0, MaxRenderSize));
+
+                try{
+                    let cont = JSON.stringify(JSON.parse(data), null, 2);
+                    setContent(cont);
+                }catch(error){
+                    setContent(data.substring(0, MaxRenderSize));
+                }
             }).catch(error => {
                 snackActions.warning("Error getting contents from server: " + error.toString());
                 console.log("Error trying to get json response", error, response);
