@@ -566,31 +566,19 @@ const FileBrowserTableTop = ({
                     InputProps={{
                         endAdornment: (
                             <React.Fragment>
-                                <MythicStyledTooltip title={`Move back to previous listing`}>
-                                    <IconButton style={{ padding: '3px' }}
-                                                disabled={historyIndex >= history.length -1 }
-                                                onClick={moveIndexToPreviousListing}
-                                                color='info'
-                                                size="large">
-                                        <ArrowBackIcon />
-                                    </IconButton>
-                                </MythicStyledTooltip>
-                                <MythicStyledTooltip title={`Move to next listing`}>
-                                    <IconButton style={{ padding: '3px' }}
-                                                disabled={historyIndex <= 0}
-                                                onClick={moveIndexToNextListing}
-                                                size="large"
-                                                color='info'>
-                                        <ArrowForwardIcon  />
-                                    </IconButton>
-                                </MythicStyledTooltip>
                                 <MythicStyledTooltip title={`Task current callback (${tabInfo["displayID"]}) to list contents`}>
-                                    <IconButton style={{ padding: '3px' }} onClick={onLocalListFilesButton} size="large">
+                                    <IconButton style={{ padding: '0 0px 0 0 ' }}
+                                                disableRipple={true} disableFocusRipple={true}
+                                                onClick={onLocalListFilesButton}
+                                                size="large">
                                         <RefreshIcon color='info' />
                                     </IconButton>
                                 </MythicStyledTooltip>
                                 <MythicStyledTooltip title={`Upload file to folder via current callback (${tabInfo["displayID"]})`}>
-                                    <IconButton style={{ padding: '3px' }} onClick={onLocalUploadFileButton} size="large">
+                                    <IconButton style={{ padding: '3px' }}
+                                                onClick={onLocalUploadFileButton}
+                                                disableRipple={true} disableFocusRipple={true}
+                                                size="large">
                                         <CloudUploadIcon color="info" />
                                     </IconButton>
                                 </MythicStyledTooltip>
@@ -598,6 +586,7 @@ const FileBrowserTableTop = ({
                                     <IconButton
                                         style={{ padding: '3px' }}
                                         onClick={onLocalToggleShowDeletedFiles}
+                                        disableRipple={true} disableFocusRipple={true}
                                         size="large">
                                         {showDeletedFiles ? (
                                             <VisibilityIcon color="success" />
@@ -609,20 +598,45 @@ const FileBrowserTableTop = ({
                             </React.Fragment>
                         ),
                         startAdornment: (
-                            <React.Fragment>
+                            <div style={{display: "inline-flex",
+                                alignItems: "center",
+                                borderRight: "1px solid grey",
+                                marginRight: "10px",
+                                padding: "0 5px 0 0"}}>
                                 {tokenOptions.length > 0 ? (
                                     <CallbacksTabsTaskingInputTokenSelect options={tokenOptions} changeSelectedToken={changeSelectedToken}/>
                                 ) : null}
+                                <MythicStyledTooltip title={`Move back to previous listing`}>
+                                    <IconButton style={{ padding: '3px' }}
+                                                disabled={historyIndex >= history.length -1 }
+                                                disableRipple={true} disableFocusRipple={true}
+                                                onClick={moveIndexToPreviousListing}
+                                                color='info'
+                                                size="large">
+                                        <ArrowBackIcon />
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                                <MythicStyledTooltip title={`Move to next listing`}>
+                                    <IconButton style={{ padding: '3px' }}
+                                                disabled={historyIndex <= 0}
+                                                disableRipple={true} disableFocusRipple={true}
+                                                onClick={moveIndexToNextListing}
+                                                size="large"
+                                                color='info'>
+                                        <ArrowForwardIcon  />
+                                    </IconButton>
+                                </MythicStyledTooltip>
                                 <MythicStyledTooltip title={"Move up a directory"} >
-                                    <IconButton style={{padding: "3px"}}
+                                    <IconButton style={{padding: "0 0 0 0"}}
                                                 onClick={onLocalMoveUpDirectoryButton}
+                                                disableRipple={true} disableFocusRipple={true}
                                                 disabled={selectedFolderData.id === "" || selectedFolderData.parent_path_text === ""}
                                     >
                                         <KeyboardReturnIcon style={{rotate: "90deg"}} ></KeyboardReturnIcon>
                                     </IconButton>
-
                                 </MythicStyledTooltip>
-                        </React.Fragment>),
+
+                        </div>),
                         style: {  },
                     }}
                 />
