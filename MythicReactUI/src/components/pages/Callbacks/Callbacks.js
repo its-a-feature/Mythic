@@ -51,13 +51,38 @@ const StyledSpeedDial = styled(SpeedDial)(({theme}) => ({
         color: theme.palette.background.contrast,
     }
 }));
-
+export const getCallbackIdFromClickedTab = (tabId) => {
+    if(tabId.includes("fileBrowser")) {
+        return Number(tabId.split("fileBrowser")[0]);
+    }else if(tabId.includes("interact")){
+        return Number(tabId.split("interact")[0]);
+    }else if(tabId.includes("processBrowser")){
+        return Number(tabId.split("processBrowser")[0]);
+    } else {
+        console.log("unknown tab type", tabId);
+        return 0;
+    }
+}
 
 export function Callbacks({me}) {
     const [topDisplay, setTopDisplay] = React.useState('table');
     const [openTabs, setOpenTabs] = React.useState([]);
-    const [clickedTabId, setClickedTabId] = React.useState('');
+    const [clickedTabId, setClickedTabIdValue] = React.useState('');
     const openTabRef = React.useRef([]);
+    const callbackTableGridRef = React.useRef();
+    const [callbackTableSplitSizes, setCallbackTableSplitSizes] = React.useState([30, 70]);
+    const setClickedTabId = (tabID) => {
+        if(callbackTableGridRef.current){
+            let tabIDNumber = getCallbackIdFromClickedTab(tabID);
+            let rowIndex = callbackTableGridRef.current?.props?.itemData?.items?.findIndex((e) => {
+                return e[0]?.props?.rowData?.id === tabIDNumber
+            });
+            if(rowIndex >= 0){
+                callbackTableGridRef.current?.scrollToItem({rowIndex: rowIndex, align: "end", columnIndex: 0})
+            }
+        }
+        setClickedTabIdValue(tabID);
+    }
     useEffect(() => {
         const oldTabs = localStorage.getItem('openTabs');
         if (oldTabs !== undefined && oldTabs !== null) {
@@ -70,6 +95,14 @@ export function Callbacks({me}) {
                 }
             } catch (error) {
                 console.log('failed to parse oldTabs', error);
+            }
+        }
+        const oldSizes = localStorage.getItem("callbackTableSplitSizes");
+        if (oldSizes) {
+            try{
+                setCallbackTableSplitSizes(JSON.parse(oldSizes));
+            }catch(error){
+                console.log("failed to parse callback table split sizes");
             }
         }
     }, []);
@@ -108,6 +141,10 @@ export function Callbacks({me}) {
         });
         localStorage.setItem('openTabs', JSON.stringify(tabSet));
         setOpenTabs(tabSet);
+        if(tabSet.length === 0){
+            setClickedTabId("0");
+            localStorage.removeItem("clickedTab");
+        }
     }, [openTabs]);
     const onDragTab = ({selected, toLeftOf}) => {
         //console.log("onDragTab in CallbacksTabs", selected, toLeftOf);
@@ -172,9 +209,17 @@ export function Callbacks({me}) {
     return (
         <>
             <SpeedDialWrapper setTopDisplay={setTopDisplay} />
-            <Split direction="vertical" sizes={[30, 70]} minSize={[0,0]} style={{ height: "100%" }}>
+            <Split direction="vertical"
+                   sizes={callbackTableSplitSizes}
+                   minSize={[0,0]}
+                   onDragEnd={(sizes) => localStorage.setItem('callbackTableSplitSizes', JSON.stringify(sizes))}
+                   style={{ height: "100%" }}>
                 <div className="bg-gray-base">
-                    <CallbacksTop topDisplay={topDisplay} onOpenTab={onOpenTab.current} me={me} clickedTabId={clickedTabId}/>
+                    <CallbacksTop
+                        callbackTableGridRef={callbackTableGridRef}
+                        topDisplay={topDisplay}
+                        onOpenTab={onOpenTab.current}
+                        me={me} clickedTabId={clickedTabId}/>
                 </div>
                 <div className="bg-gray-mid">
                     <CallbacksTabs

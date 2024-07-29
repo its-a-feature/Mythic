@@ -479,7 +479,6 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     return copied;
   }
   useEffect( () => {
-    console.log("in use effect")
     if(loadingBrowserScript){
       return;
     }
@@ -505,6 +504,8 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
           console.log(error);
         }
       }
+    } else {
+      setViewBrowserScript(false);
     }
   }, [rawResponses, task, loadingBrowserScript, viewBrowserScript]);
   const [fetchScripts] = useLazyQuery(taskScript, {

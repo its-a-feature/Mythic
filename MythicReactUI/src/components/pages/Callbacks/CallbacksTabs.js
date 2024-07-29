@@ -25,8 +25,10 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, s
     }, [])
     const onCloseTabLocal = ({ tabID, index }) => {
         if (index > 0) {
+            setClickedTabId(openTabs[index-1].tabID);
             setValue(index - 1);
         } else {
+            setClickedTabId(openTabs[0].tabID);
             setValue(0);
         }
         onCloseTab({ tabID, index });
@@ -65,6 +67,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, s
                                         tabInfo={tab}
                                         index={index}
                                         me={me}
+                                        selectedIndex={value}
                                         onDragTab={onDragTab}
                                         contextMenuOptions={contextMenuOptions}
                                     />
@@ -78,6 +81,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, s
                                         tabInfo={tab}
                                         index={index}
                                         me={me}
+                                        selectedIndex={value}
                                         onDragTab={onDragTab}
                                         contextMenuOptions={contextMenuOptions}
                                     />
@@ -91,6 +95,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, s
                                         tabInfo={tab}
                                         index={index}
                                         me={me}
+                                        selectedIndex={value}
                                         onDragTab={onDragTab}
                                         contextMenuOptions={contextMenuOptions}
                                     />
@@ -104,6 +109,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, s
                                         tabInfo={tab}
                                         index={index}
                                         me={me}
+                                        selectedIndex={value}
                                         onDragTab={onDragTab}
                                         contextMenuOptions={contextMenuOptions}
                                     />
@@ -117,6 +123,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, s
                                         tabInfo={tab}
                                         index={index}
                                         me={me}
+                                        selectedIndex={value}
                                         onDragTab={onDragTab}
                                         contextMenuOptions={contextMenuOptions}
                                     />

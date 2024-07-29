@@ -261,7 +261,9 @@ export function CallbacksTop(props){
                       ) : initialNewBrowserScriptTable ? (
                           <CallbacksTableMaterialReactTable clickedTabId={props.clickedTabId} parentMountedRef={mountedRef} me={me}/>
                       ) : (
-                          <CallbacksTable parentMountedRef={mountedRef} me={me} clickedTabId={props.clickedTabId}/>
+                          <CallbacksTable callbackTableGridRef={props.callbackTableGridRef}
+                                          parentMountedRef={mountedRef} me={me}
+                                          clickedTabId={props.clickedTabId}/>
                       )
                       }
                   </CallbacksContext.Provider>

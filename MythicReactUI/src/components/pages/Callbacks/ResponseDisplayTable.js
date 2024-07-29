@@ -137,13 +137,13 @@ const ResponseDisplayTableNumberCell = ({cellData, rowData}) => {
       }
       {cellData?.plaintextHoverText? (
         <MythicStyledTooltip title={cellData.plaintextHoverText}>
-          <pre style={{display: "inline-block"}}>
+          <pre style={{display: "inline-block",  margin: 0}}>
             {cellData?.plaintext  || " "}
           </pre>
           
         </MythicStyledTooltip>
       ) : (
-        <pre style={{display: "inline-block"}}>
+        <pre style={{display: "inline-block",  margin: 0}}>
             {cellData?.plaintext || " "}
           </pre>
       )}

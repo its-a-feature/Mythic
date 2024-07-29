@@ -223,7 +223,7 @@ export const CallbacksTableIDCell = React.memo(({rowData, metaDialog, updateDesc
         }}
     ];
     return (
-        <div>
+        <div id={`callbacksTableID${rowDataStatic.id}`}>
                 <IconButton style={{padding: 0, margin: 0}} color={rowDataStatic.integrity_level > 2 ? "error" : ""}
                     onClick={(evt) => {evt.stopPropagation();localOnOpenTab("interact")}}
                 >

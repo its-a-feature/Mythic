@@ -129,7 +129,7 @@ export function CallbacksTabsFileBrowserLabel(props) {
                     }}
                     innerDialog={
                         <MythicModifyStringDialog
-                            title={"Edit Tab's Description"}
+                            title={"Edit Tab's Description - Displays as one line"}
                             onClose={() => {
                                 setOpenEditDescriptionDialog(false);
                             }}

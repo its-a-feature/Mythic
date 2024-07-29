@@ -318,4 +318,10 @@ tspan {
 .selectedCallbackHierarchy {
     background-color: ${(props) => props.theme.selectedCallbackHierarchyColor};
 }
+.MuiTab-root {
+    min-height: unset;
+}
+.MuiTabs-root {
+    min-height: unset;
+}
 `

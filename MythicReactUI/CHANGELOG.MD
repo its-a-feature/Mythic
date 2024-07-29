@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2024-07-29
+
+### Changed
+
+- fixed browser scripts not toggling
+- fixed condensed view browser script for numbers not showing up
+- saved preferences for user changing panel sizes on active callbacks page
+- saved preferences for user filtering tables on active callbacks page
+- adjusted tooltip timer to be .75s instead of 1s
+- auto scroll to selected callback in the top panel of active callbacks when selecting corresponding tab
+- unhighlight callback when tab is closed
+- highlight active tab to mirror highlighting of table row
+- updated tabs to reduce extra space
+
 ## [0.2.4] - 2024-07-29
 
 ### Changed

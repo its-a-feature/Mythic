@@ -75,6 +75,7 @@ const ResizableGridWrapper = ({
     rowContextMenuOptions,
     rowHeight,
     widthMeasureKey,
+    callbackTableGridRef,
     ...AutoSizerProps
 }) => {
     /* Hooks */
@@ -211,7 +212,9 @@ const ResizableGridWrapper = ({
         //console.log(updatedWidths, longestElementInColumn);
         setColumnWidths(updatedWidths);
     };
-
+    useEffect( () => {
+        callbackTableGridRef.current = gridRef.current;
+    }, [gridRef.current])
     const itemsWithHeader = [columns, ...items];
     const headerCellData = {
         "getRowHeight": getRowHeight,
@@ -275,12 +278,14 @@ const MythicResizableGrid = ({
     rowContextMenuOptions,
     widthMeasureKey,
     rowHeight = 20,
+    callbackTableGridRef,
 }) => {
     return (
         <AutoSizer style={{height: "100%"}}>
             {(AutoSizerProps) => (
                 <ResizableGridWrapper
                     columns={columns}
+                    callbackTableGridRef={callbackTableGridRef}
                     headerNameKey={headerNameKey}
                     sortIndicatorIndex={sortIndicatorIndex}
                     sortDirection={sortDirection}

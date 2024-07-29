@@ -103,6 +103,7 @@ export function MythicTabLabel(props) {
         onEditTabDescription,
         getCallbackData,
         onDragTab,
+        selectedIndex,
         ...other
     } = props;
     const onClick = (e) => {
@@ -135,6 +136,7 @@ export function MythicTabLabel(props) {
             onDragEnter={onDragEnter}
             onDragLeave={onDragLeave}
             draggable={!!onDragTab}
+            className={selectedIndex === index ? "selectedCallback" : "" }
             onDragStart={drag}
             label={
                 <span onContextMenu={handleContextClick} style={{ display: 'inline-block', zIndex: 1}} ref={dropdownAnchorRef}>
@@ -172,7 +174,7 @@ export function MythicTabLabel(props) {
             
             {...a11yProps(index)}
             {...other}
-            style={{padding: "0px 5px 0px 5px"}}
+            style={{padding: "0px 5px 0px 5px", borderRadius: "4px", margin: 0}}
         />
     );
 }

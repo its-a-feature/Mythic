@@ -37,6 +37,7 @@ import Popper from '@mui/material/Popper';
 import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
+import {getCallbackIdFromClickedTab} from './Callbacks';
 
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
@@ -76,18 +77,7 @@ export const ipCompare = (a, b) => {
         return 0;
     }
 }
-export const getCallbackIdFromClickedTab = (tabId) => {
-    if(tabId.includes("fileBrowser")) {
-        return Number(tabId.split("fileBrowser")[0]);
-    }else if(tabId.includes("interact")){
-        return Number(tabId.split("interact")[0]);
-    }else if(tabId.includes("processBrowser")){
-        return Number(tabId.split("processBrowser")[0]);
-    } else {
-        console.log("unknown tab type", tabId);
-        return 0;
-    }
-}
+
 function CallbacksTablePreMemo(props){
     const callbacks = useContext(CallbacksContext);
     const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
@@ -210,6 +200,15 @@ function CallbacksTablePreMemo(props){
       }catch(error){
         console.log("Failed to load callbacks_table_columns", error);
       }
+      try {
+        const storageItemOptions = localStorage.getItem("callbacks_table_filter_options");
+        if(storageItemOptions !== null){
+            let filters = JSON.parse(storageItemOptions);
+            setFilterOptions(filters);
+        }
+      }catch(error){
+        console.log("Failed to load callbacks_table_columns", error);
+    }
     }, [])
     const columns = useMemo( 
       () => 
@@ -430,11 +429,18 @@ function CallbacksTablePreMemo(props){
     }, [callbacks, sortData, filterOptions, columnVisibility, clickedCallbackID]);
     const onSubmitFilterOptions = (newFilterOptions) => {
       setFilterOptions(newFilterOptions);
+      try{
+          let options = JSON.stringify(newFilterOptions);
+          localStorage.setItem("callbacks_table_filter_options", options);
+      }catch(error){
+          console.log("failed to save filter options");
+      }
     }
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
     return (
         <div style={{ width: '100%', height: '100%', position: "relative",  }} >
           <MythicResizableGrid
+              callbackTableGridRef={props.callbackTableGridRef}
               columns={columns}
               sortIndicatorIndex={sortColumn}
               sortDirection={sortData.sortDirection}
