@@ -213,7 +213,9 @@ const ResizableGridWrapper = ({
         setColumnWidths(updatedWidths);
     };
     useEffect( () => {
-        callbackTableGridRef.current = gridRef.current;
+        if(callbackTableGridRef){
+            callbackTableGridRef.current = gridRef.current;
+        }
     }, [gridRef.current])
     const itemsWithHeader = [columns, ...items];
     const headerCellData = {
