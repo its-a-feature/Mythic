@@ -262,11 +262,10 @@ tspan {
     pointer-events: initial;
 }
 .MythicResizableGrid-draggableHandlesIndicator {
-    position: absolute;
-    top: 0;
-    left: 8;
-    width: 1px;
-    backgroundImage: linear-gradient(#7f93c0, #00000000);
+    position: relative;
+    width: 10px;
+    color: red;
+    height: 100px;
 }
 .Toastify__toast-body > div > div {
     word-break: break-all;

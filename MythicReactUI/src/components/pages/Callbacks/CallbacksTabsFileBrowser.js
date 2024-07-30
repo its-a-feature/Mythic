@@ -288,6 +288,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                             existingData.metadata.has_children = data.mythictree[i].metadata.has_children;
                         }
                         existingData.metadata.permissions = {...existingData.metadata.permissions, ...data.mythictree[i].metadata.permissions};
+                        existingData.filemeta = [...existingData.filemeta, ...data.mythictree[i].filemeta]
                         treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...existingData};
                     }
                 }

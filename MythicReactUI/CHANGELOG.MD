@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.8] - 2024-07-30
+
+### Changed
+
+- Fixed an issue with adjusting table columns
+- fixed an issue with download history not working in the file browser
+- updated file browser download history options with file, hex, and string previews
+- updated the new tag dialog to move the "new" down as a "plus" sign
+- updated comments on tasks to appear inline (with cut off elipsis)
+
 ## [0.2.6] - 2024-07-29
 
 ### Changed

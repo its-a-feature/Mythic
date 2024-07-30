@@ -38,6 +38,7 @@ import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { toLocalTime } from '../../utilities/Time';
 import ListSubheader from '@mui/material/ListSubheader';
+import {b64DecodeUnicode} from "./ResponseDisplay";
 
 
 const getPermissionsDataQuery = gql`
@@ -49,8 +50,8 @@ const getPermissionsDataQuery = gql`
     }
 `;
 const getFileDownloadHistory = gql`
-    query getFileDownloadHistory($mythictree_id: Int!) {
-        mythictree_by_pk(id: $mythictree_id) {
+    query getFileDownloadHistory($full_path_text: String!, $host: String!, $group: [String!]) {
+        mythictree(where: {tree_type: {_eq: "file"}, full_path_text: {_eq: $full_path_text}, host: {_eq: $host}, callback: {mythictree_groups: {_contains: $group}}}) {
             filemeta {
                 id
                 comment
@@ -59,6 +60,8 @@ const getFileDownloadHistory = gql`
                 complete
                 total_chunks
                 timestamp
+                filename_text
+                full_remote_path_text
                 task {
                     id
                     display_id
@@ -302,6 +305,38 @@ export const CallbacksTabsFileBrowserTable = (props) => {
 };
 const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selectedFolderData }) => {
     const theme = useTheme();
+    const [downloadHistory, setDownloadHistory] = React.useState([]);
+    const [fileHistoryDialogOpen, setFileHistoryDialogOpen] = React.useState(false);
+    const [getHistory] = useLazyQuery(getFileDownloadHistory, {
+        onCompleted: (data) => {
+            if (data.mythictree.length === 0) {
+                snackActions.warning('No download history recorded');
+            } else {
+                let files = [];
+                for(let i = 0; i < data.mythictree.length; i++){
+                    files.push(...data.mythictree[i].filemeta);
+                }
+                if(files.length === 0){
+                    snackActions.warning('No download history recorded');
+                    return;
+                }
+                files = files.map(f => {
+                    return {...f, filename_text: b64DecodeUnicode(f.filename_text),
+                    full_remote_path_text: b64DecodeUnicode(f.full_remote_path_text)}
+                });
+                setDownloadHistory(files);
+                setFileHistoryDialogOpen(true);
+            }
+        },
+        fetchPolicy: 'network-only',
+    });
+    const onGetHistory = () => {
+        getHistory({ variables: {
+                full_path_text: treeRootData[selectedFolderData.host][cellData].full_path_text,
+                host: selectedFolderData.host,
+                group: [selectedFolderData.group],
+            } });
+    }
     return (
         <div style={{ alignItems: 'center', display: 'flex', maxHeight: "100%", textDecoration: treeRootData[selectedFolderData.host][cellData]?.deleted ? 'line-through' : '' }}>
             {!treeRootData[selectedFolderData.host][cellData]?.can_have_children ? (
@@ -319,7 +354,28 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
                     }}
                 />
             )}
-            {treeRootData[selectedFolderData.host][cellData]?.filemeta.length > 0 ? <GetAppIcon color="success" /> : null}
+            {treeRootData[selectedFolderData.host][cellData]?.filemeta.length > 0 ?
+                <GetAppIcon onClick={onGetHistory} style={{cursor: "pointer"}} color="success" />
+                : null}
+            {fileHistoryDialogOpen && (
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth='xl'
+                    open={fileHistoryDialogOpen}
+                    onClose={() => {
+                        setFileHistoryDialogOpen(false);
+                    }}
+                    innerDialog={
+                        <DownloadHistoryDialog
+                            title='Download History'
+                            value={downloadHistory}
+                            onClose={() => {
+                                setFileHistoryDialogOpen(false);
+                            }}
+                        />
+                    }
+                />
+            )}
             <pre 
                 style={{
                     color:
@@ -434,11 +490,22 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
     });
     const [getHistory] = useLazyQuery(getFileDownloadHistory, {
         onCompleted: (data) => {
-            //console.log(data);
-            if (data.mythictree_by_pk.filemeta.length === 0) {
+            if (data.mythictree.length === 0) {
                 snackActions.warning('No download history recorded');
             } else {
-                setDownloadHistory(data.mythictree_by_pk.filemeta);
+                let files = [];
+                for(let i = 0; i < data.mythictree.length; i++){
+                    files.push(...data.mythictree[i].filemeta);
+                }
+                if(files.length === 0){
+                    snackActions.warning('No download history recorded');
+                    return;
+                }
+                files = files.map(f => {
+                    return {...f, filename_text: b64DecodeUnicode(f.filename_text),
+                        full_remote_path_text: b64DecodeUnicode(f.full_remote_path_text)}
+                });
+                setDownloadHistory(files);
                 setFileHistoryDialogOpen(true);
             }
         },
@@ -497,7 +564,11 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
             icon: <HistoryIcon style={{ paddingRight: '5px' }} />,
             click: (evt, callback_id, callback_display_id) => {
                 evt.stopPropagation();
-                getHistory({ variables: { mythictree_id: treeRootData[selectedFolderData.host][cellData].id } });
+                getHistory({ variables: {
+                    full_path_text: treeRootData[selectedFolderData.host][cellData].full_path_text,
+                    host: selectedFolderData.host,
+                    group: [selectedFolderData.group],
+                } });
             },
         },
         {
@@ -690,7 +761,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
             {fileHistoryDialogOpen && (
                 <MythicDialog
                     fullWidth={true}
-                    maxWidth='md'
+                    maxWidth='xl'
                     open={fileHistoryDialogOpen}
                     onClose={() => {
                         setFileHistoryDialogOpen(false);

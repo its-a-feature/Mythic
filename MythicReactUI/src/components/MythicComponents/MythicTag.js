@@ -5,7 +5,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from './MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
-import { Select, Input, MenuItem, Link, IconButton, } from '@mui/material';
+import { Select, Input, MenuItem, Link, IconButton } from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -24,6 +24,8 @@ import WebhookIcon from '@mui/icons-material/Webhook';
 import Chip from '@mui/material/Chip';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import Typography from '@mui/material/Typography';
 
 const createNewTagMutationTemplate = ({target_object}) => {
   // target_object should be something like "task_id"
@@ -404,7 +406,6 @@ const onAcceptDelete = () => {
 return (
   <React.Fragment>
       <DialogTitle id="form-dialog-title">Edit Tags
-      <Button variant='contained' color="success" style={{float: "right"}} onClick={() => setOpenNewDialog(true)} >New</Button>
       </DialogTitle>
       <DialogContent dividers={true}>
       {openNewDialog ?
@@ -420,8 +421,13 @@ return (
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
-                  <TableCell style={{width: "30%"}}>Select Existing Tag to Edit</TableCell>
+                  <TableCell style={{width: "30%"}}>Select Existing Tag to Edit or Add New</TableCell>
                   <TableCell style={{display: "inline-flex", flexDirection: "row-reverse"}}>
+                    <MythicStyledTooltip title={"Add New Tag"}>
+                      <IconButton variant='contained' color="success" style={{float: "right"}} onClick={() => setOpenNewDialog(true)} >
+                        <AddCircleOutlineIcon />
+                      </IconButton>
+                    </MythicStyledTooltip>
                     <Select
                         labelId="demo-dialog-select-label"
                         id="demo-dialog-select"
@@ -438,7 +444,6 @@ return (
                     {selectedTag.id &&
                         <IconButton size="small" style={{float: "right"}} onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/></IconButton>
                     }
-
                       {openDelete && 
                         <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                       }
@@ -547,13 +552,25 @@ export function NewTagDialog(props) {
 
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Create new Tag Instance</DialogTitle>
+        <DialogTitle id="form-dialog-title">Add New Tag</DialogTitle>
         <DialogContent dividers={true}>
           <TableContainer className="mythicElement">
             <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableBody>
                   <TableRow hover>
-                    <TableCell style={{width: "30%"}}>Select Existing Tag Type</TableCell>
+                    <TableCell style={{width: "20%"}}>
+                      <Typography>
+                        Tag
+                      </Typography>
+                      <Typography  size="small" component="span" style={{fontSize: theme.typography.pxToRem(15)}}>
+                        To create a new tag type click <Link style={{wordBreak: "break-all"}}
+                                                             color="textPrimary"
+                                                             href={"/new/tagtypes"}
+                                                             underline="always" target="_blank">
+                        here
+                      </Link>
+                      </Typography>
+                    </TableCell>
                     <TableCell>
                       <Select
                         labelId="demo-dialog-select-label"

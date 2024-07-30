@@ -308,13 +308,16 @@ const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren,
               {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
               {" / "}
               <TaskStatusDisplay task={task} theme={theme}/>
+              {task.comment.length > 0 &&
+                  <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
+              }
             </Typography>
             <TaskTagDisplay task={task}/>
           </div>
           <div>
             {task.comment !== "" ? (
                 <div className={classes.column}>
-                  <IconButton size="small" style={{padding: "0"}} color="primary"
+                  <IconButton size="small" style={{padding: "0"}} color="info"
                               onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
                 </div>
             ) : null}

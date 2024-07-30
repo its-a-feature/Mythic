@@ -148,7 +148,6 @@ const ResizableGridWrapper = ({
                 } else {
                     return 30;
                 }
-
             }
             if(columns[columnIndex].key){
                 if(columns[columnIndex].key.includes("time")){
@@ -175,13 +174,13 @@ const ResizableGridWrapper = ({
                 if(columns[columnIndex].inMetadata){
                     return itemRow[columnIndex]?.props?.cellData.length;
                 }
-                if(!data){
+                if(data === undefined){
                     return MIN_COLUMN_WIDTH;
                 }
                 if(data.plaintext){
-                    return String(data.plaintext).length || -1;
+                    return String(data.plaintext)?.length;
                 } else {
-                    return String(data).length || -1;
+                    return String(data)?.length ;
                 }
                 //return String(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]).length || -1;
             } else if(typeof(itemRow[columnIndex]?.props?.cellData) === "string") {
