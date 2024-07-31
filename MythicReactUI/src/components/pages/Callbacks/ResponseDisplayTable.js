@@ -562,7 +562,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   }, [table.rows])
   const sortColumn = table.headers.findIndex((column) => column.plaintext === sortData.sortKey);
   const tableStyle = React.useMemo( () => {
-    return expand ? {flexGrow: 1, width: "99%",} : {height: dataHeight}
+    return expand ? {flexGrow: 1, width: "99%", position: "relative"} : {height: dataHeight, position: "relative"}
   }, [expand, dataHeight]);
   return (
         <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", width: "100%"}}>
