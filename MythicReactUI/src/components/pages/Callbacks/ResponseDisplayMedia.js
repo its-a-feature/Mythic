@@ -36,10 +36,57 @@ import 'ace-builds/src-noconflict/mode-makefile';
 import 'ace-builds/src-noconflict/mode-kotlin';
 import 'ace-builds/src-noconflict/mode-dockerfile';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-
+import AppBar from '@mui/material/AppBar';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import {previewFileQuery} from "../Search/FileMetaTable";
+import { useMutation } from '@apollo/client';
 
 export const ResponseDisplayMedia = ({media, expand, task}) =>{
-     return <DisplayMedia agent_file_id={media?.agent_file_id || ""} task={task} filename={media?.filename || undefined} expand={expand} />
+    const displayType = mimeType(media?.filename);
+    const [value, setValue] = React.useState(displayType !== undefined ? 0 : 1);
+    const handleChange = (event, newValue) => {
+        setValue(newValue);
+    }
+    return (
+        <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
+            <AppBar color={'default'} position='static' className={"no-box-shadow"}>
+                <Button style={{width: "100%"}}
+                        size={"small"} variant={"contained"} href={"/direct/download/" +  media.agent_file_id}
+                        download >Download</Button>
+                <Tabs
+                    value={value}
+                    onChange={handleChange}
+                    indicatorColor='secondary'
+                    textColor='primary'
+                    sx={{
+                        '& .Mui-selected': {
+                            color: "unset !important"
+                        }
+                    }}
+                    variant='scrollable'
+                    scrollButtons='auto'
+                    style={{maxWidth: '100%', width: '100%'}}
+                    aria-label='scrollable auto tabs example'>
+                    <Tab className={value === 0 ? "selectedCallback": ""} label={"Render Media"}></Tab>
+                    <Tab className={value === 1 ? "selectedCallback": ""} label={"Preview Strings"}></Tab>
+                    <Tab className={value === 2 ? "selectedCallback": ""} label={"Preview Hex"}></Tab>
+                </Tabs>
+            </AppBar>
+            <div hidden={value !== 0}  style={{height: "100%"}} role='tabpanel' >
+                <DisplayMedia agent_file_id={media?.agent_file_id || ""} task={task} filename={media?.filename || undefined} expand={expand} />
+            </div>
+            <div hidden={value !== 1} style={{height: "100%"}} role='tabpanel' >
+                <DisplayText agent_file_id={media?.agent_file_id || ""} task={task} filename={media?.filename || undefined} expand={expand} preview />
+            </div>
+            <div hidden={value !== 2} style={{height: "100%"}} role='tabpanel' >
+                <DisplayHex agent_file_id={media?.agent_file_id || ""} task={task} filename={media?.filename || undefined} expand={expand} />
+            </div>
+
+        </div>
+
+
+    )
 }
 const textExtensionTypes = ["txt", "ps1", "php", "json", "yml", "yaml", "config", "cfg", "go",
     "html", "xml", "js", "java", "conf", "cs", "rb", "toml", "sh", "md", "ini", "py", "kirbi", "bash_profile", "rc",
@@ -169,50 +216,67 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task}) => {
     }
     if(fileData.display_type === "text"){
         return (
-            <div style={{height: "100%", minHeight: "200px", width: "100%"}} >
+            <div style={{height: "100%", minHeight: "100px", width: "100%"}} >
                 <DisplayText agent_file_id={agent_file_id} expand={expand} filename={filename} />
             </div>
-
         )
     }
     return null;
 }
 const MaxRenderSize = 2000000;
-const DisplayText = ({agent_file_id, expand, filename}) => {
+const DisplayText = ({agent_file_id, expand, filename, preview}) => {
     const theme = useTheme();
     const [mode, setMode] = React.useState("html");
     const [content, setContent] = React.useState("");
     const [wrapText, setWrapText] = React.useState(true);
+    const [previewFileString] = useMutation(previewFileQuery, {
+        onCompleted: (data) => {
+            if(data.previewFile.status === "success"){
+                setContent(atob(data.previewFile.contents));
+            }else{
+                snackActions.error(data.previewFile.error)
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error(data);
+        }
+    });
     React.useEffect( () => {
-
-        fetch('/direct/view/' + agent_file_id).then((response) => {
-            if(response.status !== 200){
-                snackActions.warning("Failed to fetch contents from Mythic");
-                return;
-            }
-            response.text().then(data => {
-                if(data.length > MaxRenderSize){
-                    snackActions.warning("File too large (> 2MB), truncating the render");
+        if(preview){
+            // get first 512KB
+            previewFileString({variables: {file_id: agent_file_id}})
+        }else{
+            // get entire file
+            fetch('/direct/view/' + agent_file_id).then((response) => {
+                if(response.status !== 200){
+                    snackActions.warning("Failed to fetch contents from Mythic");
+                    return;
                 }
+                response.text().then(data => {
+                    if(data.length > MaxRenderSize){
+                        snackActions.warning("File too large (> 2MB), truncating the render");
+                    }
 
-                try{
-                    let cont = JSON.stringify(JSON.parse(data), null, 2);
-                    setContent(cont);
-                }catch(error){
-                    setContent(data.substring(0, MaxRenderSize));
-                }
+                    try{
+                        let cont = JSON.stringify(JSON.parse(data), null, 2);
+                        setContent(cont);
+                    }catch(error){
+                        setContent(data.substring(0, MaxRenderSize));
+                    }
+                }).catch(error => {
+                    snackActions.warning("Error getting contents from server: " + error.toString());
+                    console.log("Error trying to get json response", error, response);
+                });
             }).catch(error => {
-                snackActions.warning("Error getting contents from server: " + error.toString());
-                console.log("Error trying to get json response", error, response);
+                if(error.toString() === "TypeError: Failed to fetch"){
+                    snackActions.warning("Please refresh and accept the SSL connection error");
+                } else {
+                    snackActions.warning("Error talking to server: " + error.toString());
+                }
+                console.log("There was an error!", error);
             });
-        }).catch(error => {
-            if(error.toString() === "TypeError: Failed to fetch"){
-                snackActions.warning("Please refresh and accept the SSL connection error");
-            } else {
-                snackActions.warning("Error talking to server: " + error.toString());
-            }
-            console.log("There was an error!", error);
-        });
+        }
         if(filename){
             let extension = filename.split(".");
             if(extension.length > 0){
@@ -226,7 +290,7 @@ const DisplayText = ({agent_file_id, expand, filename}) => {
                 }
             }
         }
-    }, []);
+    }, [agent_file_id, filename]);
     const onChangeMode = (event) => {
         setMode(event.target.value);
     }
@@ -288,4 +352,75 @@ const DisplayText = ({agent_file_id, expand, filename}) => {
 
         </div>
     )
+}
+const DisplayHex = ({agent_file_id, expand}) => {
+    const theme = useTheme();
+    const [content, setContent] = React.useState("");
+    const [previewFileString] = useMutation(previewFileQuery, {
+        onCompleted: (previewData) => {
+            if(previewData.previewFile.status === "success"){
+                let data = atob(previewData.previewFile.contents);
+                let newData = "";
+                let stringData = "";
+                for(let i = 0; i < data.length; i++){
+                    let char = data[i].charCodeAt(0).toString(16);
+                    if(char.length === 1){
+                        newData += "0" + char;
+                    }else{
+                        newData += char;
+                    }
+                    if(data[i] === "\n"){
+                        stringData += "\\n";
+                    }else if(data[i] === "\r"){
+                        stringData += "\\r";
+                    }else{
+                        stringData += data[i];
+                    }
+                    if((i+1) % 4 === 0){
+                        newData += " ";
+                    }
+                    if((i+1) % 32 === 0){
+                        newData += ": " + stringData + "\n";
+                        stringData = "";
+                    }
+                }
+                setContent(newData);
+            }else{
+                snackActions.error(previewData.previewFile.error)
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error(data);
+        }
+    });
+    React.useEffect( () => {
+        previewFileString({variables: {file_id: agent_file_id}})
+    }, [agent_file_id])
+    return (
+            <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
+                <div style={{display: "flex", flexGrow: 1, height: "100%"}}>
+                    <AceEditor
+                        mode="json"
+                        theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
+                        fontSize={14}
+                        showGutter={true}
+                        //onLoad={onLoad}
+                        highlightActiveLine={false}
+                        showPrintMargin={false}
+                        value={content}
+                        height={expand ? "100%": undefined}
+                        maxLines={expand ? undefined : 20}
+                        width={"100%"}
+                        //autoScrollEditorIntoView={true}
+                        minLines={2}
+                        //maxLines={props.expand ? 50 : 20}
+                        setOptions={{
+                            showLineNumbers: true,
+                            tabSize: 4,
+                            useWorker: false
+                        }}/>
+                </div>
+            </div>
+);
 }

@@ -25,10 +25,12 @@ fragment callbackSearchData on callback{
     display_id
     ip
     active
-    mythictree_groups
+    dead
+    last_checkin
     payload {
         payloadtype {
             name
+            agent_type
         }
     }
 }

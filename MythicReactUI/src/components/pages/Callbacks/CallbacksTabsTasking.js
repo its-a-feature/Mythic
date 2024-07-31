@@ -60,7 +60,7 @@ export function CallbacksTabsTaskingLabel(props){
 }
 
 // this is to listen for the latest tasking
-const fetchLimit = 10;
+const fetchLimit = 30;
 const getTaskingQuery = gql`
 ${taskingDataFragment}
 subscription getTasking($callback_id: Int!, $fromNow: timestamp!, $limit: Int){
@@ -204,7 +204,6 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
     }
     useSubscription(getTaskingQuery, {
         variables: {callback_id: tabInfo.callbackID, fromNow:fromNow, limit: taskLimit},
-        shouldResubscribe: true,
         onError: data => {
             console.error(data)
         },

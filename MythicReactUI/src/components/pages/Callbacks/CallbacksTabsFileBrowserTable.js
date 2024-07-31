@@ -39,6 +39,8 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { toLocalTime } from '../../utilities/Time';
 import ListSubheader from '@mui/material/ListSubheader';
 import {b64DecodeUnicode} from "./ResponseDisplay";
+import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
+import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
 
 
 const getPermissionsDataQuery = gql`
@@ -61,6 +63,7 @@ const getFileDownloadHistory = gql`
                 total_chunks
                 timestamp
                 filename_text
+                host
                 full_remote_path_text
                 task {
                     id
@@ -101,8 +104,8 @@ export const CallbacksTabsFileBrowserTable = (props) => {
             [
                 { name: 'Info', width: 50, disableDoubleClick: true, disableSort: true, disableFilterMenu: true },
                 { name: 'Name', type: 'string', key: 'name_text', fillWidth: true },
-                { name: "Size", type: "size", key: "size", inMetadata: true},
-                { name: "Last Modify", type: "date", key: "modify_time", inMetadata: true, width: 300},
+                { name: "Size", type: "size", key: "size", inMetadata: true, width: 100},
+                { name: "Last Modify", type: "date", key: "modify_time", inMetadata: true, width: 250},
                 { name: 'Tags', type: 'tags', disableSort: true, disableFilterMenu: true, width: 220 },
                 { name: 'Comment', type: 'string', key: 'comment', width: 200 },
             ].reduce( (prev, cur) => {
@@ -270,7 +273,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
 
     return (
-        <div style={{ width: '100%', height: '100%', overflow: "hidden" }}>
+        <div style={{ width: '100%', height: '100%', overflow: "hidden", position: "relative" }}>
             <MythicResizableGrid
                 columns={columns}
                 sortIndicatorIndex={sortColumn}
@@ -305,38 +308,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
 };
 const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selectedFolderData }) => {
     const theme = useTheme();
-    const [downloadHistory, setDownloadHistory] = React.useState([]);
-    const [fileHistoryDialogOpen, setFileHistoryDialogOpen] = React.useState(false);
-    const [getHistory] = useLazyQuery(getFileDownloadHistory, {
-        onCompleted: (data) => {
-            if (data.mythictree.length === 0) {
-                snackActions.warning('No download history recorded');
-            } else {
-                let files = [];
-                for(let i = 0; i < data.mythictree.length; i++){
-                    files.push(...data.mythictree[i].filemeta);
-                }
-                if(files.length === 0){
-                    snackActions.warning('No download history recorded');
-                    return;
-                }
-                files = files.map(f => {
-                    return {...f, filename_text: b64DecodeUnicode(f.filename_text),
-                    full_remote_path_text: b64DecodeUnicode(f.full_remote_path_text)}
-                });
-                setDownloadHistory(files);
-                setFileHistoryDialogOpen(true);
-            }
-        },
-        fetchPolicy: 'network-only',
-    });
-    const onGetHistory = () => {
-        getHistory({ variables: {
-                full_path_text: treeRootData[selectedFolderData.host][cellData].full_path_text,
-                host: selectedFolderData.host,
-                group: [selectedFolderData.group],
-            } });
-    }
+    const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
     return (
         <div style={{ alignItems: 'center', display: 'flex', maxHeight: "100%", textDecoration: treeRootData[selectedFolderData.host][cellData]?.deleted ? 'line-through' : '' }}>
             {!treeRootData[selectedFolderData.host][cellData]?.can_have_children ? (
@@ -355,27 +327,21 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
                 />
             )}
             {treeRootData[selectedFolderData.host][cellData]?.filemeta.length > 0 ?
-                <GetAppIcon onClick={onGetHistory} style={{cursor: "pointer"}} color="success" />
+                <MythicStyledTooltip title={"Preview Media"}>
+                    <FontAwesomeIcon icon={faPhotoVideo} style={{height: "15px", marginRight: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
+                        onClick={() => setOpenPreviewMediaDialog(true)}/>
+                </MythicStyledTooltip>
+
                 : null}
-            {fileHistoryDialogOpen && (
-                <MythicDialog
-                    fullWidth={true}
-                    maxWidth='xl'
-                    open={fileHistoryDialogOpen}
-                    onClose={() => {
-                        setFileHistoryDialogOpen(false);
-                    }}
-                    innerDialog={
-                        <DownloadHistoryDialog
-                            title='Download History'
-                            value={downloadHistory}
-                            onClose={() => {
-                                setFileHistoryDialogOpen(false);
-                            }}
-                        />
-                    }
+            {openPreviewMediaDialog &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
+                              onClose={(e)=>{setOpenPreviewMediaDialog(false);}}
+                              innerDialog={<PreviewFileMediaDialog
+                                  agent_file_id={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.agent_file_id}
+                                  filename={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.filename_text}
+                                  onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
                 />
-            )}
+            }
             <pre 
                 style={{
                     color:
@@ -386,11 +352,11 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
                 {treeRootData[selectedFolderData.host][cellData]?.name_text}
             </pre>
             {treeRootData[selectedFolderData.host][cellData]?.success === true ? (
-                <MythicStyledTooltip title='Successfully listed contents of folder'>
+                <MythicStyledTooltip title='Successfully listed contents of folder' style={{display: "inline-flex", marginLeft: "5px"}}>
                     <CheckCircleOutlineIcon color="success" fontSize='small' />
                 </MythicStyledTooltip>
             ) : treeRootData[selectedFolderData.host][cellData]?.success === false ? (
-                <MythicStyledTooltip title='Failed to list contents of folder'>
+                <MythicStyledTooltip title='Failed to list contents of folder' style={{display: "inline-flex", marginLeft: "5px"}}>
                     <ErrorIcon fontSize='small' color="error" />
                 </MythicStyledTooltip>
             ) : null}
@@ -505,6 +471,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                     return {...f, filename_text: b64DecodeUnicode(f.filename_text),
                         full_remote_path_text: b64DecodeUnicode(f.full_remote_path_text)}
                 });
+                files.sort((a, b) => a.id < b.id ? 1 : -1)
                 setDownloadHistory(files);
                 setFileHistoryDialogOpen(true);
             }

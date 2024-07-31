@@ -25,9 +25,6 @@ fragment treeObjData on mythictree {
     comment
     deleted
     task_id
-    filemeta {
-        id
-    }
     tags {
         tagtype {
             name
@@ -206,7 +203,22 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         // new host discovered
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]] = {};
                     }
-                    treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"] /*+ uniqueSplitString + data.data.mythictree_stream[i]["callback_id"]*/] = {...data.data.mythictree_stream[i]};
+                    if(treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] === undefined){
+                        // first time we're seeing this file data, just add it
+                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]};
+                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]].callbacks = [data.data.mythictree_stream[i].callback]
+                    } else {
+                        // we need to merge data in because we already have some info
+                        let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
+                        if(existingData.success === null || !existingData.success){
+                            existingData.success = data.data.mythictree_stream[i].success;
+                        }
+                        existingData.callbacks.push(data.data.mythictree_stream[i].callback)
+                        existingData.comment += data.data.mythictree_stream[i].comment;
+                        existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];
+                        existingData.metadata = {...existingData.metadata, ...data.data.mythictree_stream[i].metadata};
+                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...existingData};
+                    }
                 }
             }
             const newMatrix = data.data.mythictree_stream.reduce( (prev, cur) => {

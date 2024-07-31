@@ -77,6 +77,7 @@ tspan {
     padding: 0;
   }
 .MuiTab-root {
+    min-height: unset;
     max-width: unset;
 }
 .MuiSpeedDialAction-staticTooltipLabel {
@@ -216,7 +217,7 @@ tspan {
 .MythicResizableGrid-headerCell {
     display: flex;
     align-items: center;
-    padding: 0 0.25em;
+    padding: 0 0.5em;
     box-sizing: border-box;
     justify-content: space-between;
     user-select: none;
@@ -316,9 +317,6 @@ tspan {
 }
 .selectedCallbackHierarchy {
     background-color: ${(props) => props.theme.selectedCallbackHierarchyColor};
-}
-.MuiTab-root {
-    min-height: unset;
 }
 .MuiTabs-root {
     min-height: unset;

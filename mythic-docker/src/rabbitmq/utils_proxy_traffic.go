@@ -546,6 +546,10 @@ func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, l
 	return nil
 }
 func isPortExposedThroughDocker(portToCheck int) bool {
+	if utils.MythicConfig.ServerDockerNetworking == "host" {
+		// all ports are exposed if we're doing host networking
+		return true
+	}
 	for _, port := range utils.MythicConfig.ServerDynamicPorts {
 		if port == uint32(portToCheck) {
 			return true
@@ -567,6 +571,10 @@ func (p *callbackPortUsage) Start() error {
 	case CALLBACK_PORT_TYPE_SOCKS:
 		if isPortExposedThroughDocker(p.LocalPort) {
 			addr := fmt.Sprintf("0.0.0.0:%d", p.LocalPort)
+			// bind to 127.0.0.1 if we're doing host networking and asked dynamic ports to bind locally
+			if utils.MythicConfig.ServerDockerNetworking == "host" && utils.MythicConfig.ServerDynamicPortsBindLocalhostOnly {
+				addr = fmt.Sprintf("127.0.0.1:%d", p.LocalPort)
+			}
 			if l, err := net.Listen("tcp", addr); err != nil {
 				logging.LogError(err, "Failed to start listening on new port")
 				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
@@ -601,6 +609,9 @@ func (p *callbackPortUsage) Start() error {
 	case CALLBACK_PORT_TYPE_INTERACTIVE:
 		if isPortExposedThroughDocker(p.LocalPort) {
 			addr := fmt.Sprintf("0.0.0.0:%d", p.LocalPort)
+			if utils.MythicConfig.ServerDockerNetworking == "host" && utils.MythicConfig.ServerDynamicPortsBindLocalhostOnly {
+				addr = fmt.Sprintf("127.0.0.1:%d", p.LocalPort)
+			}
 			if l, err := net.Listen("tcp", addr); err != nil {
 				logging.LogError(err, "Failed to start listening on new port")
 				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)

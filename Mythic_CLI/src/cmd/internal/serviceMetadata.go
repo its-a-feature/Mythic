@@ -190,6 +190,11 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 
 		*/
+		if mythicEnv.GetString("mythic_server_docker_networking") == "host" {
+			pStruct["extra_hosts"] = []string{
+				"mythic_server:${MYTHIC_SERVER_HOST}",
+			}
+		}
 	case "mythic_nginx":
 		if mythicEnv.GetBool("nginx_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
@@ -268,6 +273,12 @@ func AddMythicService(service string, removeVolume bool) {
 				"name": "mythic_nginx_volume_ssl",
 			}
 		}
+		if mythicEnv.GetString("mythic_server_docker_networking") == "host" {
+			pStruct["extra_hosts"] = []string{
+				"mythic_server:${MYTHIC_SERVER_HOST}",
+			}
+		}
+
 	case "mythic_rabbitmq":
 		if mythicEnv.GetBool("rabbitmq_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
@@ -287,9 +298,21 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["ports"] = []string{
 				"127.0.0.1:${RABBITMQ_PORT}:${RABBITMQ_PORT}",
 			}
+			if mythicEnv.GetString("mythic_server_docker_networking") == "host" {
+				pStruct["ports"] = []string{
+					"127.0.0.1:${RABBITMQ_PORT}:${RABBITMQ_PORT}",
+					"127.0.0.1:15672:15672",
+				}
+			}
 		} else {
 			pStruct["ports"] = []string{
 				"${RABBITMQ_PORT}:${RABBITMQ_PORT}",
+			}
+			if mythicEnv.GetString("mythic_server_docker_networking") == "host" {
+				pStruct["ports"] = []string{
+					"${RABBITMQ_PORT}:${RABBITMQ_PORT}",
+					"127.0.0.1:15672:15672",
+				}
 			}
 		}
 		environment := []string{
@@ -477,28 +500,42 @@ func AddMythicService(service string, removeVolume bool) {
 			"NGINX_PORT=${NGINX_PORT}",
 			"NGINX_HOST=${NGINX_HOST}",
 			"MYTHIC_SERVER_DYNAMIC_PORTS=${MYTHIC_SERVER_DYNAMIC_PORTS}",
+			"MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY=${MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY}",
+			"MYTHIC_SERVER_DOCKER_NETWORKING=${MYTHIC_SERVER_DOCKER_NETWORKING}",
 			"GLOBAL_SERVER_NAME=${GLOBAL_SERVER_NAME}",
 		}
-		mythicServerPorts := []string{
-			"${MYTHIC_SERVER_PORT}:${MYTHIC_SERVER_PORT}",
-			"${MYTHIC_SERVER_GRPC_PORT}:${MYTHIC_SERVER_GRPC_PORT}",
-		}
-		if mythicEnv.GetBool("MYTHIC_SERVER_BIND_LOCALHOST_ONLY") {
-			mythicServerPorts = []string{
-				"127.0.0.1:${MYTHIC_SERVER_PORT}:${MYTHIC_SERVER_PORT}",
-				"127.0.0.1:${MYTHIC_SERVER_GRPC_PORT}:${MYTHIC_SERVER_GRPC_PORT}",
+		if mythicEnv.GetString("mythic_server_docker_networking") == "bridge" {
+			mythicServerPorts := []string{
+				"${MYTHIC_SERVER_PORT}:${MYTHIC_SERVER_PORT}",
+				"${MYTHIC_SERVER_GRPC_PORT}:${MYTHIC_SERVER_GRPC_PORT}",
 			}
-		}
-		dynamicPortPieces := strings.Split(mythicEnv.GetString("MYTHIC_SERVER_DYNAMIC_PORTS"), ",")
-		for _, val := range dynamicPortPieces {
-			if mythicEnv.GetBool("mythic_server_dynamic_ports_bind_localhost_only") {
-				mythicServerPorts = append(mythicServerPorts, fmt.Sprintf("127.0.0.1:%s:%s", val, val))
-			} else {
-				mythicServerPorts = append(mythicServerPorts, fmt.Sprintf("%s:%s", val, val))
+			if mythicEnv.GetBool("MYTHIC_SERVER_BIND_LOCALHOST_ONLY") {
+				mythicServerPorts = []string{
+					"127.0.0.1:${MYTHIC_SERVER_PORT}:${MYTHIC_SERVER_PORT}",
+					"127.0.0.1:${MYTHIC_SERVER_GRPC_PORT}:${MYTHIC_SERVER_GRPC_PORT}",
+				}
 			}
+			dynamicPortPieces := strings.Split(mythicEnv.GetString("MYTHIC_SERVER_DYNAMIC_PORTS"), ",")
+			for _, val := range dynamicPortPieces {
+				if mythicEnv.GetBool("mythic_server_dynamic_ports_bind_localhost_only") {
+					mythicServerPorts = append(mythicServerPorts, fmt.Sprintf("127.0.0.1:%s:%s", val, val))
+				} else {
+					mythicServerPorts = append(mythicServerPorts, fmt.Sprintf("%s:%s", val, val))
+				}
 
+			}
+			pStruct["ports"] = mythicServerPorts
+			delete(pStruct, "network_mode")
+			delete(pStruct, "extra_hosts")
+		} else {
+			delete(pStruct, "ports")
+			pStruct["network_mode"] = "host"
+			pStruct["extra_hosts"] = []string{
+				"mythic_postgres:127.0.0.1",
+				"mythic_rabbitmq:127.0.0.1",
+			}
 		}
-		pStruct["ports"] = mythicServerPorts
+
 		if _, ok := pStruct["environment"]; ok {
 			pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), environment)
 		} else {

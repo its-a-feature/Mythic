@@ -23,6 +23,7 @@ import {CallbacksTabsTaskingInputTokenSelect} from "./CallbacksTabsTaskingInputT
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import {b64DecodeUnicode} from "./ResponseDisplay";
 
 const fileDataFragment = gql`
     fragment fileObjData on mythictree {
@@ -31,6 +32,8 @@ const fileDataFragment = gql`
         task_id
         filemeta {
             id
+            agent_file_id
+            filename_text
         }
         tags {
             tagtype {
@@ -215,6 +218,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                     if(treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] === undefined){
                         // first time we're seeing this file data, just add it
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]};
+                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]].filemeta = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]].filemeta.map(f => {
+                            return {...f, filename_text: b64DecodeUnicode(f.filename_text)}
+                        })
                     } else {
                         // we need to merge data in because we already have some info
                         let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
@@ -227,6 +233,10 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                             existingData.metadata.has_children = data.data.mythictree_stream[i].metadata.has_children;
                         }
                         existingData.metadata.permissions = {...existingData.metadata.permissions, ...data.data.mythictree_stream[i].metadata.permissions};
+                        let newfileData = data.data.mythictree_stream[i].filemeta.map(f => {
+                            return {...f, filename_text: b64DecodeUnicode(f.filename_text)};
+                        })
+                        existingData.filemeta = [...existingData.filemeta, ...newfileData]
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...existingData};
                     }
                 }
@@ -276,6 +286,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                     if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] === undefined){
                         // first time we're seeing this file data, just add it
                         treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]};
+                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].filemeta = treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].filemeta.map(f => {
+                            return {...f, filename_text: b64DecodeUnicode(f.filename_text)}
+                        })
                     } else {
                         // we need to merge data in because we already have some info
                         let existingData = treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
@@ -288,7 +301,10 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                             existingData.metadata.has_children = data.mythictree[i].metadata.has_children;
                         }
                         existingData.metadata.permissions = {...existingData.metadata.permissions, ...data.mythictree[i].metadata.permissions};
-                        existingData.filemeta = [...existingData.filemeta, ...data.mythictree[i].filemeta]
+                        let newfileData = data.mythictree[i].filemeta.map(f => {
+                            return {...f, filename_text: b64DecodeUnicode(f.filename_text)};
+                        })
+                        existingData.filemeta = [...existingData.filemeta, ...newfileData]
                         treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...existingData};
                     }
                 }

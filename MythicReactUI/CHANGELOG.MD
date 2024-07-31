@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.9] - 2024-07-31
+
+### Changed
+
+- Adjusted file previews to provide download, string preview, hex preview, and media preview all at once via tabs
+- updated file searching to use new preview options
+- fixed file/process browsers to support column resizing
+- updated mythic-cli to add option for setting mythic_server to host based networking (vs bridge)
+
 ## [0.2.8] - 2024-07-30
 
 ### Changed

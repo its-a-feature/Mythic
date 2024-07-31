@@ -29,7 +29,6 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {faQuestion, faSkullCrossbones, faFolderOpen, faList, faRobot} from '@fortawesome/free-solid-svg-icons';
 import {faLinux, faApple, faWindows, faChrome, faAndroid} from '@fortawesome/free-brands-svg-icons';
-import {DetailedCallbackTable} from './DetailedCallbackTable';
 import InfoIcon from '@mui/icons-material/Info';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import {TaskFromUIButton} from './TaskFromUIButton';

@@ -63,7 +63,7 @@ export function CallbacksTabsTaskingSplitLabel(props){
     )
 }
 // this is to listen for the latest tasking
-const fetchLimit = 10;
+const fetchLimit = 30;
 const getTaskingQuery = gql`
 ${taskingDataFragment}
 subscription getTasking($callback_id: Int!, $fromNow: timestamp!, $limit: Int){

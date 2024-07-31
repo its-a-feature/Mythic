@@ -19,6 +19,7 @@ import {DetailedCallbackTable} from '../Callbacks/DetailedCallbackTable';
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import {CallbacksTableLastCheckinCell} from "../Callbacks/CallbacksTableRow";
 
 
 
@@ -48,7 +49,7 @@ export function CallbackSearchTable(props){
                         <TableCell >User</TableCell>
                         <TableCell >Domain</TableCell>
                         <TableCell >Host</TableCell>
-                        <TableCell >Groups</TableCell>
+                        <TableCell >Last Checkin</TableCell>
                         <TableCell >Description</TableCell>
                         <TableCell style={{width: "16rem"}}>IP</TableCell>
                         <TableCell style={{width: "5rem"}}>ID</TableCell>
@@ -109,7 +110,9 @@ function CallbackSearchTableRow(props){
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.domain}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.host}</MythicStyledTableCell>
-                <MythicStyledTableCell style={{whiteSpace: "pre"}}>{props.mythictree_groups.join("\n")}</MythicStyledTableCell>
+                <MythicStyledTableCell style={{whiteSpace: "pre"}}>
+                    <CallbacksTableLastCheckinCell rowData={{...props}} ></CallbacksTableLastCheckinCell>
+                </MythicStyledTableCell>
                 <MythicStyledTableCell >
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.description}</Typography>
                 </MythicStyledTableCell>

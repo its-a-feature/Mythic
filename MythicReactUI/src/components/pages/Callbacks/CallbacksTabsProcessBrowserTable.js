@@ -28,7 +28,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ListSubheader from '@mui/material/ListSubheader';
-import {uniqueSplitString} from './CallbacksTabsProcessBrowser';
 
 const getPermissionsDataQuery = gql`
     query getPermissionsQuery($mythictree_id: Int!) {
@@ -132,13 +131,12 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
 
         //console.log("adjustedMatrix", adjustedMatrix, "realMatrix", treeAdjMatrix)
         setUpdatedTreeAdjMatrix(adjustedMatrix);
+        openAllNodes();
     }, [treeAdjMatrix]);
     React.useEffect( () => {
         openAllNodes();
-    }, [host, group])
-    React.useEffect(() => {
         setViewSingleTreeData(false);
-    }, [host]);
+    }, [host, group])
     const onExpandNode = (nodeId) => {
         setOpenNodes({
           ...openNodes,
@@ -598,7 +596,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
     return (
-        <div style={{ width: '100%', height: '100%', overflow: "hidden" }}>
+        <div style={{ width: '100%', height: '100%', overflow: "hidden", position: "relative" }}>
             <MythicResizableGrid
                 columns={columns}
                 sortIndicatorIndex={sortColumn}
@@ -709,7 +707,8 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
         onCompleted: (data) => {
             setPermissionData({...data.mythictree_by_pk.metadata,
             callback_id: rowData["callback_id"],
-            callback_display_id: rowData["callback_display_id"]});
+            callback_display_id: rowData["callback_display_id"],
+            callbacks: rowData['callbacks']});
             setViewPermissionsDialogOpen(true);
         },
         onError: (data) => {

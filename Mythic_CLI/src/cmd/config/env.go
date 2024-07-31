@@ -51,7 +51,9 @@ func GetIntendedMythicServiceNames() ([]string, error) {
 				containerList = append(containerList, service)
 			}
 		case "mythic_server":
-			if mythicEnv.GetString("MYTHIC_SERVER_HOST") == "127.0.0.1" || mythicEnv.GetString("MYTHIC_SERVER_HOST") == "mythic_server" {
+			if mythicEnv.GetString("MYTHIC_SERVER_DOCKER_NETWORKING") == "host" {
+				containerList = append(containerList, service)
+			} else if mythicEnv.GetString("MYTHIC_SERVER_HOST") == "127.0.0.1" || mythicEnv.GetString("MYTHIC_SERVER_HOST") == "mythic_server" {
 				containerList = append(containerList, service)
 			}
 		case "mythic_postgres":
@@ -217,6 +219,9 @@ func setMythicConfigDefaultValues() {
 
 	mythicEnv.SetDefault("mythic_server_allow_invite_links", "false")
 	mythicEnvInfo["mythic_server_allow_invite_links"] = `This configures whether or not admins are allowed to create one-time-use invite links for users to join the server and register their own username/password combinations. They still need to be assigned to operations.'`
+
+	mythicEnv.SetDefault("mythic_server_docker_networking", "bridge")
+	mythicEnvInfo["mythic_server_docker_networking"] = `Configure how the mythic_server container is networked - the default is 'bridge' which means that ports must be explicitly exposed via mythic_server_dynamic_ports. The other option, 'host', means that the server will share networking with the host and not need explicit ports exposed. Either way, MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY and MYTHIC_SERVER_BIND_LOCALHOST_ONLY still determine if ports are bound to 0.0.0.0 or 127.0.0.1. If setting this to 'host', make sure you update the 'MYTHIC_SERVER_HOST' option as well to be the IP of the host machine. The containers will default to using localhost which won't work when the mythic_server is set to host networking.`
 
 	// postgres configuration ---------------------------------------------
 	mythicEnv.SetDefault("postgres_host", "mythic_postgres")
@@ -388,6 +393,8 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("webhook_default_custom_channel", "")
 	mythicEnvInfo["webhook_default_custom_channel"] = `This is the default channel to use for new custom messages with the specified webhook url`
 
+	//mythicEnv.SetDefault("installed_service_docker_networking", "host")
+	//mythicEnvInfo["installed_service_docker_networking"] = "Configure how installed services are configured within docker compose. The default, 'host', means that the containers share networking with the host and don't need to explicitly expose any ports. This means you can dynamically change a C2 Profile's bound port in the UI and have that port bound on the host. The alternative, 'bridge', means that you need to explicitly expose ports for installed service containers for them to be bound on the host. If you want to expose ports 80 and 443 via the http profile for example, then you'd set HTTP_DYNAMIC_PORTS=80,443 and you can set HTTP_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY=true to have these two ports bound to localhost instead of 0.0.0.0. The default in this case is 0.0.0.0."
 }
 func parseMythicEnvironmentVariables() {
 	setMythicConfigDefaultValues()

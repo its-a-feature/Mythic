@@ -88,7 +88,7 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 	newKey := fmt.Sprintf("%s", time.Now().UTC().Format(rabbitmq.TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS))
 	tag.Data = rabbitmq.GetMythicJSONTextFromStruct(
 		map[string]interface{}{
-			newKey: operatorName,
+			operatorName: newKey,
 		},
 	)
 	err = database.DB.Get(&tag, `SELECT * FROM tag WHERE filemeta_id=$1 AND operation_id=$2 AND tagtype_id=$3 AND source='mythic'`,
@@ -107,7 +107,7 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 	}
 	// the tag exists, we just need to update the data
 	tagData := tag.Data.StructValue()
-	tagData[newKey] = operatorName
+	tagData[operatorName] = newKey
 	tag.Data = rabbitmq.GetMythicJSONTextFromStruct(tagData)
 	_, err = database.DB.NamedExec(`UPDATE tag SET data=:data WHERE id=:id`, tag)
 	if err != nil {

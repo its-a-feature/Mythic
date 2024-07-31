@@ -14,21 +14,23 @@ import (
 
 type Config struct {
 	// server configuration
-	AdminUser                    string
-	AdminPassword                string
-	DefaultOperationName         string
-	DefaultOperationWebhook      string
-	DefaultOperationChannel      string
-	AllowedIPBlocks              []*net.IPNet
-	DebugAgentMessage            bool
-	DebugLevel                   string
-	ServerPort                   uint
-	ServerBindLocalhostOnly      bool
-	ServerDynamicPorts           []uint32
-	ServerGRPCPort               uint
-	GlobalServerName             string
-	MythicServerAllowInviteLinks bool
-	ServerVersion                string
+	AdminUser                           string
+	AdminPassword                       string
+	DefaultOperationName                string
+	DefaultOperationWebhook             string
+	DefaultOperationChannel             string
+	AllowedIPBlocks                     []*net.IPNet
+	DebugAgentMessage                   bool
+	DebugLevel                          string
+	ServerPort                          uint
+	ServerBindLocalhostOnly             bool
+	ServerDynamicPorts                  []uint32
+	ServerDynamicPortsBindLocalhostOnly bool
+	ServerDockerNetworking              string
+	ServerGRPCPort                      uint
+	GlobalServerName                    string
+	MythicServerAllowInviteLinks        bool
+	ServerVersion                       string
 
 	// rabbitmq configuration
 	RabbitmqHost     string
@@ -59,6 +61,8 @@ func Initialize() {
 	mythicEnv.SetDefault("mythic_server_port", 17443)
 	mythicEnv.SetDefault("mythic_server_bind_localhost_only", true)
 	mythicEnv.SetDefault("mythic_server_dynamic_ports", "7000-7010")
+	mythicEnv.SetDefault("mythic_server_dynamic_ports_bind_localhost_only", true)
+	mythicEnv.SetDefault("mythic_server_docker_networking", "bridge")
 	mythicEnv.SetDefault("mythic_server_grpc_port", 17444)
 	mythicEnv.SetDefault("mythic_admin_user", "mythic_admin")
 	mythicEnv.SetDefault("mythic_admin_password", "mythic_password")
@@ -153,6 +157,8 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 
 		}
 	}
+	MythicConfig.ServerDynamicPortsBindLocalhostOnly = mythicEnv.GetBool("mythic_server_dynamic_ports_bind_localhost_only")
+	MythicConfig.ServerDockerNetworking = mythicEnv.GetString("mythic_server_docker_networking")
 	MythicConfig.AdminUser = mythicEnv.GetString("mythic_admin_user")
 	MythicConfig.AdminPassword = mythicEnv.GetString("mythic_admin_password")
 	MythicConfig.DefaultOperationName = mythicEnv.GetString("default_operation_name")

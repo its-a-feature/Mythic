@@ -214,13 +214,15 @@ const VirtualTreeRow = ({
                 marginLeft: '3px',
                 marginRight: '5px',
                 color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary,
-              }} 
-              size={"1x"}
+              }}
+              size={"lg"}
               onClick={handleOnClickButton} />
           ) : (
               <FontAwesomeIcon 
-                style={{ paddingTop: '5px', marginLeft: '3px', marginRight: '5px', color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary, }}
-                    size={"lg"} icon={faFolder} onClick={handleOnClickButton} />
+                style={{ marginLeft: '3px', marginRight: '5px',
+                    color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary, }}
+                    size={"lg"}
+                icon={faFolder} onClick={handleOnClickButton} />
           )}
           <Typography
               style={{
@@ -234,11 +236,11 @@ const VirtualTreeRow = ({
           </Typography>
 
           {item.success === true && itemTreeData.depth > 0 ? (
-              <MythicStyledTooltip title='Successfully listed contents of folder'>
+              <MythicStyledTooltip title='Successfully listed contents of folder' style={{display: "inline-flex", marginLeft: "5px"}}>
                   <CheckCircleOutlineIcon fontSize='small' color="success" />
               </MythicStyledTooltip>
           ) : item.success === false && itemTreeData.depth > 0 ? (
-              <MythicStyledTooltip title='Failed to list contents of folder'>
+              <MythicStyledTooltip title='Failed to list contents of folder' style={{display: "inline-flex", marginLeft: "5px"}}>
                   <ErrorIcon fontSize='small' color="error" />
               </MythicStyledTooltip>
           ) : null}

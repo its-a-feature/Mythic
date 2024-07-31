@@ -23,14 +23,10 @@ import { ResponseDisplayScreenshotModal } from '../Callbacks/ResponseDisplayScre
 import { MythicDialog, MythicModifyStringDialog } from '../../MythicComponents/MythicDialog';
 import EditIcon from '@mui/icons-material/Edit';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
-import {PreviewFileStringDialog} from './PreviewFileStringDialog';
-import {PreviewFileHexDialog} from './PreviewFileHexDialog';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 import Checkbox from '@mui/material/Checkbox';
-import txtFile from '../../../assets/file_txt.png';
-import hexFile from '../../../assets/file_bin.png';
 import {HostFileDialog} from "../Payloads/HostFileDialog";
 import PublicIcon from '@mui/icons-material/Public';
 import {getStringSize} from '../Callbacks/ResponseDisplayTable';
@@ -199,7 +195,7 @@ export function FileMetaDownloadTable(props){
                             <Checkbox checked={checkAll} onChange={onToggleCheckAll}
                                       inputProps={{ 'aria-label': 'controlled' }} />
                         </TableCell>
-                        <TableCell style={{width: "9rem"}}>Actions</TableCell>
+                        <TableCell style={{width: "5rem"}}>Actions</TableCell>
                         <TableCell >File</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
                         <TableCell style={{width: "7rem"}}>Size</TableCell>
@@ -230,10 +226,7 @@ function FileMetaDownloadTableRow(props){
     const [openDelete, setOpenDelete] = React.useState(false);
     const [openDetails, setOpenDetails] = React.useState(false);
     const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
-    const [openPreviewStringsDialog, setOpenPreviewStringsDialog] = React.useState(false);
-    const [openPreviewHexDialog, setOpenPreviewHexDialog] = React.useState(false);
     const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
-    const [fileContents, setFileContents] = React.useState('');
     const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const me = props.me;
     const [deleteFile] = useMutation(updateFileDeleted, {
@@ -244,34 +237,6 @@ function FileMetaDownloadTableRow(props){
         onError: (data) => {
             console.log(data);
             snackActions.error("Failed to delete file");
-        }
-    });
-    const [previewFileString] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setFileContents(data.previewFile.contents);
-                setOpenPreviewStringsDialog(true);
-            }else{
-                snackActions.error(data.previewFile.error)
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
-        }
-    });
-    const [previewFileHex] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setFileContents(data.previewFile.contents);
-                setOpenPreviewHexDialog(true);
-            }else{
-                snackActions.error(data.previewFile.error)
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
         }
     });
     const onAcceptDelete = () => {
@@ -292,20 +257,6 @@ function FileMetaDownloadTableRow(props){
     });
     const onSubmitUpdatedComment = (comment) => {
         updateComment({variables: {file_id: props.id, comment: comment}})
-    }
-    const onPreviewStrings = (event) => {
-        if(event){
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        previewFileString({variables: {file_id: props.agent_file_id}})
-    }
-    const onPreviewHex = (event) => {
-        if(event){
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        previewFileHex({variables: {file_id: props.agent_file_id}})
     }
     const onPreviewMedia = (event) => {
         if(event){
@@ -344,18 +295,10 @@ function FileMetaDownloadTableRow(props){
                     
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    {props.deleted ? null : (
+                    {props.deleted || props.size === 0  ? null : (
                         <>
                             <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
                                         onClick={()=>{setOpenDelete(true);}}/>
-                            <MythicStyledTooltip title={"Preview HEX XXD"}>
-                                <img src={hexFile} alt={"preview hex"} style={{height: "35px", cursor: "pointer"}}
-                                     onClick={onPreviewHex}/>
-                            </MythicStyledTooltip>
-                            <MythicStyledTooltip title={"Preview Strings"}>
-                                <img src={txtFile} alt={"preview strings"} style={{height: "35px", cursor: "pointer"}}
-                                     onClick={onPreviewStrings} />
-                            </MythicStyledTooltip>
                             <MythicStyledTooltip title={"Preview Media"}>
                                 <FontAwesomeIcon icon={faPhotoVideo} style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
                                             onClick={onPreviewMedia} />
@@ -479,22 +422,6 @@ function FileMetaDownloadTableRow(props){
                         </MythicStyledTableCell>
                     </TableRow>
             ) : null }
-            {openPreviewStringsDialog &&
-                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewStringsDialog}
-                              onClose={()=>{setOpenPreviewStringsDialog(false);}}
-                              innerDialog={<PreviewFileStringDialog onClose={()=>{setOpenPreviewStringsDialog(false);}}
-                                                                    filename={props.filename_text} contents={fileContents}
-                              />}
-                />
-            }
-            {openPreviewHexDialog &&
-                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewHexDialog}
-                              onClose={()=>{setOpenPreviewHexDialog(false);}}
-                              innerDialog={<PreviewFileHexDialog onClose={()=>{setOpenPreviewHexDialog(false);}}
-                                                                 filename={props.filename_text} contents={fileContents}
-                              />}
-                />
-            }
         </React.Fragment>
     )
 }
@@ -608,7 +535,7 @@ export function FileMetaUploadTable(props){
                                 <Checkbox checked={checkAll} onChange={onToggleCheckAll}
                                           inputProps={{ 'aria-label': 'controlled' }} />
                             </TableCell>
-                            <TableCell style={{width: "9rem"}}>Actions</TableCell>
+                            <TableCell style={{width: "5rem"}}>Actions</TableCell>
                             <TableCell style={{width: "20rem"}}>Source</TableCell>
                             <TableCell style={{width: "20rem"}}>Destination</TableCell>
                             <TableCell style={{width: "15rem"}}>Comment</TableCell>
@@ -640,10 +567,7 @@ function FileMetaUploadTableRow(props){
     const [openDelete, setOpenDelete] = React.useState(false);
     const [openDetails, setOpenDetails] = React.useState(false);
     const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
-    const [openPreviewStringsDialog, setOpenPreviewStringsDialog] = React.useState(false);
     const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
-    const [openPreviewHexDialog, setOpenPreviewHexDialog] = React.useState(false);
-    const [fileContents, setFileContents] = React.useState('');
     const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const me = props.me;
     const [deleteFile] = useMutation(updateFileDeleted, {
@@ -670,46 +594,6 @@ function FileMetaUploadTableRow(props){
     });
     const onSubmitUpdatedComment = (comment) => {
         updateComment({variables: {file_id: props.id, comment: comment}})
-    }
-    const [previewFileString] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setFileContents(data.previewFile.contents);
-                setOpenPreviewStringsDialog(true);
-            }else{
-                snackActions.error(data.previewFile.error)
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
-        }
-    });
-    const [previewFileHex] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setFileContents(data.previewFile.contents);
-                setOpenPreviewHexDialog(true);
-            }else{
-                snackActions.error(data.previewFile.error)
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
-        }
-    });
-    const onPreviewStrings = (event) => {
-        if(event){
-            event.stopPropagation();
-        }
-        previewFileString({variables: {file_id: props.agent_file_id}})
-    }
-    const onPreviewHex = (event) => {
-        if(event){
-            event.stopPropagation();
-        }
-        previewFileHex({variables: {file_id: props.agent_file_id}})
     }
     const onPreviewMedia = (event) => {
         if(event){
@@ -750,18 +634,10 @@ function FileMetaUploadTableRow(props){
                     
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    {props.deleted ? null : (
+                    {props.deleted || props.size === 0 ? null : (
                         <>
                             <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
                                         onClick={()=>{setOpenDelete(true);}}/>
-                            <MythicStyledTooltip title={"Preview HEX XXD"}>
-                                <img src={hexFile} alt={"preview hex"} style={{height: "35px", cursor: "pointer"}}
-                                     onClick={onPreviewHex}/>
-                            </MythicStyledTooltip>
-                            <MythicStyledTooltip title={"Preview Strings"}>
-                                <img src={txtFile} alt={"preview strings"} style={{height: "35px", cursor: "pointer"}}
-                                     onClick={onPreviewStrings} />
-                            </MythicStyledTooltip>
                             <MythicStyledTooltip title={"Preview Media"}>
                                 <FontAwesomeIcon icon={faPhotoVideo} style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
                                                  onClick={onPreviewMedia} />
@@ -888,22 +764,6 @@ function FileMetaUploadTableRow(props){
                         </MythicStyledTableCell>
                     </TableRow>
             ) : null }
-            {openPreviewStringsDialog &&
-                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewStringsDialog}
-                              onClose={()=>{setOpenPreviewStringsDialog(false);}}
-                              innerDialog={<PreviewFileStringDialog onClose={()=>{setOpenPreviewStringsDialog(false);}}
-                                                                    filename={props.filename_text} contents={fileContents}
-                              />}
-                />
-            }
-            {openPreviewHexDialog &&
-                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewHexDialog}
-                              onClose={()=>{setOpenPreviewHexDialog(false);}}
-                              innerDialog={<PreviewFileHexDialog onClose={()=>{setOpenPreviewHexDialog(false);}}
-                                                                 filename={props.filename_text} contents={fileContents}
-                              />}
-                />
-            }
         </React.Fragment>
     )
 }
@@ -1210,7 +1070,7 @@ export function FileMetaEventingWorkflowsTable(props){
                                 <Checkbox checked={checkAll} onChange={onToggleCheckAll}
                                           inputProps={{ 'aria-label': 'controlled' }} />
                             </TableCell>
-                            <TableCell style={{width: "9rem"}}>Actions</TableCell>
+                            <TableCell style={{width: "5rem"}}>Actions</TableCell>
                             <TableCell style={{width: "20rem"}}>Source</TableCell>
                             <TableCell style={{width: "20rem"}}>Workflow</TableCell>
                             <TableCell style={{width: "7rem"}}>Size</TableCell>
@@ -1240,11 +1100,7 @@ export function FileMetaEventingWorkflowsTable(props){
 function FileMetaEventingWorkflowsTableRow(props){
     const [openDelete, setOpenDelete] = React.useState(false);
     const [openDetails, setOpenDetails] = React.useState(false);
-    const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
-    const [openPreviewStringsDialog, setOpenPreviewStringsDialog] = React.useState(false);
     const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
-    const [openPreviewHexDialog, setOpenPreviewHexDialog] = React.useState(false);
-    const [fileContents, setFileContents] = React.useState('');
     const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const me = props.me;
     const [deleteFile] = useMutation(updateFileDeleted, {
@@ -1263,55 +1119,6 @@ function FileMetaEventingWorkflowsTableRow(props){
     const onSelectChanged = (event) => {
         props.onToggleSelection(props.id, event.target.checked);
     }
-    const [updateComment] = useMutation(updateFileComment, {
-        onCompleted: (data) => {
-            snackActions.success("updated comment");
-            props.onEditComment(data.update_filemeta_by_pk)
-        }
-    });
-    const onSubmitUpdatedComment = (comment) => {
-        updateComment({variables: {file_id: props.id, comment: comment}})
-    }
-    const [previewFileString] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setFileContents(data.previewFile.contents);
-                setOpenPreviewStringsDialog(true);
-            }else{
-                snackActions.error(data.previewFile.error)
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
-        }
-    });
-    const [previewFileHex] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setFileContents(data.previewFile.contents);
-                setOpenPreviewHexDialog(true);
-            }else{
-                snackActions.error(data.previewFile.error)
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
-        }
-    });
-    const onPreviewStrings = (event) => {
-        if(event){
-            event.stopPropagation();
-        }
-        previewFileString({variables: {file_id: props.agent_file_id}})
-    }
-    const onPreviewHex = (event) => {
-        if(event){
-            event.stopPropagation();
-        }
-        previewFileHex({variables: {file_id: props.agent_file_id}})
-    }
     const onPreviewMedia = (event) => {
         if(event){
             event.preventDefault();
@@ -1327,12 +1134,7 @@ function FileMetaEventingWorkflowsTableRow(props){
             setOpenDetails(!openDetails);
         }
     }
-    const onOpenCloseComment = (event, open) => {
-        if(event){
-            event.stopPropagation();
-        }
-        setEditCommentDialogOpen(open);
-    }
+
     const expandRowButton = (event) => {
         setOpenDetails(!openDetails);
     }
@@ -1355,14 +1157,6 @@ function FileMetaEventingWorkflowsTableRow(props){
                         <>
                             <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
                                         onClick={()=>{setOpenDelete(true);}}/>
-                            <MythicStyledTooltip title={"Preview HEX XXD"}>
-                                <img src={hexFile} alt={"preview hex"} style={{height: "35px", cursor: "pointer"}}
-                                     onClick={onPreviewHex}/>
-                            </MythicStyledTooltip>
-                            <MythicStyledTooltip title={"Preview Strings"}>
-                                <img src={txtFile} alt={"preview strings"} style={{height: "35px", cursor: "pointer"}}
-                                     onClick={onPreviewStrings} />
-                            </MythicStyledTooltip>
                             <MythicStyledTooltip title={"Preview Media"}>
                                 <FontAwesomeIcon icon={faPhotoVideo} style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
                                                  onClick={onPreviewMedia} />
@@ -1447,22 +1241,6 @@ function FileMetaEventingWorkflowsTableRow(props){
                     </MythicStyledTableCell>
                 </TableRow>
             ) : null }
-            {openPreviewStringsDialog &&
-                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewStringsDialog}
-                              onClose={()=>{setOpenPreviewStringsDialog(false);}}
-                              innerDialog={<PreviewFileStringDialog onClose={()=>{setOpenPreviewStringsDialog(false);}}
-                                                                    filename={props.filename_text} contents={fileContents}
-                              />}
-                />
-            }
-            {openPreviewHexDialog &&
-                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewHexDialog}
-                              onClose={()=>{setOpenPreviewHexDialog(false);}}
-                              innerDialog={<PreviewFileHexDialog onClose={()=>{setOpenPreviewHexDialog(false);}}
-                                                                 filename={props.filename_text} contents={fileContents}
-                              />}
-                />
-            }
         </React.Fragment>
     )
 }

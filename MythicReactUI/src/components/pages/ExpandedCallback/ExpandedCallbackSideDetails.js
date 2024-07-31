@@ -312,13 +312,13 @@ export function ExpandedCallbackSideDetailsTable(props){
                             <TableCell>Encryption Keys</TableCell>
                             <TableCell>
                                 {props.crypto_type}
-                                {props.enc_key_base64 === null ? (null) : (
+                                {props.enc_key_base64 === null ? null : (
                                     <React.Fragment>
                                     <br/><b>Encryption Key: </b> {props.enc_key_base64}
                                     </React.Fragment>
                                     ) 
                                 }
-                                {props.dec_key_base64 === null ? (null) : (
+                                {props.dec_key_base64 === null ? null : (
                                     <React.Fragment>
                                     <br/><b>Decryption Key: </b> {props.dec_key_base64}
                                     </React.Fragment>
@@ -326,7 +326,7 @@ export function ExpandedCallbackSideDetailsTable(props){
                                 }
                             </TableCell>
                         </TableRow>
-                    ) : (null)}
+                    ) : null}
                     <TableRow>
                         <TableCell>Callback ID / Display ID</TableCell>
                         <TableCell>{props.id} / {props.display_id}</TableCell>

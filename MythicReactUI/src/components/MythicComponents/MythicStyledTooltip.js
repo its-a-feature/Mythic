@@ -20,7 +20,7 @@ export function MythicStyledTooltip(props){
                 }
             }
         }} style={{zIndex:1000}} {...other}>
-            {<span style={{...style, display: "inline-block"}}>{children}</span>}
+            {<span style={{display: "inline-block", ...style}}>{children}</span>}
         </Tooltip>
     );
 }

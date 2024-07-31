@@ -42,10 +42,27 @@ func Initialize() *gin.Engine {
 }
 
 func StartServer(r *gin.Engine) {
-
-	logging.LogInfo("Starting webserver", "host", "0.0.0.0", "port", utils.MythicConfig.ServerPort)
-	if err := r.Run(fmt.Sprintf("%s:%d", "0.0.0.0", utils.MythicConfig.ServerPort)); err != nil {
-		logging.LogError(err, "Failed to start webserver")
+	if utils.MythicConfig.ServerDockerNetworking == "bridge" {
+		// bind to 0.0.0.0 because it's docker-compose.yml that'll expose the port on 0.0.0.0 or 127.0.0.1 as needed
+		logging.LogInfo("Starting webserver", "host", "0.0.0.0", "port", utils.MythicConfig.ServerPort)
+		if err := r.Run(fmt.Sprintf("%s:%d", "0.0.0.0", utils.MythicConfig.ServerPort)); err != nil {
+			logging.LogError(err, "Failed to start webserver")
+		}
+	} else if utils.MythicConfig.ServerDockerNetworking == "host" {
+		// need to bind on 0.0.0.0 or 127.0.0.1 explicitly because we have host networking
+		if utils.MythicConfig.ServerBindLocalhostOnly {
+			logging.LogInfo("Starting webserver", "host", "127.0.0.1", "port", utils.MythicConfig.ServerPort)
+			if err := r.Run(fmt.Sprintf("%s:%d", "127.0.0.1", utils.MythicConfig.ServerPort)); err != nil {
+				logging.LogError(err, "Failed to start webserver")
+			}
+		} else {
+			logging.LogInfo("Starting webserver", "host", "0.0.0.0", "port", utils.MythicConfig.ServerPort)
+			if err := r.Run(fmt.Sprintf("%s:%d", "0.0.0.0", utils.MythicConfig.ServerPort)); err != nil {
+				logging.LogError(err, "Failed to start webserver")
+			}
+		}
+	} else {
+		logging.LogError(nil, "unknown networking type", "networking", utils.MythicConfig.ServerDockerNetworking)
 	}
 
 	logging.LogFatalError(nil, "Webserver stopped")

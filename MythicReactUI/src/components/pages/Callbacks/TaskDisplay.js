@@ -308,6 +308,12 @@ const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren,
               {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
               {" / "}
               <TaskStatusDisplay task={task} theme={theme}/>
+              {task.comment !== "" ? (
+                  <div className={classes.column}>
+                    <IconButton size="small" style={{padding: "0"}} color="info"
+                                onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
+                  </div>
+              ) : null}
               {task.comment.length > 0 &&
                   <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
               }
@@ -315,12 +321,7 @@ const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren,
             <TaskTagDisplay task={task}/>
           </div>
           <div>
-            {task.comment !== "" ? (
-                <div className={classes.column}>
-                  <IconButton size="small" style={{padding: "0"}} color="info"
-                              onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
-                </div>
-            ) : null}
+
             <div className={classes.column} onClick={onLocalClick}>
               <Badge badgeContent={alertBadges} color="warning" anchorOrigin={{vertical: 'top', horizontal: 'left'}}>
                 {task.tasks.length > 0 && !displayChildren &&
