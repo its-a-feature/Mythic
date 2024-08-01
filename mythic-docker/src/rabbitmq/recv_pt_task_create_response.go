@@ -160,6 +160,11 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 					status=:status, stderr=:stderr, completed=:completed 
 					WHERE
 					id=:id`, task)
+		_, err = database.DB.Exec(`INSERT INTO response (task_id, operation_id, response) 
+				VALUES ($1, $2, $3)`, task.ID, task.OperationID, task.Stderr)
+		if err != nil {
+			logging.LogError(err, "failed to add error to responses")
+		}
 		if err != nil {
 			logging.LogError(err, "Failed to update task status")
 			return

@@ -202,8 +202,8 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("mythic_server_dynamic_ports", "7000-7010")
 	mythicEnvInfo["mythic_server_dynamic_ports"] = `These ports are exposed through the Docker container and provide access to SOCKS, Reverse Port Forward, and Interactive Tasking ports opened up by the Mythic Server. This is a comma-separated list of ranges, so you could do 7000-7010,7012,713-720`
 
-	mythicEnv.SetDefault("mythic_server_dynamic_ports_bind_localhost_only", false)
-	mythicEnvInfo["mythic_server_dynamic_ports_bind_localhost_only"] = `This specifies if the mythic_server container will expose the dynamic_ports on 0.0.0.0 or 127.0.0.1. If you have a remote agent container connecting to Mythic, you MUST set this to false so that the remote agent container can connect to gRPC.`
+	mythicEnv.SetDefault("mythic_server_dynamic_ports_bind_localhost_only", true)
+	mythicEnvInfo["mythic_server_dynamic_ports_bind_localhost_only"] = `This specifies if the mythic_server container will expose the dynamic_ports on 0.0.0.0 or 127.0.0.1.`
 
 	mythicEnv.SetDefault("mythic_server_use_volume", false)
 	mythicEnvInfo["mythic_server_use_volume"] = `The mythic_server container saves uploaded and downloaded files. If this is True, then a docker volume is created and mounted into the container to host these pieces. If this is false, then the local filesystem is mounted inside the container instead. `
