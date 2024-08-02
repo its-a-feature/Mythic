@@ -25,11 +25,13 @@ import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import { useReactiveVar } from '@apollo/client';
 import { meState } from '../../../cache';
+import CodeIcon from '@mui/icons-material/Code';
 
 const MaxRenderSize = 2000000;
 export const ResponseDisplayPlaintext = (props) =>{
   const theme = useTheme();
   const me = useReactiveVar(meState);
+  const currentContentRef = React.useRef();
   const [plaintextView, setPlaintextView] = React.useState("");
   const [mode, setMode] = React.useState("html");
   const [wrapText, setWrapText] = React.useState(true);
@@ -53,6 +55,15 @@ export const ResponseDisplayPlaintext = (props) =>{
     }
     const toggleWrapText = () => {
         setWrapText(!wrapText);
+    }
+    const formatJSON = () => {
+        try{
+            let tmp = JSON.stringify(JSON.parse(currentContentRef.current?.editor?.getValue()), null, 2);
+            setPlaintextView(tmp);
+            setMode("json");
+        }catch(error){
+            snackActions.warning("Failed to reformat as JSON")
+        }
     }
     const onChangeShowOptions = (e) => {
         setShowOptions(!showOptions);
@@ -80,7 +91,7 @@ export const ResponseDisplayPlaintext = (props) =>{
   return (
       <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
           {showOptions &&
-              <div style={{display: "inline-flex", flexDirection: "row"}}>
+              <div style={{display: "inline-flex", flexDirection: "row", alignItems: "center"}}>
                   <FormControl sx={{ display: "inline-block" }} size="small">
                       <TextField
                           label={"Syntax"}
@@ -105,6 +116,11 @@ export const ResponseDisplayPlaintext = (props) =>{
                           />
                       </IconButton>
                   </MythicStyledTooltip>
+                  <MythicStyledTooltip title={"Auto format JSON"} >
+                      <IconButton onClick={formatJSON} style={{}}>
+                          <CodeIcon color={"info"} style={{cursor: "pointer"}} />
+                      </IconButton>
+                  </MythicStyledTooltip>
               </div>
           }
           <div style={{height: "1px", width: "100%", display: "flex", zIndex: 1,  backgroundColor: theme.palette.secondary.main}}>
@@ -118,6 +134,7 @@ export const ResponseDisplayPlaintext = (props) =>{
 
           <div style={{display: "flex", flexGrow: 1, height: "100%"}}>
                 <AceEditor
+                    ref={currentContentRef}
                     mode={mode}
                     theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
                     fontSize={14}

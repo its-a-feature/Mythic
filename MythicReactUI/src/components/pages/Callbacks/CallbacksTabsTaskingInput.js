@@ -188,7 +188,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(!mountedRef.current || !props.parentMountedRef.current){
                 return;
             }
-            const newTasks = [...taskOptions, ...data.data.task_stream];
+            const newTasks = data.data.task_stream.reduce( (prev, cur) => {
+                let prevIndex = prev.findIndex(t => t.id === cur.id);
+                if(prevIndex >= 0){
+                    prev[prevIndex] = {...cur};
+                    return [...prev];
+                } else {
+                    return [...prev, {...cur}];
+                }
+            }, [...taskOptions]);
             newTasks.sort((a,b) => a.id > b.id ? -1 : 1);
             setTaskOptions(newTasks);
             const filteredOptions = newTasks.filter( c => applyFilteringToTasks(c));

@@ -41,6 +41,7 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import {previewFileQuery} from "../Search/FileMetaTable";
 import { useMutation } from '@apollo/client';
+import CodeIcon from '@mui/icons-material/Code';
 
 export const ResponseDisplayMedia = ({media, expand, task}) =>{
     const displayType = mimeType(media?.filename);
@@ -242,6 +243,7 @@ const DisplayText = ({agent_file_id, expand, filename, preview}) => {
             snackActions.error(data);
         }
     });
+    const currentContentRef = React.useRef();
     React.useEffect( () => {
         if(preview){
             // get first 512KB
@@ -297,9 +299,18 @@ const DisplayText = ({agent_file_id, expand, filename, preview}) => {
     const toggleWrapText = () => {
         setWrapText(!wrapText);
     }
+    const formatJSON = () => {
+        try{
+            let tmp = JSON.stringify(JSON.parse(currentContentRef.current?.editor?.getValue()), null, 2);
+            setContent(tmp);
+            setMode("json");
+        }catch(error){
+            snackActions.warning("Failed to reformat as JSON")
+        }
+    }
     return (
         <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
-            <div style={{display: "inline-flex", flexDirection: "row"}}>
+            <div style={{display: "inline-flex", flexDirection: "row", alignItems: "center"}}>
                 <FormControl sx={{ display: "inline-block" }} size="small" color={"secondary"}>
                     <TextField
                         select
@@ -325,9 +336,15 @@ const DisplayText = ({agent_file_id, expand, filename, preview}) => {
                         />
                     </IconButton>
                 </MythicStyledTooltip>
+                <MythicStyledTooltip title={"Auto format JSON"} >
+                    <IconButton onClick={formatJSON} style={{}}>
+                        <CodeIcon color={"info"} style={{cursor: "pointer"}} />
+                    </IconButton>
+                </MythicStyledTooltip>
             </div>
             <div style={{display: "flex", flexGrow: 1, height: "100%"}}>
                 <AceEditor
+                    ref={currentContentRef}
                     mode={mode}
                     theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
                     fontSize={14}
