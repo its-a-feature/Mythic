@@ -15,7 +15,7 @@ apt-get install -y \
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 
 add-apt-repository -y \
-   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   "deb [arch=$(dpkg --print-architecture)] https://download.docker.com/linux/ubuntu \
    $(lsb_release -cs) \
    stable"
 
