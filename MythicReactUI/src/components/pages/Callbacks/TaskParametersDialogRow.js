@@ -15,7 +15,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import {useTheme} from '@mui/material/styles';
 import CancelIcon from '@mui/icons-material/Cancel';
 import {Typography} from '@mui/material';
-import {useMutation, gql } from '@apollo/client';
+import {useMutation, gql, useLazyQuery } from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import {CredentialTableNewCredentialDialog} from '../Search/CredentialTableNewCredentialDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
@@ -60,12 +60,21 @@ fragment credentialData on credential{
 }
 `;
 const createCredentialMutation = gql`
-${credentialFragment}
-mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: bytea!) {
-    insert_credential_one(object: {account: $account, credential_raw: $credential, comment: $comment, realm: $realm, type: $type}) {
-      ...credentialData
+mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!) {
+    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type) {
+      id
+      status
+      error
     }
   }
+`;
+const getCredentialQuery = gql`
+${credentialFragment}
+query getCredential($id: Int!){
+    credential_by_pk(id: $id){
+        ...credentialData
+    }
+}
 `;
 
 export function TaskParametersDialogRow(props){
@@ -157,13 +166,25 @@ export function TaskParametersDialogRow(props){
             console.log(data);
             setBackdropOpen(false);
         }
+    });
+    const [getCredential] = useLazyQuery(getCredentialQuery, {
+        onCompleted: (data) => {
+            updateToLatestCredential.current = true;
+            props.addedCredential(data.credential_by_pk);
+        },
+        onError: (data) => {
+            console.log(data);
+        }
     })
     const [createCredential] = useMutation(createCredentialMutation, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
             snackActions.success("Successfully created new credential");
-            updateToLatestCredential.current = true;
-            props.addedCredential(data.insert_credential_one);
+            if(data.createCredential.status === "success"){
+                getCredential({variables: {id: data.createCredential.id}});
+            } else {
+                snackActions.error(data.createCredential.error);
+            }
         },
         onError: (data) => {
             snackActions.error("Failed to create credential");

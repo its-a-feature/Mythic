@@ -1354,7 +1354,7 @@ func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta datab
 	fileMetaData := map[string]interface{}{
 		"access_time": time.Now().Unix(),
 		"modify_time": time.Now().Unix(),
-		"size":        fileMeta.ChunkSize * fileMeta.TotalChunks,
+		"size":        fileMeta.Size,
 		"permissions": map[string]interface{}{},
 	}
 	newTree.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
@@ -1368,9 +1368,15 @@ func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta datab
 	// now that we know the mythictree entry exists, associate this filemeta with it
 	fileMeta.MythicTreeID.Valid = true
 	fileMeta.MythicTreeID.Int64 = int64(newTree.ID)
-	if _, err := database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, fileMeta); err != nil {
+	_, err := database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, fileMeta)
+	if err != nil {
 		logging.LogError(err, "Failed to associate filemeta with mythictree ")
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to associate file with file browser: %s\n", fileMeta.AgentFileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		return
+	}
+	_, err = database.DB.Exec(`UPDATE mythictree SET "timestamp"=now() WHERE id=$1`, newTree.ID)
+	if err != nil {
+		logging.LogError(err, "failed to update timestamp on mythictree to indicate new file association happened")
 	}
 }
 func addFilePermissions(fileBrowser *agentMessagePostResponseFileBrowser) map[string]interface{} {
@@ -2000,8 +2006,14 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 	} else if err == nil {
 		newFile.MythicTreeID.Int64 = int64(fileBrowser.ID)
 		newFile.MythicTreeID.Valid = true
-		if _, err := database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, newFile); err != nil {
+		_, err = database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, newFile)
+		if err != nil {
 			logging.LogError(err, "Failed to update file meta with mythic tree id")
+			return
+		}
+		_, err = database.DB.Exec(`UPDATE mythictree SET "timestamp"=now() WHERE id=$1`, fileBrowser.ID)
+		if err != nil {
+			logging.LogError(err, "failed to update timestamp on mythictree to indicate new file association happened")
 		}
 
 	} else {
