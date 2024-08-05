@@ -310,6 +310,8 @@ const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren,
               {initialShowIPValue ? `/ ${ipValue} ` : ''}
               {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
               {" / "}
+              {task?.command?.payloadtype?.name}
+              {" / "}
               <TaskStatusDisplay task={task} theme={theme}/>
               {task.comment !== "" ? (
                   <div className={classes.column}>

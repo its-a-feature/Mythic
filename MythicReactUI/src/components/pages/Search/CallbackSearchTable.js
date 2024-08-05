@@ -51,7 +51,7 @@ export function CallbackSearchTable(props){
                         <TableCell >Host</TableCell>
                         <TableCell >Last Checkin</TableCell>
                         <TableCell >Description</TableCell>
-                        <TableCell style={{width: "16rem"}}>IP</TableCell>
+                        <TableCell >IP</TableCell>
                         <TableCell style={{width: "5rem"}}>ID</TableCell>
                         <TableCell style={{width: "60px"}}>Agent</TableCell>
                         <TableCell style={{width: "3rem"}}></TableCell>
@@ -117,8 +117,8 @@ function CallbackSearchTableRow(props){
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.description}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell style={{whiteSpace: "pre"}}>
-                    {ips.slice(0,5).join("\n")}
-                    {ips.length > 5 ? "\n..." : null}
+                    {ips.slice(0,1).join("\n")}
+                    {ips.length > 1 ? "\n..." : null}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                 <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 

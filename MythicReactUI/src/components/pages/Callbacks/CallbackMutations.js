@@ -126,6 +126,9 @@ export const taskingDataFragment = gql`
           cmd
           supported_ui_features
           id
+          payloadtype {
+            name
+          }
         }
         command_name
         opsec_pre_blocked

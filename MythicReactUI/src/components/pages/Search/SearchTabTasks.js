@@ -69,6 +69,19 @@ query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: 
     }
   }
 `;
+const commandAndParameterSearch = gql`
+${taskingDataFragment}
+query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, _or: [{original_params: {_ilike: $search}}, {command_name: {_ilike: $search}}]}) {
+      aggregate {
+        count(columns: id)
+      }
+    }
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, _or: [{original_params: {_ilike: $search}}, {command_name: {_ilike: $search}}]}) {
+      ...taskData
+    }
+  }
+`;
 const tagSearch = gql`
 ${taskingDataFragment}
 query tagSearchTaskQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
@@ -120,8 +133,8 @@ export function SearchTabTasksLabel(props){
 const SearchTabTasksSearchPanel = (props) => {
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
-    const [searchField, setSearchField] = React.useState("Command");
-    const searchFieldOptions = ["Output","Command", "Parameters", "Comment", "Tag", "Callback ID", "Callback Group"];
+    const [searchField, setSearchField] = React.useState("Command and Parameters");
+    const searchFieldOptions = ["Output", "Command and Parameters", "Command", "Parameters", "Comment", "Tag", "Callback ID", "Callback Group"];
     const [filterTaskStatus, setFilterTaskStatus] = React.useState("");
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
@@ -155,6 +168,9 @@ const SearchTabTasksSearchPanel = (props) => {
             case "Command":
                 props.onCommandSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus})
                 break;
+            case "Command and Parameters":
+                props.onCommandAndParametersSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus})
+                break;
             case "Tag":
                 props.onTagSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus});
                 break;
@@ -172,7 +188,7 @@ const SearchTabTasksSearchPanel = (props) => {
         if(props.value === props.index){
             let queryParams = new URLSearchParams(window.location.search);
             let adjustedSearch = "";
-            let adjustedSearchField = "Command";
+            let adjustedSearchField = "Command and Parameters";
             let adjustedTaskStatus = "";
             if(queryParams.has("search")){
                 setSearch(queryParams.get("search"));
@@ -183,9 +199,9 @@ const SearchTabTasksSearchPanel = (props) => {
                 props.onChangeSearchField(queryParams.get("searchField"));
                 adjustedSearchField = queryParams.get("searchField");
             }else{
-                setSearchField("Command");
-                props.onChangeSearchField("Command");
-                props.changeSearchParam("searchField", "Command");
+                setSearchField("Command and Parameters");
+                props.onChangeSearchField("Command and Parameters");
+                props.changeSearchParam("searchField", "Command and Parameters");
             }
             if(queryParams.has("taskStatus")){
                 setFilterTaskStatus(queryParams.get("taskStatus"));
@@ -233,7 +249,7 @@ export const SearchTabTasksPanel = (props) =>{
     const [taskingData, setTaskingData] = React.useState({task: []});
     const [totalCount, setTotalCount] = React.useState(0);
     const [search, setSearch] = React.useState("");
-    const [searchField, setSearchField] = React.useState("Command");
+    const [searchField, setSearchField] = React.useState("Command and Parameters");
     const [taskStatus, setTaskStatus] = React.useState("");
     const alreadySearching = React.useRef(false);
     const onChangeSearchField = (field) => {
@@ -250,6 +266,9 @@ export const SearchTabTasksPanel = (props) =>{
                 break;
             case "Command":
                 onCommandSearch({search, offset: 0, taskStatus});
+                break;
+            case "Command and Parameters":
+                onCommandAndParametersSearch({search, offset: 0, taskStatus});
                 break;
             case "Tag":
                 onTagSearch({search, offset: 0, taskStatus});
@@ -301,6 +320,11 @@ export const SearchTabTasksPanel = (props) =>{
         onError: handleCallbackSearchFailure
     })
     const [getCommandSearch] = useLazyQuery(commandSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleCallbackSearchSuccess,
+        onError: handleCallbackSearchFailure
+    })
+    const [getCommandAndParametersSearch] = useLazyQuery(commandAndParameterSearch, {
         fetchPolicy: "no-cache",
         onCompleted: handleCallbackSearchSuccess,
         onError: handleCallbackSearchFailure
@@ -416,6 +440,30 @@ export const SearchTabTasksPanel = (props) =>{
             status: "%" + newTaskStatus + "%"
         }})
     }
+    const onCommandAndParametersSearch = ({search, offset, taskStatus}) => {
+        //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
+        let new_search = search;
+        if(search === ""){
+            new_search = "_";
+        }
+        let newTaskStatus = taskStatus;
+        if(newTaskStatus === ""){
+            newTaskStatus = "_";
+        }
+        setSearch(search);
+        getCommandAndParametersSearch({variables:{
+                offset: offset,
+                fetchLimit: fetchLimit,
+                search: "%" + new_search + "%",
+                status: "%" + newTaskStatus + "%"
+            }})
+    }
     const onTagSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
         if(alreadySearching.current){
@@ -510,6 +558,9 @@ export const SearchTabTasksPanel = (props) =>{
             case "Command":
                 onCommandSearch({search, offset: (value - 1) * fetchLimit, taskStatus });
                 break;
+            case "Command and Parameters":
+                onCommandAndParametersSearch({search, offset: (value - 1) * fetchLimit, taskStatus});
+                break;
             case "Tag":
                 onTagSearch({search, offset: (value-1) *fetchLimit, taskStatus});
                 break;
@@ -531,6 +582,7 @@ export const SearchTabTasksPanel = (props) =>{
                 onOutputSearch={onOutputSearch} value={props.value} index={props.index} onChangeTaskStatus={onChangeTaskStatus}
                 onTagSearch={onTagSearch}
                 onCallbackIDSearch={onCallbackIDSearch} onCallbackGroupSearch={onCallbackGroupSearch}
+                onCommandAndParametersSearch={onCommandAndParametersSearch}
                 onParameterSearch={onParameterSearch} onCommentSearch={onCommentSearch} changeSearchParam={props.changeSearchParam}/>
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 

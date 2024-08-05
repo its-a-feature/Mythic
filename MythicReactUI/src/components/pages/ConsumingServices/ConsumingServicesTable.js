@@ -23,6 +23,8 @@ import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import {ConsumingServicesGetIDPMetadataDialog} from "./ConsumingServicesGetIDPMetadataDialog";
 import {C2ProfileListFilesDialog} from "../PayloadTypesC2Profiles/C2ProfileListFilesDialog";
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const testWebhookMutation = gql`
 mutation testWebhookWorks($service_type: String!){
@@ -52,6 +54,7 @@ const logging_events = ["new_artifact","new_callback", "new_credential","new_fil
 
 export function ConsumingServicesTable({services}) {
     const theme = useTheme();
+    const [showDeleted, setShowDeleted] = React.useState(false);
     const [testWebhook] = useMutation(testWebhookMutation, {
         onCompleted: data => {
             if (data.consumingServicesTestWebhook.status === "success") {
@@ -165,6 +168,16 @@ export function ConsumingServicesTable({services}) {
                 <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Containers Consuming Events
                 </Typography>
+                {showDeleted ? (
+                    <MythicStyledTooltip title={"Hide Deleted Services"} style={{float: "right"}}>
+                        <IconButton size="small" style={{float: "right", marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
+                    </MythicStyledTooltip>
+
+                ) : (
+                    <MythicStyledTooltip title={"Show Deleted Services"} style={{float: "right"}}>
+                        <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
+                    </MythicStyledTooltip>
+                )}
             </Paper>
             <div style={{display: "flex", flexGrow: 1}}>
                 <TableContainer className="mythicElement">
@@ -181,6 +194,7 @@ export function ConsumingServicesTable({services}) {
                         </TableHead>
                         <TableBody>
                             {webhooks.map( (w, index) => (
+                                (showDeleted || !w.deleted) &&
                                 <TableRow key={w.id} hover>
                                     <MythicTableCell>
                                         {w.deleted ? (
@@ -242,6 +256,7 @@ export function ConsumingServicesTable({services}) {
                                 </TableRow>
                             ))}
                             {logging.map(w => (
+                                (showDeleted || !w.deleted) &&
                                 <TableRow key={w.id} hover>
                                     <MythicTableCell>
                                         {w.deleted ? (
@@ -303,6 +318,7 @@ export function ConsumingServicesTable({services}) {
                                 </TableRow>
                             ))}
                             {eventing.map( (w, index) => (
+                                (showDeleted || !w.deleted) &&
                                 <TableRow key={w.id} hover>
                                     <MythicTableCell>
                                         {w.deleted ? (
@@ -369,6 +385,7 @@ export function ConsumingServicesTable({services}) {
                                 </TableRow>
                             ))}
                             {auth.map( (w, index) => (
+                                (showDeleted || !w.deleted) &&
                                 <TableRow key={w.id} hover>
                                     <MythicTableCell>
                                         {w.deleted ? (

@@ -222,9 +222,6 @@ tspan {
     justify-content: space-between;
     user-select: none;
     background-color: ${(props) => props.theme.tableHeader};
-    border-top: 1px solid ${(props) => props.theme.tableHover};
-    border-right: 1px solid ${(props) => props.theme.tableHover};
-    border-bottom: 1px solid  ${(props) => props.theme.tableHover};
     &:first-child-of-type {
         border-left: 1px solid ${(props) => props.theme.tableHover};
     }
@@ -261,6 +258,15 @@ tspan {
     width: 16px;
     cursor: col-resize;
     pointer-events: initial;
+}
+.MythicResizableGrid-draggableHandlesClickAreaSelected {
+    position: absolute;
+    cursor: col-resize;
+    width: 10px;
+    pointer-events: initial;
+    background-color: ${(props) => props.theme.palette.info.main};
+    opacity: 0.5;
+    height: 100%;
 }
 .MythicResizableGrid-draggableHandlesIndicator {
     position: relative;

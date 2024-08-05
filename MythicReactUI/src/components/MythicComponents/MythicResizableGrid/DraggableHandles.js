@@ -5,6 +5,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 const DraggableHandles = React.forwardRef(({ height, rowHeight, width, minColumnWidth, columnWidths, onStop }, ref) => {
     const [isDragging, setIsDragging] = useState(-1);
+
     return (
         <div
             ref={ref}
@@ -27,8 +28,8 @@ const DraggableHandles = React.forwardRef(({ height, rowHeight, width, minColumn
                             top: 0,
                             bottom: 0,
                         }}
-                        defaultPosition={{x: 0, y:0}}
-                        position={{ x: 0, y: 0 }}
+                        defaultPosition={{x: 0, y: 0}}
+                        position={{x: 0, y: 0}}
                         onStart={() => {
                             setIsDragging(i);
                         }}
@@ -36,19 +37,12 @@ const DraggableHandles = React.forwardRef(({ height, rowHeight, width, minColumn
                             setIsDragging(-1);
                             onStop(data.x, i);
                         }}>
-                        <MoreVertIcon
-                            className={classes.draggableHandlesClickArea}
-                            style={{
-                                left: leftOffset + columnWidths[i] - 1 - 8,
-                                height: rowHeight,
-                            }}>
-                            <div
-                                className={classes.draggableHandlesIndicator}
+                            <MoreVertIcon
+                                className={isDragging === i ? classes.draggableHandlesClickAreaSelected : classes.draggableHandlesClickArea}
                                 style={{
-                                    display: isDragging === i ? 'block' : 'none',
-                                }}
-                            />
-                        </MoreVertIcon>
+                                    left: leftOffset + columnWidths[i] - 1 - 7,
+                                }}>
+                            </MoreVertIcon>
                     </Draggable>
                 );
             })}

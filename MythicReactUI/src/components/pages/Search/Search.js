@@ -10,7 +10,7 @@ import {SearchTabKeylogsLabel, SearchTabKeylogsPanel} from './SearchTabKeylog';
 import {SearchTabTokensLabel, SearchTabTokensPanel} from './SearchTabTokens';
 import {SearchTabCallbacksLabel, SearchTabCallbacksPanel} from './SearchTabCallbacks';
 import {SearchTabArtifactsLabel, SearchTabArtifactsPanel} from './SearchTabArtifacts';
-import {SearchTabSocksLabel, SearchTabSocksPanel} from './SearchTabSocks';
+import {SearchTabSocksLabel, SearchTabSocksPanel} from './SearchTabProxies';
 import {SearchTabProcessesLabel, SearchTabProcessPanel} from "./SearchTabProcesses";
 import {SearchTabTagsLabel, SearchTabTagsPanel} from "./SearchTabTags";
 

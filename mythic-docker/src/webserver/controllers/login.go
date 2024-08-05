@@ -42,6 +42,7 @@ func Login(c *gin.Context) {
 		"username":             currentOperation.CurrentOperator.Username,
 		"id":                   currentOperation.CurrentOperator.ID,
 		"user_id":              currentOperation.CurrentOperator.ID,
+		"view_utc_time":        currentOperation.CurrentOperator.ViewUtcTime,
 	}
 	// setting cookie max age to 2 days
 	c.SetCookie("mythic", accessToken, 60*60*24*2, "/", strings.Split(c.Request.Host, ":")[0], true, true)

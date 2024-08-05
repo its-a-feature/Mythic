@@ -396,6 +396,12 @@ type Mutation {
 }
 
 type Mutation {
+  testProxy(
+    callbackport_id: Int!
+  ): testProxyOutput
+}
+
+type Mutation {
   toggleProxy(
     callbackport_id: Int!
     action: String!
@@ -1048,6 +1054,11 @@ type containerWriteFileOutput {
 }
 
 type eventingTriggerRetryFromStepOutput {
+  status: String!
+  error: String
+}
+
+type testProxyOutput {
   status: String!
   error: String
 }

@@ -106,7 +106,39 @@ type ProxyFromAgentMessageForMythic struct {
 	Messages            []proxyFromAgentMessage
 	InteractiveMessages []agentMessagePostResponseInteractive
 }
+type ProxyTest struct {
+	CallbackPortId    int
+	OperatorOperation databaseStructs.Operatoroperation
+}
+type ProxyTestResponse struct {
+	Status string `json:"status"`
+	Error  string `json:"error"`
+}
 
+func ManuallyTestProxy(input ProxyTest) ProxyTestResponse {
+	resp := ProxyTestResponse{
+		Status: "error",
+		Error:  "callback and port not found",
+	}
+	callbackPort := databaseStructs.Callbackport{}
+	err := database.DB.Get(&callbackPort, `SELECT * FROM callbackport 
+         WHERE id=$1 AND operation_id=$2`, input.CallbackPortId, input.OperatorOperation.OperationID)
+	if err != nil {
+		logging.LogError(err, "Failed to find callback port information for manual proxy toggle")
+		resp.Error = "Failed to find callback port information"
+		return resp
+	}
+	err = proxyPorts.Test(callbackPort.CallbackID, callbackPort.PortType,
+		callbackPort.LocalPort, callbackPort.RemotePort, callbackPort.RemoteIP,
+		input.OperatorOperation.CurrentOperation.ID, callbackPort.ID)
+	if err != nil {
+		resp.Error = err.Error()
+		return resp
+	}
+	resp.Status = "success"
+	resp.Error = ""
+	return resp
+}
 func ManuallyToggleProxy(input ProxyStop) ProxyStopResponse {
 	resp := ProxyStopResponse{
 		Status: "error",
@@ -519,6 +551,25 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 	return nil
 
 }
+func (c *callbackPortsInUse) Test(callbackId int, portType CallbackPortType, localPort int, remotePort int,
+	remoteIP string, operationId int, callbackPortID int) error {
+	switch portType {
+	case CALLBACK_PORT_TYPE_RPORTFWD:
+		go func() {
+			if !canReachRemoteHost(remoteIP, remotePort) {
+				err := errors.New(fmt.Sprintf("Testing remote connection for rpfwd:\nfailed to reach remote host, %s:%d", remoteIP, remotePort))
+				go SendAllOperationsMessage(err.Error(), operationId, "", database.MESSAGE_LEVEL_INFO)
+			} else {
+				go SendAllOperationsMessage(fmt.Sprintf("Testing remote connection for rpfwd:\nsuccessfully connected to remote host, %s:%d", remoteIP, remotePort),
+					operationId, "", database.MESSAGE_LEVEL_INFO)
+			}
+		}()
+	default:
+		return errors.New("no testing capability for that kind of port")
+	}
+	return nil
+
+}
 func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, localPort int, operationId int) error {
 	for i := 0; i < len(c.ports); i++ {
 		if c.ports[i].CallbackID == callbackId &&
@@ -558,13 +609,15 @@ func isPortExposedThroughDocker(portToCheck int) bool {
 	return false
 }
 func canReachRemoteHost(remoteIP string, remotePort int) bool {
-	if conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", remoteIP, remotePort)); err != nil {
+	d := net.Dialer{Timeout: 5 * time.Second}
+	conn, err := d.Dial("tcp", fmt.Sprintf("%s:%d", remoteIP, remotePort))
+	if err != nil {
 		logging.LogError(err, "Failed to connect to remote for rpfwd", "remote_ip", remoteIP, "remote port", remotePort)
 		return false
-	} else {
-		conn.Close()
-		return true
 	}
+	conn.Close()
+	return true
+
 }
 func (p *callbackPortUsage) Start() error {
 	switch p.PortType {
@@ -596,16 +649,17 @@ func (p *callbackPortUsage) Start() error {
 		// start managing incoming/outgoing connections
 		go p.manageConnections()
 		// test outbound connectivity
-		go func() {
-			if !canReachRemoteHost(p.RemoteIP, p.RemotePort) {
-				err := errors.New(fmt.Sprintf("Testing remote connection for rpfwd:\nfailed to reach remote host, %s:%d", p.RemoteIP, p.RemotePort))
-				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-			} else {
-				go SendAllOperationsMessage(fmt.Sprintf("Testing remote connection for rpfwd:\nsuccessfully connected to remote host, %s:%d", p.RemoteIP, p.RemotePort),
-					p.OperationID, "", database.MESSAGE_LEVEL_INFO)
-			}
-		}()
-
+		/*
+			go func() {
+				if !canReachRemoteHost(p.RemoteIP, p.RemotePort) {
+					err := errors.New(fmt.Sprintf("Testing remote connection for rpfwd:\nfailed to reach remote host, %s:%d", p.RemoteIP, p.RemotePort))
+					go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				} else {
+					go SendAllOperationsMessage(fmt.Sprintf("Testing remote connection for rpfwd:\nsuccessfully connected to remote host, %s:%d", p.RemoteIP, p.RemotePort),
+						p.OperationID, "", database.MESSAGE_LEVEL_INFO)
+				}
+			}()
+		*/
 	case CALLBACK_PORT_TYPE_INTERACTIVE:
 		if isPortExposedThroughDocker(p.LocalPort) {
 			addr := fmt.Sprintf("0.0.0.0:%d", p.LocalPort)
@@ -863,7 +917,6 @@ func (p *callbackPortUsage) manageConnections() {
 						case newConnection.messagesFromAgent <- newMsg:
 						default:
 						}
-
 					}
 				}
 			default:

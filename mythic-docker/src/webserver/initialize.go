@@ -245,6 +245,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("delete_file_webhook", webcontroller.DeleteFileWebhook)
 				// callback
 				noSpectators.POST("toggle_proxy_webhook", webcontroller.ProxyToggleWebhook)
+				noSpectators.POST("test_proxy_webhook", webcontroller.ProxyTestWebhook)
 				noSpectators.POST("update_callback_webhook", webcontroller.UpdateCallbackWebhook)
 				noSpectators.POST("callback_import_config_webhook", webcontroller.ImportCallbackConfigWebhook)
 				// reporting
