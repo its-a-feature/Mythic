@@ -885,7 +885,9 @@ func (p *callbackPortUsage) manageConnections() {
 					//logging.LogInfo("send message along to acceptedConnection's messagesFromAgent", "chan", newMsg.ServerID)
 				} else {
 					// got a new serverID from the agent that we aren't tracking, so we need to make a new connection
-					if conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", p.RemoteIP, p.RemotePort)); err != nil {
+					d := net.Dialer{Timeout: 5 * time.Second}
+					conn, err := d.Dial("tcp", fmt.Sprintf("%s:%d", p.RemoteIP, p.RemotePort))
+					if err != nil {
 						logging.LogError(err, "Failed to connect to remote for rpfwd", "remote_ip", p.RemoteIP, "remote port", p.RemotePort)
 						interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
 							Message: proxyToAgentMessage{

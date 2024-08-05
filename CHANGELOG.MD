@@ -4,12 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.3.0-rc14] - 2024-08-05
+## [3.3.0-rc15] - 2024-08-05
 
 ### Changed
 
 - Updated the login function to return the user's utc time preference
 - Added button to show/hide deleted consuming containers
+- Shortened the dial time for rpfwd connections to 5s instead of 30s
 
 ## [3.3.0-rc13] - 2024-08-05
 
