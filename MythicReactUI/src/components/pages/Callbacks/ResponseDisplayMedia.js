@@ -42,6 +42,7 @@ import Tab from '@mui/material/Tab';
 import {previewFileQuery} from "../Search/FileMetaTable";
 import { useMutation } from '@apollo/client';
 import CodeIcon from '@mui/icons-material/Code';
+import DownloadIcon from '@mui/icons-material/Download';
 
 export const ResponseDisplayMedia = ({media, expand, task}) =>{
     const displayType = mimeType(media?.filename);
@@ -52,9 +53,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
     return (
         <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
             <AppBar color={'default'} position='static' className={"no-box-shadow"}>
-                <Button style={{width: "100%"}}
-                        size={"small"} variant={"contained"} href={"/direct/download/" +  media.agent_file_id}
-                        download >Download</Button>
+
                 <Tabs
                     value={value}
                     onChange={handleChange}
@@ -72,6 +71,12 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     <Tab className={value === 0 ? "selectedCallback": ""} label={"Render Media"}></Tab>
                     <Tab className={value === 1 ? "selectedCallback": ""} label={"Preview Strings"}></Tab>
                     <Tab className={value === 2 ? "selectedCallback": ""} label={"Preview Hex"}></Tab>
+                    <MythicStyledTooltip title={"Download the file"} style={{display: "inline-flex"}}>
+                        <Button style={{}}  size={"small"} href={"/direct/download/" +  media.agent_file_id}
+                                download color={"success"}>
+                            <DownloadIcon />
+                        </Button>
+                    </MythicStyledTooltip>
                 </Tabs>
             </AppBar>
             <div hidden={value !== 0}  style={{height: "100%"}} role='tabpanel' >

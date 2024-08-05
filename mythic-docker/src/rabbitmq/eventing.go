@@ -509,6 +509,8 @@ func getStepInstanceOutputs(eventNotification EventNotification, eventStepInstan
 			logging.LogInfo("looping through outputs of stepinstance", "key", key, "value", val)
 			valString := val.(string)
 			switch valString {
+			case "id":
+				output[key] = task.ID
 			case "status":
 				output[key] = task.Status
 			case "params":

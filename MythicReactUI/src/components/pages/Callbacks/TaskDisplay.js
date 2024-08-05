@@ -225,22 +225,6 @@ const GetOperatorDisplay = ({initialHideUsernameValue, task}) => {
   if(initialHideUsernameValue){
     return '';
   }
-  if(task?.eventstepinstance !== null){
-    return (
-        <span style={{display: "inline-flex", alignItems: "center"}}>
-          {"/ "}
-          <IconButton component={Link} href={'/new/eventing?eventgroup=' +
-              task?.eventstepinstance?.eventgroupinstance?.eventgroup?.id +
-              "&eventgroupinstance=" + task?.eventstepinstance?.eventgroupinstance?.id
-          } target={"_blank"} style={{padding: 0}}
-                      color="inherit" disableFocusRipple={true}
-                      disableRipple={true}>
-            <PlayCircleFilledTwoToneIcon />
-          </IconButton>
-           {task.operator.username}
-        </span>
-    )
-  }
   return "/ " + task.operator.username;
 }
 const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded }) => {
@@ -279,16 +263,35 @@ const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren,
             <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
               [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
               {" / "}
-              <span style={{display: "inline-flex", alignItems: "center"}}>
+              <span style={{}}>
                   {task.has_intercepted_response &&
-                      <MythicStyledTooltip
-                          title={"This task has responses that have been intercepted and changed due to a workflow container"}>
-                        <IconButton style={{padding: 0}} color={"secondary"}>
-                          <CropRotateTwoToneIcon fontSize={"small"}/>
-                        </IconButton>
+                      <>
+                        <MythicStyledTooltip
+                            title={"This task has responses that have been intercepted and changed due to a workflow container"}>
+                          <IconButton style={{padding: 0}} color={"secondary"}>
+                            <CropRotateTwoToneIcon fontSize={"small"}/>
+                          </IconButton>
 
-                      </MythicStyledTooltip>
+                        </MythicStyledTooltip>
+                        {"/ "}
+                      </>
                   }
+                {task?.eventstepinstance !== null &&
+                    <>
+                      <MythicStyledTooltip title={"Task created via Eventing, click to view entire event flow in separate page"} >
+                        <IconButton component={Link} href={'/new/eventing?eventgroup=' +
+                            task?.eventstepinstance?.eventgroupinstance?.eventgroup?.id +
+                            "&eventgroupinstance=" + task?.eventstepinstance?.eventgroupinstance?.id
+                        } target={"_blank"} style={{padding: 0}}
+                                    color="inherit" disableFocusRipple={true}
+                                    disableRipple={true}>
+                          <PlayCircleFilledTwoToneIcon />
+                        </IconButton>
+                      </MythicStyledTooltip>
+
+                      {"/  "}
+                    </>
+                }
                   <MythicStyledTooltip title={"View Task in separate page"} >
                     <Link style={{wordBreak: "break-all"}} color={"textPrimary"} underline={"always"} target={"_blank"}
                           href={"/new/task/" + task.display_id}>{task.display_id}</Link>

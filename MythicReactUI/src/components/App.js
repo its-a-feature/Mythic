@@ -80,7 +80,7 @@ export function App(props) {
                     mode: themeMode,
                     background: {
                         contrast: themeMode === 'dark' ? '#e1e0e0' : 'rgb(44, 52, 60)',
-                        default: themeMode === "dark" ? 'rgb(48, 48, 48)' : '#f5f5f5',
+                        default: themeMode === "dark" ? 'rgb(48, 48, 48)' : '#f6f6f6',
                         paper: themeMode === "dark" ? 'rgb(37,36,36)' : '#ececec',
                         taskLabel: themeMode === "dark" ? 'rgb(20, 20, 20)' : '#f5f5f5',
                     },
@@ -100,7 +100,7 @@ export function App(props) {
                 },
                 pageHeaderTextColor: "#ffffff",
                 folderColor: '#f1d592',
-                tableHeader: themeMode === 'dark' ? '#484848' : '#e0e0e0',
+                tableHeader: themeMode === 'dark' ? '#484848' : '#c4c4c4',
                 successOnMain: '#1ae302',
                 errorOnMain: '#ff656b',
                 infoOnMain: '#67ceff',

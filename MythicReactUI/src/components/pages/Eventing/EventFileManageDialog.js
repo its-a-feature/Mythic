@@ -77,8 +77,6 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
 
 function EventFileManageDialogTableRow({eventFile}) {
     const [openDelete, setOpenDelete] = React.useState(false);
-    const [openPreviewStringsDialog, setOpenPreviewStringsDialog] = React.useState(false);
-    const [openPreviewHexDialog, setOpenPreviewHexDialog] = React.useState(false);
     const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
     const [deleteFile] = useMutation(updateFileDeleted, {
         onCompleted: (data) => {
@@ -89,51 +87,8 @@ function EventFileManageDialogTableRow({eventFile}) {
             snackActions.error("Failed to delete file");
         }
     });
-    const [previewFileString] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setFileContents(data.previewFile.contents);
-                setOpenPreviewStringsDialog(true);
-            }else{
-                snackActions.error(data.previewFile.error)
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
-        }
-    });
-    const [previewFileHex] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setFileContents(data.previewFile.contents);
-                setOpenPreviewHexDialog(true);
-            }else{
-                snackActions.error(data.previewFile.error)
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
-        }
-    });
     const onAcceptDelete = () => {
         deleteFile({variables: {file_id: eventFile.id}})
-    }
-    const [fileContents, setFileContents] = React.useState('');
-    const onPreviewStrings = (event) => {
-        if(event){
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        previewFileString({variables: {file_id: eventFile.agent_file_id}})
-    }
-    const onPreviewHex = (event) => {
-        if(event){
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        previewFileHex({variables: {file_id: eventFile.agent_file_id}})
     }
     const onPreviewMedia = (event) => {
         if(event){
@@ -152,14 +107,6 @@ function EventFileManageDialogTableRow({eventFile}) {
                         }
                         <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
                                     onClick={()=>{setOpenDelete(true);}}/>
-                        <MythicStyledTooltip title={"Preview HEX XXD"}>
-                            <img src={hexFile} alt={"preview hex"} style={{height: "35px", cursor: "pointer"}}
-                                 onClick={onPreviewHex}/>
-                        </MythicStyledTooltip>
-                        <MythicStyledTooltip title={"Preview Strings"}>
-                            <img src={txtFile} alt={"preview strings"} style={{height: "35px", cursor: "pointer"}}
-                                 onClick={onPreviewStrings} />
-                        </MythicStyledTooltip>
                         <MythicStyledTooltip title={"Preview Media"}>
                             <FontAwesomeIcon icon={faPhotoVideo} style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
                                              onClick={onPreviewMedia} />
@@ -171,22 +118,6 @@ function EventFileManageDialogTableRow({eventFile}) {
                                               agent_file_id={eventFile.agent_file_id}
                                               filename={b64DecodeUnicode(eventFile.filename_text)}
                                               onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
-                            />
-                        }
-                        {openPreviewStringsDialog &&
-                            <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewStringsDialog}
-                                          onClose={()=>{setOpenPreviewStringsDialog(false);}}
-                                          innerDialog={<PreviewFileStringDialog onClose={()=>{setOpenPreviewStringsDialog(false);}}
-                                                                                filename={b64DecodeUnicode(eventFile.filename_text)} contents={fileContents}
-                                          />}
-                            />
-                        }
-                        {openPreviewHexDialog &&
-                            <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewHexDialog}
-                                          onClose={()=>{setOpenPreviewHexDialog(false);}}
-                                          innerDialog={<PreviewFileHexDialog onClose={()=>{setOpenPreviewHexDialog(false);}}
-                                                                             filename={b64DecodeUnicode(eventFile.filename_text)} contents={fileContents}
-                                          />}
                             />
                         }
                     </>
