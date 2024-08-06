@@ -332,11 +332,16 @@ func (t *pushC2Server) GetChannelTimeout() time.Duration {
 	return t.channelSendTimeout
 }
 
-func Initialize() {
+var pushC2StreamingConnectNotification chan int
+var pushC2StreamingDisconnectNotification chan int
+
+func Initialize(connectNotification chan int, disconnectNotification chan int) {
 	// need to open a port to accept gRPC connections
 	var (
 		connectString string
 	)
+	pushC2StreamingConnectNotification = connectNotification
+	pushC2StreamingDisconnectNotification = disconnectNotification
 	// initialize the clients
 	TranslationContainerServer.clients = make(map[string]*grpcTranslationContainerClientConnections)
 	TranslationContainerServer.connectionTimeout = connectionTimeoutSeconds * time.Second

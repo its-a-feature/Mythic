@@ -91,6 +91,10 @@ func sendMessageToDirectPushC2(callbackID int, message map[string]interface{}, u
 	}
 
 }
+func isCallbackStreaming(callbackID int) bool {
+	_, _, _, _, _, _, err := grpc.PushC2Server.GetPushC2ClientInfo(callbackID)
+	return err == nil
+}
 
 type interceptProxyToAgentMessage struct {
 	MessagesToAgent            chan proxyToAgentMessage

@@ -267,6 +267,10 @@ func updatePushC2OneToManyLastCheckinDisconnectTimestamp(c2ProfileName string, t
 		if err != nil {
 			logging.LogError(err, "Failed to update callback edge when push c2 disconnected")
 		}
+		select {
+		case pushC2StreamingDisconnectNotification <- callbackID:
+		default:
+		}
 	}
 	// now that the c2 disconnected, flush all the cached data about the connections
 	if trackingID == "" {
@@ -375,5 +379,9 @@ func updatePushC2OneToManyLastCheckinConnectTimestamp(fromMythicResponse RabbitM
 		} else {
 			logging.LogInfo("Added new callbackgraph edge in pushC2 one to many", "c2", c2ProfileId, "callback", callbackId)
 		}
+	}
+	select {
+	case pushC2StreamingConnectNotification <- callbackId:
+	default:
 	}
 }

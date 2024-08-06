@@ -422,10 +422,13 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
                 //look at all of the edges in myEdges and see if there are any edges that share a source/destination in props.callbackgraphedges that are _not_ in myEdges so far
                 const newEdges = initialCallbackGraphEdges?.reduce( (prev, edge) => {
                     //looking to see if we should add 'edge' to our list of relevant edges
-                    if(prev.includes(edge)){return [...prev]}
+                    const alreadyIncludes = prev.filter( (e) => e.id === edge.id);
+                    if(alreadyIncludes.length > 0){
+                        return [...prev]
+                    }
                     //look through all of the previous edges we know about and see if there's a matching source/destination id with the new edge
                     const matching = prev.filter( (e) => {
-                        if(e.source.id === edge.source.id || e.source.id === edge.destination.id || e.destination.id === edge.source.id ){
+                        if(e.source.id === edge.source.id || e.source.id === edge.destination.id || e.destination.id === edge.source.id || e.destination.id === edge.destination.id ){
                             if(activeOnly){
                                 if(edge.end_timestamp === null) { return true}
                                 else{return false}
@@ -435,12 +438,12 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
                         return false;
                     });
                     if(matching.length > 0){
-                        return [...prev, edge];
+                        return [...prev, {...edge}];
                     }else{
                         return [...prev];
                     }
                 }, [...myEdges]) || [];
-                foundMore = newEdges.length > myEdges;
+                foundMore = newEdges.length > myEdges.length;
                 myEdges = [...newEdges];
             }
             return myEdges;
@@ -453,6 +456,7 @@ export const CallbacksTableC2Cell = React.memo(({rowData}) => {
     }, [initialCallbackGraphEdges, localRowData]);
     useEffect( () => {
         //determine if there are any active routes left at all
+        //console.log(localRowData.display_id, callbackgraphedges)
         const activeRoutes = callbackgraphedges.filter( (edge) => {
             if(!edge.c2profile.is_p2p  && edge.end_timestamp === null){
                 return true;

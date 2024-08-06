@@ -80,6 +80,9 @@ func (r *rabbitMQConnection) startListeners() {
 	go checkContainerStatus()
 }
 
+var pushC2StreamingConnectNotification = make(chan int, 100)
+var pushC2StreamingDisconnectNotification = make(chan int, 100)
+
 func Initialize() {
 	RabbitMQConnection.channelMutexMap = make(map[string]*channelMutex)
 	go invalidateAllSpectatorAPITokens()
@@ -97,7 +100,7 @@ func Initialize() {
 			submittedTasksAwaitingFetching.Initialize()
 			updatePushC2CallbackTime()
 			// initialize gRPC
-			grpc.Initialize()
+			grpc.Initialize(pushC2StreamingConnectNotification, pushC2StreamingDisconnectNotification)
 			// start listening for eventing messages
 			go listenForEvents()
 			go initializeEventGroupCronSchedulesOnStart()
@@ -105,6 +108,7 @@ func Initialize() {
 			go processAgentMessageFromPushC2()
 			go interceptProxyDataToAgentForPushC2()
 			go checkIfActiveCallbacksAreAliveForever()
+			go listenForPushConnectDisconnectMessages()
 			go func() {
 				// wait 20s for things to stabilize a bit, then send a startup message
 				time.Sleep(time.Second * 30)
