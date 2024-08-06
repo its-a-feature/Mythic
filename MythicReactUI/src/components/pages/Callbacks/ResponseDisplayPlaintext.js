@@ -72,7 +72,7 @@ export const ResponseDisplayPlaintext = (props) =>{
         // only auto-scroll if you issued the task
         if(props.task.operator.username === (me?.user?.username || "")){
             let el = document.getElementById(`taskingPanel${props.task.callback_id}`);
-            if(props.expand){
+            if(props.expand || props.displayType === "console"){
                 el = document.getElementById(`taskingPanelConsole${props.task.callback_id}`);
             }
             if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 600){

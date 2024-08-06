@@ -442,7 +442,10 @@ func AddMythicService(service string, removeVolume bool) {
 
 		pStruct["environment"] = []string{
 			"JUPYTER_TOKEN=${JUPYTER_TOKEN}",
+			"CHOWN_EXTRA=/projects",
+			"CHOWN_EXTRA_OPTS=-R",
 		}
+		pStruct["user"] = "root"
 		/*
 			if curConfig.InConfig("services.mythic_jupyter.deploy") {
 				pStruct["deploy"] = curConfig.Get("services.mythic_jupyter.deploy")

@@ -293,7 +293,7 @@ const NonInteractiveResponseDisplay = (props) => {
 
               <div style={{overflowY: "auto", flexGrow: 1, width: "100%", height: props.expand ? "100%": undefined, display: "flex", flexDirection: "column"}} ref={props.responseRef}>
                 <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
-                                          output={output} command_id={props.command_id}
+                                          output={output} command_id={props.command_id} displayType={"accordion"}
                                           task={props.task} search={search.current} expand={props.expand}/>
 
               </div>
@@ -362,13 +362,15 @@ export const NonInteractiveResponseDisplayConsole = (props) => {
   return (
       <React.Fragment>
         {props.searchOutput &&
-            <SearchBar onSubmitSearch={onSubmitSearch} />
+            <SearchBar onSubmitSearch={onSubmitSearch}/>
         }
-        <div style={{overflowY: "auto", width: "100%", height: props.expand ? "100%": undefined}} ref={props.responseRef}>
+        <div style={{overflowY: "auto", width: "100%", height: props.expand ? "100%" : undefined}}
+             ref={props.responseRef}>
           <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
-                                    output={output} command_id={props.command_id}
+                                    output={output} command_id={props.command_id} displayType={"console"}
                                     task={props.task} search={""} expand={props.expand}/>
         </div>
+        <div id={'scrolltotaskbottom' + props.task.id}></div>
       </React.Fragment>
   )
 }
@@ -434,7 +436,7 @@ export const SearchBar = ({onSubmitSearch}) => {
   );
 }
 
-const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, command_id, task, search, expand}) => {
+const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, command_id, task, search, expand, displayType}) => {
   const [localViewBrowserScript, setViewBrowserScript] = React.useState(true);
   const [browserScriptData, setBrowserScriptData] = React.useState({});
   const [loadingBrowserScript, setLoadingBrowserScript] = React.useState(true);
@@ -541,36 +543,49 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     localViewBrowserScript && Object.keys(browserScriptData).length > 0 ? (
       <React.Fragment>
           {browserScriptData?.screenshot?.map( (scr, index) => (
-              <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} task={task} {...scr} />
+              <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} task={task} {...scr}
+                                         displayType={displayType} expand={expand} />
             )) || null
           }
           {browserScriptData?.plaintext !== undefined &&
-            <ResponseDisplayPlaintext plaintext={browserScriptData["plaintext"]} task={task} expand={expand} />
+            <ResponseDisplayPlaintext plaintext={browserScriptData["plaintext"]} task={task}
+                                      expand={expand} displayType={displayType} />
           }
           {browserScriptData?.table?.map( (table, index) => {
           if(useNewBrowserScriptTable){
-            return <ResponseDisplayMaterialReactTable callback_id={task.callback_id} task={task} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
+            return <ResponseDisplayMaterialReactTable callback_id={task.callback_id} task={task} expand={expand}
+                                                      table={table} key={"tablefortask" + task.id + "table" + index}
+                                                      displayType={displayType}
+            />
           }
-            return <ResponseDisplayTable callback_id={task.callback_id} task={task} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
+            return <ResponseDisplayTable callback_id={task.callback_id} task={task} expand={expand}
+                                         table={table} key={"tablefortask" + task.id + "table" + index}
+                                         displayType={displayType}
+            />
           }) || null
           }
           {browserScriptData?.download?.map( (dl, index) => (
-              <ResponseDisplayDownload download={dl} task={task} key={"download" + index + "fortask" + task.id} />
+              <ResponseDisplayDownload download={dl} task={task} displayType={displayType}
+                                       key={"download" + index + "fortask" + task.id} />
             )) || null
           }
           {browserScriptData?.search?.map( (s, index) => (
-              <ResponseDisplaySearch search={s} task={task} key={"searchlink" + index + "fortask" + task.id} />
+              <ResponseDisplaySearch search={s} task={task} displayType={displayType}
+                                     key={"searchlink" + index + "fortask" + task.id} />
           )) || null
           }
           {browserScriptData?.media?.map( (s, index) => (
-              <ResponseDisplayMedia key={"searchmedia" + index + "fortask" + task.id} task={task} media={s} expand={expand} />
+              <ResponseDisplayMedia key={"searchmedia" + index + "fortask" + task.id}
+                                    displayType={displayType}
+                                    task={task} media={s} expand={expand} />
           )) || null}
           {browserScriptData?.graph !== undefined &&
-            <ResponseDisplayGraph graph={browserScriptData.graph} task={task} expand={expand} />
+            <ResponseDisplayGraph graph={browserScriptData.graph} task={task}
+                                  expand={expand} displayType={displayType} />
           }
       </React.Fragment>
     ) : (
-      <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand}/>
+      <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand} displayType={displayType}/>
     )
   )
 }

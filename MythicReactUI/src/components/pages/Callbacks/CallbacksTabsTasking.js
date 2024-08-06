@@ -209,20 +209,6 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         },
         fetchPolicy: "no-cache",
         onData: subscriptionDataCallback});
-    /*
-    const scrollToBottom = useCallback( () => {
-        if(taskingData && messagesEndRef.current){
-            //messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-      }, [taskingData, messagesEndRef]);
-    useLayoutEffect( () => {
-        if(canScroll){
-            scrollToBottom();
-            setCanScroll(false);
-        }
-    }, [canScroll, scrollToBottom]);
-
-     */
     const [getInfiniteScrollTasking, {loading: loadingMore}] = useLazyQuery(getNextBatchTaskingQuery, {
         onError: data => {
             console.error(data);
