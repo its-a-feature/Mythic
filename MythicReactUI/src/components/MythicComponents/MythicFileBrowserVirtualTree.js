@@ -202,15 +202,29 @@ const VirtualTreeRow = ({
           >
 
           {itemTreeData.is_group ? (
-              <WidgetsIcon style={{marginLeft: "3px", marginRight: "5px" }} />
+              <WidgetsIcon style={{
+                  width: "15px",
+                  height: "15px",
+                  marginLeft: "3px",
+                  marginRight: "5px" }} />
           ): itemTreeData.root  ? (
-              <ComputerIcon style={{ marginLeft: '3px', marginRight: '5px' }}  />
+              <ComputerIcon style={{
+                  width: "15px",
+                  height: "15px",
+                  marginLeft: '3px',
+                  marginRight: '5px' }}  />
           ) : !itemTreeData.can_have_children ? (
-              <DescriptionIcon style={{ marginLeft: '3px', marginRight: '5px' }} />
+              <DescriptionIcon style={{
+                  width: "15px",
+                  height: "15px",
+                  marginLeft: '3px',
+                  marginRight: '5px' }} />
           ) : itemTreeData.isOpen ? (
             <FontAwesomeIcon 
               icon={faFolderOpen} 
               style={{
+                  width: "15px",
+                  height: "15px",
                 marginLeft: '3px',
                 marginRight: '5px',
                 color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary,
@@ -219,9 +233,13 @@ const VirtualTreeRow = ({
               onClick={handleOnClickButton} />
           ) : (
               <FontAwesomeIcon 
-                style={{ marginLeft: '3px', marginRight: '5px',
+                style={{
+                    width: "15px",
+                    height: "15px",
+                    marginLeft: '3px',
+                    marginRight: '5px',
                     color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary, }}
-                    size={"lg"}
+                size={"lg"}
                 icon={faFolder} onClick={handleOnClickButton} />
           )}
           <Typography

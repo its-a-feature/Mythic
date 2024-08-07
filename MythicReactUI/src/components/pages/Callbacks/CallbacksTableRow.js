@@ -352,10 +352,10 @@ export const CallbacksTableIPCell = React.memo(({cellData, rowData}) => {
     }, [cellData]);
     return (
         <>
-            <div style={{display: "flex", alignItems: "center"}}>
+            <div style={{display: "inline-flex", alignItems: "center", height: "100%"}}>
                 {options.length > 1 &&
                     <MythicStyledTooltip title={"Adjust Displayed"}>
-                        <UnfoldMoreIcon onClick={onClick} style={{paddingTop: "5px", cursor: "pointer"}} />
+                        <UnfoldMoreIcon onClick={onClick} style={{paddingTop: "5px", cursor: "pointer", width: "unset"}} />
                     </MythicStyledTooltip>
                 }
                 {displayIP}

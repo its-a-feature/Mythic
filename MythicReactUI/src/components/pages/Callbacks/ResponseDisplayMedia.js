@@ -40,18 +40,63 @@ import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import {previewFileQuery} from "../Search/FileMetaTable";
-import { useMutation } from '@apollo/client';
+import { useMutation, gql, useQuery } from '@apollo/client';
 import CodeIcon from '@mui/icons-material/Code';
 import DownloadIcon from '@mui/icons-material/Download';
+import {b64DecodeUnicode} from "./ResponseDisplay";
+import {TableRowSizeCell} from "../../MythicComponents/MythicDialog";
+import {Table, TableHead, TableRow, TableBody} from '@mui/material';
+import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
+import WarningOutlinedIcon from '@mui/icons-material/WarningOutlined';
 
+
+const fileMetaQuery = gql`
+    query fileMetaStats($agent_file_id: String!){
+        filemeta(where: {agent_file_id: {_eq: $agent_file_id}}){
+            id
+            host
+            filename_text
+            full_remote_path_text
+            size
+            agent_file_id
+            task {
+                display_id
+                id
+            }
+        }
+    }
+`
 export const ResponseDisplayMedia = ({media, expand, task}) =>{
     const displayType = mimeType(media?.filename);
     const [value, setValue] = React.useState(displayType !== undefined ? 0 : 1);
+    const [fileMetaData, setFileMetaData] = React.useState({});
+    useQuery(fileMetaQuery, {
+        variables: {agent_file_id: media?.agent_file_id},
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            if(data.filemeta.length > 0){
+                setFileMetaData({
+                    filename: b64DecodeUnicode(data.filemeta[0].filename_text),
+                    full_remote_path: b64DecodeUnicode(data.filemeta[0].full_remote_path_text),
+                    host: data.filemeta[0].host,
+                    size: data.filemeta[0].size,
+                    agent_file_id: data.filemeta[0].agent_file_id,
+                    task_display_id: data.filemeta[0]?.task?.display_id,
+                })
+            } else {
+                snackActions.warning("failed to find file specified")
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+        }
+    });
     const handleChange = (event, newValue) => {
         setValue(newValue);
     }
     return (
         <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
+            <DisplayFileMetaData fileMetaData={fileMetaData} />
             <AppBar color={'default'} position='static' className={"no-box-shadow"}>
 
                 <Tabs
@@ -68,9 +113,9 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     scrollButtons='auto'
                     style={{maxWidth: '100%', width: '100%'}}
                     aria-label='scrollable auto tabs example'>
-                    <Tab className={value === 0 ? "selectedCallback": ""} label={"Render Media"}></Tab>
-                    <Tab className={value === 1 ? "selectedCallback": ""} label={"Preview Strings"}></Tab>
-                    <Tab className={value === 2 ? "selectedCallback": ""} label={"Preview Hex"}></Tab>
+                    <Tab className={value === 0 ? "selectedCallback": ""} label={"Preview"}></Tab>
+                    <Tab className={value === 1 ? "selectedCallback": ""} label={"Text"}></Tab>
+                    <Tab className={value === 2 ? "selectedCallback": ""} label={"Hex"}></Tab>
                     <MythicStyledTooltip title={"Download the file"} style={{display: "inline-flex"}}>
                         <Button style={{}}  size={"small"} href={"/direct/download/" +  media.agent_file_id}
                                 download color={"success"}>
@@ -80,18 +125,31 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                 </Tabs>
             </AppBar>
             <div hidden={value !== 0}  style={{height: "100%"}} role='tabpanel' >
-                <DisplayMedia agent_file_id={media?.agent_file_id || ""} task={task} filename={media?.filename || undefined} expand={expand} />
+                {value === 0 &&
+                    <DisplayMedia agent_file_id={media?.agent_file_id || ""}
+                                  task={task} filename={media?.filename || undefined}
+                                  fileMetaData={fileMetaData}
+                                  expand={expand} />
+                }
             </div>
             <div hidden={value !== 1} style={{height: "100%"}} role='tabpanel' >
-                <DisplayText agent_file_id={media?.agent_file_id || ""} task={task} filename={media?.filename || undefined} expand={expand} preview />
+                {value === 1 &&
+                    <DisplayText agent_file_id={media?.agent_file_id || ""}
+                                 task={task} filename={media?.filename || undefined}
+                                 fileMetaData={fileMetaData}
+                                 expand={expand} preview />
+                }
             </div>
             <div hidden={value !== 2} style={{height: "100%"}} role='tabpanel' >
-                <DisplayHex agent_file_id={media?.agent_file_id || ""} task={task} filename={media?.filename || undefined} expand={expand} />
+                {value === 2 &&
+                    <DisplayHex agent_file_id={media?.agent_file_id || ""}
+                                task={task} filename={media?.filename || undefined}
+                                fileMetaData={fileMetaData}
+                                expand={expand} />
+                }
+
             </div>
-
         </div>
-
-
     )
 }
 const textExtensionTypes = ["txt", "ps1", "php", "json", "yml", "yaml", "config", "cfg", "go",
@@ -143,7 +201,7 @@ const mimeType = (path) => {
     }
     return undefined;
 }
-export const DisplayMedia = ({agent_file_id, filename, expand, task}) => {
+export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaData}) => {
     const showMediaSetting = useMythicSetting({setting_name: "showMedia", default_value: "true"});
     const [showMedia, setShowMedia] = React.useState(showMediaSetting);
     const [fileData, setFileData] = React.useState({
@@ -223,14 +281,42 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task}) => {
     if(fileData.display_type === "text"){
         return (
             <div style={{height: "100%", minHeight: "100px", width: "100%"}} >
-                <DisplayText agent_file_id={agent_file_id} expand={expand} filename={filename} />
+                <DisplayText agent_file_id={agent_file_id} expand={expand} filename={filename} fileMetaData={fileMetaData} />
             </div>
         )
     }
     return null;
 }
 const MaxRenderSize = 2000000;
-const DisplayText = ({agent_file_id, expand, filename, preview}) => {
+const DisplayFileMetaData = ({fileMetaData}) => {
+    return (
+        <Table style={{marginLeft: "10px", width: "100%", tableLayout: "fixed"}}>
+            <TableHead>
+                <TableRow>
+                    <MythicStyledTableCell style={{width: "7rem"}}>Size</MythicStyledTableCell>
+                    <MythicStyledTableCell>Host</MythicStyledTableCell>
+                    <MythicStyledTableCell>File</MythicStyledTableCell>
+                    <MythicStyledTableCell>Path</MythicStyledTableCell>
+                    <MythicStyledTableCell style={{width: "5rem"}}>Task</MythicStyledTableCell>
+                </TableRow>
+            </TableHead>
+            <TableBody>
+                <TableRow>
+                    <MythicStyledTableCell><TableRowSizeCell cellData={fileMetaData.size}/></MythicStyledTableCell>
+                    <MythicStyledTableCell>{fileMetaData.host}</MythicStyledTableCell>
+                    <MythicStyledTableCell>{fileMetaData.filename}</MythicStyledTableCell>
+                    <MythicStyledTableCell>{fileMetaData.full_remote_path}</MythicStyledTableCell>
+                    <MythicStyledTableCell><Link style={{wordBreak: "break-all"}}
+                                     color="textPrimary" underline="always"
+                                     target="_blank" href={"/new/task/" + fileMetaData.task_display_id}>
+                        {fileMetaData.task_display_id}
+                    </Link></MythicStyledTableCell>
+                </TableRow>
+            </TableBody>
+        </Table>
+    )
+}
+const DisplayText = ({agent_file_id, expand, filename, preview, fileMetaData}) => {
     const theme = useTheme();
     const [mode, setMode] = React.useState("html");
     const [content, setContent] = React.useState("");
@@ -239,6 +325,9 @@ const DisplayText = ({agent_file_id, expand, filename, preview}) => {
         onCompleted: (data) => {
             if(data.previewFile.status === "success"){
                 setContent(atob(data.previewFile.contents));
+                if(data.previewFile.size > 512000){
+                    setLimitedPreviewWarning(true);
+                }
             }else{
                 snackActions.error(data.previewFile.error)
             }
@@ -248,6 +337,7 @@ const DisplayText = ({agent_file_id, expand, filename, preview}) => {
             snackActions.error(data);
         }
     });
+    const [limitedPreviewWarning, setLimitedPreviewWarning] = React.useState(false);
     const currentContentRef = React.useRef();
     React.useEffect( () => {
         if(preview){
@@ -263,8 +353,10 @@ const DisplayText = ({agent_file_id, expand, filename, preview}) => {
                 response.text().then(data => {
                     if(data.length > MaxRenderSize){
                         snackActions.warning("File too large (> 2MB), truncating the render");
+                        setLimitedPreviewWarning(true);
+                        setContent(data.substring(0, MaxRenderSize));
+                        return;
                     }
-
                     try{
                         let cont = JSON.stringify(JSON.parse(data), null, 2);
                         setContent(cont);
@@ -316,7 +408,7 @@ const DisplayText = ({agent_file_id, expand, filename, preview}) => {
     return (
         <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
             <div style={{display: "inline-flex", flexDirection: "row", alignItems: "center"}}>
-                <FormControl sx={{ display: "inline-block" }} size="small" color={"secondary"}>
+                <FormControl sx={{ display: "inline-block", marginLeft: "10px" }} size="small" color={"secondary"}>
                     <TextField
                         select
                         label={"Syntax"}
@@ -346,6 +438,14 @@ const DisplayText = ({agent_file_id, expand, filename, preview}) => {
                         <CodeIcon color={"info"} style={{cursor: "pointer"}} />
                     </IconButton>
                 </MythicStyledTooltip>
+                {limitedPreviewWarning &&
+                    <>
+                        <MythicStyledTooltip title={preview ? "Only first 512KB of file is shown" :
+                            "Only first 2MB of file is shown"}>
+                            <WarningOutlinedIcon style={{marginLeft: "5px"}} color={"warning"} />
+                        </MythicStyledTooltip>
+                    </>
+                }
             </div>
             <div style={{display: "flex", flexGrow: 1, height: "100%"}}>
                 <AceEditor
@@ -375,7 +475,7 @@ const DisplayText = ({agent_file_id, expand, filename, preview}) => {
         </div>
     )
 }
-const DisplayHex = ({agent_file_id, expand}) => {
+const DisplayHex = ({agent_file_id, expand, fileMetaData}) => {
     const theme = useTheme();
     const [content, setContent] = React.useState("");
     const [previewFileString] = useMutation(previewFileQuery, {

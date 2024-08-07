@@ -225,7 +225,7 @@ function CallbacksTablePreMemo(props){
           {key: "pid", type: 'number', name: "PID", width: 75},
           {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true, disableDoubleClick: true},
           {key: "description", type: 'string', name: "Description", width: 400},
-          {key: "sleep", type: 'string', name: "Sleep", width: 50, disableFilterMenu: true, disableSort: true, disableDoubleClick: true},
+          {key: "sleep", type: 'string', name: "Sleep", width: 60, disableFilterMenu: true, disableSort: true, disableDoubleClick: true},
           {key: "agent", type: 'agent', name: "Agent", width: 150},
           {key: "c2", type: 'string', name: "C2", width: 45, disableSort: true, disableFilterMenu: true, disableDoubleClick: true},
           {key: "process_short_name", type: 'string', name: "Process Name", fillWidth: true},

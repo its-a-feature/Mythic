@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.17] - 2024-08-07
+
+### Changed
+
+- updated the file preview window to display additional context and change names of tabs slightly
+- fixed a bug that resulted in double "FilePreviewed" tags in the UI
+- updated the sizes of file browser icons to stay consistent
+- updated body of file browser table to provide context about if there's no data loaded or collected
+- updated border bounds for interactive tasks
+- fixed checkbox alignment in file searches
+- moved location of file preview to info column in file browser to maintain text alignment in filenames
+
 ## [0.2.16] - 2024-08-06
 
 ### Changed

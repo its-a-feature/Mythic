@@ -157,6 +157,10 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
     });
     const [showDeletedFiles, setShowDeletedFiles] = React.useState(false);
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
+    const taskingTableTopTypedDataRef = React.useRef({
+        path: "",
+        token: 0,
+    });
     const taskingData = React.useRef({"parameters": "", "ui_feature": "file_browser:list"});
     const mountedRef = React.useRef(true);
     const tableOpenedPathIdRef = React.useRef(0);
@@ -368,6 +372,19 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             "ui_feature": "file_browser:list", callback_id, callback_display_id});
         setOpenTaskingButton(true);
     };
+    const onListFilesButtonFromTableWithNoEntries = () => {
+        taskingData.current = ({
+            "token": taskingTableTopTypedDataRef.current.token === "Default Token" ? 0 : taskingTableTopTypedDataRef.current.token,
+            "parameters": {
+                path: taskingTableTopTypedDataRef.current.path,
+                full_path: taskingTableTopTypedDataRef.current.path,
+                host: selectedFolderData.host, file: ""
+            },
+            "ui_feature": "file_browser:list",
+            callback_id: tabInfo.callbackID,
+            callback_display_id: tabInfo.displayID});
+        setOpenTaskingButton(true);
+    }
     const onUploadFileButton = ({ fullPath, callback_id, callback_display_id, token }) => {
         taskingData.current = ({
             "token": token,
@@ -426,10 +443,11 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
 
                 </div>
                 <div className="bg-gray-light" style={{display: "inline-flex"}}>
-                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, overflow: "hidden" }}>
                         <div style={{ flexGrow: 0 }}>
                             <FileBrowserTableTop
                                 tabInfo={tabInfo}
+                                taskingTableTopTypedDataRef={taskingTableTopTypedDataRef}
                                 onChangeSelectedToken={onChangeSelectedToken}
                                 selectedFolderData={selectedFolderData}
                                 onListFilesButton={onListFilesButton}
@@ -449,6 +467,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                                 onRowDoubleClick={fetchFolderData}
                                 treeRootData={treeRootDataRef.current}
                                 treeAdjMatrix={treeAdjMtx}
+                                onListFilesButtonFromTableWithNoEntries={onListFilesButtonFromTableWithNoEntries}
                                 selectedFolderData={selectedFolderData}
                                 onTaskRowAction={onTaskRowAction}
                                 me={me}
@@ -474,6 +493,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
 };
 const FileBrowserTableTop = ({
     selectedFolderData,
+    taskingTableTopTypedDataRef,
     onChangeSelectedToken,
     onListFilesButton,
     onUploadFileButton,
@@ -491,15 +511,20 @@ const FileBrowserTableTop = ({
     const [historyIndex, setHistoryIndex] = React.useState(0);
     const onChangePath = (_, value) => {
         setFullPath(value);
+        taskingTableTopTypedDataRef.current.path = value;
+        taskingTableTopTypedDataRef.current.token = selectedToken;
+
     };
     const changeSelectedToken = (token) => {
         onChangeSelectedToken(token);
         if(token === "Default Token"){
             selectedToken.current = "Default Token";
+            taskingTableTopTypedDataRef.current.token = selectedToken;
             return;
         }
         if(token.token_id !== selectedToken.current.token_id){
             selectedToken.current = token;
+            taskingTableTopTypedDataRef.current.token = selectedToken;
         }
     }
     useSubscription(subscriptionCallbackTokens, {
@@ -512,6 +537,7 @@ const FileBrowserTableTop = ({
     useEffect(() => {
         if (selectedFolderData.full_path_text !== undefined) {
             setFullPath(selectedFolderData.full_path_text);
+            taskingTableTopTypedDataRef.current.path = selectedFolderData.full_path_text;
         }
         const groups = selectedFolderData?.callback?.mythictree_groups?.join(", ") || "";
         if(groups.length > 0 ){

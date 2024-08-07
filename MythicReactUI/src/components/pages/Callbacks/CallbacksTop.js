@@ -96,7 +96,7 @@ callback(where: {active: {_eq: true}}) {
  `;
 export const SUB_Edges = gql`
 subscription CallbacksSubscription{
-  callbackgraphedge(order_by: {id: desc, end_timestamp: desc_nulls_first}) {
+  callbackgraphedge(order_by: {id: desc, end_timestamp: desc_nulls_first}, where: {end_timestamp: {_is_null: true}}) {
     id
     end_timestamp
     destination {

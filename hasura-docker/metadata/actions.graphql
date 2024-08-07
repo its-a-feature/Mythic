@@ -762,6 +762,10 @@ type generateReportOutput {
 type previewFileOutput {
   status: String!
   error: String
+  size: Int
+  host: String
+  full_remote_path: String
+  filename: String
   contents: String
 }
 

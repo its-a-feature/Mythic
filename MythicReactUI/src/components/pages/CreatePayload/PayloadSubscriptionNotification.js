@@ -109,7 +109,7 @@ const SnackMessage = (props) => {
         <React.Fragment>                    
             <Typography variant="subtitle2" className={classes.typography}>
                     {props.payloadData.build_phase === "success" ? (
-                        "Payload successfuly built!"
+                        "Payload successfully built!"
                     ) : (
                         "Payload Building..."
                     )}

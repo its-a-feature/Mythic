@@ -328,7 +328,7 @@ export const ResponseDisplayInteractive = (props) =>{
           {props.searchOutput &&
               <SearchBar onSubmitSearch={onSubmitSearch}/>
           }
-          <div style={{overflowY: "auto", width: "100%",
+          <div style={{overflowY: "auto", width: "100%", marginBottom: "5px",
               flexGrow: 1, paddingLeft: "10px"}} ref={props.responseRef}
                id={`ptytask${props.task.id}`}>
               {alloutput.map((e, index) => (
@@ -477,6 +477,7 @@ const InteractiveTaskingBar = ({task, taskData, useASNIColor, toggleANSIColor,
     return (
         <div style={{
             display: "flex",
+            alignItems: "flex-end",
             backgroundColor: theme.palette.graphGroupRGBA,
             paddingTop: "5px",
             width: "100%"}}>

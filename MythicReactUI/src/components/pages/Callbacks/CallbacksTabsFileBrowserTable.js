@@ -41,6 +41,8 @@ import ListSubheader from '@mui/material/ListSubheader';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 
 const getPermissionsDataQuery = gql`
@@ -102,7 +104,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
     const columns = React.useMemo(
         () =>
             [
-                { name: 'Info', width: 50, disableDoubleClick: true, disableSort: true, disableFilterMenu: true },
+                { name: 'Info', width: 65, disableDoubleClick: true, disableSort: true, disableFilterMenu: true },
                 { name: 'Name', type: 'string', key: 'name_text', fillWidth: true },
                 { name: "Size", type: "size", key: "size", inMetadata: true, width: 100},
                 { name: "Last Modify", type: "date", key: "modify_time", inMetadata: true, width: 250},
@@ -271,26 +273,79 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         setColumnVisibility({visible: right, hidden: left});
     }
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
-
+    if(props?.selectedFolderData?.host === ""){
+        return (
+            <div style={{width: '100%', height: '100%', overflow: "hidden", position: "relative"}}>
+            <div style={{overflowY: "hidden", flexGrow: 1}}>
+                <div style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    position: "absolute",
+                    left: "30%",
+                    top: "50%"
+                }}>
+                    {"Select a path from the tree on the left or list a new path at the top"}
+                </div>
+            </div>
+            </div>
+        )
+    }
     return (
-        <div style={{ width: '100%', height: '100%', overflow: "hidden", position: "relative" }}>
-            <MythicResizableGrid
-                columns={columns}
-                sortIndicatorIndex={sortColumn}
-                sortDirection={sortData.sortDirection}
-                items={gridData}
-                rowHeight={20}
-                onClickHeader={onClickHeader}
-                onDoubleClickRow={onRowDoubleClick}
-                contextMenuOptions={contextMenuOptions}
-            />
+        <div style={{width: '100%', height: '100%', overflow: "hidden", position: "relative"}}>
+            {(gridData.length > 0 || props?.selectedFolderData?.success) &&
+                <MythicResizableGrid
+                    columns={columns}
+                    sortIndicatorIndex={sortColumn}
+                    sortDirection={sortData.sortDirection}
+                    items={gridData}
+                    rowHeight={20}
+                    onClickHeader={onClickHeader}
+                    onDoubleClickRow={onRowDoubleClick}
+                    contextMenuOptions={contextMenuOptions}
+                />
+            }
+            {(gridData.length === 0 && props?.selectedFolderData?.metadata?.has_children )&&
+                <div style={{overflowY: "hidden", flexGrow: 1}}>
+                        <div style={{
+                            position: "absolute",
+                            left: "35%",
+                            top: "40%"
+                        }}>
+                            {"Some data exists for this path, but isn't loaded into the UI.  "}
+                            <br/>
+                            {"Click the folder icon to fetch data from the database."}
+                        </div>
+                </div>
+            }
+            {(gridData.length === 0 && !props?.selectedFolderData?.metadata?.has_children )&&
+                <div style={{overflowY: "hidden", flexGrow: 1}}>
+                    <div style={{
+                        position: "absolute",
+                        left: "35%",
+                        top: "40%"
+                    }}>
+                        {"No data has been collected for this path.  "}
+                        <div style={{display: "flex", alignContent: "center"}}>
+                            <IconButton style={{margin: 0, padding: 0, marginRight: "10px"}} onClick={props.onListFilesButtonFromTableWithNoEntries} >
+                                <RefreshIcon color={"info"} style={{ display: "inline-block",}} />
+                            </IconButton>
+                            {"Task this callback to list the contents"}
+                        </div>
+                    </div>
+                </div>
+            }
+
+
             {openContextMenu &&
-                <MythicDialog fullWidth={true} maxWidth="xs" open={openContextMenu} 
-                    onClose={()=>{setOpenContextMenu(false);}} 
-                    innerDialog={<TableFilterDialog 
-                        selectedColumn={selectedColumn} 
-                        filterOptions={filterOptions} 
-                        onSubmit={onSubmitFilterOptions} 
+                <MythicDialog fullWidth={true} maxWidth="xs" open={openContextMenu}
+                              onClose={() => {
+                                  setOpenContextMenu(false);
+                              }}
+                              innerDialog={<TableFilterDialog
+                                  selectedColumn={selectedColumn}
+                                  filterOptions={filterOptions}
+                                  onSubmit={onSubmitFilterOptions}
                         onClose={()=>{setOpenContextMenu(false);}} />}
                 />
             }
@@ -308,16 +363,21 @@ export const CallbacksTabsFileBrowserTable = (props) => {
 };
 const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selectedFolderData }) => {
     const theme = useTheme();
-    const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
+
     return (
         <div style={{ alignItems: 'center', display: 'flex', maxHeight: "100%", textDecoration: treeRootData[selectedFolderData.host][cellData]?.deleted ? 'line-through' : '' }}>
             {!treeRootData[selectedFolderData.host][cellData]?.can_have_children ? (
-                <DescriptionIcon style={{ marginRight: '5px' }} />
+                <DescriptionIcon style={{
+                    width: "15px",
+                    height: "15px",
+                    marginRight: '5px' }} />
             ) : (
                 <FontAwesomeIcon 
                     icon={faFolder}
                     size={"lg"}
                     style={{
+                        width: "15px",
+                        height: "15px",
                         marginRight: '5px',
                         color:
                         treeRootData[selectedFolderData.host][cellData]?.success || treeRootData[selectedFolderData.host][cellData]?.metadata?.has_children
@@ -326,22 +386,6 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
                     }}
                 />
             )}
-            {treeRootData[selectedFolderData.host][cellData]?.filemeta.length > 0 ?
-                <MythicStyledTooltip title={"Preview Media"}>
-                    <FontAwesomeIcon icon={faPhotoVideo} style={{height: "15px", marginRight: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
-                        onClick={() => setOpenPreviewMediaDialog(true)}/>
-                </MythicStyledTooltip>
-
-                : null}
-            {openPreviewMediaDialog &&
-                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
-                              onClose={(e)=>{setOpenPreviewMediaDialog(false);}}
-                              innerDialog={<PreviewFileMediaDialog
-                                  agent_file_id={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.agent_file_id}
-                                  filename={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.filename_text}
-                                  onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
-                />
-            }
             <pre 
                 style={{
                     color:
@@ -454,6 +498,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
         },
         fetchPolicy: 'network-only',
     });
+    const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
     const [getHistory] = useLazyQuery(getFileDownloadHistory, {
         onCompleted: (data) => {
             if (data.mythictree.length === 0) {
@@ -617,6 +662,22 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                 ref={dropdownAnchorRef}>
                 <SettingsIcon />
             </IconButton>
+            {treeRootData[selectedFolderData.host][cellData]?.filemeta.length > 0 ?
+                <MythicStyledTooltip title={"Preview Media"}>
+                    <FontAwesomeIcon icon={faPhotoVideo} style={{height: "15px", marginRight: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
+                                     onClick={() => setOpenPreviewMediaDialog(true)}/>
+                </MythicStyledTooltip>
+
+                : null}
+            {openPreviewMediaDialog &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
+                              onClose={(e)=>{setOpenPreviewMediaDialog(false);}}
+                              innerDialog={<PreviewFileMediaDialog
+                                  agent_file_id={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.agent_file_id}
+                                  filename={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.filename_text}
+                                  onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
+                />
+            }
             <Popper
                 open={dropdownOpen}
                 anchorEl={dropdownAnchorRef.current}

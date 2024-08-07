@@ -66,6 +66,10 @@ mutation previewFile($file_id: String!){
         status
         error
         contents
+        size
+        host
+        filename
+        full_remote_path
     }
 }
 `;
@@ -83,6 +87,22 @@ export const SnackMessage = (props) => {
 
     );
 };
+const MythicCallbackGroupsDisplay = ({groups}) => {
+    if(!groups){
+        return null
+    }
+    if(groups.length === 0){
+        return null
+    }
+    if(groups.length === 1 && groups[0] === "Default"){
+        return null
+    }
+    return (
+        <Typography variant="body2" style={{wordBreak: "break-all"}}>
+            <b>Groups: </b>{groups.join(", ")}
+        </Typography>
+    )
+}
 export function FileMetaDownloadTable(props){
     const [selected, setSelected] = React.useState({});
     const [files, setFiles] = React.useState([]);
@@ -193,7 +213,8 @@ export function FileMetaDownloadTable(props){
                     <TableRow>
                         <TableCell style={{width: "3rem"}}>
                             <Checkbox checked={checkAll} onChange={onToggleCheckAll}
-                                      inputProps={{ 'aria-label': 'controlled' }} />
+                                      sx={{pl: "3px"}}
+                                      inputProps={{ 'aria-label': 'controlled',  }} />
                         </TableCell>
                         <TableCell style={{width: "5rem"}}>Actions</TableCell>
                         <TableCell >File</TableCell>
@@ -317,11 +338,7 @@ function FileMetaDownloadTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Host: </b>{props.host}</Typography>
-                    {props.task?.callback?.mythictree_groups.length > 0 ? (
-                        <Typography variant="body2" style={{wordBreak: "break-all"}}>
-                            <b>Groups: </b>{props?.task?.callback.mythictree_groups.join(", ")}
-                        </Typography>
-                        ) : null}
+                    <MythicCallbackGroupsDisplay groups={props?.task?.callback.mythictree_groups} />
                     {props.deleted ? (
                         <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text === "" ? props.filename_text : props.full_remote_path_text}</Typography>
                         ) : (
@@ -533,6 +550,7 @@ export function FileMetaUploadTable(props){
                         <TableRow>
                             <TableCell style={{width: "3rem"}}>
                                 <Checkbox checked={checkAll} onChange={onToggleCheckAll}
+                                          sx={{pl: "3px"}}
                                           inputProps={{ 'aria-label': 'controlled' }} />
                             </TableCell>
                             <TableCell style={{width: "5rem"}}>Actions</TableCell>
@@ -663,11 +681,7 @@ function FileMetaUploadTableRow(props){
                             <><b>Host: </b>{props.host}</>
                         ) : null}
                     </Typography>
-                    {props.task?.callback?.mythictree_groups.length > 0 ? (
-                        <Typography variant="body2" style={{wordBreak: "break-all"}}>
-                            <b>Groups: </b>{props?.task?.callback.mythictree_groups.join(", ")}
-                        </Typography>
-                    ) : null}
+                    <MythicCallbackGroupsDisplay groups={props?.task?.callback.mythictree_groups} />
                     {props.deleted ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text}</Typography>) : (
                         props.complete ? (
                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" +  props.agent_file_id}>{props.full_remote_path_text}</Link>
@@ -1068,6 +1082,7 @@ export function FileMetaEventingWorkflowsTable(props){
                         <TableRow>
                             <TableCell style={{width: "3rem"}}>
                                 <Checkbox checked={checkAll} onChange={onToggleCheckAll}
+                                          sx={{pl: "3px"}}
                                           inputProps={{ 'aria-label': 'controlled' }} />
                             </TableCell>
                             <TableCell style={{width: "5rem"}}>Actions</TableCell>
