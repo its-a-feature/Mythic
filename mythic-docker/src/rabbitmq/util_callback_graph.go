@@ -156,8 +156,8 @@ func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 	return callbackIDsToUpdate
 }
 func updateTimes(updatedTime time.Time, callbackIDs []int) {
-	query, args, err := sqlx.Named(`UPDATE callback SET last_checkin=:last_checkin WHERE id IN (:ids)`,
-		map[string]interface{}{"last_checkin": updatedTime, "ids": callbackIDs})
+	query, args, err := sqlx.Named(`UPDATE callback SET last_checkin=:last_checkin, active=:active WHERE id IN (:ids)`,
+		map[string]interface{}{"last_checkin": updatedTime, "ids": callbackIDs, "active": true})
 	if err != nil {
 		logging.LogError(err, "Failed to make named statement for updating last checkin of callback ids")
 		return

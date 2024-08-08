@@ -62,7 +62,7 @@ const columns = [
     {
         field: 'ip',
         headerName: 'IP',
-        flex: 1,
+        width: 100,
         renderCell: (params) => <CallbacksTableIPCell rowData={params.row} cellData={params.row.ip} />,
         sortable: false,
         valueGetter: (params) => {
@@ -89,7 +89,6 @@ const columns = [
 ];
 const CustomSelectTable = ({initialData, selectedData}) => {
     const [data, setData] = React.useState([]);
-    const theme = useTheme();
     const [rowSelectionModel, setRowSelectionModel] = React.useState([]);
     React.useEffect( () => {
         selectedData.current = data.reduce( (prev, cur) => {
@@ -105,7 +104,6 @@ const CustomSelectTable = ({initialData, selectedData}) => {
     return (
         <div style={{height: "calc(80vh)"}}>
             <DataGrid
-                style={{backgroundColor: theme.palette.background.paper}}
                 rows={data}
                 columns={columns}
                 initialState={{

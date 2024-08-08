@@ -152,7 +152,7 @@ export function App(props) {
                                 wordBreak: "break-all", flexDirection: "column", justifyContent: "center"}}
                                 pauseOnFocusLoss={false} />
                     <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ minHeight: '56px', flexGrow: 0 }}>
+                        <div style={{ minHeight: '50px', flexGrow: 0 }}>
                             {me.loggedIn && me.user !== undefined && me.user !== null ? (
                                 <TopAppBar me={me} theme={themeMode} toggleTheme={themeToggler} />
                             ) : null}
@@ -164,7 +164,7 @@ export function App(props) {
                                     onClose={()=>{setOpenRefreshDialog(false);}} />}
                             />
                         }
-                        <div style={{ margin: '0px 5px 5px 5px', flexGrow: 1, flexDirection: 'column', height: "calc(100% - 4rem)",  }}>
+                        <div style={{ margin: '0px 0px 0px 0px', flexGrow: 1, flexDirection: 'column', height: "calc(100% - 4rem)",  }}>
                             <Routes>
                                 <Route path='/new/login' element={<LoginForm me={me}/>}/>
                                 <Route path='/new/invite' element={<InviteForm me={me}/>}/>

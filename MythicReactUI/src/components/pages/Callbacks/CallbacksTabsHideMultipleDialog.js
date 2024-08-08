@@ -36,7 +36,7 @@ query callbacksAndFeatures{
 }`;
 
 const columns = [
-    { field: 'display_id', headerName: 'ID', width: 80, type: 'number', },
+    { field: 'display_id', headerName: 'ID', width: 70, type: 'number', },
     {
         field: 'host',
         headerName: 'Host',
@@ -51,7 +51,7 @@ const columns = [
         field: 'pid',
         headerName: 'PID',
         type: 'number',
-        width: 80,
+        width: 70,
     },
     {
         field: 'description',
@@ -61,7 +61,7 @@ const columns = [
     {
       field: 'ip',
       headerName: 'IP',
-      flex: 1,
+      width: 100,
       renderCell: (params) => <CallbacksTableIPCell rowData={params.row} cellData={params.row.ip} />,
         sortable: false,
       valueGetter: (params) => {
@@ -83,7 +83,7 @@ const columns = [
     {
         field: "payload.payloadtype.name",
         headerName: "Agent",
-        width: 40,
+        flex: 0.5,
         valueGetter: (params) => params.row.payload.payloadtype.name,
         renderCell: (params) => <CallbacksTablePayloadTypeCell rowData={params.row} />
     },
@@ -95,7 +95,6 @@ const columns = [
 ];
 const CustomSelectTable = ({initialData, selectedData}) => {
     const [data, setData] = React.useState([]);
-    const theme = useTheme();
     const [rowSelectionModel, setRowSelectionModel] = React.useState([]);
     React.useEffect( () => {
         selectedData.current = data.reduce( (prev, cur) => {
@@ -111,7 +110,6 @@ const CustomSelectTable = ({initialData, selectedData}) => {
     return (
         <div style={{height: "calc(80vh)"}}>
             <DataGrid
-                style={{backgroundColor: theme.palette.background.paper}}
                 rows={data}
                 columns={columns}
                 initialState={{

@@ -376,7 +376,6 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                             onClick={loadMoreTasks}
                             variant="contained"
                             color="success"
-
                             size="large"><AutorenewIcon/></IconButton>
                     </MythicStyledTooltip>}
                 {

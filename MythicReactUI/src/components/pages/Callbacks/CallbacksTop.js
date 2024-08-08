@@ -5,6 +5,7 @@ import {CallbacksGraph} from './CallbacksGraph';
 import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 export const CallbackGraphEdgesContext = createContext([]);
 export const OnOpenTabContext = createContext( () => {});
+export const OnOpenTabsContext = createContext( () => {});
 export const CallbacksContext = createContext([]);
 //
 //callback(where: {active: {_eq: true}}){
@@ -244,6 +245,29 @@ export function CallbacksTop(props){
         }
       }
     }, [callbacks.current, props.onOpenTab]);
+    const onOpenTabsLocal = React.useCallback( ({tabs}) => {
+        let newTabData = [];
+        for(let j = 0; j < tabs.length; j++){
+            for(let i = 0; i < callbacks.current.length; i++){
+                if(callbacks.current[i]["id"] === tabs[j].callbackID){
+                    const tabData = {
+                        tabID: tabs[j].tabID,
+                        tabType: tabs[j].tabType,
+                        callbackID: tabs[j].callbackID,
+                        displayID: callbacks.current[i]["display_id"],
+                        payloadtype: callbacks.current[i]["payload"]["payloadtype"]["name"],
+                        payloadtype_id: callbacks.current[i]["payload"]["payloadtype"]["id"],
+                        operation_id: callbacks.current[i]["operation_id"],
+                        payloadDescription: callbacks.current[i]["payload"]["description"],
+                        callbackDescription: callbacks.current[i]["description"],
+                        host: callbacks.current[i]["host"],
+                        os: callbacks.current[i]["payload"]["os"]};
+                    newTabData.push(tabData);
+                }
+            }
+        }
+        props.onOpenTabs(newTabData);
+    }, [callbacks.current, props.onOpenTabs]);
     React.useEffect( () => {
       return() => {
         mountedRef.current = false;
@@ -255,18 +279,20 @@ export function CallbacksTop(props){
       <div style={{height: "100%", width: "100%"}}>
           <CallbackGraphEdgesContext.Provider value={callbackEdges.current}>
               <OnOpenTabContext.Provider value={onOpenTabLocal}>
-                  <CallbacksContext.Provider value={callbacks.current}>
-                      {props.topDisplay === "graph" ? (
-                          <CallbacksGraph onOpenTab={onOpenTabLocal} maxHeight={"100%"} clickedTabId={props.clickedTabId} />
-                      ) : initialNewBrowserScriptTable ? (
-                          <CallbacksTableMaterialReactTable clickedTabId={props.clickedTabId} parentMountedRef={mountedRef} me={me}/>
-                      ) : (
-                          <CallbacksTable callbackTableGridRef={props.callbackTableGridRef}
-                                          parentMountedRef={mountedRef} me={me}
-                                          clickedTabId={props.clickedTabId}/>
-                      )
-                      }
-                  </CallbacksContext.Provider>
+                  <OnOpenTabsContext.Provider value={onOpenTabsLocal}>
+                      <CallbacksContext.Provider value={callbacks.current}>
+                          {props.topDisplay === "graph" ? (
+                              <CallbacksGraph onOpenTab={onOpenTabLocal} maxHeight={"100%"} clickedTabId={props.clickedTabId} />
+                          ) : initialNewBrowserScriptTable ? (
+                              <CallbacksTableMaterialReactTable clickedTabId={props.clickedTabId} parentMountedRef={mountedRef} me={me}/>
+                          ) : (
+                              <CallbacksTable callbackTableGridRef={props.callbackTableGridRef}
+                                              parentMountedRef={mountedRef} me={me}
+                                              clickedTabId={props.clickedTabId}/>
+                          )
+                          }
+                      </CallbacksContext.Provider>
+                  </OnOpenTabsContext.Provider>
               </OnOpenTabContext.Provider>
           </CallbackGraphEdgesContext.Provider>
         </div>

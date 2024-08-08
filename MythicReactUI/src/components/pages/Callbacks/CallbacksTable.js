@@ -2,10 +2,13 @@ import React, { useEffect, useMemo, useContext} from 'react';
 import {MythicTransferListDialog} from '../../MythicComponents/MythicTransferList';
 import {MythicDialog, MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import {
-  updateDescriptionCallbackMutation,
-  updateSleepInfoCallbackMutation} from './CallbackMutations';
+    exportCallbackConfigQuery,
+    hideCallbackMutation, lockCallbackMutation, unlockCallbackMutation,
+    updateDescriptionCallbackMutation,
+    updateSleepInfoCallbackMutation
+} from './CallbackMutations';
 import {snackActions} from '../../utilities/Snackbar';
-import {useMutation } from '@apollo/client';
+import {useMutation, useLazyQuery } from '@apollo/client';
 import {
   CallbacksTableIDCell,
   CallbacksTableStringCell,
@@ -21,7 +24,7 @@ import {TableFilterDialog} from './TableFilterDialog';
 import {CallbacksTabsHideMultipleDialog} from "./CallbacksTabsHideMultipleDialog";
 import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog";
 import ip6 from 'ip6';
-import {CallbacksContext} from "./CallbacksTop";
+import {CallbacksContext, OnOpenTabContext, OnOpenTabsContext} from "./CallbacksTop";
 import {
     MaterialReactTable,
     useMaterialReactTable,
@@ -38,6 +41,23 @@ import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import {getCallbackIdFromClickedTab} from './Callbacks';
+import {Dropdown, DropdownNestedMenuItem, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
+import WidgetsIcon from '@mui/icons-material/Widgets';
+import TerminalIcon from '@mui/icons-material/Terminal';
+import ImportExportIcon from '@mui/icons-material/ImportExport';
+import KeyboardIcon from '@mui/icons-material/Keyboard';
+import EditIcon from '@mui/icons-material/Edit';
+import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import InfoIcon from '@mui/icons-material/Info';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {faSkullCrossbones, faFolderOpen, faList} from '@fortawesome/free-solid-svg-icons';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import LockIcon from '@mui/icons-material/Lock';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import {TaskFromUIButton} from "./TaskFromUIButton";
+import {CallbacksTabsOpenMultipleDialog} from "./CallbacksTabsOpenMultipleDialog";
 
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
@@ -80,6 +100,10 @@ export const ipCompare = (a, b) => {
 
 function CallbacksTablePreMemo(props){
     const callbacks = useContext(CallbacksContext);
+    const onOpenTab = useContext(OnOpenTabContext);
+    const onOpenTabs = useContext(OnOpenTabsContext);
+    const theme = useTheme();
+    const [openMultipleTabsDialog, setOpenMultipleTabsDialog] = React.useState({open: false, tabType: "interact"});
     const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
     const openMetaDialogRef = React.useRef(0);
     const metaDialog = (callback_id) => {
@@ -139,18 +163,12 @@ function CallbacksTablePreMemo(props){
     React.useEffect( () => {
         setClickedCallbackId(getCallbackIdFromClickedTab(props.clickedTabId));
     }, [props.clickedTabId])
-    const callbackDropdown = ({options, callback, dropdownAnchorRef, event}) => {
-        callbackDropdownRef.current.options = options;
-        callbackDropdownRef.current.callback = callback;
-        callbackDropdownRef.current.dropdownAnchorRef = event.currentTarget;
-        //callbackDropdownRef.current.dropdownAnchorRef = dropdownAnchorRef;
-        setOpenCallbackDropdown(true);
-    }
-    const handleMenuItemClick = (event, index) => {
-        callbackDropdownRef.current.options[index].click(event);
+    const handleMenuItemClick = (event, clickOption) => {
+        clickOption({event});
         setOpenCallbackDropdown(false);
     };
     const handleClose = (event) => {
+        //setOpenCallbackDropdown(false);
         if (callbackDropdownRef.current.dropdownAnchorRef && callbackDropdownRef.current.dropdownAnchorRef.contains(event.target)) {
             return;
         }
@@ -177,7 +195,275 @@ function CallbacksTablePreMemo(props){
           snackActions.warning(data);
       }
     });
+    const [hideCallback] = useMutation(hideCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Hiding callback");
+            }else{
+                snackActions.warning(data.updateCallback.error);
+            }
 
+        },
+        onError: data => {
+            console.log(data);
+        }
+    });
+    const [lockCallback] = useMutation(lockCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Locked callback");
+            }else{
+                snackActions.warning(data.updateCallback.error);
+            }
+
+        },
+        onError: data => {
+            console.log(data);
+            snackActions.warning(data);
+        }
+    });
+    const [unlockCallback] = useMutation(unlockCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Unlocked callback");
+            }else{
+                snackActions.warning(data.updateCallback.error);
+            }
+
+        },
+        onError: data => {
+            console.log(data);
+            snackActions.warning(data);
+        }
+    });
+    const [exportConfig] = useLazyQuery(exportCallbackConfigQuery, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            if(data.exportCallbackConfig.status === "success"){
+                const dataBlob = new Blob([data.exportCallbackConfig.config], {type: 'text/plain'});
+                const ele = document.getElementById("download_config");
+                if(ele !== null){
+                    ele.href = URL.createObjectURL(dataBlob);
+                    ele.download = data.exportCallbackConfig.agent_callback_id + ".json";
+                    ele.click();
+                }else{
+                    const element = document.createElement("a");
+                    element.id = "download_config";
+                    element.href = URL.createObjectURL(dataBlob);
+                    element.download = data.exportCallbackConfig.agent_callback_id + ".json";
+                    document.body.appendChild(element);
+                    element.click();
+                }
+            }else{
+                snackActions.error("Failed to export configuration: " + data.exportCallbackConfig.error);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to export configuration: " + data.message)
+        }
+    })
+    const taskingData = React.useRef({"parameters": "", "ui_feature": "callback_table:exit"});
+    const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
+    const onRowContextClick = ({rowDataStatic}) => {
+        // based on row, return updated options array?
+        return  [
+            {
+                name: "Callback: " + rowDataStatic.display_id, icon: null, click: ({event}) => {},
+                type: "item", disabled: true
+            },
+            {
+                name: "Interact", icon: <KeyboardIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
+                    event.stopPropagation();
+                    const tabType = "interact";
+                    onOpenTab({
+                        tabType: tabType,
+                        tabID: rowDataStatic.id + tabType,
+                        callbackID: rowDataStatic.id,
+                        displayID: rowDataStatic.display_id});
+                }, type: "item"
+            },
+            {
+                name: "Edit Description", icon: <EditIcon style={{paddingRight: "5px"}} />, click:({event}) => {
+                    event.stopPropagation();
+                    updateDescription({payload_description: rowDataStatic.payload.description,
+                        callback_display_id: rowDataStatic.display_id,
+                        description: rowDataStatic.description,
+                    });
+                }, type: "item"
+            },
+            {
+                name: 'Hide Callback', icon: <VisibilityOffIcon color={"warning"} style={{paddingRight: "5px"}}/>, click: ({event}) => {
+                    event.stopPropagation();
+                    hideCallback({variables: {callback_display_id: rowDataStatic.display_id}});
+                }, type: "item"
+            },
+            {
+                name: "Exit Callback", icon: <FontAwesomeIcon icon={faSkullCrossbones} style={{color: theme.errorOnMain, cursor: "pointer", marginRight: "10px"}} />,
+                click: ({event}) => {
+                    taskingData.current = {
+                        "parameters": "",
+                        "ui_feature": "callback_table:exit",
+                        "getConfirmation": true,
+                        id: rowDataStatic.id,
+                        display_id: rowDataStatic.display_id,
+                        acceptText: "exit"
+                    };
+                    setOpenTaskingButton(true);
+                }, type: "item"
+            },
+            {
+                name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback', icon: rowDataStatic.locked ? (<LockIcon color={"error"} style={{paddingRight: "5px"}}/>) : (<LockOpenIcon color={"success"} style={{paddingRight: "5px"}} />),
+                click: ({event}) => {
+                    event.stopPropagation();
+                    if(rowDataStatic.locked){
+                        unlockCallback({variables: {callback_display_id: rowDataStatic.display_id}})
+                    }else{
+                        lockCallback({variables: {callback_display_id: rowDataStatic.display_id}})
+                    }
+                }, type: "item"
+            },
+            {
+                name: "Bulk Actions", icon: null, click: (event) => { }, type: "menu",
+                menuItems: [
+                    {
+                        name: "Hide Multiple", icon: <VisibilityOffIcon color={"warning"} style={{paddingRight: "5px"}}/>,
+                        click: ({event}) => {
+                            setOpenHideMultipleDialog(true);
+                        }
+                    },
+                    {
+                        name: "Task Multiple", icon: <FontAwesomeIcon icon={faList} style={{cursor: "pointer", marginRight: "10px"}} />,
+                        click: ({event}) => {
+                            setOpenTaskMultipleDialog({open: true, data: rowDataStatic});
+                        }
+                    },
+                ]
+            },
+            {
+                name: "Browsers", icon: null, click: () => {}, type: "menu",
+                menuItems: [
+                    {
+                        name: 'File Browser', icon: <FontAwesomeIcon icon={faFolderOpen} style={{color: theme.folderColor, cursor: "pointer", marginRight: "10px"}} />,
+                        click: ({event}) => {
+                            event.stopPropagation();
+                            const tabType = "fileBrowser";
+                            onOpenTab({
+                                tabType: tabType,
+                                tabID: rowDataStatic.id + tabType,
+                                callbackID: rowDataStatic.id,
+                                displayID: rowDataStatic.display_id});
+                        }
+                    },
+                    {
+                        name: 'Process Browser', icon: <AccountTreeIcon style={{paddingRight: "5px"}}/>,
+                        click: ({event}) => {
+                            event.stopPropagation();
+                            const tabType = "processBrowser";
+                            onOpenTab({
+                                tabType: tabType,
+                                tabID: rowDataStatic.id + tabType,
+                                callbackID: rowDataStatic.id,
+                                displayID: rowDataStatic.display_id});
+                        }
+                    },
+                ]
+            },
+            {
+                name: "Tasking Views", icon: null, click: () => {}, type: "menu",
+                menuItems: [
+
+                    {
+                        name: 'Split Tasking', icon: <VerticalSplitIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
+                            event.stopPropagation();
+                            const tabType = "interactSplit";
+                            onOpenTab({
+                                tabType: tabType,
+                                tabID: rowDataStatic.id + tabType,
+                                callbackID: rowDataStatic.id,
+                                displayID: rowDataStatic.display_id});
+                        }
+                    },
+                    {
+                        name: "Console View", icon: <TerminalIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
+                            event.stopPropagation();
+                            const tabType = "interactConsole";
+                            onOpenTab({
+                                tabType: tabType,
+                                tabID: rowDataStatic.id + tabType,
+                                callbackID: rowDataStatic.id,
+                                displayID: rowDataStatic.display_id});
+                        }
+                    },
+                    {
+                        name: "Expand Callback", icon: <OpenInNewIcon style={{paddingRight: "5px"}} />, click: ({event}) => {
+                            event.stopPropagation();
+                            window.open("/new/callbacks/" + rowDataStatic.display_id, "_blank").focus();
+                        }
+                    },
+                ]
+            },
+            {
+                name: "Metadata", icon: null, click: () => {}, type: "menu",
+                menuItems: [
+                    {
+                        name: "Export Callback", icon: <ImportExportIcon style={{paddingRight: "5px"}} />, click: ({event}) => {
+                            event.stopPropagation();
+                            exportConfig({variables: {agent_callback_id: rowDataStatic.agent_callback_id}});
+                        }
+                    },
+                    {
+                        name: "View Metadata", icon: <InfoIcon color={"info"} style={{paddingRight: "5px"}} />, click: ({event}) => {
+                            event.stopPropagation();
+                            metaDialog(rowDataStatic.id);
+                        }
+                    },
+                    {
+                        name: "Modify Groupings", icon: <WidgetsIcon color={"info"} style={{paddingRight: "5px"}} />, click: ({event}) => {
+                            event.stopPropagation();
+                            editMythicTreeGroupsDialog(rowDataStatic.id);
+                        }
+                    }
+                ]
+            },
+            {
+                name: "Other Callbacks", icon: null, click: () => {}, type: "menu",
+                menuItems: [
+                    {
+                        name: "Interact", icon: <KeyboardIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
+                            setOpenMultipleTabsDialog({open: true, tabType: "interact"});
+                        }
+                    },
+                    {
+                        name: "Split Tasking", icon: <VerticalSplitIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
+                            setOpenMultipleTabsDialog({open: true, tabType: "interactSplit"});
+                        }
+                    },
+                    {
+                        name: "Console View", icon: <TerminalIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
+                            setOpenMultipleTabsDialog({open: true, tabType: "interactConsole"});
+                        }
+                    },
+                    {
+                        name: "File Browser", icon: <FontAwesomeIcon icon={faFolderOpen} style={{color: theme.folderColor, cursor: "pointer", marginRight: "10px"}} />, click: ({event}) => {
+                            setOpenMultipleTabsDialog({open: true, tabType: "fileBrowser"});
+                        }
+                    },
+                    {
+                        name: "Process Browser", icon:  <AccountTreeIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
+                            setOpenMultipleTabsDialog({open: true, tabType: "processBrowser"});
+                        }
+                    }
+                ]
+            }
+        ];
+    }
+    const callbackDropdown = ({rowDataStatic, event}) => {
+        callbackDropdownRef.current.options = onRowContextClick({rowDataStatic});
+        callbackDropdownRef.current.callback = rowDataStatic;
+        callbackDropdownRef.current.dropdownAnchorRef = event.currentTarget;
+        setOpenCallbackDropdown(true);
+    }
     const onSubmitAdjustColumns = ({left, right}) => {
       setColumnVisibility({visible: right, hidden: left});
       localStorage.setItem("callbacks_table_columns", JSON.stringify(right));
@@ -358,12 +644,7 @@ function CallbacksTablePreMemo(props){
                             return <CallbacksTableIDCell
                                 rowData={{...row, selected: row.id === clickedCallbackID}}
                                 key={`callback${row.id}_${c.name}`}
-                                updateDescription={updateDescription}
-                                editMythicTreeGroupsDialog={editMythicTreeGroupsDialog}
-                                metaDialog={metaDialog}
                                 callbackDropdown={callbackDropdown}
-                                setOpenHideMultipleDialog={setOpenHideMultipleDialog}
-                                setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
                             />;
                         case "Groups":
                             return <CallbacksTableStringCell
@@ -437,6 +718,18 @@ function CallbacksTablePreMemo(props){
       }
     }
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
+    const onOpenTabsCallback = (tabsToOpen) => {
+        let newTabs = [];
+        for(let i = 0; i < tabsToOpen.length; i++){
+            newTabs.push({
+                tabType: openMultipleTabsDialog.tabType,
+                tabID: tabsToOpen[i].id + openMultipleTabsDialog.tabType,
+                callbackID: tabsToOpen[i].id,
+                displayID: tabsToOpen[i].display_id});
+        }
+        onOpenTabs({tabs: newTabs});
+        setOpenMultipleTabsDialog({open: false, tabType: "interact"});
+    }
     return (
         <div style={{ width: '100%', height: '100%', position: "relative",  }} >
           <MythicResizableGrid
@@ -449,6 +742,7 @@ function CallbacksTablePreMemo(props){
               onClickHeader={onClickHeader}
               onDoubleClickRow={onRowDoubleClick}
               contextMenuOptions={contextMenuOptions}
+              onRowContextMenuClick={onRowContextClick}
           />
           {openContextMenu &&
               <MythicDialog fullWidth={true} maxWidth="xs" open={openContextMenu} 
@@ -492,35 +786,54 @@ function CallbacksTablePreMemo(props){
                     }
                 />
             }
-            <Popper open={openCallbackDropdown} anchorEl={callbackDropdownRef.current.dropdownAnchorRef} role={undefined} transition style={{zIndex: 200}}>
-                {({ TransitionProps, placement }) => (
-                    <Grow
-                        {...TransitionProps}
-                        style={{
-                            transformOrigin: placement === 'bottom' ? 'top left' : 'top center',
-                        }}
-                    >
-                        <Paper className={"dropdownMenuColored"} elevation={5}>
-                            <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
-                                <MenuList id="split-button-menu">
-                                    <MenuItem disabled={true}>
-                                        Callback: {callbackDropdownRef.current.callback.display_id}
-                                    </MenuItem>
+            {openTaskingButton &&
+                <TaskFromUIButton ui_feature={taskingData.current?.ui_feature || " "}
+                                  callback_id={taskingData.current?.id}
+                                  display_id={taskingData.current?.display_id}
+                                  parameters={taskingData.current?.parameters || ""}
+                                  openDialog={taskingData.current?.openDialog || false}
+                                  getConfirmation={taskingData.current?.getConfirmation || false}
+                                  acceptText={taskingData.current?.acceptText || "YES"}
+                                  selectCallback={taskingData.current?.selectCallback || false}
+                                  onTasked={() => setOpenTaskingButton(false)}/>
+            }
+            <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+                <Dropdown
+                      isOpen={callbackDropdownRef.current.dropdownAnchorRef}
+                      onOpen={setOpenCallbackDropdown}
+                      externallyOpen={openCallbackDropdown}
+                      menu={
+                          callbackDropdownRef.current.options.map((option, index) => (
+                              option.type === 'item' ? (
+                                  <DropdownMenuItem
+                                      key={option.name}
+                                      disabled={option.disabled}
+                                      onClick={(event) => handleMenuItemClick(event, option.click)}
+                                  >
+                                      {option.icon}{option.name}
+                                  </DropdownMenuItem>
+                              ) : option.type === 'menu' ? (
+                                  <DropdownNestedMenuItem
+                                      label={option.name}
+                                      disabled={option.disabled}
+                                      menu={
+                                      option.menuItems.map((menuOption, indx) => (
+                                          <DropdownMenuItem
+                                              key={menuOption.name}
+                                              disabled={menuOption.disabled}
+                                              onClick={(event) => handleMenuItemClick(event, menuOption.click)}
+                                          >
+                                              {menuOption.icon}{menuOption.name}
+                                          </DropdownMenuItem>
+                                      ))
+                                      }
+                              />
+                              ) : null
+                          ))
+                      }
+                />
+            </ClickAwayListener>
 
-                                    {callbackDropdownRef.current.options.map((option, index) => (
-                                        <MenuItem
-                                            key={option.name}
-                                            onClick={(event) => handleMenuItemClick(event, index)}
-                                        >
-                                            {option.icon}{option.name}
-                                        </MenuItem>
-                                    ))}
-                                </MenuList>
-                            </ClickAwayListener>
-                        </Paper>
-                    </Grow>
-                )}
-            </Popper>
             {openAdjustColumnsDialog &&
               <MythicDialog fullWidth={true} maxWidth="md" open={openAdjustColumnsDialog} 
                 onClose={()=>{setOpenAdjustColumnsDialog(false);}} 
@@ -538,6 +851,21 @@ function CallbacksTablePreMemo(props){
                     onClose={() => {setOpenHideMultipleDialog(false);}}
                     innerDialog={
                         <CallbacksTabsHideMultipleDialog onClose={() => {setOpenHideMultipleDialog(false);}} />
+                    }
+                />
+            }
+            {openMultipleTabsDialog.open &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="xl"
+                    open={openMultipleTabsDialog.open}
+                    onClose={() => {setOpenMultipleTabsDialog({open: false, tabType: "interact"})}}
+                    innerDialog={
+                        <CallbacksTabsOpenMultipleDialog
+                            tabType={openMultipleTabsDialog.tabType}
+                            onOpenTabs={onOpenTabsCallback}
+                            onClose={() => {setOpenMultipleTabsDialog({open: false, tabType: "interact"})}}
+                        />
                     }
                 />
             }

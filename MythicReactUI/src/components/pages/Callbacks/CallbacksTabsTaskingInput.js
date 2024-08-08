@@ -1347,8 +1347,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 value={message}
                 autoFocus={true}
                 fullWidth={true}
-                style={{marginBottom: "10px", marginTop: "10px"}}
-                InputProps={{ type: 'search',
+                style={{marginBottom: "0px", marginTop: "0px", paddingTop: "0px"}}
+                InputProps={{
+                    type: 'search',
+                    spellCheck: false,
+                    style: {paddingTop: "0px", paddingBottom: "0px"},
                     endAdornment:
                     <React.Fragment>
                     <IconButton

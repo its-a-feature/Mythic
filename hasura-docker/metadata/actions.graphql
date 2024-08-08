@@ -945,6 +945,7 @@ type globalSettingsOutput {
 type exportCallbackConfigOutput {
   status: String!
   error: String
+  agent_callback_id: String
   config: String
 }
 

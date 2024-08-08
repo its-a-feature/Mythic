@@ -7,11 +7,12 @@ import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Paper from '@mui/material/Paper';
 import {useTheme} from '@mui/material/styles';
+import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../MythicNestedMenus";
 
 const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, data } }) => {
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const rowClassName = data.gridUUID + "row" + rowIndex;
-    const contextMenuOptions = data?.rowContextMenuOptions || [];
+    const [contextMenuOptions, setContextMenuOptions] = React.useState(data?.rowContextMenuOptions || []);
     const dropdownAnchorRef = React.useRef(null);
     const handleDoubleClick = useCallback(
         (e) => {
@@ -39,8 +40,8 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
             }
         }
     }
-    const handleMenuItemClick = (event, index) => {
-        contextMenuOptions[index].click({event, columnIndex, rowIndex, data: data.items[rowIndex][columnIndex]?.props?.rowData || {}});
+    const handleMenuItemClick = (event, clickOption) => {
+        clickOption({event, columnIndex, rowIndex, data: data.items[rowIndex][columnIndex]?.props?.rowData || {}});
         setOpenContextMenu(false);
     };
     const handleContextClick = useCallback(
@@ -49,11 +50,19 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
             if(item.disableFilterMenu){
                 return;
             }
+            if(data.onRowContextMenuClick){
+                const newMenuItems = data.onRowContextMenuClick({rowDataStatic: data.items[rowIndex][columnIndex]?.props?.rowData});
+                if(newMenuItems.length > 0){
+                    setContextMenuOptions(newMenuItems);
+                    setOpenContextMenu(true);
+                    return;
+                }
+            }
             if(contextMenuOptions && contextMenuOptions.length > 0){
                 setOpenContextMenu(true);
             }
         },
-        [contextMenuOptions] // eslint-disable-line react-hooks/exhaustive-deps
+        [contextMenuOptions, data.onRowContextMenuClick] // eslint-disable-line react-hooks/exhaustive-deps
     );
     return (
         <div style={{...style, ...cellStyle, ...rowStyle}}
@@ -75,8 +84,6 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
     );
 };
 const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOptions, setOpenContextMenu, handleMenuItemClick}) => {
-    const theme = useTheme();
-
     const handleClose = (event) => {
         if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
             return;
@@ -86,7 +93,50 @@ const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOptions, se
 
     return (
         openContextMenu &&
-        <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
+        <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+            <Dropdown
+                isOpen={dropdownAnchorRef.current}
+                onOpen={setOpenContextMenu}
+                externallyOpen={openContextMenu}
+                menu={[
+                    contextMenuOptions.map((option, index) => (
+                        option.type === 'item' ? (
+                            <DropdownMenuItem
+                                key={option.name}
+                                disabled={option.disabled}
+                                onClick={(event) => handleMenuItemClick(event, option.click)}
+                            >
+                                {option.icon}{option.name}
+                            </DropdownMenuItem>
+                        ) : option.type === 'menu' ? (
+                            <DropdownNestedMenuItem
+                                label={option.name}
+                                disabled={option.disabled}
+                                menu={
+                                    option.menuItems.map((menuOption, indx) => (
+                                        <DropdownMenuItem
+                                            key={menuOption.name}
+                                            disabled={menuOption.disabled}
+                                            onClick={(event) => handleMenuItemClick(event, menuOption.click)}
+                                        >
+                                            {menuOption.icon}{menuOption.name}
+                                        </DropdownMenuItem>
+                                    ))
+                                }
+                            />
+                        ) : null
+                    )),
+                ]}
+            />
+        </ClickAwayListener>
+
+    )
+}
+const Cell = React.memo(CellPreMemo);
+export default Cell;
+
+/*
+<Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
             {({ TransitionProps, placement }) => (
                 <Grow
                     {...TransitionProps}
@@ -111,8 +161,4 @@ const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOptions, se
                 </Grow>
             )}
         </Popper>
-    )
-}
-const Cell = React.memo(CellPreMemo);
-export default Cell;
-
+ */

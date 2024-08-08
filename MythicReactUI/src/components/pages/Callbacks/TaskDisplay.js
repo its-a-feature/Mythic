@@ -72,7 +72,7 @@ const StyledPaper = styled(Paper)((
     maxWidth: "100%",
   },
   [`& .${classes.taskAndTimeDisplay}`]: {
-    fontSize: theme.typography.pxToRem(14),
+    fontSize: theme.typography.pxToRem(12),
     color: theme.palette.text.secondary,
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -259,7 +259,7 @@ const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren,
                 <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
               </React.Fragment>
           ) : null}
-          <div >
+          <div style={{lineHeight: 0}}>
             <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
               [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
               {" / "}

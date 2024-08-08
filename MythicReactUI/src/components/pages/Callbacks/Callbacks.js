@@ -124,6 +124,23 @@ export function Callbacks({me}) {
         setClickedTabId(tabData.tabID);
         
     });
+    const onOpenTabs = React.useRef( (tabData) => {
+        let currentTabs = [...openTabRef.current];
+        for(let i = 0; i < tabData.length; i++){
+            let found = false;
+            currentTabs.forEach((tab) => {
+                if (tab.tabID === tabData[i].tabID) found = true;
+            });
+            if (!found) {
+                currentTabs = [...currentTabs, { ...tabData[i] }];
+            }
+        }
+        localStorage.setItem('openTabs', JSON.stringify(currentTabs));
+        setOpenTabs(currentTabs);
+        localStorage.setItem('clickedTab', tabData[0].tabID);
+        setClickedTabId(tabData[0].tabID);
+
+    });
     const onEditTabDescription = React.useCallback( (tabInfo, description) => {
         const tabs = openTabs.map((t) => {
             if (t.tabID === tabInfo.tabID) {
@@ -219,6 +236,7 @@ export function Callbacks({me}) {
                         callbackTableGridRef={callbackTableGridRef}
                         topDisplay={topDisplay}
                         onOpenTab={onOpenTab.current}
+                        onOpenTabs={onOpenTabs.current}
                         me={me} clickedTabId={clickedTabId}/>
                 </div>
                 <div className="bg-gray-mid">

@@ -14,7 +14,7 @@ import {snackActions} from './components/utilities/Snackbar';
 import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 
-export const mythicUIVersion = "0.2.17";
+export const mythicUIVersion = "0.2.18";
 
 let fetchingNewToken = false;
 

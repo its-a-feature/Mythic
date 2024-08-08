@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.18] - 2024-08-08
+
+### Changed
+
+- Adjusted the border bounds for a few elements in the UI to minimize blank space
+- Added a right-click context menu to the active callbacks table
+- Added a sub-menu structure to the active callbacks menu to keep the menu from getting too long
+- Added an option to open multiple callback tabs at once
+
 ## [0.2.17] - 2024-08-07
 
 ### Changed

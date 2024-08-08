@@ -310,10 +310,10 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
         return (
           <React.Fragment>
             <MythicStyledTooltip title={cellData?.button?.hoverText || "Submit Task"}>
-              <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false} variant="contained" color="warning" 
+              <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false}  color="warning"
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
                 style={{...actionCellButtonStyle}}
-              >{cellData?.button?.name || "Submit Task"}</Button>
+              >{cellData?.button?.name ? cellData?.button?.name : cellData?.button?.startIcon ? null : "Submit Task"}</Button>
             </MythicStyledTooltip>
             {openTaskingButton && 
               <TaskFromUIButton ui_feature={cellData?.button?.ui_feature || " "} 
@@ -505,14 +505,14 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   }
   const contextMenuOptions = [
     {
-        name: 'Copy Row as JSON', 
+        name: 'Copy Row as JSON', icon: null,
         click: ({event, columnIndex, rowIndex, data}) => {
             const filteredData = filterOutButtonsFromRowData(data);
             onCopyToClipboard(JSON.stringify(filteredData, null, 2));
-        }
+        }, type: "item"
     },
     {
-      name: 'Copy Row as CSV', 
+      name: 'Copy Row as CSV', icon: null,
       click: ({event, columnIndex, rowIndex, data}) => {
           const filteredData = filterOutButtonsFromRowData(data);
           let outputHeaders = "";
@@ -530,10 +530,11 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
             }
           }
           onCopyToClipboard(outputHeaders + "\n" + outputRow);
-      }
+      },
+      type: "item",
   },
   {
-    name: 'Copy Row as TSV', 
+    name: 'Copy Row as TSV', icon: null,
     click: ({event, columnIndex, rowIndex, data}) => {
       const filteredData = filterOutButtonsFromRowData(data);
       let outputHeaders = "";
@@ -551,7 +552,8 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
         }
       }
       onCopyToClipboard(outputHeaders + "\n" + outputRow);
-    }
+    },
+    type: "item",
 },
 ];
   

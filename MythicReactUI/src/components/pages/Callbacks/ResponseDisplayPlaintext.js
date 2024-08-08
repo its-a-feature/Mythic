@@ -92,7 +92,7 @@ export const ResponseDisplayPlaintext = (props) =>{
       <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
           {showOptions &&
               <div style={{display: "inline-flex", flexDirection: "row", alignItems: "center"}}>
-                  <FormControl sx={{ display: "inline-block" }} size="small">
+                  <FormControl sx={{ display: "inline-block", marginLeft: "10px" }} size="small">
                       <TextField
                           label={"Syntax"}
                           select
