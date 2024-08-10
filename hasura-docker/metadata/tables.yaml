@@ -2059,6 +2059,7 @@
           - metadata
           - end_timestamp
           - start_timestamp
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2075,6 +2076,7 @@
           - metadata
           - end_timestamp
           - start_timestamp
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2091,6 +2093,7 @@
           - metadata
           - end_timestamp
           - start_timestamp
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2107,6 +2110,7 @@
           - metadata
           - end_timestamp
           - start_timestamp
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2123,6 +2127,7 @@
           - metadata
           - end_timestamp
           - start_timestamp
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id

@@ -327,4 +327,7 @@ tspan {
 .MuiTabs-root {
     min-height: unset;
 }
+.MuiDataGrid-row.Mui-selected {
+    background-color: ${(props) => props.theme.selectedCallbackColor} !important;
+}
 `

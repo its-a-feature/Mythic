@@ -51,7 +51,7 @@ const StyledPaper = styled(Paper)((
     marginTop: "3px",
     marginRight: "0px",
     height: "auto",
-    width: "99%",
+    width: "100%",
     boxShadow: "unset",
     backgroundColor: theme.palette.background.taskLabel,
   },
@@ -313,15 +313,13 @@ const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren,
               {task?.command?.payloadtype?.name}
               {" / "}
               <TaskStatusDisplay task={task} theme={theme}/>
-              {task.comment !== "" ? (
-                  <div className={classes.column}>
+              {task.comment.length > 0 ? (
+                  <span className={classes.column}>
                     <IconButton size="small" style={{padding: "0"}} color="info"
                                 onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
-                  </div>
+                  </span>
               ) : null}
-              {task.comment.length > 0 &&
-                  <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
-              }
+              {task.comment}
             </Typography>
             <TaskTagDisplay task={task}/>
           </div>

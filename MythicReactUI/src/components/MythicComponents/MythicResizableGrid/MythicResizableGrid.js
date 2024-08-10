@@ -77,6 +77,7 @@ const ResizableGridWrapper = ({
     rowHeight,
     widthMeasureKey,
     callbackTableGridRef,
+    onRowClick,
     ...AutoSizerProps
 }) => {
     /* Hooks */
@@ -242,7 +243,10 @@ const ResizableGridWrapper = ({
                     headerNameKey={headerNameKey}
                     rowCount={itemsWithHeader.length}
                     rowHeight={getRowHeight}
-                    itemData={{ items: itemsWithHeader, onDoubleClickRow, gridUUID, rowContextMenuOptions, onRowContextMenuClick}}
+                    itemData={{ items: itemsWithHeader,
+                        onDoubleClickRow, gridUUID,
+                        rowContextMenuOptions, onRowClick,
+                        onRowContextMenuClick}}
                     innerElementType={innerElementType}
                     overscanRowCount={10}
                     onScroll={({ scrollLeft }) => {
@@ -282,6 +286,7 @@ const MythicResizableGrid = ({
     widthMeasureKey,
     rowHeight = 20,
     callbackTableGridRef,
+    onRowClick,
 }) => {
     return (
         <AutoSizer style={{height: "100%"}}>
@@ -300,6 +305,7 @@ const MythicResizableGrid = ({
                     contextMenuOptions={contextMenuOptions}
                     rowContextMenuOptions={rowContextMenuOptions}
                     onRowContextMenuClick={onRowContextMenuClick}
+                    onRowClick={onRowClick}
                     {...AutoSizerProps}
                 />
             )}

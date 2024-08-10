@@ -1,12 +1,6 @@
 import React, { useCallback } from 'react';
 import {classes} from './styles';
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Paper from '@mui/material/Paper';
-import {useTheme} from '@mui/material/styles';
 import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../MythicNestedMenus";
 
 const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, data } }) => {
@@ -14,15 +8,20 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
     const rowClassName = data.gridUUID + "row" + rowIndex;
     const [contextMenuOptions, setContextMenuOptions] = React.useState(data?.rowContextMenuOptions || []);
     const dropdownAnchorRef = React.useRef(null);
-    const handleDoubleClick = useCallback(
-        (e) => {
-            data.onDoubleClickRow(e, rowIndex - 1); // minus 1 to account for header row
-        },
-        [data, rowIndex]
-    );
     const item = data.items[rowIndex][columnIndex];
     const cellStyle = item?.props?.cellData?.cellStyle || {};
     const rowStyle = data.items[rowIndex][columnIndex]?.props?.rowData?.rowStyle || {};
+    const handleDoubleClick = useCallback(
+        (e) => {
+            data.onDoubleClickRow(e, rowIndex - 1, data.items[rowIndex][columnIndex]?.props?.rowData); // minus 1 to account for header row
+        },
+        [data, rowIndex]
+    );
+    const handleClick = useCallback( (event) => {
+        if(data.onRowClick){
+            data.onRowClick({event, rowDataStatic: data.items[rowIndex][columnIndex]?.props?.rowData})
+        }
+    }, [data, rowIndex]);
     const selectedClass = data.items[rowIndex][columnIndex]?.props?.rowData?.selected ? "selectedCallback" : "";
     const onMouseEnter = () => {
         const cells = document.getElementsByClassName(rowClassName);
@@ -44,6 +43,11 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
         clickOption({event, columnIndex, rowIndex, data: data.items[rowIndex][columnIndex]?.props?.rowData || {}});
         setOpenContextMenu(false);
     };
+    React.useEffect( () => {
+        if(!openContextMenu){
+            onMouseLeave();
+        }
+    }, [openContextMenu]);
     const handleContextClick = useCallback(
         (event) => {
             event.preventDefault();
@@ -68,6 +72,7 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
         <div style={{...style, ...cellStyle, ...rowStyle}}
             className={`${classes.cell} ${rowClassName} ${selectedClass}`}
             onDoubleClick={handleDoubleClick}
+            onClick={handleClick}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
             onContextMenu={handleContextClick} 
@@ -85,9 +90,9 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
 };
 const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOptions, setOpenContextMenu, handleMenuItemClick}) => {
     const handleClose = (event) => {
-        if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
-            return;
-        }
+        //if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
+        //    return;
+        //}
         setOpenContextMenu(false);
     };
 

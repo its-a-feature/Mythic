@@ -364,9 +364,11 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             setSelectedToken(token);
         }
     }
+    if(index !== value){
+        return null
+    }
     return (
         <MythicTabPanel index={index} value={value} >
-
             {!fetched && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
             {loadingMore && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
             <div style={{overflowY: "auto", flexGrow: 1, width: "100%"}} id={`taskingPanel${tabInfo.callbackID}`}>

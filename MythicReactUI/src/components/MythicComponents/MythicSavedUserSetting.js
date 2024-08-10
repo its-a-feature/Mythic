@@ -85,6 +85,13 @@ export function SetMythicSetting({setting_name, value, output = "boolean"}) {
         case "json":
             newSetting = JSON.stringify(value);
             break;
+        case "boolean":
+            if(typeof value === "boolean"){
+                newSetting = value ? "true" : "false";
+            } else {
+                newSetting = value.toLowerCase() === "true" ? "true" : "false";
+            }
+            break;
         default:
     }
     const meID = meState()?.user?.user_id || 0;

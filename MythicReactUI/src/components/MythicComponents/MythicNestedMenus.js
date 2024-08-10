@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import ArrowRight from "@mui/icons-material/ArrowRight";
-// from https://medium.com/geekculture/creating-a-dropdown-with-nested-menu-items-using-react-mui-bb0c084226da
+// slightly modified from https://medium.com/geekculture/creating-a-dropdown-with-nested-menu-items-using-react-mui-bb0c084226da
 export const Dropdown = React.forwardRef(
     (
         {
@@ -11,7 +11,8 @@ export const Dropdown = React.forwardRef(
             isOpen: controlledIsOpen,
             onOpen: onControlledOpen,
             externallyOpen,
-            minWidth
+            minWidth,
+            style
         },
         ref
     ) => {
@@ -66,12 +67,19 @@ export const Dropdown = React.forwardRef(
 
         return (
             <>
-
                 <Menu
                     PaperProps={{ sx: { minWidth: minWidth ?? 0 } }}
                     anchorEl={isOpen}
-                    open={externallyOpen}
+                    open={!!externallyOpen}
                     onClose={handleClose}
+                    style={style}
+                    modifiers={[{
+                        name: 'arrow',
+                        enabled: true,
+                        options: {
+                            element: anchorRef,
+                        },
+                    }]}
                 >
                     {React.Children.map(menu, renderMenu)}
                 </Menu>
@@ -145,6 +153,7 @@ const NestedMenuItem = React.forwardRef((props, ref) => {
 
     const handleKeyDown = (event) => {
         if (event.key === "Escape") {
+            setIsSubMenuOpen(false);
             return;
         }
 
@@ -166,6 +175,11 @@ const NestedMenuItem = React.forwardRef((props, ref) => {
             const firstChild = menuContainerRef.current?.children[0];
             firstChild?.focus();
         }
+        if(event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "ArrowLeft"){
+            setIsSubMenuOpen(false);
+        }
+
+
     };
 
     const open = isSubMenuOpen && parentMenuOpen;

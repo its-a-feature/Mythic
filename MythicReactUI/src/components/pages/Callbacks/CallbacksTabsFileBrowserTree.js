@@ -2,15 +2,14 @@ import React from 'react';
 import FileBrowserVirtualTree from '../../MythicComponents/MythicFileBrowserVirtualTree';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {ViewCallbackMythicTreeGroupsDialog} from "./ViewCallbackMythicTreeGroupsDialog";
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
+import ListIcon from '@mui/icons-material/List';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Paper from '@mui/material/Paper';
-import ListSubheader from '@mui/material/ListSubheader';
+import {getAllParentNodes} from "./CallbacksTabsFileBrowser";
+import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
 
-
+export const getOpenIDFromNode = (node) => {
+    return `${node.group};${node.host};${node.full_path_text}`;
+}
 export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetchFolderData, setTableData, taskListing, tableOpenedPathId, showDeletedFiles, tabInfo, selectedFolderData}) => {
     const [openNodes, setOpenNodes] = React.useState({});
     const groupName = React.useRef("");
@@ -21,65 +20,94 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
         fetchFolderData(nodeData);
         setOpenNodes({
           ...openNodes,
-          [nodeId]: true
+          [getOpenIDFromNode(nodeData)]: true
         });
       };
     const toggleNodeCollapsed = (nodeId, nodeData) => {
         setOpenNodes({
           ...openNodes,
-          [nodeId]: false
+          [getOpenIDFromNode(nodeData)]: false
         });
       };
     const onSelectNode = (nodeId, nodeData) => {
         if(nodeData.root){
-
+            setTableData(nodeData);
         }else if(nodeData.is_group){
             groupName.current = nodeData.group;
             setOpenViewGroupDialog(true);
         }else {
             //console.log(nodeData);
-            setTableData(nodeData);
+            //setTableData(nodeData);
+            toggleNodeExpanded(nodeId, nodeData);
         }
 
     };
     React.useEffect( () => {
+        let group = tableOpenedPathId.group;
+        if(group === ""){
+            group = selectedFolderData.group;
+        }
+        let host = tableOpenedPathId.host;
+        if(host === ""){
+            host = selectedFolderData.host;
+        }
+        let allPaths = [...getAllParentNodes(tableOpenedPathId), ...getAllParentNodes(selectedFolderData)];
+        const additionalOpenNodes = allPaths.reduce( (prev, cur) => {
+            return {...prev, [getOpenIDFromNode({group: group, host: host, full_path_text: cur})]: true}
+        }, {})
       setOpenNodes({
         ...openNodes,
-        [tableOpenedPathId]: true
+        [getOpenIDFromNode(tableOpenedPathId)]: true,
+        [getOpenIDFromNode(selectedFolderData)]: true,
+          ...additionalOpenNodes
       });
-    }, [tableOpenedPathId]);
-    const contextMenuOptions = [
+    }, [tableOpenedPathId, selectedFolderData]);
+    const contextMenuOptions= (callback_id, callback_display_id, node) => [
       {
-          name: 'Task Listing', 
-          click: ({event, node, callback_id, callback_display_id}) => {
+          name: 'List', type: "item", icon: <ListIcon color="warning" style={{ paddingRight: '5px'}} />,
+          click: ({event}) => {
+              event.stopPropagation();
               taskListing(node, callback_id, callback_display_id);
           }
       },
   ];
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const contextMenuData = React.useRef({});
-    const onContextMenu = ({event, item, itemTreeData}) => {
+    const onContextMenu = ({event, item, itemTreeData, dropdownRef}) => {
         event.preventDefault();
         event.stopPropagation();
         contextMenuData.current = {item, itemTreeData,
-        x: event.clientX, y:event.clientY};
+        x: event.clientX, y:event.clientY, dropdownRef};
         if(contextMenuData.current.item?.root){
 
         }else if(contextMenuData.current.item?.is_group){
 
         }else {
-            if(contextMenuOptions && contextMenuOptions.length > 0){
-                setOpenContextMenu(true);
+            let options = [{
+                name: contextMenuData.current?.item?.name_text, icon: null, disabled: true, type: "item",
+                click: () => {}
+            }];
+            options.push(...contextMenuOptions(tabInfo["callbackID"], tabInfo["displayID"], contextMenuData.current?.item));
+            if(contextMenuData.current?.item?.callback?.["display_id"] !== tabInfo["displayID"]){
+                options.push({
+                    name: "Original Callback", icon: null, click: () => {}, type: "menu",
+                    menuItems: [
+                        ...contextMenuOptions(contextMenuData.current?.item?.callback?.id, contextMenuData.current?.item?.callback?.display_id)
+                    ]
+                })
             }
+            contextMenuData.current.options = options;
+            setOpenContextMenu(true);
         }
     }
-    const handleMenuItemClick = (event, index, callback_id, callback_display_id) => {
+    const handleMenuItemClick = (event, click) => {
         event.preventDefault();
         event.stopPropagation();
-        contextMenuOptions[index].click({event,
-            node:  {...contextMenuData.current?.item, group: contextMenuData.current?.itemTreeData?.group, host: contextMenuData.current?.itemTreeData?.host},
-            callback_id, callback_display_id
-        });
+        click({event});
+        //contextMenuOptions[index].click({event,
+        //    node:  {...contextMenuData.current?.item, group: contextMenuData.current?.itemTreeData?.group, host: contextMenuData.current?.itemTreeData?.host},
+        //    callback_id, callback_display_id
+        //});
         setOpenContextMenu(false);
     };
     const handleClose = (event) => {
@@ -113,56 +141,46 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
                   }
               />
           }
-              <Popper open={openContextMenu} anchorEl={null} disablePortal role={undefined} transition style={{
-                  zIndex: 4,  top: contextMenuData.current?.y, left: contextMenuData.current?.x }}>
-                  {({ TransitionProps, placement }) => (
-                      <Grow
-                          {...TransitionProps}
-                          style={{
-                              transformOrigin: placement === 'bottom' ? 'left top' : 'left bottom',
-                          }}
-                      >
-                          <Paper className={"dropdownMenuColored"}>
-                              <ClickAwayListener onClickAway={handleClose}>
-                                  <MenuList id="split-button-menu" style={{paddingTop: 0}} >
-                                      <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                                          Act from current Callback: {tabInfo["displayID"]}
-                                      </ListSubheader>
-                                      {contextMenuOptions.map((option, index) => (
-                                          <MenuItem
-                                              key={option.name + index}
-                                              onClick={(event) => handleMenuItemClick(event, index, tabInfo["callbackID"], tabInfo["displayID"])}
-                                          >
-                                              {option.name}
-                                          </MenuItem>
-                                      ))}
-                                      {
-                                          contextMenuData.current.item?.callback && contextMenuData.current.item?.["callback"]?.["id"] !== tabInfo["callbackID"] &&
-                                          <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                                              Act from originating Callback: {contextMenuData.current.item?.callback?.["display_id"] || tabInfo["displayID"]}
-                                          </ListSubheader>
-                                      }
-                                      {
-                                          contextMenuData.current.item?.callback && contextMenuData.current.item?.["callback"]?.["id"] !== tabInfo["callbackID"] &&
-                                          contextMenuOptions.map((option, index) => (
-                                              <MenuItem
-                                                  key={option.name + index}
-                                                  onClick={(event) => handleMenuItemClick(event, index,
-                                                      contextMenuData.current.item?.["callback"]?.["id"] || tabInfo["callbackID"],
-                                                      contextMenuData.current.item?.["callback"]?.["display_id"] || tabInfo["displayID"])}
+          {openContextMenu &&
+              <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+                  <Dropdown
+                      isOpen={contextMenuData.current?.dropdownRef?.current}
+                      onOpen={setOpenContextMenu}
+                      externallyOpen={openContextMenu}
+                      style={{
+                          top: contextMenuData.current?.y,
+                          left: contextMenuData.current?.x
+                      }}
+                      menu={[
+                          ...contextMenuData.current?.options?.map((option, index) => (
+                              option.type === 'item' ? (
+                                  <DropdownMenuItem
+                                      key={option.name}
+                                      disabled={option.disabled}
+                                      onClick={(event) => handleMenuItemClick(event, option.click)}
+                                  >
+                                      {option.icon} {option.name}
+                                  </DropdownMenuItem>
+                              ) : option.type === 'menu' ? (
+                                  <DropdownNestedMenuItem
+                                      label={option.name}
+                                      disabled={option.disabled}
+                                      menu={
+                                          option.menuItems.map((menuOption, indx) => (
+                                              <DropdownMenuItem
+                                                  key={menuOption.name}
+                                                  disabled={menuOption.disabled}
+                                                  onClick={(event) => handleMenuItemClick(event, menuOption.click)}
                                               >
-                                                  {option.name}
-                                              </MenuItem>
+                                                  {menuOption.icon}{menuOption.name}
+                                              </DropdownMenuItem>
                                           ))
                                       }
-
-                                  </MenuList>
-                              </ClickAwayListener>
-                          </Paper>
-                      </Grow>
-                  )}
-              </Popper>
-
+                                  />
+                              ) : null))
+                      ]}/>
+              </ClickAwayListener>
+          }
 
       </>
 

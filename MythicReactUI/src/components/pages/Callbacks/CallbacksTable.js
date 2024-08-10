@@ -324,23 +324,6 @@ function CallbacksTablePreMemo(props){
                 }, type: "item"
             },
             {
-                name: "Bulk Actions", icon: null, click: (event) => { }, type: "menu",
-                menuItems: [
-                    {
-                        name: "Hide Multiple", icon: <VisibilityOffIcon color={"warning"} style={{paddingRight: "5px"}}/>,
-                        click: ({event}) => {
-                            setOpenHideMultipleDialog(true);
-                        }
-                    },
-                    {
-                        name: "Task Multiple", icon: <FontAwesomeIcon icon={faList} style={{cursor: "pointer", marginRight: "10px"}} />,
-                        click: ({event}) => {
-                            setOpenTaskMultipleDialog({open: true, data: rowDataStatic});
-                        }
-                    },
-                ]
-            },
-            {
                 name: "Browsers", icon: null, click: () => {}, type: "menu",
                 menuItems: [
                     {
@@ -365,6 +348,23 @@ function CallbacksTablePreMemo(props){
                                 tabID: rowDataStatic.id + tabType,
                                 callbackID: rowDataStatic.id,
                                 displayID: rowDataStatic.display_id});
+                        }
+                    },
+                ]
+            },
+            {
+                name: "Bulk Actions", icon: null, click: (event) => { }, type: "menu",
+                menuItems: [
+                    {
+                        name: "Hide Multiple", icon: <VisibilityOffIcon color={"warning"} style={{paddingRight: "5px"}}/>,
+                        click: ({event}) => {
+                            setOpenHideMultipleDialog(true);
+                        }
+                    },
+                    {
+                        name: "Task Multiple", icon: <FontAwesomeIcon icon={faList} style={{cursor: "pointer", marginRight: "10px"}} />,
+                        click: ({event}) => {
+                            setOpenTaskMultipleDialog({open: true, data: rowDataStatic});
                         }
                     },
                 ]

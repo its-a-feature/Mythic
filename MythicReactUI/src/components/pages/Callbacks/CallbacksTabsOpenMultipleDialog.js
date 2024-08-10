@@ -90,15 +90,8 @@ const columns = [
         flex: 0.5,
     }
 ];
-const CustomSelectTable = ({initialData, selectedData}) => {
+const CustomSelectTable = ({initialData, selectedData, onRowClick}) => {
     const [data, setData] = React.useState([]);
-    const [rowSelectionModel, setRowSelectionModel] = React.useState([]);
-    React.useEffect( () => {
-        selectedData.current = data.reduce( (prev, cur) => {
-            if(rowSelectionModel.includes(cur.id)){return [...prev, cur]}
-            return [...prev];
-        }, []);
-    }, [data, rowSelectionModel]);
     React.useEffect( () => {
         setData(initialData.map(c => {
             return {...c};
@@ -119,11 +112,7 @@ const CustomSelectTable = ({initialData, selectedData}) => {
                     },
                 }}
                 autoPageSize
-                checkboxSelection
-                onRowSelectionModelChange={(newRowSelectionModel) => {
-                    setRowSelectionModel(newRowSelectionModel);
-                }}
-                rowSelectionModel={rowSelectionModel}
+                onRowClick={onRowClick}
                 density={"compact"}
             />
         </div>
@@ -144,26 +133,21 @@ export function CallbacksTabsOpenMultipleDialog({onClose, tabType, onOpenTabs}) 
           setInitialData(callbackData);
       }
     });
-    const submitTasking = () => {
-      if(selectedData.current.length === 0){
-        onClose();
-        return;
-      }
-      onOpenTabs([...selectedData.current]);
+    const onRowClick = (rowData) => {
+      onOpenTabs([rowData.row]);
     }
 
 
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Open Multiple {tabType} Tabs</DialogTitle>
+        <DialogTitle id="form-dialog-title">Select Callback to open {tabType} tab</DialogTitle>
             <CustomSelectTable initialData={initialData}
-                               selectedData={selectedData}  />
+                               selectedData={selectedData}
+                               onRowClick={onRowClick}
+            />
         <DialogActions>
           <Button onClick={onClose} variant="contained" color="primary">
             Close
-          </Button>
-          <Button onClick={submitTasking} variant="contained" color="success">
-            Open
           </Button>
         </DialogActions>
   </React.Fragment>

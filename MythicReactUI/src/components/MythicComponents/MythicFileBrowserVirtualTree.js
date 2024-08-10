@@ -149,6 +149,7 @@ const VirtualTreeRow = ({
   selectedFolderData,
   ...ListProps
 }) => {
+    const dropdownRef = React.useRef(null);
   const itemTreeData = ListProps.data[ListProps.index];
   const item = ListProps.treeRootData[itemTreeData.group]?.[itemTreeData.host]?.[itemTreeData.full_path_text] || itemTreeData;
   //console.log("item", item, "itemlookup", ListProps.treeRootData[itemTreeData.host]?.[itemTreeData.name])
@@ -166,14 +167,14 @@ const VirtualTreeRow = ({
       onSelectNode(item.id,  {...item, group: itemTreeData.group, host: itemTreeData.host});
   };
   const handleContextClick = (e) => {
-      onContextMenu({event: e, item, itemTreeData});
+      onContextMenu({event: e, item, itemTreeData, dropdownRef});
   }
   const selectedPath = () => {
       if(itemTreeData.group === selectedFolderData.group && itemTreeData.host === selectedFolderData.host){
           if(itemTreeData.root){
               return "selectedCallbackHierarchy";
           }
-          if(selectedFolderData.id === itemTreeData.id){
+          if(selectedFolderData.full_path_text === itemTreeData.full_path_text){
               return "selectedCallback";
           }
       }
@@ -182,6 +183,7 @@ const VirtualTreeRow = ({
   return (
     <div className={`hoverme ${selectedPath()}`}
          style={ListProps.style}
+
          onContextMenu={handleContextClick}
          onClick={handleOnClickRow}>
     <div style={{display: 'flex' , marginBottom: "1px", flexGrow: 1, width: "100%"}}>
@@ -198,7 +200,7 @@ const VirtualTreeRow = ({
         <div
           className={classes.root}
           style={{ backgroundColor: theme.body, color: theme.text, alignItems: 'center', display: 'flex', paddingRight: "10px", textDecoration: itemTreeData.deleted ? 'line-through' : ''  }}
-
+          ref={dropdownRef}
           >
 
           {itemTreeData.is_group ? (
@@ -307,7 +309,7 @@ const FileBrowserVirtualTree = ({
         }, []).flat()
         ];
       }
-      if (openNodes[treeRootData[group][host][node].id] === true) {
+      if (openNodes[`${group};${host};${treeRootData[group][host][node].full_path_text}`] === true) {
         return [
           {
             id: treeRootData[group][host][node].id,

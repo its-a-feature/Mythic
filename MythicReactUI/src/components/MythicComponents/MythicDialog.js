@@ -177,7 +177,7 @@ export function MythicViewJSONAsTableDialog(props) {
                   <TableHead>
                       <TableRow>
                           {headers.map( (header, index) => (
-                            <TableCell key={'header' + index} style={index === 0 ? {width: "30%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
+                            <TableCell key={'header' + index} style={index === 0 ? {width: "15%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
                           ))}
                       </TableRow>
                   </TableHead>
@@ -193,7 +193,7 @@ export function MythicViewJSONAsTableDialog(props) {
                                       <TableHead>
                                           <TableRow>
                                               {element.headers.map( (header, index) => (
-                                                <TableCell key={'eheader' + header + index} style={index === 0 ? {width: "30%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
+                                                <TableCell key={'eheader' + header + index} style={index === 0 ? {width: "15%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
                                               ))}
                                           </TableRow>
                                       </TableHead>
@@ -202,14 +202,14 @@ export function MythicViewJSONAsTableDialog(props) {
                                           Object.keys(element.value).map( (key, dictIndex) => (
                                             <TableRow key={'element' + dictIndex + "dictheader"}>
                                               <TableCell  style={{width: "30%", wordBreak: "break-all"}}>{key}</TableCell>
-                                              <TableCell style={{wordBreak: "break-all"}}>{convertValueToContextValue(key, element.value[key], props.me)}</TableCell>
+                                              <TableCell style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>{convertValueToContextValue(key, element.value[key], props.me)}</TableCell>
                                             </TableRow>
                                           ))
                                         ): (
                                           element.value.map( (e, elementIndex) => (
                                             <TableRow>
                                               {element.headers.map( (header, headerIndex) => (
-                                                <TableCell key={'element' + elementIndex + "header" + headerIndex} style={headerIndex === 0 ? {width: "30%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{convertValueToContextValue(header, e[header], props.me)}</TableCell>
+                                                <TableCell key={'element' + elementIndex + "header" + headerIndex} style={headerIndex === 0 ? {width: "15%", wordBreak: "break-all"} : {wordBreak: "break-all",  whiteSpace: "pre-wrap"}}>{convertValueToContextValue(header, e[header], props.me)}</TableCell>
                                               ))}
                                             </TableRow>
                                           ))

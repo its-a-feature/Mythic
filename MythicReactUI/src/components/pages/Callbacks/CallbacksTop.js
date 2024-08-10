@@ -52,7 +52,7 @@ callback_stream(batch_size: 1000, cursor: {initial_value: {timestamp: $fromNow}}
   }
 }
  `;
-const Query_Callbacks = gql`
+export const Query_Callbacks_And_Edges = gql`
 query InitialActiveCallbacksQuery{
 callback(where: {active: {_eq: true}}) {
     architecture
@@ -93,11 +93,70 @@ callback(where: {active: {_eq: true}}) {
       id
     }
   }
+ callbackgraphedge(order_by: {id: desc, end_timestamp: desc_nulls_first}) {
+    id
+    end_timestamp
+    destination {
+      active
+      id
+      display_id
+      operation_id
+      user
+      host
+      ip
+      domain
+      os
+      process_name
+      integrity_level
+      extra_info
+      payload {
+        payloadtype {
+          name
+          id
+        }
+      }
+      callbackc2profiles {
+        c2profile {
+          name
+        }
+      }
+    }
+    source {
+      active
+      id
+      display_id
+      operation_id
+      user
+      host
+      ip
+      domain
+      os
+      process_name
+      integrity_level
+      extra_info
+      payload {
+        payloadtype {
+          name
+          id
+        }
+      }
+      callbackc2profiles {
+        c2profile {
+          name
+        }
+      }
+    }
+    c2profile {
+      id
+      is_p2p
+      name
+    }
+  }
 }
  `;
 export const SUB_Edges = gql`
-subscription CallbacksSubscription{
-  callbackgraphedge(order_by: {id: desc, end_timestamp: desc_nulls_first}, where: {end_timestamp: {_is_null: true}}) {
+subscription CallbackEdgeSubscription($fromNow: timestamp!){
+callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $fromNow}}) {
     id
     end_timestamp
     destination {
@@ -196,7 +255,7 @@ export function CallbacksTop(props){
             console.log(data)
         },
     });
-    useQuery(Query_Callbacks, {
+    useQuery(Query_Callbacks_And_Edges, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
             const updated = data.callback.reduce( (prev, cur) => {
@@ -218,15 +277,26 @@ export function CallbacksTop(props){
 
             updated.sort( (a, b) => a.display_id > b.display_id ? -1 : 1);
             callbacks.current = updated;
+            callbackEdges.current = data.callbackgraphedge;
         }
     })
     useSubscription(SUB_Edges, {
         fetchPolicy: "network-only",
+        variables: {fromNow: fromNow.current},
         onData: ({data}) => {
           if(!mountedRef.current){
             return;
           }
-            callbackEdges.current = data.data.callbackgraphedge;
+            const updated = data.data.callbackgraphedge_stream.reduce( (prev, cur) => {
+                let existingIndex = prev.findIndex( (element, i, array) => element.id === cur.id);
+                if(existingIndex === -1){
+                    // cur isn't in our current list of callbacks
+                    return [...prev, cur]
+                }
+                prev[existingIndex] = {...prev[existingIndex], ...cur};
+                return [...prev];
+            }, callbackEdges.current);
+            callbackEdges.current = updated;
         }
     });
     const onOpenTabLocal = React.useCallback( ({tabType, tabID, callbackID}) => {

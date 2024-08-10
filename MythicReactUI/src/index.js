@@ -206,6 +206,7 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
     }
     if (networkError) {
       console.log("[Network error]", networkError);
+      console.log(networkError.extensions, networkError.message);
       
       if(networkError.extensions === undefined){
         snackActions.error("Failed to connect to Mythic, please refresh");

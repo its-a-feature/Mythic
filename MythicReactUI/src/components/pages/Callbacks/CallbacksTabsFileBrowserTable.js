@@ -8,22 +8,16 @@ import {
 } from '../../MythicComponents/MythicDialog';
 import {faFolder} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import Paper from '@mui/material/Paper';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorIcon from '@mui/icons-material/Error';
 import { useTheme } from '@mui/material/styles';
 import { IconButton } from '@mui/material';
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import EditIcon from '@mui/icons-material/Edit';
 import { DownloadHistoryDialog } from './DownloadHistoryDialog';
 import HistoryIcon from '@mui/icons-material/History';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import Divider from '@mui/material/Divider';
 import ListIcon from '@mui/icons-material/List';
 import DeleteIcon from '@mui/icons-material/Delete';
 import GetAppIcon from '@mui/icons-material/GetApp';
@@ -37,22 +31,12 @@ import {MythicTransferListDialog} from '../../MythicComponents/MythicTransferLis
 import {TagsDisplay, ViewEditTags} from '../../MythicComponents/MythicTag';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { toLocalTime } from '../../utilities/Time';
-import ListSubheader from '@mui/material/ListSubheader';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
 import RefreshIcon from '@mui/icons-material/Refresh';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
 
-
-const getPermissionsDataQuery = gql`
-    query getPermissionsQuery($mythictree_id: Int!) {
-        mythictree_by_pk(id: $mythictree_id) {
-            id
-            metadata
-        }
-    }
-`;
 const getFileDownloadHistory = gql`
     query getFileDownloadHistory($full_path_text: String!, $host: String!, $group: [String!]) {
         mythictree(where: {tree_type: {_eq: "file"}, full_path_text: {_eq: $full_path_text}, host: {_eq: $host}, callback: {mythictree_groups: {_contains: $group}}}) {
@@ -89,7 +73,6 @@ const updateFileComment = gql`
     }
 `;
 
-
 export const CallbacksTabsFileBrowserTable = (props) => {
     const [allData, setAllData] = React.useState([]);
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
@@ -97,10 +80,11 @@ export const CallbacksTabsFileBrowserTable = (props) => {
     const [selectedColumn, setSelectedColumn] = React.useState({});
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null})
     const [columnVisibility, setColumnVisibility] = React.useState({
-        "visible": ["Info", "Name", "Size","Comment", "Last Modify"],
-        "hidden": ["Tags"]
+        "visible": ["Info", "Name", "Size", "Last Modify"],
+        "hidden": ["Tags", "Comment"]
     });
     const [openAdjustColumnsDialog, setOpenAdjustColumnsDialog] = React.useState(false);
+    const [selectedRows, setSelectedRows] = React.useState([]);
     const columns = React.useMemo(
         () =>
             [
@@ -184,8 +168,8 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                             cellData={row}
                                             rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]} />;
                             case "Size":
-                                return TableRowSizeCell({ cellData: props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.metadata?.size,
-                                    rowData: props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row] });
+                                return <TableRowSizeCell cellData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.metadata?.size}
+                                                         rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row] }/>
                             case "Tags":
                                 return <FileBrowserTagsCell 
                                             rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]}
@@ -194,10 +178,9 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                             selectedFolderData={props.selectedFolderData} 
                                             me={props.me} />
                             case "Last Modify":
-                                return TableRowDateCell({ cellData: props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.metadata?.modify_time,
-                                    rowData: props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row],
-                                    view_utc_time: props.me?.user?.view_utc_time
-                                });
+                                return <TableRowDateCell cellData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.metadata?.modify_time}
+                                                         rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]}
+                                                         view_utc_time={props.me?.user?.view_utc_time} />
                             case "Comment":
                                 return <FileBrowserTableRowStringCell cellData={row.comment} rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]} />
                         }
@@ -207,7 +190,18 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         }, []),
         [sortedData, props.onTaskRowAction, filterOptions, columnVisibility, props.showDeletedFiles]
     );
-
+    const getDisplayFormat = () => {
+        if(sortedData.length > 0 || props?.selectedFolderData?.success){
+            return "normal";
+        } else if(sortedData.length === 0 && props?.selectedFolderData?.metadata?.has_children && props?.selectedFolderData?.success === null){
+            return "fetchLocal";
+        }else if(sortedData.length === 0 && !props?.selectedFolderData?.metadata?.has_children && props?.selectedFolderData?.success === null){
+            return "fetchRemote";
+        } else if(sortedData.length === 0){
+            return "fetchRemote";
+        }
+    }
+    const displayFormat = getDisplayFormat();
     useEffect(() => {
         // when the folder changes, we need to aggregate all of the entries
         //console.log(props.selectedFolderData, props.treeAdjMatrix, props.treeRootData)
@@ -215,23 +209,33 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         if(props.selectedFolderData.id === props.selectedFolderData.host){
             desiredPath = "";
         }
-        setAllData(Object.keys(props.treeAdjMatrix[props.selectedFolderData.group]?.[props.selectedFolderData.host]?.[desiredPath] || {}));
+        let newAllData = Object.keys(props.treeAdjMatrix[props.selectedFolderData.group]?.[props.selectedFolderData.host]?.[desiredPath] || {});
+        setAllData(newAllData);
         //console.log("just set all data")
     }, [props.selectedFolderData, props.treeAdjMatrix]);
-
-    const onRowDoubleClick = (e, rowIndex) => {
-        //console.log(allData, rowIndex, allData[rowIndex], props.selectedFolderData);
-        //const rowData = props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][allData[rowIndex]];
-        const rowData = props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][sortedData[rowIndex]];
+    useEffect(() => {
+        // when the folder changes, we need to aggregate all of the entries
+        //console.log(props.selectedFolderData, props.treeAdjMatrix, props.treeRootData)
+        let desiredPath = props.selectedFolderData.full_path_text;
+        if(props.selectedFolderData.id === props.selectedFolderData.host){
+            desiredPath = "";
+        }
+        let newAllData = Object.keys(props.treeAdjMatrix[props.selectedFolderData.group]?.[props.selectedFolderData.host]?.[desiredPath] || {});
+        if(props.autoTaskLsOnEmptyDirectories){
+            if(newAllData.length === 0 && desiredPath !== "" && props.selectedFolderData.finished && props.selectedFolderData.success === null){
+                props.onListFilesButtonFromTableWithNoEntries()
+            }
+        }
+        //console.log("just set all data")
+    }, [props.selectedFolderData]);
+    const onRowDoubleClick = (e, rowIndex, rowData) => {
         if (!rowData.can_have_children) {
             return;
         }
         snackActions.info('Fetching contents from database...');
         props.onRowDoubleClick({...rowData, group: props.selectedFolderData.group});
-
         setSortData({"sortKey": null, "sortType":null, "sortDirection": "ASC"});
     };
-
     const onClickHeader = (e, columnIndex) => {
         const column = columns[columnIndex];
         if(column.disableSort){
@@ -273,27 +277,230 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         setColumnVisibility({visible: right, hidden: left});
     }
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
-    if(props?.selectedFolderData?.host === ""){
-        return (
-            <div style={{width: '100%', height: '100%', overflow: "hidden", position: "relative"}}>
-            <div style={{overflowY: "hidden", flexGrow: 1}}>
-                <div style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    position: "absolute",
-                    left: "30%",
-                    top: "50%"
-                }}>
-                    {"Select a path from the tree on the left or list a new path at the top"}
-                </div>
-            </div>
-            </div>
-        )
+    const onRowClick = ({event, rowDataStatic}) => {
+        if(event.ctrlKey || event.metaKey){
+            props.treeRootData[props.selectedFolderData.group][rowDataStatic.host][rowDataStatic.full_path_text].selected = true;
+            setSelectedRows([...selectedRows, rowDataStatic]);
+        } else {
+            props.treeRootData[props.selectedFolderData.group][rowDataStatic.host][rowDataStatic.full_path_text].selected = true;
+            for(let i = 0; i < selectedRows.length; i++){
+                props.treeRootData[props.selectedFolderData.group][selectedRows[i].host][selectedRows[i].full_path_text].selected = false;
+            }
+            setSelectedRows([rowDataStatic]);
+        }
+    }
+    const onRowContextClick = ({rowDataStatic}) => {
+        // based on row, return updated options array?
+        if(selectedRows.length > 1){
+            return [
+                {
+                    name: `Download All Selected`, type: "item",
+                    disabled: rowDataStatic.can_have_children,
+                    icon: <GetAppIcon color="success" style={{ paddingRight: '5px' }} />,
+                    click: ({event}) => {
+                        event.stopPropagation();
+                        let newTasks = [];
+                        for(let i = 0; i < selectedRows.length; i++){
+                            newTasks.push({
+                                path: selectedRows[i].parent_path_text,
+                                full_path: selectedRows[i].full_path_text,
+                                host: selectedRows[i].host,
+                                filename: selectedRows[i].name_text,
+                                uifeature: 'file_browser:download',
+                                callback_id: props.tabInfo.callbackID,
+                                callback_display_id: props.tabInfo.displayID
+                            });
+                        }
+                        props.onTaskRowActions(newTasks);
+                    },
+                },
+                {
+                    name: `Delete All Selected`, type: "item",
+                    icon: <DeleteIcon color="error" style={{ paddingRight: '5px' }} />,
+                    click: ({event}) => {
+                        event.stopPropagation();
+                        let newTasks = [];
+                        for(let i = 0; i < selectedRows.length; i++){
+                            newTasks.push({
+                                path: selectedRows[i].parent_path_text,
+                                full_path: selectedRows[i].full_path_text,
+                                host: selectedRows[i].host,
+                                filename: selectedRows[i].name_text,
+                                uifeature: 'file_browser:remove',
+                                getConfirmation: true,
+                                callback_id: props.tabInfo.callbackID,
+                                callback_display_id: props.tabInfo.displayID
+                            });
+                        }
+                        props.onTaskRowActions(newTasks);
+                    },
+                },
+                {
+                    name: `List All Selected`, type: "item",
+                    icon: <ListIcon color="error" style={{ paddingRight: '5px' }} />,
+                    click: ({event}) => {
+                        event.stopPropagation();
+                        let newTasks = [];
+                        for(let i = 0; i < selectedRows.length; i++){
+                            newTasks.push({
+                                path: selectedRows[i].parent_path_text,
+                                full_path: selectedRows[i].full_path_text,
+                                host: selectedRows[i].host,
+                                filename: selectedRows[i].name_text,
+                                uifeature: 'file_browser:list',
+                                callback_id: props.tabInfo.callbackID,
+                                callback_display_id: props.tabInfo.displayID
+                            });
+                        }
+                        props.onTaskRowActions(newTasks);
+                    },
+                },
+            ]
+        }
+        return  [
+            {
+                name: rowDataStatic.name_text, icon: null, click: ({event}) => {},
+                type: "item", disabled: true
+            },
+            {
+                name: `Download`, type: "item",
+                disabled: rowDataStatic.can_have_children,
+                icon: <GetAppIcon color="success" style={{ paddingRight: '5px' }} />,
+                click: ({event}) => {
+                    event.stopPropagation();
+                    props.onTaskRowAction({
+                        path: rowDataStatic.parent_path_text,
+                        full_path: rowDataStatic.full_path_text,
+                        host: rowDataStatic.host,
+                        filename: rowDataStatic.name_text,
+                        uifeature: 'file_browser:download',
+                        callback_id: props.tabInfo.callbackID,
+                        callback_display_id: props.tabInfo.displayID
+                    });
+                },
+            },
+            {
+                name: `List`, type: "item",
+                icon: <ListIcon color="warning" style={{ paddingRight: '5px'}} />,
+                click: ({event}) => {
+                    event.stopPropagation();
+                    props.onTaskRowAction({
+                        path: rowDataStatic.parent_path_text,
+                        full_path: rowDataStatic.full_path_text,
+                        host: rowDataStatic.host,
+                        filename: rowDataStatic.name_text,
+                        uifeature: 'file_browser:list',
+                        callback_id: props.tabInfo.callbackID,
+                        callback_display_id: props.tabInfo.displayID
+                    });
+                },
+            },
+            {
+                name: `Delete`, type: "item",
+                icon: <DeleteIcon color="error" style={{ paddingRight: '5px' }} />,
+                click: ({event}) => {
+                    event.stopPropagation();
+                    props.onTaskRowAction({
+                        path: rowDataStatic.parent_path_text,
+                        full_path: rowDataStatic.full_path_text,
+                        host: rowDataStatic.host,
+                        filename: rowDataStatic.name_text,
+                        uifeature: 'file_browser:remove',
+                        getConfirmation: true,
+                        callback_id: props.tabInfo.callbackID,
+                        callback_display_id: props.tabInfo.displayID
+                    });
+                },
+            },
+            {
+                name: "Copy to Clipboard", icon: null, click: () => {}, type: "menu",
+                menuItems: [
+                    {
+                        name: 'Name', type: "item",
+                        icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
+                        click: ({event}) => {
+                            event.stopPropagation();
+                            copyStringToClipboard(rowDataStatic.name_text);
+                        },
+                    },
+                    {
+                        name: 'Full Path', type: "item",
+                        icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
+                        click: ({event}) => {
+                            event.stopPropagation();
+                            copyStringToClipboard(rowDataStatic.full_path_text);
+                        },
+                    },
+                    {
+                        name: 'Attributes', type: "item",
+                        icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
+                        click: ({event}) => {
+                            event.stopPropagation();
+                            copyStringToClipboard(JSON.stringify(rowDataStatic?.metadata?.permissions, null, 2));
+                        },
+                    },
+                ]
+            },
+            {
+                name: "Original Callback: " + rowDataStatic.callback.display_id, icon: null,
+                click: () => {}, type: "menu",
+                menuItems: [
+                    {
+                        name: 'Task Listing', type: "item",
+                        icon: <ListIcon color="warning" style={{ paddingRight: '5px'}} />,
+                        click: ({event}) => {
+                            event.stopPropagation();
+                            props.onTaskRowAction({
+                                path: rowDataStatic.parent_path_text,
+                                full_path: rowDataStatic.full_path_text,
+                                host: rowDataStatic.host,
+                                filename: rowDataStatic.name_text,
+                                uifeature: 'file_browser:list',
+                                callback_id: rowDataStatic.callback.id,
+                                callback_display_id: rowDataStatic.callback.display_id
+                            });
+                        },
+                    },
+                    {
+                        name: 'Task Download', type: "item",
+                        icon: <GetAppIcon color="success" style={{ paddingRight: '5px' }} />,
+                        click: ({event}) => {
+                            event.stopPropagation();
+                            props.onTaskRowAction({
+                                path: rowDataStatic.parent_path_text,
+                                full_path: rowDataStatic.full_path_text,
+                                host: rowDataStatic.host,
+                                filename: rowDataStatic.name_text,
+                                uifeature: 'file_browser:download',
+                                callback_id: rowDataStatic.callback.id,
+                                callback_display_id: rowDataStatic.callback.display_id
+                            });
+                        },
+                    },
+                    {
+                        name: 'Task Removal', type: "item",
+                        icon: <DeleteIcon color="error" style={{ paddingRight: '5px' }} />,
+                        click: ({event}) => {
+                            event.stopPropagation();
+                            props.onTaskRowAction({
+                                path: rowDataStatic.parent_path_text,
+                                full_path: rowDataStatic.full_path_text,
+                                host: rowDataStatic.host,
+                                filename: rowDataStatic.name_text,
+                                uifeature: 'file_browser:remove',
+                                getConfirmation: true,
+                                callback_id: rowDataStatic.callback.id,
+                                callback_display_id: rowDataStatic.callback.display_id
+                            });
+                        },
+                    },
+                ]
+            },
+        ];
     }
     return (
         <div style={{width: '100%', height: '100%', overflow: "hidden", position: "relative"}}>
-            {(gridData.length > 0 || props?.selectedFolderData?.success) &&
+            {displayFormat === "normal" &&
                 <MythicResizableGrid
                     columns={columns}
                     sortIndicatorIndex={sortColumn}
@@ -303,9 +510,11 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                     onClickHeader={onClickHeader}
                     onDoubleClickRow={onRowDoubleClick}
                     contextMenuOptions={contextMenuOptions}
+                    onRowContextMenuClick={onRowContextClick}
+                    onRowClick={onRowClick}
                 />
             }
-            {(gridData.length === 0 && props?.selectedFolderData?.metadata?.has_children )&&
+            {displayFormat === "fetchLocal" &&
                 <div style={{overflowY: "hidden", flexGrow: 1}}>
                         <div style={{
                             position: "absolute",
@@ -318,7 +527,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                         </div>
                 </div>
             }
-            {(gridData.length === 0 && !props?.selectedFolderData?.metadata?.has_children )&&
+            {displayFormat === "fetchRemote" &&
                 <div style={{overflowY: "hidden", flexGrow: 1}}>
                     <div style={{
                         position: "absolute",
@@ -487,17 +696,6 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
     const [fileHistoryDialogOpen, setFileHistoryDialogOpen] = React.useState(false);
     const [permissionData, setPermissionData] = React.useState('');
     const [downloadHistory, setDownloadHistory] = React.useState([]);
-    const [getPermissions] = useLazyQuery(getPermissionsDataQuery, {
-        onCompleted: (data) => {
-            setPermissionData(data.mythictree_by_pk.metadata);
-            if (data.mythictree_by_pk.metadata !== '') {
-                setViewPermissionsDialogOpen(true);
-            } else {
-                snackActions.warning('No metadata data available');
-            }
-        },
-        fetchPolicy: 'network-only',
-    });
     const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
     const [getHistory] = useLazyQuery(getFileDownloadHistory, {
         onCompleted: (data) => {
@@ -535,17 +733,8 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
         evt.stopPropagation();
         setDropdownOpen((prevOpen) => !prevOpen);
     };
-    const handleMenuItemClick = (whichOption, event, index, callback_id, callback_display_id) => {
-        switch (whichOption) {
-            case 'A':
-                optionsA[index].click(event, callback_id, callback_display_id);
-                break;
-            case 'B':
-                optionsB[index].click(event, callback_id, callback_display_id);
-                break;
-            default:
-                break;
-        }
+    const handleMenuItemClick = (event, click) => {
+        click({event});
         setDropdownOpen(false);
     };
     const handleClose = (event) => {
@@ -554,28 +743,21 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
         }
         setDropdownOpen(false);
     };
-    const copyToClipboard = () => {
-        let result = copyStringToClipboard(treeRootData[selectedFolderData.host][cellData].full_path_text);
-        if (result) {
-            snackActions.success('Copied text!');
-        } else {
-            snackActions.error('Failed to copy text');
-        }
-    };
     const optionsA = [
         {
-            name: 'View Permissions',
+            name: 'View Permissions', type: "item",
             icon: <VisibilityIcon style={{ paddingRight: '5px' }} />,
-            click: (evt, callback_id, callback_display_id) => {
-                evt.stopPropagation();
-                getPermissions({ variables: { mythictree_id: treeRootData[selectedFolderData.host][cellData].id } });
+            click: ({event}) => {
+                event.stopPropagation();
+                setPermissionData(treeRootData[selectedFolderData.host][cellData].metadata);
+                setViewPermissionsDialogOpen(true);
             },
         },
         {
-            name: 'Download History',
+            name: 'Download History', type: "item",
             icon: <HistoryIcon style={{ paddingRight: '5px' }} />,
-            click: (evt, callback_id, callback_display_id) => {
-                evt.stopPropagation();
+            click: ({event}) => {
+                event.stopPropagation();
                 getHistory({ variables: {
                     full_path_text: treeRootData[selectedFolderData.host][cellData].full_path_text,
                     host: selectedFolderData.host,
@@ -584,28 +766,20 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
             },
         },
         {
-            name: 'Edit Comment',
+            name: 'Edit Comment', type: "item",
             icon: <EditIcon style={{ paddingRight: '5px' }} />,
-            click: (evt, callback_id, callback_display_id) => {
-                evt.stopPropagation();
+            click: ({event}) => {
+                event.stopPropagation();
                 setFileCommentDialogOpen(true);
             },
         },
-        {
-            name: 'Copy Path to Clipboard',
-            icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
-            click: (evt, callback_id, callback_display_id) => {
-                evt.stopPropagation();
-                copyToClipboard();
-            },
-        },
     ];
-    const optionsB = [
+    const optionsB = (callback_id, callback_display_id) => [
         {
-            name: 'Task Listing',
+            name: 'List', type: "item",
             icon: <ListIcon color="warning" style={{ paddingRight: '5px'}} />,
-            click: (evt, callback_id, callback_display_id) => {
-                evt.stopPropagation();
+            click: ({event}) => {
+                event.stopPropagation();
                 onTaskRowAction({
                     path: treeRootData[selectedFolderData.host][cellData].parent_path_text,
                     full_path: treeRootData[selectedFolderData.host][cellData].full_path_text,
@@ -617,10 +791,10 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
             },
         },
         {
-            name: 'Task Download',
+            name: 'Download', type: "item",
             icon: <GetAppIcon color="success" style={{ paddingRight: '5px' }} />,
-            click: (evt, callback_id, callback_display_id) => {
-                evt.stopPropagation();
+            click: ({event}) => {
+                event.stopPropagation();
                 onTaskRowAction({
                     path: treeRootData[selectedFolderData.host][cellData].parent_path_text,
                     full_path: treeRootData[selectedFolderData.host][cellData].full_path_text,
@@ -632,10 +806,10 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
             },
         },
         {
-            name: 'Task Removal',
+            name: 'Delete', type: "item",
             icon: <DeleteIcon color="error" style={{ paddingRight: '5px' }} />,
-            click: (evt, callback_id, callback_display_id) => {
-                evt.stopPropagation();
+            click: ({event}) => {
+                event.stopPropagation();
                 onTaskRowAction({
                     path: treeRootData[selectedFolderData.host][cellData].parent_path_text,
                     full_path: treeRootData[selectedFolderData.host][cellData].full_path_text,
@@ -648,6 +822,19 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
             },
         },
     ];
+    const getMenuOptions = () => {
+        let options = [...optionsA];
+        options.push(...optionsB(tabInfo["callbackID"], tabInfo["displayID"]));
+        if(rowData?.callback?.["display_id"] !== tabInfo["displayID"]){
+            options.push({
+                name: "Original Callback", icon: null, click: () => {}, type: "menu",
+                menuItems: [
+                    ...optionsB(rowData?.callback?.id, rowData?.callback?.display_id)
+                ]
+            })
+        }
+        return options;
+    }
     return (
         <React.Fragment>
             <IconButton
@@ -678,72 +865,43 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                                   onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
                 />
             }
-            <Popper
-                open={dropdownOpen}
-                anchorEl={dropdownAnchorRef.current}
-                role={undefined}
-                transition
-                style={{ zIndex: 4000 }}>
-                {({ TransitionProps, placement }) => (
-                    <Grow
-                        {...TransitionProps}
-                        style={{
-                            transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                        }}>
-                        <Paper className={"dropdownMenuColored"}>
-                            <ClickAwayListener onClickAway={handleClose}>
-                                <MenuList id="split-button-menu" style={{paddingTop: 0}} >
-
-                                    {optionsA.map((option, index) => (
-                                        <MenuItem
-                                            key={option.name}
-                                            onClick={(event) => handleMenuItemClick('A', event,
-                                                index, tabInfo["callbackID"], tabInfo["displayID"])}>
-                                            {option.icon}
-                                            {option.name}
-                                        </MenuItem>
-                                    ))}
-                                    <Divider />
-                                    <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                                        Act from current Callback: {tabInfo["displayID"]}
-                                    </ListSubheader>
-                                    {optionsB.map((option, index) => (
-                                        <MenuItem
-                                            key={option.name}
-                                            onClick={(event) => handleMenuItemClick('B', event,
-                                                index,
-                                                tabInfo["callbackID"],
-                                                tabInfo["displayID"])}>
-                                            {option.icon}
-                                            {option.name}
-                                        </MenuItem>
-                                    ))}
-                                    {
-                                        rowData?.callback && rowData?.callback?.["id"] !== tabInfo["callbackID"] &&
-                                            <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                                                Act from originating Callback: {rowData?.callback?.["display_id"] || tabInfo["displayID"]}
-                                            </ListSubheader>
-                                    }{
-                                        rowData?.callback && rowData?.callback?.["id"] !== tabInfo["callbackID"] &&
-                                            optionsB.map((option, index) => (
-                                                <MenuItem
-                                                    key={option.name}
-                                                    onClick={(event) => handleMenuItemClick('B', event,
-                                                        index,
-                                                        rowData?.["callback"]?.["id"] || tabInfo["callbackID"],
-                                                        rowData?.["callback"]?.["display_id"] || tabInfo["displayID"])}>
-                                                    {option.icon}
-                                                    {option.name}
-                                                </MenuItem>
+            {dropdownOpen &&
+                <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+                    <Dropdown
+                        isOpen={dropdownAnchorRef.current}
+                        onOpen={setDropdownOpen}
+                        externallyOpen={dropdownOpen}
+                        menu={[
+                            ...getMenuOptions().map((option, index) => (
+                                option.type === 'item' ? (
+                                    <DropdownMenuItem
+                                        key={option.name}
+                                        disabled={option.disabled}
+                                        onClick={(event) => handleMenuItemClick(event, option.click)}
+                                    >
+                                        {option.icon} {option.name}
+                                    </DropdownMenuItem>
+                                ) : option.type === 'menu' ? (
+                                    <DropdownNestedMenuItem
+                                        label={option.name}
+                                        disabled={option.disabled}
+                                        menu={
+                                            option.menuItems.map((menuOption, indx) => (
+                                                <DropdownMenuItem
+                                                    key={menuOption.name}
+                                                    disabled={menuOption.disabled}
+                                                    onClick={(event) => handleMenuItemClick(event, menuOption.click)}
+                                                >
+                                                    {menuOption.icon}{menuOption.name}
+                                                </DropdownMenuItem>
                                             ))
-                                    }
+                                        }
+                                    />
+                                ) : null))
+                        ]}/>
+                </ClickAwayListener>
+            }
 
-                                </MenuList>
-                            </ClickAwayListener>
-                        </Paper>
-                    </Grow>
-                )}
-            </Popper>
             {fileCommentDialogOpen && (
                 <MythicDialog
                     fullWidth={true}
@@ -774,7 +932,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                     }}
                     innerDialog={
                         <MythicViewJSONAsTableDialog
-                            title='View Metadata'
+                            title={'View Metadata for ' + rowData.name_text}
                             leftColumn='Attribute'
                             rightColumn='Value'
                             me={me}

@@ -1,11 +1,11 @@
 import React  from 'react';
-import {useSubscription, gql } from '@apollo/client';
+import {useSubscription, gql, useQuery } from '@apollo/client';
 import {ExpandedCallbackSideDetails} from './ExpandedCallbackSideDetails';
 import  {useParams} from "react-router-dom";
 import {CallbacksTabsTaskingPanel} from '../Callbacks/CallbacksTabsTasking';
 import { snackActions } from '../../utilities/Snackbar';
 import Split from 'react-split';
-
+import {Query_Callbacks_And_Edges, SUB_Edges, CallbackGraphEdgesContext} from "../Callbacks/CallbacksTop";
 
 const SUB_Callbacks = gql`
 subscription CallbacksSubscription ($callback_display_id: Int!){
@@ -40,6 +40,7 @@ subscription CallbacksSubscription ($callback_display_id: Int!){
       payloadtype {
         name
         id
+        agent_type
       }
       description
       id
@@ -62,10 +63,17 @@ subscription CallbacksSubscription ($callback_display_id: Int!){
 
 
 export function ExpandedCallback(props){
-    
+    const fromNow = React.useRef(new Date());
     const {callbackDisplayId} = useParams();
     const [callback, setCallbacks] = React.useState({"payload": {"payloadtype": {"name": ""}}, "callbacktokens": []});
     const [tabInfo, setTabInfo] = React.useState({displayID: parseInt(callbackDisplayId)});
+    const callbackEdges = React.useRef([]);
+    useQuery(Query_Callbacks_And_Edges, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            callbackEdges.current = data.callbackgraphedge;
+        }
+    })
     useSubscription(SUB_Callbacks, {
         variables: {callback_display_id: tabInfo.displayID}, fetchPolicy: "network-only",
         shouldResubscribe: true,
@@ -85,22 +93,38 @@ export function ExpandedCallback(props){
           os: data.data.callback_stream[0]["payload"]["os"]});
         }
     });
-
+    useSubscription(SUB_Edges, {
+        fetchPolicy: "network-only",
+        variables: {fromNow: fromNow.current},
+        onData: ({data}) => {
+            const updated = data.data.callbackgraphedge_stream.reduce( (prev, cur) => {
+                let existingIndex = prev.findIndex( (element, i, array) => element.id === cur.id);
+                if(existingIndex === -1){
+                    // cur isn't in our current list of callbacks
+                    return [...prev, cur]
+                }
+                prev[existingIndex] = {...prev[existingIndex], ...cur};
+                return [...prev];
+            }, callbackEdges.current);
+            callbackEdges.current = updated;
+        }
+    });
     return (
         <div style={{width: "100%", height: "100%", maxHeight: "100%",}}>
-          {tabInfo.payloadtype !== undefined ? (
-              <Split direction="horizontal" style={{width: "100%", height: "100%", display: "flex", flexDirection: "row" }} sizes={[30, 70]} >
-                  <div className="bg-gray-base" style={{display: "inline-flex"}}>
-                      <ExpandedCallbackSideDetails me={props.me} callback={callback} />
-                  </div>
-                  <div className="bg-gray-light" style={{display: "inline-flex"}}>
-                      <CallbacksTabsTaskingPanel me={props.me} tabInfo={tabInfo} callbacktokens={callback.callbacktokens}/>
-                  </div>
-            </Split>
-          ) : (
-            <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>Fetching Callback</div>
-          )}
-            
+            <CallbackGraphEdgesContext.Provider value={callbackEdges.current}>
+                {tabInfo.payloadtype !== undefined ? (
+                    <Split direction="horizontal" style={{width: "100%", height: "100%", display: "flex", flexDirection: "row" }} sizes={[30, 70]} >
+                        <div className="bg-gray-base" style={{display: "inline-flex"}}>
+                            <ExpandedCallbackSideDetails me={props.me} callback={callback} />
+                        </div>
+                        <div className="bg-gray-light" style={{display: "inline-flex"}}>
+                            <CallbacksTabsTaskingPanel me={props.me} tabInfo={tabInfo} callbacktokens={callback.callbacktokens}/>
+                        </div>
+                    </Split>
+                ) : (
+                    <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>Fetching Callback</div>
+                )}
+            </CallbackGraphEdgesContext.Provider>
         </div>
     );
 }

@@ -24,6 +24,9 @@ import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {b64DecodeUnicode} from "./ResponseDisplay";
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
+import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
+import {SetMythicSetting, useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 
 const fileDataFragment = gql`
     fragment fileObjData on mythictree {
@@ -69,9 +72,21 @@ const rootFileQuery = gql`
 `;
 const folderQuery = gql`
     ${fileDataFragment}
-    query myFolderQuery($parent_path_text: String!) {
-        mythictree(
+    query myFolderQuery($parent_path_text: String!, $parents: [String]) {
+        children: mythictree(
             where: { parent_path_text: { _eq: $parent_path_text }, tree_type: {_eq: "file"} }
+            order_by: { can_have_children: asc, name: asc }
+        ) {
+            ...fileObjData
+        }
+        parents: mythictree(
+            where: { full_path_text: { _in: $parents }, tree_type: {_eq: "file"} }
+            order_by: { can_have_children: asc, name: asc }
+        ) {
+            ...fileObjData
+        }
+        self: mythictree(
+            where: { full_path_text: { _eq: $parent_path_text }, tree_type: {_eq: "file"} }
             order_by: { can_have_children: asc, name: asc }
         ) {
             ...fileObjData
@@ -91,6 +106,27 @@ const fileDataSubscription = gql`
     }
 `;
 
+export const getAllParentNodes = (node) => {
+    let linuxPathSeparatorIndex = node.full_path_text.indexOf("/");
+    let windowsPathSeparatorIndex = node.full_path_text.indexOf("\\");
+    let newNodes = [node.full_path_text];
+    if(linuxPathSeparatorIndex !== -1){
+        let pieces = node.full_path_text.split("/");
+        newNodes.push("/");
+        for(let i = 0; i < pieces.length; i++){
+            let newElement = pieces.slice(0, i).join("/");
+            if(newElement === ""){continue}
+            newNodes.push(newElement)
+        }
+    }
+    if(windowsPathSeparatorIndex !== -1){
+        let pieces = node.full_path_text.split("\\");
+        for(let i = 0; i < pieces.length; i++){
+            newNodes.push(pieces.slice(0, i).join("\\"))
+        }
+    }
+    return newNodes;
+}
 export function CallbacksTabsFileBrowserLabel(props) {
     const [description, setDescription] = React.useState('File Browser: ' + props.tabInfo.displayID);
     const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
@@ -149,11 +185,13 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
     const fromNow = React.useRef((new Date()));
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const treeRootDataRef = React.useRef({}); // hold all of the actual data
-    const [treeAdjMtx, setTreeAdjMtx] = React.useState({}); // hold the simple adjacency matrix for parent/child relationships
+    // hold the simple adjacency matrix for parent/child relationships
+    const [treeAdjMtx, setTreeAdjMtx] = React.useState({});
     const [selectedFolderData, setSelectedFolderData] = React.useState({
-        full_path_text: '.',
-        host: "",
-        id: "",
+        full_path_text: '',
+        host: tabInfo.host,
+        group: "Default",
+        parent_path_text: ""
     });
     const [showDeletedFiles, setShowDeletedFiles] = React.useState(false);
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
@@ -161,15 +199,32 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         path: "",
         token: 0,
     });
+    const autoTaskLsOnEmptyDirectories = React.useRef(false);
     const taskingData = React.useRef({"parameters": "", "ui_feature": "file_browser:list"});
     const mountedRef = React.useRef(true);
-    const tableOpenedPathIdRef = React.useRef(0);
+    const tableOpenedPathIdRef = React.useRef({
+        host: "",
+        group: "",
+        full_path_text: ""
+    });
     useQuery(rootFileQuery, {
         onCompleted: (data) => {
            // use an adjacency matrix but only for full_path_text -> children, not both directions
            // create the top level data in the treeRootDataRef
+           let defaultGroup = "Default";
            for(let i = 0; i < data.mythictree.length; i++){
                let currentGroups = data.mythictree[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
+               try{
+                   if(data.mythictree[i]?.['callback']?.['id'] === tabInfo.callbackID){
+                       if(!currentGroups.includes(defaultGroup, 0)){
+                           defaultGroup = currentGroups[0];
+                       }
+                   }
+               }catch(error){
+                   console.log(error);
+               }
+
+
                 for(let j = 0; j < currentGroups.length; j++){
                     if(treeRootDataRef.current[currentGroups[j]] === undefined){
                         treeRootDataRef.current[currentGroups[j]] = {};
@@ -202,6 +257,12 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
            }, {...treeAdjMtx});
            //console.log(treeRootDataRef.current);
            setTreeAdjMtx(newMatrix);
+            setSelectedFolderData({
+                full_path_text: '',
+                host: tabInfo.host,
+                group: defaultGroup,
+                parent_path_text: "",
+            });
         },
         fetchPolicy: 'no-cache',
     });
@@ -275,46 +336,47 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         notifyOnNetworkStatusChange: true,
         onCompleted: (data) => {
             //console.log("getFolderData", data)
+            let mythictree = [...data.parents, ...data.children];
             snackActions.dismiss();
             // add in all of the raw data
-            for(let i = 0; i < data.mythictree.length; i++){
-                let currentGroups = data.mythictree[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
+            for(let i = 0; i < mythictree.length; i++){
+                let currentGroups = mythictree[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
                 for(let j = 0; j < currentGroups.length; j++){
                     if(treeRootDataRef.current[currentGroups[j]] === undefined){
                         treeRootDataRef.current[currentGroups[j]] = {};
                     }
-                    if( treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] === undefined) {
+                    if( treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]] === undefined) {
                         // new host discovered
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] = {};
+                        treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]] = {};
                     }
-                    if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] === undefined){
+                    if(treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]] === undefined){
                         // first time we're seeing this file data, just add it
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]};
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].filemeta = treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].filemeta.map(f => {
+                        treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]] = {...mythictree[i]};
+                        treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]].filemeta = treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]].filemeta.map(f => {
                             return {...f, filename_text: b64DecodeUnicode(f.filename_text)}
                         })
                     } else {
                         // we need to merge data in because we already have some info
-                        let existingData = treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
+                        let existingData = treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]];
                         if(existingData.success === null || !existingData.success){
-                            existingData.success = data.mythictree[i].success;
+                            existingData.success = mythictree[i].success;
                         }
-                        existingData.comment += data.mythictree[i].comment;
-                        existingData.tags = [...existingData.tags, ...data.mythictree[i].tags];
+                        existingData.comment += mythictree[i].comment;
+                        existingData.tags = [...existingData.tags, ...mythictree[i].tags];
                         if(!existingData.metadata.has_children){
-                            existingData.metadata.has_children = data.mythictree[i].metadata.has_children;
+                            existingData.metadata.has_children = mythictree[i].metadata.has_children;
                         }
-                        existingData.metadata.permissions = {...existingData.metadata.permissions, ...data.mythictree[i].metadata.permissions};
-                        let newfileData = data.mythictree[i].filemeta.map(f => {
+                        existingData.metadata.permissions = {...existingData.metadata.permissions, ...mythictree[i].metadata.permissions};
+                        let newfileData = mythictree[i].filemeta.map(f => {
                             return {...f, filename_text: b64DecodeUnicode(f.filename_text)};
                         })
                         existingData.filemeta = [...existingData.filemeta, ...newfileData]
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...existingData};
+                        treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]] = {...existingData};
                     }
                 }
             }
             // create the top level data in the adjacency matrix
-            const newMatrix = data.mythictree.reduce( (prev, cur) => {
+            const newMatrix = mythictree.reduce( (prev, cur) => {
                 let currentGroups = cur?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
                 for(let j = 0; j < currentGroups.length; j++) {
                     if (prev[currentGroups[j]] === undefined) {
@@ -336,7 +398,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             setTreeAdjMtx(newMatrix);
             //console.log("just set treeAdjMtx, about to close backdrop")
             setBackdropOpen(false);
-            
+            setSelectedFolderData({...selectedFolderData, finished: true});
         },
     });
     const onSetTableData = useCallback((nodeData) => {
@@ -344,21 +406,26 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         setSelectedFolderData(nodeData);
     }, []);
     const fetchFolderData = useCallback((nodeData, fromHistory) => {
+        let parentNodes = getAllParentNodes(nodeData);
         getFolderData({
-            variables: { parent_path_text: nodeData.full_path_text},
+            variables: { parent_path_text: nodeData.full_path_text, parents: parentNodes},
         });
         setBackdropOpen(true);
-        tableOpenedPathIdRef.current = nodeData.id;
         setSelectedFolderData({...nodeData, fromHistory: fromHistory});
     }, []);
     const fetchParentFolderData = (nodeData) => {
+        let parentNodes = getAllParentNodes(nodeData);
         getFolderData({
-            variables: { parent_path_text: nodeData.parent_path_text},
+            variables: { parent_path_text: nodeData.parent_path_text, parents: parentNodes},
         });
         setBackdropOpen(true);
         let parentData = treeRootDataRef.current[nodeData.group][nodeData.host][nodeData.parent_path_text];
         parentData.group = nodeData.group;
-        tableOpenedPathIdRef.current = parentData.id;
+        tableOpenedPathIdRef.current = {
+            group: parentData.group,
+            host: parentData.host,
+            full_path_text: parentData.full_path_text
+        };
         setSelectedFolderData(parentData);
     };
     const localSelectedToken = React.useRef("");
@@ -378,7 +445,8 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             "parameters": {
                 path: taskingTableTopTypedDataRef.current.path,
                 full_path: taskingTableTopTypedDataRef.current.path,
-                host: selectedFolderData.host, file: ""
+                host: selectedFolderData.host,
+                file: ""
             },
             "ui_feature": "file_browser:list",
             callback_id: tabInfo.callbackID,
@@ -394,6 +462,36 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         });
         setOpenTaskingButton(true);
     };
+    const multipleTasks = React.useRef([]);
+    const onTaskRowActions = useCallback( (tasks) => {
+        let updatedTasks = [];
+        for(let i = 0; i < tasks.length; i++){
+            updatedTasks.push({
+                "token": localSelectedToken.current,
+                "parameters": {
+                    host: selectedFolderData.host,
+                    path: tasks[i].path,
+                    full_path: tasks[i].full_path,
+                    file: tasks[i].filename,
+                },
+                "ui_feature": tasks[i].uifeature,
+                openDialog: tasks[i].openDialog,
+                getConfirmation: tasks[i].getConfirmation,
+                callback_id: tasks[i].callback_id,
+                callback_display_id: tasks[i].callback_display_id});
+        }
+        multipleTasks.current = updatedTasks;
+        taskingData.current = multipleTasks.current.pop()
+        setOpenTaskingButton(true);
+    }, [selectedFolderData, localSelectedToken.current]);
+    React.useEffect( () => {
+        if(!openTaskingButton){
+            if(multipleTasks.current.length > 0){
+                taskingData.current = multipleTasks.current.pop()
+                setOpenTaskingButton(true);
+            }
+        }
+    }, [openTaskingButton]);
     const onTaskRowAction = useCallback(({ path, full_path, filename, uifeature, openDialog, getConfirmation, callback_id, callback_display_id }) => {
         taskingData.current = ({
             "token": localSelectedToken.current,
@@ -422,9 +520,22 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             "ui_feature": "file_browser:list", callback_id, callback_display_id});
         setOpenTaskingButton(true);
     }
+    const openDirectoryPath = ({group, host, path}) => {
+        let parentNodes = getAllParentNodes({full_path_text: path});
+        getFolderData({
+            variables: {parent_path_text: path, parents: parentNodes}
+        })
+        setBackdropOpen(true);
+        setSelectedFolderData({host, group, full_path_text: path, id: 0});
+        tableOpenedPathIdRef.current = {
+            group: group,
+            host: host,
+            full_path_text: path
+        };
+    }
     return (
         <MythicTabPanel index={index} value={value}>
-            <Split direction="horizontal" style={{width: "100%", height: "100%", display: "flex"}} sizes={[30, 70]} >
+            <Split direction="horizontal" style={{width: "100%", height: "100%", display: "flex", overflow: "hidden"}} sizes={[30, 70]} >
                 <div className="bg-gray-base" style={{display: "inline-flex"}}>
                     <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={true}>
                         <CircularProgress color="inherit" />
@@ -448,6 +559,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                             <FileBrowserTableTop
                                 tabInfo={tabInfo}
                                 taskingTableTopTypedDataRef={taskingTableTopTypedDataRef}
+                                autoTaskLsOnEmptyDirectoriesRef={autoTaskLsOnEmptyDirectories}
                                 onChangeSelectedToken={onChangeSelectedToken}
                                 selectedFolderData={selectedFolderData}
                                 onListFilesButton={onListFilesButton}
@@ -455,6 +567,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                                 toggleShowDeletedFiles={toggleShowDeletedFiles}
                                 fetchParentFolderData={fetchParentFolderData}
                                 fetchFolderData={fetchFolderData}
+                                openDirectoryPath={openDirectoryPath}
                             />
                         </div>
                         <div style={{ flexGrow: 1 }}>
@@ -469,7 +582,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                                 treeAdjMatrix={treeAdjMtx}
                                 onListFilesButtonFromTableWithNoEntries={onListFilesButtonFromTableWithNoEntries}
                                 selectedFolderData={selectedFolderData}
+                                autoTaskLsOnEmptyDirectories={autoTaskLsOnEmptyDirectories.current}
                                 onTaskRowAction={onTaskRowAction}
+                                onTaskRowActions={onTaskRowActions}
                                 me={me}
                             />
                         </div>
@@ -494,14 +609,20 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
 const FileBrowserTableTop = ({
     selectedFolderData,
     taskingTableTopTypedDataRef,
+    autoTaskLsOnEmptyDirectoriesRef,
     onChangeSelectedToken,
     onListFilesButton,
     onUploadFileButton,
     toggleShowDeletedFiles,
     fetchParentFolderData,
     fetchFolderData,
+    openDirectoryPath,
     tabInfo
 }) => {
+    const initialAutoTaskLsOnEmptyDirectories = useMythicSetting({
+        setting_name: "autoTaskLsOnEmptyDirectories", default_value: "false"
+    });
+    const [autoTaskLsOnEmptyDirectories, setAutoTaskLsOnEmptyDirectories] = React.useState(initialAutoTaskLsOnEmptyDirectories);
     const [fullPath, setFullPath] = React.useState('');
     const selectedToken = React.useRef("Default Token");
     const [tokenOptions, setTokenOptions] = React.useState([]);
@@ -535,7 +656,10 @@ const FileBrowserTableTop = ({
         }
     });
     useEffect(() => {
-        if (selectedFolderData.full_path_text !== undefined) {
+        if(selectedFolderData.root) {
+            setFullPath("");
+            taskingTableTopTypedDataRef.current.path = "";
+        } else if (selectedFolderData.full_path_text !== undefined) {
             setFullPath(selectedFolderData.full_path_text);
             taskingTableTopTypedDataRef.current.path = selectedFolderData.full_path_text;
         }
@@ -595,17 +719,31 @@ const FileBrowserTableTop = ({
         if(selectedFolderData.parent_path_text !== ""){
             fetchParentFolderData(selectedFolderData)
         }
+    };
+    const onToggleAutoTaskLsOnEmptyDirectories = () => {
+        SetMythicSetting({setting_name: "autoTaskLsOnEmptyDirectories", value: !autoTaskLsOnEmptyDirectories});
+        setAutoTaskLsOnEmptyDirectories(!autoTaskLsOnEmptyDirectories);
     }
+    const goToDirectory = () => {
+        if(fullPath === ""){return}
+        openDirectoryPath({
+            group:selectedFolderData.group,
+            host: selectedFolderData.host,
+            path: fullPath,
+        })
+    }
+    useEffect( () => {
+        autoTaskLsOnEmptyDirectoriesRef.current = autoTaskLsOnEmptyDirectories;
+    }, [autoTaskLsOnEmptyDirectories]);
     return (
         <Grid container spacing={0} style={{ paddingTop: '10px' }}>
             <Grid item xs={12} >
                 <MythicTextField
                     placeholder={selectedFolderData.host}
                     value={fullPath}
-                    onEnter={onLocalListFilesButton}
+                    onEnter={goToDirectory}
                     onChange={onChangePath}
                     name={placeHolder}
-
                     InputProps={{
                         endAdornment: (
                             <React.Fragment>
@@ -625,6 +763,25 @@ const FileBrowserTableTop = ({
                                         <CloudUploadIcon color="info" />
                                     </IconButton>
                                 </MythicStyledTooltip>
+                                {autoTaskLsOnEmptyDirectories ? (
+                                    <MythicStyledTooltip title={"Currently tasking listing on empty directories, click to toggle off"} >
+                                        <IconButton style={{padding: "3px"}}
+                                                    onClick={onToggleAutoTaskLsOnEmptyDirectories}
+                                                    disableRipple={true} disableFocusRipple={true}
+                                                    size={"large"}>
+                                            <PlaylistAddIcon color={"success"} ></PlaylistAddIcon>
+                                        </IconButton>
+                                    </MythicStyledTooltip>
+                                ) : (
+                                    <MythicStyledTooltip title={"Currently not tasking listing on empty directories, click to toggle on"} >
+                                        <IconButton style={{padding: "3px"}}
+                                                    onClick={onToggleAutoTaskLsOnEmptyDirectories}
+                                                    disableRipple={true} disableFocusRipple={true}
+                                                    size={"large"}>
+                                            <PlaylistRemoveIcon color={"secondary"} ></PlaylistRemoveIcon>
+                                        </IconButton>
+                                    </MythicStyledTooltip>
+                                )}
                                 <MythicStyledTooltip title={showDeletedFiles ? 'Hide Deleted Files' : 'Show Deleted Files'}>
                                     <IconButton
                                         style={{ padding: '3px' }}
@@ -673,7 +830,7 @@ const FileBrowserTableTop = ({
                                     <IconButton style={{padding: "0 0 0 0"}}
                                                 onClick={onLocalMoveUpDirectoryButton}
                                                 disableRipple={true} disableFocusRipple={true}
-                                                disabled={selectedFolderData.id === "" || selectedFolderData.parent_path_text === ""}
+                                                disabled={selectedFolderData?.parent_path_text?.length === 0 || selectedFolderData.root || fullPath === ""}
                                     >
                                         <KeyboardReturnIcon style={{rotate: "90deg"}} ></KeyboardReturnIcon>
                                     </IconButton>

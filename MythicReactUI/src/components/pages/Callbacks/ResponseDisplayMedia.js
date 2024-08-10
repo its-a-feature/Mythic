@@ -290,7 +290,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
 const MaxRenderSize = 2000000;
 const DisplayFileMetaData = ({fileMetaData}) => {
     return (
-        <Table style={{marginLeft: "10px", width: "100%", tableLayout: "fixed"}}>
+        <Table style={{marginLeft: "0px", width: "100%", tableLayout: "fixed"}}>
             <TableHead>
                 <TableRow>
                     <MythicStyledTableCell style={{width: "7rem"}}>Size</MythicStyledTableCell>
