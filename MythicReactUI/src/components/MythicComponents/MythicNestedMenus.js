@@ -12,6 +12,9 @@ export const Dropdown = React.forwardRef(
             onOpen: onControlledOpen,
             externallyOpen,
             minWidth,
+            absoluteX,
+            absoluteY,
+            anchorReference,
             style
         },
         ref
@@ -20,7 +23,7 @@ export const Dropdown = React.forwardRef(
 
         const isOpen = controlledIsOpen || isInternalOpen;
 
-        let anchorRef = React.useRef(null);
+        let anchorRef = React.useRef(isOpen);
         if (ref) {
             anchorRef = ref;
         }
@@ -34,11 +37,9 @@ export const Dropdown = React.forwardRef(
 
             handleForceClose();
         };
-
         const handleForceClose = () => {
             onControlledOpen ? onControlledOpen(null) : setInternalOpen(null);
         };
-
         const renderMenu = (menuItem, index) => {
             const { ...props } = menuItem.props;
 
@@ -64,22 +65,24 @@ export const Dropdown = React.forwardRef(
                     : props.children
             });
         };
-
         return (
             <>
                 <Menu
                     PaperProps={{ sx: { minWidth: minWidth ?? 0 } }}
                     anchorEl={isOpen}
+                    transition={"true"}
                     open={!!externallyOpen}
+                    anchorPosition={{top: absoluteY, left: absoluteX}}
+                    anchorReference={ anchorReference ? anchorReference : "anchorEl"}
                     onClose={handleClose}
-                    style={style}
-                    modifiers={[{
-                        name: 'arrow',
-                        enabled: true,
-                        options: {
-                            element: anchorRef,
-                        },
-                    }]}
+                    anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'left',
+                    }}
+                    transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'left',
+                    }}
                 >
                     {React.Children.map(menu, renderMenu)}
                 </Menu>

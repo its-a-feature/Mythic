@@ -13,6 +13,7 @@ import { useTheme } from '@mui/material/styles';
 import { Typography } from '@mui/material';
 import { MythicStyledTooltip } from "./MythicStyledTooltip";
 import WidgetsIcon from '@mui/icons-material/Widgets';
+import { areEqual } from 'react-window';
 
 const PREFIX = 'FileBrowserVirtualTree';
 
@@ -138,8 +139,19 @@ const StyledAutoSizer = styled(AutoSizer)((
       width: 1,
   }
 }));
-
-const VirtualTreeRow = ({
+function itemKey(index, data) {
+    // Find the item at the specified index.
+    // In this case "data" is an Array that was passed to List as "itemData".
+    const item = data[index];
+    if(item.root){
+        return `${item.group};${item.id}`;
+    }
+    if(item.is_group){
+        return item.group;
+    }
+    return `${item.group};${item.host};${item.full_path_text}`;
+}
+const VirtualTreeRow = React.memo(({
   onSelectNode,
   onExpandNode,
   onCollapseNode,
@@ -149,7 +161,6 @@ const VirtualTreeRow = ({
   selectedFolderData,
   ...ListProps
 }) => {
-    const dropdownRef = React.useRef(null);
   const itemTreeData = ListProps.data[ListProps.index];
   const item = ListProps.treeRootData[itemTreeData.group]?.[itemTreeData.host]?.[itemTreeData.full_path_text] || itemTreeData;
   //console.log("item", item, "itemlookup", ListProps.treeRootData[itemTreeData.host]?.[itemTreeData.name])
@@ -167,7 +178,7 @@ const VirtualTreeRow = ({
       onSelectNode(item.id,  {...item, group: itemTreeData.group, host: itemTreeData.host});
   };
   const handleContextClick = (e) => {
-      onContextMenu({event: e, item, itemTreeData, dropdownRef});
+      onContextMenu({event: e, item, itemTreeData});
   }
   const selectedPath = () => {
       if(itemTreeData.group === selectedFolderData.group && itemTreeData.host === selectedFolderData.host){
@@ -183,8 +194,6 @@ const VirtualTreeRow = ({
   return (
     <div className={`hoverme ${selectedPath()}`}
          style={ListProps.style}
-
-         onContextMenu={handleContextClick}
          onClick={handleOnClickRow}>
     <div style={{display: 'flex' , marginBottom: "1px", flexGrow: 1, width: "100%"}}>
         {[...Array(itemTreeData.depth)].map((o, i) => (
@@ -200,7 +209,7 @@ const VirtualTreeRow = ({
         <div
           className={classes.root}
           style={{ backgroundColor: theme.body, color: theme.text, alignItems: 'center', display: 'flex', paddingRight: "10px", textDecoration: itemTreeData.deleted ? 'line-through' : ''  }}
-          ref={dropdownRef}
+          onContextMenu={handleContextClick}
           >
 
           {itemTreeData.is_group ? (
@@ -269,9 +278,8 @@ const VirtualTreeRow = ({
     </div>
     </div>
   );
-};
-
-const FileBrowserVirtualTree = ({
+}, areEqual);
+const FileBrowserVirtualTreePreMemo = ({
   treeRootData,
   treeAdjMatrix,
   openNodes,
@@ -401,8 +409,6 @@ const FileBrowserVirtualTree = ({
             }, []).flat())
         }
     }
-
-    //console.log("flattened data", finalData)
     return finalData;
     //nodes.map((node) => flattenNode(node)).flat()
   },[flattenNode, treeRootData, treeAdjMatrix, showDeletedFiles]);
@@ -415,6 +421,7 @@ const FileBrowserVirtualTree = ({
         height={AutoSizerProps.height}
         width={AutoSizerProps.width}
         itemCount={flattenedNodes.length}
+        itemKey={itemKey}
         itemSize={24}
       >
         {(ListProps) => (
@@ -434,5 +441,4 @@ const FileBrowserVirtualTree = ({
   </StyledAutoSizer>
   ) : null;
 };
-
-export default FileBrowserVirtualTree;
+export const FileBrowserVirtualTree = React.memo(FileBrowserVirtualTreePreMemo);

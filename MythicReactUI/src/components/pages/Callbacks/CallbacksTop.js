@@ -223,6 +223,7 @@ export function CallbacksTop(props){
     const callbackEdges = React.useRef([]);
     const fromNow = React.useRef(new Date());
     const mountedRef = React.useRef(true);
+    const [loading, setLoading] = React.useState(true);
     useSubscription(SUB_Callbacks, {
         variables: {fromNow: fromNow.current},
         fetchPolicy: "no-cache",
@@ -230,7 +231,6 @@ export function CallbacksTop(props){
             if(!mountedRef.current){
                 return;
             }
-
             const updated = data.data.callback_stream.reduce( (prev, cur) => {
                 let existingIndex = prev.findIndex( (element, i, array) => element.id === cur.id);
                 if(existingIndex === -1){
@@ -247,7 +247,6 @@ export function CallbacksTop(props){
                 prev[existingIndex] = {...prev[existingIndex], ...cur};
                 return [...prev];
             }, callbacks.current);
-
             updated.sort( (a, b) => a.display_id > b.display_id ? -1 : 1);
             callbacks.current = updated;
         },
@@ -274,10 +273,10 @@ export function CallbacksTop(props){
                 prev[existingIndex] = {...prev[existingIndex], ...cur};
                 return [...prev];
             }, callbacks.current);
-
             updated.sort( (a, b) => a.display_id > b.display_id ? -1 : 1);
             callbacks.current = updated;
             callbackEdges.current = data.callbackgraphedge;
+            setLoading(false);
         }
     })
     useSubscription(SUB_Edges, {
@@ -358,6 +357,7 @@ export function CallbacksTop(props){
                           ) : (
                               <CallbacksTable callbackTableGridRef={props.callbackTableGridRef}
                                               parentMountedRef={mountedRef} me={me}
+                                              loading={loading}
                                               clickedTabId={props.clickedTabId}/>
                           )
                           }

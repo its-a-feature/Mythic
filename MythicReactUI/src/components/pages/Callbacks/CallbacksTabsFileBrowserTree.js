@@ -1,5 +1,5 @@
 import React from 'react';
-import FileBrowserVirtualTree from '../../MythicComponents/MythicFileBrowserVirtualTree';
+import {FileBrowserVirtualTree} from '../../MythicComponents/MythicFileBrowserVirtualTree';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {ViewCallbackMythicTreeGroupsDialog} from "./ViewCallbackMythicTreeGroupsDialog";
 import ListIcon from '@mui/icons-material/List';
@@ -10,7 +10,7 @@ import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicCo
 export const getOpenIDFromNode = (node) => {
     return `${node.group};${node.host};${node.full_path_text}`;
 }
-export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetchFolderData, setTableData, taskListing, tableOpenedPathId, showDeletedFiles, tabInfo, selectedFolderData}) => {
+export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatrix, fetchFolderData, setTableData, taskListing, tableOpenedPathId, showDeletedFiles, tabInfo, selectedFolderData}) => {
     const [openNodes, setOpenNodes] = React.useState({});
     const groupName = React.useRef("");
     const [openViewGroupsDialog, setOpenViewGroupDialog] = React.useState(false);
@@ -23,13 +23,13 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
           [getOpenIDFromNode(nodeData)]: true
         });
       };
-    const toggleNodeCollapsed = (nodeId, nodeData) => {
+    const toggleNodeCollapsed =  (nodeId, nodeData) => {
         setOpenNodes({
           ...openNodes,
           [getOpenIDFromNode(nodeData)]: false
         });
       };
-    const onSelectNode = (nodeId, nodeData) => {
+    const onSelectNode = React.useCallback( (nodeId, nodeData) => {
         if(nodeData.root){
             setTableData(nodeData);
         }else if(nodeData.is_group){
@@ -41,27 +41,33 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
             toggleNodeExpanded(nodeId, nodeData);
         }
 
-    };
+    }, [openNodes, setTableData]);
     React.useEffect( () => {
         let group = tableOpenedPathId.group;
-        if(group === ""){
-            group = selectedFolderData.group;
-        }
         let host = tableOpenedPathId.host;
-        if(host === ""){
-            host = selectedFolderData.host;
-        }
-        let allPaths = [...getAllParentNodes(tableOpenedPathId), ...getAllParentNodes(selectedFolderData)];
+        let allPaths = [...getAllParentNodes(tableOpenedPathId),];
         const additionalOpenNodes = allPaths.reduce( (prev, cur) => {
             return {...prev, [getOpenIDFromNode({group: group, host: host, full_path_text: cur})]: true}
-        }, {})
+        }, {});
       setOpenNodes({
         ...openNodes,
         [getOpenIDFromNode(tableOpenedPathId)]: true,
-        [getOpenIDFromNode(selectedFolderData)]: true,
           ...additionalOpenNodes
       });
-    }, [tableOpenedPathId, selectedFolderData]);
+    }, [tableOpenedPathId]);
+    React.useEffect( () => {
+        let group = selectedFolderData.group;
+        let host = selectedFolderData.host;
+        let allPaths = [...getAllParentNodes(selectedFolderData)];
+        const additionalOpenNodes = allPaths.reduce( (prev, cur) => {
+            return {...prev, [getOpenIDFromNode({group: group, host: host, full_path_text: cur})]: true}
+        }, {});
+        setOpenNodes({
+            ...openNodes,
+            [getOpenIDFromNode(selectedFolderData)]: true,
+            ...additionalOpenNodes
+        });
+    }, [selectedFolderData]);
     const contextMenuOptions= (callback_id, callback_display_id, node) => [
       {
           name: 'List', type: "item", icon: <ListIcon color="warning" style={{ paddingRight: '5px'}} />,
@@ -72,12 +78,14 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
       },
   ];
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
-    const contextMenuData = React.useRef({});
-    const onContextMenu = ({event, item, itemTreeData, dropdownRef}) => {
+    const contextMenuData = React.useRef({options: []});
+    const onContextMenu = React.useCallback( ({event, item, itemTreeData}) => {
         event.preventDefault();
         event.stopPropagation();
         contextMenuData.current = {item, itemTreeData,
-        x: event.clientX, y:event.clientY, dropdownRef};
+            x: event.clientX,
+            y:event.clientY,
+            dropdownAnchorRef: event.currentTarget};
         if(contextMenuData.current.item?.root){
 
         }else if(contextMenuData.current.item?.is_group){
@@ -99,7 +107,7 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
             contextMenuData.current.options = options;
             setOpenContextMenu(true);
         }
-    }
+    }, []);
     const handleMenuItemClick = (event, click) => {
         event.preventDefault();
         event.stopPropagation();
@@ -141,15 +149,17 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
                   }
               />
           }
-          {openContextMenu &&
               <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
                   <Dropdown
-                      isOpen={contextMenuData.current?.dropdownRef?.current}
+                      isOpen={contextMenuData.current.dropdownAnchorRef}
                       onOpen={setOpenContextMenu}
                       externallyOpen={openContextMenu}
+                      absoluteX={contextMenuData.current.x}
+                      absoluteY={contextMenuData.current.y}
+                      anchorReference={"anchorPosition"}
                       style={{
-                          top: contextMenuData.current?.y,
-                          left: contextMenuData.current?.x
+                          //top: contextMenuData.current.y,
+                          //left: contextMenuData.current.x
                       }}
                       menu={[
                           ...contextMenuData.current?.options?.map((option, index) => (
@@ -180,9 +190,9 @@ export const CallbacksTabsFileBrowserTree = ({ treeRootData, treeAdjMatrix, fetc
                               ) : null))
                       ]}/>
               </ClickAwayListener>
-          }
 
       </>
 
   )
 };
+export const CallbacksTabsFileBrowserTree = React.memo(CallbacksTabsFileBrowserTreePreMemo);

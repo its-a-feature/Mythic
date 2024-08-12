@@ -194,6 +194,8 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["extra_hosts"] = []string{
 				"mythic_server:${MYTHIC_SERVER_HOST}",
 			}
+		} else {
+			delete(pStruct, "extra_hosts")
 		}
 	case "mythic_nginx":
 		if mythicEnv.GetBool("nginx_use_build_context") {
@@ -277,6 +279,8 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["extra_hosts"] = []string{
 				"mythic_server:${MYTHIC_SERVER_HOST}",
 			}
+		} else {
+			delete(pStruct, "extra_hosts")
 		}
 
 	case "mythic_rabbitmq":

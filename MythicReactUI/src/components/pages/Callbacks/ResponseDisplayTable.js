@@ -255,17 +255,17 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
         return (
           <React.Fragment>
             <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
-              <Button size="small" variant="contained" color="primary" 
+              <Button size="small" color="primary"
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
-                startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
+                startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor}}/> : null}
                 style={{...actionCellButtonStyle}}
-              >{cellData?.button?.name || "View Dictionary Data"}</Button>
+              >{cellData?.button?.name}</Button>
             </MythicStyledTooltip>
             {openButton &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openButton} 
                     onClose={()=>{setOpenButton(false);}} 
-                    innerDialog={<MythicViewJSONAsTableDialog title={cellData?.button?.title || "Title Here"} leftColumn={cellData?.button?.leftColumnTitle || "Left Column"} 
-                    rightColumn={cellData?.button?.rightColumnTitle || "Right Column"} value={cellData?.button?.value || {}} onClose={()=>{setOpenButton(false);}} />}
+                    innerDialog={<MythicViewJSONAsTableDialog title={cellData?.button?.title} leftColumn={cellData?.button?.leftColumnTitle}
+                    rightColumn={cellData?.button?.rightColumnTitle} value={cellData?.button?.value || {}} onClose={()=>{setOpenButton(false);}} />}
                 />
               }
             </React.Fragment>
@@ -274,14 +274,14 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
         return (
           <React.Fragment>
             <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
-              <Button size="small" variant="contained" color="primary" 
+              <Button size="small" color="primary"
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
-                startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
+                startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor}}/> : null}
                 style={{...actionCellButtonStyle}}
-              >{cellData?.button?.name || "View Data"}</Button>
+              >{cellData?.button?.name}</Button>
             </MythicStyledTooltip>
             {openButton &&
-                <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openButton} title={cellData?.button?.title || "Title Here"} value={cellData?.button?.value || ""}
+                <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openButton} title={cellData?.button?.title} value={cellData?.button?.value || ""}
                     onClose={()=>{setOpenButton(false);}}
                 />
               }
@@ -291,16 +291,16 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
         return (
           <React.Fragment>
             <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
-              <Button size="small" variant="contained" color="primary" 
+              <Button size="small" color="primary"
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
                 style={{...actionCellButtonStyle}}
-              >{cellData?.button?.name || "View Data"}</Button>
+              >{cellData?.button?.name}</Button>
             </MythicStyledTooltip>
             {openButton &&
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openButton} 
                     onClose={()=>{setOpenButton(false);}} 
-                    innerDialog={<ResponseDisplayTableDialogTable title={cellData?.button?.title || "Title Here"} 
+                    innerDialog={<ResponseDisplayTableDialogTable title={cellData?.button?.title}
                     table={cellData?.button?.value || {}} callback_id={callback_id} onClose={()=>{setOpenButton(false);}} />}
                 />
               }
@@ -348,18 +348,18 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
             />
             }
             {openStringButton &&
-              <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openStringButton} title={taskingData?.title || "Title Here"} value={taskingData?.value || ""}
+              <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openStringButton} title={taskingData?.title} value={taskingData?.value || ""}
                   onClose={finishedViewingData}
               />
             }
             {openTableButton &&
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openTableButton} 
                     onClose={finishedViewingData} 
-                    innerDialog={<ResponseDisplayTableDialogTable title={taskingData?.title || "Title Here"} 
+                    innerDialog={<ResponseDisplayTableDialogTable title={taskingData?.title}
                     table={taskingData?.value || {}} callback_id={callback_id} onClose={finishedViewingData} />}
                 />
               }
-              <Button size="small" variant="contained" color="primary" ref={dropdownAnchorRef}
+              <Button size="small" color="primary" ref={dropdownAnchorRef}
                 onClick={() => setOpenDropdownButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
                 style={{...actionCellButtonStyle}}
@@ -372,7 +372,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
                         transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                       }}
                     >
-                      <Paper variant="outlined" style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                      <Paper style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
                         <ClickAwayListener onClickAway={handleClose}>
                           <MenuList id="split-button-menu"  >
                             {cellData.button.value.map((option, index) => (

@@ -730,18 +730,33 @@ function CallbacksTablePreMemo(props){
         onOpenTabs({tabs: newTabs});
         setOpenMultipleTabsDialog({open: false, tabType: "interact"});
     }
+    if(props.loading){
+      return (
+          <div style={{width: '100%', height: '100%', position: "relative",}}>
+              <div style={{overflowY: "hidden", flexGrow: 1}}>
+                  <div style={{
+                      position: "absolute",
+                      left: "35%",
+                      top: "40%"
+                  }}>
+                      {"Loading Callbacks and Connections..."}
+                  </div>
+              </div>
+          </div>
+      )
+    }
     return (
-        <div style={{ width: '100%', height: '100%', position: "relative",  }} >
-          <MythicResizableGrid
-              callbackTableGridRef={props.callbackTableGridRef}
-              columns={columns}
-              sortIndicatorIndex={sortColumn}
-              sortDirection={sortData.sortDirection}
-              items={sortedData}
-              rowHeight={20}
-              onClickHeader={onClickHeader}
-              onDoubleClickRow={onRowDoubleClick}
-              contextMenuOptions={contextMenuOptions}
+        <div style={{width: '100%', height: '100%', position: "relative",}}>
+            <MythicResizableGrid
+                callbackTableGridRef={props.callbackTableGridRef}
+                columns={columns}
+                sortIndicatorIndex={sortColumn}
+                sortDirection={sortData.sortDirection}
+                items={sortedData}
+                rowHeight={20}
+                onClickHeader={onClickHeader}
+                onDoubleClickRow={onRowDoubleClick}
+                contextMenuOptions={contextMenuOptions}
               onRowContextMenuClick={onRowContextClick}
           />
           {openContextMenu &&
@@ -797,42 +812,44 @@ function CallbacksTablePreMemo(props){
                                   selectCallback={taskingData.current?.selectCallback || false}
                                   onTasked={() => setOpenTaskingButton(false)}/>
             }
-            <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
-                <Dropdown
-                      isOpen={callbackDropdownRef.current.dropdownAnchorRef}
-                      onOpen={setOpenCallbackDropdown}
-                      externallyOpen={openCallbackDropdown}
-                      menu={
-                          callbackDropdownRef.current.options.map((option, index) => (
-                              option.type === 'item' ? (
-                                  <DropdownMenuItem
-                                      key={option.name}
-                                      disabled={option.disabled}
-                                      onClick={(event) => handleMenuItemClick(event, option.click)}
-                                  >
-                                      {option.icon}{option.name}
-                                  </DropdownMenuItem>
-                              ) : option.type === 'menu' ? (
-                                  <DropdownNestedMenuItem
-                                      label={option.name}
-                                      disabled={option.disabled}
-                                      menu={
-                                      option.menuItems.map((menuOption, indx) => (
-                                          <DropdownMenuItem
-                                              key={menuOption.name}
-                                              disabled={menuOption.disabled}
-                                              onClick={(event) => handleMenuItemClick(event, menuOption.click)}
-                                          >
-                                              {menuOption.icon}{menuOption.name}
-                                          </DropdownMenuItem>
-                                      ))
-                                      }
-                              />
-                              ) : null
-                          ))
-                      }
-                />
-            </ClickAwayListener>
+            {openCallbackDropdown &&
+                <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+                    <Dropdown
+                        isOpen={callbackDropdownRef.current.dropdownAnchorRef}
+                        onOpen={setOpenCallbackDropdown}
+                        externallyOpen={openCallbackDropdown}
+                        menu={
+                            callbackDropdownRef.current.options.map((option, index) => (
+                                option.type === 'item' ? (
+                                    <DropdownMenuItem
+                                        key={option.name}
+                                        disabled={option.disabled}
+                                        onClick={(event) => handleMenuItemClick(event, option.click)}
+                                    >
+                                        {option.icon}{option.name}
+                                    </DropdownMenuItem>
+                                ) : option.type === 'menu' ? (
+                                    <DropdownNestedMenuItem
+                                        label={option.name}
+                                        disabled={option.disabled}
+                                        menu={
+                                            option.menuItems.map((menuOption, indx) => (
+                                                <DropdownMenuItem
+                                                    key={menuOption.name}
+                                                    disabled={menuOption.disabled}
+                                                    onClick={(event) => handleMenuItemClick(event, menuOption.click)}
+                                                >
+                                                    {menuOption.icon}{menuOption.name}
+                                                </DropdownMenuItem>
+                                            ))
+                                        }
+                                    />
+                                ) : null
+                            ))
+                        }
+                    />
+                </ClickAwayListener>
+            }
 
             {openAdjustColumnsDialog &&
               <MythicDialog fullWidth={true} maxWidth="md" open={openAdjustColumnsDialog} 

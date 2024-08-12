@@ -706,6 +706,14 @@ const FileBrowserTableTop = ({
             snackActions.warning('Must provide a path to list');
             return;
         }
+        if(fullPath.length > 1){
+            if(fullPath[fullPath.length-1] === "/" || fullPath[fullPath.length-1] === "\\"){
+                let newFullPath = fullPath.slice(0, fullPath.length-1);
+                setFullPath(newFullPath);
+                onListFilesButton({ fullPath: newFullPath, token: selectedToken.current });
+                return
+            }
+        }
         onListFilesButton({ fullPath, token: selectedToken.current });
     };
     const onLocalUploadFileButton = () => {
@@ -726,6 +734,18 @@ const FileBrowserTableTop = ({
     }
     const goToDirectory = () => {
         if(fullPath === ""){return}
+        if(fullPath.length > 1){
+            if(fullPath[fullPath.length-1] === "/" || fullPath[fullPath.length-1] === "\\"){
+                let newFullPath = fullPath.slice(0, fullPath.length-1);
+                setFullPath(newFullPath);
+                openDirectoryPath({
+                    group: selectedFolderData.group,
+                    host: selectedFolderData.host,
+                    path: newFullPath,
+                })
+                return
+            }
+        }
         openDirectoryPath({
             group:selectedFolderData.group,
             host: selectedFolderData.host,

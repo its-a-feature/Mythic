@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.20] - 2024-08-11
+
+### Changed
+
+- Fixed context menu in mythic tree to not disappear when new data comes in
+- Fixed context menus to not shrink and scroll when at the bottom of the screen
+- Fixed an issue where trailing slashes on the file browser wouldn't auto-populate data
+- Fixed an issue where double data might open when clicking to expand a folder in the file browser tree view
+- Fixed issue with 1-2s delay showing callback data as blank with new loading message
+
 ## [0.2.19] - 2024-08-09
 
 ### Changed
