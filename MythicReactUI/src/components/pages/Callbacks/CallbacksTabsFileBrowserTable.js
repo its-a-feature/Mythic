@@ -36,6 +36,7 @@ import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
+import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";
 
 const getFileDownloadHistory = gql`
     query getFileDownloadHistory($full_path_text: String!, $host: String!, $group: [String!]) {
@@ -195,10 +196,14 @@ export const CallbacksTabsFileBrowserTable = (props) => {
             return "normal";
         } else if(sortedData.length === 0 && props?.selectedFolderData?.metadata?.has_children && props?.selectedFolderData?.success === null){
             return "fetchLocal";
-        }else if(sortedData.length === 0 && !props?.selectedFolderData?.metadata?.has_children && props?.selectedFolderData?.success === null){
+        }else if(sortedData.length === 0 && !props?.selectedFolderData?.metadata?.has_children && props?.selectedFolderData?.success === null) {
             return "fetchRemote";
+        }else if(sortedData.length === 0 && props?.selectedFolderData?.success === false){
+            return "showTask";
         } else if(sortedData.length === 0){
             return "fetchRemote";
+        } else {
+            return "normal";
         }
     }
     const displayFormat = getDisplayFormat();
@@ -213,21 +218,6 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         setAllData(newAllData);
         //console.log("just set all data")
     }, [props.selectedFolderData, props.treeAdjMatrix]);
-    useEffect(() => {
-        // when the folder changes, we need to aggregate all of the entries
-        //console.log(props.selectedFolderData, props.treeAdjMatrix, props.treeRootData)
-        let desiredPath = props.selectedFolderData.full_path_text;
-        if(props.selectedFolderData.id === props.selectedFolderData.host){
-            desiredPath = "";
-        }
-        let newAllData = Object.keys(props.treeAdjMatrix[props.selectedFolderData.group]?.[props.selectedFolderData.host]?.[desiredPath] || {});
-        if(props.autoTaskLsOnEmptyDirectories){
-            if(newAllData.length === 0 && desiredPath !== "" && props.selectedFolderData.finished && props.selectedFolderData.success === null){
-                props.onListFilesButtonFromTableWithNoEntries()
-            }
-        }
-        //console.log("just set all data")
-    }, [props.selectedFolderData]);
     const onRowDoubleClick = (e, rowIndex, rowData) => {
         if (!rowData.can_have_children) {
             return;
@@ -544,8 +534,9 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                     </div>
                 </div>
             }
-
-
+            {displayFormat === "showTask" && props.selectedFolderData?.task_id > 0 &&
+                <RenderSingleTask task_id={props.selectedFolderData?.task_id} />
+            }
             {openContextMenu &&
                 <MythicDialog fullWidth={true} maxWidth="xs" open={openContextMenu}
                               onClose={() => {
@@ -731,6 +722,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
     };
     const handleDropdownToggle = (evt) => {
         evt.stopPropagation();
+        evt.preventDefault();
         setDropdownOpen((prevOpen) => !prevOpen);
     };
     const handleMenuItemClick = (event, click) => {
@@ -835,6 +827,11 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
         }
         return options;
     }
+    const openFilePreview = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        setOpenPreviewMediaDialog(true);
+    }
     return (
         <React.Fragment>
             <IconButton
@@ -852,7 +849,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
             {treeRootData[selectedFolderData.host][cellData]?.filemeta.length > 0 ?
                 <MythicStyledTooltip title={"Preview Media"}>
                     <FontAwesomeIcon icon={faPhotoVideo} style={{height: "15px", marginRight: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
-                                     onClick={() => setOpenPreviewMediaDialog(true)}/>
+                                     onClick={openFilePreview}/>
                 </MythicStyledTooltip>
 
                 : null}

@@ -8,7 +8,6 @@ import {hideCallbacksMutation} from './CallbackMutations';
 import {snackActions} from "../../utilities/Snackbar";
 import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell, CallbacksTableIPCell} from "./CallbacksTableRow";
 import { DataGrid } from '@mui/x-data-grid';
-import {useTheme} from '@mui/material/styles';
 
 
 const callbacksAndFeaturesQuery = gql`

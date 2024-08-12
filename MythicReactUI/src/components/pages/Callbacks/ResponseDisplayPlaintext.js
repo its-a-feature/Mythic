@@ -125,15 +125,16 @@ export const ResponseDisplayPlaintext = (props) =>{
           }
           <div style={{height: "1px", width: "100%", display: "flex", zIndex: 1,  backgroundColor: theme.palette.secondary.main}}>
               {showOptions &&
-                <UnfoldLessIcon onClick={onChangeShowOptions} style={{cursor: "pointer", position: "relative", top: "-8px"}} />
+                <UnfoldLessIcon onClick={onChangeShowOptions} style={{cursor: "pointer", position: "relative", top: "-9px"}} />
               }
               {!showOptions &&
-                <UnfoldMoreIcon onClick={onChangeShowOptions} style={{cursor: "pointer", position: "relative", top: "-7px"}} />
+                <UnfoldMoreIcon onClick={onChangeShowOptions} style={{cursor: "pointer", position: "relative", top: "-9px"}} />
               }
           </div>
 
           <div style={{display: "flex", flexGrow: 1, height: "100%"}}>
                 <AceEditor
+                    className={"roundedBottomCorners"}
                     ref={currentContentRef}
                     mode={mode}
                     theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}

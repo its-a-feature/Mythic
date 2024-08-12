@@ -104,7 +104,7 @@ export function App(props) {
                 successOnMain: '#1ae302',
                 errorOnMain: '#ff656b',
                 infoOnMain: '#67ceff',
-                selectedCallbackColor: themeMode === 'dark' ? '#436b9f' : '#c6e5f6',
+                selectedCallbackColor: themeMode === 'dark' ? '#26456e' : '#c6e5f6',
                 selectedCallbackHierarchyColor:  themeMode === 'dark' ? '#273e5d' : '#deeff8',
                 materialReactTableHeader: themeMode === 'dark' ? '#484848' : '#d5d5d5',
                 tableBorder: themeMode === 'dark' ? 'rgba(81,81,81,1)' : 'rgba(224,224,224,1)',
@@ -164,7 +164,7 @@ export function App(props) {
                                     onClose={()=>{setOpenRefreshDialog(false);}} />}
                             />
                         }
-                        <div style={{ margin: '0px 0px 0px 0px', flexGrow: 1, flexDirection: 'column', height: "calc(100% - 4rem)",  }}>
+                        <div style={{ margin: '0px 2px 0px 5px', flexGrow: 1, flexDirection: 'column', height: "calc(100% - 4rem)",  }}>
                             <Routes>
                                 <Route path='/new/login' element={<LoginForm me={me}/>}/>
                                 <Route path='/new/invite' element={<InviteForm me={me}/>}/>

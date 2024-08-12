@@ -139,6 +139,7 @@ const InteractiveMessageTypes = [
     {"name": "None", "value": -1, "text": "None"},
     {"name": "Tab", "value": 13, "text": "^I"},
     {"name": "Backspace", "value": 12, "text": "^H"},
+    {"name": "Exit", "value": 3, "text": "exit"},
     {"name": "Escape", "value": 4, "text": "^["},
     {"name": "Ctrl+A", "value": 5, "text": "^A"},
     {"name": "Ctrl+B", "value": 6, "text": "^B"},

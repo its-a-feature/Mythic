@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.21] - 2024-08-12
+
+### Changed
+
+- Fixed an issue with file browser context menu available through modals
+- Added highlighting for .sh files
+- Fixed an issue where auto-tasking wouldn't fire for paths that didn't already exist
+- Updated dark mode file browser selection colors to be easier to see with info icons
+- Updated file browser to show errored task for failed paths to make it easier to see errors
+- Added a toast notification on file browser task errors
+
 ## [0.2.20] - 2024-08-11
 
 ### Changed

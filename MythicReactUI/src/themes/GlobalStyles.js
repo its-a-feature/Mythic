@@ -330,4 +330,8 @@ tspan {
 .MuiDataGrid-row.Mui-selected {
     background-color: ${(props) => props.theme.selectedCallbackColor} !important;
 }
+.roundedBottomCorners {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
 `

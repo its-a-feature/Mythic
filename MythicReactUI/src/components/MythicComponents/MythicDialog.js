@@ -37,6 +37,10 @@ export function MythicDialog(props) {
             props.onClose();
         }
     }
+    const dialogOnContextMenu = (e) => {
+        e.stopPropagation();
+
+    }
   return (
       <Dialog
         open={props.open}
@@ -48,6 +52,7 @@ export function MythicDialog(props) {
         aria-labelledby="scroll-dialog-title"
         aria-describedby="scroll-dialog-description"
         onClick={dialogOnClick}
+        onContextMenu={dialogOnContextMenu}
       >
         {props.innerDialog}
       </Dialog>

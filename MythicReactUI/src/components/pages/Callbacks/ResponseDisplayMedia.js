@@ -35,6 +35,7 @@ import 'ace-builds/src-noconflict/mode-nginx';
 import 'ace-builds/src-noconflict/mode-makefile';
 import 'ace-builds/src-noconflict/mode-kotlin';
 import 'ace-builds/src-noconflict/mode-dockerfile';
+import 'ace-builds/src-noconflict/mode-sh';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
@@ -180,7 +181,9 @@ const textExtensionTypesToSyntax = {
     "m": "objectivec",
     "mm": "objectivec",
     "Dockerfile": "Dockerfile",
-    "Makefile": "Makefile"
+    "Makefile": "Makefile",
+    "sh": "sh",
+    "rc": "sh",
 }
 const knownTextFiles = ["config", "credentials", "known_hosts", "config_default", "id_rsa", "Dockerfile", "Makefile"];
 const imgExtensionTypes = ["png", "jpg", "gif", "jpeg", "pdf"];

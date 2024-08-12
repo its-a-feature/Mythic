@@ -27,6 +27,7 @@ import {b64DecodeUnicode} from "./ResponseDisplay";
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
 import {SetMythicSetting, useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";
 
 const fileDataFragment = gql`
     fragment fileObjData on mythictree {
@@ -105,7 +106,19 @@ const fileDataSubscription = gql`
         }
     }
 `;
-
+const fileBrowserTaskSub = gql`
+    subscription fileBrowserTasks($now: timestamp!, $callback_id: Int!){
+        task_stream(
+            batch_size: 10,
+            cursor: {initial_value: {timestamp: $now}},
+            where: {tasking_location: {_eq: "file_browser"}, callback_id: {_eq: $callback_id}}
+        ){
+            id
+            status
+            completed
+        }
+    }
+`;
 export const getAllParentNodes = (node) => {
     let linuxPathSeparatorIndex = node.full_path_text.indexOf("/");
     let windowsPathSeparatorIndex = node.full_path_text.indexOf("\\");
@@ -199,7 +212,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         path: "",
         token: 0,
     });
-    const autoTaskLsOnEmptyDirectories = React.useRef(false);
+    const autoTaskLsOnEmptyDirectoriesRef = React.useRef(false);
     const taskingData = React.useRef({"parameters": "", "ui_feature": "file_browser:list"});
     const mountedRef = React.useRef(true);
     const tableOpenedPathIdRef = React.useRef({
@@ -328,6 +341,18 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             
         }
     })
+    useSubscription(fileBrowserTaskSub, {
+        variables: {now: fromNow.current, callback_id: tabInfo.callbackID},
+        fetchPolicy: "no-cache",
+        onData: ({data}) => {
+            for(let i = 0; i < data.data.task_stream.length; i++){
+                if(data.data.task_stream[i].status.toLowerCase().includes("error") && data.data.task_stream[i].completed){
+                    snackActions.warning(<RenderSingleTask task_id={data.data.task_stream[i].id} />,
+                        {toastId: data.data.task_stream[i].id, autoClose: false, closeOnClick: false});
+                }
+            }
+        }
+    })
     const [getFolderData] = useLazyQuery(folderQuery, {
         onError: (data) => {
             console.error(data);
@@ -398,7 +423,26 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             setTreeAdjMtx(newMatrix);
             //console.log("just set treeAdjMtx, about to close backdrop")
             setBackdropOpen(false);
-            setSelectedFolderData({...selectedFolderData, finished: true});
+            if(data.self.length > 0){
+                setSelectedFolderData({...selectedFolderData, task_id: data.self[0].task_id, success: data.self[0].success});
+                // this path exists, let's see if we have data for it and if the user wants us to auto-issue an ls for the path
+                let newAllData = Object.keys(newMatrix[selectedFolderData.group]?.[selectedFolderData.host]?.[data.self[0].full_path_text] || {});
+                if(autoTaskLsOnEmptyDirectoriesRef.current){
+                    if(newAllData.length === 0 && data.self[0].full_path_text !== "" && data.self[0].success === null){
+                        onListFilesButtonFromTableWithNoEntries()
+                    }
+                }
+                if(data.self[0].success === false){
+                    snackActions.warning("Failed to list out path: " + data.self[0].full_path_text)
+                }
+            } else {
+                // we couldn't find the path specified, so we must not have data for it, so check if the user wants us to auto issue an ls
+                if(autoTaskLsOnEmptyDirectoriesRef.current){
+                    onListFilesButtonFromTableWithNoEntries()
+                }
+            }
+
+
         },
     });
     const onSetTableData = useCallback((nodeData) => {
@@ -526,7 +570,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             variables: {parent_path_text: path, parents: parentNodes}
         })
         setBackdropOpen(true);
-        setSelectedFolderData({host, group, full_path_text: path, id: 0});
+        setSelectedFolderData({host, group, full_path_text: path, id: 0, success: null});
         tableOpenedPathIdRef.current = {
             group: group,
             host: host,
@@ -559,7 +603,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                             <FileBrowserTableTop
                                 tabInfo={tabInfo}
                                 taskingTableTopTypedDataRef={taskingTableTopTypedDataRef}
-                                autoTaskLsOnEmptyDirectoriesRef={autoTaskLsOnEmptyDirectories}
+                                autoTaskLsOnEmptyDirectoriesRef={autoTaskLsOnEmptyDirectoriesRef}
                                 onChangeSelectedToken={onChangeSelectedToken}
                                 selectedFolderData={selectedFolderData}
                                 onListFilesButton={onListFilesButton}
@@ -582,7 +626,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                                 treeAdjMatrix={treeAdjMtx}
                                 onListFilesButtonFromTableWithNoEntries={onListFilesButtonFromTableWithNoEntries}
                                 selectedFolderData={selectedFolderData}
-                                autoTaskLsOnEmptyDirectories={autoTaskLsOnEmptyDirectories.current}
+                                autoTaskLsOnEmptyDirectories={autoTaskLsOnEmptyDirectoriesRef.current}
                                 onTaskRowAction={onTaskRowAction}
                                 onTaskRowActions={onTaskRowActions}
                                 me={me}
@@ -731,6 +775,11 @@ const FileBrowserTableTop = ({
     const onToggleAutoTaskLsOnEmptyDirectories = () => {
         SetMythicSetting({setting_name: "autoTaskLsOnEmptyDirectories", value: !autoTaskLsOnEmptyDirectories});
         setAutoTaskLsOnEmptyDirectories(!autoTaskLsOnEmptyDirectories);
+        if(autoTaskLsOnEmptyDirectories){
+            snackActions.info("No longer auto issuing listings for empty paths");
+        } else {
+            snackActions.success("Now starting to auto issue listings for empty paths");
+        }
     }
     const goToDirectory = () => {
         if(fullPath === ""){return}
@@ -769,7 +818,7 @@ const FileBrowserTableTop = ({
                             <React.Fragment>
                                 <MythicStyledTooltip title={`Task current callback (${tabInfo["displayID"]}) to list contents`}>
                                     <IconButton style={{ padding: '0 0px 0 0 ' }}
-                                                disableRipple={true} disableFocusRipple={true}
+
                                                 onClick={onLocalListFilesButton}
                                                 size="large">
                                         <RefreshIcon color='info' />
@@ -778,7 +827,6 @@ const FileBrowserTableTop = ({
                                 <MythicStyledTooltip title={`Upload file to folder via current callback (${tabInfo["displayID"]})`}>
                                     <IconButton style={{ padding: '3px' }}
                                                 onClick={onLocalUploadFileButton}
-                                                disableRipple={true} disableFocusRipple={true}
                                                 size="large">
                                         <CloudUploadIcon color="info" />
                                     </IconButton>
@@ -787,7 +835,6 @@ const FileBrowserTableTop = ({
                                     <MythicStyledTooltip title={"Currently tasking listing on empty directories, click to toggle off"} >
                                         <IconButton style={{padding: "3px"}}
                                                     onClick={onToggleAutoTaskLsOnEmptyDirectories}
-                                                    disableRipple={true} disableFocusRipple={true}
                                                     size={"large"}>
                                             <PlaylistAddIcon color={"success"} ></PlaylistAddIcon>
                                         </IconButton>
@@ -796,7 +843,6 @@ const FileBrowserTableTop = ({
                                     <MythicStyledTooltip title={"Currently not tasking listing on empty directories, click to toggle on"} >
                                         <IconButton style={{padding: "3px"}}
                                                     onClick={onToggleAutoTaskLsOnEmptyDirectories}
-                                                    disableRipple={true} disableFocusRipple={true}
                                                     size={"large"}>
                                             <PlaylistRemoveIcon color={"secondary"} ></PlaylistRemoveIcon>
                                         </IconButton>
@@ -806,7 +852,6 @@ const FileBrowserTableTop = ({
                                     <IconButton
                                         style={{ padding: '3px' }}
                                         onClick={onLocalToggleShowDeletedFiles}
-                                        disableRipple={true} disableFocusRipple={true}
                                         size="large">
                                         {showDeletedFiles ? (
                                             <VisibilityIcon color="success" />
@@ -829,7 +874,6 @@ const FileBrowserTableTop = ({
                                 <MythicStyledTooltip title={`Move back to previous listing`}>
                                     <IconButton style={{ padding: '3px' }}
                                                 disabled={historyIndex >= history.length -1 }
-                                                disableRipple={true} disableFocusRipple={true}
                                                 onClick={moveIndexToPreviousListing}
                                                 color='info'
                                                 size="large">
@@ -839,7 +883,6 @@ const FileBrowserTableTop = ({
                                 <MythicStyledTooltip title={`Move to next listing`}>
                                     <IconButton style={{ padding: '3px' }}
                                                 disabled={historyIndex <= 0}
-                                                disableRipple={true} disableFocusRipple={true}
                                                 onClick={moveIndexToNextListing}
                                                 size="large"
                                                 color='info'>
@@ -849,7 +892,6 @@ const FileBrowserTableTop = ({
                                 <MythicStyledTooltip title={"Move up a directory"} >
                                     <IconButton style={{padding: "0 0 0 0"}}
                                                 onClick={onLocalMoveUpDirectoryButton}
-                                                disableRipple={true} disableFocusRipple={true}
                                                 disabled={selectedFolderData?.parent_path_text?.length === 0 || selectedFolderData.root || fullPath === ""}
                                     >
                                         <KeyboardReturnIcon style={{rotate: "90deg"}} ></KeyboardReturnIcon>

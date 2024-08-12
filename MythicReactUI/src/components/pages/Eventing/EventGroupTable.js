@@ -138,7 +138,7 @@ export function EventGroupTable({selectedEventGroup, me}) {
          triggerManually({variables: {eventgroup_id: selectedEventGroup.id}});
      }
  return (
-     <div style={{marginLeft: "20px", display: "flex", overflowY: "auto", flexDirection: "column", height: "100%"}}>
+     <div style={{marginLeft: "5px", display: "flex", overflowY: "auto", flexDirection: "column", height: "100%"}}>
 
          {selectedEventGroup.id === 0 &&
              <Typography variant={"h4"}><strong>All Eventing Runs</strong></Typography>

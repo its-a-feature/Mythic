@@ -5,7 +5,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql } from '@apollo/client';
 import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell, CallbacksTableIPCell} from "./CallbacksTableRow";
 import { DataGrid } from '@mui/x-data-grid';
-import {OnOpenTabContext} from "./CallbacksTop";
 
 
 const callbacksAndFeaturesQuery = gql`

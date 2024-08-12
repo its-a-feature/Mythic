@@ -291,6 +291,7 @@ const FileBrowserVirtualTreePreMemo = ({
   selectedFolderData,
   tabInfo,
 }) => {
+    const gridRef = React.useRef(null);
   const flattenNode = useCallback(
     // node is just a full_path_text
     (node, group, host, depth = 0) => {
@@ -412,6 +413,14 @@ const FileBrowserVirtualTreePreMemo = ({
     return finalData;
     //nodes.map((node) => flattenNode(node)).flat()
   },[flattenNode, treeRootData, treeAdjMatrix, showDeletedFiles]);
+  React.useEffect( () => {
+      let rowIndex = flattenedNodes?.findIndex(e => e.full_path_text === selectedFolderData.full_path_text);
+      if(rowIndex >= 0){
+          if(gridRef.current){
+              gridRef.current?.scrollToItem(rowIndex, "start")
+          }
+      }
+  }, [selectedFolderData.full_path_text, flattenedNodes]);
   return flattenedNodes.length > 0 ? (
     <StyledAutoSizer>
     {(AutoSizerProps) => (
@@ -423,6 +432,7 @@ const FileBrowserVirtualTreePreMemo = ({
         itemCount={flattenedNodes.length}
         itemKey={itemKey}
         itemSize={24}
+        ref={gridRef}
       >
         {(ListProps) => (
           <VirtualTreeRow
