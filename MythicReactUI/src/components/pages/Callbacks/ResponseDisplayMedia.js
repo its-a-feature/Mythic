@@ -49,6 +49,7 @@ import {TableRowSizeCell} from "../../MythicComponents/MythicDialog";
 import {Table, TableHead, TableRow, TableBody} from '@mui/material';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import WarningOutlinedIcon from '@mui/icons-material/WarningOutlined';
+import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 
 
 const fileMetaQuery = gql`
@@ -64,6 +65,14 @@ const fileMetaQuery = gql`
                 display_id
                 id
             }
+            tags {
+                tagtype {
+                    name
+                    color
+                    id
+                  }
+                id
+            }
         }
     }
 `
@@ -77,6 +86,8 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
         onCompleted: (data) => {
             if(data.filemeta.length > 0){
                 setFileMetaData({
+                    id: data.filemeta[0].id,
+                    tags: data.filemeta[0].tags,
                     filename: b64DecodeUnicode(data.filemeta[0].filename_text),
                     full_remote_path: b64DecodeUnicode(data.filemeta[0].full_remote_path_text),
                     host: data.filemeta[0].host,
@@ -301,6 +312,7 @@ const DisplayFileMetaData = ({fileMetaData}) => {
                     <MythicStyledTableCell>File</MythicStyledTableCell>
                     <MythicStyledTableCell>Path</MythicStyledTableCell>
                     <MythicStyledTableCell style={{width: "5rem"}}>Task</MythicStyledTableCell>
+                    <MythicStyledTableCell style={{}}>Tags</MythicStyledTableCell>
                 </TableRow>
             </TableHead>
             <TableBody>
@@ -314,6 +326,10 @@ const DisplayFileMetaData = ({fileMetaData}) => {
                                      target="_blank" href={"/new/task/" + fileMetaData.task_display_id}>
                         {fileMetaData.task_display_id}
                     </Link></MythicStyledTableCell>
+                    <MythicStyledTableCell>
+                        <ViewEditTags target_object={"filemeta_id"} target_object_id={fileMetaData.id} />
+                        <TagsDisplay tags={fileMetaData.tags}/>
+                    </MythicStyledTableCell>
                 </TableRow>
             </TableBody>
         </Table>

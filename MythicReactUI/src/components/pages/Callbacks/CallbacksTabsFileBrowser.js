@@ -432,17 +432,12 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         onListFilesButtonFromTableWithNoEntries()
                     }
                 }
-                if(data.self[0].success === false){
-                    snackActions.warning("Failed to list out path: " + data.self[0].full_path_text)
-                }
             } else {
                 // we couldn't find the path specified, so we must not have data for it, so check if the user wants us to auto issue an ls
                 if(autoTaskLsOnEmptyDirectoriesRef.current){
                     onListFilesButtonFromTableWithNoEntries()
                 }
             }
-
-
         },
     });
     const onSetTableData = useCallback((nodeData) => {

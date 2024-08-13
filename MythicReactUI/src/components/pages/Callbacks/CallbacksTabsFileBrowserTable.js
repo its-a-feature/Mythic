@@ -269,12 +269,19 @@ export const CallbacksTabsFileBrowserTable = (props) => {
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
     const onRowClick = ({event, rowDataStatic}) => {
         if(event.ctrlKey || event.metaKey){
-            props.treeRootData[props.selectedFolderData.group][rowDataStatic.host][rowDataStatic.full_path_text].selected = true;
+            if(props.treeRootData?.[props.selectedFolderData.group]?.[rowDataStatic.host]?.[rowDataStatic.full_path_text]){
+                props.treeRootData[props.selectedFolderData.group][rowDataStatic.host][rowDataStatic.full_path_text].selected = true;
+            }
+
             setSelectedRows([...selectedRows, rowDataStatic]);
         } else {
-            props.treeRootData[props.selectedFolderData.group][rowDataStatic.host][rowDataStatic.full_path_text].selected = true;
+            if(props.treeRootData?.[props.selectedFolderData.group]?.[rowDataStatic.host]?.[rowDataStatic.full_path_text]){
+                props.treeRootData[props.selectedFolderData.group][rowDataStatic.host][rowDataStatic.full_path_text].selected = true;
+            }
             for(let i = 0; i < selectedRows.length; i++){
-                props.treeRootData[props.selectedFolderData.group][selectedRows[i].host][selectedRows[i].full_path_text].selected = false;
+                if(props.treeRootData?.[props.selectedFolderData.group]?.[selectedRows[i].host]?.[selectedRows[i].full_path_text]){
+                    props.treeRootData[props.selectedFolderData.group][selectedRows[i].host][selectedRows[i].full_path_text].selected = false;
+                }
             }
             setSelectedRows([rowDataStatic]);
         }

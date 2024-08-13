@@ -218,9 +218,17 @@ export function TopAppBar(props) {
             <div style={{width: "100%"}}>
               <div className={'hideOnSmallWidth'}>
                 <TopBarShortcuts />
-                <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "white", textDecoration: "none"}} to="/new/operations">
-                  {me?.user?.current_operation || "No Operation Set"}
-                </Link>
+                {me?.user?.current_operation_id === 0 ? (
+                    <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "#f84d4d",
+                      fontWeight: "bold",}} to="/new/operations">
+                      {"CLICK HERE TO SET OPERATION!"}
+                    </Link>
+                ) : (
+                    <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "white", textDecoration: "none"}} to="/new/operations">
+                      {me?.user?.current_operation}
+                    </Link>
+                )}
+
               </div>
 
             </div>

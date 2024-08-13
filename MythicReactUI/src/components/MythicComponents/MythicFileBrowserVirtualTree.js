@@ -414,13 +414,17 @@ const FileBrowserVirtualTreePreMemo = ({
     //nodes.map((node) => flattenNode(node)).flat()
   },[flattenNode, treeRootData, treeAdjMatrix, showDeletedFiles]);
   React.useEffect( () => {
-      let rowIndex = flattenedNodes?.findIndex(e => e.full_path_text === selectedFolderData.full_path_text);
+      let rowIndex = flattenedNodes?.findIndex(e =>
+          e.full_path_text === selectedFolderData.full_path_text &&
+          e.host === selectedFolderData.host &&
+          e.group === selectedFolderData.group
+      );
       if(rowIndex >= 0){
           if(gridRef.current){
-              gridRef.current?.scrollToItem(rowIndex, "start")
+              gridRef.current?.scrollToItem(rowIndex, "smart")
           }
       }
-  }, [selectedFolderData.full_path_text, flattenedNodes]);
+  }, [selectedFolderData, flattenedNodes]);
   return flattenedNodes.length > 0 ? (
     <StyledAutoSizer>
     {(AutoSizerProps) => (

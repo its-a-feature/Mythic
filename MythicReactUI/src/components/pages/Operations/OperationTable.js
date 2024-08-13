@@ -184,7 +184,18 @@ export function OperationTable(props){
             
         </Paper>
         <TableContainer className="mythicElement">
-            
+            {props.operations.length === 0 &&
+                <div style={{display: "flex", flexDirection: "column", flexGrow: 1}}>
+                    <div style={{
+                        position: "absolute",
+                        left: "35%",
+                        top: "50%"
+                    }}>
+                        {"No Operations available!"}<br/>
+                        {"Ask a Mythic admin or operation lead to add you to an operation."}
+                    </div>
+                </div>
+            }
             <Table  size="small" style={{"tableLayout": "fixed", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
@@ -198,12 +209,11 @@ export function OperationTable(props){
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                
-                {props.operations.map( (op) => (
-                    showDeleted || !op.deleted ? (
-                        <OperationTableRow
-                            me={props.me}
-                            key={"operation" + op.id}
+                    {props.operations.map((op) => (
+                        showDeleted || !op.deleted ? (
+                            <OperationTableRow
+                                me={props.me}
+                                key={"operation" + op.id}
                             onUpdateOperation={onUpdateOperation}
                             onUpdateCurrentOperation={props.onUpdateCurrentOperation}
                             updateDeleted={props.updateDeleted}

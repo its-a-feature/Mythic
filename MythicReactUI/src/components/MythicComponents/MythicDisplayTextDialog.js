@@ -4,7 +4,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {MythicDialog} from './MythicDialog';
-import MythicTextField from './MythicTextField';
 
 export function MythicDisplayTextDialog(props) {
   return (

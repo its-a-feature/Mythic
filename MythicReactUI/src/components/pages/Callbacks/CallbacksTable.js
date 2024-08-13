@@ -102,6 +102,7 @@ function CallbacksTablePreMemo(props){
     const callbacks = useContext(CallbacksContext);
     const onOpenTab = useContext(OnOpenTabContext);
     const onOpenTabs = useContext(OnOpenTabsContext);
+    const interactType = useMythicSetting({setting_name: "interactType", output: "string"})
     const theme = useTheme();
     const [openMultipleTabsDialog, setOpenMultipleTabsDialog] = React.useState({open: false, tabType: "interact"});
     const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
@@ -267,15 +268,21 @@ function CallbacksTablePreMemo(props){
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
     const onRowContextClick = ({rowDataStatic}) => {
         // based on row, return updated options array?
+        let defaultInteractIcon = <KeyboardIcon style={{paddingRight: "5px"}}/>;
+        if(interactType === "interactSplit"){
+            defaultInteractIcon = <VerticalSplitIcon style={{paddingRight: "5px"}}/>;
+        } else if(interactType === "interactConsole"){
+            defaultInteractIcon = <TerminalIcon style={{paddingRight: "5px"}}/>;
+        }
         return  [
             {
                 name: "Callback: " + rowDataStatic.display_id, icon: null, click: ({event}) => {},
                 type: "item", disabled: true
             },
             {
-                name: "Interact", icon: <KeyboardIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
+                name: "Interact", icon: defaultInteractIcon, click: ({event}) => {
                     event.stopPropagation();
-                    const tabType = "interact";
+                    const tabType = interactType;
                     onOpenTab({
                         tabType: tabType,
                         tabID: rowDataStatic.id + tabType,
@@ -372,7 +379,17 @@ function CallbacksTablePreMemo(props){
             {
                 name: "Tasking Views", icon: null, click: () => {}, type: "menu",
                 menuItems: [
-
+                    {
+                        name: 'Default Tasking', icon: <KeyboardIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
+                            event.stopPropagation();
+                            const tabType = "interact";
+                            onOpenTab({
+                                tabType: tabType,
+                                tabID: rowDataStatic.id + tabType,
+                                callbackID: rowDataStatic.id,
+                                displayID: rowDataStatic.display_id});
+                        }
+                    },
                     {
                         name: 'Split Tasking', icon: <VerticalSplitIcon style={{paddingRight: "5px"}}/>, click: ({event}) => {
                             event.stopPropagation();
@@ -546,8 +563,13 @@ function CallbacksTablePreMemo(props){
           setSortData({"sortKey": column.key, "sortType":column.type, "sortDirection": "ASC"});
       }
     };
-    const onRowDoubleClick = React.useCallback( () => {
-
+    const onRowDoubleClick = React.useCallback( (event, rowID, rowDataStatic) => {
+        const tabType = interactType;
+        onOpenTab({
+            tabType: tabType,
+            tabID: rowDataStatic.id + tabType,
+            callbackID: rowDataStatic.id,
+            displayID: rowDataStatic.display_id});
     }, []);
     const contextMenuOptions = [
         {

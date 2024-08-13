@@ -72,7 +72,7 @@ export const Dropdown = React.forwardRef(
                     anchorEl={isOpen}
                     transition={"true"}
                     open={!!externallyOpen}
-                    anchorPosition={{top: absoluteY, left: absoluteX}}
+                    anchorPosition={anchorReference === "anchorEl" ? undefined : {top: absoluteY, left: absoluteX}}
                     anchorReference={ anchorReference ? anchorReference : "anchorEl"}
                     onClose={handleClose}
                     anchorOrigin={{

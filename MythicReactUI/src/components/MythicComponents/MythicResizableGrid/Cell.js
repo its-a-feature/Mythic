@@ -17,11 +17,11 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
         },
         [data, rowIndex]
     );
-    const handleClick = useCallback( (event) => {
+    const handleClick = (event) => {
         if(data.onRowClick){
             data.onRowClick({event, rowDataStatic: data.items[rowIndex][columnIndex]?.props?.rowData})
         }
-    }, [data, rowIndex]);
+    };
     const selectedClass = data.items[rowIndex][columnIndex]?.props?.rowData?.selected ? "selectedCallback" : "";
     const onMouseEnter = () => {
         const cells = document.getElementsByClassName(rowClassName);

@@ -9,6 +9,7 @@ setting_name options:
     showHostname
     showCallbackGroups
     showMedia
+    interactType
 
     callbacks_table_columns
     callbacks_table_filters
@@ -40,6 +41,8 @@ export function useMythicSetting({setting_name, default_value, output="boolean"}
                 console.log(initialStorageSetting);
             }
             break;
+        case "string":
+            break;
         default:
             console.log("unknown output type", output);
     }
@@ -68,6 +71,8 @@ export function useMythicSetting({setting_name, default_value, output="boolean"}
                 }catch(error){
                     initialStorageSetting = {};
                 }
+                break;
+            case "string":
                 break;
             default:
                 console.log("unknown output type", output);

@@ -2,15 +2,9 @@ import React, {useCallback, useMemo} from 'react';
 import { alpha, IconButton } from "@mui/material";
 import {useLazyQuery, gql, useMutation } from '@apollo/client';
 import { MythicDialog, MythicViewJSONAsTableDialog, MythicModifyStringDialog } from '../../MythicComponents/MythicDialog';
-import Paper from '@mui/material/Paper';
 import {useTheme} from '@mui/material/styles';
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import Divider from '@mui/material/Divider';
 import ListIcon from '@mui/icons-material/List';
 import DeleteIcon from '@mui/icons-material/Delete';
 import GetAppIcon from '@mui/icons-material/GetApp';
@@ -27,7 +21,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import EditIcon from '@mui/icons-material/Edit';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import ListSubheader from '@mui/material/ListSubheader';
+import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
 
 const getPermissionsDataQuery = gql`
     query getPermissionsQuery($mythictree_id: Int!) {
@@ -46,9 +40,7 @@ const updateFileComment = gql`
     }
 `;
 
-
-
-export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick, onTaskRowAction, host, group, showDeletedFiles, tabInfo}) => {
+export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick, onTaskRowAction, host, group, showDeletedFiles, tabInfo, expandOrCollapseAll}) => {
     //const [allData, setAllData] = React.useState([]);
     //console.log("treeAdjMatrix updated in table", treeAdjMatrix)
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
@@ -64,23 +56,19 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     const [viewSingleTreeData, setViewSingleTreeData] = React.useState(false);
     const [openAdjustColumnsDialog, setOpenAdjustColumnsDialog] = React.useState(false);
     const [updatedTreeAdjMatrix, setUpdatedTreeAdjMatrix] = React.useState(treeAdjMatrix);
-    const openAllNodes = () => {
+    const openAllNodes = (state) => {
         let onodes = {};
         for(const [group, hosts] of Object.entries(updatedTreeAdjMatrix)){
             for(const [host, matrix] of Object.entries(hosts)){
                 for(const [key, children] of Object.entries(matrix)){
-                    onodes[key] = true;
-                    //if(treeRootData[host][key] !== undefined){
-                    //onodes[treeRootData[host][key].id] = true;
-                    //onodes[parseInt(key)] = true;
-                    //}
+                    onodes[key] = state;
                 }
             }
         }
         setOpenNodes(onodes);
     }
     React.useEffect( () => {
-        // need to update the matrix in case there are notes that don't trace back to root
+        // need to update the matrix in case there are nodes that don't trace back to root
         let adjustedMatrix = {};
         // check for cycles
         let tempMatrix = {...treeAdjMatrix};
@@ -131,10 +119,10 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
 
         //console.log("adjustedMatrix", adjustedMatrix, "realMatrix", treeAdjMatrix)
         setUpdatedTreeAdjMatrix(adjustedMatrix);
-        openAllNodes();
+
     }, [treeAdjMatrix]);
     React.useEffect( () => {
-        openAllNodes();
+        openAllNodes(true);
         setViewSingleTreeData(false);
     }, [host, group])
     const onExpandNode = (nodeId) => {
@@ -354,13 +342,16 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     }, [allData, sortData]);
     const onSubmitFilterOptions = (newFilterOptions) => {
         setFilterOptions(newFilterOptions);
-        openAllNodes();
+        if(viewSingleTreeData){
+            return
+        }
+        openAllNodes(true);
     }
     const filterRow = (rowData) => {
         if(rowData.root){return true}
         if(!showDeletedFiles &&
-            treeRootData[group][host][rowData.full_path_text /*+ uniqueSplitString + rowData.callback_id*/] !== undefined &&
-            treeRootData[group][host][rowData.full_path_text /*+ uniqueSplitString + rowData.callback_id*/].deleted){
+            treeRootData[group][host][rowData.full_path_text] !== undefined &&
+            treeRootData[group][host][rowData.full_path_text ].deleted){
             return true;
         }
         let filterOptionInMetadata = {}
@@ -372,13 +363,13 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
             }
         }
         for(const [key,value] of Object.entries(filterOptions)){
-            if(treeRootData[group][host][rowData.full_path_text /*+ uniqueSplitString + rowData.callback_id*/] === undefined){return true}
+            if(treeRootData[group][host][rowData.full_path_text] === undefined){return true}
             if(filterOptionInMetadata[key]){
-                if(!String(treeRootData[group][host][rowData.full_path_text /*+ uniqueSplitString + rowData.callback_id*/]?.metadata[key]).toLowerCase().includes(value)){
+                if(!String(treeRootData[group][host][rowData.full_path_text ]?.metadata[key]).toLowerCase().includes(value)){
                     return true;
                 }
             }else{
-                if(!String(treeRootData[group][host][rowData.full_path_text /*+ uniqueSplitString + rowData.callback_id*/][key]).toLowerCase().includes(value)){
+                if(!String(treeRootData[group][host][rowData.full_path_text][key]).toLowerCase().includes(value)){
                     return true;
                 }
             }
@@ -476,7 +467,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             treeRootData={treeRootData[group]}
                                             host={host}
                                             group={group}
-                                            children={updatedTreeAdjMatrix[group][host]?.[row.full_path_text /*+ uniqueSplitString + row.callback_id*/]}
+                                            children={updatedTreeAdjMatrix[group][host]?.[row.full_path_text ]}
                                             handleOnClickButton={handleOnClickButton}
                                             rowData={row} />;
                             case "User":
@@ -484,21 +475,21 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                     treeRootData={treeRootData[group]}
                                     host={host}
                                     group={group}
-                                    cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.user || ''}
+                                    cellData={treeRootData[group][host][row.full_path_text]?.metadata?.user || ''}
                                     rowData={row} />;
                             case "Arch":
                                 return <FileBrowserTableRowStringCell
                                     treeRootData={treeRootData[group]}
                                     host={host}
                                     group={group}
-                                    cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.architecture || ''}
+                                    cellData={treeRootData[group][host][row.full_path_text]?.metadata?.architecture || ''}
                                     rowData={row} />;
                             case "Session":
                                 return <FileBrowserTableRowStringCell
                                     treeRootData={treeRootData[group]}
                                     host={host}
                                     group={group}
-                                    cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.session_id || ''}
+                                    cellData={treeRootData[group][host][row.full_path_text ]?.metadata?.session_id || ''}
                                     rowData={row} />;
                             case "PID":
                                 return <FileBrowserTableRowStringCell 
@@ -506,14 +497,14 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             host={host}
                                             group={group}
                                             rowData={row} 
-                                            cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.process_id || row.full_path_text} />;
+                                            cellData={row.full_path_text} />;
                             case "PPID":
                                 return <FileBrowserTableRowStringCell 
                                             treeRootData={treeRootData[group]}
                                             host={host}
                                             group={group}
                                             rowData={row} 
-                                            cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.parent_process_id || ""} />;
+                                            cellData={treeRootData[group][host][row.full_path_text]?.parent_path_text || ""} />;
                             case "Tags":
                                 return <FileBrowserTagsCell 
                                             rowData={row} 
@@ -527,7 +518,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             host={host} 
                                             rowData={row}
                                             group={group}
-                                            cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.comment}
+                                            cellData={treeRootData[group][host][row.full_path_text]?.comment}
                                 />;
                             case "CMD":
                                 return <FileBrowserTableRowStringCell
@@ -535,7 +526,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                     host={host}
                                     rowData={row}
                                     group={group}
-                                    cellData={treeRootData[group][host][row.full_path_text /*+ uniqueSplitString + row.callback_id*/]?.metadata?.command_line || ""}
+                                    cellData={treeRootData[group][host][row.full_path_text ]?.metadata?.command_line || ""}
                                 />;
                             default:
                                 console.log("hit default case in switch on c.name)")
@@ -543,7 +534,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                     })];
                 }
             }, []),
-        [sortedData, onTaskRowAction, filterOptions, columnVisibility, showDeletedFiles]
+        [sortedData, onTaskRowAction, filterOptions, columnVisibility, showDeletedFiles, treeRootData]
     );
     const onClickHeader = (e, columnIndex) => {
         const column = columns[columnIndex];
@@ -564,7 +555,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         }
     };
     const localOnDoubleClick = (e, rowIndex) => {
-        const rowData = treeRootData[group][host][sortedData[rowIndex]];
+        const rowData = treeRootData[group][host][sortedData[rowIndex]["full_path_text"]];
         onRowDoubleClick(rowData);
     };
     const contextMenuOptions = [
@@ -593,8 +584,17 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     const onSubmitAdjustColumns = ({left, right}) => {
         setColumnVisibility({visible: right, hidden: left});
     }
-    
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
+    React.useEffect( () => {
+        if(viewSingleTreeData){
+            return;
+        }
+        if(expandOrCollapseAll){
+            openAllNodes(true);
+        } else {
+            openAllNodes(false);
+        }
+    }, [expandOrCollapseAll, updatedTreeAdjMatrix]);
     return (
         <div style={{ width: '100%', height: '100%', overflow: "hidden", position: "relative" }}>
             <MythicResizableGrid
@@ -728,17 +728,8 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
         evt.stopPropagation();
         setDropdownOpen((prevOpen) => !prevOpen);
     };
-    const handleMenuItemClick = (whichOption, event, index, callback_id, callback_display_id) => {
-        switch (whichOption){
-            case "A":
-                optionsA[index].click(event, callback_id, callback_display_id);
-                break;
-            case "B":
-                optionsB[index].click(event, callback_id, callback_display_id);
-                break;
-            default:
-                break;
-        }
+    const handleMenuItemClick = (event, click) => {
+        click({event});
         setDropdownOpen(false);
     };
     const handleClose = (event) => {
@@ -749,15 +740,18 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
     };
     const optionsA = [
         {
-            name: 'View Detailed Data', icon: <VisibilityIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
-            evt.stopPropagation();
-            getPermissions({variables: {mythictree_id: rowData.id}});
-        }},
+            name: 'View Detailed Data', icon: <VisibilityIcon style={{paddingRight: "5px"}}/>,
+            type: "item",
+            click: ({event}) => {
+                event.stopPropagation();
+                getPermissions({variables: {mythictree_id: rowData.id}});
+            }
+        },
         {
-            name: 'Edit Comment',
+            name: 'Edit Comment', type: "item",
             icon: <EditIcon style={{ paddingRight: '5px' }} />,
-            click: (evt) => {
-                evt.stopPropagation();
+            click: ({event}) => {
+                event.stopPropagation();
                 setFileCommentDialogOpen(true);
             },
         },
@@ -766,51 +760,89 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
             icon: viewSingleTreeData ?
                 <VisibilityOffIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/> :
                 <AccountTreeIcon style={{paddingRight: "5px", color: theme.palette.success.main}}/>,
-            click: (evt) => {
+            type: "item",
+            click: ({event}) => {
                 setSingleTree(rowData);
                 toggleViewSingleTreeData();
             }
         }
     ];
-    const optionsB = [
-                    {name: 'Task Inject', icon: <GetAppIcon style={{paddingRight: "5px", color: theme.palette.success.main}}/>, click: (evt, callback_id, display_id) => {
-                        evt.stopPropagation();
-                        onTaskRowAction({
-                            process_id: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.process_id,
-                            architecture: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.architecture,
-                            uifeature: "process_browser:inject", callback_id, display_id
-                        });
-                    }},
-                    {name: 'Task Token Listing', icon: <ListIcon style={{paddingRight: "5px", color: theme.palette.warning.main}}/>, click: (evt, callback_id, display_id) => {
-                        evt.stopPropagation();
-                        onTaskRowAction({
-                            process_id: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.process_id,
-                            architecture: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.architecture,
-                            uifeature: "process_browser:list_tokens", callback_id, display_id
-                        });
-                    }, os: ["windows"]},
-                    {name: 'Task Steal Token', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>, click: (evt, callback_id, display_id) => {
-                        evt.stopPropagation();
-                        onTaskRowAction({
-                            process_id: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.process_id,
-                            architecture: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.architecture,
-                            uifeature: "process_browser:steal_token", callback_id, display_id
-                        });
-                        
-                    }, os: ["windows"]},
-                    {name: 'Task Kill Process', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>, click: (evt, callback_id, display_id) => {
-                        evt.stopPropagation();
-                        onTaskRowAction({
-                            process_id: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.process_id,
-                            architecture: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].metadata.architecture,
-                            uifeature: "process_browser:kill",
-                            confirm_dialog: true, callback_id, display_id
-                        });
-                        
-                    }},
+    const optionsB = (callback_id, callback_display_id) => [
+        {
+            name: 'Task Inject', icon: <GetAppIcon style={{paddingRight: "5px", color: theme.palette.success.main}}/>,
+            type: "item",
+            click: ({event}) => {
+                event.stopPropagation();
+                onTaskRowAction({
+                    process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
+                    architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
+                    uifeature: "process_browser:inject",
+                    callback_id,
+                    display_id: callback_display_id
+                });
+            }
+        },
+        {
+            name: 'Task Token Listing', icon: <ListIcon style={{paddingRight: "5px", color: theme.palette.warning.main}}/>,
+            type: "item",
+            click: ({event}) => {
+                event.stopPropagation();
+                onTaskRowAction({
+                    process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
+                    architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
+                    uifeature: "process_browser:list_tokens",
+                    callback_id,
+                    display_id: callback_display_id
+                });
+            },
+            os: ["Windows"]
+        },
+        {
+            name: 'Task Steal Token', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>,
+            type: "item",
+            click: ({event}) => {
+                event.stopPropagation();
+                onTaskRowAction({
+                    process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
+                    architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
+                    uifeature: "process_browser:steal_token",
+                    callback_id,
+                    display_id: callback_display_id
+                });
+
+            },
+            os: ["Windows"]},
+        {
+            name: 'Task Kill Process', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>,
+            type: "item",
+            click: ({event}) => {
+                event.stopPropagation();
+                onTaskRowAction({
+                    process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
+                    architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
+                    uifeature: "process_browser:kill",
+                    confirm_dialog: true,
+                    callback_id,
+                    display_id: callback_display_id
+                });
+            }
+        },
     ];
+    const getMenuOptions = () => {
+        let options = [...optionsA];
+        options.push(...optionsB(tabInfo["callbackID"], tabInfo["displayID"]));
+        if(treeRootData[host][rowData["full_path_text"] ]?.callback?.["id"] !== tabInfo["callbackID"]){
+            options.push({
+                name: "Original Callback", icon: null, click: () => {}, type: "menu",
+                menuItems: [
+                    ...optionsB(rowData?.callback?.id, rowData?.callback?.display_id)
+                ]
+            })
+        }
+        return options;
+    }
     return (
-        treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.id ? (
+        treeRootData[host][rowData["full_path_text"] ]?.id ? (
         <React.Fragment>
             <IconButton
                 size="small"
@@ -825,74 +857,42 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
             >
                 <SettingsIcon />
             </IconButton>
-            <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}
-            >
-
-            {({ TransitionProps, placement }) => (
-                <Grow
-                {...TransitionProps}
-                style={{
-                    transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                }}
-                >
-                <Paper className={"dropdownMenuColored"}>
-                    <ClickAwayListener onClickAway={handleClose}>
-                    <MenuList id="split-button-menu">
-                        {optionsA.map((option, index) => (
-                            option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].os) ? (
-                                <MenuItem
-                                    key={option.name}
-                                    onClick={(event) => handleMenuItemClick("A", event, index)}
-                                >
-                                    {option.icon}{option.name}
-                                </MenuItem>
-                            ) : null
-                        ))}
-                        <Divider />
-                        <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                            Act from current Callback: {tabInfo["displayID"]}
-                        </ListSubheader>
-                        {optionsB.map((option, index) => (
-                            option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].os) ? (
-                                <MenuItem
-                                    key={option.name}
-                                    onClick={(event) => handleMenuItemClick("B", event,
-                                        index,
-                                        tabInfo["callbackID"],
-                                        tabInfo["displayID"])}
-                                >
-                                    {option.icon}{option.name}
-                                </MenuItem>
-                            ) : null
-                        ))}
-                        {
-                            treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.callback && treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.callback?.["id"] !== tabInfo["callbackID"] &&
-                            <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                                Act from originating Callback: {treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.callback?.["display_id"] || tabInfo["displayID"]}
-                            </ListSubheader>
-                        }{
-                            treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.callback && treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.callback?.["id"] !== tabInfo["callbackID"] &&
-                            optionsB.map((option, index) => (
-                                option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].os) ? (
-                                    <MenuItem
+            {dropdownOpen &&
+                <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+                    <Dropdown
+                        isOpen={dropdownAnchorRef.current}
+                        onOpen={setDropdownOpen}
+                        externallyOpen={dropdownOpen}
+                        menu={[
+                            ...getMenuOptions().map((option, index) => (
+                                option.type === 'item' ? (
+                                    <DropdownMenuItem
                                         key={option.name}
-                                        onClick={(event) => handleMenuItemClick('B', event,
-                                            index,
-                                            treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.["callback"]?.["id"] || tabInfo["callbackID"],
-                                            treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/]?.["callback"]?.["display_id"] || tabInfo["displayID"])}>
-                                        {option.icon}
-                                        {option.name}
-                                    </MenuItem>
-                                ): null
-                            ))
-                        }
-                    </MenuList>
-                    </ClickAwayListener>
-                </Paper>
-                </Grow>
-            )}
-
-            </Popper>
+                                        disabled={!(option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"]].os))}
+                                        onClick={(event) => handleMenuItemClick(event, option.click)}
+                                    >
+                                        {option.icon} {option.name}
+                                    </DropdownMenuItem>
+                                ) : option.type === 'menu'  ? (
+                                    <DropdownNestedMenuItem
+                                        label={option.name}
+                                        disabled={option.disabled}
+                                        menu={
+                                            option.menuItems.map((menuOption, indx) => (
+                                                <DropdownMenuItem
+                                                    key={menuOption.name}
+                                                    disabled={!(menuOption.os === undefined || menuOption.os.includes(treeRootData[host][rowData["full_path_text"]].os))}
+                                                    onClick={(event) => handleMenuItemClick(event, menuOption.click)}
+                                                >
+                                                    {menuOption.icon}{menuOption.name}
+                                                </DropdownMenuItem>
+                                            ))
+                                        }
+                                    />
+                                ) : null))
+                        ]}/>
+                </ClickAwayListener>
+            }
             {fileCommentDialogOpen && (
                 <MythicDialog
                     fullWidth={true}
@@ -914,7 +914,7 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                 />
             )}
             {viewPermissionsDialogOpen &&
-                <MythicDialog fullWidth={true} maxWidth="md" open={viewPermissionsDialogOpen} 
+                <MythicDialog fullWidth={true} maxWidth="xl" open={viewPermissionsDialogOpen}
                     onClose={()=>{setViewPermissionsDialogOpen(false);}} 
                     innerDialog={<MythicViewJSONAsTableDialog title="View Detailed Data" leftColumn="Attribute" 
                         rightColumn="Value" value={permissionData} 

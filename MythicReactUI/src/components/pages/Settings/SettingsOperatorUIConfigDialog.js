@@ -13,10 +13,20 @@ import TableContainer from '@mui/material/TableContainer';
 import Typography from '@mui/material/Typography';
 import {HexColorInput, HexColorPicker} from 'react-colorful';
 import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import Input from '@mui/material/Input';
 
-
+const interactTypeOptions = [
+    {value: "interact", display: "Accordions"},
+    {value: "interactSplit", display: "Split View"},
+    {value: "interactConsole", display: "Console Like"}
+];
 export function SettingsOperatorUIConfigDialog(props) {
     const me = props.me;
+    const initialLocalStorageInteractType = useMythicSetting({setting_name: 'interactType', default_value: "interact", output: "string"});
+    const [interactType, setInteractType] = React.useState(initialLocalStorageInteractType);
+
     const localStorageFontSize = localStorage.getItem(`${me?.user?.user_id || 0}-fontSize`);
     const initialLocalStorageFontSizeValue = localStorageFontSize === null ? 12 : parseInt(localStorageFontSize);
     const localStorageFontFamily = localStorage.getItem(`${me?.user?.user_id || 0}-fontFamily`);
@@ -78,6 +88,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onResumeNotifications = (evt) => {
         setResumeNotifications(!resumeNotifications);
     }
+    const onChangeInteractType = (evt) => {
+        setInteractType(evt.target.value);
+    }
     const onAccept = () => {
       if(resumeNotifications){
           localStorage.setItem("dnd", JSON.stringify({
@@ -94,6 +107,7 @@ export function SettingsOperatorUIConfigDialog(props) {
         localStorage.setItem(`${me?.user?.user_id || 0}-fontFamily`, fontFamily);
         localStorage.setItem(`${me?.user?.user_id || 0}-topColor`, topColor);
         localStorage.setItem(`${me?.user?.user_id || 0}-showMedia`, showMedia);
+        localStorage.setItem(`${me?.user?.user_id || 0}-interactType`, interactType);
         window.location.reload();
       props.onClose();
     }
@@ -117,6 +131,7 @@ export function SettingsOperatorUIConfigDialog(props) {
       setShowHostname(false);
       setShowCallbackGroups(false);
       setShowMedia(true);
+      setInteractType("interact");
     }
   
   return (
@@ -207,6 +222,24 @@ export function SettingsOperatorUIConfigDialog(props) {
                               inputProps={{ 'aria-label': 'info checkbox' }}
                               name="resumeNotifications"
                           />
+                      </TableCell>
+                  </TableRow>
+                  <TableRow>
+                      <TableCell>
+                          Choose default type of tasking display
+                      </TableCell>
+                      <TableCell>
+                          <Select
+                              labelId="demo-dialog-select-label"
+                              id="demo-dialog-select"
+                              value={interactType}
+                              onChange={onChangeInteractType}
+                              input={<Input style={{width: "100%"}}/>}
+                          >
+                              {interactTypeOptions.map( (opt) => (
+                                  <MenuItem value={opt.value} key={opt.value}>{opt.display}</MenuItem>
+                              ) )}
+                          </Select>
                       </TableCell>
                   </TableRow>
                 <TableRow hover>

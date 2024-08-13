@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.22] - 2024-08-13
+
+### Changed
+
+- Added a user setting for preferred interact option (accordion, split, or console)
+- Added option to double-click callback table row to auto open tasking tab
+- Initial updates for the process browser to better represented displayed data
+- Updates to process browser to indicate fetching new content
+- Updates to process browser for expand/collapse all button
+
 ## [0.2.21] - 2024-08-12
 
 ### Changed
