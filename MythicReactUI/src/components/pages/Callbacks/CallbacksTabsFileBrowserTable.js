@@ -117,6 +117,10 @@ export const CallbacksTabsFileBrowserTable = (props) => {
             tempData.sort((a, b) => {
                 if(sortData.inMetadata){
                     try {
+                        if(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a]?.metadata[sortData.sortKey] ===
+                            props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b]?.metadata[sortData.sortKey]){
+                            return 0;
+                        }
                         if (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a]?.metadata[sortData.sortKey] === null ||
                             props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a]?.metadata[sortData.sortKey] === undefined) {
                             return -1;
@@ -134,6 +138,10 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                     }
                 } else {
                     try {
+                        if(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] ===
+                            props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey]){
+                            return 0;
+                        }
                         if (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] === null ||
                             props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] === undefined) {
                             return -1;
@@ -153,6 +161,10 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         } else if (sortData.sortType === 'string') {
             tempData.sort((a, b) => {
                 try{
+                    if(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] ===
+                        props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey]){
+                        return 0;
+                    }
                     if (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] === null ||
                         props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] === undefined) {
                         return -1;

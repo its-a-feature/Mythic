@@ -421,7 +421,9 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
     const tmpData = [...allData];
     if(sortData.sortType === "number" || sortData.sortType === "size"){
       tmpData.sort((a, b) => {
-        if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
+        if(a[sortData.sortKey]["plaintext"] === b[sortData.sortKey]["plaintext"]){
+          return 0;
+        }else if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
           return -1;
         }else if(b[sortData.sortKey]["plaintext"] === undefined || b[sortData.sortKey]["plaintext"] === null){
           return 1;
@@ -437,7 +439,9 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
       });
     }else if(sortData.sortType === "date"){
       tmpData.sort((a,b) => {
-        if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
+        if(a[sortData.sortKey]["plaintext"] ===  b[sortData.sortKey]["plaintext"]){
+          return 0;
+        }else if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
           return -1;
         }else if(b[sortData.sortKey]["plaintext"] === undefined || b[sortData.sortKey]["plaintext"] === null){
           return 1;
@@ -453,7 +457,9 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
       });
     }else{
       tmpData.sort( (a, b) => {
-        if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
+        if(a[sortData.sortKey]["plaintext"] === b[sortData.sortKey]["plaintext"]){
+          return 0;
+        }else if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
           return -1;
         }else if(b[sortData.sortKey]["plaintext"] === undefined || b[sortData.sortKey]["plaintext"] === null){
           return 1;

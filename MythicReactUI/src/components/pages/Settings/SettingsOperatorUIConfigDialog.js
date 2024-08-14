@@ -43,7 +43,7 @@ export function SettingsOperatorUIConfigDialog(props) {
         '"Segoe UI Symbol"',
       ].join(',') : localStorageFontFamily;
     const localStorageTopColor = localStorage.getItem(`${me?.user?.user_id || 0}-topColor`);
-    const initialLocalStorageTopColorValue = localStorageTopColor === null ? "#7f93c0" : localStorageTopColor;
+    const initialLocalStorageTopColorValue = localStorageTopColor === null ?  "#3c4d67" : localStorageTopColor;
     const [fontSize, setFontSize] = React.useState(initialLocalStorageFontSizeValue);
     const [fontFamily, setFontFamily] = React.useState(initialLocalStorageFontFamilyValue);
     const [topColor, setTopColor] = React.useState(initialLocalStorageTopColorValue);
@@ -125,7 +125,7 @@ export function SettingsOperatorUIConfigDialog(props) {
         '"Segoe UI Emoji"',
         '"Segoe UI Symbol"',
       ].join(','));
-      setTopColor("#3c4d67");
+      setTopColor( "#3c4d67");
       setHideUsernames(false);
       setShowIP(false);
       setShowHostname(false);
