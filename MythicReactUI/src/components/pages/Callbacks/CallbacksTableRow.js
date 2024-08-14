@@ -26,10 +26,14 @@ import { areEqual } from 'react-window';
 import {CallbackGraphEdgesContext, OnOpenTabContext} from './CallbacksTop';
 import Moment from 'react-moment';
 import moment from 'moment';
+import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import TerminalIcon from '@mui/icons-material/Terminal';
+import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
 
 export const CallbacksTableIDCell = React.memo(({rowData, metaDialog, updateDescription, editMythicTreeGroupsDialog, setOpenHideMultipleDialog, setOpenTaskMultipleDialog, callbackDropdown}) =>{
     const dropdownAnchorRef = React.useRef(null);
     const onOpenTab = useContext(OnOpenTabContext);
+    const interactType = useMythicSetting({setting_name: "interactType", default_value: "interact", output: "string"})
     const [rowDataStatic, setRowDataStatic] = React.useState(rowData);
     React.useEffect( () => {
         let update = false;
@@ -55,21 +59,26 @@ export const CallbacksTableIDCell = React.memo(({rowData, metaDialog, updateDesc
             setRowDataStatic(rowData);
         }
     }, [rowData]);
-
     const handleDropdownToggle = (event) => {
         event.stopPropagation();
         callbackDropdown({rowDataStatic, event});
     };
-    const localOnOpenTab = (tabType) => {
-        onOpenTab({tabType, tabID: rowDataStatic.id + tabType, callbackID: rowDataStatic.id,  displayID: rowDataStatic.display_id});
+    const localOnOpenTab = () => {
+        onOpenTab({tabType: interactType, tabID: rowDataStatic.id + interactType, callbackID: rowDataStatic.id,  displayID: rowDataStatic.display_id});
+    }
+    let defaultInteractIcon = <KeyboardIcon style={{paddingRight: "5px"}}/>;
+    if(interactType === "interactSplit"){
+        defaultInteractIcon = <VerticalSplitIcon style={{paddingRight: "5px"}}/>;
+    } else if(interactType === "interactConsole"){
+        defaultInteractIcon = <TerminalIcon style={{paddingRight: "5px"}}/>;
     }
 
     return (
         <div id={`callbacksTableID${rowDataStatic.id}`}>
                 <IconButton style={{padding: 0, margin: 0}} color={rowDataStatic.integrity_level > 2 ? "error" : ""}
-                    onClick={(evt) => {evt.stopPropagation();localOnOpenTab("interact")}}
+                    onClick={(evt) => {evt.stopPropagation();localOnOpenTab()}}
                 >
-                    {rowDataStatic.locked ? (<LockIcon  style={{marginRight: "10px"}} />):(<KeyboardIcon  style={{marginRight: "10px"}}/>)}
+                    {rowDataStatic.locked ? (<LockIcon  style={{marginRight: "10px"}} />):(defaultInteractIcon)}
                 </IconButton>
             {rowDataStatic.display_id}
                 <IconButton

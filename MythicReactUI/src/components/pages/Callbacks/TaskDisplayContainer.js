@@ -161,7 +161,7 @@ export const TaskDisplayContainerConsole = ({task, me}) => {
   const responseRef = React.useRef(null);
   useEffect( () => {
     setCommandID(task.command === null ? 0 : task.command.id);
-  }, [task.command.id]);
+  }, [task.command]);
   const toggleViewBrowserScript = React.useCallback( () => {
     setViewBrowserScript(!viewBrowserScript);
   }, [viewBrowserScript]);
