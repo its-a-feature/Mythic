@@ -116,14 +116,58 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         if (sortData.sortType === 'number' || sortData.sortType === 'size' || sortData.sortType === 'date') {
             tempData.sort((a, b) => {
                 if(sortData.inMetadata){
-                    return parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a]?.metadata[sortData.sortKey]) >
-                    parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b]?.metadata[sortData.sortKey]) ? 1 : -1
+                    try {
+                        if (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a]?.metadata[sortData.sortKey] === null ||
+                            props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a]?.metadata[sortData.sortKey] === undefined) {
+                            return -1;
+                        }
+                        if (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b]?.metadata[sortData.sortKey] === null ||
+                            props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b]?.metadata[sortData.sortKey] === undefined) {
+                            return 1;
+                        }
+                        return parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a]?.metadata[sortData.sortKey]) >
+                        parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b]?.metadata[sortData.sortKey]) ? 1 : -1;
+                    }catch(error) {
+                        console.log("failed to parse data for sorting", error);
+                        return props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a]?.metadata[sortData.sortKey] >
+                        props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b]?.metadata[sortData.sortKey] ? 1 : -1
+                    }
                 } else {
-                    return parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey]) > parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey]) ? 1 : -1
+                    try {
+                        if (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] === null ||
+                            props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] === undefined) {
+                            return -1;
+                        }
+                        if (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey] === null ||
+                            props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey] === undefined) {
+                            return 1;
+                        }
+                        return parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey]) > parseInt(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey]) ? 1 : -1;
+                    } catch (error) {
+                        console.log("failed to parse data for sorting", error);
+                        return props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] > props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey] ? 1 : -1;
+                    }
                 }
+
             })
         } else if (sortData.sortType === 'string') {
-            tempData.sort((a, b) => (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey].toLowerCase() > props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey].toLowerCase() ? 1 : -1));
+            tempData.sort((a, b) => {
+                try{
+                    if (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] === null ||
+                        props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] === undefined) {
+                        return -1;
+                    }
+                    if (props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey] === null ||
+                        props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey] === undefined) {
+                        return 1;
+                    }
+                    return props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey].localeCompare(props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey]);
+                }catch(error){
+                    console.log("failed to parse data for sorting", error);
+                    return props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][a][sortData.sortKey] > props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][b][sortData.sortKey] ? 1 : -1
+                }
+
+            });
         }
         if (sortData.sortDirection === 'DESC') {
             tempData.reverse();

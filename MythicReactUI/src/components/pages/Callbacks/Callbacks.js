@@ -52,6 +52,8 @@ const StyledSpeedDial = styled(SpeedDial)(({theme}) => ({
     }
 }));
 export const getCallbackIdFromClickedTab = (tabId) => {
+    if(tabId === null || tabId === undefined){return 0}
+    if(tabId === ""){return 0}
     if(tabId.includes("fileBrowser")) {
         return Number(tabId.split("fileBrowser")[0]);
     }else if(tabId.includes("interact")){

@@ -102,7 +102,7 @@ function CallbacksTablePreMemo(props){
     const callbacks = useContext(CallbacksContext);
     const onOpenTab = useContext(OnOpenTabContext);
     const onOpenTabs = useContext(OnOpenTabsContext);
-    const interactType = useMythicSetting({setting_name: "interactType", output: "string"})
+    const interactType = useMythicSetting({setting_name: "interactType", default_value: "interact", output: "string"})
     const theme = useTheme();
     const [openMultipleTabsDialog, setOpenMultipleTabsDialog] = React.useState({open: false, tabType: "interact"});
     const [openMetaDialog, setOpenMetaDialog] = React.useState(false);

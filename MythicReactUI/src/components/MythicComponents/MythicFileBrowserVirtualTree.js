@@ -279,6 +279,14 @@ const VirtualTreeRow = React.memo(({
     </div>
   );
 }, areEqual);
+const caseInsensitiveCompare = (a, b) => {
+    try{
+        return a.localeCompare(b);
+    }catch(error){
+        console.log("localeCompare failed for", a, b);
+        return a < b;
+    }
+}
 const FileBrowserVirtualTreePreMemo = ({
   treeRootData,
   treeAdjMatrix,
@@ -312,7 +320,7 @@ const FileBrowserVirtualTreePreMemo = ({
             group,
             root: true
           },
-          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).reduce( (prev, cur) => {
+          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).sort(caseInsensitiveCompare).reduce( (prev, cur) => {
             if(!treeRootData[group][host][cur].can_have_children){return [...prev]}
             return [...prev, flattenNode(cur, group, host, depth+1)];
         }, []).flat()
@@ -334,7 +342,7 @@ const FileBrowserVirtualTreePreMemo = ({
             group,
             root: false,
           },
-          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).reduce( (prev, cur) => {
+          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).sort(caseInsensitiveCompare).reduce( (prev, cur) => {
             if(!treeRootData[group][host][cur].can_have_children){return [...prev]}
             if(!showDeletedFiles && treeRootData[group][host][cur].deleted){return [...prev]}
             return [...prev, flattenNode(cur, group, host, depth+1)];
@@ -366,7 +374,7 @@ const FileBrowserVirtualTreePreMemo = ({
     // need to return an array
     let finalData = [];
     //console.log(treeAdjMatrix);
-      const groupKeys = Object.keys(treeAdjMatrix).sort();
+      const groupKeys = Object.keys(treeAdjMatrix).sort(caseInsensitiveCompare);
       for(let i = 0; i < groupKeys.length; i++){
         finalData.push({
             id: groupKeys[i],
@@ -383,7 +391,7 @@ const FileBrowserVirtualTreePreMemo = ({
             children: treeAdjMatrix[groupKeys[i]],
             full_path_text: groupKeys[i],
         });
-        const hostKeys = Object.keys(treeAdjMatrix[groupKeys[i]]).sort();
+        const hostKeys = Object.keys(treeAdjMatrix[groupKeys[i]]).sort(caseInsensitiveCompare);
         for(let j = 0; j < hostKeys.length; j++){
         //for(const [host, matrix] of Object.entries(hosts)){
             finalData.push({
@@ -401,7 +409,7 @@ const FileBrowserVirtualTreePreMemo = ({
                 full_path_text: hostKeys[j],
             });
             //console.log(matrix);
-            finalData.push(...Object.keys(treeAdjMatrix[groupKeys[i]][hostKeys[j]][""]).reduce((prev, c) => {
+            finalData.push(...Object.keys(treeAdjMatrix[groupKeys[i]][hostKeys[j]][""]).sort(caseInsensitiveCompare).reduce((prev, c) => {
                 if(!showDeletedFiles && c.deleted) {
                     return [...prev];
                 } else {

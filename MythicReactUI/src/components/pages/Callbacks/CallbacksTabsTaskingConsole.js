@@ -83,6 +83,7 @@ query getBatchTasking($callback_id: Int!, $offset: Int!, $fetchLimit: Int!){
 `;
 export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onCloseTab, parentMountedRef, me}) =>{
     const [taskLimit, setTaskLimit] = React.useState(10);
+    const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
     const [taskingData, setTaskingData] = React.useState({task: []});
@@ -248,6 +249,7 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
                     setFetchedAllTasks(false);
                 }
             }
+            if(!scrollToBottom){setScrollToBottom(true)}
         },
         fetchPolicy: "no-cache"
     });
@@ -258,7 +260,12 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
             mountedRef.current = false;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, []);
+    useEffect( () => {
+        if(scrollToBottom){
+            messagesEndRef.current.scrollIntoView();
+        }
+    }, [scrollToBottom]);
     const loadMoreTasks = () => {
         getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
     }
@@ -357,12 +364,12 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
             {loadingMore && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
             <div style={{overflowY: "auto", flexGrow: 1, width: "100%"}} id={`taskingPanelConsole${tabInfo.callbackID}`}>
                 {!fetchedAllTasks &&
-                    <MythicStyledTooltip title="Fetch Older Tasks">
+                    <MythicStyledTooltip title="Fetch Older Tasks" style={{marginLeft: "50%"}}>
                         <IconButton
                             onClick={loadMoreTasks}
                             variant="contained"
                             color="success"
-                            style={{marginLeft: "50%"}}
+
                             size="large"><AutorenewIcon /></IconButton>
                     </MythicStyledTooltip>}
                 {

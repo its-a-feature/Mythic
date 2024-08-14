@@ -420,17 +420,51 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
     }
     const tmpData = [...allData];
     if(sortData.sortType === "number" || sortData.sortType === "size"){
-      tmpData.sort((a, b) => (parseInt(a[sortData.sortKey]["plaintext"]) > parseInt(b[sortData.sortKey]["plaintext"]) ? 1 : -1));
+      tmpData.sort((a, b) => {
+        if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
+          return -1;
+        }else if(b[sortData.sortKey]["plaintext"] === undefined || b[sortData.sortKey]["plaintext"] === null){
+          return 1;
+        }else{
+          try{
+            return parseInt(a[sortData.sortKey]["plaintext"]) > parseInt(b[sortData.sortKey]["plaintext"]) ? 1 : -1;
+          }catch(error){
+            console.log("failed to parse ints for sorting", a[sortData.sortKey]["plaintext"], b[sortData.sortKey]["plaintext"]);
+            return a[sortData.sortKey]["plaintext"] > b[sortData.sortKey]["plaintext"] ? 1: -1;
+          }
+        }
+
+      });
     }else if(sortData.sortType === "date"){
-      tmpData.sort((a,b) => ( (new Date(a[sortData.sortKey]["plaintext"])) > (new Date(b[sortData.sortKey]["plaintext"])) ? 1: -1));
+      tmpData.sort((a,b) => {
+        if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
+          return -1;
+        }else if(b[sortData.sortKey]["plaintext"] === undefined || b[sortData.sortKey]["plaintext"] === null){
+          return 1;
+        }else{
+          try{
+            return (new Date(a[sortData.sortKey]["plaintext"])) > (new Date(b[sortData.sortKey]["plaintext"])) ? 1: -1
+          }catch(error){
+            console.log("failed to parse dates for sorting", a[sortData.sortKey]["plaintext"], b[sortData.sortKey]["plaintext"]);
+            return a[sortData.sortKey]["plaintext"] > b[sortData.sortKey]["plaintext"] ? 1: -1;
+          }
+        }
+
+      });
     }else{
       tmpData.sort( (a, b) => {
-        if(a[sortData.sortKey]["plaintext"] === undefined){
+        if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
           return -1;
-        }else if(b[sortData.sortKey]["plaintext"] === undefined){
+        }else if(b[sortData.sortKey]["plaintext"] === undefined || b[sortData.sortKey]["plaintext"] === null){
           return 1;
+        } else {
+          try{
+            return a[sortData.sortKey]["plaintext"].localeCompare(b[sortData.sortKey]["plaintext"]);
+          }catch(error){
+            console.log("failed to localeCompare strings for sorting", a[sortData.sortKey]["plaintext"], b[sortData.sortKey]["plaintext"]);
+            return a[sortData.sortKey]["plaintext"] > b[sortData.sortKey]["plaintext"] ? 1: -1;
+          }
         }
-        return a[sortData.sortKey]["plaintext"].toLowerCase() > b[sortData.sortKey]["plaintext"].toLowerCase() ? 1 : -1
       });
     }
     if(sortData.sortDirection === "DESC"){

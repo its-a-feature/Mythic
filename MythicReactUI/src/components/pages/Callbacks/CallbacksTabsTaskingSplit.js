@@ -85,6 +85,7 @@ query getBatchTasking($callback_id: Int!, $offset: Int!, $fetchLimit: Int!){
 `;
 export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTab, me}) =>{
     const [taskLimit, setTaskLimit] = React.useState(10);
+    const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
     const [taskingData, setTaskingData] = React.useState({task: []});
@@ -252,6 +253,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                     setFetchedAllTasks(false);
                 }
             }
+            if(!scrollToBottom){setScrollToBottom(true)}
         },
         fetchPolicy: "no-cache"
     });
@@ -261,7 +263,12 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             mountedRef.current = false;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, []);
+    useEffect( () => {
+        if(scrollToBottom){
+            messagesEndRef.current.scrollIntoView();
+        }
+    }, [scrollToBottom]);
     const loadMoreTasks = () => {
         getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
     }
@@ -397,27 +404,30 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
 
                         {!fetchedAllTasks &&
                             <MythicStyledTooltip title="Fetch Older Tasks">
-                            <IconButton
-                            onClick={loadMoreTasks}
-                            variant="contained"
-                            color="success"
-                            style={{marginLeft: "50%"}}
-                            size="large"><AutorenewIcon /></IconButton>
+                                <IconButton
+                                    onClick={loadMoreTasks}
+                                    variant="contained"
+                                    color="success"
+                                    style={{marginLeft: "50%"}}
+                                    size="large"><AutorenewIcon/></IconButton>
                             </MythicStyledTooltip>}
                         {!fetched && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
                         {loadingMore && <LinearProgress color="info" thickness={2} style={{paddingTop: "5px"}}/>}
                         {
-                            taskingData.task.map( (task) => (
-                            <TaskDisplayFlat key={"taskinteractdisplaysplit" + task.id} me={me} task={task}
-                                             command_id={task.command == null ? 0 : task.command.id}
-                                             filterOptions={filterOptions}
-                                             onSelectTask={(tsk) => {changeSelectedTask(tsk)}}
-                                             showOnSelectTask={true} selectedTask={selectedTask}
-                            />
-                        ))
+                            taskingData.task.map((task) => (
+                                <TaskDisplayFlat key={"taskinteractdisplaysplit" + task.id} me={me} task={task}
+                                                 command_id={task.command == null ? 0 : task.command.id}
+                                                 filterOptions={filterOptions}
+                                                 onSelectTask={(tsk) => {
+                                                     changeSelectedTask(tsk)
+                                                 }}
+                                                 showOnSelectTask={true} selectedTask={selectedTask}
+                                />
+                            ))
                         }
+                        <div ref={messagesEndRef}/>
                     </div>
-                    <div ref={messagesEndRef} />
+
                 </div>
                 <div className="bg-gray-light" style={{display: "inline-flex", height: "100%"}}>
                     <CallbacksTabsTaskingSplitTable selectedTask={selectedTask} me={me} filterOptions={filterOptions}

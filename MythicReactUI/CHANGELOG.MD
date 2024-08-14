@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.23] - 2024-08-14
+
+### Changed
+
+- Added better error handling for null values when sorting tables
+- Added default value when opening tabs from right clicking
+- Added an auto-scroll to the bottom of a tasking/split tasking panel when opening it initially
+
 ## [0.2.22] - 2024-08-13
 
 ### Changed

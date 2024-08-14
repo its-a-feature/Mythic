@@ -83,6 +83,7 @@ query getBatchTasking($callback_id: Int!, $offset: Int!, $fetchLimit: Int!){
 `;
 export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, parentMountedRef, me}) =>{
     const [taskLimit, setTaskLimit] = React.useState(10);
+    const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
     const [taskingData, setTaskingData] = React.useState({task: []});
@@ -247,6 +248,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                     setFetchedAllTasks(false);
                 }
             }
+            if(!scrollToBottom){setScrollToBottom(true)}
         },
         fetchPolicy: "no-cache"
     });
@@ -258,6 +260,11 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+    useEffect( () => {
+        if(scrollToBottom){
+            messagesEndRef.current.scrollIntoView();
+        }
+    }, [scrollToBottom]);
     const loadMoreTasks = () => {
         getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
     }
@@ -363,9 +370,6 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         if(token.token_id !== selectedToken.token_id){
             setSelectedToken(token);
         }
-    }
-    if(index !== value){
-        return null
     }
     return (
         <MythicTabPanel index={index} value={value} >
