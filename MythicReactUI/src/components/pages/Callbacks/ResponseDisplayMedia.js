@@ -10,6 +10,7 @@ import {useTheme} from '@mui/material/styles';
 import {snackActions} from "../../utilities/Snackbar";
 import FormControl from '@mui/material/FormControl';
 import WrapTextIcon from '@mui/icons-material/WrapText';
+// https://github.com/ajaxorg/ace-builds/tree/master/src-min-noconflict
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/mode-csharp';
 import 'ace-builds/src-noconflict/mode-golang';
@@ -36,6 +37,7 @@ import 'ace-builds/src-noconflict/mode-makefile';
 import 'ace-builds/src-noconflict/mode-kotlin';
 import 'ace-builds/src-noconflict/mode-dockerfile';
 import 'ace-builds/src-noconflict/mode-sh';
+import 'ace-builds/src-noconflict/mode-ini';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
@@ -195,6 +197,7 @@ const textExtensionTypesToSyntax = {
     "Makefile": "Makefile",
     "sh": "sh",
     "rc": "sh",
+    "ini": "ini",
 }
 const knownTextFiles = ["config", "credentials", "known_hosts", "config_default", "id_rsa", "Dockerfile", "Makefile"];
 const imgExtensionTypes = ["png", "jpg", "gif", "jpeg", "pdf"];

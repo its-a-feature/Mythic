@@ -23,10 +23,11 @@ import {AddRemoveCallbackCommandsDialog} from './AddRemoveCallbackCommandsDialog
 import { snackActions } from '../../utilities/Snackbar';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
-import {ParseForDisplay} from "../Payloads/DetailedPayloadTable";
+import {DetailedPayloadTable, ParseForDisplay} from "../Payloads/DetailedPayloadTable";
 import {Button, Link, IconButton} from '@mui/material';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 
 const GET_Payload_Details = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -167,6 +168,7 @@ mutation removeLoadedCommand($id: Int!){
 export function DetailedCallbackTable(props){
     const theme = useTheme();
     const me = useReactiveVar(meState);
+    const [openDetailedView, setOpenDetailedView] = React.useState(false);
     const [openAddRemoveCommandsDialog, setOpenAddRemoveCommandsDialog] = React.useState(false);
     const [commands, setCommands] = React.useState([]);
     const [buildParameters, setBuildParameters] = React.useState([]);
@@ -322,7 +324,19 @@ export function DetailedCallbackTable(props){
                     </TableRow>
                     <TableRow hover>
                         <TableCell>UUID</TableCell>
-                        <TableCell>{data.callback_by_pk.payload.uuid}</TableCell>
+                        <TableCell>
+                            {data.callback_by_pk.payload.uuid}
+                            <IconButton disableFocusRipple={true}
+                                        disableRipple={true} size="small" color="info" onClick={() => setOpenDetailedView(true)}>
+                                <InfoIconOutline />
+                            </IconButton>
+                        </TableCell>
+                        {openDetailedView ? (
+                            <MythicDialog fullWidth={true} maxWidth="lg" open={openDetailedView}
+                                          onClose={()=>{setOpenDetailedView(false);}}
+                                          innerDialog={<DetailedPayloadTable {...props} payload_id={data.callback_by_pk.payload.id} onClose={()=>{setOpenDetailedView(false);}} />}
+                            />
+                        ) : null }
                     </TableRow>
                     <TableRow hover>
                         <TableCell>Creation Time</TableCell>

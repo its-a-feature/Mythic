@@ -552,12 +552,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
                                       expand={expand} displayType={displayType} />
           }
           {browserScriptData?.table?.map( (table, index) => {
-          if(useNewBrowserScriptTable){
-            return <ResponseDisplayMaterialReactTable callback_id={task.callback_id} task={task} expand={expand}
-                                                      table={table} key={"tablefortask" + task.id + "table" + index}
-                                                      displayType={displayType}
-            />
-          }
+
             return <ResponseDisplayTable callback_id={task.callback_id} task={task} expand={expand}
                                          table={table} key={"tablefortask" + task.id + "table" + index}
                                          displayType={displayType}

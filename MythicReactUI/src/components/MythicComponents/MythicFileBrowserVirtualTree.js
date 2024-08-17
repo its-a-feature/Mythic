@@ -194,6 +194,7 @@ const VirtualTreeRow = React.memo(({
   return (
     <div className={`hoverme ${selectedPath()}`}
          style={ListProps.style}
+         onContextMenu={handleContextClick}
          onClick={handleOnClickRow}>
     <div style={{display: 'flex' , marginBottom: "1px", flexGrow: 1, width: "100%"}}>
         {[...Array(itemTreeData.depth)].map((o, i) => (
@@ -209,7 +210,7 @@ const VirtualTreeRow = React.memo(({
         <div
           className={classes.root}
           style={{ backgroundColor: theme.body, color: theme.text, alignItems: 'center', display: 'flex', paddingRight: "10px", textDecoration: itemTreeData.deleted ? 'line-through' : ''  }}
-          onContextMenu={handleContextClick}
+
           >
 
           {itemTreeData.is_group ? (
