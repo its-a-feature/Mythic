@@ -248,15 +248,15 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         [sortedData, props.onTaskRowAction, filterOptions, columnVisibility, props.showDeletedFiles]
     );
     const getDisplayFormat = () => {
-        if(sortedData.length > 0 || props?.selectedFolderData?.success){
+        if(sortedData.length === 0 && props?.selectedFolderData?.success === false){
+            return "showTask";
+        }else if(sortedData.length > 0 || props?.selectedFolderData?.success){
             return "normal";
         } else if(sortedData.length === 0 && props?.selectedFolderData?.metadata?.has_children && props?.selectedFolderData?.success === null){
             return "fetchLocal";
         }else if(sortedData.length === 0 && !props?.selectedFolderData?.metadata?.has_children && props?.selectedFolderData?.success === null) {
             return "fetchRemote";
-        }else if(sortedData.length === 0 && props?.selectedFolderData?.success === false){
-            return "showTask";
-        } else if(sortedData.length === 0){
+        }else if(sortedData.length === 0){
             return "fetchRemote";
         } else {
             return "normal";
@@ -567,17 +567,42 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                     onRowClick={onRowClick}
                 />
             }
+            {displayFormat === "normal" && props?.selectedFolderData?.success === null &&
+                <div style={{overflowY: "hidden", flexGrow: 1}}>
+                    <div style={{
+                        position: "absolute",
+                        left: "35%",
+                        top: "40%",
+                        borderRadius: "4px",
+                        border: "1px solid black",
+                        padding: "5px",
+                        backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                    }}>
+                        {"Only PARTIAL data has been collected for this path.  "}<br/>
+                        {"Task this callback to list the contents"}
+                        <IconButton style={{margin: 0, padding: 0, marginRight: "10px"}}
+                                    onClick={props.onListFilesButtonFromTableWithNoEntries}>
+                            <RefreshIcon color={"info"} fontSize={"large"}
+                                         style={{display: "inline-block",}}/>
+                        </IconButton>
+                    </div>
+                </div>
+            }
             {displayFormat === "fetchLocal" &&
                 <div style={{overflowY: "hidden", flexGrow: 1}}>
-                        <div style={{
-                            position: "absolute",
-                            left: "35%",
-                            top: "40%"
-                        }}>
-                            {"Some data exists for this path, but isn't loaded into the UI.  "}
-                            <br/>
-                            {"Click the folder icon to fetch data from the database."}
-                        </div>
+                    <div style={{
+                        position: "absolute",
+                        left: "35%",
+                        top: "40%",
+                        borderRadius: "4px",
+                        border: "1px solid black",
+                        padding: "5px",
+                        backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                    }}>
+                        {"Some data exists for this path, but isn't loaded into the UI.  "}
+                        <br/>
+                        {"Click the folder icon to fetch data from the database."}
+                    </div>
                 </div>
             }
             {displayFormat === "fetchRemote" &&
@@ -585,14 +610,19 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                     <div style={{
                         position: "absolute",
                         left: "35%",
-                        top: "40%"
+                        top: "40%",
+                        borderRadius: "4px",
+                        border: "1px solid black",
+                        padding: "5px",
+                        backgroundColor: "rgba(37,37,37,0.92)", color: "white",
                     }}>
                         {"No data has been collected for this path.  "}
-                        <div style={{display: "flex", alignContent: "center"}}>
-                            <IconButton style={{margin: 0, padding: 0, marginRight: "10px"}} onClick={props.onListFilesButtonFromTableWithNoEntries} >
-                                <RefreshIcon color={"info"} style={{ display: "inline-block",}} />
-                            </IconButton>
+                        <div style={{display: "flex", alignItems: "center"}}>
                             {"Task this callback to list the contents"}
+                            <IconButton style={{margin: 0, padding: 0, marginRight: "10px"}} onClick={props.onListFilesButtonFromTableWithNoEntries} >
+                                <RefreshIcon color={"info"} fontSize={"large"}
+                                             style={{ display: "inline-block",}} />
+                            </IconButton>
                         </div>
                     </div>
                 </div>

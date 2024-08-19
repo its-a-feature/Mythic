@@ -752,6 +752,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 } else {
                     // we don't have this as a named argument, so we'll process it as a positional one
                     result["_"].push(value);
+                    current_argument = "";
+                    current_argument_type = "";
                 }
             } else {
                 // we have a named argument that we just saw, so interpret this as that argument's value
@@ -1003,7 +1005,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 unSatisfiedArguments.push(groupParameters[i]); 
             }
         }
-        // now iterate over the unsatisfied arguments and add in the positional paramters
+        // now iterate over the unsatisfied arguments and add in the positional parameters
+        //console.log("unsatisfiedParameters", unSatisfiedArguments)
         for(let i = 0; i < unSatisfiedArguments.length; i++){
             // we cut this short by one so that the last unSatisifedArgument can do a greedy matching for the rest of what was supplied
             // this parameter hasn't been supplied yet, check if we have any positional parameters in parsedCopy["_"]
@@ -1057,7 +1060,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 break;
             }
         }
-        
+        //console.log("unsatisfied filled, but still some args", JSON.parse(JSON.stringify(parsedCopy)))
         if(unSatisfiedArguments.length > 0 && parsedCopy["_"].length > 0){
             //parsedCopy["_"] = parsedCopy["_"].map( c => typeof(c) === "string" && c.includes(" ") ? "\"" + c + "\"" : c);
             let temp = ""; //parsedCopy["_"].join(" ");
@@ -1088,12 +1091,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 }
                 temp = temp.trim();
             }
-            
             switch(unSatisfiedArguments[unSatisfiedArguments.length -1]["parameter_type"]){
                 case "ChooseOne":
                 case "ChooseOneCustom":
                 case "String":
-                    parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] = temp;
+                    parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] += " " + temp;
                     break;
                 case "Number":
                     try{
@@ -1122,7 +1124,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 case "TypedArray":
                 case "FileMultiple":
                 case "ChooseMultiple":
-                    parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] = parsedCopy["_"];
+                    parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] =
+                        [parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]], ...parsedCopy["_"]];
                     break;
                 default:
                     parsedCopy[unSatisfiedArguments[unSatisfiedArguments.length -1]["cli_name"]] = temp;
@@ -1166,7 +1169,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(parsed === undefined){
                 return;
             }
-            parsed["_"].unshift(cmd);
+            parsed = {...parsed};
             //console.log(message, parsed);
             cmdGroupName = determineCommandGroupName(cmd, parsed);
             if(cmdGroupName !== undefined){
@@ -1177,6 +1180,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }
 
             if(cmd.commandparameters.length > 0){
+                parsed["_"].unshift(cmd);
                 parsedWithPositionalParameters = fillOutPositionalArguments(cmd, parsed, cmdGroupName);
                 //console.log(parsedWithPositionalParameters);
                 if(parsedWithPositionalParameters === undefined){

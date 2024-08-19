@@ -236,8 +236,6 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                }catch(error){
                    console.log(error);
                }
-
-
                 for(let j = 0; j < currentGroups.length; j++){
                     if(treeRootDataRef.current[currentGroups[j]] === undefined){
                         treeRootDataRef.current[currentGroups[j]] = {};
@@ -302,8 +300,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                     } else {
                         // we need to merge data in because we already have some info
                         let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
-                        if(existingData.success === null || !existingData.success){
+                        if( (existingData.success === null || !existingData.success) && data.data.mythictree_stream[i].success !== null){
                             existingData.success = data.data.mythictree_stream[i].success;
+                            existingData.task_id = data.data.mythictree_stream[i].task_id;
                         }
                         existingData.comment += data.data.mythictree_stream[i].comment;
                         existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];
@@ -383,8 +382,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                     } else {
                         // we need to merge data in because we already have some info
                         let existingData = treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]];
-                        if(existingData.success === null || !existingData.success){
+                        if( (existingData.success === null || !existingData.success) && mythictree[i].success !== null){
                             existingData.success = mythictree[i].success;
+                            existingData.task_id = mythictree[i].task_id;
                         }
                         existingData.comment += mythictree[i].comment;
                         existingData.tags = [...existingData.tags, ...mythictree[i].tags];
@@ -397,6 +397,10 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         })
                         existingData.filemeta = [...existingData.filemeta, ...newfileData]
                         treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]] = {...existingData};
+                        if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === mythictree[i]["host"] &&
+                            selectedFolderData.full_path_text === mythictree[i]["full_path_text"]){
+                            setSelectedFolderData({...existingData, group: currentGroups[j]});
+                        }
                     }
                 }
             }
@@ -424,7 +428,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             //console.log("just set treeAdjMtx, about to close backdrop")
             setBackdropOpen(false);
             if(data.self.length > 0){
-                setSelectedFolderData({...selectedFolderData, task_id: data.self[0].task_id, success: data.self[0].success});
+                //setSelectedFolderData({...selectedFolderData, task_id: data.self[0].task_id, success: data.self[0].success});
                 // this path exists, let's see if we have data for it and if the user wants us to auto-issue an ls for the path
                 let newAllData = Object.keys(newMatrix[selectedFolderData.group]?.[selectedFolderData.host]?.[data.self[0].full_path_text] || {});
                 if(autoTaskLsOnEmptyDirectoriesRef.current){
@@ -472,9 +476,13 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         localSelectedToken.current = token;
     }
     const onListFilesButton = ({ fullPath, callback_id, callback_display_id, token }) => {
+        let path = fullPath;
+        if(path === ""){
+            path = ".";
+        }
         taskingData.current = ({
             "token": token,
-            "parameters": {path: fullPath, full_path: fullPath, host: selectedFolderData.host, file: ""},
+            "parameters": {path: path, full_path: path, host: selectedFolderData.host, file: ""},
             "ui_feature": "file_browser:list", callback_id, callback_display_id});
         setOpenTaskingButton(true);
     };
@@ -741,19 +749,19 @@ const FileBrowserTableTop = ({
         fetchFolderData(history[historyIndex - 1], true);
     }
     const onLocalListFilesButton = () => {
-        if (fullPath === '') {
-            snackActions.warning('Must provide a path to list');
-            return;
+        let tempPath = fullPath;
+        if (tempPath === "") {
+            tempPath = ".";
         }
-        if(fullPath.length > 1){
-            if(fullPath[fullPath.length-1] === "/" || fullPath[fullPath.length-1] === "\\"){
-                let newFullPath = fullPath.slice(0, fullPath.length-1);
+        if(tempPath.length > 1){
+            if(tempPath[tempPath.length-1] === "/" || tempPath[tempPath.length-1] === "\\"){
+                let newFullPath = tempPath.slice(0, tempPath.length-1);
                 setFullPath(newFullPath);
                 onListFilesButton({ fullPath: newFullPath, token: selectedToken.current });
                 return
             }
         }
-        onListFilesButton({ fullPath, token: selectedToken.current });
+        onListFilesButton({ fullPath: tempPath, token: selectedToken.current });
     };
     const onLocalUploadFileButton = () => {
         onUploadFileButton({ fullPath, token: selectedToken.current });
@@ -812,8 +820,7 @@ const FileBrowserTableTop = ({
                         endAdornment: (
                             <React.Fragment>
                                 <MythicStyledTooltip title={`Task current callback (${tabInfo["displayID"]}) to list contents`}>
-                                    <IconButton style={{ padding: '0 0px 0 0 ' }}
-
+                                    <IconButton style={{ padding: '3px' }}
                                                 onClick={onLocalListFilesButton}
                                                 size="large">
                                         <RefreshIcon color='info' />

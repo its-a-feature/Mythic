@@ -337,8 +337,13 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
 
                 <div style={{width: "100%", display: "flex", flexDirection: "column", flexGrow: 1}}>
                     <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute",}} invisible={false}>
-                        <div style={{backgroundColor: "#000000ab", color: "white", alignItems: "center",
-                            display: "flex", flexDirection: "column", borderRadius: "4px"}}>
+                        <div style={{
+                            borderRadius: "4px",
+                            border: "1px solid black",
+                            padding: "5px",
+                            backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                            alignItems: "center",
+                            display: "flex", flexDirection: "column"}}>
                             <CircularProgress color="inherit" />
                             <Typography variant={"h5"}>
                                 Gathering Processes from database for {selectedHost}...

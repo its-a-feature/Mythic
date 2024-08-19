@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.27] - 2024-08-19
+
+### Changed
+
+- Fixed a bug in args parsing via the command line that would lose an argument
+- Updated the text display for file browser when needing to list out file contents
+
 ## [0.2.26] - 2024-08-15
 
 ### Changed
