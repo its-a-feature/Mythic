@@ -295,6 +295,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         }
     }
     const onKeyDown = (event) => {
+        if(event.key === "Enter" && (event.ctrlKey || event.metaKey)){
+            setMessage(message + "\n");
+            return;
+        }
         if(event.key === "r" && event.ctrlKey){
             //this means they typed ctrl+r, so they're wanting to do a reverse search for a command
             setReverseSearching(true);
