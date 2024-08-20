@@ -121,7 +121,12 @@ const TagChipDisplay = ({tag}) => {
   }
   return (
     <React.Fragment>
-      <Chip label={tag.tagtype.name} size="small" onClick={(e) => onSelectTag(e)} style={{float: "right", backgroundColor:tag.tagtype.color}} />
+      <Chip label={tag.tagtype.name} size="small" onClick={(e) => onSelectTag(e)}
+            style={{float: "right", backgroundColor:tag.tagtype.color,}}
+            sx={{
+              "& .MuiChip-label": {overflow: "visible"}
+            }}
+      />
       {openTagDisplay && 
         <MythicDialog fullWidth={true} maxWidth="xl" open={openTagDisplay}
           onClose={onClose}

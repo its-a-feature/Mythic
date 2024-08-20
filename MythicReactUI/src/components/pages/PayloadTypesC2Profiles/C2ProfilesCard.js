@@ -111,10 +111,10 @@ export function C2ProfilesRow({service, showDeleted}) {
         },
         onCompleted: data => {
             //console.log(data);
-            if(data.uploadContainerFile.status === "success"){
+            if(data.containerWriteFile.status === "success"){
                 snackActions.success("Updated file");
             }else{
-                snackActions.error("Error updating: " + data.uploadContainerFile.error );
+                snackActions.error("Error updating: " + data.containerWriteFile.error );
             }
         }
     });
