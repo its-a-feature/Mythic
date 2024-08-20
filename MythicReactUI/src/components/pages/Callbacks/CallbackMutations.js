@@ -135,6 +135,7 @@ export const taskingDataFragment = gql`
         opsec_pre_bypassed
         opsec_post_blocked
         opsec_post_bypassed
+        is_interactive_task
         interactive_task_type
         has_intercepted_response
         tasks(where: {is_interactive_task: {_eq: false}}, order_by: {id: asc}) {

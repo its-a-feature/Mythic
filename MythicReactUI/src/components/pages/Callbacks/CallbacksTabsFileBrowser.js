@@ -315,6 +315,10 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         })
                         existingData.filemeta = [...existingData.filemeta, ...newfileData]
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...existingData};
+                        if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === data.data.mythictree_stream[i]["host"] &&
+                            selectedFolderData.full_path_text === data.data.mythictree_stream[i]["full_path_text"]){
+                            setSelectedFolderData({...existingData, group: currentGroups[j]});
+                        }
                     }
                 }
             }

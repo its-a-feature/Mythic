@@ -11,8 +11,11 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
     const item = data.items[rowIndex][columnIndex];
     const cellStyle = item?.props?.cellData?.cellStyle || {};
     const rowStyle = data.items[rowIndex][columnIndex]?.props?.rowData?.rowStyle || {};
+    const contextMenuLocationRef = React.useRef({x: 0, y: 0});
     const handleDoubleClick = useCallback(
         (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             data.onDoubleClickRow(e, rowIndex - 1, data.items[rowIndex][columnIndex]?.props?.rowData); // minus 1 to account for header row
         },
         [data, rowIndex]
@@ -54,6 +57,8 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
             if(item.disableFilterMenu){
                 return;
             }
+            contextMenuLocationRef.current.x = event.clientX;
+            contextMenuLocationRef.current.y = event.clientY;
             if(data.onRowContextMenuClick){
                 const newMenuItems = data.onRowContextMenuClick({rowDataStatic: data.items[rowIndex][columnIndex]?.props?.rowData});
                 if(newMenuItems.length > 0){
@@ -83,12 +88,13 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
             </div>
             <ContextMenu dropdownAnchorRef={dropdownAnchorRef} contextMenuOptions={contextMenuOptions}
                 disableFilterMenu={item.disableFilterMenu} openContextMenu={openContextMenu}
+                         contextMenuLocationRef={contextMenuLocationRef}
                          setOpenContextMenu={setOpenContextMenu} handleMenuItemClick={handleMenuItemClick}
             />
         </div>
     );
 };
-const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOptions, setOpenContextMenu, handleMenuItemClick}) => {
+const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOptions, setOpenContextMenu, handleMenuItemClick, contextMenuLocationRef}) => {
     const handleClose = (event) => {
         //if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
         //    return;
@@ -103,6 +109,9 @@ const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOptions, se
                 isOpen={dropdownAnchorRef.current}
                 onOpen={setOpenContextMenu}
                 externallyOpen={openContextMenu}
+                absoluteX={contextMenuLocationRef.current.x}
+                absoluteY={contextMenuLocationRef.current.y}
+                anchorReference={"anchorPosition"}
                 menu={[
                     contextMenuOptions.map((option, index) => (
                         option.type === 'item' ? (

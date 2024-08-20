@@ -14,7 +14,6 @@ import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import Pagination from '@mui/material/Pagination';
 import {ResponseDisplayInteractive} from "./ResponseDisplayInteractive";
 import {ResponseDisplayMedia} from "./ResponseDisplayMedia";
-import {ResponseDisplayMaterialReactTable} from "./ResponseDisplayMaterialReactTable";
 import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {DrawBrowserScriptElementsFlow} from "./C2PathDialog";
 import {ResponseDisplayGraph} from "./ResponseDisplayGraph";

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.28] - 2024-08-19
+
+### Changed
+
+- Fixed a bug in file browser where file display wouldn't disappear
+- Updated interactive display to not show prompt when not main tasking
+- Updated context menu for tables to be at the location of the cursor
+
 ## [0.2.27] - 2024-08-19
 
 ### Changed

@@ -168,6 +168,7 @@ const EnterOptions = [
 ];
 export const ResponseDisplayInteractive = (props) =>{
     const me = useReactiveVar(meState);
+    const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const pageSize = React.useRef(100);
     const highestFetched = React.useRef(0);
     const [taskData, setTaskData] = React.useState([]);
@@ -319,6 +320,14 @@ export const ResponseDisplayInteractive = (props) =>{
     const toggleWrapText = () => {
         setWrapText(!wrapText);
     }
+    useEffect( () => {
+        if(scrollToBottom){
+            messagesEndRef.current.scrollIntoView();
+        }
+    }, [scrollToBottom]);
+    React.useLayoutEffect(() => {
+        if(!scrollToBottom && alloutput.length > 0){setScrollToBottom(true)}
+    }, [alloutput]);
   return (
 
       <div style={{
@@ -343,13 +352,16 @@ export const ResponseDisplayInteractive = (props) =>{
               ))}
               <div ref={messagesEndRef}/>
           </div>
-          <div style={{width: "100%", display: "inline-flex", alignItems: "flex-end"}}>
-              <InteractiveTaskingBar task={props.task} taskData={taskData}
-                                     useASNIColor={useASNIColor} toggleANSIColor={toggleANSIColor}
-                                     showTaskStatus={showTaskStatus} toggleShowTaskStatus={toggleShowTaskStatus}
-                                     wrapText={wrapText} toggleWrapText={toggleWrapText}
-              />
-          </div>
+          {!props.task?.is_interactive_task &&
+              <div style={{width: "100%", display: "inline-flex", alignItems: "flex-end"}}>
+                  <InteractiveTaskingBar task={props.task} taskData={taskData}
+                                         useASNIColor={useASNIColor} toggleANSIColor={toggleANSIColor}
+                                         showTaskStatus={showTaskStatus} toggleShowTaskStatus={toggleShowTaskStatus}
+                                         wrapText={wrapText} toggleWrapText={toggleWrapText}
+                  />
+              </div>
+          }
+
           <InteractivePaginationBar totalCount={totalCount} currentPage={page.current}
                                     onSubmitPageChange={onSubmitPageChange} expand={props.expand}
                                     pageSize={pageSize.current}/>
@@ -357,8 +369,10 @@ export const ResponseDisplayInteractive = (props) =>{
   )
 
 }
-const InteractiveTaskingBar = ({task, taskData, useASNIColor, toggleANSIColor,
-                                   showTaskStatus, toggleShowTaskStatus, wrapText, toggleWrapText}) => {
+const InteractiveTaskingBar = ({
+                                   task, taskData, useASNIColor, toggleANSIColor,
+                                   showTaskStatus, toggleShowTaskStatus, wrapText, toggleWrapText
+                               }) => {
     const [inputText, setInputText] = React.useState("");
     const theme = useTheme();
     const [createTask] = useMutation(createTaskingMutation, {
