@@ -135,6 +135,7 @@ type CommandParameter struct {
 	FilterCommandChoicesByCommandAttributes map[string]string      `json:"choice_filter_by_command_attributes"`
 	DynamicQueryFunctionName                string                 `json:"dynamic_query_function"`
 	ParameterGroupInformation               []ParameterGroupInfo   `json:"parameter_group_info"`
+	LimitCredentialsByType                  []string               `json:"limit_credentials_by_type"`
 }
 
 type CommandAttribute struct {
@@ -863,6 +864,7 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 									databaseParameter.DefaultValue = defaultVal
 								}
 								databaseParameter.SupportedAgents = GetMythicJSONArrayFromStruct(newParameter.SupportedAgents)
+								databaseParameter.LimitCredentialsByType = GetMythicJSONArrayFromStruct(newParameter.LimitCredentialsByType)
 								databaseParameter.ChoicesAreAllCommands = newParameter.ChoicesAreAllCommands
 								databaseParameter.ChoicesAreLoadedCommands = newParameter.ChoicesAreLoadedCommands
 								databaseParameter.Required = newParameterGroup.ParameterIsRequired
@@ -879,7 +881,7 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 									supported_agents=:supported_agents, supported_agent_build_parameters=:supported_agent_build_parameters,
 									choices_are_all_commands=:choices_are_all_commands, choices_are_loaded_commands=:choices_are_loaded_commands, 
 									choice_filter_by_command_attributes=:choice_filter_by_command_attributes, dynamic_query_function=:dynamic_query_function, 
-									required=:required, ui_position=:ui_position, "type"=:type 
+									required=:required, ui_position=:ui_position, "type"=:type, limit_credentials_by_type=:limit_credentials_by_type 
 									WHERE id=:id`, databaseParameter,
 								)
 								if err != nil {
@@ -922,6 +924,7 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 					CliName:                  newParameter.CLIName,
 					Description:              newParameter.Description,
 					Choices:                  GetMythicJSONArrayFromStruct(newParameter.Choices),
+					LimitCredentialsByType:   GetMythicJSONArrayFromStruct(newParameter.LimitCredentialsByType),
 					SupportedAgents:          GetMythicJSONArrayFromStruct(newParameter.SupportedAgents),
 					ChoicesAreAllCommands:    newParameter.ChoicesAreAllCommands,
 					ChoicesAreLoadedCommands: newParameter.ChoicesAreLoadedCommands,
@@ -942,9 +945,11 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 				databaseParameter.SupportedAgentBuildParameters = GetMythicJSONTextFromStruct(newParameter.SupportedAgentBuildParameters)
 				if statement, err := database.DB.PrepareNamed(`INSERT INTO commandparameters 
 					("name",display_name,cli_name,description,command_id,choices,default_value,supported_agents,choices_are_all_commands,
-					choices_are_loaded_commands,required,ui_position,"type",choice_filter_by_command_attributes,dynamic_query_function,supported_agent_build_parameters,parameter_group_name) 
+					choices_are_loaded_commands,required,ui_position,"type",choice_filter_by_command_attributes,dynamic_query_function,supported_agent_build_parameters,parameter_group_name,
+					 limit_credentials_by_type) 
 					VALUES (:name, :display_name, :cli_name, :description, :command_id, :choices, :default_value, :supported_agents, :choices_are_all_commands,
-					:choices_are_loaded_commands, :required, :ui_position, :type, :choice_filter_by_command_attributes, :dynamic_query_function, :supported_agent_build_parameters, :parameter_group_name) 
+					:choices_are_loaded_commands, :required, :ui_position, :type, :choice_filter_by_command_attributes, :dynamic_query_function, :supported_agent_build_parameters, :parameter_group_name,
+					        :limit_credentials_by_type) 
 					RETURNING id`,
 				); err != nil {
 					logging.LogError(err, "Failed to create new command parameters statement when importing payloadtype")

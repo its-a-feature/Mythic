@@ -20,4 +20,5 @@ type Commandparameters struct {
 	ParameterGroupName              string          `db:"parameter_group_name"`
 	Required                        bool            `db:"required"`
 	UiPosition                      int             `db:"ui_position"`
+	LimitCredentialsByType          MythicJSONArray `db:"limit_credentials_by_type"`
 }

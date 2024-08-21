@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.31] - 2024-08-21
+
+### Changed
+
+- Added the option to use the limit_credentials_by_type field in command parameters to limit UI choices
+
 ## [0.2.29-30] - 2024-08-20
 
 ### Changed

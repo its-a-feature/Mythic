@@ -2538,112 +2538,117 @@
     - role: developer
       permission:
         columns:
-          - id
-          - command_id
-          - name
-          - display_name
-          - cli_name
-          - type
-          - default_value
-          - choices
-          - description
-          - supported_agents
-          - supported_agent_build_parameters
-          - choice_filter_by_command_attributes
           - choices_are_all_commands
           - choices_are_loaded_commands
-          - dynamic_query_function
-          - parameter_group_name
           - required
+          - command_id
+          - id
           - ui_position
+          - choice_filter_by_command_attributes
+          - choices
+          - limit_credentials_by_type
+          - supported_agent_build_parameters
+          - supported_agents
+          - cli_name
+          - default_value
+          - description
+          - display_name
+          - dynamic_query_function
+          - name
+          - parameter_group_name
+          - type
         filter: {}
     - role: mythic_admin
       permission:
         columns:
-          - id
-          - command_id
-          - name
-          - display_name
-          - cli_name
-          - type
-          - default_value
-          - choices
-          - description
-          - supported_agents
-          - supported_agent_build_parameters
-          - choice_filter_by_command_attributes
           - choices_are_all_commands
           - choices_are_loaded_commands
-          - dynamic_query_function
-          - parameter_group_name
           - required
+          - command_id
+          - id
           - ui_position
+          - choice_filter_by_command_attributes
+          - choices
+          - limit_credentials_by_type
+          - supported_agent_build_parameters
+          - supported_agents
+          - cli_name
+          - default_value
+          - description
+          - display_name
+          - dynamic_query_function
+          - name
+          - parameter_group_name
+          - type
         filter: {}
     - role: operation_admin
       permission:
         columns:
-          - id
-          - command_id
-          - name
-          - display_name
-          - cli_name
-          - type
-          - default_value
-          - choices
-          - description
-          - supported_agents
-          - supported_agent_build_parameters
-          - choice_filter_by_command_attributes
           - choices_are_all_commands
           - choices_are_loaded_commands
-          - dynamic_query_function
-          - parameter_group_name
           - required
+          - command_id
+          - id
           - ui_position
+          - choice_filter_by_command_attributes
+          - choices
+          - limit_credentials_by_type
+          - supported_agent_build_parameters
+          - supported_agents
+          - cli_name
+          - default_value
+          - description
+          - display_name
+          - dynamic_query_function
+          - name
+          - parameter_group_name
+          - type
         filter: {}
     - role: operator
       permission:
         columns:
-          - id
-          - command_id
-          - name
-          - display_name
-          - cli_name
-          - type
-          - default_value
-          - choices
-          - description
-          - supported_agents
-          - supported_agent_build_parameters
-          - choice_filter_by_command_attributes
           - choices_are_all_commands
           - choices_are_loaded_commands
-          - dynamic_query_function
-          - parameter_group_name
           - required
+          - command_id
+          - id
           - ui_position
+          - choice_filter_by_command_attributes
+          - choices
+          - limit_credentials_by_type
+          - supported_agent_build_parameters
+          - supported_agents
+          - cli_name
+          - default_value
+          - description
+          - display_name
+          - dynamic_query_function
+          - name
+          - parameter_group_name
+          - type
         filter: {}
     - role: spectator
       permission:
         columns:
-          - id
-          - command_id
-          - name
-          - display_name
-          - cli_name
-          - type
-          - default_value
-          - choices
-          - description
-          - supported_agents
-          - supported_agent_build_parameters
-          - choice_filter_by_command_attributes
           - choices_are_all_commands
           - choices_are_loaded_commands
-          - dynamic_query_function
-          - parameter_group_name
           - required
+          - command_id
+          - id
           - ui_position
+          - choice_filter_by_command_attributes
+          - choices
+          - limit_credentials_by_type
+          - supported_agent_build_parameters
+          - supported_agents
+          - cli_name
+          - default_value
+          - description
+          - display_name
+          - dynamic_query_function
+          - name
+          - parameter_group_name
+          - type
         filter: {}
 - table:
     name: consuming_container

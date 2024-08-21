@@ -18,7 +18,7 @@ func (r *rabbitMQConnection) SendContainerOnStart(onStartMessage ContainerOnStar
 		GetContainerOnStartRoutingKey(onStartMessage.ContainerName),
 		"",
 		onStartMessage,
-		false,
+		true,
 	); err != nil {
 		logging.LogError(err, "Failed to send message")
 		return err

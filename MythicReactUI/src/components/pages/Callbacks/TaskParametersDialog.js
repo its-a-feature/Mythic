@@ -241,6 +241,7 @@ query getCommandQuery($id: Int!){
       choices
       choices_are_all_commands
       choices_are_loaded_commands
+      limit_credentials_by_type
       default_value
       description
       id
@@ -565,14 +566,26 @@ export function TaskParametersDialog(props) {
                     case "FileMultiple":
                         return [...prev, {...cmd, value: []}];
                     case "CredentialJson":
-                        if (loadedCredentialsLoading.credential.length > 0){
+                        let credentialChoices = loadedCredentialsLoading.credential;
+                        if(credentialChoices === undefined || credentialChoices === null){
+                            credentialChoices = [];
+                        }
+                        if(cmd.limit_credentials_by_type?.length > 0){
+                            credentialChoices = credentialChoices.reduce( (existingCreds, curCred) => {
+                                if(cmd.limit_credentials_by_type.includes(curCred.type)){
+                                    return [...existingCreds, curCred];
+                                }
+                                return [...existingCreds];
+                            }, []);
+                        }
+                        if (credentialChoices.length > 0){
                             if(parsedParameterName){
                                 cmd.value = props.command.parsedParameters[parsedParameterName];
                             }
                             else if(cmd.value === "" || (typeof(cmd.value) === Object && Object.keys(cmd.value).length === 0) || cmd.value === undefined){
-                                cmd.value = loadedCredentialsLoading.credential[0];
+                                cmd.value = credentialChoices[0];
                             }
-                            return [...prev, {...cmd, choices: loadedCredentialsLoading.credential}];
+                            return [...prev, {...cmd, choices: credentialChoices}];
                         }else{
                             return [...prev, {...cmd, value: {}, choices: []}];
                         }

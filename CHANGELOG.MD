@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0-rc19] - 2024-08-21
+
+### Changed
+
+- Added a new limit_credentials_by_type option to Command Parameters to reduce noise in the UI when using CredentialJson parameter types
+
 ## [3.3.0-rc18] - 2024-08-08
 
 ### Changed
