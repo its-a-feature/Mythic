@@ -23,7 +23,7 @@ import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 const PREFIX = 'TaskDisplay';
 const ACCORDION_PREFIX = 'TaskDisplayAccordion';
-const classes = {
+export const classes = {
   root: `${PREFIX}-root`,
   heading: `${PREFIX}-heading`,
   secondaryHeading: `${PREFIX}-secondaryHeading`,
@@ -33,7 +33,7 @@ const classes = {
   details: `${PREFIX}-details`,
   column: `${PREFIX}-column`
 };
-const accordionClasses = {
+export const accordionClasses = {
   root: `${ACCORDION_PREFIX}-root`,
   content: `${ACCORDION_PREFIX}-content`,
   expandIcon: `${ACCORDION_PREFIX}-expandIcon`,
@@ -42,7 +42,7 @@ const accordionClasses = {
   detailsRoot: `${ACCORDION_PREFIX}Details-root`
 }
 
-const StyledPaper = styled(Paper)((
+export const StyledPaper = styled(Paper)((
   {
     theme
   }
@@ -51,7 +51,7 @@ const StyledPaper = styled(Paper)((
     marginTop: "3px",
     marginRight: "0px",
     height: "auto",
-    width: "100%",
+    width: "99%",
     boxShadow: "unset",
     backgroundColor: theme.palette.background.taskLabel,
   },
@@ -117,7 +117,7 @@ subscription getSubTasking($task_id: Int!){
 }
  `;
 
-const StyledAccordionSummary = styled(AccordionSummary)((
+export const StyledAccordionSummary = styled(AccordionSummary)((
     {
       theme
     }
@@ -227,7 +227,7 @@ const GetOperatorDisplay = ({initialHideUsernameValue, task}) => {
   }
   return "/ " + task.operator.username;
 }
-const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded }) => {
+export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded }) => {
   const [displayComment, setDisplayComment] = React.useState(false);
   const [alertBadges, setAlertBadges] = React.useState(0);
   const initialHideUsernameValue = useMythicSetting({setting_name: "hideUsernames", default_value: "false"});

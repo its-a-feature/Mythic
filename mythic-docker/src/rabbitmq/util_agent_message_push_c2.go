@@ -259,7 +259,7 @@ func pushC2AgentMessageGetTasking(taskId int) (map[string]interface{}, error) {
 			MessageType: InteractiveTask.MessageType(task.InteractiveTaskType.Int64),
 		}
 		if _, err := database.DB.Exec(`UPDATE task SET
-					status=$2, status_timestamp_processing=$3
+					status=$2, status_timestamp_processing=$3, status_timestamp_processed=$3, completed=true
 					WHERE id=$1`, task.ID, PT_TASK_FUNCTION_STATUS_COMPLETED, time.Now().UTC()); err != nil {
 			logging.LogError(err, "Failed to update interactive task status to completed")
 			return nil, err
@@ -359,6 +359,11 @@ func pushC2AgentGetDelegateTaskMessages(taskId int, callbackId int, routablePath
 				},
 			}
 			newStatus = PT_TASK_FUNCTION_STATUS_COMPLETED
+			if _, err := database.DB.Exec(`UPDATE task SET
+							status=$2, status_timestamp_processing=$3, status_timestamp_processed=$3, completed=true
+							WHERE id=$1`, currentTasks[i].ID, newStatus, time.Now().UTC()); err != nil {
+				logging.LogError(err, "Failed to update task status to processing")
+			}
 		} else {
 			newTask = map[string]interface{}{
 				"action": "get_tasking",
@@ -372,13 +377,14 @@ func pushC2AgentGetDelegateTaskMessages(taskId int, callbackId int, routablePath
 					},
 				},
 			}
-		}
-
-		if _, err := database.DB.Exec(`UPDATE task SET
+			if _, err := database.DB.Exec(`UPDATE task SET
 							status=$2, status_timestamp_processing=$3
 							WHERE id=$1`, currentTasks[i].ID, newStatus, time.Now().UTC()); err != nil {
-			logging.LogError(err, "Failed to update task status to processing")
-		} else if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, true); err != nil {
+				logging.LogError(err, "Failed to update task status to processing")
+			}
+		}
+
+		if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, true); err != nil {
 			logging.LogError(err, "Failed to recursively encrypt message")
 		} else {
 			submittedTasksAwaitingFetching.removeTask(currentTasks[i].ID)

@@ -211,6 +211,22 @@ func (s *submittedTasksForAgents) removeTask(taskId int) {
 				OperationID: (*s.Tasks)[i].OperationID,
 				TaskID:      (*s.Tasks)[i].TaskID,
 			}
+			if (*s.Tasks)[i].IsInteractiveTask {
+				_, err := database.DB.Exec(`UPDATE task SET
+                status_timestamp_processing=$1, status_timestamp_processed=$1, completed=true 
+                WHERE id=$2`, time.Now().UTC(), taskId)
+				if err != nil {
+					logging.LogError(err, "failed to update timestamp for interactive task")
+				}
+			} else {
+				_, err := database.DB.Exec(`UPDATE task SET
+                status_timestamp_processing=$1 
+                WHERE id=$2`, time.Now().UTC(), taskId)
+				if err != nil {
+					logging.LogError(err, "failed to update timestamp for interactive task")
+				}
+			}
+
 			*s.Tasks = append((*s.Tasks)[:i], (*s.Tasks)[i+1:]...)
 			return
 		}
@@ -516,6 +532,10 @@ func associateUploadedFilesWithTask(task *databaseStructs.Task, files []string) 
 func addTaskToDatabase(task *databaseStructs.Task) error {
 	// create the task in the database
 	//logging.LogInfo("adding task to database", "task", task)
+	if task.IsInteractiveTask {
+		task.StatusTimestampSubmitted.Valid = true
+		task.StatusTimestampSubmitted.Time = time.Now().UTC()
+	}
 	transaction, err := database.DB.Beginx()
 	if err != nil {
 		logging.LogError(err, "Failed to begin transaction")
@@ -531,11 +551,11 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 	(agent_task_id,command_name,callback_id,operator_id,command_id,token_id,params,
 		original_params,display_params,status,tasking_location,parameter_group_name,
 		parent_task_id,subtask_callback_function,group_callback_function,subtask_group_name,operation_id,
-	    is_interactive_task, interactive_task_type, eventstepinstance_id)
+	    is_interactive_task, interactive_task_type, eventstepinstance_id, status_timestamp_submitted)
 		VALUES (:agent_task_id, :command_name, :callback_id, :operator_id, :command_id, :token_id, :params,
 			:original_params, :display_params, :status, :tasking_location, :parameter_group_name,
 			:parent_task_id, :subtask_callback_function, :group_callback_function, :subtask_group_name, :operation_id,
-		        :is_interactive_task, :interactive_task_type, :eventstepinstance_id)
+		        :is_interactive_task, :interactive_task_type, :eventstepinstance_id, :status_timestamp_submitted)
 			RETURNING id`); err != nil {
 		logging.LogError(err, "Failed to make a prepared statement for new task creation")
 		return err
@@ -557,8 +577,21 @@ func handleClearCommand(createTaskInput CreateTaskInput, callback databaseStruct
 		Error:  "not implemented",
 	}
 	task.Status = "processing"
+	task.StatusTimestampProcessing.Valid = true
+	task.StatusTimestampProcessing.Time = time.Now().UTC()
+	task.StatusTimestampProcessed.Valid = true
+	task.StatusTimestampProcessed.Time = time.Now().UTC()
 	if err := addTaskToDatabase(&task); err != nil {
 		logging.LogError(err, "Failed to add task to database")
+		output.Error = err.Error()
+		return output
+	}
+	_, err := database.DB.NamedExec(`UPDATE task SET 
+                status_timestamp_processing=:status_timestamp_processing, 
+                status_timestamp_processed=:status_timestamp_processed 
+            where id=:id`, task)
+	if err != nil {
+		logging.LogError(err, "Failed to update task in database")
 		output.Error = err.Error()
 		return output
 	}
@@ -616,7 +649,8 @@ func addErrToTask(taskId int, output string) {
 	}
 }
 func updateTaskStatus(taskId int, status string, completed bool) {
-	if _, err := database.DB.Exec(`UPDATE task SET status=$1, completed=$2 WHERE id=$3`,
+	if _, err := database.DB.Exec(`UPDATE task SET status=$1, 
+                completed=$2 WHERE id=$3`,
 		status, completed, taskId); err != nil {
 		logging.LogError(err, "Failed to update task status")
 	}

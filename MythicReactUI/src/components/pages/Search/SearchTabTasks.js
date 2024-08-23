@@ -15,6 +15,7 @@ import Pagination from '@mui/material/Pagination';
 import { Typography } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import {TaskDisplayInteractiveSearch} from "./SearchTabInteractiveTasks";
 
 const fetchLimit = 20;
 const responseSearch = gql`
@@ -33,7 +34,7 @@ query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status:
 const parameterSearch = gql`
 ${taskingDataFragment}
 query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, original_params: {_ilike: $search}}) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status},  original_params: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
@@ -51,7 +52,7 @@ query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status:
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, comment: {_ilike: $search}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status},comment: {_ilike: $search}}) {
       ...taskData
     }
   }
@@ -59,7 +60,7 @@ query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status:
 const commandSearch = gql`
 ${taskingDataFragment}
 query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}}) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status},  command_name: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
@@ -72,12 +73,12 @@ query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: 
 const commandAndParameterSearch = gql`
 ${taskingDataFragment}
 query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, _or: [{original_params: {_ilike: $search}}, {command_name: {_ilike: $search}}]}) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status},  _or: [{original_params: {_ilike: $search}}, {command_name: {_ilike: $search}}]}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, _or: [{original_params: {_ilike: $search}}, {command_name: {_ilike: $search}}]}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status},  _or: [{original_params: {_ilike: $search}}, {command_name: {_ilike: $search}}]}) {
       ...taskData
     }
   }
@@ -105,7 +106,7 @@ query responseQuery($search: Int!, $offset: Int!, $fetchLimit: Int!, $status: St
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {display_id: {_eq: $search}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status},callback: {display_id: {_eq: $search}}}) {
       ...taskData
     }
   }
@@ -118,7 +119,7 @@ query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status:
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {mythictree_groups_string: {_ilike: $search}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status},  callback: {mythictree_groups_string: {_ilike: $search}}}) {
       ...taskData
     }
   }
@@ -589,7 +590,13 @@ export const SearchTabTasksPanel = (props) =>{
                 {
                     taskingData.task.length > 0 ? (
                         taskingData.task.map( (task) => (
-                            <TaskDisplay key={"taskinteractdisplay" + task.id} me={props.me} task={task} command_id={task.command == null ? 0 : task.command.id} />
+                            task.is_interactive_task ? (
+                                <TaskDisplayInteractiveSearch key={"taskinteractdisplay" + task.id} me={props.me} task={task} responsesSurrounding={5} />
+                                ) : (
+                                    <TaskDisplay key={"taskinteractdisplay" + task.id} me={props.me} task={task} command_id={task.command == null ? 0 : task.command.id} />
+                            )
+
+
                         ))
                     ) : (<div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>No Search Results</div>)
                 }

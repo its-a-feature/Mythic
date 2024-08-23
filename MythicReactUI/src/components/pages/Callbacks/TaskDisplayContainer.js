@@ -93,7 +93,7 @@ export const TaskDisplayContainer = ({task, me}) => {
               fabStyle={{   }}
               viewAllOutput={selectAllOutput}/>
             <Grid item xs={12}>
-              <ResponseDisplay 
+              <ResponseDisplay
                 task={task} 
                 me={me}
                 command_id={commandID} 
@@ -131,6 +131,7 @@ export const TaskDisplayContainerFlat = ({task, me}) => {
   return (
         <div style={{ height: "100%", position: "relative", display: "flex", flexDirection: "column", overflowY: "auto", }}>
             <ResponseDisplay
+                key={task.id}
                 task={task}
                 me={me}
                 command_id={commandID}

@@ -122,6 +122,7 @@ export const taskingDataFragment = gql`
         display_params
         status
         timestamp
+        status_timestamp_submitted
         command {
           cmd
           supported_ui_features

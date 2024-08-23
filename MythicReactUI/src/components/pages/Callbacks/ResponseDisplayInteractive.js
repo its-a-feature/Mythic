@@ -6,7 +6,7 @@ import { gql, useMutation, useSubscription } from '@apollo/client';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import {SearchBar} from './ResponseDisplay';
 import Pagination from '@mui/material/Pagination';
-import {Typography, CircularProgress, Select, IconButton} from '@mui/material';
+import {Typography, CircularProgress, Select, IconButton, Backdrop} from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import Input from '@mui/material/Input';
 import MenuItem from '@mui/material/MenuItem';
@@ -78,54 +78,62 @@ const getClassnames = (entry) => {
     //console.log(entry);
     return classnames.join(" ");
 }
-const GetOutputFormat = ({data, myTask, taskID,  useASNIColor, messagesEndRef, showTaskStatus, wrapText}) => {
+export const GetOutputFormatAll = ({data, myTask, taskID,  useASNIColor, messagesEndRef, showTaskStatus, wrapText, search}) => {
     const [dataElement, setDataElement] = React.useState(null);
     React.useEffect( () => {
-
-        if(data.response) {
-            // we're looking at response output
-            if(data.is_error){
-                setDataElement(<pre style={{display: "inline",backgroundColor: "#311717", margin: "0 0 0 0",
-                    wordBreak: wrapText ? "break-all" : "",
-                    whiteSpace: wrapText ? "pre-wrap" : ""}} key={data.timestamp + data.id}>
-                    {data.response}
-                </pre>)
-            } else {
-                if(useASNIColor){
-                    let ansiJSON = Anser.ansiToJson(data.response, { use_classes: true });
-                    //console.log(ansiJSON)
-                    setDataElement(
-                        ansiJSON.map( (a, i) => (
-                            <pre style={{display: "inline", margin: "0 0 0 0",
-                                wordBreak: wrapText ? "break-all" : "",
-                                whiteSpace: wrapText ? "pre-wrap" : "",
-                            }} className={getClassnames(a)} key={data.id + data.timestamp + i}>{a.content}</pre>
-                        ))
-                    )
-                } else {
-                    setDataElement(<pre style={{display: "inline", margin: "0 0 0 0",
+        const elements = data.map( d => {
+            if(d.response) {
+                // we're looking at response output
+                if(d.is_error){
+                    return (<pre id={"response" + d.timestamp + d.id} style={{display: "inline",backgroundColor: "#311717", color: "white", margin: "0 0 0 0",
                         wordBreak: wrapText ? "break-all" : "",
-                        whiteSpace: wrapText ? "pre-wrap" : "",
-                    }} key={data.timestamp + data.id}>{data.response}</pre>)
-                }
+                        whiteSpace: wrapText ? "pre-wrap" : ""}} key={d.timestamp + d.id}>
+                    {d.response}
+                </pre>)
+                } else {
+                    if(useASNIColor){
+                        let ansiJSON = Anser.ansiToJson(d.response, { use_classes: true });
+                        //console.log(ansiJSON)
+                        return (
+                            ansiJSON.map( (a, i) => (
+                                <pre id={"response" + d.timestamp + d.id} style={{display: "inline", margin: "0 0 0 0",
+                                    wordBreak: wrapText ? "break-all" : "",
+                                    whiteSpace: wrapText ? "pre-wrap" : "",
+                                }} className={getClassnames(a)} key={d.id + d.timestamp + i}>{a.content}</pre>
+                            ))
+                    )
+                    } else {
+                        return (<pre id={"response" + d.timestamp + d.id} style={{display: "inline", margin: "0 0 0 0",
+                            wordBreak: wrapText ? "break-all" : "",
+                            whiteSpace: wrapText ? "pre-wrap" : "",
+                        }} key={d.timestamp + d.id}>{d.response}</pre>)
+                    }
 
-            }
-        } else {
-            // we're looking at tasking
-            setDataElement(
-                <pre key={data.timestamp + data.id} style={{display: "inline",margin: "0 0 0 0",
-                    wordBreak: wrapText ? "break-all" : "", whiteSpace: "pre-wrap"}}>
-                    {showTaskStatus && getTaskingStatus(data)}
-                    {data.original_params}
+                }
+            } else {
+                // we're looking at tasking
+                return(
+                    <pre id={"task" + d.timestamp + d.id} key={d.timestamp + d.id} style={{display: "inline",margin: "0 0 0 0",
+                        wordBreak: wrapText ? "break-all" : "", whiteSpace: "pre-wrap"}}>
+                    {showTaskStatus && getTaskingStatus(d)}
+                        {d.original_params}
                 </pre>
-            )
-        }
-    }, [data.timestamp, useASNIColor, showTaskStatus, wrapText]);
+                )
+            }
+        })
+        setDataElement(elements);
+
+    }, [data, useASNIColor, showTaskStatus, wrapText]);
     React.useLayoutEffect( () => {
         if(myTask){
             let el = document.getElementById(`ptytask${taskID}`);
             if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 500){
-                messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+                if(!search){
+                    messagesEndRef?.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
+                    //console.log("scrolling");
+                }
+            } else {
+               // console.log("not scrolled down enough")
             }
         }
     }, [dataElement]);
@@ -134,6 +142,7 @@ const GetOutputFormat = ({data, myTask, taskID,  useASNIColor, messagesEndRef, s
     )
 
 }
+
 
 const InteractiveMessageTypes = [
     {"name": "None", "value": -1, "text": "None"},
@@ -168,6 +177,7 @@ const EnterOptions = [
 ];
 export const ResponseDisplayInteractive = (props) =>{
     const me = useReactiveVar(meState);
+    const [backdropOpen, setBackdropOpen] = React.useState(false);
     const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const pageSize = React.useRef(100);
     const highestFetched = React.useRef(0);
@@ -183,9 +193,8 @@ export const ResponseDisplayInteractive = (props) =>{
     const [useASNIColor, setUseANSIColor] = React.useState(true);
     const [showTaskStatus, setShowTaskStatus] = React.useState(true);
     const [wrapText, setWrapText] = React.useState(true);
-    useSubscription(getInteractiveTaskingQuery, {
+    const {loading: loadingTasks} = useSubscription(getInteractiveTaskingQuery, {
       variables: {parent_task_id: props.task.id},
-      shouldResubscribe: true,
       onError: data => {
           console.error(data)
       },
@@ -206,8 +215,12 @@ export const ResponseDisplayInteractive = (props) =>{
               }, [...taskData]);
               setTaskData(newTaskData);
           }
+          if(backdropOpen){
+              setBackdropOpen(false);
+          }
+
       }
-  })
+    })
     const subscriptionDataCallback = React.useCallback( ({data}) => {
         // we still have some room to view more, but only room for fetchLimit - totalFetched.current
         if(props.task.id !== taskIDRef.current){
@@ -224,20 +237,25 @@ export const ResponseDisplayInteractive = (props) =>{
             highestFetched.current = highestFetchedId;
             taskIDRef.current = props.task.id;
         } else {
-            const newResponses = data.data.response_stream.filter( r => r.id > highestFetched.current);
-            const newerResponses = newResponses.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
-            newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
+            const newResponses = data.data.response_stream.filter(r => r.id > highestFetched.current);
+            const newerResponses = newResponses.map((r) => {
+                return {...r, response: b64DecodeUnicode(r.response)}
+            });
+            newerResponses.sort((a, b) => a.id > b.id ? 1 : -1);
             let rawResponseArray = [...rawResponses];
             let highestFetchedId = highestFetched.current;
-            for(let i = 0; i < newerResponses.length; i++){
+            for (let i = 0; i < newerResponses.length; i++) {
                 rawResponseArray.push(newerResponses[i]);
                 highestFetchedId = newerResponses[i]["id"];
             }
             setRawResponses(rawResponseArray);
             highestFetched.current = highestFetchedId;
         }
+        if(backdropOpen){
+            setBackdropOpen(false);
+        }
 
-    }, [highestFetched.current, rawResponses, props.task.id]);
+    }, [highestFetched.current, rawResponses, props.task.id, backdropOpen, taskIDRef.current]);
     useSubscription(subResponsesQuery, {
         variables: {task_id: props.task.id},
         fetchPolicy: "no-cache",
@@ -325,9 +343,14 @@ export const ResponseDisplayInteractive = (props) =>{
             messagesEndRef.current.scrollIntoView();
         }
     }, [scrollToBottom]);
-    React.useLayoutEffect(() => {
-        if(!scrollToBottom && alloutput.length > 0){setScrollToBottom(true)}
-    }, [alloutput]);
+    React.useEffect( () => {
+        if(loadingTasks){
+            setTaskData([]);
+            setBackdropOpen(true);
+        }else{
+            setBackdropOpen(false);
+        }
+    }, [loadingTasks]);
   return (
 
       <div style={{
@@ -335,21 +358,36 @@ export const ResponseDisplayInteractive = (props) =>{
           position: "relative", height: props.expand ? "100%" : undefined, maxHeight: props.expand ? "100%" : "500px",
           flexDirection: "column"
       }}>
+          <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute",}} invisible={false}>
+              <div style={{
+                  borderRadius: "4px",
+                  border: "1px solid black",
+                  padding: "5px",
+                  backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                  alignItems: "center",
+                  display: "flex", flexDirection: "column"}}>
+                  <CircularProgress color="inherit" />
+                  <Typography variant={"h5"}>
+                      Fetching Interactive Task Data....
+                  </Typography>
+              </div>
+          </Backdrop>
           {props.searchOutput &&
               <SearchBar onSubmitSearch={onSubmitSearch}/>
           }
           <div style={{overflowY: "auto", width: "100%", marginBottom: "5px",
               flexGrow: 1, paddingLeft: "10px"}} ref={props.responseRef}
                id={`ptytask${props.task.id}`}>
-              {alloutput.map((e, index) => (
-                  <GetOutputFormat key={"getoutput" + index} data={e}
+
+                  <GetOutputFormatAll data={alloutput}
                                    myTask={props.task.operator.username === (me?.user?.username || "")}
                                    taskID={props.task.id}
                                    useASNIColor={useASNIColor}
                                    messagesEndRef={messagesEndRef}
                                    showTaskStatus={showTaskStatus}
+                                   search={props.searchOutput ? search : undefined}
                                    wrapText={wrapText}/>
-              ))}
+
               <div ref={messagesEndRef}/>
           </div>
           {!props.task?.is_interactive_task &&

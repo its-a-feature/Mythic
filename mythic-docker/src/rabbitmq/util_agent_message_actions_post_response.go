@@ -1102,7 +1102,7 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 				return fileMeta.AgentFileID, nil
 			}
 		}
-	} else if agentResponse.Download.TotalChunks != nil && *agentResponse.Download.TotalChunks > 0 {
+	} else if agentResponse.Download.TotalChunks != nil {
 		// new to make a new file_id and register it for the agent to use for downloading a file
 		// likely looking at step 1
 		var err error
@@ -1114,7 +1114,7 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 			OperatorID:          task.OperatorID,
 			Timestamp:           time.Now().UTC(),
 		}
-		if *agentResponse.Download.TotalChunks == 0 {
+		if fileMeta.TotalChunks == 0 {
 			fileMeta.Complete = true
 		}
 		if agentResponse.Download.ChunkSize != nil {

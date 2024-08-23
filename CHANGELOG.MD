@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated the delegate checks for socks/rpfwd/interactive messages to only send delegates if there's data
+- Updated interactive tasking to set processed and processing timestamps more consistently
+- Updated file download processing to allow -1 total chunks so agents with unknown chunks can start downloads
 
 ## [3.3.0-rc19] - 2024-08-21
 

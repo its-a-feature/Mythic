@@ -385,7 +385,8 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	}
 	delegateResponses := []delegateMessageResponse{}
 	response := make(map[string]interface{})
-	outerUUID := uuidInfo.UUID // UUID to use on the outside of the message, could update with staging/new callbacks
+	outerUUID := uuidInfo.UUID  // UUID to use on the outside of the message, could update with staging/new callbacks
+	getDelegateMessages := true // by default, we want to always get all delegate messages that are available
 	switch decryptedMessage["action"] {
 	case "checkin":
 		{
@@ -402,6 +403,9 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			if getDelegateTasks, ok := decryptedMessage["get_delegate_tasks"]; !ok || getDelegateTasks.(bool) {
 				// this means we should try to get some delegated tasks if they exist for our callback
 				delegateResponses = append(delegateResponses, getDelegateTaskMessages(uuidInfo.CallbackID, agentUUIDLength, agentMessageInput.UpdateCheckinTime)...)
+			} else {
+				// if the agent is doing a get_tasking and explicitly asking to not get delegate messages, then don't get any, even for proxy data
+				getDelegateMessages = false
 			}
 			delete(decryptedMessage, "get_delegate_tasks")
 		}
@@ -566,9 +570,11 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 		}
 	}
 	// regardless of the message type, get proxy data if it exists (for both socks and rpfwd)
-	delegateResponses = append(delegateResponses, getDelegateProxyMessages(uuidInfo.CallbackID, agentUUIDLength, agentMessageInput.UpdateCheckinTime)...)
-	if len(delegateResponses) > 0 {
-		response["delegates"] = delegateResponses
+	if getDelegateMessages {
+		delegateResponses = append(delegateResponses, getDelegateProxyMessages(uuidInfo.CallbackID, agentUUIDLength, agentMessageInput.UpdateCheckinTime)...)
+		if len(delegateResponses) > 0 {
+			response["delegates"] = delegateResponses
+		}
 	}
 	// get first order proxy data not for delegate callbacks
 	if proxyData, err := proxyPorts.GetDataForCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_SOCKS); err != nil {

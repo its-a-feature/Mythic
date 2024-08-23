@@ -13,6 +13,7 @@ import {SearchTabArtifactsLabel, SearchTabArtifactsPanel} from './SearchTabArtif
 import {SearchTabSocksLabel, SearchTabSocksPanel} from './SearchTabProxies';
 import {SearchTabProcessesLabel, SearchTabProcessPanel} from "./SearchTabProcesses";
 import {SearchTabTagsLabel, SearchTabTagsPanel} from "./SearchTabTags";
+import {SearchTabInteractiveTasksLabel, SearchTabInteractiveTasksPanel} from "./SearchTabInteractiveTasks";
 
 const PREFIX = 'Search';
 
