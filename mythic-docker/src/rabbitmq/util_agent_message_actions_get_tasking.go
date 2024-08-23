@@ -197,7 +197,7 @@ func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckin
 				// there's a route between our callback and the target callback for some sort of proxy data
 				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_SOCKS); err != nil {
 					logging.LogError(err, "Failed to get socks proxy data for routable callback")
-				} else {
+				} else if messages != nil {
 					// now that we have a path, need to recursively encrypt and wrap
 					newTask := map[string]interface{}{
 						"action":                 "get_tasking",
@@ -215,7 +215,7 @@ func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckin
 				}
 				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_RPORTFWD); err != nil {
 					logging.LogError(err, "Failed to get rpfwd proxy data for routable callback")
-				} else {
+				} else if messages != nil {
 					// now that we have a path, need to recursively encrypt and wrap
 					newTask := map[string]interface{}{
 						"action":                    "get_tasking",
@@ -233,7 +233,7 @@ func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckin
 				}
 				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_INTERACTIVE); err != nil {
 					logging.LogError(err, "Failed to get interactive proxy data for routable callback")
-				} else {
+				} else if messages != nil {
 					// now that we have a path, need to recursively encrypt and wrap
 					newTask := map[string]interface{}{
 						"action":                       "get_tasking",
