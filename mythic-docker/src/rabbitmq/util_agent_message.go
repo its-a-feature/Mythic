@@ -572,9 +572,9 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	// regardless of the message type, get proxy data if it exists (for both socks and rpfwd)
 	if getDelegateMessages {
 		delegateResponses = append(delegateResponses, getDelegateProxyMessages(uuidInfo.CallbackID, agentUUIDLength, agentMessageInput.UpdateCheckinTime)...)
-		if len(delegateResponses) > 0 {
-			response["delegates"] = delegateResponses
-		}
+	}
+	if len(delegateResponses) > 0 {
+		response["delegates"] = delegateResponses
 	}
 	// get first order proxy data not for delegate callbacks
 	if proxyData, err := proxyPorts.GetDataForCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_SOCKS); err != nil {
