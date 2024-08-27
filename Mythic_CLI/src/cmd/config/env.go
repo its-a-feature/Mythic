@@ -193,7 +193,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("mythic_server_bind_localhost_only", true)
 	mythicEnvInfo["mythic_server_bind_localhost_only"] = `This specifies if the mythic_server container will expose the mythic_server_port and mythic_server_grpc_port on 0.0.0.0 or 127.0.0.1. If you have a remote agent container connecting to Mythic, you MUST set this to false so that the remote agent container can do file transfers with Mythic.`
 
-	mythicEnv.SetDefault("mythic_server_cpus", "2")
+	mythicEnv.SetDefault("mythic_server_cpus", defaultNumberOfCPUs)
 	mythicEnvInfo["mythic_server_cpus"] = `Set this to limit the maximum number of CPUs this service is able to consume`
 
 	mythicEnv.SetDefault("mythic_server_mem_limit", "")
@@ -211,7 +211,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("mythic_server_use_build_context", false)
 	mythicEnvInfo["mythic_server_use_build_context"] = `The mythic_server container by default pulls configuration from a pre-compiled Docker image hosted on GitHub's Container Registry (ghcr.io). Setting this to "true" means that the local Mythic/mythic-docker/Dockerfile is used to generate the image used for the mythic_server container instead of the hosted image. If you want to modify the local mythic_server code then you need to set this to true and uncomment the sections of the mythic-docker/Dockerfile that copy over the existing code and build it. If you don't do this then you won't see any of your changes take effect`
 
-	mythicEnv.SetDefault("mythic_sync_cpus", "2")
+	mythicEnv.SetDefault("mythic_sync_cpus", defaultNumberOfCPUs)
 	mythicEnvInfo["mythic_sync_cpus"] = `Set this to limit the maximum number of CPUs this service is able to consume`
 
 	mythicEnv.SetDefault("mythic_sync_mem_limit", "")
@@ -221,7 +221,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnvInfo["mythic_server_allow_invite_links"] = `This configures whether or not admins are allowed to create one-time-use invite links for users to join the server and register their own username/password combinations. They still need to be assigned to operations.'`
 
 	mythicEnv.SetDefault("mythic_server_docker_networking", "bridge")
-	mythicEnvInfo["mythic_server_docker_networking"] = `Configure how the mythic_server container is networked - the default is 'bridge' which means that ports must be explicitly exposed via mythic_server_dynamic_ports. The other option, 'host', means that the server will share networking with the host and not need explicit ports exposed. Either way, MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY and MYTHIC_SERVER_BIND_LOCALHOST_ONLY still determine if ports are bound to 0.0.0.0 or 127.0.0.1. If setting this to 'host', make sure you update the 'MYTHIC_SERVER_HOST' option as well to be the IP of the host machine. The containers will default to using localhost which won't work when the mythic_server is set to host networking.`
+	mythicEnvInfo["mythic_server_docker_networking"] = `Configure how the mythic_server container is networked - the default is 'bridge' which means that ports must be explicitly exposed via mythic_server_dynamic_ports. The other option, 'host', means that the server will share networking with the host and not need explicit ports exposed. Either way, MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY and MYTHIC_SERVER_BIND_LOCALHOST_ONLY still determine if ports are bound to 0.0.0.0 or 127.0.0.1. If setting this to 'host', make sure you update the 'MYTHIC_SERVER_HOST' option as well to be the IP of the host machine (not localhost) and then restart Mythic to get the changes applied to docker compose. The containers will default to using localhost which won't work when the mythic_server is set to host networking.`
 
 	// postgres configuration ---------------------------------------------
 	mythicEnv.SetDefault("postgres_host", "mythic_postgres")
@@ -242,7 +242,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("postgres_password", utils.GenerateRandomPassword(30))
 	mythicEnvInfo["postgres_password"] = `This is the randomly generated password that mythic_server and mythic_graphql use to connect to the mythic_postgres container`
 
-	mythicEnv.SetDefault("postgres_cpus", "2")
+	mythicEnv.SetDefault("postgres_cpus", defaultNumberOfCPUs)
 	mythicEnvInfo["postgres_cpus"] = `Set this to limit the maximum number of CPUs this service is able to consume`
 
 	mythicEnv.SetDefault("postgres_mem_limit", "")
@@ -271,7 +271,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnvInfo["rabbitmq_password"] = `This is the randomly generated password that all containers use to connect to RabbitMQ queues`
 	mythicEnv.SetDefault("rabbitmq_vhost", "mythic_vhost")
 
-	mythicEnv.SetDefault("rabbitmq_cpus", "2")
+	mythicEnv.SetDefault("rabbitmq_cpus", defaultNumberOfCPUs)
 	mythicEnvInfo["rabbitmq_cpus"] = `Set this to limit the maximum number of CPUs this service is able to consume`
 
 	mythicEnv.SetDefault("rabbitmq_mem_limit", "")
@@ -300,7 +300,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("hasura_secret", utils.GenerateRandomPassword(30))
 	mythicEnvInfo["hasura_secret"] = `This is the randomly generated password you can use to connect to Hasura through the /console route through the nginx proxy`
 
-	mythicEnv.SetDefault("hasura_cpus", "2")
+	mythicEnv.SetDefault("hasura_cpus", defaultNumberOfCPUs)
 	mythicEnvInfo["hasura_cpus"] = `Set this to limit the maximum number of CPUs this service is able to consume`
 
 	mythicEnv.SetDefault("hasura_mem_limit", "2gb")
@@ -348,7 +348,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("jupyter_token", utils.GenerateRandomPassword(30))
 	mythicEnvInfo["jupyter_token"] = `This value is used to authenticate to the Jupyter instance via the /jupyter route in the React UI`
 
-	mythicEnv.SetDefault("jupyter_cpus", "2")
+	mythicEnv.SetDefault("jupyter_cpus", defaultNumberOfCPUs)
 	mythicEnvInfo["jupyter_cpus"] = `Set this to limit the maximum number of CPUs this service is able to consume`
 
 	mythicEnv.SetDefault("jupyter_mem_limit", "")

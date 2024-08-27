@@ -20,6 +20,7 @@ import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
 import {faList, faTrashAlt, faSkullCrossbones, faCamera, faSyringe, faFolder, faFolderOpen, faFileArchive, faCog, faFileWord, faFileExcel, faFilePowerpoint, faFilePdf, faDatabase, faKey, faFileCode, faDownload, faUpload, faFileImage, faCopy, faBoxOpen, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
 
 const onCopyToClipboard = (data) => {
   let result = copyStringToClipboard(data);
@@ -364,35 +365,27 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
                 style={{...actionCellButtonStyle}}
               >{cellData?.button?.name || " "}</Button>
-                <Popper open={openDropdownButton} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}>
-                  {({ TransitionProps, placement }) => (
-                    <Grow
-                      {...TransitionProps}
-                      style={{
-                        transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                      }}
-                    >
-                      <Paper style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
-                        <ClickAwayListener onClickAway={handleClose}>
-                          <MenuList id="split-button-menu"  >
-                            {cellData.button.value.map((option, index) => (
-                              <MenuItem
+                  <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+                    <Dropdown
+                      isOpen={dropdownAnchorRef.current}
+                      onOpen={setOpenDropdownButton}
+                      externallyOpen={openDropdownButton}
+                      menu={
+                        cellData.button.value.map((option, index) => (
+                            <DropdownMenuItem
                                 key={option.name + index}
                                 disabled={option.disabled}
                                 onClick={(event) => handleMenuItemClick(event, index)}
-                              >
-                                <MythicStyledTooltip title={option?.hoverText || (option.type === "task" ? "Task an Agent" : "Display Data")}>
-                                    {option?.startIcon ? <FontAwesomeIcon icon={getIconName(option?.startIcon)} style={{color: option?.startIconColor  || "", marginRight: "5px"}}/> : null}
-                                    {option.name}
-                                </MythicStyledTooltip>
-                              </MenuItem>
-                            ))}
-                          </MenuList>
-                        </ClickAwayListener>
-                      </Paper>
-                    </Grow>
-                  )}
-                </Popper>
+                            >
+                              <MythicStyledTooltip title={option?.hoverText || (option.type === "task" ? "Task an Agent" : "Display Data")}>
+                                {option?.startIcon ? <FontAwesomeIcon icon={getIconName(option?.startIcon)} style={{color: option?.startIconColor  || "", marginRight: "5px"}}/> : null}
+                                {option.name}
+                              </MythicStyledTooltip>
+                            </DropdownMenuItem>
+                        ))
+                      }
+                      />
+                  </ClickAwayListener>
           </React.Fragment>
         )
     }
