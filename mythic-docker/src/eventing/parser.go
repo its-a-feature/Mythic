@@ -116,6 +116,9 @@ func Ingest(fileContents []byte) (databaseStructs.EventGroup, error) {
 			return databaseEventGroup, err
 		}
 	}
+	if eventGroup.Name == "" {
+		return databaseEventGroup, errors.New("no event name supplied")
+	}
 	databaseEventGroup.Name = eventGroup.Name
 	databaseEventGroup.TriggerData = GetMythicJSONTextFromStruct(eventGroup.TriggerData)
 	databaseEventGroup.Trigger = eventGroup.Trigger
@@ -128,6 +131,9 @@ func Ingest(fileContents []byte) (databaseStructs.EventGroup, error) {
 	}
 	for i, _ := range eventGroup.Steps {
 		databaseEventStep := databaseStructs.EventStep{}
+		if eventGroup.Steps[i].Name == "" {
+			return databaseEventGroup, errors.New("no step name supplied")
+		}
 		databaseEventStep.Name = eventGroup.Steps[i].Name
 		databaseEventStep.Description = eventGroup.Steps[i].Description
 		databaseEventStep.Environment = GetMythicJSONTextFromStruct(eventGroup.Steps[i].Environment)
@@ -222,6 +228,23 @@ func EnsureActions(eventGroup *databaseStructs.EventGroup) error {
 	for i, _ := range eventGroup.Steps {
 		if !slices.Contains(ValidActions, eventGroup.Steps[i].Action) {
 			return errors.New(fmt.Sprintf("Unknown action, %s, in step %s", eventGroup.Steps[i].Action, eventGroup.Steps[i].Name))
+		}
+	}
+	if len(eventGroup.Steps) == 0 {
+		return errors.New(fmt.Sprintf("No steps detected for event group"))
+	}
+	return nil
+}
+func EnsureActionDataForAction(eventGroup *databaseStructs.EventGroup) error {
+	for i, _ := range eventGroup.Steps {
+		switch eventGroup.Steps[i].Action {
+		case ActionPayloadCreate:
+		case ActionCreateTask:
+		case ActionInterceptResponse:
+		case ActionInterceptTask:
+		case ActionConditionalCheck:
+		case ActionCustomFunction:
+		case ActionCreateCallback:
 		}
 	}
 	if len(eventGroup.Steps) == 0 {

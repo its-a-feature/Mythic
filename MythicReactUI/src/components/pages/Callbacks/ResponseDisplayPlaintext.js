@@ -33,9 +33,15 @@ export const ResponseDisplayPlaintext = (props) =>{
   const me = useReactiveVar(meState);
   const currentContentRef = React.useRef();
   const [plaintextView, setPlaintextView] = React.useState("");
-  const [mode, setMode] = React.useState("html");
+  const initialMode = props?.initial_mode || "html";
+  const [mode, setMode] = React.useState(initialMode);
   const [wrapText, setWrapText] = React.useState(true);
   const [showOptions, setShowOptions] = React.useState(false);
+  const onChangeText = (data) => {
+      if(props.onChangeContent){
+          props?.onChangeContent(data);
+      }
+  }
   useEffect( () => {
       if(props.plaintext.length > MaxRenderSize){
           snackActions.warning("Response too large (> 2MB), truncating the render. Download task output to view entire response.");
@@ -70,7 +76,7 @@ export const ResponseDisplayPlaintext = (props) =>{
     }
     const scrollContent = (node, isAppearing) => {
         // only auto-scroll if you issued the task
-        if(props.task.operator.username === (me?.user?.username || "")){
+        if(props?.task?.operator?.username === (me?.user?.username || "")){
             let el = document.getElementById(`taskingPanel${props.task.callback_id}`);
             if(props.expand || props.displayType === "console"){
                 el = document.getElementById(`taskingPanelConsole${props.task.callback_id}`);
@@ -140,6 +146,7 @@ export const ResponseDisplayPlaintext = (props) =>{
                     theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
                     fontSize={14}
                     showGutter={true}
+                    onChange={onChangeText}
                     //onLoad={onLoad}
                     highlightActiveLine={false}
                     showPrintMargin={false}

@@ -1,6 +1,6 @@
 server {
-    ${NGINX_USE_IPV4} listen      0.0.0.0:${NGINX_PORT} ${NGINX_USE_SSL};
-    ${NGINX_USE_IPV6} listen      [::]:${NGINX_PORT} ${NGINX_USE_SSL};
+    ${NGINX_USE_IPV4} listen      ${NGINX_BIND_IPV4}:${NGINX_PORT} ${NGINX_USE_SSL};
+    ${NGINX_USE_IPV6} listen      ${NGINX_BIND_IPV6}:${NGINX_PORT} ${NGINX_USE_SSL};
     ssl_certificate      /etc/ssl/private/mythic-cert.crt;
     ssl_certificate_key  /etc/ssl/private/mythic-ssl.key;
     client_max_body_size 500M; # allows file uploads up to 500 megabytes

@@ -8,7 +8,6 @@ import (
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
-	"github.com/mitchellh/mapstructure"
 	"slices"
 	"time"
 )
@@ -165,7 +164,7 @@ func getTriggerData(triggerMetadata map[string]interface{}) map[string]interface
 				logging.LogError(err, "failed to marshal payload into bytes for saving trigger metadata")
 				return triggerData
 			}
-			err = mapstructure.Decode(triggerBytes, &triggerData)
+			err = json.Unmarshal(triggerBytes, &triggerData)
 			if err != nil {
 				logging.LogError(err, "failed to decode payload into struct")
 			}
@@ -525,7 +524,7 @@ func updateAllRemainingStepInstances(eventGroupInstanceId int, status string) er
 		return err
 	}
 	for i, _ := range eventStepInstances {
-		if eventStepInstances[i].Status == EventGroupInstanceStatusQueued {
+		if eventStepInstances[i].Status == EventGroupInstanceStatusQueued || eventStepInstances[i].Status == EventGroupInstanceStatusRunning {
 			eventStepInstances[i].Status = status
 			eventStepInstances[i].EndTimestamp.Time = time.Now().UTC()
 			eventStepInstances[i].EndTimestamp.Valid = true

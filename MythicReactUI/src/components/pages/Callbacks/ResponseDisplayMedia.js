@@ -321,9 +321,9 @@ const DisplayFileMetaData = ({fileMetaData}) => {
             <TableBody>
                 <TableRow>
                     <MythicStyledTableCell><TableRowSizeCell cellData={fileMetaData.size}/></MythicStyledTableCell>
-                    <MythicStyledTableCell>{fileMetaData.host}</MythicStyledTableCell>
-                    <MythicStyledTableCell>{fileMetaData.filename}</MythicStyledTableCell>
-                    <MythicStyledTableCell>{fileMetaData.full_remote_path}</MythicStyledTableCell>
+                    <MythicStyledTableCell style={{wordBreak: "break-all"}}>{fileMetaData.host}</MythicStyledTableCell>
+                    <MythicStyledTableCell style={{wordBreak: "break-all"}}>{fileMetaData.filename}</MythicStyledTableCell>
+                    <MythicStyledTableCell style={{wordBreak: "break-all"}}>{fileMetaData.full_remote_path}</MythicStyledTableCell>
                     <MythicStyledTableCell><Link style={{wordBreak: "break-all"}}
                                      color="textPrimary" underline="always"
                                      target="_blank" href={"/new/task/" + fileMetaData.task_display_id}>

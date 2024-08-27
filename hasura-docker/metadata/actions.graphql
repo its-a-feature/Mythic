@@ -231,6 +231,12 @@ type Mutation {
   ): dynamicQueryOutput
 }
 
+type Query {
+  eventingTestFile(
+    file_contents: String!
+  ): eventingTestFileOutput
+}
+
 type Mutation {
   eventingTriggerCancel(
     eventgroupinstance_id: Int!
@@ -1064,6 +1070,11 @@ type eventingTriggerRetryFromStepOutput {
 }
 
 type testProxyOutput {
+  status: String!
+  error: String
+}
+
+type eventingTestFileOutput {
   status: String!
   error: String
 }

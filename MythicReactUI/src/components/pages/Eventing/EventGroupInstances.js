@@ -98,8 +98,9 @@ export function EventGroupInstances({selectedEventGroup, me, setSelectedInstance
  });
 
  return (
-       <EventGroupInstancesTableMaterialReactTable setSelectedInstance={setSelectedInstance}
-                                 selectedInstanceID={selectedInstanceID}
-                                 eventgroups={selectedEventGroups} me={me} />
+       <EventGroupInstancesTableMaterialReactTable
+           setSelectedInstance={setSelectedInstance}
+           selectedInstanceID={selectedInstanceID}
+           eventgroups={selectedEventGroups} me={me} />
  )
 }

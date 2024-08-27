@@ -282,6 +282,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("eventing_trigger_retry_from_step_webhook", webcontroller.EventingTriggerRetryFromStepWebhook)
 				noSpectators.POST("eventing_trigger_runagain_webhook", webcontroller.EventingTriggerRunAgainWebhook)
 				noSpectators.POST("eventing_trigger_update_webhook", webcontroller.EventingTriggerUpdateWebhook)
+				noSpectators.POST("eventing_test_file_webhook", webcontroller.EventingTestFileWebhook)
 				// keylogs
 				noSpectators.POST("keylog_create_webhook", webcontroller.CreateKeylogWebhook)
 			}

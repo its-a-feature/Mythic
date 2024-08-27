@@ -50,16 +50,39 @@ func AddMythicService(service string, removeVolume bool) {
 		if mythicEnv.GetString("postgres_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("postgres_mem_limit")
 		}
-		if mythicEnv.GetBool("postgres_bind_localhost_only") {
-			pStruct["ports"] = []string{
-				"127.0.0.1:${POSTGRES_PORT}:${POSTGRES_PORT}",
+		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
+			if mythicEnv.GetBool("postgres_bind_localhost_only") {
+				pStruct["ports"] = []string{
+					"127.0.0.1:${POSTGRES_PORT}:${POSTGRES_PORT}",
+				}
+			} else {
+				pStruct["ports"] = []string{
+					"${POSTGRES_PORT}:${POSTGRES_PORT}",
+				}
 			}
+			pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf"
+			delete(pStruct, "network_mode")
+			delete(pStruct, "extra_hosts")
 		} else {
-			pStruct["ports"] = []string{
-				"${POSTGRES_PORT}:${POSTGRES_PORT}",
+			delete(pStruct, "ports")
+			pStruct["network_mode"] = "host"
+			pStruct["extra_hosts"] = []string{
+				"mythic_server:127.0.0.1",
+				"mythic_rabbitmq:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_nginx:127.0.0.1",
+				"mythic_react:127.0.0.1",
+				"mythic_documentation:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_jupyter:127.0.0.1",
+				"mythic_postgres:127.0.0.1",
+			}
+			if mythicEnv.GetBool("postgres_bind_localhost_only") {
+				pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf -c \"listen_addresses='localhost'\""
+			} else {
+				pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf"
 			}
 		}
-		pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf"
 		environment := []string{
 			"POSTGRES_DB=${POSTGRES_DB}",
 			"POSTGRES_USER=${POSTGRES_USER}",
@@ -97,19 +120,49 @@ func AddMythicService(service string, removeVolume bool) {
 		} else {
 			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
 		}
-
-		if mythicEnv.GetBool("documentation_bind_localhost_only") {
-			pStruct["ports"] = []string{
-				"127.0.0.1:${DOCUMENTATION_PORT}:${DOCUMENTATION_PORT}",
+		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
+			if mythicEnv.GetBool("documentation_bind_localhost_only") {
+				pStruct["ports"] = []string{
+					"127.0.0.1:${DOCUMENTATION_PORT}:${DOCUMENTATION_PORT}",
+				}
+			} else {
+				pStruct["ports"] = []string{
+					"${DOCUMENTATION_PORT}:${DOCUMENTATION_PORT}",
+				}
 			}
+			pStruct["environment"] = []string{
+				"DOCUMENTATION_PORT=${DOCUMENTATION_PORT}",
+			}
+			delete(pStruct, "network_mode")
+			delete(pStruct, "extra_hosts")
 		} else {
-			pStruct["ports"] = []string{
-				"${DOCUMENTATION_PORT}:${DOCUMENTATION_PORT}",
+			delete(pStruct, "ports")
+			pStruct["network_mode"] = "host"
+			pStruct["extra_hosts"] = []string{
+				"mythic_server:127.0.0.1",
+				"mythic_rabbitmq:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_nginx:127.0.0.1",
+				"mythic_react:127.0.0.1",
+				"mythic_documentation:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_jupyter:127.0.0.1",
+				"mythic_postgres:127.0.0.1",
 			}
+			if mythicEnv.GetBool("documentation_bind_localhost_only") {
+				pStruct["environment"] = []string{
+					"DOCUMENTATION_PORT=${DOCUMENTATION_PORT}",
+					"HUGO_BIND=127.0.0.1",
+				}
+			} else {
+				pStruct["environment"] = []string{
+					"DOCUMENTATION_PORT=${DOCUMENTATION_PORT}",
+					"HUGO_BIND=0.0.0.0",
+				}
+			}
+
 		}
-		pStruct["environment"] = []string{
-			"DOCUMENTATION_PORT=${DOCUMENTATION_PORT}",
-		}
+
 		if !mythicEnv.GetBool("documentation_use_volume") {
 			pStruct["volumes"] = []string{
 				"./documentation-docker/:/src",
@@ -154,48 +207,51 @@ func AddMythicService(service string, removeVolume bool) {
 			"MYTHIC_ACTIONS_URL_BASE=http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/api/v1.4",
 			"HASURA_GRAPHQL_CONSOLE_ASSETS_DIR=/srv/console-assets",
 		}
-		if _, ok := pStruct["environment"]; ok {
-			pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), environment)
-		} else {
-			pStruct["environment"] = environment
-		}
+		//if _, ok := pStruct["environment"]; ok {
+		//	pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), environment)
+		//} else {
+		//	pStruct["environment"] = environment
+		//}
+		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
+			if mythicEnv.GetBool("hasura_bind_localhost_only") {
+				pStruct["ports"] = []string{
+					"127.0.0.1:${HASURA_PORT}:${HASURA_PORT}",
+				}
 
-		if mythicEnv.GetBool("hasura_bind_localhost_only") {
-			pStruct["ports"] = []string{
-				"127.0.0.1:${HASURA_PORT}:${HASURA_PORT}",
+			} else {
+				pStruct["ports"] = []string{
+					"${HASURA_PORT}:${HASURA_PORT}",
+				}
 			}
+			delete(pStruct, "network_mode")
+			delete(pStruct, "extra_hosts")
 		} else {
-			pStruct["ports"] = []string{
-				"${HASURA_PORT}:${HASURA_PORT}",
+			delete(pStruct, "ports")
+			pStruct["network_mode"] = "host"
+			pStruct["extra_hosts"] = []string{
+				"mythic_server:127.0.0.1",
+				"mythic_rabbitmq:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_nginx:127.0.0.1",
+				"mythic_react:127.0.0.1",
+				"mythic_documentation:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_jupyter:127.0.0.1",
+				"mythic_postgres:127.0.0.1",
+			}
+			if mythicEnv.GetBool("hasura_bind_localhost_only") {
+				environment = append(environment, "HASURA_GRAPHQL_SERVER_HOST=127.0.0.1")
+			} else {
+				environment = append(environment, "HASURA_GRAPHQL_SERVER_HOST=*")
 			}
 		}
+		pStruct["environment"] = environment
 		if !mythicEnv.GetBool("hasura_use_volume") {
 			pStruct["volumes"] = []string{
 				"./hasura-docker/metadata:/metadata",
 			}
 		} else {
 			delete(pStruct, "volumes")
-			/*
-				pStruct["volumes"] = []string{
-					"mythic_graphql_volume:/metadata",
-				}
-
-			*/
-		}
-		/*
-			if _, ok := volumes["mythic_graphql"]; !ok {
-				volumes["mythic_graphql_volume"] = map[string]interface{}{
-					"name": "mythic_graphql_volume",
-				}
-			}
-
-		*/
-		if mythicEnv.GetString("mythic_server_docker_networking") == "host" {
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:${MYTHIC_SERVER_HOST}",
-			}
-		} else {
-			delete(pStruct, "extra_hosts")
 		}
 	case "mythic_nginx":
 		if mythicEnv.GetBool("nginx_use_build_context") {
@@ -245,17 +301,43 @@ func AddMythicService(service string, removeVolume bool) {
 				finalNginxEnv = append(finalNginxEnv, val)
 			}
 		}
-		pStruct["environment"] = finalNginxEnv
-
-		if mythicEnv.GetBool("nginx_bind_localhost_only") {
-			pStruct["ports"] = []string{
-				"127.0.0.1:${NGINX_PORT}:${NGINX_PORT}",
+		for _, val := range []string{"NGINX_BIND_IPV4=0.0.0.0", "NGINX_BIND_IPV6=[::]", "NGINX_BIND_IPV4=127.0.0.1", "NGINX_BIND_IPV6=[::1]"} {
+			finalNginxEnv = utils.RemoveStringFromSliceNoOrder(finalNginxEnv, val)
+		}
+		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
+			if mythicEnv.GetBool("nginx_bind_localhost_only") {
+				pStruct["ports"] = []string{
+					"127.0.0.1:${NGINX_PORT}:${NGINX_PORT}",
+				}
+			} else {
+				pStruct["ports"] = []string{
+					"${NGINX_PORT}:${NGINX_PORT}",
+				}
 			}
+			finalNginxEnv = append(finalNginxEnv, "NGINX_BIND_IPV4=0.0.0.0", "NGINX_BIND_IPV6=[::]")
+			delete(pStruct, "network_mode")
+			delete(pStruct, "extra_hosts")
 		} else {
-			pStruct["ports"] = []string{
-				"${NGINX_PORT}:${NGINX_PORT}",
+			delete(pStruct, "ports")
+			pStruct["network_mode"] = "host"
+			pStruct["extra_hosts"] = []string{
+				"mythic_server:127.0.0.1",
+				"mythic_rabbitmq:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_nginx:127.0.0.1",
+				"mythic_react:127.0.0.1",
+				"mythic_documentation:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_jupyter:127.0.0.1",
+				"mythic_postgres:127.0.0.1",
+			}
+			if mythicEnv.GetBool("nginx_bind_localhost_only") {
+				finalNginxEnv = append(finalNginxEnv, "NGINX_BIND_IPV4=127.0.0.1", "NGINX_BIND_IPV6=[::1]")
+			} else {
+				finalNginxEnv = append(finalNginxEnv, "NGINX_BIND_IPV4=0.0.0.0", "NGINX_BIND_IPV6=[::]")
 			}
 		}
+		pStruct["environment"] = finalNginxEnv
 		if !mythicEnv.GetBool("nginx_use_volume") {
 			pStruct["volumes"] = []string{
 				"./nginx-docker/ssl:/etc/ssl/private",
@@ -275,13 +357,6 @@ func AddMythicService(service string, removeVolume bool) {
 				"name": "mythic_nginx_volume_ssl",
 			}
 		}
-		if mythicEnv.GetString("mythic_server_docker_networking") == "host" {
-			pStruct["extra_hosts"] = []string{
-				"mythic_server:${MYTHIC_SERVER_HOST}",
-			}
-		} else {
-			delete(pStruct, "extra_hosts")
-		}
 
 	case "mythic_rabbitmq":
 		if mythicEnv.GetBool("rabbitmq_use_build_context") {
@@ -293,31 +368,9 @@ func AddMythicService(service string, removeVolume bool) {
 		} else {
 			pStruct["image"] = fmt.Sprintf("ghcr.io/its-a-feature/%s:%s", service, mythicEnv.GetString("global_docker_latest"))
 		}
-
 		pStruct["cpus"] = mythicEnv.GetInt("RABBITMQ_CPUS")
 		if mythicEnv.GetString("rabbitmq_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("rabbitmq_mem_limit")
-		}
-		if mythicEnv.GetBool("rabbitmq_bind_localhost_only") {
-			pStruct["ports"] = []string{
-				"127.0.0.1:${RABBITMQ_PORT}:${RABBITMQ_PORT}",
-			}
-			if mythicEnv.GetString("mythic_server_docker_networking") == "host" {
-				pStruct["ports"] = []string{
-					"127.0.0.1:${RABBITMQ_PORT}:${RABBITMQ_PORT}",
-					"127.0.0.1:15672:15672",
-				}
-			}
-		} else {
-			pStruct["ports"] = []string{
-				"${RABBITMQ_PORT}:${RABBITMQ_PORT}",
-			}
-			if mythicEnv.GetString("mythic_server_docker_networking") == "host" {
-				pStruct["ports"] = []string{
-					"${RABBITMQ_PORT}:${RABBITMQ_PORT}",
-					"127.0.0.1:15672:15672",
-				}
-			}
 		}
 		environment := []string{
 			"RABBITMQ_USER=${RABBITMQ_USER}",
@@ -339,6 +392,39 @@ func AddMythicService(service string, removeVolume bool) {
 				finalRabbitEnv = append(finalRabbitEnv, val)
 			}
 		}
+		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
+			if mythicEnv.GetBool("rabbitmq_bind_localhost_only") {
+				pStruct["ports"] = []string{
+					"127.0.0.1:${RABBITMQ_PORT}:${RABBITMQ_PORT}",
+				}
+			} else {
+				pStruct["ports"] = []string{
+					"${RABBITMQ_PORT}:${RABBITMQ_PORT}",
+				}
+			}
+			delete(pStruct, "network_mode")
+			delete(pStruct, "extra_hosts")
+		} else {
+			delete(pStruct, "ports")
+			pStruct["network_mode"] = "host"
+			pStruct["extra_hosts"] = []string{
+				"mythic_server:127.0.0.1",
+				"mythic_rabbitmq:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_nginx:127.0.0.1",
+				"mythic_react:127.0.0.1",
+				"mythic_documentation:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_jupyter:127.0.0.1",
+				"mythic_postgres:127.0.0.1",
+			}
+			if mythicEnv.GetBool("rabbitmq_bind_localhost_only") {
+				environment = append(environment, "RABBITMQ_NODE_IP_ADDRESS=127.0.0.1", "RABBITMQ_NODE_PORT=${RABBITMQ_PORT}")
+			} else {
+				environment = append(environment, "RABBITMQ_NODE_IP_ADDRESS=0.0.0.0", "RABBITMQ_NODE_PORT=${RABBITMQ_PORT}")
+			}
+		}
+
 		pStruct["environment"] = finalRabbitEnv
 		if !mythicEnv.GetBool("rabbitmq_use_volume") {
 			pStruct["volumes"] = []string{
@@ -407,18 +493,49 @@ func AddMythicService(service string, removeVolume bool) {
 				"name": "mythic_react_volume_public",
 			}
 		}
-		if mythicEnv.GetBool("mythic_react_bind_localhost_only") {
-			pStruct["ports"] = []string{
-				"127.0.0.1:${MYTHIC_REACT_PORT}:${MYTHIC_REACT_PORT}",
+		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
+			if mythicEnv.GetBool("mythic_react_bind_localhost_only") {
+				pStruct["ports"] = []string{
+					"127.0.0.1:${MYTHIC_REACT_PORT}:${MYTHIC_REACT_PORT}",
+				}
+			} else {
+				pStruct["ports"] = []string{
+					"${MYTHIC_REACT_PORT}:${MYTHIC_REACT_PORT}",
+				}
 			}
+			pStruct["environment"] = []string{
+				"MYTHIC_REACT_PORT=${MYTHIC_REACT_PORT}",
+				"MYTHIC_REACT_BIND_IPV4=0.0.0.0",
+			}
+			delete(pStruct, "network_mode")
+			delete(pStruct, "extra_hosts")
 		} else {
-			pStruct["ports"] = []string{
-				"${MYTHIC_REACT_PORT}:${MYTHIC_REACT_PORT}",
+			delete(pStruct, "ports")
+			pStruct["network_mode"] = "host"
+			pStruct["extra_hosts"] = []string{
+				"mythic_server:127.0.0.1",
+				"mythic_rabbitmq:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_nginx:127.0.0.1",
+				"mythic_react:127.0.0.1",
+				"mythic_documentation:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_jupyter:127.0.0.1",
+				"mythic_postgres:127.0.0.1",
+			}
+			if mythicEnv.GetBool("mythic_react_bind_localhost_only") {
+				pStruct["environment"] = []string{
+					"MYTHIC_REACT_PORT=${MYTHIC_REACT_PORT}",
+					"MYTHIC_REACT_BIND_IPV4=127.0.0.1",
+				}
+			} else {
+				pStruct["environment"] = []string{
+					"MYTHIC_REACT_PORT=${MYTHIC_REACT_PORT}",
+					"MYTHIC_REACT_BIND_IPV4=0.0.0.0",
+				}
 			}
 		}
-		pStruct["environment"] = []string{
-			"MYTHIC_REACT_PORT=${MYTHIC_REACT_PORT}",
-		}
+
 	case "mythic_jupyter":
 		if mythicEnv.GetBool("jupyter_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
@@ -434,20 +551,49 @@ func AddMythicService(service string, removeVolume bool) {
 		if mythicEnv.GetString("jupyter_mem_limit") != "" {
 			pStruct["mem_limit"] = mythicEnv.GetString("jupyter_mem_limit")
 		}
-		if mythicEnv.GetBool("jupyter_bind_localhost_only") {
-			pStruct["ports"] = []string{
-				"127.0.0.1:${JUPYTER_PORT}:${JUPYTER_PORT}",
+		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
+			if mythicEnv.GetBool("jupyter_bind_localhost_only") {
+				pStruct["ports"] = []string{
+					"127.0.0.1:${JUPYTER_PORT}:${JUPYTER_PORT}",
+				}
+			} else {
+				pStruct["ports"] = []string{
+					"${JUPYTER_PORT}:${JUPYTER_PORT}",
+				}
+			}
+			delete(pStruct, "network_mode")
+			delete(pStruct, "extra_hosts")
+			pStruct["environment"] = []string{
+				"JUPYTER_TOKEN=${JUPYTER_TOKEN}",
+				"CHOWN_EXTRA=/projects",
+				"CHOWN_EXTRA_OPTS=-R",
 			}
 		} else {
-			pStruct["ports"] = []string{
-				"${JUPYTER_PORT}:${JUPYTER_PORT}",
+			delete(pStruct, "ports")
+			pStruct["network_mode"] = "host"
+			pStruct["extra_hosts"] = []string{
+				"mythic_server:127.0.0.1",
+				"mythic_rabbitmq:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_nginx:127.0.0.1",
+				"mythic_react:127.0.0.1",
+				"mythic_documentation:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_jupyter:127.0.0.1",
+				"mythic_postgres:127.0.0.1",
 			}
-		}
-
-		pStruct["environment"] = []string{
-			"JUPYTER_TOKEN=${JUPYTER_TOKEN}",
-			"CHOWN_EXTRA=/projects",
-			"CHOWN_EXTRA_OPTS=-R",
+			environment := []string{
+				"JUPYTER_TOKEN=${JUPYTER_TOKEN}",
+				"CHOWN_EXTRA=/projects",
+				"CHOWN_EXTRA_OPTS=-R",
+				"JUPYTER_PORT=${JUPYTER_PORT}",
+			}
+			if mythicEnv.GetBool("jupyter_bind_localhost_only") {
+				environment = append(environment, "JUPYTER_IP=127.0.0.1")
+			} else {
+				environment = append(environment, "JUPYTER_IP=0.0.0.0")
+			}
+			pStruct["environment"] = environment
 		}
 		pStruct["user"] = "root"
 		/*
@@ -508,10 +654,10 @@ func AddMythicService(service string, removeVolume bool) {
 			"NGINX_HOST=${NGINX_HOST}",
 			"MYTHIC_SERVER_DYNAMIC_PORTS=${MYTHIC_SERVER_DYNAMIC_PORTS}",
 			"MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY=${MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY}",
-			"MYTHIC_SERVER_DOCKER_NETWORKING=${MYTHIC_SERVER_DOCKER_NETWORKING}",
+			"MYTHIC_DOCKER_NETWORKING=${MYTHIC_DOCKER_NETWORKING}",
 			"GLOBAL_SERVER_NAME=${GLOBAL_SERVER_NAME}",
 		}
-		if mythicEnv.GetString("mythic_server_docker_networking") == "bridge" {
+		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
 			mythicServerPorts := []string{
 				"${MYTHIC_SERVER_PORT}:${MYTHIC_SERVER_PORT}",
 				"${MYTHIC_SERVER_GRPC_PORT}:${MYTHIC_SERVER_GRPC_PORT}",
@@ -538,8 +684,15 @@ func AddMythicService(service string, removeVolume bool) {
 			delete(pStruct, "ports")
 			pStruct["network_mode"] = "host"
 			pStruct["extra_hosts"] = []string{
-				"mythic_postgres:127.0.0.1",
+				"mythic_server:127.0.0.1",
 				"mythic_rabbitmq:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_nginx:127.0.0.1",
+				"mythic_react:127.0.0.1",
+				"mythic_documentation:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_jupyter:127.0.0.1",
+				"mythic_postgres:127.0.0.1",
 			}
 		}
 

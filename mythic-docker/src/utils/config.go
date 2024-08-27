@@ -62,7 +62,7 @@ func Initialize() {
 	mythicEnv.SetDefault("mythic_server_bind_localhost_only", true)
 	mythicEnv.SetDefault("mythic_server_dynamic_ports", "7000-7010")
 	mythicEnv.SetDefault("mythic_server_dynamic_ports_bind_localhost_only", true)
-	mythicEnv.SetDefault("mythic_server_docker_networking", "bridge")
+	mythicEnv.SetDefault("mythic_docker_networking", "bridge")
 	mythicEnv.SetDefault("mythic_server_grpc_port", 17444)
 	mythicEnv.SetDefault("mythic_admin_user", "mythic_admin")
 	mythicEnv.SetDefault("mythic_admin_password", "mythic_password")
@@ -158,7 +158,7 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 		}
 	}
 	MythicConfig.ServerDynamicPortsBindLocalhostOnly = mythicEnv.GetBool("mythic_server_dynamic_ports_bind_localhost_only")
-	MythicConfig.ServerDockerNetworking = mythicEnv.GetString("mythic_server_docker_networking")
+	MythicConfig.ServerDockerNetworking = mythicEnv.GetString("mythic_docker_networking")
 	MythicConfig.AdminUser = mythicEnv.GetString("mythic_admin_user")
 	MythicConfig.AdminPassword = mythicEnv.GetString("mythic_admin_password")
 	MythicConfig.DefaultOperationName = mythicEnv.GetString("default_operation_name")

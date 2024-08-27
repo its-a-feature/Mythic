@@ -16,6 +16,9 @@ import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import { IconButton } from '@mui/material';
 import NotificationsOffTwoToneIcon from '@mui/icons-material/NotificationsOffTwoTone';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {TestEventGroupFileDialog} from "../Search/PreviewFileMedia";
 
 const get_eventgroups = gql`
 query GetEventGroups {
@@ -126,6 +129,7 @@ subscription GetEventGroups {
 
 export function Eventing({me}){
     const theme = useTheme();
+    const [openTestModal, setOpenTestModal] = React.useState(false);
     const [eventgroups, setEventgroups] = React.useState([]);
     const [showDeleted, setShowDeleted] = React.useState(false);
     const [selectedEventGroup, setSelectedEventGroup] = React.useState({id: 0});
@@ -212,13 +216,33 @@ export function Eventing({me}){
         <div style={{display: "flex", flexDirection: "column", height: "100%",  overflowY: "auto"}}>
             <div style={{display: "flex", flexDirection: "row", height: "100%"}}>
                 <div style={{width: "20%", borderRight: "2px solid grey", height: '100%', display: "flex", flexDirection: "column"}}>
-                    <Button size={"small"} style={{float: "right", marginRight: "10px"}}
-                            variant={"contained"} color={"success"} component="label"
-                            startIcon={<CloudUploadIcon />}
-                    >
-                        New Event Groups
-                        <input onChange={onFileChange} type="file" multiple hidden/>
-                    </Button>
+                    <div style={{marginBottom: "5px"}}>
+                        <Button size={"small"} style={{display: "inline-flex", marginRight: "10px", marginLeft: "10px", marginTop: "5px"}}
+                                variant={"contained"} color={"success"} component="label"
+                                startIcon={<CloudUploadIcon />}
+                        >
+                            Upload New
+                            <input onChange={onFileChange} type="file" multiple hidden/>
+                        </Button>
+                        <Button size={"small"} variant={"contained"} color={"info"}
+                                startIcon={<FactCheckIcon />}
+                                style={{display: "inline-flex", marginRight: "10px", marginLeft: "10px", marginTop: "5px"}}
+                                onClick={()=>setOpenTestModal(true)}>
+                            Create & Test
+                        </Button>
+                    </div>
+
+                    {openTestModal &&
+                        <MythicDialog fullWidth={true} maxWidth="xl" open={openTestModal}
+                                      onClose={(e) => {
+                                          setOpenTestModal(false);
+                                      }}
+                                      innerDialog={<TestEventGroupFileDialog
+                                          onClose={(e) => {
+                                              setOpenTestModal(false);
+                                          }}/>}
+                        />
+                    }
                     <ListItem button onClick={() => setSelectedEventGroup({id: 0})}
                         style={selectedEventGroup.id === 0 ?
                             {paddingTop: 0, paddingBottom: 0, borderLeft: `5px solid ${theme.palette.info.main}`} :

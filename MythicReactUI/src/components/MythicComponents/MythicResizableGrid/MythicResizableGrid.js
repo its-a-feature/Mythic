@@ -75,6 +75,7 @@ const ResizableGridWrapper = ({
     rowContextMenuOptions,
     onRowContextMenuClick,
     rowHeight,
+    headerRowHeight,
     widthMeasureKey,
     callbackTableGridRef,
     onRowClick,
@@ -95,9 +96,12 @@ const ResizableGridWrapper = ({
     );
     const getRowHeight = useCallback(
         (index) => {
+            if(index === 0){
+                return headerRowHeight;
+            }
             return rowHeight;
         },
-        [rowHeight]
+        [rowHeight, headerRowHeight]
     );
 
     useEffect(() => {
@@ -259,7 +263,7 @@ const ResizableGridWrapper = ({
                 </VariableSizeGrid>
                 <DraggableHandles
                     height={AutoSizerProps.height}
-                    rowHeight={getRowHeight(0)}
+                    rowHeight={headerRowHeight}
                     width={AutoSizerProps.width}
                     minColumnWidth={MIN_COLUMN_WIDTH}
                     columnWidths={columnWidths}
@@ -285,6 +289,7 @@ const MythicResizableGrid = ({
     onRowContextMenuClick,
     widthMeasureKey,
     rowHeight = 20,
+    headerRowHeight = 20,
     callbackTableGridRef,
     onRowClick,
 }) => {
@@ -300,6 +305,7 @@ const MythicResizableGrid = ({
                     items={items}
                     widthMeasureKey={widthMeasureKey}
                     rowHeight={rowHeight}
+                    headerRowHeight={headerRowHeight}
                     onClickHeader={onClickHeader}
                     onDoubleClickRow={onDoubleClickRow}
                     contextMenuOptions={contextMenuOptions}
@@ -330,6 +336,7 @@ MythicResizableGrid.propTypes = {
     contextMenuOptions: PropTypes.array,
     rowContextMenuOptions: PropTypes.array,
     rowHeight: PropTypes.number,
+    headerRowHeight: PropTypes.number,
     headerNameKey: PropTypes.string,
     widthMeasureKey: PropTypes.string
 };

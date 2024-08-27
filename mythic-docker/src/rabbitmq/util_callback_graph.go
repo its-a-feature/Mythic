@@ -364,7 +364,7 @@ func (g *cbGraph) GetBFSPath(sourceId int, destinationId int) []cbGraphAdjMatrix
 		return nil
 	}
 	if existingBFSpath := BFSCache.GetPath(sourceId, destinationId); existingBFSpath != nil {
-		logging.LogDebug("returning a cachedBFS path", "sourceID", sourceId, "destinationID", destinationId)
+		//logging.LogDebug("returning a cachedBFS path", "sourceID", sourceId, "destinationID", destinationId)
 		return existingBFSpath
 	}
 	// start with a fake-ish entry that we won't include in the final path

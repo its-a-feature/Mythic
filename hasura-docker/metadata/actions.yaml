@@ -331,6 +331,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: eventingTestFile
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_test_file_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: eventingTriggerCancel
     definition:
       kind: synchronous
@@ -831,4 +841,5 @@ custom_types:
     - name: containerWriteFileOutput
     - name: eventingTriggerRetryFromStepOutput
     - name: testProxyOutput
+    - name: eventingTestFileOutput
   scalars: []
