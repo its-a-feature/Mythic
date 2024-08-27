@@ -77,7 +77,7 @@ func AddMythicService(service string, removeVolume bool) {
 				"mythic_postgres:127.0.0.1",
 			}
 			if mythicEnv.GetBool("postgres_bind_localhost_only") {
-				pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf -c \"listen_addresses='localhost'\""
+				pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf -c \"listen_addresses=localhost\""
 			} else {
 				pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf"
 			}
