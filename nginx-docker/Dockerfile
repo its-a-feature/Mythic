@@ -1,1 +1,1 @@
-FROM ghcr.io/its-a-feature/mythic_nginx:v0.0.4.40
+FROM ghcr.io/its-a-feature/mythic_nginx:v0.0.4.41
