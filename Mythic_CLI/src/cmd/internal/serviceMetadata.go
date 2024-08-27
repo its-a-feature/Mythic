@@ -69,7 +69,6 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["extra_hosts"] = []string{
 				"mythic_server:127.0.0.1",
 				"mythic_rabbitmq:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
 				"mythic_nginx:127.0.0.1",
 				"mythic_react:127.0.0.1",
 				"mythic_documentation:127.0.0.1",
@@ -141,7 +140,6 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["extra_hosts"] = []string{
 				"mythic_server:127.0.0.1",
 				"mythic_rabbitmq:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
 				"mythic_nginx:127.0.0.1",
 				"mythic_react:127.0.0.1",
 				"mythic_documentation:127.0.0.1",
@@ -231,7 +229,6 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["extra_hosts"] = []string{
 				"mythic_server:127.0.0.1",
 				"mythic_rabbitmq:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
 				"mythic_nginx:127.0.0.1",
 				"mythic_react:127.0.0.1",
 				"mythic_documentation:127.0.0.1",
@@ -323,7 +320,6 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["extra_hosts"] = []string{
 				"mythic_server:127.0.0.1",
 				"mythic_rabbitmq:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
 				"mythic_nginx:127.0.0.1",
 				"mythic_react:127.0.0.1",
 				"mythic_documentation:127.0.0.1",
@@ -410,7 +406,6 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["extra_hosts"] = []string{
 				"mythic_server:127.0.0.1",
 				"mythic_rabbitmq:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
 				"mythic_nginx:127.0.0.1",
 				"mythic_react:127.0.0.1",
 				"mythic_documentation:127.0.0.1",
@@ -515,7 +510,6 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["extra_hosts"] = []string{
 				"mythic_server:127.0.0.1",
 				"mythic_rabbitmq:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
 				"mythic_nginx:127.0.0.1",
 				"mythic_react:127.0.0.1",
 				"mythic_documentation:127.0.0.1",
@@ -574,7 +568,6 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["extra_hosts"] = []string{
 				"mythic_server:127.0.0.1",
 				"mythic_rabbitmq:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
 				"mythic_nginx:127.0.0.1",
 				"mythic_react:127.0.0.1",
 				"mythic_documentation:127.0.0.1",
@@ -686,7 +679,6 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["extra_hosts"] = []string{
 				"mythic_server:127.0.0.1",
 				"mythic_rabbitmq:127.0.0.1",
-				"mythic_graphql:127.0.0.1",
 				"mythic_nginx:127.0.0.1",
 				"mythic_react:127.0.0.1",
 				"mythic_documentation:127.0.0.1",
