@@ -23,12 +23,13 @@ export function EventFeedTableEventsActions(props){
         setAnchorEl(e.currentTarget)
     }, []);
     return (
-        <ListItemSecondaryAction>
+        <ListItemSecondaryAction >
             <IconButton
                 aria-controls={"eventmenu" + props.id}
                 aria-haspopup="true"
                 onClick={handleClick}
-                size="large"><MoreVertIcon/></IconButton>
+                size="large"><MoreVertIcon/>
+            </IconButton>
                 <Menu elevation={5} id={"eventmenu" + props.id} anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose} >
                     {
                         props.level === "warning" && props.resolved ? (

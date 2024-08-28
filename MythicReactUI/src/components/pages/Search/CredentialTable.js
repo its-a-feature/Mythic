@@ -162,16 +162,16 @@ export function CredentialTable(props){
     }
 
     return (
-        <TableContainer component={Paper} className="mythicElement" >
-            <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll", tableLayout: "fixed"}}>
+        <TableContainer className="mythicElement" >
+            <Table stickyHeader size="small" style={{height: "100%", tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "2rem"}}></TableCell>
                         <TableCell style={{width: "5rem"}}>Edit</TableCell>
-                        <TableCell >Credential</TableCell>
+                        <TableCell >Info</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
                         <TableCell >Task Info</TableCell>
-                        <TableCell style={{width: "7rem"}}>Type</TableCell>
+                        <TableCell style={{}}>Credential</TableCell>
                         <TableCell style={{width: "15rem"}}>Tags</TableCell>
                     </TableRow>
                 </TableHead>
@@ -207,7 +207,7 @@ function CredentialTableRow(props){
     const [editTypeDialogOpen, setEditTypeDialogOpen] = React.useState(false);
     const dropdownAnchorRef = React.useRef(null);
     const [openDropdownButton, setOpenDropdownButton] = React.useState(false);
-    const maxDisplayLength = 400;
+    const maxDisplayLength = 100;
     const displayCred = props.credential_text.length > maxDisplayLength ? props.credential_text.slice(0, maxDisplayLength) + "..." : props.credential_text;
     const [updateComment] = useMutation(updateCredentialComment, {
         onCompleted: (data) => {
@@ -372,7 +372,7 @@ function CredentialTableRow(props){
                             transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                         }}
                         >
-                        <Paper variant="outlined" style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                        <Paper variant="outlined" className={"dropdownMenuColored"}>
                             <ClickAwayListener onClickAway={handleClose}>
                             <MenuList id="split-button-menu"  >
                                 {options.map((option, index) => (
@@ -393,20 +393,11 @@ function CredentialTableRow(props){
                 <MythicStyledTableCell style={{ whiteSpace: "pre-line",wordBreak: "break-all",}}>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Account: </b>{props.account}</Typography>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Realm: </b>{props.realm}</Typography>
-                    <React.Fragment>
-                        <MythicStyledTooltip title={"Copy to clipboard"}>
-                            <IconButton onClick={() => onCopyToClipboard(props.credential_text)} size="small">
-                                <FontAwesomeIcon icon={faCopy} />
-                            </IconButton>
-                        </MythicStyledTooltip>
-                        <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}><b>Credential: </b>{displayCred}</Typography>
-                    </React.Fragment>
-
+                    <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Type: </b>{props.type}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Typography variant="body2" style={{whiteSpace: "pre-line",wordBreak: "break-all",}}>{props.comment}</Typography>
                 </MythicStyledTableCell>
-
                 <MythicStyledTableCell>
                     {props.task !== null ? (
                         <>
@@ -418,13 +409,25 @@ function CredentialTableRow(props){
 
                     ): (props.operator.username)}
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>{props.type}</MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <ViewEditTags 
-                        target_object={"credential_id"} 
-                        target_object_id={props?.id || 0} 
-                        me={me} />
-                    <TagsDisplay tags={props.tags || []} />
+                    <div style={{display: "flex"}}>
+                        <MythicStyledTooltip title={"Copy to clipboard"}>
+                            <IconButton onClick={() => onCopyToClipboard(props.credential_text)} size="small">
+                                <FontAwesomeIcon icon={faCopy}/>
+                            </IconButton>
+                        </MythicStyledTooltip>
+                        <Typography variant="body2" style={{
+                            wordBreak: "break-all",
+                            display: "inline-block"
+                        }}><b>Credential: </b>{displayCred}</Typography>
+                    </div>
+                </MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    <ViewEditTags
+                        target_object={"credential_id"}
+                        target_object_id={props?.id || 0}
+                        me={me}/>
+                    <TagsDisplay tags={props.tags || []}/>
                 </MythicStyledTableCell>
             </TableRow>
         </React.Fragment>

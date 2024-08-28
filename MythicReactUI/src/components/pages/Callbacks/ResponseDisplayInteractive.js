@@ -6,7 +6,7 @@ import { gql, useMutation, useSubscription } from '@apollo/client';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import {SearchBar} from './ResponseDisplay';
 import Pagination from '@mui/material/Pagination';
-import {Typography, CircularProgress, Select, IconButton} from '@mui/material';
+import {Typography, CircularProgress, Select, IconButton, Backdrop} from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import Input from '@mui/material/Input';
 import MenuItem from '@mui/material/MenuItem';
@@ -18,6 +18,9 @@ import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 import WrapTextIcon from '@mui/icons-material/WrapText';
+import { useReactiveVar } from '@apollo/client';
+import { meState } from '../../../cache';
+import {useTheme} from '@mui/material/styles';
 
 const getInteractiveTaskingQuery = gql`
 ${taskingDataFragment}
@@ -37,10 +40,12 @@ subscription subResponsesQuery($task_id: Int!) {
   }
 }`;
 const getTaskingStatus = (task) => {
-    if(task.status === "completed"){
+    if(task.status === "completed" || task.status === "success"){
         return <CheckCircleOutlineIcon color={"success"} fontSize={"1rem"} style={{marginRight: "2px"}} />
     } else if(task.status === "submitted"){
         return  <CircularProgress size={"1rem"} />
+    } else if(task.status.toLowerCase.includes("error")){
+
     }
 }
 const getClassnames = (entry) => {
@@ -73,67 +78,77 @@ const getClassnames = (entry) => {
     //console.log(entry);
     return classnames.join(" ");
 }
-const GetOutputFormat = ({data, useASNIColor, messagesEndRef, showTaskStatus, wrapText}) => {
+export const GetOutputFormatAll = ({data, myTask, taskID,  useASNIColor, messagesEndRef, showTaskStatus, wrapText, search}) => {
     const [dataElement, setDataElement] = React.useState(null);
     React.useEffect( () => {
-
-        if(data.response) {
-            // we're looking at response output
-            if(data.is_error){
-                setDataElement(<pre style={{display: "inline",backgroundColor: "#311717", margin: "0 0 0 0",
-                    wordBreak: wrapText ? "break-all" : "",
-                    whiteSpace: wrapText ? "pre-wrap" : ""}} key={data.timestamp + data.id}>
-                    {data.response}
-                </pre>)
-            } else {
-                if(useASNIColor){
-                    let ansiJSON = Anser.ansiToJson(data.response, { use_classes: true });
-                    //console.log(ansiJSON)
-                    setDataElement(
-                        ansiJSON.map( (a, i) => (
-                            <pre style={{display: "inline", margin: "0 0 0 0",
-                                wordBreak: wrapText ? "break-all" : "",
-                                whiteSpace: wrapText ? "pre-wrap" : "",
-                            }} className={getClassnames(a)} key={data.id + data.timestamp + i}>{a.content}</pre>
-                        ))
-                    )
-                } else {
-                    setDataElement(<pre style={{display: "inline", margin: "0 0 0 0",
+        const elements = data.map( d => {
+            if(d.response) {
+                // we're looking at response output
+                if(d.is_error){
+                    return (<pre id={"response" + d.timestamp + d.id} style={{display: "inline",backgroundColor: "#311717", color: "white", margin: "0 0 0 0",
                         wordBreak: wrapText ? "break-all" : "",
-                        whiteSpace: wrapText ? "pre-wrap" : "",
-                    }} key={data.timestamp + data.id}>{data.response}</pre>)
-                }
+                        whiteSpace: wrapText ? "pre-wrap" : ""}} key={d.timestamp + d.id}>
+                    {d.response}
+                </pre>)
+                } else {
+                    if(useASNIColor){
+                        let ansiJSON = Anser.ansiToJson(d.response, { use_classes: true });
+                        //console.log(ansiJSON)
+                        return (
+                            ansiJSON.map( (a, i) => (
+                                <pre id={"response" + d.timestamp + d.id} style={{display: "inline", margin: "0 0 0 0",
+                                    wordBreak: wrapText ? "break-all" : "",
+                                    whiteSpace: wrapText ? "pre-wrap" : "",
+                                }} className={getClassnames(a)} key={d.id + d.timestamp + i}>{a.content}</pre>
+                            ))
+                    )
+                    } else {
+                        return (<pre id={"response" + d.timestamp + d.id} style={{display: "inline", margin: "0 0 0 0",
+                            wordBreak: wrapText ? "break-all" : "",
+                            whiteSpace: wrapText ? "pre-wrap" : "",
+                        }} key={d.timestamp + d.id}>{d.response}</pre>)
+                    }
 
-            }
-        } else {
-            // we're looking at tasking
-            setDataElement(
-                <pre key={data.timestamp + data.id} style={{display: "inline",margin: "0 0 0 0",
-                    wordBreak: wrapText ? "break-all" : "", whiteSpace: "pre-wrap"}}>
-                    {showTaskStatus && getTaskingStatus(data)}
-                    {data.original_params}
+                }
+            } else {
+                // we're looking at tasking
+                return(
+                    <pre id={"task" + d.timestamp + d.id} key={d.timestamp + d.id} style={{display: "inline",margin: "0 0 0 0",
+                        wordBreak: wrapText ? "break-all" : "", whiteSpace: "pre-wrap"}}>
+                    {showTaskStatus && getTaskingStatus(d)}
+                        {d.original_params}
                 </pre>
-            )
-        }
-    }, [data.timestamp, useASNIColor, showTaskStatus, wrapText]);
-    /*
-    React.useEffect( () => {
-        if(messagesEndRef.current){
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+                )
+            }
+        })
+        setDataElement(elements);
+
+    }, [data, useASNIColor, showTaskStatus, wrapText]);
+    React.useLayoutEffect( () => {
+        if(myTask){
+            let el = document.getElementById(`ptytask${taskID}`);
+            if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 500){
+                if(!search){
+                    messagesEndRef?.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
+                    //console.log("scrolling");
+                }
+            } else {
+               // console.log("not scrolled down enough")
+            }
         }
     }, [dataElement]);
-
-     */
     return (
         dataElement
     )
 
 }
 
+
 const InteractiveMessageTypes = [
     {"name": "None", "value": -1, "text": "None"},
     {"name": "Tab", "value": 13, "text": "^I"},
     {"name": "Backspace", "value": 12, "text": "^H"},
+    {"name": "Exit", "value": 3, "text": "exit"},
     {"name": "Escape", "value": 4, "text": "^["},
     {"name": "Ctrl+A", "value": 5, "text": "^A"},
     {"name": "Ctrl+B", "value": 6, "text": "^B"},
@@ -161,6 +176,9 @@ const EnterOptions = [
     {"value": "\r\n", "name": "CRLF"}
 ];
 export const ResponseDisplayInteractive = (props) =>{
+    const me = useReactiveVar(meState);
+    const [backdropOpen, setBackdropOpen] = React.useState(false);
+    const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const pageSize = React.useRef(100);
     const highestFetched = React.useRef(0);
     const [taskData, setTaskData] = React.useState([]);
@@ -175,9 +193,8 @@ export const ResponseDisplayInteractive = (props) =>{
     const [useASNIColor, setUseANSIColor] = React.useState(true);
     const [showTaskStatus, setShowTaskStatus] = React.useState(true);
     const [wrapText, setWrapText] = React.useState(true);
-    useSubscription(getInteractiveTaskingQuery, {
+    const {loading: loadingTasks} = useSubscription(getInteractiveTaskingQuery, {
       variables: {parent_task_id: props.task.id},
-      shouldResubscribe: true,
       onError: data => {
           console.error(data)
       },
@@ -198,15 +215,19 @@ export const ResponseDisplayInteractive = (props) =>{
               }, [...taskData]);
               setTaskData(newTaskData);
           }
+          if(backdropOpen){
+              setBackdropOpen(false);
+          }
+
       }
-  })
+    })
     const subscriptionDataCallback = React.useCallback( ({data}) => {
         // we still have some room to view more, but only room for fetchLimit - totalFetched.current
         if(props.task.id !== taskIDRef.current){
             const newResponses = data.data.response_stream;
             const newerResponses = newResponses.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
             newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
-            let rawResponseArray = [...rawResponses];
+            let rawResponseArray = [];
             let highestFetchedId = 0;
             for(let i = 0; i < newerResponses.length; i++){
                 rawResponseArray.push(newerResponses[i]);
@@ -216,23 +237,28 @@ export const ResponseDisplayInteractive = (props) =>{
             highestFetched.current = highestFetchedId;
             taskIDRef.current = props.task.id;
         } else {
-            const newResponses = data.data.response_stream.filter( r => r.id > highestFetched.current);
-            const newerResponses = newResponses.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
-            newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
+            const newResponses = data.data.response_stream.filter(r => r.id > highestFetched.current);
+            const newerResponses = newResponses.map((r) => {
+                return {...r, response: b64DecodeUnicode(r.response)}
+            });
+            newerResponses.sort((a, b) => a.id > b.id ? 1 : -1);
             let rawResponseArray = [...rawResponses];
             let highestFetchedId = highestFetched.current;
-            for(let i = 0; i < newerResponses.length; i++){
+            for (let i = 0; i < newerResponses.length; i++) {
                 rawResponseArray.push(newerResponses[i]);
                 highestFetchedId = newerResponses[i]["id"];
             }
             setRawResponses(rawResponseArray);
             highestFetched.current = highestFetchedId;
         }
+        if(backdropOpen){
+            setBackdropOpen(false);
+        }
 
-    }, [highestFetched.current, rawResponses, props.task.id]);
+    }, [highestFetched.current, rawResponses, props.task.id, backdropOpen, taskIDRef.current]);
     useSubscription(subResponsesQuery, {
         variables: {task_id: props.task.id},
-        fetchPolicy: "network_only",
+        fetchPolicy: "no-cache",
         onData: subscriptionDataCallback
     });
     const onSubmitPageChange = (currentPage) => {
@@ -312,50 +338,81 @@ export const ResponseDisplayInteractive = (props) =>{
     const toggleWrapText = () => {
         setWrapText(!wrapText);
     }
-    const scrollContent = (node, isAppearing) => {
-        // only auto-scroll if you issued the task
-        document.getElementById(`scrolltotaskbottom${props.task.id}`)?.scrollIntoView({
-            //behavior: "smooth",
-            block: "end",
-            inline: "nearest"
-        })
-    }
-    React.useLayoutEffect( () => {
-        scrollContent()
-    }, []);
+    useEffect( () => {
+        if(scrollToBottom){
+            messagesEndRef.current.scrollIntoView();
+        }
+    }, [scrollToBottom]);
+    React.useEffect( () => {
+        if(loadingTasks){
+            setTaskData([]);
+            setBackdropOpen(true);
+        }else{
+            setBackdropOpen(false);
+        }
+    }, [loadingTasks]);
   return (
 
-    <div style={{ display: "flex", overflowY: "auto",
-        position: "relative", height: props.expand ? "100%": undefined, maxHeight: props.expand ? "100%": "500px",
-        flexDirection: "column"}}>
-        {props.searchOutput &&
-            <SearchBar onSubmitSearch={onSubmitSearch} />
-        }
-        <div style={{overflowY: "auto", width: "100%", flexGrow: 1}} ref={props.responseRef}>
-            {alloutput.map( (e, index) => (
-                <GetOutputFormat key={"getoutput" + index} data={e} useASNIColor={useASNIColor} messagesEndRef={messagesEndRef}
-                                 showTaskStatus={showTaskStatus} wrapText={wrapText} />
-            ))}
-            <div ref={messagesEndRef}/>
-        </div>
+      <div style={{
+          display: "flex", overflowY: "auto",
+          position: "relative", height: props.expand ? "100%" : undefined, maxHeight: props.expand ? "100%" : "500px",
+          flexDirection: "column"
+      }}>
+          <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute",}} invisible={false}>
+              <div style={{
+                  borderRadius: "4px",
+                  border: "1px solid black",
+                  padding: "5px",
+                  backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                  alignItems: "center",
+                  display: "flex", flexDirection: "column"}}>
+                  <CircularProgress color="inherit" />
+                  <Typography variant={"h5"}>
+                      Fetching Interactive Task Data....
+                  </Typography>
+              </div>
+          </Backdrop>
+          {props.searchOutput &&
+              <SearchBar onSubmitSearch={onSubmitSearch}/>
+          }
+          <div style={{overflowY: "auto", width: "100%", marginBottom: "5px",
+              flexGrow: 1, paddingLeft: "10px"}} ref={props.responseRef}
+               id={`ptytask${props.task.id}`}>
 
-        <div style={{width: "100%", display: "inline-flex", alignItems: "flex-end"}} >
-            <InteractiveTaskingBar task={props.task} taskData={taskData}
-                                   useASNIColor={useASNIColor} toggleANSIColor={toggleANSIColor}
-                                   showTaskStatus={showTaskStatus} toggleShowTaskStatus={toggleShowTaskStatus}
-                                   wrapText={wrapText} toggleWrapText={toggleWrapText}
-            />
-        </div>
-            <InteractivePaginationBar totalCount={totalCount} currentPage={page.current}
-                                      onSubmitPageChange={onSubmitPageChange} expand={props.expand}
-                                      pageSize={pageSize.current} />
-    </div>
+                  <GetOutputFormatAll data={alloutput}
+                                   myTask={props.task.operator.username === (me?.user?.username || "")}
+                                   taskID={props.task.id}
+                                   useASNIColor={useASNIColor}
+                                   messagesEndRef={messagesEndRef}
+                                   showTaskStatus={showTaskStatus}
+                                   search={props.searchOutput ? search : undefined}
+                                   wrapText={wrapText}/>
+
+              <div ref={messagesEndRef}/>
+          </div>
+          {!props.task?.is_interactive_task &&
+              <div style={{width: "100%", display: "inline-flex", alignItems: "flex-end"}}>
+                  <InteractiveTaskingBar task={props.task} taskData={taskData}
+                                         useASNIColor={useASNIColor} toggleANSIColor={toggleANSIColor}
+                                         showTaskStatus={showTaskStatus} toggleShowTaskStatus={toggleShowTaskStatus}
+                                         wrapText={wrapText} toggleWrapText={toggleWrapText}
+                  />
+              </div>
+          }
+
+          <InteractivePaginationBar totalCount={totalCount} currentPage={page.current}
+                                    onSubmitPageChange={onSubmitPageChange} expand={props.expand}
+                                    pageSize={pageSize.current}/>
+      </div>
   )
-      
+
 }
-const InteractiveTaskingBar = ({task, taskData, useASNIColor, toggleANSIColor,
-                                   showTaskStatus, toggleShowTaskStatus, wrapText, toggleWrapText}) => {
+const InteractiveTaskingBar = ({
+                                   task, taskData, useASNIColor, toggleANSIColor,
+                                   showTaskStatus, toggleShowTaskStatus, wrapText, toggleWrapText
+                               }) => {
     const [inputText, setInputText] = React.useState("");
+    const theme = useTheme();
     const [createTask] = useMutation(createTaskingMutation, {
         update: (cache, {data}) => {
             if(data.createTask.status === "error"){
@@ -458,6 +515,7 @@ const InteractiveTaskingBar = ({task, taskData, useASNIColor, toggleANSIColor,
         }
         setInputText("");
         setSelectedControlOption(InteractiveMessageTypes[0]);
+        setTaskOptionsIndex(-1);
     }
     const onChangeSelect = (event) => {
         event.stopPropagation();
@@ -470,7 +528,12 @@ const InteractiveTaskingBar = ({task, taskData, useASNIColor, toggleANSIColor,
         setSelectedEnterOption(event.target.value);
     }
     return (
-        <>
+        <div style={{
+            display: "flex",
+            alignItems: "flex-end",
+            backgroundColor: theme.palette.graphGroupRGBA,
+            paddingTop: "5px",
+            width: "100%"}}>
             <FormControl style={{width: "10rem", marginTop: "2px"}} >
                 <InputLabel id="control-label" style={{}}>Controls</InputLabel>
                 <Select
@@ -528,7 +591,7 @@ const InteractiveTaskingBar = ({task, taskData, useASNIColor, toggleANSIColor,
                 </IconButton>
 
             </MythicStyledTooltip>
-        </>
+        </div>
     )
 }
 const InteractivePaginationBar = ({totalCount, currentPage, onSubmitPageChange, pageSize, expand}) => {
@@ -549,7 +612,7 @@ const InteractivePaginationBar = ({totalCount, currentPage, onSubmitPageChange, 
 
     }
     return (
-        <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "10px",}} >
+        <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}} >
             <Pagination count={pageCount} page={currentPage} variant="contained" color="primary"
                         boundaryCount={2} onChange={onChangePage} style={{margin: "10px"}}
                         showFirstButton showLastButton siblingCount={2}

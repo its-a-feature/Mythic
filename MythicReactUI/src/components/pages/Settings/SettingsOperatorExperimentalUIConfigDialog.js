@@ -10,7 +10,6 @@ import Switch from '@mui/material/Switch';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
-import Paper from '@mui/material/Paper';
 import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {snackActions} from "../../utilities/Snackbar";
 
@@ -18,7 +17,7 @@ import {snackActions} from "../../utilities/Snackbar";
 export function SettingsOperatorExperimentalUIConfigDialog(props) {
     const me = props.me;
     const initialNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: "false"});
-    const [newBrowserScriptTables, setNewBrowserScriptTables] = React.useState(initialNewBrowserScriptTable);
+    const [newBrowserScriptTables, setNewBrowserScriptTables] = React.useState(false);
     const initialResponseStreamLimit = useMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 10, output: "number"})
     const [newResponseStreamLimit, setNewResponseStreamLimit] = React.useState(initialResponseStreamLimit);
 
@@ -56,7 +55,7 @@ export function SettingsOperatorExperimentalUIConfigDialog(props) {
             If you use any of these experimental features, please drop a comment on Mythic's GitHub or reach out on Twitter/Slack/Discord to let me know how it works for you.
 
         </DialogContent>
-        <TableContainer component={Paper} className="mythicElement">
+        <TableContainer className="mythicElement">
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
@@ -64,9 +63,10 @@ export function SettingsOperatorExperimentalUIConfigDialog(props) {
                   <TableCell>
                     <Switch
                       checked={newBrowserScriptTables}
+                      disabled
                       onChange={onBrowserScriptTablesChanged}
-                      color="primary"
-                      inputProps={{ 'aria-label': 'primary checkbox' }}
+                      color="info"
+                      inputProps={{ 'aria-label': 'info checkbox' }}
                       name="new-browserscripttables"
                     />
                   </TableCell>

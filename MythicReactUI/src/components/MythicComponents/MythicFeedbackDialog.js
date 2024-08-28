@@ -79,7 +79,7 @@ return (
         Send a feedback report to the slack webhook configured for the current operation.
         This provides a way to easily capture a bug, feedback requests, or comments without breaking operator flow too much. <br/>
         Shift+Enter will auto-submit the form.
-        <TableContainer component={Paper} className="mythicElement">
+        <TableContainer  className="mythicElement">
             <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableBody style={{whiteSpace: "pre"}}> 
                     <TableRow hover >

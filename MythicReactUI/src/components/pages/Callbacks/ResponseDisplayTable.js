@@ -20,6 +20,7 @@ import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
 import {faList, faTrashAlt, faSkullCrossbones, faCamera, faSyringe, faFolder, faFolderOpen, faFileArchive, faCog, faFileWord, faFileExcel, faFilePowerpoint, faFilePdf, faDatabase, faKey, faFileCode, faDownload, faUpload, faFileImage, faCopy, faBoxOpen, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
 
 const onCopyToClipboard = (data) => {
   let result = copyStringToClipboard(data);
@@ -87,7 +88,7 @@ const doubleClickRow = () => {
 const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
 
   return (
-    <div style={{...(cellData?.cellStyle || null)}}>
+    <div style={{...(cellData?.cellStyle || null), height: "100%"}}>
       {cellData?.copyIcon? 
         <MythicStyledTooltip title={"Copy to clipboard"}>
             <IconButton onClick={() => onCopyToClipboard(cellData["plaintext"])} size="small">
@@ -102,13 +103,13 @@ const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
       }
       {cellData?.plaintextHoverText? (
         <MythicStyledTooltip title={cellData.plaintextHoverText}>
-          <pre style={{display: "inline-block"}}>
+          <pre style={{display: "inline-block", margin: 0}}>
             {cellData?.plaintext?.replaceAll?.("\n", "") || " "}
           </pre>
           
         </MythicStyledTooltip>
       ) : (
-        <pre style={{display: "inline-block"}}>
+        <pre style={{display: "inline-block", margin: 0}}>
             {cellData?.plaintext?.replaceAll?.("\n","") || " "}
           </pre>
       )}
@@ -122,7 +123,7 @@ const ResponseDisplayTableStringCell = ({cellData, rowData}) => {
 }
 const ResponseDisplayTableNumberCell = ({cellData, rowData}) => {
   return (
-    <div style={{...(cellData?.cellStyle || null)}}>
+    <div style={{...(cellData?.cellStyle || null), height: "100%"}}>
       {cellData?.copyIcon? 
         <MythicStyledTooltip title={"Copy to clipboard"}>
             <IconButton onClick={() => onCopyToClipboard(cellData["plaintext"])} size="small">
@@ -137,13 +138,13 @@ const ResponseDisplayTableNumberCell = ({cellData, rowData}) => {
       }
       {cellData?.plaintextHoverText? (
         <MythicStyledTooltip title={cellData.plaintextHoverText}>
-          <pre style={{display: "inline-block"}}>
+          <pre style={{display: "inline-block",  margin: 0}}>
             {cellData?.plaintext  || " "}
           </pre>
           
         </MythicStyledTooltip>
       ) : (
-        <pre style={{display: "inline-block"}}>
+        <pre style={{display: "inline-block",  margin: 0}}>
             {cellData?.plaintext || " "}
           </pre>
       )}
@@ -179,22 +180,23 @@ export const getStringSize = ({cellData}) => {
 }
 const ResponseDisplayTableSizeCell = ({cellData, rowData}) => {
   return (
-    <div style={{...(cellData?.cellStyle || null)}}>
+    <div style={{...(cellData?.cellStyle || null), height: "100%"}}>
         {cellData?.plaintextHoverText? (
         <MythicStyledTooltip title={cellData.plaintextHoverText} >
-          <pre style={{display: "inline-block"}}>
+          <pre style={{display: "inline-block", margin: 0}}>
             {getStringSize({cellData})}
           </pre>
           
         </MythicStyledTooltip>
       ) : (
-        <pre style={{display: "inline-block"}}>
+        <pre style={{display: "inline-block", margin: 0}}>
             {getStringSize({cellData})}
           </pre>
       )}
      </div>
   );
 }
+const actionCellButtonStyle = {paddingTop: 0, paddingBottom: 0};
 const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
   const theme = useTheme();
   const [openButton, setOpenButton] = React.useState(false);
@@ -253,17 +255,18 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "dictionary":
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || " "} >
-              <Button size="small" variant="contained" color="primary" 
+            <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
+              <Button size="small" color="primary"
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
-                startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || " "}</Button>
+                startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor}}/> : null}
+                style={{...actionCellButtonStyle}}
+              >{cellData?.button?.name}</Button>
             </MythicStyledTooltip>
             {openButton &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openButton} 
                     onClose={()=>{setOpenButton(false);}} 
-                    innerDialog={<MythicViewJSONAsTableDialog title={cellData?.button?.title || "Title Here"} leftColumn={cellData?.button?.leftColumnTitle || "Left Column"} 
-                    rightColumn={cellData?.button?.rightColumnTitle || "Right Column"} value={cellData?.button?.value || {}} onClose={()=>{setOpenButton(false);}} />}
+                    innerDialog={<MythicViewJSONAsTableDialog title={cellData?.button?.title} leftColumn={cellData?.button?.leftColumnTitle}
+                    rightColumn={cellData?.button?.rightColumnTitle} value={cellData?.button?.value || {}} onClose={()=>{setOpenButton(false);}} />}
                 />
               }
             </React.Fragment>
@@ -271,14 +274,15 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "string":
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || " "} >
-              <Button size="small" variant="contained" color="primary" 
+            <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
+              <Button size="small" color="primary"
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
-                startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || " "}</Button>
+                startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor}}/> : null}
+                style={{...actionCellButtonStyle}}
+              >{cellData?.button?.name}</Button>
             </MythicStyledTooltip>
             {openButton &&
-                <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openButton} title={cellData?.button?.title || "Title Here"} value={cellData?.button?.value || ""}
+                <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openButton} title={cellData?.button?.title} value={cellData?.button?.value || ""}
                     onClose={()=>{setOpenButton(false);}}
                 />
               }
@@ -287,16 +291,17 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "table": 
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || " "} >
-              <Button size="small" variant="contained" color="primary" 
+            <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
+              <Button size="small" color="primary"
                 onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || " "}</Button>
+                style={{...actionCellButtonStyle}}
+              >{cellData?.button?.name}</Button>
             </MythicStyledTooltip>
             {openButton &&
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openButton} 
                     onClose={()=>{setOpenButton(false);}} 
-                    innerDialog={<ResponseDisplayTableDialogTable title={cellData?.button?.title || "Title Here"} 
+                    innerDialog={<ResponseDisplayTableDialogTable title={cellData?.button?.title}
                     table={cellData?.button?.value || {}} callback_id={callback_id} onClose={()=>{setOpenButton(false);}} />}
                 />
               }
@@ -305,10 +310,11 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
       case "task":
         return (
           <React.Fragment>
-            <MythicStyledTooltip title={cellData?.button?.hoverText || " "}>
-              <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false} variant="contained" color="warning" 
+            <MythicStyledTooltip title={cellData?.button?.hoverText || "Submit Task"}>
+              <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false}  color="warning"
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-              >{cellData?.button?.name || " "}</Button>
+                style={{...actionCellButtonStyle}}
+              >{cellData?.button?.name ? cellData?.button?.name : cellData?.button?.startIcon ? null : "Submit Task"}</Button>
             </MythicStyledTooltip>
             {openTaskingButton && 
               <TaskFromUIButton ui_feature={cellData?.button?.ui_feature || " "} 
@@ -343,58 +349,51 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
             />
             }
             {openStringButton &&
-              <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openStringButton} title={taskingData?.title || "Title Here"} value={taskingData?.value || ""}
+              <MythicDisplayTextDialog fullWidth={true} maxWidth="lg" open={openStringButton} title={taskingData?.title} value={taskingData?.value || ""}
                   onClose={finishedViewingData}
               />
             }
             {openTableButton &&
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openTableButton} 
                     onClose={finishedViewingData} 
-                    innerDialog={<ResponseDisplayTableDialogTable title={taskingData?.title || "Title Here"} 
+                    innerDialog={<ResponseDisplayTableDialogTable title={taskingData?.title}
                     table={taskingData?.value || {}} callback_id={callback_id} onClose={finishedViewingData} />}
                 />
               }
-              <Button size="small" variant="contained" color="primary" ref={dropdownAnchorRef}
+              <Button size="small" color="primary" ref={dropdownAnchorRef}
                 onClick={() => setOpenDropdownButton(true)} disabled={cellData?.button?.disabled || false}
                 startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
-                >{cellData?.button?.name || " "}</Button>
-                <Popper open={openDropdownButton} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}>
-                  {({ TransitionProps, placement }) => (
-                    <Grow
-                      {...TransitionProps}
-                      style={{
-                        transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                      }}
-                    >
-                      <Paper variant="outlined" style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
-                        <ClickAwayListener onClickAway={handleClose}>
-                          <MenuList id="split-button-menu"  >
-                            {cellData.button.value.map((option, index) => (
-                              <MenuItem
+                style={{...actionCellButtonStyle}}
+              >{cellData?.button?.name || " "}</Button>
+                  <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
+                    <Dropdown
+                      isOpen={dropdownAnchorRef.current}
+                      onOpen={setOpenDropdownButton}
+                      externallyOpen={openDropdownButton}
+                      menu={
+                        cellData.button.value.map((option, index) => (
+                            <DropdownMenuItem
                                 key={option.name + index}
                                 disabled={option.disabled}
                                 onClick={(event) => handleMenuItemClick(event, index)}
-                              >
-                                <MythicStyledTooltip title={option?.hoverText || (option.type === "task" ? "Task an Agent" : "Display Data")}>
-                                    {option?.startIcon ? <FontAwesomeIcon icon={getIconName(option?.startIcon)} style={{color: option?.startIconColor  || "", marginRight: "5px"}}/> : null}
-                                    {option.name}
-                                </MythicStyledTooltip>
-                              </MenuItem>
-                            ))}
-                          </MenuList>
-                        </ClickAwayListener>
-                      </Paper>
-                    </Grow>
-                  )}
-                </Popper>
+                            >
+                              <MythicStyledTooltip title={option?.hoverText || (option.type === "task" ? "Task an Agent" : "Display Data")}>
+                                {option?.startIcon ? <FontAwesomeIcon icon={getIconName(option?.startIcon)} style={{color: option?.startIconColor  || "", marginRight: "5px"}}/> : null}
+                                {option.name}
+                              </MythicStyledTooltip>
+                            </DropdownMenuItem>
+                        ))
+                      }
+                      />
+                  </ClickAwayListener>
           </React.Fragment>
         )
     }
   }
   return (
-    <div style={{...(rowData?.rowStyle || null), ...(cellData?.cellStyle || null)}}>
+    <div style={{...(rowData?.rowStyle || null), ...(cellData?.cellStyle || null), height: "100%"}}>
       {cellData?.plaintext ? cellData.plaintext : null}
-      {cellData?.button ? (getButtonObject()) : (null)}
+      {cellData?.button ? (getButtonObject()) : null}
     </div>
   );
 }
@@ -402,11 +401,10 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
 
 export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const theme = useTheme();
-  const rowHeight = 35;
+  const rowHeight = 20;
   const headerHeight = 45;
   const maxHeight = 375;
   const [dataHeight, setDataHeight] = React.useState(maxHeight);
-  const maxElements = Math.floor(maxHeight / rowHeight);
   const [allData, setAllData] = React.useState([]);
   const [sortData, setSortData] = React.useState({sortKey: null, sortType: null, sortDirection: "ASC"})
   const sortedData = React.useMemo(() => {
@@ -415,17 +413,57 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
     }
     const tmpData = [...allData];
     if(sortData.sortType === "number" || sortData.sortType === "size"){
-      tmpData.sort((a, b) => (parseInt(a[sortData.sortKey]["plaintext"]) > parseInt(b[sortData.sortKey]["plaintext"]) ? 1 : -1));
+      tmpData.sort((a, b) => {
+        if(a[sortData.sortKey]["plaintext"] === b[sortData.sortKey]["plaintext"]){
+          return 0;
+        }else if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
+          return -1;
+        }else if(b[sortData.sortKey]["plaintext"] === undefined || b[sortData.sortKey]["plaintext"] === null){
+          return 1;
+        }else{
+          try{
+            return parseInt(a[sortData.sortKey]["plaintext"]) > parseInt(b[sortData.sortKey]["plaintext"]) ? 1 : -1;
+          }catch(error){
+            console.log("failed to parse ints for sorting", a[sortData.sortKey]["plaintext"], b[sortData.sortKey]["plaintext"]);
+            return a[sortData.sortKey]["plaintext"] > b[sortData.sortKey]["plaintext"] ? 1: -1;
+          }
+        }
+
+      });
     }else if(sortData.sortType === "date"){
-      tmpData.sort((a,b) => ( (new Date(a[sortData.sortKey]["plaintext"])) > (new Date(b[sortData.sortKey]["plaintext"])) ? 1: -1));
+      tmpData.sort((a,b) => {
+        if(a[sortData.sortKey]["plaintext"] ===  b[sortData.sortKey]["plaintext"]){
+          return 0;
+        }else if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
+          return -1;
+        }else if(b[sortData.sortKey]["plaintext"] === undefined || b[sortData.sortKey]["plaintext"] === null){
+          return 1;
+        }else{
+          try{
+            return (new Date(a[sortData.sortKey]["plaintext"])) > (new Date(b[sortData.sortKey]["plaintext"])) ? 1: -1
+          }catch(error){
+            console.log("failed to parse dates for sorting", a[sortData.sortKey]["plaintext"], b[sortData.sortKey]["plaintext"]);
+            return a[sortData.sortKey]["plaintext"] > b[sortData.sortKey]["plaintext"] ? 1: -1;
+          }
+        }
+
+      });
     }else{
       tmpData.sort( (a, b) => {
-        if(a[sortData.sortKey]["plaintext"] === undefined){
+        if(a[sortData.sortKey]["plaintext"] === b[sortData.sortKey]["plaintext"]){
+          return 0;
+        }else if(a[sortData.sortKey]["plaintext"] === undefined || a[sortData.sortKey]["plaintext"] === null){
           return -1;
-        }else if(b[sortData.sortKey]["plaintext"] === undefined){
+        }else if(b[sortData.sortKey]["plaintext"] === undefined || b[sortData.sortKey]["plaintext"] === null){
           return 1;
+        } else {
+          try{
+            return a[sortData.sortKey]["plaintext"].localeCompare(b[sortData.sortKey]["plaintext"]);
+          }catch(error){
+            console.log("failed to localeCompare strings for sorting", a[sortData.sortKey]["plaintext"], b[sortData.sortKey]["plaintext"]);
+            return a[sortData.sortKey]["plaintext"] > b[sortData.sortKey]["plaintext"] ? 1: -1;
+          }
         }
-        return a[sortData.sortKey]["plaintext"].toLowerCase() > b[sortData.sortKey]["plaintext"].toLowerCase() ? 1 : -1
       });
     }
     if(sortData.sortDirection === "DESC"){
@@ -500,14 +538,14 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   }
   const contextMenuOptions = [
     {
-        name: 'Copy Row as JSON', 
+        name: 'Copy Row as JSON', icon: null,
         click: ({event, columnIndex, rowIndex, data}) => {
             const filteredData = filterOutButtonsFromRowData(data);
             onCopyToClipboard(JSON.stringify(filteredData, null, 2));
-        }
+        }, type: "item"
     },
     {
-      name: 'Copy Row as CSV', 
+      name: 'Copy Row as CSV', icon: null,
       click: ({event, columnIndex, rowIndex, data}) => {
           const filteredData = filterOutButtonsFromRowData(data);
           let outputHeaders = "";
@@ -525,10 +563,11 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
             }
           }
           onCopyToClipboard(outputHeaders + "\n" + outputRow);
-      }
+      },
+      type: "item",
   },
   {
-    name: 'Copy Row as TSV', 
+    name: 'Copy Row as TSV', icon: null,
     click: ({event, columnIndex, rowIndex, data}) => {
       const filteredData = filterOutButtonsFromRowData(data);
       let outputHeaders = "";
@@ -546,7 +585,8 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
         }
       }
       onCopyToClipboard(outputHeaders + "\n" + outputRow);
-    }
+    },
+    type: "item",
 },
 ];
   
@@ -557,19 +597,8 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   }, [table.rows])
   const sortColumn = table.headers.findIndex((column) => column.plaintext === sortData.sortKey);
   const tableStyle = React.useMemo( () => {
-    return expand ? {flexGrow: 1, width: "99%",} : {height: dataHeight}
+    return expand ? {flexGrow: 1, width: "99%", position: "relative"} : {height: dataHeight, position: "relative"}
   }, [expand, dataHeight]);
-  const scrollContent = (node, isAppearing) => {
-    // only auto-scroll if you issued the task
-    document.getElementById(`scrolltotaskbottom${task?.id}`)?.scrollIntoView?.({
-      //behavior: "smooth",
-      block: "end",
-      inline: "nearest"
-    })
-  }
-  React.useLayoutEffect( () => {
-    scrollContent()
-  }, []);
   return (
         <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", width: "100%"}}>
             {table?.title ? (

@@ -1,6 +1,5 @@
 import React, {useEffect} from 'react';
-import {gql, useLazyQuery, useReactiveVar, useSubscription} from '@apollo/client';
-import {meState} from '../../../cache';
+import {gql, useLazyQuery, useSubscription} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import {ResponseDisplayScreenshot} from './ResponseDisplayScreenshot';
 import {ResponseDisplayPlaintext} from './ResponseDisplayPlaintext';
@@ -15,7 +14,6 @@ import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import Pagination from '@mui/material/Pagination';
 import {ResponseDisplayInteractive} from "./ResponseDisplayInteractive";
 import {ResponseDisplayMedia} from "./ResponseDisplayMedia";
-import {ResponseDisplayMaterialReactTable} from "./ResponseDisplayMaterialReactTable";
 import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {DrawBrowserScriptElementsFlow} from "./C2PathDialog";
 import {ResponseDisplayGraph} from "./ResponseDisplayGraph";
@@ -24,7 +22,7 @@ const subResponsesStream = gql`
 subscription subResponsesStream($task_id: Int!){
   response_stream(
     batch_size: 50,
-    cursor: {initial_value: {id: 0}},
+    cursor: {initial_value: {timestamp: "1970-01-01"}},
     where: {task_id: {_eq: $task_id} }
   ){
     id
@@ -62,8 +60,8 @@ query subResponsesQuery($task_id: Int!, $search: String!) {
   }
 }`;
 const taskScript = gql`
-query getBrowserScriptsQuery($command_id: Int!, $operator_id: Int!){
-  browserscript(where: {active: {_eq: true}, command_id: {_eq: $command_id}, for_new_ui: {_eq: true}, operator_id: {_eq: $operator_id}}) {
+query getBrowserScriptsQuery($command_id: Int!){
+  browserscript(where: {active: {_eq: true}, command_id: {_eq: $command_id}, for_new_ui: {_eq: true}}) {
     script
     id
   }
@@ -200,9 +198,12 @@ const NonInteractiveResponseDisplay = (props) => {
         return;
       }
       // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
-      const currentIDS = rawResponses.map( r => r.id);
       const newerResponses = data.data.response_stream.reduce( (prev, cur) => {
-        if(currentIDS.includes(cur.id)){return prev}
+        let prevIndex = prev.findIndex( (v,i,a) => v.id === cur.id);
+        if(prevIndex >= 0){
+          prev[prevIndex] = {...cur, response: b64DecodeUnicode(cur.response)};
+          return prev;
+        }
         return [...prev, {...cur, response: b64DecodeUnicode(cur.response)}]
       }, rawResponses);
       // sort them to make sure we're still in order
@@ -291,7 +292,7 @@ const NonInteractiveResponseDisplay = (props) => {
 
               <div style={{overflowY: "auto", flexGrow: 1, width: "100%", height: props.expand ? "100%": undefined, display: "flex", flexDirection: "column"}} ref={props.responseRef}>
                 <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
-                                          output={output} command_id={props.command_id}
+                                          output={output} command_id={props.command_id} displayType={"accordion"}
                                           task={props.task} search={search.current} expand={props.expand}/>
 
               </div>
@@ -331,9 +332,12 @@ export const NonInteractiveResponseDisplayConsole = (props) => {
       setRawResponses(responseArray);
     } else {
       // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
-      const currentIDS = rawResponses.map( r => r.id);
       const newerResponses = data.data.response_stream.reduce( (prev, cur) => {
-        if(currentIDS.includes(cur.id)){return prev}
+        let prevIndex = prev.findIndex( (v,i,a) => v.id === cur.id);
+        if(prevIndex >= 0){
+          prev[prevIndex] = {...cur, response: b64DecodeUnicode(cur.response)};
+          return prev;
+        }
         return [...prev, {...cur, response: b64DecodeUnicode(cur.response)}]
       }, rawResponses);
       // sort them to make sure we're still in order
@@ -357,13 +361,15 @@ export const NonInteractiveResponseDisplayConsole = (props) => {
   return (
       <React.Fragment>
         {props.searchOutput &&
-            <SearchBar onSubmitSearch={onSubmitSearch} />
+            <SearchBar onSubmitSearch={onSubmitSearch}/>
         }
-        <div style={{overflowY: "auto", width: "100%", height: props.expand ? "100%": undefined}} ref={props.responseRef}>
+        <div style={{overflowY: "auto", width: "100%", height: props.expand ? "100%" : undefined}}
+             ref={props.responseRef}>
           <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
-                                    output={output} command_id={props.command_id}
+                                    output={output} command_id={props.command_id} displayType={"console"}
                                     task={props.task} search={""} expand={props.expand}/>
         </div>
+        <div id={'scrolltotaskbottom' + props.task.id}></div>
       </React.Fragment>
   )
 }
@@ -429,27 +435,12 @@ export const SearchBar = ({onSubmitSearch}) => {
   );
 }
 
-const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, command_id, task, search, expand}) => {
+const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, command_id, task, search, expand, displayType}) => {
   const [localViewBrowserScript, setViewBrowserScript] = React.useState(true);
   const [browserScriptData, setBrowserScriptData] = React.useState({});
   const [loadingBrowserScript, setLoadingBrowserScript] = React.useState(true);
   const useNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: "false"});
-  const script = React.useRef();
-  const me = useReactiveVar(meState);
-  useEffect( () => {
-    if(script.current !== undefined){
-      try{
-        const rawResponseData = rawResponses.map(c => c.response);
-        let res = script.current(task, rawResponseData);
-        setBrowserScriptData(filterOutput(res));
-      }catch(error){
-        setViewBrowserScript(false);
-        setBrowserScriptData({});
-        console.log(error);
-      }
-      
-    }
-  }, [rawResponses, task]);
+  const script = React.useRef(undefined);
   const filterOutput = (scriptData) => {
     if(search === ""){
       return scriptData;
@@ -464,64 +455,69 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     if(useNewBrowserScriptTable){return copied}
     if(scriptData["table"] !== undefined){
       if(scriptData["table"].length > 0){
-        const tableUpdates = scriptData.table.map( t => {
-          const filteredRows = t.rows.filter( r => {
+        copied["table"] = scriptData.table.map(t => {
+          const filteredRows = t.rows.filter(r => {
             let foundMatch = false;
             for (const entry of Object.values(r)) {
-              if(entry["plaintext"] !== undefined){
-                if(String(entry["plaintext"]).toLowerCase().includes(search)){foundMatch = true;}
+              if (entry["plaintext"] !== undefined) {
+                if (String(entry["plaintext"]).toLowerCase().includes(search)) {
+                  foundMatch = true;
+                }
               }
-              if(entry["button"] !== undefined && entry["button"]["value"] !== undefined){
-                if(JSON.stringify(entry["button"]["value"]).includes(search)){foundMatch = true;}
+              if (entry["button"] !== undefined && entry["button"]["value"] !== undefined) {
+                if (JSON.stringify(entry["button"]["value"]).includes(search)) {
+                  foundMatch = true;
+                }
               }
             }
             return foundMatch;
           });
           return {...t, rows: filteredRows};
         });
-        copied["table"] = tableUpdates;
       }
     }
 
     return copied;
   }
   useEffect( () => {
+    if(loadingBrowserScript){
+      return;
+    }
     if(script.current === undefined){
       setViewBrowserScript(false);
-    }else{
-      setViewBrowserScript(viewBrowserScript);
-      if(viewBrowserScript){
-        try{
-          const rawResponseData = rawResponses.map(c => c.response);
-          let scriptTaskData = JSON.parse(JSON.stringify(task));
-          let res = script.current(scriptTaskData, rawResponseData);
-          setBrowserScriptData(filterOutput(res));
-        }catch(error){
-          setViewBrowserScript(false);
-        }
-          
-      }
+      return;
     }
-  }, [viewBrowserScript]);
+    if(viewBrowserScript){
+      try{
+        const rawResponseData = rawResponses.map(c => c.response);
+        let res = script.current(task, rawResponseData);
+        if(Object.keys(res).length === 0){
+          // if we run the browser script and there's no data, just display plaintext
+          setViewBrowserScript(false);
+          return;
+        }
+        setViewBrowserScript(viewBrowserScript);
+        setBrowserScriptData(filterOutput(res));
+      }catch(error){
+        if(rawResponses.length > 0){
+          setViewBrowserScript(false);
+          setBrowserScriptData({});
+          console.log(error);
+        }
+      }
+    } else {
+      setViewBrowserScript(false);
+    }
+  }, [rawResponses, task, loadingBrowserScript, viewBrowserScript]);
   const [fetchScripts] = useLazyQuery(taskScript, {
     fetchPolicy: "no-cache",
     onCompleted: (data) => {
       if(data.browserscript.length > 0){
         try{
-          //let unb64script = b64DecodeUnicode(data.browserscript[0]["script"]);
-          //script.current = Function('"use strict";return(' + unb64script + ')')();
           script.current = Function(`"use strict";return(${data.browserscript[0]["script"]})`)();
-          setViewBrowserScript(true);
-          //console.log(rawResponses);
-          const rawResponseData = rawResponses.map(c => c.response);
-          let scriptTaskData = JSON.parse(JSON.stringify(task));
-          let res = script.current(scriptTaskData, rawResponseData);
-          setBrowserScriptData(filterOutput(res));
         }catch(error){
-          //snackActions.error(error.toString());
+          script.current = undefined;
           console.log(error);
-          setViewBrowserScript(false);
-          setBrowserScriptData({});
         }
       }else{
         setViewBrowserScript(false);
@@ -536,46 +532,54 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
   useEffect( () => {
     if(command_id !== undefined){
       setLoadingBrowserScript(true);
-      fetchScripts({variables: {command_id: command_id, operator_id: me.user.user_id}});
+      fetchScripts({variables: {command_id: command_id}});
     }
   }, [command_id, task.id]);
   if(loadingBrowserScript){
     return null
   }
   return (
-    localViewBrowserScript && browserScriptData ? (
+    localViewBrowserScript && Object.keys(browserScriptData).length > 0 ? (
       <React.Fragment>
           {browserScriptData?.screenshot?.map( (scr, index) => (
-              <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} task={task} {...scr} />
+              <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} task={task} {...scr}
+                                         displayType={displayType} expand={expand} />
             )) || null
           }
           {browserScriptData?.plaintext !== undefined &&
-            <ResponseDisplayPlaintext plaintext={browserScriptData["plaintext"]} task={task} expand={expand} />
+            <ResponseDisplayPlaintext plaintext={browserScriptData["plaintext"]} task={task}
+                                      expand={expand} displayType={displayType} />
           }
           {browserScriptData?.table?.map( (table, index) => {
-          if(useNewBrowserScriptTable){
-            return <ResponseDisplayMaterialReactTable callback_id={task.callback_id} task={task} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
-          }
-            return <ResponseDisplayTable callback_id={task.callback_id} task={task} expand={expand} table={table} key={"tablefortask" + task.id + "table" + index} />
+
+            return <ResponseDisplayTable callback_id={task.callback_id} task={task} expand={expand}
+                                         table={table} key={"tablefortask" + task.id + "table" + index}
+                                         displayType={displayType}
+            />
           }) || null
           }
           {browserScriptData?.download?.map( (dl, index) => (
-              <ResponseDisplayDownload download={dl} task={task} key={"download" + index + "fortask" + task.id} />
+              <ResponseDisplayDownload download={dl} task={task} displayType={displayType}
+                                       key={"download" + index + "fortask" + task.id} />
             )) || null
           }
           {browserScriptData?.search?.map( (s, index) => (
-              <ResponseDisplaySearch search={s} task={task} key={"searchlink" + index + "fortask" + task.id} />
+              <ResponseDisplaySearch search={s} task={task} displayType={displayType}
+                                     key={"searchlink" + index + "fortask" + task.id} />
           )) || null
           }
           {browserScriptData?.media?.map( (s, index) => (
-              <ResponseDisplayMedia key={"searchmedia" + index + "fortask" + task.id} task={task} media={s} expand={expand} />
+              <ResponseDisplayMedia key={"searchmedia" + index + "fortask" + task.id}
+                                    displayType={displayType}
+                                    task={task} media={s} expand={expand} />
           )) || null}
           {browserScriptData?.graph !== undefined &&
-            <ResponseDisplayGraph graph={browserScriptData.graph} task={task} expand={expand} />
+            <ResponseDisplayGraph graph={browserScriptData.graph} task={task}
+                                  expand={expand} displayType={displayType} />
           }
       </React.Fragment>
     ) : (
-      <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand}/>
+      <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand} displayType={displayType}/>
     )
   )
 }

@@ -1,0 +1,95 @@
+# Pulled from Thanatos (https://github.com/MythicAgents/thanatos/blob/rewrite/.github/workflows/image.yml) - MEhrn00
+
+# Name for the Github actions workflow
+name: Build and push container images
+
+trigger: manual
+
+run_as: bot
+
+# Variables holding configuration settings
+environment:
+  # Container registry the built container image will be pushed to
+  REGISTRY: ghcr.io
+
+  # Set the container image name to the Github repository name. (its-a-feature/Mythic)
+  MYTHIC_SERVER_IMAGE_NAME: ${{ github.repository }}_server
+  MYTHIC_CLI_IMAGE_NAME: ${{ github.repository }}_cli
+  MYTHIC_POSTGRES_IMAGE_NAME: ${{ github.repository }}_postgres
+  MYTHIC_RABBITMQ_IMAGE_NAME: ${{ github.repository }}_rabbitmq
+  MYTHIC_DOCUMENTATION_IMAGE_NAME: ${{ github.repository }}_documentation
+  MYTHIC_JUPYTER_IMAGE_NAME: ${{ github.repository }}_jupyter
+  MYTHIC_GRAPHQL_IMAGE_NAME: ${{ github.repository }}_graphql
+  MYTHIC_NGINX_IMAGE_NAME: ${{ github.repository }}_nginx
+  MYTHIC_REACT_IMAGE_NAME: ${{ github.repository }}_react
+
+  # Description label for the package in Github
+  IMAGE_DESCRIPTION: "test containers for Mythic development. Do not use this version!"
+
+  # Source URL for the package in Github. This links the Github repository packages list
+  # to this container image
+  IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+
+  # License for the container image
+  IMAGE_LICENSE: BSD-3-Clause
+
+  # Set the container image version to the Github release tag
+  VERSION: ${{ github.ref_name }}
+
+  # Branch for pushing release changes (TODO: Change this to the main branch when the rewrite is finished)
+  RELEASE_BRANCH: master
+
+steps:
+  # Builds the base container image and pushes it to the container registry
+  - name: mythic_server
+    description: mythic_server
+    action: "payload_create"
+  - name: mythic_postgres
+    description: mythic_postgres
+    action: "payload_create"
+  - name: mythic_rabbitmq
+    description: mythic_rabbitmq
+    action: "payload_create"
+  - name: mythic_documentation
+    description: mythic_documentation
+    action: "payload_create"
+  - name: mythic_jupyter
+    description: mythic_jupyter
+    action: "payload_create"
+  - name: mythic_graphql
+    description: mythic_graphql
+    action: "payload_create"
+  - name: mythic_nginx
+    description: mythic_nginx
+    action: "payload_create"
+  - name: mythic_react
+    description: mythic_react
+    action: "payload_create"
+
+  # update mythic-cli latest after we're sure all the others build properly
+  - name: mythic_cli
+    description: mythic_cli
+    action: "payload_create"
+    depends_on:
+      - mythic_server
+      - mythic_postgres
+      - mythic_rabbitmq
+      - mythic_documentation
+      - mythic_jupyter
+      - mythic_graphql
+      - mythic_nginx
+      - mythic_react
+
+  - name: update_files
+    description: update_files
+    action: "payload_create"
+    depends_on:
+      - mythic_cli
+      - mythic_server
+      - mythic_postgres
+      - mythic_rabbitmq
+      - mythic_documentation
+      - mythic_jupyter
+      - mythic_graphql
+      - mythic_nginx
+      - mythic_react

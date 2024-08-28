@@ -18,15 +18,16 @@ const (
 )
 
 type PTRPCDynamicQueryFunctionMessage struct {
-	Command           string                 `json:"command" binding:"required"`
-	ParameterName     string                 `json:"parameter_name" binding:"required"`
-	PayloadType       string                 `json:"payload_type" binding:"required"`
-	PayloadOS         string                 `json:"payload_os"`
-	PayloadUUID       string                 `json:"payload_uuid"`
-	AgentCallbackID   string                 `json:"agent_callback_id"`
-	Callback          int                    `json:"callback" binding:"required"`
-	CallbackDisplayID int                    `json:"callback_display_id"`
-	Secrets           map[string]interface{} `json:"secrets"`
+	Command            string                 `json:"command" binding:"required"`
+	ParameterName      string                 `json:"parameter_name" binding:"required"`
+	PayloadType        string                 `json:"payload_type" binding:"required"`
+	CommandPayloadType string                 `json:"command_payload_type"`
+	PayloadOS          string                 `json:"payload_os"`
+	PayloadUUID        string                 `json:"payload_uuid"`
+	AgentCallbackID    string                 `json:"agent_callback_id"`
+	Callback           int                    `json:"callback" binding:"required"`
+	CallbackDisplayID  int                    `json:"callback_display_id"`
+	Secrets            map[string]interface{} `json:"secrets"`
 }
 
 type PTRPCDynamicQueryFunctionMessageResponse struct {
@@ -62,7 +63,7 @@ func (r *rabbitMQConnection) SendPtRPCDynamicQueryFunction(dynamicQuery PTRPCDyn
 	}
 	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
-		GetPtRPCDynamicQueryFunctionRoutingKey(dynamicQuery.PayloadType),
+		GetPtRPCDynamicQueryFunctionRoutingKey(dynamicQuery.CommandPayloadType),
 		configBytes,
 		exclusiveQueue,
 	)

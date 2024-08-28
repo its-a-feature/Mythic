@@ -12,14 +12,8 @@ import ErrorIcon from '@mui/icons-material/Error';
 import { useTheme } from '@mui/material/styles';
 import { Typography } from '@mui/material';
 import { MythicStyledTooltip } from "./MythicStyledTooltip";
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Paper from '@mui/material/Paper';
 import WidgetsIcon from '@mui/icons-material/Widgets';
-import ListSubheader from '@mui/material/ListSubheader';
+import { areEqual } from 'react-window';
 
 const PREFIX = 'FileBrowserVirtualTree';
 
@@ -145,22 +139,32 @@ const StyledAutoSizer = styled(AutoSizer)((
       width: 1,
   }
 }));
-
-const VirtualTreeRow = ({
+function itemKey(index, data) {
+    // Find the item at the specified index.
+    // In this case "data" is an Array that was passed to List as "itemData".
+    const item = data[index];
+    if(item.root){
+        return `${item.group};${item.id}`;
+    }
+    if(item.is_group){
+        return item.group;
+    }
+    return `${item.group};${item.host};${item.full_path_text}`;
+}
+const VirtualTreeRow = React.memo(({
   onSelectNode,
   onExpandNode,
   onCollapseNode,
   onDoubleClickNode,
-  contextMenuOptions,
+  onContextMenu,
   tabInfo,
+  selectedFolderData,
   ...ListProps
 }) => {
   const itemTreeData = ListProps.data[ListProps.index];
   const item = ListProps.treeRootData[itemTreeData.group]?.[itemTreeData.host]?.[itemTreeData.full_path_text] || itemTreeData;
   //console.log("item", item, "itemlookup", ListProps.treeRootData[itemTreeData.host]?.[itemTreeData.name])
-  const dropdownAnchorRef = React.useRef(null);
   const theme = useTheme();
-
   const handleOnClickButton = (e) => {
     e.stopPropagation();
     if (itemTreeData.isOpen) {
@@ -173,42 +177,25 @@ const VirtualTreeRow = ({
   const handleOnClickRow = (e) => {
       onSelectNode(item.id,  {...item, group: itemTreeData.group, host: itemTreeData.host});
   };
-  const [openContextMenu, setOpenContextMenu] = React.useState(false);
-
-  const handleContextClick = useCallback(
-      (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if(item.root){
-
-          }else if(item.is_group){
-
-          }else {
-              if(contextMenuOptions && contextMenuOptions.length > 0){
-                  setOpenContextMenu(true);
-              }
+  const handleContextClick = (e) => {
+      onContextMenu({event: e, item, itemTreeData});
+  }
+  const selectedPath = () => {
+      if(itemTreeData.group === selectedFolderData.group && itemTreeData.host === selectedFolderData.host){
+          if(itemTreeData.root){
+              return "selectedCallbackHierarchy";
           }
-
-      },
-      [contextMenuOptions] // eslint-disable-line react-hooks/exhaustive-deps
-  );
-  const handleMenuItemClick = (event, index, callback_id, callback_display_id) => {
-      event.preventDefault();
-      event.stopPropagation();
-      contextMenuOptions[index].click({event,
-          node:  {...item, group: itemTreeData.group, host: itemTreeData.host},
-          callback_id, callback_display_id
-      });
-      setOpenContextMenu(false);
-  };
-  const handleClose = (event) => {
-      if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
-        return;
+          if(selectedFolderData.full_path_text === itemTreeData.full_path_text){
+              return "selectedCallback";
+          }
       }
-      setOpenContextMenu(false);
-    };
+      return "";
+    }
   return (
-    <div className={"hoverme"} style={ListProps.style} onContextMenu={handleContextClick} ref={dropdownAnchorRef} onClick={handleOnClickRow}>
+    <div className={`hoverme ${selectedPath()}`}
+         style={ListProps.style}
+         onContextMenu={handleContextClick}
+         onClick={handleOnClickRow}>
     <div style={{display: 'flex' , marginBottom: "1px", flexGrow: 1, width: "100%"}}>
         {[...Array(itemTreeData.depth)].map((o, i) => (
             <div
@@ -225,74 +212,47 @@ const VirtualTreeRow = ({
           style={{ backgroundColor: theme.body, color: theme.text, alignItems: 'center', display: 'flex', paddingRight: "10px", textDecoration: itemTreeData.deleted ? 'line-through' : ''  }}
 
           >
-            <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 4}}>
-                  {({ TransitionProps, placement }) => (
-                    <Grow
-                      {...TransitionProps}
-                      style={{
-                        transformOrigin: placement === 'bottom' ? 'left top' : 'left bottom',
-                      }}
-                    >
-                      <Paper variant="outlined" className={"dropdownMenuColored"}>
-                        <ClickAwayListener onClickAway={handleClose}>
-                          <MenuList id="split-button-menu" style={{paddingTop: 0}} >
-                              <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                                  Act from current Callback: {tabInfo["displayID"]}
-                              </ListSubheader>
-                            {contextMenuOptions.map((option, index) => (
-                              <MenuItem
-                                key={option.name + index}
-                                onClick={(event) => handleMenuItemClick(event, index, tabInfo["callbackID"], tabInfo["displayID"])}
-                              >
-                                {option.name}
-                              </MenuItem>
-                            ))}
-                              {
-                                  item?.callback && item?.["callback"]?.["id"] !== tabInfo["callbackID"] &&
-                                      <ListSubheader component={"li"} className={"MuiListSubheader-root"}>
-                                          Act from originating Callback: {item?.callback?.["display_id"] || tabInfo["displayID"]}
-                                      </ListSubheader>
-                              }
-                              {
-                                  item?.callback && item?.["callback"]?.["id"] !== tabInfo["callbackID"] &&
-                                  contextMenuOptions.map((option, index) => (
-                                      <MenuItem
-                                          key={option.name + index}
-                                          onClick={(event) => handleMenuItemClick(event, index,
-                                              item?.["callback"]?.["id"] || tabInfo["callbackID"],
-                                              item?.["callback"]?.["display_id"] || tabInfo["displayID"])}
-                                      >
-                                          {option.name}
-                                      </MenuItem>
-                                  ))
-                              }
 
-                          </MenuList>
-                        </ClickAwayListener>
-                      </Paper>
-                    </Grow>
-                  )}
-            </Popper>
           {itemTreeData.is_group ? (
-              <WidgetsIcon style={{marginLeft: "3px", marginRight: "5px" }} />
+              <WidgetsIcon style={{
+                  width: "15px",
+                  height: "15px",
+                  marginLeft: "3px",
+                  marginRight: "5px" }} />
           ): itemTreeData.root  ? (
-              <ComputerIcon style={{ marginLeft: '3px', marginRight: '5px' }}  />
+              <ComputerIcon style={{
+                  width: "15px",
+                  height: "15px",
+                  marginLeft: '3px',
+                  marginRight: '5px' }}  />
           ) : !itemTreeData.can_have_children ? (
-              <DescriptionIcon style={{ marginLeft: '3px', marginRight: '5px' }} />
+              <DescriptionIcon style={{
+                  width: "15px",
+                  height: "15px",
+                  marginLeft: '3px',
+                  marginRight: '5px' }} />
           ) : itemTreeData.isOpen ? (
             <FontAwesomeIcon 
               icon={faFolderOpen} 
               style={{
+                  width: "15px",
+                  height: "15px",
                 marginLeft: '3px',
                 marginRight: '5px',
                 color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary,
-              }} 
-              size={"1x"}
+              }}
+              size={"lg"}
               onClick={handleOnClickButton} />
           ) : (
               <FontAwesomeIcon 
-                style={{ paddingTop: '5px', marginLeft: '3px', marginRight: '5px', color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary, }}
-                    size={"lg"} icon={faFolder} onClick={handleOnClickButton} />
+                style={{
+                    width: "15px",
+                    height: "15px",
+                    marginLeft: '3px',
+                    marginRight: '5px',
+                    color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary, }}
+                size={"lg"}
+                icon={faFolder} onClick={handleOnClickButton} />
           )}
           <Typography
               style={{
@@ -306,11 +266,11 @@ const VirtualTreeRow = ({
           </Typography>
 
           {item.success === true && itemTreeData.depth > 0 ? (
-              <MythicStyledTooltip title='Successfully listed contents of folder'>
+              <MythicStyledTooltip title='Successfully listed contents of folder' style={{display: "inline-flex", marginLeft: "5px"}}>
                   <CheckCircleOutlineIcon fontSize='small' color="success" />
               </MythicStyledTooltip>
           ) : item.success === false && itemTreeData.depth > 0 ? (
-              <MythicStyledTooltip title='Failed to list contents of folder'>
+              <MythicStyledTooltip title='Failed to list contents of folder' style={{display: "inline-flex", marginLeft: "5px"}}>
                   <ErrorIcon fontSize='small' color="error" />
               </MythicStyledTooltip>
           ) : null}
@@ -319,19 +279,28 @@ const VirtualTreeRow = ({
     </div>
     </div>
   );
-};
-
-const FileBrowserVirtualTree = ({
+}, areEqual);
+const caseInsensitiveCompare = (a, b) => {
+    try{
+        return a.localeCompare(b);
+    }catch(error){
+        console.log("localeCompare failed for", a, b);
+        return a < b;
+    }
+}
+const FileBrowserVirtualTreePreMemo = ({
   treeRootData,
   treeAdjMatrix,
   openNodes,
   onSelectNode,
   onExpandNode,
   onCollapseNode,
-  contextMenuOptions,
+  onContextMenu,
   showDeletedFiles,
+  selectedFolderData,
   tabInfo,
 }) => {
+    const gridRef = React.useRef(null);
   const flattenNode = useCallback(
     // node is just a full_path_text
     (node, group, host, depth = 0) => {
@@ -352,13 +321,13 @@ const FileBrowserVirtualTree = ({
             group,
             root: true
           },
-          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).reduce( (prev, cur) => {
+          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).sort(caseInsensitiveCompare).reduce( (prev, cur) => {
             if(!treeRootData[group][host][cur].can_have_children){return [...prev]}
             return [...prev, flattenNode(cur, group, host, depth+1)];
         }, []).flat()
         ];
       }
-      if (openNodes[treeRootData[group][host][node].id] === true) {
+      if (openNodes[`${group};${host};${treeRootData[group][host][node].full_path_text}`] === true) {
         return [
           {
             id: treeRootData[group][host][node].id,
@@ -374,7 +343,7 @@ const FileBrowserVirtualTree = ({
             group,
             root: false,
           },
-          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).reduce( (prev, cur) => {
+          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).sort(caseInsensitiveCompare).reduce( (prev, cur) => {
             if(!treeRootData[group][host][cur].can_have_children){return [...prev]}
             if(!showDeletedFiles && treeRootData[group][host][cur].deleted){return [...prev]}
             return [...prev, flattenNode(cur, group, host, depth+1)];
@@ -401,13 +370,12 @@ const FileBrowserVirtualTree = ({
     },
     [openNodes, showDeletedFiles] // eslint-disable-line react-hooks/exhaustive-deps
   );
-
   const flattenedNodes = useMemo(() => {
     //console.log("in tree", treeRootData, treeAdjMatrix)
     // need to return an array
     let finalData = [];
     //console.log(treeAdjMatrix);
-      const groupKeys = Object.keys(treeAdjMatrix).sort();
+      const groupKeys = Object.keys(treeAdjMatrix).sort(caseInsensitiveCompare);
       for(let i = 0; i < groupKeys.length; i++){
         finalData.push({
             id: groupKeys[i],
@@ -424,7 +392,7 @@ const FileBrowserVirtualTree = ({
             children: treeAdjMatrix[groupKeys[i]],
             full_path_text: groupKeys[i],
         });
-        const hostKeys = Object.keys(treeAdjMatrix[groupKeys[i]]).sort();
+        const hostKeys = Object.keys(treeAdjMatrix[groupKeys[i]]).sort(caseInsensitiveCompare);
         for(let j = 0; j < hostKeys.length; j++){
         //for(const [host, matrix] of Object.entries(hosts)){
             finalData.push({
@@ -442,7 +410,7 @@ const FileBrowserVirtualTree = ({
                 full_path_text: hostKeys[j],
             });
             //console.log(matrix);
-            finalData.push(...Object.keys(treeAdjMatrix[groupKeys[i]][hostKeys[j]][""]).reduce((prev, c) => {
+            finalData.push(...Object.keys(treeAdjMatrix[groupKeys[i]][hostKeys[j]][""]).sort(caseInsensitiveCompare).reduce((prev, c) => {
                 if(!showDeletedFiles && c.deleted) {
                     return [...prev];
                 } else {
@@ -451,11 +419,21 @@ const FileBrowserVirtualTree = ({
             }, []).flat())
         }
     }
-
-    //console.log("flattened data", finalData)
     return finalData;
     //nodes.map((node) => flattenNode(node)).flat()
   },[flattenNode, treeRootData, treeAdjMatrix, showDeletedFiles]);
+  React.useEffect( () => {
+      let rowIndex = flattenedNodes?.findIndex(e =>
+          e.full_path_text === selectedFolderData.full_path_text &&
+          e.host === selectedFolderData.host &&
+          e.group === selectedFolderData.group
+      );
+      if(rowIndex >= 0){
+          if(gridRef.current){
+              gridRef.current?.scrollToItem(rowIndex, "smart")
+          }
+      }
+  }, [selectedFolderData, flattenedNodes]);
   return flattenedNodes.length > 0 ? (
     <StyledAutoSizer>
     {(AutoSizerProps) => (
@@ -465,17 +443,20 @@ const FileBrowserVirtualTree = ({
         height={AutoSizerProps.height}
         width={AutoSizerProps.width}
         itemCount={flattenedNodes.length}
+        itemKey={itemKey}
         itemSize={24}
+        ref={gridRef}
       >
         {(ListProps) => (
           <VirtualTreeRow
             {...ListProps}
             tabInfo={tabInfo}
+            selectedFolderData={selectedFolderData}
             treeRootData={treeRootData}
             onSelectNode={onSelectNode}
             onExpandNode={onExpandNode}
             onCollapseNode={onCollapseNode}
-            contextMenuOptions={contextMenuOptions}
+            onContextMenu={onContextMenu}
           />
         )}
       </List>
@@ -483,5 +464,4 @@ const FileBrowserVirtualTree = ({
   </StyledAutoSizer>
   ) : null;
 };
-
-export default FileBrowserVirtualTree;
+export const FileBrowserVirtualTree = React.memo(FileBrowserVirtualTreePreMemo);

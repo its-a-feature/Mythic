@@ -22,21 +22,24 @@ type callbackgraphedgeAdd struct {
 // this function called from webhook_endpoint through the UI or scripting
 func CallbackgraphedgeAddWebhook(c *gin.Context) {
 	var input callbackgraphedgeAddInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to get JSON parameters for CallbackgraphedgeAddWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
-	} else if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	}
+	ginOperatorOperation, ok := c.Get("operatorOperation")
+	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for CallbackgraphedgeAddWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
 		return
-	} else {
-		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
-		if err := rabbitmq.AddEdgeByDisplayIds(input.Input.SourceCallbackId, input.Input.DestinationCallbackId, input.Input.C2ProfileName, operatorOperation); err != nil {
-			logging.LogError(err, "Failed to add callback edge")
-			c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
-		} else {
-			c.JSON(http.StatusOK, gin.H{"status": "success"})
-		}
 	}
+	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+	err = rabbitmq.AddEdgeByDisplayIds(input.Input.SourceCallbackId, input.Input.DestinationCallbackId, input.Input.C2ProfileName, operatorOperation)
+	if err != nil {
+		logging.LogError(err, "Failed to add callback edge")
+		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }

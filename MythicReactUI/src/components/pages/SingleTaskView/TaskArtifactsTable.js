@@ -32,8 +32,8 @@ export function TaskArtifactsTable(props){
             </Typography>
         </Paper>
         
-        <Paper elevation={5} style={{position: "relative", backgroundColor: theme.body}} variant={"elevation"}>
-        <TableContainer component={Paper} className="mythicElement">
+        <Paper elevation={5} style={{position: "relative", backgroundColor: theme.body}}>
+        <TableContainer className="mythicElement">
           <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>

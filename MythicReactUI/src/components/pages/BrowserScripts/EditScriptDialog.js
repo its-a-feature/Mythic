@@ -111,7 +111,6 @@ export function EditScriptDialog(props) {
             //setScript(atob(props.script));
             setScript(decodeURIComponent(window.atob(props.script)));
           }catch(error){
-            console.log(error)
             setScript(props.script);
           }
         }        
@@ -270,7 +269,7 @@ export function EditScriptDialog(props) {
                                 input={<Input style={{width: "100%"}}/>}
                             >
                                 {availableTasks.map( (opt) => (
-                                    <MenuItem value={opt} key={"task" + opt.id}>{opt.command_name + " " + opt.display_params}</MenuItem>
+                                    <MenuItem value={opt} key={"task" + opt.id}>{opt.command_name + " / " + opt.display_id + " / " + opt.display_params}</MenuItem>
                                 ) )}
                             </Select>
                         </FormControl>

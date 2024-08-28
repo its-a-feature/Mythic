@@ -3,13 +3,11 @@ import { styled } from '@mui/material/styles';
 import {useQuery, gql} from '@apollo/client';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
 import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import { snackActions } from '../../utilities/Snackbar';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import { meState } from '../../../cache';
@@ -17,7 +15,7 @@ import {useReactiveVar} from '@apollo/client';
 import {DetailedPayloadTable} from '../Payloads/DetailedPayloadTable';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { toLocalTime } from '../../utilities/Time';
-import InfoIcon from '@mui/icons-material/Info';
+import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import IconButton from '@mui/material/IconButton';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 
@@ -103,25 +101,30 @@ export function Step3SelectPayload(props){
         props.canceled();
     }
     return (
-        <div >
-        <Typography variant="h3" align="left" id="selectcommands" component="div" 
-            style={{ "marginLeft": "10px"}}>
-              Wrap Agent Into New Payload
-        </Typography> <br/>
-        <PayloadSelect payloadOptions={payloadOptions} first={props.first} last={props.last}
-          canceled={canceled} finished={finished}/>
+        <div style={{height: "100%", display: "flex", flexDirection: "column", width: '100%'}}>
+            <Typography variant="h3" align="left" id="selectcommands" component="div"
+                        style={{"marginLeft": "10px"}}>
+                Wrap Agent Into New Payload
+            </Typography> <br/>
+            <div style={{flexGrow: 1, overflowY: "auto"}}>
+                <PayloadSelect payloadOptions={payloadOptions} first={props.first} last={props.last}
+                               canceled={canceled} finished={finished}/>
+            </div>
+            <div style={{paddingTop: "20px"}}>
+                <CreatePayloadNavigationButtons disableNext first={props.first} last={props.last}
+                                                canceled={props.canceled} finished={finished}/>
+                <br/><br/>
+            </div>
         </div>
     );
 }
 
 function PayloadSelect(props) {
-  const finished = (payload) => {
-    props.finished(payload);
-  }
-return (
-  <Root>
-      <TableContainer component={Paper}>
-            <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+    const finished = (payload) => {
+        props.finished(payload);
+    }
+    return (
+                <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "4rem"}}> Select</TableCell>
@@ -142,12 +145,6 @@ return (
                 ))}
                 </TableBody>
             </Table>
-        </TableContainer>
-        <div style={{paddingTop: "20px"}}>
-           <CreatePayloadNavigationButtons disableNext first={props.first} last={props.last} canceled={props.canceled} finished={finished} />
-        </div>
-      
-  </Root>
 );
 }
 
@@ -167,8 +164,8 @@ export function PayloadsTableRow(props){
               <TableCell>{b64DecodeUnicode(props.payload.filemetum.filename_text)}</TableCell>
               <TableCell>{props.payload.description}</TableCell>
               <TableCell>
-                  <IconButton size="small" color="primary" onClick={() => setOpenDetailedView(true)}>
-                      <InfoIcon />
+                  <IconButton size="small" color="info" onClick={() => setOpenDetailedView(true)}>
+                      <InfoIconOutline />
                   </IconButton>
               </TableCell>
           </TableRow>

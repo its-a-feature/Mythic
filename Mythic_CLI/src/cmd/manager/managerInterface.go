@@ -79,9 +79,9 @@ type CLIManager interface {
 	// RemoveVolume removes the named volume
 	RemoveVolume(volumeName string) error
 	// CopyIntoVolume copies from a source io.Reader to the destination filename on the destination volume
-	CopyIntoVolume(sourceFile string, destinationFileName string, destinationVolume string) error
+	CopyIntoVolume(containerName string, sourceFile string, destinationFileName string, destinationVolume string) error
 	// CopyFromVolume copies from the source filename in the volume to the destination filename outside of the volume
-	CopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string) error
+	CopyFromVolume(containerName string, sourceVolumeName string, sourceFileName string, destinationName string) error
 }
 
 var currentManager CLIManager

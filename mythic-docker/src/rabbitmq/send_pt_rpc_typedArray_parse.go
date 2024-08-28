@@ -16,11 +16,12 @@ const (
 )
 
 type PTRPCTypedArrayParseMessage struct {
-	Command       string   `json:"command" binding:"required"`
-	ParameterName string   `json:"parameter_name" binding:"required"`
-	PayloadType   string   `json:"payload_type" binding:"required"`
-	Callback      int      `json:"callback" binding:"required"`
-	InputArray    []string `json:"input_array" binding:"required"`
+	Command            string   `json:"command" binding:"required"`
+	CommandPayloadType string   `json:"command_payload_type" `
+	ParameterName      string   `json:"parameter_name" binding:"required"`
+	PayloadType        string   `json:"payload_type" binding:"required"`
+	Callback           int      `json:"callback" binding:"required"`
+	InputArray         []string `json:"input_array" binding:"required"`
 }
 
 type PTRPCTypedArrayParseMessageResponse struct {
@@ -37,7 +38,7 @@ func (r *rabbitMQConnection) SendPtRPCTypedArrayParse(dynamicQuery PTRPCTypedArr
 		return nil, err
 	} else if response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
-		GetPtRPCTypedArrayParseRoutingKey(dynamicQuery.PayloadType),
+		GetPtRPCTypedArrayParseRoutingKey(dynamicQuery.CommandPayloadType),
 		configBytes,
 		exclusiveQueue,
 	); err != nil {

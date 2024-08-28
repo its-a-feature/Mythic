@@ -4,7 +4,6 @@ import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import MythicTextField from './MythicTextField';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -13,7 +12,12 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { toLocalTime } from '../utilities/Time';
-
+import AceEditor from 'react-ace';
+import "ace-builds/src-noconflict/mode-json";
+import "ace-builds/src-noconflict/theme-github";
+import "ace-builds/src-noconflict/theme-monokai";
+import "ace-builds/src-noconflict/ext-searchbox";
+import {useTheme} from '@mui/material/styles';
 
 export function MythicDialog(props) {
   const descriptionElementRef = React.useRef(null);
@@ -31,6 +35,10 @@ export function MythicDialog(props) {
             props.onClose();
         }
     }
+    const dialogOnContextMenu = (e) => {
+        e.stopPropagation();
+
+    }
   return (
       <Dialog
         open={props.open}
@@ -42,6 +50,7 @@ export function MythicDialog(props) {
         aria-labelledby="scroll-dialog-title"
         aria-describedby="scroll-dialog-description"
         onClick={dialogOnClick}
+        onContextMenu={dialogOnContextMenu}
       >
         {props.innerDialog}
       </Dialog>
@@ -50,21 +59,40 @@ export function MythicDialog(props) {
 
 export function MythicModifyStringDialog(props) {
   const [comment, setComment] = React.useState("");
+  const theme = useTheme();
     const onCommitSubmit = () => {
         props.onSubmit(comment);
         props.onClose();
     }
-    const onChange = (name, value, error) => {
+    const onChange = (value) => {
         setComment(value);
     }
     useEffect( () => {
-      setComment(props.value);
+        try{
+            setComment(JSON.stringify(JSON.parse(props.value), null, 2));
+        }catch(error){
+            setComment(props.value);
+        }
+
     }, [props.value]);
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
-        <DialogContent dividers={true}>
-          <MythicTextField autoFocus onEnter={props?.onEnter || onCommitSubmit} onChange={onChange} value={comment} multiline={props?.multiline || false} maxRows={props.maxRows} />
+        <DialogContent dividers={true} style={{height: "100%"}}>
+            <AceEditor
+                mode="json"
+                theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
+                width="100%"
+                height="100%"
+                minLines={props.maxRows ? props.maxRows : 10}
+                maxLines={props.maxRows ? props.maxRows : 10}
+                value={comment}
+                focus={true}
+                onChange={onChange}
+                setOptions={{
+                    useWorker: false
+                }}
+            />
         </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">
@@ -146,13 +174,13 @@ export function MythicViewJSONAsTableDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title" style={{wordBreak: "break-all", maxWidth: "100%"}}>{props.title}</DialogTitle>
-        <Paper elevation={5} style={{position: "relative"}} variant={"elevation"}>
+
           <TableContainer  className="mythicElement">
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                   <TableHead>
                       <TableRow>
                           {headers.map( (header, index) => (
-                            <TableCell key={'header' + index} style={index === 0 ? {width: "30%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
+                            <TableCell key={'header' + index} style={index === 0 ? {width: "15%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
                           ))}
                       </TableRow>
                   </TableHead>
@@ -168,7 +196,7 @@ export function MythicViewJSONAsTableDialog(props) {
                                       <TableHead>
                                           <TableRow>
                                               {element.headers.map( (header, index) => (
-                                                <TableCell key={'eheader' + header + index} style={index === 0 ? {width: "30%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
+                                                <TableCell key={'eheader' + header + index} style={index === 0 ? {width: "15%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{header}</TableCell>
                                               ))}
                                           </TableRow>
                                       </TableHead>
@@ -177,14 +205,14 @@ export function MythicViewJSONAsTableDialog(props) {
                                           Object.keys(element.value).map( (key, dictIndex) => (
                                             <TableRow key={'element' + dictIndex + "dictheader"}>
                                               <TableCell  style={{width: "30%", wordBreak: "break-all"}}>{key}</TableCell>
-                                              <TableCell style={{wordBreak: "break-all"}}>{convertValueToContextValue(key, element.value[key], props.me)}</TableCell>
+                                              <TableCell style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>{convertValueToContextValue(key, element.value[key], props.me)}</TableCell>
                                             </TableRow>
                                           ))
                                         ): (
                                           element.value.map( (e, elementIndex) => (
                                             <TableRow>
                                               {element.headers.map( (header, headerIndex) => (
-                                                <TableCell key={'element' + elementIndex + "header" + headerIndex} style={headerIndex === 0 ? {width: "30%", wordBreak: "break-all"} : {wordBreak: "break-all"}}>{convertValueToContextValue(header, e[header], props.me)}</TableCell>
+                                                <TableCell key={'element' + elementIndex + "header" + headerIndex} style={headerIndex === 0 ? {width: "15%", wordBreak: "break-all"} : {wordBreak: "break-all",  whiteSpace: "pre-wrap"}}>{convertValueToContextValue(header, e[header], props.me)}</TableCell>
                                               ))}
                                             </TableRow>
                                           ))
@@ -212,7 +240,6 @@ export function MythicViewJSONAsTableDialog(props) {
                   </TableBody>
               </Table>
             </TableContainer>
-        </Paper>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">
             Close

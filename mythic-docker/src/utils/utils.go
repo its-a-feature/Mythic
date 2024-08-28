@@ -1,8 +1,11 @@
 package utils
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"log"
+	"math/big"
 	"strings"
 )
 
@@ -29,9 +32,9 @@ func SliceContains[V string | int](source []V, check V) bool {
 }
 
 type AnalyzedPath struct {
-	PathPieces    []string
-	PathSeparator string
-	Host          string
+	PathPieces    []string `json:"path_pieces"`
+	PathSeparator string   `json:"path_separator"`
+	Host          string   `json:"host"`
 }
 
 func SplitFilePathGetHost(parentPath string, currentPath string, additionalPaths []string) (AnalyzedPath, error) {
@@ -107,4 +110,29 @@ func SplitFilePathGetHost(parentPath string, currentPath string, additionalPaths
 		returnedPathInfo.PathPieces = newPathPieces
 	}
 	return returnedPathInfo, nil
+}
+
+func GenerateRandomPassword(pwLength int) string {
+	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*().,<>?/|")
+	var b strings.Builder
+	for i := 0; i < pwLength; i++ {
+		nBig, err := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		if err != nil {
+			log.Fatalf("[-] Failed to generate random number for password generation\n")
+		}
+		b.WriteRune(chars[nBig.Int64()])
+	}
+	return b.String()
+}
+func GenerateRandomAlphaNumericString(pwLength int) string {
+	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+	var b strings.Builder
+	for i := 0; i < pwLength; i++ {
+		nBig, err := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		if err != nil {
+			log.Fatalf("[-] Failed to generate random number for password generation\n")
+		}
+		b.WriteRune(chars[nBig.Int64()])
+	}
+	return b.String()
 }

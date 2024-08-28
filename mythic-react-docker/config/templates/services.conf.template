@@ -1,5 +1,5 @@
 server {
-    listen       0.0.0.0:${MYTHIC_REACT_PORT};
+    listen       ${MYTHIC_REACT_BIND_IPV4}:${MYTHIC_REACT_PORT};
     client_max_body_size 500M; # allows file uploads up to 500 megabytes
     ssl_session_timeout 1d;
     root /mythic;

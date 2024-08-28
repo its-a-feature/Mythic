@@ -6,7 +6,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import { MythicDialog, MythicModifyStringDialog, MythicViewJSONAsTableDialog } from '../../MythicComponents/MythicDialog';
 import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
 import { gql, useMutation } from '@apollo/client';
@@ -40,7 +39,7 @@ export function ProcessTable(props){
         setFiles(updates);
     }
     return (
-        <TableContainer component={Paper} className="mythicElement" >
+        <TableContainer className="mythicElement" >
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>

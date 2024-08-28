@@ -38,6 +38,9 @@ const getLoadedCommandsBasedOnInput = ({cmd, ui_feature}) => {
                   id
                   needs_admin
                   payload_type_id
+                  payloadtype {
+                    name
+                  }
                   attributes
                   commandparameters {
                     id
@@ -128,7 +131,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
                 onTasked({tasked: false});
                 return;
             }
-            const availableCommands = data.callback_by_pk.loadedcommands.reduce( (prev, cur) => {
+            let availableCommands = data.callback_by_pk.loadedcommands.reduce( (prev, cur) => {
                 if(typeof(parameters) === "string"){
                     return [...prev, {...cur.command, "parsedParameters": {}}];
                 }else{
@@ -141,6 +144,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
                 return [...prev, {...cur.token, "display": renderValue(cur.token)}]
             }, []);
             setCallbackTokenOptions(availableTokens);
+            availableCommands = availableCommands.map(c => {return {...c, display: `${c.cmd} ( ${c.payloadtype.name} )`}});
             setFileBrowserCommands(availableCommands);
             if(availableCommands.length === 0){
                 if(ui_feature !== undefined){
@@ -226,7 +230,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
             createTask({variables: {...variables, callback_id: callbackData.callback_by_pk.display_id}})
         }
     }
-    const submitParametersDialog = (cmd, new_parameters, files) => {
+    const submitParametersDialog = (cmd, new_parameters, files, selectedParameterGroup, payload_type) => {
         setOpenParametersDialog(false);
         try{
             savedFinalVariables.current = JSON.parse(new_parameters);
@@ -238,7 +242,14 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
             savedFinalVariables.current = new_parameters;
         }
         
-        onSubmitTasking({variables: {callback_id: callbackData.callback_by_pk.display_id, command: cmd, params: new_parameters, files, tasking_location: "modal"}});
+        onSubmitTasking({variables: {callback_id: callbackData.callback_by_pk.display_id,
+                command: cmd,
+                params: new_parameters,
+                files,
+                tasking_location: "modal",
+                payload_type: payload_type,
+                parameter_group_name: selectedParameterGroup
+            }});
     }
     const onSubmitSelectedToken = (token) => {
         setSelectedCallbackToken(token);
@@ -332,7 +343,7 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
                         onClose={()=>{setOpenSelectCommandDialog(false);onTasked({tasked: false});}} 
                         innerDialog={<MythicSelectFromListDialog onClose={()=>{setOpenSelectCommandDialog(false);onTasked({tasked: false});}}
                                             onSubmit={onSubmitSelectedCommand} options={fileBrowserCommands} title={"Select Command"} 
-                                            action={"select"} identifier={"id"} display={"cmd"} dontCloseOnSubmit={true} />}
+                                            action={"select"} identifier={"id"} display={"display"} dontCloseOnSubmit={true} />}
                     />
             }
             {openSelectCallback &&

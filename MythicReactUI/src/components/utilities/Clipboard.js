@@ -14,7 +14,15 @@ export function copyStringToClipboard(str) {
         // Select text inside element
         el.select();
         // Copy text to clipboard
-        document.execCommand('copy');
+        let success = document.execCommand('copy');
+        if(!success){
+            console.log("failed to copy data");
+        }
+        success = document.execCommand('cut');
+        if(!success){
+            console.log("failed to cut data");
+        }
+        navigator.clipboard.writeText(el.value);
         // Remove temporary element
         document.body.removeChild(el);
         return true;

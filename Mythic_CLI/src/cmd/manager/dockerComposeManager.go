@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slices"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -273,7 +274,6 @@ func (d *DockerComposeManager) GetServiceConfiguration(service string) (map[stri
 	if curConfig.InConfig("services." + strings.ToLower(service)) {
 		pStruct = curConfig.GetStringMap("services." + strings.ToLower(service))
 		delete(pStruct, "network_mode")
-		delete(pStruct, "extra_hosts")
 		delete(pStruct, "build")
 		delete(pStruct, "networks")
 		delete(pStruct, "command")
@@ -793,13 +793,11 @@ func (d *DockerComposeManager) PrintAllServices() {
 		if c.Labels["name"] == "" {
 			continue
 		}
-		for _, mnt := range c.Mounts {
-			if strings.Contains(mnt.Source, d.InstalledServicesPath) {
-				info := fmt.Sprintf("%s\t%s\t%v\t%v", c.Labels["name"], c.Status, true, utils.StringInSlice(c.Labels["name"], elementsInCompose))
-				installedServices = append(installedServices, info)
-				elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, c.Labels["name"])
-				elementsInCompose = utils.RemoveStringFromSliceNoOrder(elementsInCompose, c.Labels["name"])
-			}
+		if slices.Contains(elementsOnDisk, c.Labels["name"]) {
+			info := fmt.Sprintf("%s\t%s\t%v\t%v", c.Labels["name"], c.Status, true, utils.StringInSlice(c.Labels["name"], elementsInCompose))
+			installedServices = append(installedServices, info)
+			elementsOnDisk = utils.RemoveStringFromSliceNoOrder(elementsOnDisk, c.Labels["name"])
+			elementsInCompose = utils.RemoveStringFromSliceNoOrder(elementsInCompose, c.Labels["name"])
 		}
 	}
 	for _, c := range elementsInCompose {
@@ -893,13 +891,16 @@ func (d *DockerComposeManager) BackupDatabase(backupPath string, useVolume bool)
 			log.Fatalf("[!] Failed to authenticate to exec bash: %v", err)
 		}
 		inspect, err := cli.ContainerExecInspect(ctx, execID.ID)
+		if err != nil {
+			log.Fatalf("[!] Failed to inspect container: %v", err)
+		}
 		for inspect.Running {
 			time.Sleep(1 * time.Second)
 			log.Printf("[*] Waiting for pg_dump to finish...")
 			inspect, err = cli.ContainerExecInspect(ctx, execID.ID)
 		}
 		log.Printf("[*] Finished docker exec session")
-		err = d.CopyFromVolume("mythic_postgres_volume", tarFileName, backupPath)
+		err = d.CopyFromVolume("mythic_postgres", "mythic_postgres_volume", tarFileName, backupPath)
 		if err != nil {
 			return err
 		}
@@ -922,7 +923,7 @@ func (d *DockerComposeManager) RestoreDatabase(backupPath string, useVolume bool
 			return nil
 		}
 	} else {
-		err := d.CopyIntoVolume(backupPath, "dump.tar", "mythic_postgres_volume")
+		err := d.CopyIntoVolume("mythic_postgres", backupPath, "dump.tar", "mythic_postgres_volume")
 		if err != nil {
 			return err
 		}
@@ -986,7 +987,7 @@ func (d *DockerComposeManager) BackupFiles(backupPath string, useVolume bool) er
 			return nil
 		}
 	} else {
-		err := d.CopyFromVolume("mythic_server_volume", "", backupPath)
+		err := d.CopyFromVolume("mythic_server", "mythic_server_volume", "", backupPath)
 		if err != nil {
 			return err
 		}
@@ -1008,7 +1009,7 @@ func (d *DockerComposeManager) RestoreFiles(backupPath string, useVolume bool) e
 			return nil
 		}
 	} else {
-		err := d.CopyIntoVolume(backupPath, "/", "mythic_server_volume")
+		err := d.CopyIntoVolume("mythic_server", backupPath, "/", "mythic_server_volume")
 		if err != nil {
 			return err
 		}
@@ -1120,8 +1121,8 @@ func (d *DockerComposeManager) RemoveVolume(volumeName string) error {
 	log.Printf("[*] Volume not found")
 	return errors.New("[*] Volume not found")
 }
-func (d *DockerComposeManager) CopyIntoVolume(sourceFile string, destinationFileName string, destinationVolume string) error {
-	err := d.ensureVolume(destinationVolume)
+func (d *DockerComposeManager) CopyIntoVolume(containerName string, sourceFile string, destinationFileName string, destinationVolume string) error {
+	err := d.ensureVolume(containerName, destinationVolume)
 	if err != nil {
 		log.Fatalf("[-] Failed to ensure volume exists: %v\n", err)
 	}
@@ -1149,8 +1150,8 @@ func (d *DockerComposeManager) CopyIntoVolume(sourceFile string, destinationFile
 	log.Printf("[-] Failed to find %s in use by any containers", destinationVolume)
 	return errors.New("[-] failed to find that volume")
 }
-func (d *DockerComposeManager) CopyFromVolume(sourceVolumeName string, sourceFileName string, destinationName string) error {
-	err := d.ensureVolume(sourceVolumeName)
+func (d *DockerComposeManager) CopyFromVolume(containerName string, sourceVolumeName string, sourceFileName string, destinationName string) error {
+	err := d.ensureVolume(containerName, sourceVolumeName)
 	if err != nil {
 		log.Fatalf("[-] Failed to ensure volume exists: %v\n", err)
 	}
@@ -1332,9 +1333,7 @@ func (d *DockerComposeManager) readInDockerCompose() *viper.Viper {
 	}
 	return curConfig
 }
-func (d *DockerComposeManager) ensureVolume(volumeName string) error {
-	containerNamePieces := strings.Split(volumeName, "_")
-	containerName := strings.Join(containerNamePieces[0:len(containerNamePieces)-1], "_")
+func (d *DockerComposeManager) ensureVolume(containerName, volumeName string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {

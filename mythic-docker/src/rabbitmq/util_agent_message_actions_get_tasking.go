@@ -163,7 +163,7 @@ func getDelegateTaskMessages(callbackID int, agentUUIDLength int, updateCheckinT
 							status=$2, status_timestamp_processing=$3
 							WHERE id=$1`, currentTasks[i].ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC()); err != nil {
 							logging.LogError(err, "Failed to update task status to processing")
-						} else if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
+						} else if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime); err != nil {
 							logging.LogError(err, "Failed to recursively encrypt message")
 						} else {
 							submittedTasksAwaitingFetching.removeTask(currentTasks[i].ID)
@@ -197,13 +197,13 @@ func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckin
 				// there's a route between our callback and the target callback for some sort of proxy data
 				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_SOCKS); err != nil {
 					logging.LogError(err, "Failed to get socks proxy data for routable callback")
-				} else {
+				} else if messages != nil {
 					// now that we have a path, need to recursively encrypt and wrap
 					newTask := map[string]interface{}{
 						"action":                 "get_tasking",
 						CALLBACK_PORT_TYPE_SOCKS: messages,
 					}
-					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime); err != nil {
 						logging.LogError(err, "Failed to recursively encrypt message")
 					} else {
 						delegateMessages = append(delegateMessages, delegateMessageResponse{
@@ -215,13 +215,13 @@ func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckin
 				}
 				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_RPORTFWD); err != nil {
 					logging.LogError(err, "Failed to get rpfwd proxy data for routable callback")
-				} else {
+				} else if messages != nil {
 					// now that we have a path, need to recursively encrypt and wrap
 					newTask := map[string]interface{}{
 						"action":                    "get_tasking",
 						CALLBACK_PORT_TYPE_RPORTFWD: messages,
 					}
-					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime); err != nil {
 						logging.LogError(err, "Failed to recursively encrypt message")
 					} else {
 						delegateMessages = append(delegateMessages, delegateMessageResponse{
@@ -233,13 +233,13 @@ func getDelegateProxyMessages(callbackID int, agentUUIDLength int, updateCheckin
 				}
 				if messages, err := proxyPorts.GetDataForCallbackId(targetCallbackId, CALLBACK_PORT_TYPE_INTERACTIVE); err != nil {
 					logging.LogError(err, "Failed to get interactive proxy data for routable callback")
-				} else {
+				} else if messages != nil {
 					// now that we have a path, need to recursively encrypt and wrap
 					newTask := map[string]interface{}{
 						"action":                       "get_tasking",
 						CALLBACK_PORT_TYPE_INTERACTIVE: messages,
 					}
-					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength, updateCheckinTime); err != nil {
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime); err != nil {
 						logging.LogError(err, "Failed to recursively encrypt message")
 					} else {
 						delegateMessages = append(delegateMessages, delegateMessageResponse{

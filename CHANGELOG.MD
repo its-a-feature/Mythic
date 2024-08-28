@@ -4,6 +4,211 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0-rc23] - 2024-08-27
+
+### Changed
+
+- Added additional checks for eventing
+
+## [3.3.0-rc22]
+
+### Changed
+
+- Updated the delegates responses to get added without the get_delegate_tasking check
+
+## [3.3.0-rc20] - 2024-08-23
+
+### Changed
+
+- Updated the delegate checks for socks/rpfwd/interactive messages to only send delegates if there's data
+- Updated interactive tasking to set processed and processing timestamps more consistently
+- Updated file download processing to allow -1 total chunks so agents with unknown chunks can start downloads
+
+## [3.3.0-rc19] - 2024-08-21
+
+### Changed
+
+- Added a new limit_credentials_by_type option to Command Parameters to reduce noise in the UI when using CredentialJson parameter types
+
+## [3.3.0-rc18] - 2024-08-08
+
+### Changed
+
+- fixed a bug where updating timestamp of linked agents wouldn't unhide it
+
+## [3.3.0-rc17] - 2024-08-07
+
+### Changed
+
+- Added context to filePreview graphql queries
+
+## [3.3.0-rc16] - 2024-08-06
+
+### Changed
+
+- Updated the last checkin time for linked agents to match that of the egress agent
+  - this includes matching "Streaming Now" displays
+  
+## [3.3.0-rc15] - 2024-08-05
+
+### Changed
+
+- Updated the login function to return the user's utc time preference
+- Added button to show/hide deleted consuming containers
+- Shortened the dial time for rpfwd connections to 5s instead of 30s
+
+## [3.3.0-rc13] - 2024-08-05
+
+### Changed
+
+- Added option for `id` return value from create_task eventing
+
+## [3.3.0-rc12] - 2024-08-02
+
+### Changed
+
+- Updated the logic when downloading files to also update the timestamp on the mythictree entries so that the data is streamed to the UI properly
+
+## [3.3.0-rc11] - 2024-08-01 
+
+### Changed
+
+- Updated the opsec pre and create task response handles to mirror stderr messages to task output so it's easier for operators to see what's wrong
+
+## [3.3.0-rc9] - 2024-07-29
+
+### Changed
+
+- Many UI Updates check out [UI Fixes](/MythicReactUI/CHANGELOG.MD) for 2.0.8
+- 
+## [3.3.0-rc7] - 2024-07-29
+
+### Changed
+
+- Many UI Updates check out [UI Fixes](/MythicReactUI/CHANGELOG.MD) for 2.0.6
+
+## [3.3.0-rc6] - 2024-07-29
+
+### Changed
+
+- Fixed a Docker copy with postgres based on https://github.com/its-a-feature/Mythic/issues/393 when use_volume is true
+
+## [3.3.0-rc5] - 2024-07-29
+
+### Changed
+
+- Many UI updates check out [UI Fixes](/MythicReactUI/CHANGELOG.MD) for 2.0.4
+
+## [3.3.0-rc2] - 2024-07-11
+
+### Changed
+
+- Updated eventing tasks to properly address when tasks fail and continue on with the eventing steps
+- Updated the LimitByCallback field when searching for files to also account of a fileID was used in a task in a callback
+  - this helps with files that might be uploaded as part of workflows, but still loaded into callbacks
+  
+## [3.3.0-rc1] - 2024-07-09
+
+### Changed
+
+- Fixed how external_ip is fetched from containers to provide a more accurate representation
+- help and clear appear in generic `help` output
+- ability to hide callbacks that use the PushOneToMany 
+- updated Mythic's cookie to use strict same site and http only flags
+- tasking input - fixed issue where double options could be presented when using tab
+- tasking input - adjusted so complex types (link info, files, payloads, etc) aren't tab-completable
+  - This reduces some confusion when tab completing command parameters
+- expand/hide subtasks in UI that have subtasks
+- moved plaintext output expand icon to the left of 1 in text editor instead of in the middle
+- fixed an issue where sometimes if a tab was open, clicking the keyboard for a callback wouldn't bring that tab back to focus
+- fetch server version dynamically in the UI so it updates more often
+- update mythic-cli allowed_ips to apply to all web/scripting routes, not just auth
+  - this now applies to all routes and sub-routes behind Mythic's local reverse proxy
+- cache hasura information and invalidate / re-fetch after any modification to operator operation status 
+  - each request went from 3-10ms to 700-1000micro seconds in processing time
+- updated list/edit/delete/upload file features for containers to _all_ containers instead of just C2 containers
+- fixed bug where non-utf8 characters in keylog data would error on the page
+- function to get graphql schema (or option from Mythic)
+  - `schema = await mythic.mythic_utilities.fetch_graphql_schema(mythic=mythic_instance)`
+  - This is helpful when trying to do GraphQL via Golang
+- only admins can create new operators
+- only admins can create new operations
+- fix the UI when the width is too small causing the top appbar to take up 2 lines and cover buttons
+  - now width <1100px will hide some buttons along the top
+- after getting logged out, should redirect to where you were via redirect= URL parameter
+- updated payloadtype definition to allow specification of UUID length pre-pended to agent messages
+  - This can be either 16 or 36 and defaults to 36 (the length of the normal UUIDv4 string)
+  - This makes it possible to have 16 Byte UUIDs used for P2P comms 
+- updated wrapper builds to not send the wrapped payload bytes via rabbitmq
+  - HTTP request to mythic made to fetch bytes from container before passing execution off to build function
+  - no change needed by agent developers
+- jupyter access token changed from default 'mythic' to randomized 30 char password
+  - only affects new installs, but you'll need to fetch this value similar to fetching the hasura secret for GraphQL access
+- fixed bug where zipped and downloaded files wouldn't record the final zip size or md5/sha1 hashes
+- added button on keylogs page to view all keylogs within a user/host/window combination in your current search window at once
+- When sending data back for the file browser, `success` is now an optional boolean field
+- C2 Profile debug output is now also sent to the container's debug output so you don't have to view it through the UI
+
+### Added
+
+- Two new fields in agent message for artifacts for `needs_cleanup` and `resolved`
+- added `process_short_name` field to Callbacks
+  - this is automatically parsed based on the `process_name` returned from agents when they checkin or update their callback information
+  - the `process_short_name` is displayed in the Mythic UI callbacks table, but the full `process_name` is shown in the callback detailed metadata view
+  - this allows agents to return the full path to the binary when checking in without worrying about it bloating up the UI
+- light and dark mode agent icon support
+  - If no dark mode icon is provided, the light mode version is used for both by default on new sync
+  - There's a new field on payloadtype definitions for a dark mode icon
+- MythicRPC call to expose Mythic's way of parsing paths so that agents don't have to do it themselves and it can be standardized
+  - MythicRPCFileBrowserParsePath
+- added task display_id to tasks shown when doing browser script edits so that it's easier to tell the difference
+- added an "email" field on operators
+- add new ChooseOneCustom parameter type (build, command, and c2) to allow users to choose from list or add new value
+- add new FileMultiple parameter type (build, command, and c2) to allow users to select and upload multiple files at once
+- new "Last Updated" time in proxy table so you know when data is flowing
+  - the amount of data transfer updates every 20s
+- auto-tag files as you download/preview them so that it's easier to see what has been triaged or not by the team
+- all consuming containers now are tracked in the UI specifically and have their own name and description fields that must be set
+  - This applies to webhooks, loggers, eventing, auth
+- A new type of user, a bot account, is now available for creation
+  - only admins can create new operator accounts and new bot accounts
+  - bot accounts are not available to login
+  - a bot account is automatically created for every operation
+  - bot accounts can be used to take actions in eventing (as long as the operation lead approves it)
+  - admins are able to generate/view/delete apitokens for bot accounts as well
+- Added new `logging.UpdateLogToFile` and `logging.UpdateLogToStdout` functions to containers
+  - These allow you to dynamically update logging to write to file+stdout or just stdout as needed
+  - `mythic_container.logging.update_log_to_file` and `mythic_container.logging.update_log_to_stdout` in Python
+- Admins can generate one-time-use invite codes to invite somebody to their Mythic server without pre-creating an account
+  - This is disabled by default but can be enabled in .env or in global settings by admins (MYTHIC_SERVER_ALLOW_INVITE_LINKS)
+  - Each invite link can be used only once and un-used invite links can be deleted
+  - Invite links become invalid when the server restarts
+- SSO Support via "auth" containers
+  - can redirect to SSO providers (ExampleContainers has example for ADFS) that provide IDP services
+  - can process non SSO custom auth as well
+  - each case must return an email associated with a user that's logged in
+    - Operators now have email addresses optionally associated with them
+  - these can be seen via ConsumingServices page
+- All containers have an `on_start` function that gets called when the container starts up
+  - This function is executed once for every operation that's currently running (not deleted and not complete)
+  - This function gets access to a special JWT APIToken that's scoped to the bot account assigned to the operation
+    - This JWT is for spectator access (no changes can be made) and only lasts for 5 minutes
+    - The goal here is to allow some basic configuration to be performed by the container
+- New PayloadType attribute `agent_type` value of `command_augment`
+  - CommandAugment containers expose custom tasks to other PayloadTypes and are automatically injected into callbacks
+- Payload type definitions have a new `CheckIfCallbacksAliveFunction`
+  - This gets a list of active callbacks based on this payload type along with their id, last checkin, first checkin, and sleep_info information
+  - This returns back a list of all the callbacks and an indication if they should be marked as "dead" or not
+  - "dead" status is reflected by a red skull in the last_checkin column in the callbacks table
+  - the `sleep_info` data can be updated at any time as a free-form string via MythicRPC or the UI
+  - the `sleep_info` data is also a column you can toggle to view or not in the UI in the callbacks table
+  - Added `SendMythicRPCCallbackNextCheckinRange` RPC call to get basic range for next checkin options based on:
+    - last_checkin, jitter percentage, and sleep interval
+    - This is provided as a helpful way to reduce duplicated efforts in all payload types checking if `time.Now().UTC()` within the possible range
+- New Container Type and feature: Eventing
+  - Eventing button at the top now added to manage eventing workflows
+  - New docs around eventing added
+
 ## [3.2.20-rc11] - 2024-04-23
 
 ### Changed

@@ -14,10 +14,8 @@ import {getDefaultValueForType, getDefaultChoices} from './Step2SelectPayloadTyp
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicConfirmDialog} from "../../MythicComponents/MythicConfirmDialog";
 
@@ -194,7 +192,7 @@ export function Step4C2Profiles(props){
         onCompleted: (data) => {
           const updates = data.c2profileparametersinstance.map( (cur) => {
             let inst = {...cur, ...cur.c2profileparameter};
-            if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple" || inst.parameter_type === "TypedArray"){
+            if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple" || inst.parameter_type === "TypedArray" || inst.parameter_type === "FileMultiple"){
                 try{
                     inst["value"] = JSON.parse(inst["value"]);
                 }catch(error){
@@ -305,79 +303,85 @@ export function Step4C2Profiles(props){
         return <div>Error! {error.message}</div>;
     }
     return (
-        <div >
-            <Typography variant="h3" align="left" id="selectc2profiles" component="div" 
-                style={{"marginLeft": "10px"}}>
-                  Select C2 Profiles
-            </Typography>
-            <TableContainer component={Paper} className="mythicElement">
-                <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+        <div style={{paddingTop: "20px", display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
+            <div style={{flexGrow: 1, width: "100%", overflowY: "scroll"}}>
+                <Table stickyHeader={true} size="small" style={{"maxWidth": "100%",}}>
                     <TableHead>
                         <TableRow>
                             <TableCell style={{width: "4rem"}}>Include?</TableCell>
-                            <TableCell >C2 Name</TableCell>
-                            <TableCell >Pre-created Instances</TableCell>
-                            <TableCell >Description</TableCell>
+                            <TableCell>C2 Name</TableCell>
+                            <TableCell>Pre-created Instances</TableCell>
+                            <TableCell>Description</TableCell>
                         </TableRow>
                     </TableHead>
+
                     {
-                        c2Profiles.map( (c2) => (
-                        <TableBody key={"step4c2tablerow" + c2.id}>
-                            <TableRow  hover>
-                                <MythicStyledTableCell>
-                                    
+                        c2Profiles.map((c2) => (
+                            <TableBody key={"step4c2tablerow" + c2.id}>
+                                <TableRow hover>
+                                    <MythicStyledTableCell>
+
                                         <Switch
                                             checked={c2.selected}
                                             onChange={evt => toggleC2Selection(evt, c2, !c2.selected)}
-                                            inputProps={{ 'aria-label': 'primary checkbox' }}
+                                            inputProps={{'aria-label': 'primary checkbox'}}
                                             name="active"
                                         />
-                                    
-                                </MythicStyledTableCell>
-                                <MythicStyledTableCell>
-                                {c2.name}
-                                </MythicStyledTableCell>
-                                <MythicStyledTableCell>
-                                    {c2.c2profileparametersinstances.length > 0 ? (
+
+                                    </MythicStyledTableCell>
+                                    <MythicStyledTableCell>
+                                        {c2.name}
+                                    </MythicStyledTableCell>
+                                    <MythicStyledTableCell>
+                                        {c2.c2profileparametersinstances.length > 0 ? (
                                             <Select
-                                            style={{width: "100%", marginBottom: "5px", marginTop:"5px"}}
-                                            value={c2.selected_instance}
-                                            //label="Select an Existing Instance"
-                                            onChange={evt => onChangeCreatedInstanceName(evt, c2)}
+                                                style={{width: "100%", marginBottom: "5px", marginTop: "5px"}}
+                                                value={c2.selected_instance}
+                                                //label="Select an Existing Instance"
+                                                onChange={evt => onChangeCreatedInstanceName(evt, c2)}
                                             >
-                                                <MenuItem key={"buildparamopt" + "-1"} value={"None"}>None</MenuItem>
-                                            {
-                                                c2.c2profileparametersinstances.map((opt, i) => (
-                                                    <MenuItem key={"buildparamopt" + i} value={opt.instance_name}>{opt.instance_name}</MenuItem>
-                                                ))
-                                            }
+                                                <MenuItem key={"buildparamopt" + "-1"}
+                                                          value={"None"}>None</MenuItem>
+                                                {
+                                                    c2.c2profileparametersinstances.map((opt, i) => (
+                                                        <MenuItem key={"buildparamopt" + i}
+                                                                  value={opt.instance_name}>{opt.instance_name}</MenuItem>
+                                                    ))
+                                                }
                                             </Select>
-                                    ) : null}
-                                </MythicStyledTableCell>
-                                <MythicStyledTableCell>
-                                    <Typography variant="body1" align="left" id="selectc2profiles" component="div" key={"step4desc" + c2.id}
-                                        style={{"marginLeft": "10px"}}>
-                                        {c2.description}
-                                    </Typography>
-                                </MythicStyledTableCell>
-                            </TableRow>
-                                { c2.selected ? ( 
+                                        ) : null}
+                                    </MythicStyledTableCell>
+                                    <MythicStyledTableCell>
+                                        <Typography variant="body1" align="left" id="selectc2profiles"
+                                                    component="div" key={"step4desc" + c2.id}
+                                                    style={{"marginLeft": "10px"}}>
+                                            {c2.description}
+                                        </Typography>
+                                    </MythicStyledTableCell>
+                                </TableRow>
+                                {c2.selected ? (
                                     <TableRow><MythicStyledTableCell colSpan={4}>
-                                        <CreatePayloadC2ProfileParametersTable key={"step4table" + c2.id} returnAllDictValues={false} {...c2} onChange={updateC2Parameter} />
+                                        <CreatePayloadC2ProfileParametersTable key={"step4table" + c2.id}
+                                                                               returnAllDictValues={false} {...c2}
+                                                                               onChange={updateC2Parameter}/>
                                     </MythicStyledTableCell></TableRow>
-                                    
-                                    ):null
+
+                                ) : null
                                 }
-                        </TableBody>
+                            </TableBody>
                         ))
                     }
                 </Table>
-            </TableContainer>
-            <MythicConfirmDialog open={openConfirmDialog}
-                                 title={"No C2 Profiles selected, continue?"}
-                                 onClose={() => setOpenConfirmDialog(false)}
-                                 acceptText="Accept"
-                                 onSubmit={acceptConfirm} />
+            </div>
+
+            {openConfirmDialog &&
+                <MythicConfirmDialog open={openConfirmDialog}
+                                     title={"No C2 Profiles selected, continue?"}
+                                     onClose={() => setOpenConfirmDialog(false)}
+                                     acceptText="Accept"
+                                     onSubmit={acceptConfirm} />
+            }
+
             <br/>
             <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={canceled} finished={finished} />
             <br/><br/>

@@ -90,10 +90,7 @@ export function TaskTokenDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Token Information</DialogTitle>
-        
-        
-          <Paper elevation={5} style={{position: "relative"}} variant={"elevation"}>
-            <TableContainer component={Paper} className="mythicElement">
+            <TableContainer className="mythicElement">
               <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                     <TableHead>
                         <TableRow>
@@ -111,7 +108,6 @@ export function TaskTokenDialog(props) {
                     </TableBody>
                 </Table>
               </TableContainer>
-          </Paper>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">
             Close

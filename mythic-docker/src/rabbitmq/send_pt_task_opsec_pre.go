@@ -7,7 +7,7 @@ import (
 func (r *rabbitMQConnection) SendPtTaskOPSECPre(taskMessage PTTaskMessageAllData) error {
 	if err := r.SendStructMessage(
 		MYTHIC_EXCHANGE,
-		GetPtTaskOpsecPreCheckRoutingKey(taskMessage.PayloadType),
+		GetPtTaskOpsecPreCheckRoutingKey(taskMessage.CommandPayloadType),
 		"",
 		taskMessage,
 		false,

@@ -7,5 +7,6 @@ export const classes = {
     cellInner: `${PREFIX}-cellInner`,
     draggableHandlesContainer: `${PREFIX}-draggableHandlesContainer`,
     draggableHandlesClickArea: `${PREFIX}-draggableHandlesClickArea`,
+    draggableHandlesClickAreaSelected: `${PREFIX}-draggableHandlesClickAreaSelected`,
     draggableHandlesIndicator: `${PREFIX}-draggableHandlesIndicator`,
 }

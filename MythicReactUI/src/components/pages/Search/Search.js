@@ -10,9 +10,10 @@ import {SearchTabKeylogsLabel, SearchTabKeylogsPanel} from './SearchTabKeylog';
 import {SearchTabTokensLabel, SearchTabTokensPanel} from './SearchTabTokens';
 import {SearchTabCallbacksLabel, SearchTabCallbacksPanel} from './SearchTabCallbacks';
 import {SearchTabArtifactsLabel, SearchTabArtifactsPanel} from './SearchTabArtifacts';
-import {SearchTabSocksLabel, SearchTabSocksPanel} from './SearchTabSocks';
+import {SearchTabSocksLabel, SearchTabSocksPanel} from './SearchTabProxies';
 import {SearchTabProcessesLabel, SearchTabProcessPanel} from "./SearchTabProcesses";
 import {SearchTabTagsLabel, SearchTabTagsPanel} from "./SearchTabTags";
+import {SearchTabInteractiveTasksLabel, SearchTabInteractiveTasksPanel} from "./SearchTabInteractiveTasks";
 
 const PREFIX = 'Search';
 
@@ -27,7 +28,6 @@ const Root = styled('div')((
 ) => ({
   [`&.${classes.root}`]: {
     width: "100%",
-    backgroundColor: theme.palette.background.paper,
   }
 }));
 

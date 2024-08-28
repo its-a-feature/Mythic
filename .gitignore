@@ -25,6 +25,7 @@ venv.bak/
 # ssl certs
 ssl/
 # Mythic files
+nginx-docker/config/blockips.conf
 mythic-docker/src/Mythic
 mythic_access.*
 mythic_sync/
@@ -164,3 +165,5 @@ _ReSharper*/
 .vscode/
 
 jupyter-docker/jupyter/MythicExamples/.ipynb_checkpoints/
+
+nginx-docker/config/blockips.conf

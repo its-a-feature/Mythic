@@ -57,7 +57,7 @@ export function MitreMapDisplayDialog({entry, showCountGrouping, onClose}){
     }, [entry, showCountGrouping]);
     return (
         <React.Fragment>
-          <DialogTitle id="form-dialog-title">{entry.name} - <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"https://attack.mitre.org/techniques/" + entry.t_num.replace(".", "/")} >{entry.t_num}</Link></DialogTitle>
+          <DialogTitle id="form-dialog-title">{entry.name} - <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"https://attack.mitre.org/techniques/" + entry.t_num.replace(".", "/")} >{entry.t_num}</Link></DialogTitle>
           <DialogContent dividers={true}>
             {showCountGrouping === "command" ? 
             (

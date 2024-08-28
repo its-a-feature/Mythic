@@ -6,7 +6,7 @@ export function MythicStyledTooltip(props){
     const { children, title, style, ...other} = props;
     const theme = useTheme();
     return (
-        <Tooltip title={title} arrow followCursor enterDelay={1000} componentsProps={{
+        <Tooltip title={title} arrow followCursor enterDelay={750} componentsProps={{
             tooltip: {
                 sx: {
                     backgroundColor: theme.palette.background.contrast,
@@ -15,11 +15,12 @@ export function MythicStyledTooltip(props){
                     fontSize: 13,
                     '& .MuiTooltip-arrow': {
                         color: theme.palette.background.contrast
-                    }
+                    },
+                    zIndex: 1000
                 }
             }
         }} style={{zIndex:1000}} {...other}>
-            {<span style={{...style, display: "inline-block"}}>{children}</span>}
+            {<span style={{display: "inline-block", ...style}}>{children}</span>}
         </Tooltip>
     );
 }

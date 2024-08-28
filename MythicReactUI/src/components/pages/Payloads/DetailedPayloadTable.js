@@ -12,7 +12,7 @@ import {useTheme} from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import {Button, Link} from '@mui/material';
+import {Button, Link, IconButton} from '@mui/material';
 import { toLocalTime } from '../../utilities/Time';
 import {PayloadsTableRowBuildProcessPerStep} from './PayloadsTableRowBuildProgress';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
@@ -25,14 +25,30 @@ import PublicIcon from '@mui/icons-material/Public';
 import {HostFileDialog} from "./HostFileDialog";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 
 const GET_Payload_Details = gql`
-query GetPayloadDetails($payload_id: Int!, $operation_id: Int!) {
-  payload(where: {id: {_eq: $payload_id}, operation_id: {_eq: $operation_id}}) {
+query GetPayloadDetails($payload_id: Int!) {
+  payload(where: {id: {_eq: $payload_id}}) {
     uuid
     wrapped_payload_id
     payloadtype{
         name
+    }
+    operator {
+        username
+    }
+    eventstepinstance {
+        eventgroupinstance {
+            id
+            eventgroup {
+                id
+                name
+            }   
+        }
+        eventstep {
+            name
+        }
     }
     creation_time
     payloadcommands {
@@ -128,7 +144,7 @@ export function DetailedPayloadTable(props){
 
 export const ParseForDisplay = ({cmd, filename}) => {
     const [renderObj, setRenderObj] = React.useState(cmd.value);
-
+    const [fileMultipleValue, setFileMultipleValue] = React.useState([]);
     React.useEffect( () => {
         if(cmd.parameter_type === "Dictionary") {
             try{
@@ -146,8 +162,14 @@ export const ParseForDisplay = ({cmd, filename}) => {
                 console.log("Failed to parse parameter value as array or choose multiple", cmd.value, error)
                 setRenderObj(cmd.value);
             }
-        } else if(cmd.parameter_type === "File"){
-
+        } else if(cmd.parameter_type === "File") {
+        } else if(cmd.parameter_type === "FileMultiple"){
+            try{
+                let parsedValue = JSON.parse(cmd.value);
+                setFileMultipleValue(parsedValue);
+            }catch(error){
+                console.log("Failed to parse parameter value as file multiple", cmd.value, error);
+            }
         } else {
             setRenderObj(cmd.value);
         }
@@ -156,12 +178,18 @@ export const ParseForDisplay = ({cmd, filename}) => {
     return (
         cmd.parameter_type === "File" ? (
             <MythicFileContext agent_file_id={cmd.value} display_link={""} />
+        ) : cmd.parameter_type === "FileMultiple" ? (
+            fileMultipleValue?.map(f => (
+                <React.Fragment key={f}>
+                    <MythicFileContext agent_file_id={f} display_link={""} /><br/>
+                </React.Fragment>
+            ))
         ) : (renderObj)
     )
 }
 
 function DetailedPayloadInnerTable(props){
-    const me = props.me
+    const me = props.me;
     const theme = useTheme();
     const [commands, setCommands] = React.useState([]);
     const [buildParameters, setBuildParameters] = React.useState([]);
@@ -179,7 +207,7 @@ function DetailedPayloadInnerTable(props){
                                       "commandsToAdd": [],
                                       "commandsToRemove": []})
     const { loading, error, data } = useQuery(GET_Payload_Details, {
-        variables: {payload_id: props.payload_id, operation_id: me.user.current_operation_id},
+        variables: {payload_id: props.payload_id},
         fetchPolicy: "no-cache",
         onCompleted: data => {
             const commandState = data.payload[0].payloadcommands.map( (c) => 
@@ -319,7 +347,7 @@ function DetailedPayloadInnerTable(props){
                     </TableRow>
                     <TableRow hover>
                         <TableCell>Creation Time</TableCell>
-                        <TableCell>{toLocalTime(data.payload[0].creation_time, me.user.view_utc_time)}</TableCell>
+                        <TableCell>{toLocalTime(data.payload[0].creation_time, me?.user?.view_utc_time)}</TableCell>
                     </TableRow>
                     { data.payload[0].filemetum ? (
                         <TableRow key={'filename_text'} hover>
@@ -356,6 +384,28 @@ function DetailedPayloadInnerTable(props){
                         <TableCell>MD5</TableCell>
                         <TableCell>{data.payload[0].filemetum.md5}</TableCell>
                     </TableRow>
+                    <TableRow hover>
+                        <TableCell>Created By</TableCell>
+                        <TableCell>{data.payload[0]?.operator?.username}</TableCell>
+                    </TableRow>
+                    {data.payload[0]?.eventstepinstance &&
+                        <>
+                            <TableRow hover>
+                                <TableCell>Generated via Eventing</TableCell>
+                                <TableCell>
+                                    <Link color="textPrimary" underline="always"
+                                          href={"/new/eventing?eventgroup=" +
+                                    data.payload[0]?.eventstepinstance?.eventgroupinstance?.eventgroup.id +
+                                        "&eventgroupinstance=" +
+                                    data.payload[0]?.eventstepinstance?.eventgroupinstance?.id
+                                    }>
+                                        {data.payload[0]?.eventstepinstance?.eventgroupinstance?.eventgroup?.name} -
+                                        {data.payload[0]?.eventstepinstance?.eventstep?.name}
+                                    </Link>
+                                </TableCell>
+                            </TableRow>
+                        </>
+                    }
                 </TableBody>
               </Table>
               <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
@@ -480,8 +530,10 @@ function DetailedPayloadInnerTable(props){
                                   <TableCell>{cmd.mythic}</TableCell>
                                   <TableCell>{cmd.payload}</TableCell>
                                   <TableCell>
-                                  <Button variant="contained" color="primary" target="_blank"
-                                      href={"/docs/agents/" + data.payload[0].payloadtype.name + "/commands/" + cmd.cmd}>Docs</Button>
+                                  <IconButton variant="contained" target="_blank"
+                                      href={"/docs/agents/" + data.payload[0].payloadtype.name + "/commands/" + cmd.cmd}>
+                                      <MenuBookIcon />
+                                  </IconButton>
                                   </TableCell>
                               </TableRow>
                           ))

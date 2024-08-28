@@ -20,29 +20,32 @@ type tagTypeInputString struct {
 // this function called from webhook_endpoint through the UI or scripting
 func TagtypeImportWebhook(c *gin.Context) {
 	var input importTagTypesInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to get JSON parameters for TagtypeImportWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
-	} else if ginOperatorOperation, exists := c.Get("operatorOperation"); !exists {
+	}
+	ginOperatorOperation, exists := c.Get("operatorOperation")
+	if !exists {
 		logging.LogError(nil, "Failed to get operator operation information")
 		c.JSON(http.StatusOK, gin.H{
 			"status": "error",
 			"error":  "failed to get operator information",
 		})
-	} else {
-		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
-		tagtypes := []databaseStructs.TagType{}
-		if err := json.Unmarshal([]byte(input.Input.TagTypeString), &tagtypes); err != nil {
-			logging.LogError(err, "Failed to unmarshal import contents into array of tagtypes")
-			c.JSON(http.StatusOK, gin.H{
-				"status": "error",
-				"error":  "Failed to unmarshal file contents into array of tagtypes",
-			})
-		} else {
-			response := rabbitmq.TagtypeImport(tagtypes, operatorOperation)
-			c.JSON(http.StatusOK, response)
-		}
+		return
 	}
-
+	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+	tagtypes := []databaseStructs.TagType{}
+	err = json.Unmarshal([]byte(input.Input.TagTypeString), &tagtypes)
+	if err != nil {
+		logging.LogError(err, "Failed to unmarshal import contents into array of tagtypes")
+		c.JSON(http.StatusOK, gin.H{
+			"status": "error",
+			"error":  "Failed to unmarshal file contents into array of tagtypes",
+		})
+		return
+	}
+	response := rabbitmq.TagtypeImport(tagtypes, operatorOperation)
+	c.JSON(http.StatusOK, response)
 }

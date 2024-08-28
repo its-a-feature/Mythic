@@ -172,11 +172,16 @@ export function CommandBlockListTable(props){
     }
     return (
         <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
+            marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}} variant={"elevation"}>
             <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Command Block Lists
             </Typography>
-            <Button size="small" onClick={()=>{setOpenNewDialog(true);}} style={{marginRight: "20px", float: "right", marginTop: "10px"}} startIcon={<AddCircleOutlineOutlinedIcon/>} color="success" variant="contained">New Block List</Button>
+            <Button size="small"
+                    onClick={()=>{setOpenNewDialog(true);}}
+                    style={{marginRight: "10px", float: "right", marginTop: "10px"}}
+                    startIcon={<AddCircleOutlineOutlinedIcon color="success"/>}
+                    variant="contained">New Block List</Button>
             {openNew &&
                 <MythicDialog open={openNew} fullWidth={true} maxWidth="lg"
                     onClose={()=>{setOpenNewDialog(false);}} 
@@ -185,12 +190,11 @@ export function CommandBlockListTable(props){
                 />
             }
         </Paper>
-        <TableContainer component={Paper} className="mythicElement">   
-            
+        <TableContainer className="mythicElement">
             <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "5rem"}}>Delete</TableCell>
+                        <TableCell style={{width: "2rem"}}></TableCell>
                         <TableCell style={{width: "7rem"}}>Modify</TableCell>
                         <TableCell style={{width: "15rem"}}>Name</TableCell>
                         <TableCell >Blocked Commands</TableCell>
@@ -238,11 +242,11 @@ function CommandBlockListTableRow(props){
     return (
         <TableRow hover>
             <TableCell>
-                <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
+                <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color={"error"} variant="contained"><DeleteIcon/></IconButton>
                 <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
             </TableCell>
             <TableCell>
-                <Button size="small" onClick={()=>{setOpenUpdateDialog(true);}} startIcon={<TuneIcon/>} color="info" variant="contained">Edit</Button>
+                <Button size="small" onClick={()=>{setOpenUpdateDialog(true);}} startIcon={<TuneIcon/>} color="primary" variant="contained">Edit</Button>
                 {openUpdate &&
                     <MythicDialog open={openUpdate} fullWidth maxWidth={"lg"}
                         onClose={()=>{setOpenUpdateDialog(false);}} 

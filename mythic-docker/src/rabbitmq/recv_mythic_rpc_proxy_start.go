@@ -37,6 +37,10 @@ func MythicRPCProxyStart(input MythicRPCProxyStartMessage) MythicRPCProxyStartMe
 	response := MythicRPCProxyStartMessageResponse{
 		Success: false,
 	}
+	if input.PortType == CALLBACK_PORT_TYPE_RPORTFWD && (input.RemoteIP == "" || input.RemotePort == 0) {
+		response.Error = "Missing remote ip or port"
+		return response
+	}
 	task := databaseStructs.Task{ID: input.TaskID}
 	if err := database.DB.Get(&task, `SELECT id, operation_id, callback_id FROM task WHERE id=$1`, task.ID); err != nil {
 		logging.LogError(err, "Failed to get task from database to start socks")

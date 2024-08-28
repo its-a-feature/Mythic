@@ -15,7 +15,13 @@ var volumeCopyFrom = &cobra.Command{
 
 func init() {
 	volumeCmd.AddCommand(volumeCopyFrom)
-
+	volumeCopyFrom.Flags().StringVarP(
+		&containerName,
+		"container",
+		"c",
+		"",
+		`Specify the name of the container that has the specified volume.`,
+	)
 	volumeCopyFrom.Flags().StringVarP(
 		&volumeName,
 		"volume",
@@ -40,5 +46,5 @@ func init() {
 }
 
 func volumesCopyFromCommand(cmd *cobra.Command, args []string) {
-	internal.DockerCopyFromVolume(volumeName, sourceName, destinationName)
+	internal.DockerCopyFromVolume(containerName, volumeName, sourceName, destinationName)
 }

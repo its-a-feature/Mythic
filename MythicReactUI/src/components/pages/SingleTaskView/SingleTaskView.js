@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
-import {TaskDisplay} from '../Callbacks/TaskDisplay';
-import {gql, useLazyQuery } from '@apollo/client';
+import {TaskDisplay, TaskDisplayConsole} from '../Callbacks/TaskDisplay';
+import {gql, useLazyQuery, useQuery } from '@apollo/client';
 import  {useParams} from "react-router-dom";
 import {TaskMetadataTable} from './MetadataTable';
 import Typography from '@mui/material/Typography';
@@ -13,11 +13,20 @@ import {copyStringToClipboard} from '../../utilities/Clipboard';
 import Switch from '@mui/material/Switch';
 import {useTheme} from '@mui/material/styles';
 import {taskingDataFragment} from '../Callbacks/CallbackMutations'
+import {meState} from "../../../cache";
+import { useReactiveVar } from '@apollo/client';
 
 const tasksQuery = gql`
 ${taskingDataFragment}
-query tasksQuery($task_range: [Int!], $operation_id: Int!) {
-    task(where: {display_id: {_in: $task_range}, operation_id: {_eq: $operation_id}}, order_by: {display_id: asc}) {
+query tasksQuery($task_range: [Int!]) {
+    task(where: {display_id: {_in: $task_range}}, order_by: {display_id: asc}) {
+        ...taskData
+    }
+}`;
+const singleTaskQuery = gql`
+${taskingDataFragment}
+query tasksQuery($task_id: Int!) {
+    task(where: {id: {_eq: $task_id}}, order_by: {display_id: asc}) {
         ...taskData
     }
 }`;
@@ -51,6 +60,20 @@ query tasksAcrossAllCallbacksByOperator($operation_id: Int!, $baseTask: Int!, $b
         ...taskData
     }
 }`;
+export const RenderSingleTask = ({task_id}) => {
+    const me = useReactiveVar(meState);
+    const [taskData, setTaskData] = React.useState({});
+    useQuery(singleTaskQuery, {
+        variables: {task_id: task_id},
+        onCompleted: completedData => {
+            setTaskData(completedData.task[0]);
+        }
+    });
+    return (
+        taskData.id &&
+        <TaskDisplayConsole me={me} task={taskData} command_id={taskData.command === null ? 0 : taskData.command.id} />
+    )
+}
 export function SingleTaskView(props){
     const me = props.me
     const {taskId} = useParams();
@@ -211,17 +234,17 @@ export function SingleTaskView(props){
             let params = new URLSearchParams(window.location.search);
             if(params.has("tasks")){
                 let ids = expand_range(params.get("tasks"));
-                getTasks({variables: {task_range: ids, operation_id: me?.user?.current_operation_id || 0}});
+                getTasks({variables: {task_range: ids}});
             }else{
                 snackActions.warning("URL Query missing '?tasks=' with a range of tasks")
             }
         }else{
-            getTasks({variables: {task_range: [parseInt(taskId)], operation_id: me?.user?.current_operation_id || 0}});
+            getTasks({variables: {task_range: [parseInt(taskId)]}});
         }      
     }, [getTasks, taskId]);
   return (
-    <div style={{marginTop: "10px", maxHeight: "calc(94vh)", width:"100%", marginBottom: "10px" }}>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
+    <div style={{height: "100%", display: "flex", flexDirection: "column", width:"100%",}}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px"}} variant={"elevation"}>
             <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Task View
             </Typography>
@@ -235,7 +258,7 @@ export function SingleTaskView(props){
             task.type === "task" ? (
                     <div key={"taskdisplay:" + task.display_id} style={{marginRight: "5px"}}>
                         <div style={{width: removing ? "95%" : "100%", display: "inline-block"}}>
-                            <TaskDisplay me={me}  task={task} command_id={task.command === null ? 0 : task.command.id} />
+                            <TaskDisplayConsole me={me} task={task} command_id={task.command === null ? 0 : task.command.id} />
                         </div>
                         {removing ? (
                             <Switch

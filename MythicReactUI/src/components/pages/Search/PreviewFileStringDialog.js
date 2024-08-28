@@ -17,10 +17,28 @@ import 'ace-builds/src-noconflict/mode-java';
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
+import 'ace-builds/src-noconflict/mode-yaml';
+import 'ace-builds/src-noconflict/mode-toml';
+import 'ace-builds/src-noconflict/mode-swift';
+import 'ace-builds/src-noconflict/mode-sql';
+import 'ace-builds/src-noconflict/mode-rust';
+import 'ace-builds/src-noconflict/mode-powershell';
+import 'ace-builds/src-noconflict/mode-pgsql';
+import 'ace-builds/src-noconflict/mode-perl';
+import 'ace-builds/src-noconflict/mode-php';
+import 'ace-builds/src-noconflict/mode-objectivec';
+import 'ace-builds/src-noconflict/mode-nginx';
+import 'ace-builds/src-noconflict/mode-makefile';
+import 'ace-builds/src-noconflict/mode-kotlin';
+import 'ace-builds/src-noconflict/mode-dockerfile';
+import 'ace-builds/src-noconflict/mode-sh';
+import 'ace-builds/src-noconflict/mode-ini';
 import {useTheme} from '@mui/material/styles';
 import FormControl from '@mui/material/FormControl';
 
-export const modeOptions = ["csharp", "golang", "html", "json", "markdown", "ruby", "python", "java", "javascript"];
+export const modeOptions = ["csharp", "golang", "html", "json", "markdown", "ruby", "python", "java",
+    "javascript", "yaml", "toml", "swift", "sql", "rust", "powershell", "pgsql", "perl", "php", "objectivec",
+    "nginx", "makefile", "kotlin", "dockerfile", "sh", "ini"].sort();
 export function PreviewFileStringDialog(props) {
   const theme = useTheme();
   const [mode, setMode] = React.useState("json");

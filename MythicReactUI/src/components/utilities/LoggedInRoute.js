@@ -3,14 +3,14 @@ import React from 'react';
 
 
 export function LoggedInRoute({children, me}){
-    const location = useLocation()
+    const location = useLocation();
     return (
             me?.loggedIn && me?.user ? (
                 //logged in
                 children
             ) : (
                 //not logged in
-                <Navigate to={'/new/login'} state={{ from: location }} />
+                <Navigate to={'/new/login?redirect=' + location.pathname} />
             )
     )
 }

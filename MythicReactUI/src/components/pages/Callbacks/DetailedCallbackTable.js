@@ -12,7 +12,6 @@ import {useTheme} from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Button from '@mui/material/Button';
 import {ExpandedCallbackSideDetailsTable} from '../ExpandedCallback/ExpandedCallbackSideDetails';
 import { toLocalTime } from '../../utilities/Time';
 import {PayloadsTableRowBuildProcessPerStep} from '../Payloads/PayloadsTableRowBuildProgress';
@@ -24,7 +23,11 @@ import {AddRemoveCallbackCommandsDialog} from './AddRemoveCallbackCommandsDialog
 import { snackActions } from '../../utilities/Snackbar';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
-import {ParseForDisplay} from "../Payloads/DetailedPayloadTable";
+import {DetailedPayloadTable, ParseForDisplay} from "../Payloads/DetailedPayloadTable";
+import {Button, Link, IconButton} from '@mui/material';
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 
 const GET_Payload_Details = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -43,6 +46,23 @@ query GetCallbackDetails($callback_id: Int!) {
         id
         md5
         sha1
+      }
+      operator {
+        username
+      }
+      eventstepinstance{
+        id
+        eventgroupinstance {
+            id
+            eventgroup {
+                id
+                name
+            }
+        }
+        eventstep {
+            id
+            name
+        }
       }
       payload_build_steps(order_by: {step_number: asc}) {
         step_name
@@ -88,6 +108,9 @@ query GetCallbackDetails($callback_id: Int!) {
         cmd
         id
         version
+        payloadtype {
+            name
+        }
       }
     }
     architecture
@@ -145,6 +168,7 @@ mutation removeLoadedCommand($id: Int!){
 export function DetailedCallbackTable(props){
     const theme = useTheme();
     const me = useReactiveVar(meState);
+    const [openDetailedView, setOpenDetailedView] = React.useState(false);
     const [openAddRemoveCommandsDialog, setOpenAddRemoveCommandsDialog] = React.useState(false);
     const [commands, setCommands] = React.useState([]);
     const [buildParameters, setBuildParameters] = React.useState([]);
@@ -221,7 +245,7 @@ export function DetailedCallbackTable(props){
         onCompleted: data => {
             const commandState = data.callback_by_pk.loadedcommands.map( (c) => 
             { 
-                return {cmd: c.command.cmd, mythic: c.command.version, payload: c.version} 
+                return {cmd: c.command.cmd, mythic: c.command.version, payload: c.version, payload_type: c.command.payloadtype.name}
             }).sort((a,b) => (a.cmd > b.cmd) ? 1: ((b.cmd > a.cmd) ? -1 : 0));
             setCommands(commandState);
             const buildParametersState = data.callback_by_pk.payload.buildparameterinstances.map( (b) =>
@@ -300,7 +324,19 @@ export function DetailedCallbackTable(props){
                     </TableRow>
                     <TableRow hover>
                         <TableCell>UUID</TableCell>
-                        <TableCell>{data.callback_by_pk.payload.uuid}</TableCell>
+                        <TableCell>
+                            {data.callback_by_pk.payload.uuid}
+                            <IconButton disableFocusRipple={true}
+                                        disableRipple={true} size="small" color="info" onClick={() => setOpenDetailedView(true)}>
+                                <InfoIconOutline />
+                            </IconButton>
+                        </TableCell>
+                        {openDetailedView ? (
+                            <MythicDialog fullWidth={true} maxWidth="lg" open={openDetailedView}
+                                          onClose={()=>{setOpenDetailedView(false);}}
+                                          innerDialog={<DetailedPayloadTable {...props} payload_id={data.callback_by_pk.payload.id} onClose={()=>{setOpenDetailedView(false);}} />}
+                            />
+                        ) : null }
                     </TableRow>
                     <TableRow hover>
                         <TableCell>Creation Time</TableCell>
@@ -324,6 +360,28 @@ export function DetailedCallbackTable(props){
                         <TableCell>MD5</TableCell>
                         <TableCell>{data.callback_by_pk.payload.filemetum.md5}</TableCell>
                     </TableRow>
+                    <TableRow hover>
+                        <TableCell>Created By</TableCell>
+                        <TableCell>{data.callback_by_pk.payload?.operator?.username}</TableCell>
+                    </TableRow>
+                    {data.callback_by_pk.payload?.eventstepinstance &&
+                        <>
+                            <TableRow hover>
+                                <TableCell>Generated via Eventing</TableCell>
+                                <TableCell>
+                                    <Link color="textPrimary" underline="always"
+                                          href={"/new/eventing?eventgroup=" +
+                                              data.callback_by_pk.payload?.eventstepinstance?.eventgroupinstance?.eventgroup.id +
+                                              "&eventgroupinstance=" +
+                                              data.callback_by_pk.payload?.eventstepinstance?.eventgroupinstance?.id
+                                          }>
+                                        {data.callback_by_pk.payload?.eventstepinstance?.eventgroupinstance?.eventgroup?.name} -
+                                        {data.callback_by_pk.payload?.eventstepinstance?.eventstep?.name}
+                                    </Link>
+                                </TableCell>
+                            </TableRow>
+                        </>
+                    }
                 </TableBody>
               </Table>
               <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
@@ -353,10 +411,10 @@ export function DetailedCallbackTable(props){
                                   ): (cmd.value)
                                 )
                               }
-                                  {cmd.enc_key === null ? (null) : (<React.Fragment>
+                                  {cmd.enc_key === null ? null : (<React.Fragment>
                                     <br/><b>Encryption Key: </b> {cmd.enc_key}
                                   </React.Fragment>) }
-                                {cmd.dec_key === null ? (null) : (<React.Fragment>
+                                {cmd.dec_key === null ? null : (<React.Fragment>
                                     <br/><b>Decryption Key: </b> {cmd.dec_key}
                                 </React.Fragment>) }
                             </TableCell>
@@ -417,10 +475,10 @@ export function DetailedCallbackTable(props){
                                         <TableCell>{cmd.description}</TableCell>
                                         <TableCell>
                                             <ParseForDisplay cmd={cmd} />
-                                            {cmd.enc_key === null ? (null) : (<React.Fragment>
+                                            {cmd.enc_key === null ? null : (<React.Fragment>
                                                 <br/><b>Encryption Key: </b> {cmd.enc_key}
                                               </React.Fragment>) }
-                                            {cmd.dec_key === null ? (null) : (<React.Fragment>
+                                            {cmd.dec_key === null ? null : (<React.Fragment>
                                                 <br/><b>Decryption Key: </b> {cmd.dec_key}
                                             </React.Fragment>) }
                                         </TableCell>
@@ -441,6 +499,7 @@ export function DetailedCallbackTable(props){
             <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
             <TableHead>
               <TableRow>
+                <TableCell style={{width: "40px"}}>Payload</TableCell>
                 <TableCell>Command Name</TableCell>
                 <TableCell>Mythic Version</TableCell>
                 <TableCell>Loaded Version</TableCell>
@@ -450,22 +509,27 @@ export function DetailedCallbackTable(props){
             <TableBody>
               {
                 commands.map( (cmd) => (
-                    <TableRow key={cmd.cmd + data.callback_by_pk.payload.id} hover>
-                        <TableCell>{cmd.cmd}</TableCell>
+                    <TableRow key={cmd.cmd + cmd.payload_type} hover>
+                        <TableCell>
+                            <MythicAgentSVGIcon payload_type={cmd.payload_type} style={{width: "40px"}}/>
+                        </TableCell>
+                        <TableCell>{cmd.cmd} ({cmd.payload_type})</TableCell>
                         <TableCell>{cmd.mythic}</TableCell>
                         <TableCell>{cmd.payload}</TableCell>
                         <TableCell>
-                          <Button variant="contained" color="primary" target="_blank"
-                             href={"/docs/agents/" + data.callback_by_pk.payload.payloadtype.name + "/commands/" + cmd.cmd}>Docs</Button> 
+                          <IconButton variant="contained" target="_blank"
+                             href={"/docs/agents/" + cmd.payload_type + "/commands/" + cmd.cmd}>
+                              <MenuBookIcon />
+                          </IconButton>
                         </TableCell>
                     </TableRow>
                 ))
-                
               }
               {openAddRemoveCommandsDialog &&
                   <MythicDialog fullWidth={true} maxWidth="md" open={openAddRemoveCommandsDialog} 
                       onClose={()=>{setOpenAddRemoveCommandsDialog(false);}} 
-                      innerDialog={<AddRemoveCallbackCommandsDialog callback_id={props.callback_id}
+                      innerDialog={<AddRemoveCallbackCommandsDialog
+                          callback_id={props.callback_id}
                         display_id={props.display_id} onClose={()=>{setOpenAddRemoveCommandsDialog(false);}} onSubmit={addRemoveCommandsSubmit} />}
                   />
                 }

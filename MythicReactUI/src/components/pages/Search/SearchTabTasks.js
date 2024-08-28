@@ -15,6 +15,7 @@ import Pagination from '@mui/material/Pagination';
 import { Typography } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import {TaskDisplayInteractiveSearch} from "./SearchTabInteractiveTasks";
 
 const fetchLimit = 20;
 const responseSearch = gql`
@@ -33,7 +34,7 @@ query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status:
 const parameterSearch = gql`
 ${taskingDataFragment}
 query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, original_params: {_ilike: $search}}) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status},  original_params: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
@@ -51,7 +52,7 @@ query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status:
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, comment: {_ilike: $search}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status},comment: {_ilike: $search}}) {
       ...taskData
     }
   }
@@ -59,12 +60,25 @@ query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status:
 const commandSearch = gql`
 ${taskingDataFragment}
 query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}}) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status},  command_name: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
     }
     task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}}) {
+      ...taskData
+    }
+  }
+`;
+const commandAndParameterSearch = gql`
+${taskingDataFragment}
+query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status},  _or: [{original_params: {_ilike: $search}}, {command_name: {_ilike: $search}}]}) {
+      aggregate {
+        count(columns: id)
+      }
+    }
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status},  _or: [{original_params: {_ilike: $search}}, {command_name: {_ilike: $search}}]}) {
       ...taskData
     }
   }
@@ -92,7 +106,7 @@ query responseQuery($search: Int!, $offset: Int!, $fetchLimit: Int!, $status: St
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {display_id: {_eq: $search}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status},callback: {display_id: {_eq: $search}}}) {
       ...taskData
     }
   }
@@ -105,7 +119,7 @@ query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status:
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {mythictree_groups_string: {_ilike: $search}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status},  callback: {mythictree_groups_string: {_ilike: $search}}}) {
       ...taskData
     }
   }
@@ -120,8 +134,8 @@ export function SearchTabTasksLabel(props){
 const SearchTabTasksSearchPanel = (props) => {
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
-    const [searchField, setSearchField] = React.useState("Command");
-    const searchFieldOptions = ["Output","Command", "Parameters", "Comment", "Tag", "Callback ID", "Callback Group"];
+    const [searchField, setSearchField] = React.useState("Command and Parameters");
+    const searchFieldOptions = ["Output", "Command and Parameters", "Command", "Parameters", "Comment", "Tag", "Callback ID", "Callback Group"];
     const [filterTaskStatus, setFilterTaskStatus] = React.useState("");
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
@@ -155,6 +169,9 @@ const SearchTabTasksSearchPanel = (props) => {
             case "Command":
                 props.onCommandSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus})
                 break;
+            case "Command and Parameters":
+                props.onCommandAndParametersSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus})
+                break;
             case "Tag":
                 props.onTagSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus});
                 break;
@@ -172,7 +189,7 @@ const SearchTabTasksSearchPanel = (props) => {
         if(props.value === props.index){
             let queryParams = new URLSearchParams(window.location.search);
             let adjustedSearch = "";
-            let adjustedSearchField = "Command";
+            let adjustedSearchField = "Command and Parameters";
             let adjustedTaskStatus = "";
             if(queryParams.has("search")){
                 setSearch(queryParams.get("search"));
@@ -183,9 +200,9 @@ const SearchTabTasksSearchPanel = (props) => {
                 props.onChangeSearchField(queryParams.get("searchField"));
                 adjustedSearchField = queryParams.get("searchField");
             }else{
-                setSearchField("Command");
-                props.onChangeSearchField("Command");
-                props.changeSearchParam("searchField", "Command");
+                setSearchField("Command and Parameters");
+                props.onChangeSearchField("Command and Parameters");
+                props.changeSearchParam("searchField", "Command and Parameters");
             }
             if(queryParams.has("taskStatus")){
                 setFilterTaskStatus(queryParams.get("taskStatus"));
@@ -233,8 +250,9 @@ export const SearchTabTasksPanel = (props) =>{
     const [taskingData, setTaskingData] = React.useState({task: []});
     const [totalCount, setTotalCount] = React.useState(0);
     const [search, setSearch] = React.useState("");
-    const [searchField, setSearchField] = React.useState("Command");
+    const [searchField, setSearchField] = React.useState("Command and Parameters");
     const [taskStatus, setTaskStatus] = React.useState("");
+    const alreadySearching = React.useRef(false);
     const onChangeSearchField = (field) => {
         setSearchField(field);
         switch(field){
@@ -249,6 +267,9 @@ export const SearchTabTasksPanel = (props) =>{
                 break;
             case "Command":
                 onCommandSearch({search, offset: 0, taskStatus});
+                break;
+            case "Command and Parameters":
+                onCommandAndParametersSearch({search, offset: 0, taskStatus});
                 break;
             case "Tag":
                 onTagSearch({search, offset: 0, taskStatus});
@@ -268,6 +289,7 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const handleCallbackSearchSuccess = (data) => {
         snackActions.dismiss();
+        alreadySearching.current = false;
         if(searchField === "Tag"){
             setTotalCount(data.tag_aggregate.aggregate.count);
             setTaskingData({task: data.tag.map(t => t.task)});
@@ -279,6 +301,7 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const handleCallbackSearchFailure = (data) => {
         snackActions.dismiss();
+        alreadySearching.current = false;
         snackActions.error("Failed to fetch data for search");
         console.log(data);
     }
@@ -302,6 +325,11 @@ export const SearchTabTasksPanel = (props) =>{
         onCompleted: handleCallbackSearchSuccess,
         onError: handleCallbackSearchFailure
     })
+    const [getCommandAndParametersSearch] = useLazyQuery(commandAndParameterSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleCallbackSearchSuccess,
+        onError: handleCallbackSearchFailure
+    })
     const [getTagSearch] = useLazyQuery(tagSearch, {
         fetchPolicy: "no-cache",
         onCompleted: handleCallbackSearchSuccess,
@@ -318,7 +346,13 @@ export const SearchTabTasksPanel = (props) =>{
         onError: handleCallbackSearchFailure
     })
     const onOutputSearch = ({search, offset, taskStatus}) => {
-        //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
+        snackActions.info("Searching...", {persist:true});
         setSearch(search);
         let new_search = search;
         if(search === ""){
@@ -337,6 +371,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onParameterSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         setSearch(search);
         let new_search = search;
         if(search === ""){
@@ -355,6 +395,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onCommentSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         let new_search = search;
         if(search === ""){
             new_search = "_";
@@ -373,6 +419,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onCommandSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         let new_search = search;
         if(search === ""){
             new_search = "_";
@@ -389,8 +441,38 @@ export const SearchTabTasksPanel = (props) =>{
             status: "%" + newTaskStatus + "%"
         }})
     }
+    const onCommandAndParametersSearch = ({search, offset, taskStatus}) => {
+        //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
+        let new_search = search;
+        if(search === ""){
+            new_search = "_";
+        }
+        let newTaskStatus = taskStatus;
+        if(newTaskStatus === ""){
+            newTaskStatus = "_";
+        }
+        setSearch(search);
+        getCommandAndParametersSearch({variables:{
+                offset: offset,
+                fetchLimit: fetchLimit,
+                search: "%" + new_search + "%",
+                status: "%" + newTaskStatus + "%"
+            }})
+    }
     const onTagSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         let new_search = search;
         if(search === ""){
             new_search = "_";
@@ -409,6 +491,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onCallbackIDSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         try{
             let new_search = parseInt(search);
             if(isNaN(new_search)){
@@ -434,6 +522,12 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onCallbackGroupSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
+        if(alreadySearching.current){
+            snackActions.info("Still searching, please wait for it to finish");
+            return;
+        } else {
+            alreadySearching.current = true;
+        }
         let new_search = search;
         if(search === ""){
             new_search = "_";
@@ -465,6 +559,9 @@ export const SearchTabTasksPanel = (props) =>{
             case "Command":
                 onCommandSearch({search, offset: (value - 1) * fetchLimit, taskStatus });
                 break;
+            case "Command and Parameters":
+                onCommandAndParametersSearch({search, offset: (value - 1) * fetchLimit, taskStatus});
+                break;
             case "Tag":
                 onTagSearch({search, offset: (value-1) *fetchLimit, taskStatus});
                 break;
@@ -486,19 +583,26 @@ export const SearchTabTasksPanel = (props) =>{
                 onOutputSearch={onOutputSearch} value={props.value} index={props.index} onChangeTaskStatus={onChangeTaskStatus}
                 onTagSearch={onTagSearch}
                 onCallbackIDSearch={onCallbackIDSearch} onCallbackGroupSearch={onCallbackGroupSearch}
+                onCommandAndParametersSearch={onCommandAndParametersSearch}
                 onParameterSearch={onParameterSearch} onCommentSearch={onCommentSearch} changeSearchParam={props.changeSearchParam}/>
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 
                 {
                     taskingData.task.length > 0 ? (
                         taskingData.task.map( (task) => (
-                            <TaskDisplay key={"taskinteractdisplay" + task.id} me={props.me} task={task} command_id={task.command == null ? 0 : task.command.id} />
+                            task.is_interactive_task ? (
+                                <TaskDisplayInteractiveSearch key={"taskinteractdisplay" + task.id} me={props.me} task={task} responsesSurrounding={5} />
+                                ) : (
+                                    <TaskDisplay key={"taskinteractdisplay" + task.id} me={props.me} task={task} command_id={task.command == null ? 0 : task.command.id} />
+                            )
+
+
                         ))
                     ) : (<div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>No Search Results</div>)
                 }
             </div>
             <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}}>
-            <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="primary" boundaryCount={1}
+            <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info" boundaryCount={1}
                     siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
                 <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
             </div>

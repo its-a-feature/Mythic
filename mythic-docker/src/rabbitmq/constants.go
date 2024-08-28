@@ -26,6 +26,7 @@ const (
 	// Result of informing a container of a new callback based on its payload type
 	// 		send PTOnNewCallbackResponse to this route
 	PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY = "pt_on_new_callback_response"
+	PT_CHECK_IF_CALLBACKS_ALIVE_ROUTING_KEY = "pt_check_if_callbacks_alive"
 	//	Result of asking a container to build a new c2profile-only payload for hot-swapping c2s
 	//		send PayloadBuildC2Response to this route
 	PT_BUILD_C2_RESPONSE_ROUTING_KEY = "pt_c2_build_response"
@@ -47,9 +48,34 @@ const (
 	//		send C2SyncMessages to this route
 	C2_SYNC_ROUTING_KEY       = "c2_sync"
 	C2_RPC_RESYNC_ROUTING_KEY = "c2_rpc_resync"
+
 	// TR_SYNC_ROUTING_KEY
 	TR_SYNC_ROUTING_KEY       = "tr_sync"
 	TR_RPC_RESYNC_ROUTING_KEY = "tr_rpc_resync"
+
+	// CONSUMING_SERVICES_ROUTING_KEY
+	CONSUMING_CONTAINER_SYNC_ROUTING_KEY   = "consuming_container_sync"
+	CONSUMING_CONTAINER_RESYNC_ROUTING_KEY = "consuming_container_rpc_resync"
+
+	// EVENTING
+	EVENTING_CUSTOM_FUNCTION_RESPONSE    = "eventing_custom_function_response"
+	EVENTING_CUSTOM_FUNCTION             = "eventing_custom_function"
+	EVENTING_CONDITIONAL_CHECK_RESPONSE  = "eventing_conditional_check_response"
+	EVENTING_CONDITIONAL_CHECK           = "eventing_conditional_check"
+	EVENTING_TASK_INTERCEPT              = "eventing_task_intercept"
+	EVENTING_TASK_INTERCEPT_RESPONSE     = "eventing_task_intercept_response"
+	EVENTING_RESPONSE_INTERCEPT          = "eventing_response_intercept"
+	EVENTING_RESPONSE_INTERCEPT_RESPONSE = "eventing_response_intercept_response"
+	// AUTH
+	AUTH_RPC_GET_IDP_REDIRECT        = "auth_rpc_get_idp_redirect"
+	AUTH_RPC_PROCESS_IDP_RESPONSE    = "auth_rpc_process_idp_response"
+	AUTH_RPC_GET_IDP_METADATA        = "auth_rpc_get_idp_metadata"
+	AUTH_RPC_GET_NONIDP_REDIRECT     = "auth_rpc_get_nonidp_redirect"
+	AUTH_RPC_PROCESS_NONIDP_RESPONSE = "auth_rpc_process_nonidp_response"
+	AUTH_RPC_GET_NONIDP_METADATA     = "auth_rpc_get_nonidp_metadata"
+
+	CONTAINER_ON_START          = "container_on_start"
+	CONTAINER_ON_START_RESPONSE = "container_on_start_response"
 )
 
 // Direct fanout rabbitmq routes where the container is consuming messages and responding back to Mythic, but others can also listen in and consume.
@@ -105,13 +131,13 @@ const (
 	//
 	C2_RPC_HOST_FILE = "c2_rpc_host_file"
 	//
-	C2_RPC_GET_FILE = "c2_rpc_get_file"
+	CONTAINER_RPC_GET_FILE = "container_rpc_get_file"
 	//
-	C2_RPC_REMOVE_FILE = "c2_rpc_remove_file"
+	CONTAINER_RPC_REMOVE_FILE = "container_rpc_remove_file"
 	//
-	C2_RPC_LIST_FILE = "c2_rpc_list_file"
+	CONTAINER_RPC_LIST_FILE = "container_rpc_list_file"
 	//
-	C2_RPC_WRITE_FILE = "c2_rpc_write_file"
+	CONTAINER_RPC_WRITE_FILE = "container_rpc_write_file"
 	//
 	TR_RPC_GENERATE_KEYS = "tr_rpc_generate_keys"
 	//
@@ -159,6 +185,7 @@ const (
 	MYTHIC_RPC_CALLBACK_SEARCH                    = "mythic_rpc_callback_search"
 	MYTHIC_RPC_CALLBACK_EDGE_SEARCH               = "mythic_rpc_callback_edge_search"
 	MYTHIC_RPC_CALLBACK_DISPLAY_TO_REAL_ID_SEARCH = "mythic_rpc_callback_display_to_real_id_search"
+	MYTHIC_RPC_CALLBACK_NEXT_CHECKIN_RANGE        = "mythic_rpc_callback_next_checkin_range"
 	MYTHIC_RPC_CALLBACK_ADD_COMMAND               = "mythic_rpc_callback_add_command"
 	MYTHIC_RPC_CALLBACK_REMOVE_COMMAND            = "mythic_rpc_callback_remove_command"
 	MYTHIC_RPC_CALLBACK_SEARCH_COMMAND            = "mythic_rpc_callback_search_command"
@@ -184,8 +211,9 @@ const (
 	// MYTHIC_RPC_EVENTLOG_CREATE event log operations
 	MYTHIC_RPC_EVENTLOG_CREATE = "mythic_rpc_eventlog_create"
 	// MYTHIC_RPC_FILEBROWSER_CREATE filebrowser operations
-	MYTHIC_RPC_FILEBROWSER_CREATE = "mythic_rpc_filebrowser_create"
-	MYTHIC_RPC_FILEBROWSER_REMOVE = "mythic_rpc_filebrowser_remove"
+	MYTHIC_RPC_FILEBROWSER_CREATE     = "mythic_rpc_filebrowser_create"
+	MYTHIC_RPC_FILEBROWSER_REMOVE     = "mythic_rpc_filebrowser_remove"
+	MYTHIC_RPC_FILEBROWSER_PARSE_PATH = "mythic_rpc_filebrowser_parse_path"
 	// MYTHIC_RPC_PAYLOADONHOST_CREATE payload on host operations
 	MYTHIC_RPC_PAYLOADONHOST_CREATE = "mythic_rpc_payloadonhost_create"
 	// MYTHIC_RPC_CALLBACKTOKEN_CREATE callback token operations
@@ -197,6 +225,8 @@ const (
 	// MYTHIC_RPC_PROXY_START proxy operations
 	MYTHIC_RPC_PROXY_START = "mythic_rpc_proxy_start"
 	MYTHIC_RPC_PROXY_STOP  = "mythic_rpc_proxy_stop"
+	//
+	MYTHIC_RPC_APITOKEN_CREATE = "mythic_rpc_apitoken_create"
 	// MYTHIC_RPC_BLANK blank
 	MYTHIC_RPC_BLANK = "mythic_rpc_blank"
 )

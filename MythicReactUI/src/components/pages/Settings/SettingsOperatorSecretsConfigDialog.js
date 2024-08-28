@@ -9,16 +9,14 @@ import TableHead from '@mui/material/TableHead';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
-import Paper from '@mui/material/Paper';
 import {snackActions} from "../../utilities/Snackbar";
 import {useMutation, useQuery, gql} from '@apollo/client';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
-import {meState} from "../../../cache";
 
 const getCurrentSecrets = gql`
-query gettingOperatorSecrets {
-    getOperatorSecrets {
+query gettingOperatorSecrets($operator_id: Int) {
+    getOperatorSecrets(operator_id: $operator_id) {
         status
         error
         secrets
@@ -26,8 +24,8 @@ query gettingOperatorSecrets {
 }
 `;
 const updateCurrentSecrets = gql`
-mutation updateOperatorSecrets( $secrets: jsonb! ){
-    updateOperatorSecrets(secrets: $secrets){
+mutation updateOperatorSecrets( $secrets: jsonb!, $operator_id: Int ){
+    updateOperatorSecrets(secrets: $secrets, operator_id: $operator_id){
         status
         error
     }
@@ -57,9 +55,10 @@ export function SettingsOperatorSecretsConfigDialog(props) {
                 newSettings[settings[i][0].trim()] = settings[i][1].trim();
             }
         }
-        updateSettings({variables: {secrets: newSettings}});
+        updateSettings({variables: {secrets: newSettings, operator_id: props.id}});
     }
     useQuery(getCurrentSecrets, {fetchPolicy: "no-cache",
+        variables: {operator_id: props.id},
         onCompleted: (data) => {
             if(data.getOperatorSecrets.status === "success"){
                 let tempSettings = [];
@@ -105,7 +104,7 @@ export function SettingsOperatorSecretsConfigDialog(props) {
         <DialogContent dividers={true} >
             These secrets are sent down with tasking to allow per-operator authentication if needed during a tasks' processing.
         </DialogContent>
-        <TableContainer component={Paper} className="mythicElement">
+        <TableContainer className="mythicElement">
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableHead>
                 <TableRow>
@@ -129,7 +128,7 @@ export function SettingsOperatorSecretsConfigDialog(props) {
                       </TableRow>
                   ))}
                   <TableRow>
-                      <TableCell>
+                      <TableCell colSpan={2}>
                           <AddCircleOutlineOutlinedIcon color={"success"} style={{cursor: "pointer"}} onClick={addSecret} />
                       </TableCell>
                       <TableCell>

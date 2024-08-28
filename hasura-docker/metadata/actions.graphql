@@ -25,12 +25,6 @@ type Query {
   ): C2SampleMessageOutput
 }
 
-type Query {
-  c2profileListFiles(
-    id: Int!
-  ): c2ProfileListFilesOutput
-}
-
 type Mutation {
   callbackgraphedge_add(
     source_id: Int!
@@ -63,9 +57,39 @@ type Mutation {
   ): consumingServicesTestOutput
 }
 
+type Query {
+  containerDownloadFile(
+    container_name: String!
+    filename: String!
+  ): ContainerFile
+}
+
+type Query {
+  containerListFiles(
+    container_name: String!
+  ): containerListFilesOutput
+}
+
+type Mutation {
+  containerRemoveFile(
+    container_name: String!
+    filename: String!
+  ): containerRemoveFileOutput
+}
+
+type Mutation {
+  containerWriteFile(
+    container_name: String!
+    file_path: String!
+    data: String!
+  ): containerWriteFileOutput
+}
+
 type Mutation {
   createAPIToken(
     token_type: String!
+    operator_id: Int
+    name: String
   ): createAPITokenResponse!
 }
 
@@ -84,6 +108,10 @@ type Mutation {
     comment: String
     credential_type: String!
   ): createCredentialOutput
+}
+
+type Mutation {
+  createInviteLink: createInviteLinkOutput
 }
 
 type Mutation {
@@ -121,6 +149,7 @@ type Mutation {
 type Mutation {
   createTask(
     command: String!
+    payload_type: String
     params: String!
     files: [String]
     callback_id: Int
@@ -144,6 +173,12 @@ type Mutation {
 }
 
 type Mutation {
+  deleteAPIToken(
+    apitokens_id: Int!
+  ): deleteAPITokenOutput
+}
+
+type Mutation {
   deleteBlockList(
     name: String!
   ): deleteBlockListOutput
@@ -163,6 +198,12 @@ type Mutation {
 }
 
 type Mutation {
+  deleteInviteLink(
+    code: String!
+  ): deleteInviteLinkOutput
+}
+
+type Mutation {
   deleteTagtype(
     id: Int!
   ): deleteTagtypeOutput
@@ -173,13 +214,6 @@ type Mutation {
     tasks: [Int]
     callbacks: [Int]
   ): deleteTasksAndCallbacksOutput
-}
-
-type Query {
-  downloadContainerFile(
-    id: Int
-    filename: String!
-  ): ContainerFile
 }
 
 type Mutation {
@@ -198,13 +232,65 @@ type Mutation {
 }
 
 type Query {
+  eventingTestFile(
+    file_contents: String!
+  ): eventingTestFileOutput
+}
+
+type Mutation {
+  eventingTriggerCancel(
+    eventgroupinstance_id: Int!
+  ): eventingTriggerCancelOutput
+}
+
+type Mutation {
+  eventingTriggerKeyword(
+    keyword: String!
+    keywordEnvData: jsonb!
+  ): eventingTriggerKeywordOutput
+}
+
+type Mutation {
+  eventingTriggerManual(
+    eventgroup_id: Int!
+  ): eventingTriggerManualOutput
+}
+
+type Mutation {
+  eventingTriggerRetry(
+    eventgroupinstance_id: Int!
+  ): eventingTriggerRetryOutput
+}
+
+type Mutation {
+  eventingTriggerRetryFromStep(
+    eventstepinstance_id: Int!
+    retry_all_groups: Boolean
+  ): eventingTriggerRetryFromStepOutput
+}
+
+type Mutation {
+  eventingTriggerRunAgain(
+    eventgroupinstance_id: Int!
+  ): eventingTriggerRunAgainOutput
+}
+
+type Mutation {
+  eventingTriggerUpdate(
+    eventgroup_id: Int!
+    active: Boolean
+    deleted: Boolean
+  ): eventingTriggerUpdateOutput
+}
+
+type Query {
   exportCallbackConfig(
     agent_callback_id: String!
   ): exportCallbackConfigOutput
 }
 
 type Query {
-  export_payload_config(
+  exportPayloadConfig(
     uuid: String!
   ): PayloadConfig
 }
@@ -226,7 +312,13 @@ type Query {
 }
 
 type Query {
-  getOperatorSecrets: getOperatorSecretsOutput
+  getInviteLinks: getInviteLinksOutput
+}
+
+type Query {
+  getOperatorSecrets(
+    operator_id: Int
+  ): getOperatorSecretsOutput
 }
 
 type Query {
@@ -290,13 +382,6 @@ type Mutation {
 }
 
 type Mutation {
-  removeContainerFile(
-    id: Int!
-    filename: String!
-  ): removeContainerFileOutput
-}
-
-type Mutation {
   requestOpsecBypass(
     task_id: Int!
   ): BypassOutput
@@ -314,6 +399,12 @@ type Mutation {
     id: Int!
     action: String
   ): startStopOutput
+}
+
+type Mutation {
+  testProxy(
+    callbackport_id: Int!
+  ): testProxyOutput
 }
 
 type Mutation {
@@ -344,6 +435,13 @@ type Mutation {
     user_id: Int!
     operation_id: Int!
   ): updateCurrentOperationOutput
+}
+
+type Mutation {
+  updateEventGroupApproval(
+    eventgroupapproval_id: Int!
+    approved: Boolean!
+  ): updateEventGroupApprovalOutput
 }
 
 type Mutation {
@@ -378,6 +476,7 @@ type Mutation {
 type Mutation {
   updateOperatorSecrets(
     secrets: jsonb!
+    operator_id: Int
   ): updateOperatorSecretsOutput
 }
 
@@ -391,24 +490,19 @@ type Mutation {
 }
 
 type Mutation {
-  updatePassword(
+  updatePasswordAndEmail(
     user_id: Int!
-    new_password: String!
+    new_password: String
     old_password: String
+    email: String
   ): passwordUpdateOutput
-}
-
-type Mutation {
-  uploadContainerFile(
-    id: Int!
-    file_path: String!
-    data: String!
-  ): uploadContainerOutput
 }
 
 input OperatorInput {
   username: String!
-  password: String!
+  password: String
+  email: String
+  bot: Boolean
 }
 
 input CreatePayloadInput {
@@ -432,6 +526,7 @@ input updateCallbackInput {
   process_name: String
   integrity_level: Int
   domain: String
+  dead: Boolean
 }
 
 input DictionaryEntry {
@@ -480,6 +575,9 @@ type createAPITokenResponse {
   error: String
   id: Int
   operator_id: Int
+  name: String
+  created_by: Int
+  token_type: String
 }
 
 type OperatorOutput {
@@ -498,6 +596,8 @@ type OperatorOutput {
   ui_config: String
   failed_login_count: Int
   last_failed_login_timestamp: String
+  account_type: String
+  email: String
 }
 
 type createPayloadOutput {
@@ -630,6 +730,8 @@ type deletionOutput {
 type passwordUpdateOutput {
   status: String!
   error: String
+  email: String
+  operator_id: Int
 }
 
 type updateCurrentOperationOutput {
@@ -666,6 +768,10 @@ type generateReportOutput {
 type previewFileOutput {
   status: String!
   error: String
+  size: Int
+  host: String
+  full_remote_path: String
+  filename: String
   contents: String
 }
 
@@ -845,6 +951,7 @@ type globalSettingsOutput {
 type exportCallbackConfigOutput {
   status: String!
   error: String
+  agent_callback_id: String
   config: String
 }
 
@@ -857,9 +964,117 @@ type getOperatorSecretsOutput {
   status: String!
   error: String
   secrets: jsonb
+  operator_id: Int
 }
 
 type updateOperatorSecretsOutput {
+  status: String!
+  error: String
+}
+
+type eventingManualTriggerOutput {
+  status: String!
+  error: String
+}
+
+type eventingTriggerManualOutput {
+  status: String!
+  error: String
+}
+
+type updateEventGroupApprovalOutput {
+  status: String!
+  error: String
+}
+
+type eventingTriggerCancelOutput {
+  status: String!
+  error: String
+}
+
+type deleteAPITokenOutput {
+  status: String!
+  error: String
+  id: Int
+  name: String
+  operator_id: Int
+}
+
+type eventingTriggerKeywordOutput {
+  status: String!
+  error: String
+}
+
+type eventingTriggerRetryOutput {
+  status: String!
+  error: String
+}
+
+type eventingTriggerRunAgainOutput {
+  status: String!
+  error: String
+}
+
+type eventingTriggerUpdateOutput {
+  status: String!
+  error: String
+  active: Boolean
+  deleted: Boolean
+}
+
+type createInviteLinkOutput {
+  status: String!
+  error: String
+  link: String
+}
+
+type getInviteLinksOutput {
+  status: String!
+  error: String
+  links: jsonb
+}
+
+type deleteInviteLinkOutput {
+  status: String!
+  error: String
+}
+
+type containerRemoveFileOutput {
+  status: String!
+  error: String
+}
+
+type containerListFilesOutput {
+  status: String!
+  error: String
+  files: [String]
+}
+
+type containerUploadFileOutput {
+  status: String!
+  error: String
+  filename: String
+  version: String
+}
+
+type containerWriteFileOutput {
+  status: String!
+  error: String
+  filename: String
+  version: String
+}
+
+type eventingTriggerRetryFromStepOutput {
+  status: String!
+  error: String
+}
+
+type testProxyOutput {
+  status: String!
+  error: String
+}
+
+type eventingTestFileOutput {
   status: String!
   error: String
 }

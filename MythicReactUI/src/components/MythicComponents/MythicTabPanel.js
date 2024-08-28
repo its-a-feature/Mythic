@@ -2,7 +2,6 @@ import { IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import Tab from '@mui/material/Tab';
 import React from 'react';
-import { useCallback } from 'react';
 import Grow from '@mui/material/Grow';
 import Popper from '@mui/material/Popper';
 import MenuItem from '@mui/material/MenuItem';
@@ -103,6 +102,7 @@ export function MythicTabLabel(props) {
         onEditTabDescription,
         getCallbackData,
         onDragTab,
+        selectedIndex,
         ...other
     } = props;
     const onClick = (e) => {
@@ -135,6 +135,7 @@ export function MythicTabLabel(props) {
             onDragEnter={onDragEnter}
             onDragLeave={onDragLeave}
             draggable={!!onDragTab}
+            className={selectedIndex === index ? "selectedCallback" : "" }
             onDragStart={drag}
             label={
                 <span onContextMenu={handleContextClick} style={{ display: 'inline-block', zIndex: 1}} ref={dropdownAnchorRef}>
@@ -150,7 +151,7 @@ export function MythicTabLabel(props) {
                         transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                       }}
                     >
-                      <Paper variant="outlined" style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light, color: "white"}}>
+                      <Paper variant="outlined" className={"dropdownMenuColored"}>
                         <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
                           <MenuList id="split-button-menu"  >
                             {contextMenuOptions.map((option, index) => (
@@ -172,7 +173,7 @@ export function MythicTabLabel(props) {
             
             {...a11yProps(index)}
             {...other}
-            style={{padding: "0px 5px 0px 5px"}}
+            style={{padding: "0px 5px 0px 5px", borderRadius: "4px", margin: 0}}
         />
     );
 }

@@ -1,15 +1,13 @@
 import React from 'react';
-import {previewFileQuery} from "../pages/Search/FileMetaTable";
 import {snackActions} from "../utilities/Snackbar";
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
-import hexFile from "../../assets/file_bin.png";
-import txtFile from "../../assets/file_txt.png";
 import {MythicDialog} from "./MythicDialog";
-import {PreviewFileStringDialog} from "../pages/Search/PreviewFileStringDialog";
-import {PreviewFileHexDialog} from "../pages/Search/PreviewFileHexDialog";
 import {Link} from '@mui/material';
 import {useMutation, useLazyQuery, gql} from '@apollo/client';
 import {b64DecodeUnicode} from "../pages/Callbacks/ResponseDisplay";
+import {PreviewFileMediaDialog} from "../pages/Search/PreviewFileMedia";
+import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 
 export const getfileInformationQuery = gql`
 query getFileInformation($file_id: String!){
@@ -25,50 +23,13 @@ export const MythicFileContext = ({agent_file_id, display_link, filename}) => {
         display_link: display_link,
         filename: filename,
     })
-    const [openPreviewStringsDialog, setOpenPreviewStringsDialog] = React.useState(false);
-    const [openPreviewHexDialog, setOpenPreviewHexDialog] = React.useState(false);
-    const [fileContents, setFileContents] = React.useState('');
-    const [previewFileString] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setFileContents(data.previewFile.contents);
-                setOpenPreviewStringsDialog(true);
-            }else{
-                snackActions.error(data.previewFile.error)
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
-        }
-    });
-    const [previewFileHex] = useMutation(previewFileQuery, {
-        onCompleted: (data) => {
-            if(data.previewFile.status === "success"){
-                setFileContents(data.previewFile.contents);
-                setOpenPreviewHexDialog(true);
-            }else{
-                snackActions.error(data.previewFile.error)
-            }
-        },
-        onError: (data) => {
-            console.log(data);
-            snackActions.error(data);
-        }
-    });
-    const onPreviewStrings = (event) => {
+    const [openPreviewMediaDialog, setOpenPreviewMediaDialog] = React.useState(false);
+    const onPreviewMedia = (event) => {
         if(event){
             event.preventDefault();
             event.stopPropagation();
         }
-        previewFileString({variables: {file_id: fileData.agent_file_id}})
-    }
-    const onPreviewHex = (event) => {
-        if(event){
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        previewFileHex({variables: {file_id: fileData.agent_file_id}})
+        setOpenPreviewMediaDialog(true);
     }
     const [getFileInformation] = useLazyQuery(getfileInformationQuery, {
         onCompleted: (data) => {
@@ -92,31 +53,20 @@ export const MythicFileContext = ({agent_file_id, display_link, filename}) => {
     }, [filename]);
     return (
         <>
-            <MythicStyledTooltip title={"Preview HEX XXD"}>
-                <img src={hexFile} alt={"preview hex"} style={{height: "35px", cursor: "pointer"}}
-                     onClick={onPreviewHex}/>
-            </MythicStyledTooltip>
-            <MythicStyledTooltip title={"Preview Strings"}>
-                <img src={txtFile} alt={"preview strings"} style={{height: "35px", cursor: "pointer"}}
-                     onClick={onPreviewStrings} />
+            <MythicStyledTooltip title={"Preview Media"}>
+                <FontAwesomeIcon icon={faPhotoVideo} style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
+                                 onClick={onPreviewMedia} />
             </MythicStyledTooltip>
             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + fileData.agent_file_id}>
                 {fileData.display_link === "" ? window.location.origin + "/direct/download/" + fileData.agent_file_id : fileData.display_link}
             </Link>
-            {openPreviewStringsDialog &&
-                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewStringsDialog}
-                              onClose={()=>{setOpenPreviewStringsDialog(false);}}
-                              innerDialog={<PreviewFileStringDialog onClose={()=>{setOpenPreviewStringsDialog(false);}}
-                                                                    filename={fileData.filename} contents={fileContents}
-                              />}
-                />
-            }
-            {openPreviewHexDialog &&
-                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewHexDialog}
-                              onClose={()=>{setOpenPreviewHexDialog(false);}}
-                              innerDialog={<PreviewFileHexDialog onClose={()=>{setOpenPreviewHexDialog(false);}}
-                                                                 filename={fileData.filename} contents={fileContents}
-                              />}
+            {openPreviewMediaDialog &&
+                <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
+                              onClose={(e)=>{setOpenPreviewMediaDialog(false);}}
+                              innerDialog={<PreviewFileMediaDialog
+                                  agent_file_id={fileData.agent_file_id}
+                                  filename={fileData.filename}
+                                  onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
                 />
             }
         </>

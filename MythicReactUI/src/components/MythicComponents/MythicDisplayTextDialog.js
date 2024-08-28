@@ -4,7 +4,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {MythicDialog} from './MythicDialog';
-import MythicTextField from './MythicTextField';
 
 export function MythicDisplayTextDialog(props) {
   return (
@@ -12,7 +11,9 @@ export function MythicDisplayTextDialog(props) {
         <React.Fragment>
             <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
             <DialogContent dividers={true}>
-                <MythicTextField multiline={true} value={props.value} onChange={()=>{}} />
+                <pre style={{whiteSpace: "pre-wrap"}}>
+                    {props.value}
+                </pre>
             </DialogContent>
             <DialogActions>
               <Button onClick={props.onClose} variant="contained" color="primary">

@@ -27,59 +27,64 @@ func FileDirectUploadWebhook(c *gin.Context) {
 			"status": "error",
 			"error":  "Missing file in form",
 		})
+		return
 	}
 	filemeta := databaseStructs.Filemeta{}
-	if err := database.DB.Get(&filemeta, `SELECT
+	err = database.DB.Get(&filemeta, `SELECT
 		"path", id
 		FROM
 		filemeta
-		WHERE agent_file_id=$1`, agentFileID); err != nil {
+		WHERE agent_file_id=$1`, agentFileID)
+	if err != nil {
 		logging.LogError(err, "Failed to find file in FileDirectUploadWebhook", "agentFileID", agentFileID)
 		c.JSON(http.StatusOK, gin.H{
 			"status": "error",
 			"error":  "Failed to find file",
 		})
 		return
-	} else if err = c.SaveUploadedFile(file, filemeta.Path); err != nil {
+	}
+	err = c.SaveUploadedFile(file, filemeta.Path)
+	if err != nil {
 		logging.LogError(err, "Failed to save file to disk")
 		c.JSON(http.StatusOK, gin.H{
 			"status": "error",
 			"error":  err.Error(),
 		})
 		return
-	} else if fileData, err := os.ReadFile(filemeta.Path); err != nil {
+	}
+	fileData, err := os.ReadFile(filemeta.Path)
+	if err != nil {
 		logging.LogError(err, "Failed to read new file off of disk")
 		c.JSON(http.StatusOK, gin.H{
 			"status": "error",
 			"error":  err.Error(),
 		})
 		return
+	}
+	filemeta.ChunkSize = len(fileData)
+	filemeta.TotalChunks = 1
+	filemeta.ChunksReceived = 1
+	filemeta.Md5 = mythicCrypto.HashMD5(fileData)
+	filemeta.Sha1 = mythicCrypto.HashSha1(fileData)
+	fileDisk, err := os.Stat(filemeta.Path)
+	if err != nil {
+		logging.LogError(err, "Failed to write file to disk")
 	} else {
-		filemeta.ChunkSize = len(fileData)
-		filemeta.TotalChunks = 1
-		filemeta.ChunksReceived = 1
-		filemeta.Md5 = mythicCrypto.HashMD5(fileData)
-		filemeta.Sha1 = mythicCrypto.HashSha1(fileData)
-		fileDisk, err := os.Stat(filemeta.Path)
-		if err != nil {
-			logging.LogError(err, "Failed to write file to disk")
-		} else {
-			filemeta.Size = fileDisk.Size()
-		}
-		if _, err := database.DB.NamedExec(`UPDATE filemeta SET
+		filemeta.Size = fileDisk.Size()
+	}
+	_, err = database.DB.NamedExec(`UPDATE filemeta SET
 				chunk_size=:chunk_size, md5=:md5, sha1=:sha1, total_chunks=:total_chunks, chunks_received=:chunks_received, complete=true, size=:size
 				WHERE id=:id`,
-			filemeta); err != nil {
-			logging.LogError(err, "Failed to save metadata to database")
-			c.JSON(http.StatusOK, gin.H{
-				"status": "error",
-				"error":  err.Error(),
-			})
-			return
-		} else {
-			c.JSON(http.StatusOK, gin.H{"status": "success", "agent_file_id": agentFileID})
-			return
-		}
+		filemeta)
+	if err != nil {
+		logging.LogError(err, "Failed to save metadata to database")
+		c.JSON(http.StatusOK, gin.H{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
 	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "agent_file_id": agentFileID})
+	return
 
 }

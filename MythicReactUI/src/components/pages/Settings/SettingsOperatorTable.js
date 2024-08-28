@@ -1,16 +1,15 @@
 import React from 'react';
-import {Button} from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-import { SettingsOperatorTableRow } from './SettingsOperatorTableRow';
+import {
+    SettingsOperatorTableRow,
+} from './SettingsOperatorTableRow';
 import Typography from '@mui/material/Typography';
-import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
-import { SettingsOperatorDialog } from './SettingsOperatorDialog';
+import { SettingsOperatorDialog, SettingsBotDialog } from './SettingsOperatorDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {snackActions} from '../../utilities/Snackbar';
 import {useTheme} from '@mui/material/styles';
@@ -20,30 +19,52 @@ import TuneIcon from '@mui/icons-material/Tune';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { IconButton } from '@mui/material';
 import {SettingsGlobalDialog} from "./SettingsGlobalDialog";
+import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import SearchIcon from '@mui/icons-material/Search';
+import {SettingsOperatorAPITokenSearchDialog} from "./SettingsOperatorAPITokenSearchDialog";
+import ForwardToInboxTwoToneIcon from '@mui/icons-material/ForwardToInboxTwoTone';
+import {InviteLinksDialog} from "./InviteLinksDialog";
+
 
 
 export function SettingsOperatorTable(props){
     const theme = useTheme();
     const [openNew, setOpenNewDialog] = React.useState(false);
-    const onSubmitNewOperator = (id, username, passwordOld, passwordNew) => {
+    const [openNewBot, setOpenNewBotDialog] = React.useState(false);
+    const [openAPITokenSearch, setOpenAPITokenSearch] = React.useState(false);
+    const onSubmitNewOperator = (id, username, passwordOld, passwordNew, email) => {
+        if(passwordNew.length === 0){
+            snackActions.error("Password must not be empty");
+        }
         if(passwordOld !== passwordNew){
             snackActions.error("Passwords don't match");
-        }else if(passwordNew.length === 0){
-            snackActions.error("Password must not be empty",);
-        }else if(username.length === 0){
-            snackActions.error("Username must not be empty",);
+        }
+        if(username.length === 0){
+            snackActions.error("Username must not be empty");
+            return
         }else{
-            props.onNewOperator(username, passwordNew);
+            props.onNewOperator(username, passwordNew, email);
             setOpenNewDialog(false);
         }
+    }
+    const onSubmitNewBot = (id, username) => {
+        if(username.length === 0){
+            snackActions.error("Username must not be empty")
+            return;
+        }
+        props.onNewBot(username);
+        setOpenNewBotDialog(false);
     }
     const userData = props.operators.filter(o => o.id === (props.me?.user?.id || 0))
     const userIsAdmin = userData.length > 0 ? userData[0].admin : false;
     const [showDeleted, setShowDeleted] = React.useState(false);
     const [openGlobalSettingsDialog, setOpenGlobalSettingsDialog] = React.useState(false);
+    const [openInviteLinksDialog, setOpenInviteLinksDialog] = React.useState(false);
+
     return (
-        <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
+    <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginRight: "5px", marginLeft: "5px"}} variant={"elevation"}>
             <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Settings
             </Typography>
@@ -57,43 +78,87 @@ export function SettingsOperatorTable(props){
                 <MythicStyledTooltip title={"Hide Deleted Operators"} style={{float: "right"}}>
                     <IconButton size="small" style={{float: "right", marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
                 </MythicStyledTooltip>
-
             ) : (
                 <MythicStyledTooltip title={"Show Deleted Operators"} style={{float: "right"}}>
                     <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                 </MythicStyledTooltip>
             )}
             {openGlobalSettingsDialog &&
-                <MythicDialog open={openGlobalSettingsDialog} size={"lg"} fullWidth
+                <MythicDialog open={openGlobalSettingsDialog} fullWidth={true} maxWidth={"md"}
                               onClose={()=>{setOpenGlobalSettingsDialog(false);}}
                               innerDialog={<SettingsGlobalDialog
                                   onClose={()=>{setOpenGlobalSettingsDialog(false);}}  />}
                 />
             }
+            <MythicStyledTooltip title={"Search for API Tokens"}  style={{float: "right", marginRight: "5px",}} >
+                <IconButton size={"small"} style={{float: "right",  marginTop: "5px"}} variant="contained"
+                onClick={() => setOpenAPITokenSearch(true)}>
+                    <SearchIcon />
+                </IconButton>
+            </MythicStyledTooltip>
+            {openAPITokenSearch &&
+                <MythicDialog open={openAPITokenSearch} maxWidth={"xl"} fullWidth={true}
+                              onClose={()=>{setOpenAPITokenSearch(false);}}
+                              innerDialog={<SettingsOperatorAPITokenSearchDialog
+                                  onClose={()=>{setOpenAPITokenSearch(false);}}  />}
+                />
+            }
+            <MythicStyledTooltip title={"Create new Bot account"} style={{float: "right", marginLeft: "5px"}}>
+                <IconButton size={"small"} style={{float: "right",  marginTop: "5px"}}
+                            onClick={()=>{setOpenNewBotDialog(true);}}  variant="contained">
+                    <SmartToyTwoToneIcon />
+                </IconButton>
+            </MythicStyledTooltip>
+            <MythicStyledTooltip title={"Create new user account"} style={{float: "right", marginLeft: "5px"}}>
+                <IconButton size="small" onClick={()=>{setOpenNewDialog(true);}} style={{float: "right", marginTop: "5px"}} variant="contained">
+                    <PersonAddIcon/>
+                </IconButton>
+            </MythicStyledTooltip>
+            <MythicStyledTooltip title={"Manage Invite Links"} style={{float: "right", marginLeft: "5px"}}>
+                <IconButton size={"small"}  onClick={()=>{setOpenInviteLinksDialog(true);}} variant={"contained"} style={{float: "right", marginTop: "5px"}}>
+                    <ForwardToInboxTwoToneIcon />
+                </IconButton>
+            </MythicStyledTooltip>
+            {openInviteLinksDialog &&
+                <MythicDialog open={openInviteLinksDialog} maxWidth={"xl"} fullWidth={true}
+                              onClose={()=>{setOpenInviteLinksDialog(false);}}
+                              innerDialog={<InviteLinksDialog
+                                  onClose={()=>{setOpenInviteLinksDialog(false);}}  />}
+                />
+            }
+            {openNew &&
+                <MythicDialog open={openNew}
+                              maxWidth={"md"}
+                              onClose={()=>{setOpenNewDialog(false);}}
+                              innerDialog={<SettingsOperatorDialog title="New Operator" onAccept={onSubmitNewOperator} handleClose={()=>{setOpenNewDialog(false);}}  {...props}/>}
+                />
+            }
+            {openNewBot &&
+                <MythicDialog open={openNewBot}
+                              maxWidth={"md"}
+                              fullWidth={true}
+                              onClose={()=>{setOpenNewBotDialog(false);}}
+                              innerDialog={<SettingsBotDialog title="New Bot Account" onAccept={onSubmitNewBot} handleClose={()=>{setOpenNewBotDialog(false);}}  {...props}/>}
+                />
+            }
         </Paper>
-        <TableContainer component={Paper} className="mythicElement">   
-            <Button size="small" onClick={()=>{setOpenNewDialog(true);}} style={{float: "right"}} startIcon={<AddCircleOutlineOutlinedIcon/>} color="success" variant="contained">New Operator</Button>
-            <MythicDialog open={openNew} 
-                onClose={()=>{setOpenNewDialog(false);}} 
-                innerDialog={<SettingsOperatorDialog title="New Operator" onAccept={onSubmitNewOperator} handleClose={()=>{setOpenNewDialog(false);}}  {...props}/>}
-            />
-            <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
-                <TableHead>
+        <div style={{display: "flex", flexGrow: 1, overflowY: "auto", alignItems: "flex-start"}}>
+            <Table stickyHeader size="small" style={{"tableLayout": "fixed",}}>
+                <TableHead >
                     <TableRow>
-                        <TableCell style={{width: "6rem"}}></TableCell>
+                        <TableCell style={{width: "3rem"}}></TableCell>
                         <TableCell >Username</TableCell>
-                        <TableCell style={{width: "6rem"}}>Login</TableCell>
+                        <TableCell style={{width: "4rem"}}>Login</TableCell>
                         <TableCell style={{width: "6rem"}}>Use UTC</TableCell>
                         <TableCell style={{width: "10rem"}}>Preferences</TableCell>
                         <TableCell style={{width: "6rem"}}>Active</TableCell>
-                        <TableCell >Last Login</TableCell>
-                        <TableCell >Creation Date</TableCell>
+                        <TableCell >Login Info</TableCell>
+                        <TableCell >Email</TableCell>
                         <TableCell style={{width: "6rem"}}>Admin</TableCell>
                         <TableCell style={{width: "6rem"}}>More...</TableCell>
                     </TableRow>
                 </TableHead>
-                <TableBody>
-                
+                <TableBody  >
                 {props.operators.map( (op) => (
                     (showDeleted || !op.deleted) &&
                         <SettingsOperatorTableRow
@@ -105,8 +170,6 @@ export function SettingsOperatorTable(props){
                             onDeleteOperator={props.onDeleteOperator}
                             onUsernameChanged={props.onUsernameChanged}
                             onPasswordChanged={props.onPasswordChanged}
-                            onDeleteAPIToken={props.onDeleteAPIToken}
-                            onCreateAPIToken={props.onCreateAPIToken}
                             key={"operator" + op.id}
                             {...op}
                         />
@@ -115,8 +178,8 @@ export function SettingsOperatorTable(props){
                 ))}
                 </TableBody>
             </Table>
-        </TableContainer>
-    </React.Fragment>
+        </div>
+    </div>
     )
 }
 

@@ -20,7 +20,7 @@ type PTOnNewCallbackResponse struct {
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
 		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      "mythic_consume_new_callback_response",
+		Queue:      PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
 		RoutingKey: PT_ON_NEW_CALLBACK_RESPONSE_ROUTING_KEY,
 		Handler:    processOnNewCallbackResponse,
 	})
@@ -48,7 +48,7 @@ func processOnNewCallbackResponse(msg amqp.Delivery) {
 			logging.LogError(err, "Failed to get payload from the database")
 			return
 		}
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to handle new callback processing for callback %d\n%s", databaseCallback.DisplayID, newCallbackResponse.Error),
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to handle onNewCallback processing for callback %d\n%s", databaseCallback.DisplayID, newCallbackResponse.Error),
 			databaseCallback.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 	}
 }

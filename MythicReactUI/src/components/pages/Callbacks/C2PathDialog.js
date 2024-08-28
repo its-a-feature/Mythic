@@ -344,7 +344,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
     </>
   );
 }
-const getSourcePosition = (direction) => {
+export const getSourcePosition = (direction) => {
     if(direction === "RIGHT"){
         return Position.Right
     } else if(direction === "LEFT"){
@@ -357,7 +357,7 @@ const getSourcePosition = (direction) => {
         return Position.Top
     }
 }
-const getTargetPosition = (direction) => {
+export const getTargetPosition = (direction) => {
     if(direction === "RIGHT"){
         return Position.Left
     } else if(direction === "LEFT"){
@@ -384,7 +384,7 @@ function AgentNode({data}) {
 
     }
     const additionalStyles = data?.selected ? {
-        boxShadow: `5px 5px 25px 5px ${theme.palette.info.main}, inset 0px 0px 60px 0px ${theme.palette.info.main}`,
+        boxShadow: `3px 3px 5px 0px ${theme.palette.secondary.main}, inset 0px 0px 60px 0px ${theme.palette.info.main}`,
         borderRadius: "20px"
     } : {};
     return (
@@ -436,7 +436,7 @@ function BrowserscriptNode({data}) {
         </div>
     )
 }
-function GroupNode({data}) {
+export function GroupNode({data}) {
     const sourcePosition = getSourcePosition(data["elk.direction"]);
     const targetPosition = getTargetPosition(data["elk.direction"]);
     return (
@@ -461,6 +461,9 @@ const getWidth = (node) => {
     if(node.type === "browserscriptNode"){
         return getBrowserscriptWidth(node);
     }
+    if(node.type === "eventNode"){
+        return getEventNodeWidth(node);
+    }
     return Math.max(100, node.data.label.length * 7);
 }
 const getTaskWidth = (node) => {
@@ -469,6 +472,9 @@ const getTaskWidth = (node) => {
         nodeText = getLabelText(node.data, true);
     }
     return Math.max(325, (nodeText.length * 8) + 10)
+}
+const getEventNodeWidth = (node) => {
+    return (node.maxNameLength * 8) + 10 + 100;
 }
 const getBrowserscriptWidth = (node) => {
     let nodeText = " ";
@@ -484,9 +490,12 @@ const getHeight = (node) => {
     if(node.hidden){
         return 0;
     }
+    if(node.type === "eventNode"){
+        return 20;
+    }
     return 80;
 }
-export default async function createLayout({initialGroups, initialNodes, initialEdges, alignment}) {
+export default async function createLayout({initialGroups, initialNodes, initialEdges, alignment, elkOverwrites}) {
     let elkAlignment = {
         "elk.alignment": "RIGHT" , //LEFT, RIGHT, TOP, BOTTOM, CENTER
         "elk.direction": "RIGHT" , //DOWN, LEFT, RIGHT, UP
@@ -501,6 +510,14 @@ export default async function createLayout({initialGroups, initialNodes, initial
             "elk.alignment": "BOTTOM", //LEFT, RIGHT, TOP, BOTTOM, CENTER
             "elk.direction": "DOWN", //DOWN, LEFT, RIGHT, UP
         }
+    }else if(alignment === "RL"){
+        elkAlignment = {
+            "elk.alignment": "RIGHT" , //LEFT, RIGHT, TOP, BOTTOM, CENTER
+            "elk.direction": "LEFT" , //DOWN, LEFT, RIGHT, UP
+        }
+    }
+    if(elkOverwrites === undefined){
+        elkOverwrites = {};
     }
     const options = {
         "elk.algorithm": "layered",
@@ -519,6 +536,7 @@ export default async function createLayout({initialGroups, initialNodes, initial
         "elk.layered.spacing.edgeEdgeBetweenLayers": 20,
         "elk.layered.spacing.edgeNodeBetweenLayers": 40,
         "elk.layered.spacing.baseValue": 40,
+        ...elkOverwrites
     }
     const graph = {
         id: "root",
@@ -878,7 +896,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
                         extent: shouldUseGroups(view_config) ? "parent" : null,
                         data: {
                             label: getLabel(node, view_config["label_components"]),
-                            img: "/static/" + node.payload.payloadtype.name + ".svg",
+                            img: "/static/" + node.payload.payloadtype.name + "_" + theme.palette.mode + ".svg",
                             isMythic: false,
                             callback_id: node.id,
                             display_id: node.display_id,
@@ -1345,7 +1363,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
             {openContextMenu &&
             <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
                 {contextMenu.map( (m) => (
-                    <Button key={m.title} variant={"contained"} className="context-menu-button" onClick={() => {
+                    <Button key={m.title} color={"info"} className="context-menu-button" onClick={() => {
                         m.onClick(contextMenuNode.current);
                         setOpenContextMenu(false);
                     }}>{m.title}</Button>
@@ -1649,7 +1667,7 @@ export const DrawTaskElementsFlow = ({edges, panel, view_config, theme, contextM
             {openContextMenu &&
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
                     {contextMenu.map( (m) => (
-                        <Button key={m.title} variant={"contained"} className="context-menu-button" onClick={() => {
+                        <Button key={m.title} color={"info"} className="context-menu-button" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>
@@ -2341,7 +2359,7 @@ const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contex
             {openContextMenu &&
                 <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
                     {localContextMenu.map( (m) => (
-                        <Button key={m?.key ? m.key : m.title} variant={"contained"} className="context-menu-button" onClick={() => {
+                        <Button key={m?.key ? m.key : m.title} color={"info"} className="context-menu-button" onClick={() => {
                             m.onClick(contextMenuNode.current);
                             setOpenContextMenu(false);
                         }}>{m.title}</Button>

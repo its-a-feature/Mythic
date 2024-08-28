@@ -23,6 +23,10 @@ type PreviewFileResponse struct {
 	Status         string `json:"status"`
 	Error          string `json:"error"`
 	Base64Contents string `json:"contents"`
+	Size           int64  `json:"size"`
+	Host           string `json:"host"`
+	FullRemotePath string `json:"full_remote_path"`
+	Filename       string `json:"filename"`
 }
 
 func PreviewFileWebhook(c *gin.Context) {
@@ -61,7 +65,7 @@ func PreviewFileWebhook(c *gin.Context) {
 	// set this for logging later
 	c.Set("file_id", input.Input.FileId)
 	err = database.DB.Get(&filemeta, `SELECT
-	path
+	path, id, operation_id, size, host, filename, full_remote_path
 	FROM filemeta 
 	WHERE
 	filemeta.agent_file_id=$1 AND filemeta.operation_id=$2 AND deleted=false
@@ -74,6 +78,7 @@ func PreviewFileWebhook(c *gin.Context) {
 		})
 		return
 	}
+	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypePreview)
 	file, err := os.Open(filemeta.Path)
 	if err != nil {
 		logging.LogError(err, "Failed to open file from disk")
@@ -85,20 +90,24 @@ func PreviewFileWebhook(c *gin.Context) {
 	}
 	defer file.Close()
 	content := make([]byte, 512000)
-	if bytesRead, err := file.Read(content); err != nil {
+	bytesRead, err := file.Read(content)
+	if err != nil {
 		logging.LogError(err, "Failed to read file from disk")
 		c.JSON(http.StatusOK, PreviewFileResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
-	} else {
-		base64Contents := base64.RawStdEncoding.EncodeToString(content[:bytesRead])
-		c.JSON(http.StatusOK, PreviewFileResponse{
-			Status:         "success",
-			Base64Contents: base64Contents,
-		})
-		return
 	}
+	base64Contents := base64.RawStdEncoding.EncodeToString(content[:bytesRead])
+	c.JSON(http.StatusOK, PreviewFileResponse{
+		Status:         "success",
+		Base64Contents: base64Contents,
+		Size:           filemeta.Size,
+		Host:           filemeta.Host,
+		Filename:       string(filemeta.Filename),
+		FullRemotePath: string(filemeta.FullRemotePath),
+	})
+	return
 
 }

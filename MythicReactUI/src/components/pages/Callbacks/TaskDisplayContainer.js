@@ -27,7 +27,6 @@ import {faExclamationTriangle} from '@fortawesome/free-solid-svg-icons';
 import { faExternalLinkAlt, faExpandArrowsAlt } from '@fortawesome/free-solid-svg-icons';
 import SearchIcon from '@mui/icons-material/Search';
 import SpeedDial from '@mui/material/SpeedDial';
-import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
 import { Backdrop } from '@mui/material';
 import {downloadFileFromMemory} from '../../utilities/Clipboard';
@@ -94,7 +93,7 @@ export const TaskDisplayContainer = ({task, me}) => {
               fabStyle={{   }}
               viewAllOutput={selectAllOutput}/>
             <Grid item xs={12}>
-              <ResponseDisplay 
+              <ResponseDisplay
                 task={task} 
                 me={me}
                 command_id={commandID} 
@@ -132,6 +131,7 @@ export const TaskDisplayContainerFlat = ({task, me}) => {
   return (
         <div style={{ height: "100%", position: "relative", display: "flex", flexDirection: "column", overflowY: "auto", }}>
             <ResponseDisplay
+                key={task.id}
                 task={task}
                 me={me}
                 command_id={commandID}
@@ -156,7 +156,7 @@ export const TaskDisplayContainerFlat = ({task, me}) => {
 }
 export const TaskDisplayContainerConsole = ({task, me}) => {
   const [viewBrowserScript, setViewBrowserScript] = React.useState(true);
-  const [commandID, setCommandID] = React.useState(0);
+  const [commandID, setCommandID] = React.useState(task?.command?.id || 0);
   const [searchOutput, setSearchOutput] = React.useState(false);
   const [selectAllOutput, setSelectAllOutput] = React.useState(false);
   const responseRef = React.useRef(null);

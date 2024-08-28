@@ -35,8 +35,8 @@ export function TaskFilesTable(props){
             </Typography>
         </Paper>
         
-        <Paper elevation={5} style={{position: "relative", backgroundColor: theme.body}} variant={"elevation"}>
-        <TableContainer component={Paper} className="mythicElement">
+        <Paper elevation={5} style={{position: "relative", backgroundColor: theme.body}}>
+        <TableContainer className="mythicElement">
           <Table  size="small" style={{ "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>

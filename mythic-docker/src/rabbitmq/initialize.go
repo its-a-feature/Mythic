@@ -2,8 +2,10 @@ package rabbitmq
 
 import (
 	"fmt"
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/grpc"
 	"sync"
 	"time"
@@ -78,9 +80,14 @@ func (r *rabbitMQConnection) startListeners() {
 	go checkContainerStatus()
 }
 
+var pushC2StreamingConnectNotification = make(chan int, 100)
+var pushC2StreamingDisconnectNotification = make(chan int, 100)
+
 func Initialize() {
 	RabbitMQConnection.channelMutexMap = make(map[string]*channelMutex)
+	go invalidateAllSpectatorAPITokens()
 	go listenForWriteDownloadChunkToLocalDisk()
+	go listenForAsyncAgentMessagePostResponseContent()
 	for {
 		if _, err := RabbitMQConnection.GetConnection(); err == nil {
 			// periodically check to make sure containers are online
@@ -92,10 +99,16 @@ func Initialize() {
 			// start tracking tasks wait to be fetched
 			submittedTasksAwaitingFetching.Initialize()
 			updatePushC2CallbackTime()
-			grpc.Initialize()
+			// initialize gRPC
+			grpc.Initialize(pushC2StreamingConnectNotification, pushC2StreamingDisconnectNotification)
+			// start listening for eventing messages
+			go listenForEvents()
+			go initializeEventGroupCronSchedulesOnStart()
 			// start listening for new messages from push c2 profiles, needs gRPC initialized first
 			go processAgentMessageFromPushC2()
 			go interceptProxyDataToAgentForPushC2()
+			go checkIfActiveCallbacksAreAliveForever()
+			go listenForPushConnectDisconnectMessages()
 			go func() {
 				// wait 20s for things to stabilize a bit, then send a startup message
 				time.Sleep(time.Second * 30)
@@ -145,7 +158,20 @@ func emitStartupMessages() {
 					"startup_message": fmt.Sprintf("Mythic Online for operation %s!", op.Name),
 				},
 			})
+			EventingChannel <- EventNotification{
+				Trigger:     eventing.TriggerMythicStart,
+				OperationID: op.ID,
+			}
 		}
 	}
 
+}
+
+func invalidateAllSpectatorAPITokens() {
+	_, err := database.DB.Exec(`UPDATE apitokens 
+		SET deleted=true, active=true WHERE token_type=$1 OR token_type=$2 OR token_type=$3`,
+		mythicjwt.AUTH_METHOD_GRAPHQL_SPECTATOR, mythicjwt.AUTH_METHOD_TASK, mythicjwt.AUTH_METHOD_EVENT)
+	if err != nil {
+		logging.LogError(err, "failed to mark all spectator tokens as deleted and inactive")
+	}
 }

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -66,11 +67,16 @@ func UpdateEnvironmentVariables(originalList []interface{}, updates []string) []
 			}
 		}
 		if !found {
-			finalList = append(finalList, entry.(string))
+			if !slices.Contains(finalList, entry.(string)) {
+				finalList = append(finalList, entry.(string))
+			}
+
 		}
 	}
 	for _, update := range updates {
-		finalList = append(finalList, update)
+		if !slices.Contains(finalList, update) {
+			finalList = append(finalList, update)
+		}
 	}
 	return finalList
 }

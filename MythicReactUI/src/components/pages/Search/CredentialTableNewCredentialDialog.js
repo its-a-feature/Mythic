@@ -44,19 +44,6 @@ const Root = styled('div')((
   }
 }));
 
-const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-  PaperProps: {
-    style: {
-      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-      width: 250,
-    },
-  },
-  variant: "menu",
-  getContentAnchorEl: () => null
-};
-
 export function CredentialTableNewCredentialDialog(props) {
   const [credentialType, setCredentialType] = React.useState("plaintext");
   const credentialOptions = [
@@ -106,7 +93,6 @@ export function CredentialTableNewCredentialDialog(props) {
                   value={credentialType}
                   onChange={handleCredentialTypeChange}
                   input={<Input />}
-                  MenuProps={MenuProps}
                 >
                   {credentialOptions.map((name) => (
                     <MenuItem key={name} value={name}>

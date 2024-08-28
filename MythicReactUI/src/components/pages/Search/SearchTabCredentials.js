@@ -15,6 +15,8 @@ import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {CredentialTableNewCredentialDialog} from './CredentialTableNewCredentialDialog';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const credentialFragment = gql`
 fragment credentialData on credential{
@@ -52,52 +54,52 @@ fragment credentialData on credential{
 const fetchLimit = 20;
 const accountSearch = gql`
 ${credentialFragment}
-query accountQuery($operation_id: Int!, $account: String!, $offset: Int!, $fetchLimit: Int!) {
-    credential_aggregate(distinct_on: id, where: {account: {_ilike: $account}, operation_id: {_eq: $operation_id}}) {
+query accountQuery($operation_id: Int!, $account: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    credential_aggregate(distinct_on: id, where: {account: {_ilike: $account}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
       aggregate {
         count
       }
     }
-    credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {account: {_ilike: $account}, operation_id: {_eq: $operation_id}}) {
+    credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {account: {_ilike: $account}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
       ...credentialData
     }
   }
 `;
 const realmSearch = gql`
 ${credentialFragment}
-query realmQuery($operation_id: Int!, $realm: String!, $offset: Int!, $fetchLimit: Int!) {
-    credential_aggregate(distinct_on: id, where: {realm: {_ilike: $realm}, operation_id: {_eq: $operation_id}}) {
+query realmQuery($operation_id: Int!, $realm: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    credential_aggregate(distinct_on: id, where: {realm: {_ilike: $realm}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
       aggregate {
         count
       }
     }
-    credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {realm: {_ilike: $realm}, operation_id: {_eq: $operation_id}}) {
+    credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {realm: {_ilike: $realm}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
       ...credentialData
     }
   }
 `;
 const credentialSearch = gql`
 ${credentialFragment}
-query credQuery($operation_id: Int!, $credential: String!, $offset: Int!, $fetchLimit: Int!) {
-    credential_aggregate(distinct_on: id, where: {credential_text: {_ilike: $credential}, operation_id: {_eq: $operation_id}}) {
+query credQuery($operation_id: Int!, $credential: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    credential_aggregate(distinct_on: id, where: {credential_text: {_ilike: $credential}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
       aggregate {
         count
       }
     }
-    credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {credential_text: {_ilike: $credential}, operation_id: {_eq: $operation_id}}) {
+    credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {credential_text: {_ilike: $credential}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
       ...credentialData
     }
   }
 `;
 const commentSearch = gql`
 ${credentialFragment}
-query commentQuery($operation_id: Int!, $comment: String!, $offset: Int!, $fetchLimit: Int!) {
-    credential_aggregate(distinct_on: id, where: {comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}}) {
+query commentQuery($operation_id: Int!, $comment: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    credential_aggregate(distinct_on: id, where: {comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
       aggregate {
         count
       }
     }
-    credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}}) {
+    credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
       ...credentialData
     }
   }
@@ -136,6 +138,7 @@ export function SearchTabCredentialsLabel(props){
 
 const SearchTabCredentialsSearchPanel = (props) => {
     const [search, setSearch] = React.useState("");
+    const [showDeleted, setShowDeleted] = React.useState(false);
     const [searchField, setSearchField] = React.useState("Account");
     const searchFieldOptions = ["Account", "Realm", "Comment", "Credential", "Tag"];
     const [createCredentialDialogOpen, setCreateCredentialDialogOpen] = React.useState(false);
@@ -187,6 +190,10 @@ const SearchTabCredentialsSearchPanel = (props) => {
             default:
                 break;
         }
+    }
+    const handleToggleShowDeleted = (event) => {
+        setShowDeleted(!showDeleted);
+        props.onChangeDeletedField(!showDeleted);
     }
     const onCreateCredential = ({type, account, realm, comment, credential}) => {
         createCredential({variables: {type, account, realm, comment, credential}})
@@ -247,7 +254,26 @@ const SearchTabCredentialsSearchPanel = (props) => {
                     />
                 }
                 
-                <Button size="small" color="success" onClick={ () => {setCreateCredentialDialogOpen(true);}} variant="contained">New Credential</Button>
+                <Button  style={{marginRight: "5px"}}
+                         size="small" color="success" onClick={ () => {setCreateCredentialDialogOpen(true);}} variant="contained">
+                    <VpnKeyIcon style={{marginRight: "5px"}} />
+                    New
+                </Button>
+                <Button variant={"contained"} color={"primary"} size={"small"} onClick={handleToggleShowDeleted}>
+                    {showDeleted ? (
+                        <>
+                            <VisibilityIcon style={{marginRight: "5px"}} />
+                            {"Deleted"}
+                        </>
+
+                    ) : (
+                        <>
+                            <VisibilityOffIcon style={{marginRight: "5px"}} />
+                            { "Deleted"}
+                        </>
+
+                    )}
+                </Button>
             </Grid>
         </Grid>
     );
@@ -258,7 +284,11 @@ export const SearchTabCredentialsPanel = (props) =>{
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Account");
     const me = props.me;
-    
+    const showDeleted = React.useRef(false);
+    const onChangeDeletedField = (newShowDeleted) => {
+        showDeleted.current = newShowDeleted;
+        onChangeSearchField(searchField);
+    }
     const onChangeSearchField = (field) => {
         setSearchField(field);
         switch(field){
@@ -330,6 +360,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             offset: offset,
             fetchLimit: fetchLimit,
             account: "%" + search + "%",
+            deleted: showDeleted.current
         }})
     }
     const onRealmSearch = ({search, offset}) => {
@@ -340,6 +371,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             offset: offset,
             fetchLimit: fetchLimit,
             realm: "%" + search + "%",
+            deleted: showDeleted.current
         }})
     }
     const onCredentialSearch = ({search, offset}) => {
@@ -350,6 +382,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             offset: offset,
             fetchLimit: fetchLimit,
             credential: "%" + search + "%",
+            deleted: showDeleted.current
         }})
     }
     const onCommentSearch = ({search, offset}) => {
@@ -364,6 +397,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             offset: offset,
             fetchLimit: fetchLimit,
             comment: "%" + new_search + "%",
+            deleted: showDeleted.current
         }})
     }
     const onTagSearch = ({search, offset}) => {
@@ -378,6 +412,7 @@ export const SearchTabCredentialsPanel = (props) =>{
                 offset: offset,
                 fetchLimit: fetchLimit,
                 tag:  "%" + new_search + "%",
+                deleted: showDeleted.current
             }})
     }
     const onChangePage = (event, value) => {
@@ -435,6 +470,7 @@ export const SearchTabCredentialsPanel = (props) =>{
                                              onRealmSearch={onRealmSearch} onCredentialSearch={onCredentialSearch}
                                              onCommentSearch={onCommentSearch} changeSearchParam={props.changeSearchParam}
                                              onTagSearch={onTagSearch} onNewCredential={onNewCredential}
+                                             onChangeDeletedField={onChangeDeletedField}
                 />
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 {credentialaData.length > 0 ? (
@@ -443,7 +479,7 @@ export const SearchTabCredentialsPanel = (props) =>{
                 )}
             </div>
             <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}}>
-            <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="primary" boundaryCount={1}
+            <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info" boundaryCount={1}
                     siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
                 <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
             </div>

@@ -18,6 +18,7 @@ type Callback struct {
 	IP                  string            `db:"ip" json:"ip" mapstructure:"ip"`
 	ExternalIp          string            `db:"external_ip" json:"external_ip" mapstructure:"external_ip"`
 	ProcessName         string            `db:"process_name" json:"process_name" mapstructure:"process_name"`
+	ProcessShortName    string            `db:"process_short_name" json:"process_short_name" mapstructure:"process_short_name"`
 	Description         string            `db:"description" json:"description" mapstructure:"description"`
 	OperatorID          int               `db:"operator_id" json:"operator_id" mapstructure:"operator_id"`
 	Operator            Operator          `db:"operator" json:"-"`
@@ -39,4 +40,6 @@ type Callback struct {
 	SleepInfo           string            `db:"sleep_info" json:"sleep_info" mapstructure:"sleep_info"`
 	Timestamp           time.Time         `db:"timestamp" json:"timestamp" mapstructure:"timestamp"`
 	MythicTreeGroups    pq.StringArray    `db:"mythictree_groups" json:"mythictree_groups" mapstructure:"mythictree_groups"`
+	Dead                bool              `db:"dead" json:"dead" mapstructure:"dead"`
+	EventStepInstanceID structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`
 }

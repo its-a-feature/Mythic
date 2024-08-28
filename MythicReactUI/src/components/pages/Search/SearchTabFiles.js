@@ -11,11 +11,19 @@ import {gql, useLazyQuery} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import Pagination from '@mui/material/Pagination';
 import {Button, Typography} from '@mui/material';
-import {FileMetaDownloadTable, FileMetaScreenshotTable, FileMetaUploadTable} from './FileMetaTable';
+import {
+    FileMetaDownloadTable,
+    FileMetaEventingWorkflowsTable,
+    FileMetaScreenshotTable,
+    FileMetaUploadTable
+} from './FileMetaTable';
 import {FileBrowserTable} from './FileBrowserTable';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import {UploadTaskFile} from '../../MythicComponents/MythicFileUpload';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import BackupIcon from '@mui/icons-material/Backup';
 
 const fileMetaFragment = gql`
 fragment filemetaData on filemeta{
@@ -62,6 +70,10 @@ fragment filemetaData on filemeta{
             cmd
             id
         }
+    }
+    eventgroup {
+      name
+      id
     }
 }
 `;
@@ -115,156 +127,169 @@ fragment mythictreeData on mythictree{
 const fetchLimit = 20;
 const filenameFileMetaUploadSearch = gql`
 ${fileMetaFragment}
-query filenameFileMetaUploadQuery($operation_id: Int!, $filename: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+query filenameFileMetaUploadQuery($operation_id: Int!, $filename: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true}, _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
 }
 `;
 const filenameFileMetaDownloadSearch = gql`
 ${fileMetaFragment}
-query filenameFileMetaDownloadQuery($operation_id: Int!, $filename: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, _or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
+query filenameFileMetaDownloadQuery($operation_id: Int!, $filename: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host},deleted: {_eq: $deleted}, _or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, _or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host},deleted: {_eq: $deleted}, _or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
   }
 `;
 const filenameFileBrowserSearch = gql`
 ${mythictreeFragment}
-query filenameFileBrowserQuery($operation_id: Int!, $filename: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    mythictree_aggregate(distinct_on: id, where: {full_path_text: {_ilike: $filename}, host: {_ilike: $host}, operation_id: {_eq: $operation_id}, tree_type: {_eq: "file"}}) {
+query filenameFileBrowserQuery($operation_id: Int!, $filename: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    mythictree_aggregate(distinct_on: id, where: {full_path_text: {_ilike: $filename}, host: {_ilike: $host}, deleted: {_eq: $deleted}, operation_id: {_eq: $operation_id}, tree_type: {_eq: "file"}}) {
       aggregate {
         count
       }
     }
-    mythictree(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, full_path_text: {_ilike: $filename}, operation_id: {_eq: $operation_id}, tree_type: {_eq: "file"}}) {
+    mythictree(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, full_path_text: {_ilike: $filename}, operation_id: {_eq: $operation_id}, tree_type: {_eq: "file"}}) {
       ...mythictreeData
     }
   }
 `;
 const filenameFileMetaScreenshotSearch = gql`
 ${fileMetaFragment}
-query filenameFileMetaScreenshotQuery($operation_id: Int!, $filename: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true},task_id: {_is_null: false}}) {
+query filenameFileMetaScreenshotQuery($operation_id: Int!, $filename: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true},task_id: {_is_null: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
       ...filemetaData
     }
   }
 `;
-const hashFileMetaUploadSearch = gql`
+const filenameFileMetaEventingWorkflowSearch = gql`
 ${fileMetaFragment}
-query hashFileMetaUploadQuery($operation_id: Int!, $hash: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+query filenameFileMetaEventingWorkflowQuery($filename: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {deleted: {_eq: $deleted}, _or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}], eventgroup_id: {_is_null: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {deleted: {_eq: $deleted}, _or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}], eventgroup_id: {_is_null: false}}) {
+      ...filemetaData
+    }
+}
+`;
+const hashFileMetaUploadSearch = gql`
+${fileMetaFragment}
+query hashFileMetaUploadQuery($operation_id: Int!, $hash: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+      aggregate {
+        count
+      }
+    }
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
   }
 `;
 const hashFileMetaDownloadSearch = gql`
 ${fileMetaFragment}
-query hashFileMetaDownloadQuery($operation_id: Int!, $hash: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, _or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
+query hashFileMetaDownloadQuery($operation_id: Int!, $hash: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, _or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, _or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, _or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
   }
 `;
 const hashFileMetaScreenshotSearch = gql`
 ${fileMetaFragment}
-query hashFileMetaScreenshotQuery($operation_id: Int!, $hash: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
+query hashFileMetaScreenshotQuery($operation_id: Int!, $hash: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
       ...filemetaData
     }
   }
 `;
 const commentFileMetaUploadSearch = gql`
 ${fileMetaFragment}
-query commentFileMetaUploadQuery($operation_id: Int!, $comment: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+query commentFileMetaUploadQuery($operation_id: Int!, $comment: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
   }
 `;
 const commentFileMetaDownloadSearch = gql`
 ${fileMetaFragment}
-query hashFileMetaDownloadQuery($operation_id: Int!, $comment: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
+query hashFileMetaDownloadQuery($operation_id: Int!, $comment: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
   }
 `;
 const commentFileBrowserSearch = gql`
 ${mythictreeFragment}
-query filenameFileBrowserQuery($operation_id: Int!, $comment: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    mythictree_aggregate(distinct_on: id, where: {comment: {_ilike: $comment}, host: {_ilike: $host}, operation_id: {_eq: $operation_id}, tree_type: {_eq: "file"}}) {
+query filenameFileBrowserQuery($operation_id: Int!, $comment: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    mythictree_aggregate(distinct_on: id, where: {comment: {_ilike: $comment}, host: {_ilike: $host}, deleted: {_eq: $deleted}, operation_id: {_eq: $operation_id}, tree_type: {_eq: "file"}}) {
       aggregate {
         count
       }
     }
-    mythictree(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, tree_type: {_eq: "file"}}) {
+    mythictree(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, tree_type: {_eq: "file"}}) {
       ...mythictreeData
     }
   }
 `;
 const commentFileMetaScreenshotSearch = gql`
 ${fileMetaFragment}
-query commentFileMetaScreenshotQuery($operation_id: Int!, $comment: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
+query commentFileMetaScreenshotQuery($operation_id: Int!, $comment: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
       ...filemetaData
     }
   }
 `;
 const tagFileMetaUploadSearch = gql`
 ${fileMetaFragment}
-query tagFileMetaUploadQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
+query tagFileMetaUploadQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
       filemetum{
         ...filemetaData
       }
@@ -273,13 +298,13 @@ query tagFileMetaUploadQuery($tag: String!, $host: String!, $offset: Int!, $fetc
 `;
 const tagFileMetaDownloadSearch = gql`
 ${fileMetaFragment}
-query tagFileMetaDownloadQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
+query tagFileMetaDownloadQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
       filemetum {
         ...filemetaData
       }
@@ -289,13 +314,13 @@ query tagFileMetaDownloadQuery($tag: String!, $host: String!, $offset: Int!, $fe
 `;
 const tagFileBrowserSearch = gql`
 ${mythictreeFragment}
-query tagFileBrowserQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    tag_aggregate(distinct_on: id, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, tree_type: {_eq: "file"}}}) {
+query tagFileBrowserQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    tag_aggregate(distinct_on: id, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, deleted: {_eq: $deleted}, tree_type: {_eq: "file"}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, tree_type: {_eq: "file"}}}) {
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, deleted: {_eq: $deleted}, tree_type: {_eq: "file"}}}) {
       mythictree {
         ...mythictreeData
       }
@@ -305,13 +330,13 @@ query tagFileBrowserQuery($tag: String!, $host: String!, $offset: Int!, $fetchLi
 `;
 const tagFileMetaScreenshotSearch = gql`
 ${fileMetaFragment}
-query tagFileMetaScreenshotQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_screenshot: {_eq: true}}}) {
+query tagFileMetaScreenshotQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_screenshot: {_eq: true}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, is_screenshot: {_eq: true}}}) {
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_screenshot: {_eq: true}}}) {
       filemetum{
         ...filemetaData
       }
@@ -320,39 +345,39 @@ query tagFileMetaScreenshotQuery($tag: String!, $host: String!, $offset: Int!, $
 `;
 const uuidFileMetaUploadSearch = gql`
 ${fileMetaFragment}
-query uuidFileMetaUploadQuery($operation_id: Int!, $agent_file_id: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, agent_file_id: {_ilike: $agent_file_id}, _or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+query uuidFileMetaUploadQuery($operation_id: Int!, $agent_file_id: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  agent_file_id: {_ilike: $agent_file_id}, _or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host},agent_file_id: {_ilike: $agent_file_id}, _or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  agent_file_id: {_ilike: $agent_file_id}, _or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
 }
 `;
 const uuidFileMetaDownloadSearch = gql`
 ${fileMetaFragment}
-query uuidFileMetaDownloadQuery($operation_id: Int!, $agent_file_id: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, agent_file_id: {_ilike: $agent_file_id}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
+query uuidFileMetaDownloadQuery($operation_id: Int!, $agent_file_id: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, agent_file_id: {_ilike: $agent_file_id}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, agent_file_id: {_ilike: $agent_file_id}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, agent_file_id: {_ilike: $agent_file_id}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
   }
 `;
 const uuidFileMetaScreenshotSearch = gql`
 ${fileMetaFragment}
-query uuidFileMetaScreenshotQuery($operation_id: Int!, $agent_file_id: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, agent_file_id: {_ilike: $agent_file_id}, _or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true},task_id: {_is_null: false}}) {
+query uuidFileMetaScreenshotQuery($operation_id: Int!, $agent_file_id: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, agent_file_id: {_ilike: $agent_file_id}, _or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true},task_id: {_is_null: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, agent_file_id: {_ilike: $agent_file_id}, _or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, agent_file_id: {_ilike: $agent_file_id}, _or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: true}}) {
       ...filemetaData
     }
   }
@@ -371,7 +396,12 @@ const SearchTabFilesSearchPanel = (props) => {
     const [searchField, setSearchField] = React.useState("Filename");
     const searchFieldOptions = ["Filename", "Hash", "Comment", "Tag", "UUID"];
     const [searchLocation, setSearchLocation] = React.useState("Downloads");
-    const searchLocationOptions = ["Uploads", "Downloads", "FileBrowser", "Screenshots"];
+    const searchLocationOptions = ["Uploads", "Downloads", "FileBrowser", "Screenshots", "Eventing Workflows"];
+    const [showDeleted, setShowDeleted] = React.useState(false);
+    const handleToggleShowDeleted = (event) => {
+        setShowDeleted(!showDeleted);
+        props.onChangeDeletedField(!showDeleted);
+    }
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
         props.onChangeSearchField(event.target.value);
@@ -441,9 +471,11 @@ const SearchTabFilesSearchPanel = (props) => {
         }
     }
     const onFileChange = async (evt) => {
-        let newUUID = await UploadTaskFile(evt.target.files[0], "Manually uploaded");
-        if (newUUID !== "") {
-            snackActions.success("Successfully uploaded file. It's available in 'uploads'")
+        for(let i = 0; i < evt.target.files.length; i++){
+            let newUUID = await UploadTaskFile(evt.target.files[i], "Manually uploaded");
+            if (newUUID !== "") {
+                snackActions.success("Successfully uploaded file. It's available in 'uploads'")
+            }
         }
     }
     React.useEffect(() => {
@@ -526,8 +558,25 @@ const SearchTabFilesSearchPanel = (props) => {
                 </Select>
             </Grid>
             <Grid item xs={2}>
-                <Button variant="contained" color="primary" component="label">Host File in Mythic <input
-                    onChange={onFileChange} type="file" hidden/></Button>
+                <Button variant="contained" color="primary" component="label" size={"small"} style={{marginRight: "5px"}} >
+                    <BackupIcon style={{marginRight: "5px"}} /> Files
+                    <input onChange={onFileChange} type="file" multiple hidden/>
+                </Button>
+                <Button variant={"contained"} color={"primary"} size={"small"} onClick={handleToggleShowDeleted}>
+                    {showDeleted ? (
+                        <>
+                            <VisibilityIcon style={{marginRight: "5px"}} />
+                            {"Deleted"}
+                        </>
+
+                    ) : (
+                        <>
+                            <VisibilityOffIcon style={{marginRight: "5px"}} />
+                            { "Deleted"}
+                        </>
+
+                    )}
+                </Button>
             </Grid>
         </Grid>
     );
@@ -543,7 +592,12 @@ export const SearchTabFilesPanel = (props) => {
     const [searchHost, setSearchHost] = React.useState("");
     const [searchField, setSearchField] = React.useState("Filename");
     const [searchLocation, setSearchLocation] = React.useState("Downloads");
+    const showDeleted = React.useRef(false);
     const me = props.me;
+    const onChangeDeletedField = (newShowDeleted) => {
+        showDeleted.current = newShowDeleted;
+        onChangeSearchField(searchField);
+    }
     const onChangeSearchField = (field) => {
         setSearchField(field);
         switch (field) {
@@ -671,6 +725,11 @@ export const SearchTabFilesPanel = (props) => {
         onCompleted: handleFileMetaScreenshotSearchResults,
         onError: handleCallbackSearchFailure
     })
+    const [getfilenameFileMetaEventingWorkflowSearch] = useLazyQuery(filenameFileMetaEventingWorkflowSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleFileMetaUploadSearchResults,
+        onError: handleCallbackSearchFailure
+    })
     const [gethashFileMetaUploadSearch] = useLazyQuery(hashFileMetaUploadSearch, {
         fetchPolicy: "no-cache",
         onCompleted: handleFileMetaUploadSearchResults,
@@ -752,7 +811,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     filename: "%" + search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else if (adjustedSearchLocation === "Uploads") {
@@ -762,7 +822,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     filename: "%" + search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else if (adjustedSearchLocation === "Downloads") {
@@ -772,7 +833,17 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     filename: "%" + search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
+                }
+            })
+        } else if (adjustedSearchLocation === "Eventing Workflows"){
+            getfilenameFileMetaEventingWorkflowSearch({
+                variables: {
+                    offset: offset,
+                    fetchLimit: fetchLimit,
+                    filename: "%" + search + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else {
@@ -782,7 +853,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     filename: "%" + search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         }
@@ -806,7 +878,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     hash: "%" + search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else if (adjustedSearchLocation === "Downloads") {
@@ -816,7 +889,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     hash: "%" + search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else {
@@ -826,7 +900,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     hash: "%" + search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         }
@@ -846,7 +921,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     comment: "%" + new_search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else if (adjustedSearchLocation === "Uploads") {
@@ -856,7 +932,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     comment: "%" + new_search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else if (adjustedSearchLocation === "Downloads") {
@@ -866,7 +943,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     comment: "%" + new_search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else {
@@ -876,7 +954,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     comment: "%" + new_search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         }
@@ -895,7 +974,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     tag: "%" + new_search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else if (adjustedSearchLocation === "Uploads") {
@@ -904,7 +984,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     tag: "%" + new_search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else if (adjustedSearchLocation === "Downloads") {
@@ -913,7 +994,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     tag: "%" + new_search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else {
@@ -922,7 +1004,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     tag: "%" + new_search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         }
@@ -946,7 +1029,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     agent_file_id: "%" + search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else if (adjustedSearchLocation === "Downloads") {
@@ -956,7 +1040,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     agent_file_id: "%" + search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         } else {
@@ -966,7 +1051,8 @@ export const SearchTabFilesPanel = (props) => {
                     offset: offset,
                     fetchLimit: fetchLimit,
                     agent_file_id: "%" + search + "%",
-                    host: "%" + searchHost + "%"
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
                 }
             })
         }
@@ -1025,17 +1111,17 @@ export const SearchTabFilesPanel = (props) => {
                                        onHashSearch={onHashSearch} onCommentSearch={onCommentSearch}
                                        onTagSearch={onTagSearch} onUUIDSearch={onUUIDSearch}
                                        onChangeSearchLocation={onChangeSearchLocation}
+                                       onChangeDeletedField={onChangeDeletedField}
                                        changeSearchParam={props.changeSearchParam}/>
             <div style={{overflowY: "auto", flexGrow: 1}}>
-                {searchLocation === "Uploads" ? (<FileMetaUploadTable me={me} files={fileMetaUploadData}/>) : null}
-                {searchLocation === "Downloads" ? (
-                    <FileMetaDownloadTable me={me} files={fileMetaDownloadData}/>) : null}
-                {searchLocation === "Screenshots" ? (
-                    <FileMetaScreenshotTable me={me} files={fileMetaScreenshotData}/>) : null}
-                {searchLocation === "FileBrowser" ? (<FileBrowserTable me={me} files={fileBrowserData}/>) : null}
+                {searchLocation === "Uploads" && <FileMetaUploadTable me={me} files={fileMetaUploadData}/>}
+                {searchLocation === "Downloads" && <FileMetaDownloadTable me={me} files={fileMetaDownloadData}/>}
+                {searchLocation === "Screenshots" && <FileMetaScreenshotTable me={me} files={fileMetaScreenshotData}/>}
+                {searchLocation === "FileBrowser" && <FileBrowserTable me={me} files={fileBrowserData} />}
+                {searchLocation === "Eventing Workflows" && <FileMetaEventingWorkflowsTable me={me} files={fileMetaUploadData} />}
             </div>
             <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}}>
-                <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="primary"
+                <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info"
                             boundaryCount={1}
                             siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true}
                             style={{padding: "20px"}}/>

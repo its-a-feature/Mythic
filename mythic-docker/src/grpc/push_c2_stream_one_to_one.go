@@ -311,7 +311,10 @@ func updatePushC2LastCheckinDisconnectTimestamp(callbackId int, c2ProfileName st
 			logging.LogError(err, "Failed to update callback edge when push c2 disconnected")
 		}
 	}
-
+	select {
+	case pushC2StreamingDisconnectNotification <- callbackId:
+	default:
+	}
 }
 func updatePushC2LastCheckinConnectTimestamp(callbackId int, c2ProfileName string, operationId int) {
 	c2ProfileId := -1
@@ -342,5 +345,9 @@ func updatePushC2LastCheckinConnectTimestamp(callbackId int, c2ProfileName strin
 		} else {
 			logging.LogInfo("Added new callbackgraph edge in pushC2", "c2", c2ProfileId, "callback", callbackId)
 		}
+	}
+	select {
+	case pushC2StreamingConnectNotification <- callbackId:
+	default:
 	}
 }

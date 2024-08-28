@@ -16,7 +16,7 @@ export function CreatePayloadNavigationButtons(props){
         <div >
             <Button
                 disabled={props.first}
-                color="primary"
+                color="secondary"
                 onClick={props.canceled}
               >
                 Back
@@ -27,9 +27,9 @@ export function CreatePayloadNavigationButtons(props){
                 onClick={props.finished}
                 disabled={props.disableNext || disabledButtons}
               >
-                {props.last ? 'Create Wrapped Payload' : 'Next'}
+                  {props.last ? props.showExtraOptions ? 'Create Payload Again' : 'Create Payload' : 'Next'}
               </Button>
-              {props.last &&
+              {props.last && props.showExtraOptions &&
               <React.Fragment>
                 <Button
                   variant="contained"
@@ -39,6 +39,7 @@ export function CreatePayloadNavigationButtons(props){
                 >
                   Start Over
                 </Button>
+              {props.showExtraOptions &&
                 <Button
                   variant="contained"
                   color="info"
@@ -46,8 +47,9 @@ export function CreatePayloadNavigationButtons(props){
                   style={{marginLeft: "10px"}}
                   to={"/new/createpayload"}
                 >
-                  Create Another Payload
+                  Go To Create Another Base Payload
                 </Button>
+              }
               </React.Fragment>
                 
               }

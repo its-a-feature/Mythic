@@ -1,5 +1,5 @@
 import React, { } from 'react';
-import {Button} from '@mui/material';
+import {Button, IconButton} from '@mui/material';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import EditIcon from '@mui/icons-material/Edit';
@@ -18,7 +18,7 @@ import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOu
 import {restartWebsockets} from '../../../index';
 import {useNavigate} from 'react-router-dom';
 
-const updateCurrentOpertionMutation = gql`
+const updateCurrentOperationMutation = gql`
 mutation updateCurrentOpertionMutation($operator_id: Int!, $operation_id: Int!) {
   updateCurrentOperation(user_id: $operator_id, operation_id: $operation_id) {
     status
@@ -59,13 +59,14 @@ export function OperationTableRow(props){
             }
         }
     })
-    const [updateCurrentOperation] = useMutation(updateCurrentOpertionMutation, {
+    const [updateCurrentOperation] = useMutation(updateCurrentOperationMutation, {
       onCompleted: (data) => {
         if(data.updateCurrentOperation.status === "success"){
           meState({...meState(), user: {...meState().user, current_operation_id: data.updateCurrentOperation.operation_id, current_operation: props.name}});
           localStorage.setItem("user", JSON.stringify(meState().user));
           snackActions.success("Updated current operation");
-            restartWebsockets();
+          restartWebsockets();
+          props.onUpdateCurrentOperation(data.updateCurrentOperation.operation_id);
           //window.location.reload();
         }else if(data.updateCurrentOperation.error.includes("not a member")){
           // add ourselves as a member and try again
@@ -110,11 +111,11 @@ export function OperationTableRow(props){
             <TableRow key={props.id} hover>
                 <TableCell>
                 {props.deleted ? (
-                  <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" variant="contained"
-                          disabled={me?.user?.current_operation_id !== props.id}><RestoreFromTrashOutlinedIcon/> Restore</Button>
+                  <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="success" variant="contained"
+                          disabled={me?.user?.current_operation_id !== props.id}><RestoreFromTrashOutlinedIcon/> </IconButton>
                 ) : (
-                  <Button size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"
-                          disabled={me?.user?.current_operation_id !== props.id}><DeleteIcon/> Delete</Button>
+                  <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"
+                          disabled={me?.user?.current_operation_id !== props.id}><DeleteIcon/> </IconButton>
                 )}
                 {openDelete && 
                     <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} 
@@ -137,7 +138,7 @@ export function OperationTableRow(props){
                                    disabled={me?.user?.current_operation_id !== props.id}
                                    startIcon={<AssignmentIndIcon/>} color={props.complete ? "success" : "primary"} variant="contained">Edit</Button>
                 {openUpdateOperators && 
-                    <MythicDialog open={openUpdateOperators} maxHeight={"calc(80vh)"} fullWidth maxWidth={"md"}
+                    <MythicDialog open={openUpdateOperators} maxHeight={"calc(80vh)"} fullWidth maxWidth={"lg"}
                         onClose={()=>{setOpenUpdateOperators(false);}} 
                         innerDialog={<OperationTableRowUpdateOperatorsDialog id={props.id} onClose={()=>{setOpenUpdateOperators(false);}}/>}
                      />
@@ -154,7 +155,6 @@ export function OperationTableRow(props){
                 <TableCell>{props.id === me.user.current_operation_id ? ("Current Operation") : (
                   <React.Fragment>
                     <Button size="small" startIcon={<PlayArrowIcon/>} onClick={makeCurrentOperation} color="info" variant="contained">Make Current</Button>
-                   
                   </React.Fragment>
                 )}</TableCell>
             </TableRow>

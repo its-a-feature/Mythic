@@ -27,7 +27,8 @@ type UpdateCurrentOperationResponse struct {
 func UpdateCurrentOperationWebhook(c *gin.Context) {
 	// get variables from the POST request
 	var input UpdateCurrentOperationInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
 			Status: "error",
 			Error:  err.Error(),
@@ -37,42 +38,59 @@ func UpdateCurrentOperationWebhook(c *gin.Context) {
 	// get the associated database information
 	operatorOperation := databaseStructs.Operatoroperation{}
 	issuingOperator := databaseStructs.Operator{}
-	if userID, err := GetUserIDFromGin(c); err != nil {
+	userID, err := GetUserIDFromGin(c)
+	if err != nil {
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
-	} else if err := database.DB.Get(&issuingOperator, `SELECT id, admin FROM operator WHERE id=$1`, userID); err != nil {
+	}
+	err = database.DB.Get(&issuingOperator, `SELECT id, admin FROM operator WHERE id=$1`, userID)
+	if err != nil {
 		logging.LogError(err, "Failed to get information about issuing user")
-	} else if userID != input.Input.UserID && !issuingOperator.Admin {
+		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+	if userID != input.Input.UserID && !issuingOperator.Admin {
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
 			Status: "error",
 			Error:  "Cannot set the current operation for another user",
 		})
 		return
-	} else if err := database.DB.Get(&operatorOperation, `SELECT
+	}
+	err = database.DB.Get(&operatorOperation, `SELECT
 		id 
 		FROM operatoroperation 
 		WHERE operatoroperation.operator_id=$1 and operatoroperation.operation_id=$2`,
-		input.Input.UserID, input.Input.OperationID); err != nil {
+		input.Input.UserID, input.Input.OperationID)
+	if err != nil {
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
 			Status: "error",
 			Error:  "Cannot update current operation to an operation you're not a member of",
 		})
 		return
-	} else if _, err := database.DB.Exec(`UPDATE operator SET current_operation_id=$1 WHERE id=$2`,
-		input.Input.OperationID, input.Input.UserID); err != nil {
+	}
+	_, err = database.DB.Exec(`UPDATE operator SET current_operation_id=$1 WHERE id=$2`,
+		input.Input.OperationID, input.Input.UserID)
+	if err != nil {
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
 			Status: "error",
 			Error:  "Failed to update current operation",
 		})
 		return
-	} else {
-		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
-			Status:      "success",
-			OperationID: input.Input.OperationID,
-		})
-		return
 	}
+	err = UpdateHasuraClaims(c, true)
+	if err != nil {
+		logging.LogError(err, "Failed to update claims")
+	}
+	c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
+		Status:      "success",
+		OperationID: input.Input.OperationID,
+	})
+	return
+
 }

@@ -19,17 +19,28 @@ query GetCallbackDetails($callback_id: Int!) {
     loadedcommands {
       command {
         cmd
+        payloadtype {
+            name
+        }
         id
       }
       id
     }
     payload {
       payloadtype {
+        name
         commands {
           cmd
           id
         }
       }
+    }
+  }
+  command(where: {payloadtype: {agent_type: {_eq: "command_augment"}}}){
+    cmd
+    id
+    payloadtype {
+        name
     }
   }
 }
@@ -46,18 +57,27 @@ export function AddRemoveCallbackCommandsDialog(props) {
     const [rightTitle, setRightTitle] = React.useState("Commands Included");
     const leftChecked = intersection(checked, left);
     const rightChecked = intersection(checked, right);
+    const compareElements = (a, b) => {
+        return a.cmd === b.cmd && a.payloadtype.name === b.payloadtype.name;
+    }
     useQuery(getCommandsQuery, {variables: {callback_id: props.callback_id},
       fetchPolicy: "no-cache",
       onCompleted: (data) => {
-        setOriginalLeft(data.callback_by_pk.payload.payloadtype.commands);
+        let originalLeftFromQuery = data.callback_by_pk.payload.payloadtype.commands.map(c => {
+            return {...c, payloadtype: {name: data.callback_by_pk.payload.payloadtype.name}}
+        })
+        originalLeftFromQuery = [...originalLeftFromQuery, ...data.command];
+        setOriginalLeft(originalLeftFromQuery);
         setOriginalRight(data.callback_by_pk.loadedcommands);
-        const leftData = data.callback_by_pk.payload.payloadtype.commands.reduce( (prev, cur) => {
-          if( data.callback_by_pk.loadedcommands.filter(c => c.command.cmd === cur.cmd).length === 0){
+
+        const leftData = originalLeftFromQuery.reduce( (prev, cur) => {
+          if( data.callback_by_pk.loadedcommands.filter(c => c.command.cmd === cur.cmd && c.command.payloadtype.name === cur.payloadtype.name).length === 0){
             return [...prev, cur];
           } else {
             return [...prev];
           }
         }, []);
+
         leftData.sort( (a,b) => a.cmd < b.cmd ? -1 : 1);
         setLeft(leftData);
         const rightData = data.callback_by_pk.loadedcommands.map( c => c.command);
@@ -69,25 +89,15 @@ export function AddRemoveCallbackCommandsDialog(props) {
       }
     })
     function not(a, b) {
-      if(props.itemKey){
-        return a.filter( (value) => b.find( (element) => element[props.itemKey] === value[props.itemKey] ) === undefined)
-      }
       return a.filter((value) => b.indexOf(value) === -1);
     }
     
     function intersection(a, b) {
-      if(props.itemKey){
-        return a.filter( (value) => b.find( (element) => element[props.itemKey] === value[props.itemKey] ) !== undefined)
-      }
       return a.filter((value) => b.indexOf(value) !== -1);
     }
     const handleToggle = (value) => () => {
       let currentIndex = -1;
-      if(props.itemKey){
-        currentIndex = checked.findIndex( (element) => element[props.itemKey] === value[props.itemKey]);
-      }else{
         currentIndex = checked.indexOf(value);
-      }
       
       const newChecked = [...checked];
 
@@ -128,13 +138,13 @@ export function AddRemoveCallbackCommandsDialog(props) {
           <CardContent style={{flexGrow: 1, overflowY: "auto", padding: 0}}>
             <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
               {items.map((valueObj) => {
-                const value = valueObj.cmd;
+                const value = valueObj.cmd + " (" + valueObj?.payloadtype?.name + ")";
                 const labelId = `transfer-list-item-${value}-label`;
                 return (
                   <ListItem style={{padding:0}} key={value} role="listitem" button onClick={handleToggle(valueObj)}>
                     <ListItemIcon>
                       <Checkbox
-                        checked={checked.findIndex( (element) => element.cmd === value) !== -1}
+                        checked={checked.findIndex( (element) => element.cmd + " (" + element?.payloadtype?.name + ")" === value) !== -1}
                         tabIndex={-1}
                         disableRipple
                         inputProps={{ 'aria-labelledby': labelId }}
@@ -152,10 +162,10 @@ export function AddRemoveCallbackCommandsDialog(props) {
     const setFinalTags = () => {
       // things to add are in the `right` now but weren't for `originalRight`
       const commandsToAdd = right.filter( (command) => {
-        return originalRight.filter(orig => orig.command.cmd == command.cmd).length == 0;
+        return originalRight.filter(orig => orig.command.cmd === command.cmd && orig.command.payloadtype.name === command.payloadtype.name).length === 0;
       });
       const commandsToRemove = originalRight.filter( (command) => {
-        return right.filter(newCommand => newCommand.cmd == command.command.cmd).length == 0;
+        return right.filter(newCommand => newCommand.cmd === command.command.cmd && newCommand.payloadtype.name === command.command.payloadtype.name).length === 0;
       })
       props.onSubmit({commandsToAdd, commandsToRemove});
       props.onClose();

@@ -6,7 +6,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
+	"github.com/its-a-feature/Mythic/database/enums/PushC2Connections"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/grpc"
 	"github.com/its-a-feature/Mythic/grpc/services"
 	"github.com/its-a-feature/Mythic/logging"
@@ -41,6 +43,9 @@ type CreateTaskInput struct {
 	FileIDs                 []string
 	IsInteractiveTask       bool
 	InteractiveTaskType     *int
+	EventStepInstanceID     int
+	PayloadType             *string
+	IsAlias                 *bool
 }
 
 type CreateTaskResponse struct {
@@ -91,7 +96,7 @@ func (s *submittedTasksForAgents) Initialize() {
 }
 func (s *submittedTasksForAgents) addTask(task databaseStructs.Task) {
 	// before we add this for agents to pick up, see if this task can go to a pushC2 connected callback
-	if grpc.PushC2Server.CheckClientConnected(task.CallbackID) {
+	if grpc.PushC2Server.CheckClientConnected(task.CallbackID) > PushC2Connections.Connected {
 		// we have a task directly for a pushC2 connected callback
 		newTaskMsg, err := pushC2AgentMessageGetTasking(task.ID)
 		if err != nil {
@@ -105,6 +110,12 @@ func (s *submittedTasksForAgents) addTask(task databaseStructs.Task) {
 			WHERE id=$2`, time.UnixMicro(0), task.CallbackID)
 			if err != nil {
 				logging.LogError(err, "Failed to update callback last checkin time")
+			}
+			EventingChannel <- EventNotification{
+				Trigger:     eventing.TriggerTaskStart,
+				OperationID: task.OperationID,
+				OperatorID:  task.OperatorID,
+				TaskID:      task.ID,
 			}
 			return
 		}
@@ -130,14 +141,14 @@ func (s *submittedTasksForAgents) addTask(task databaseStructs.Task) {
 
 					*/
 
-					responseChan, callbackUUID, base64Encoded, c2ProfileName, trackingID, agentUUIDSize, err := grpc.PushC2Server.GetPushC2ClientInfo(clientID)
+					responseChan, callbackUUID, base64Encoded, c2ProfileName, trackingID, _, err := grpc.PushC2Server.GetPushC2ClientInfo(clientID)
 					logging.LogDebug("new msg for push c2", "task", newTaskMsg)
 					uUIDInfo, err := LookupEncryptionData(c2ProfileName, callbackUUID, false)
 					if err != nil {
 						logging.LogError(err, "Failed to find encryption data for callback")
 						break
 					}
-					responseBytes, err := EncryptMessage(uUIDInfo, callbackUUID, newTaskMsg, agentUUIDSize, base64Encoded)
+					responseBytes, err := EncryptMessage(uUIDInfo, callbackUUID, newTaskMsg, base64Encoded)
 					if err != nil {
 						logging.LogError(err, "Failed to encrypt message")
 						break
@@ -152,12 +163,18 @@ func (s *submittedTasksForAgents) addTask(task databaseStructs.Task) {
 					}:
 						// everything went ok, return from this
 						logging.LogDebug("Sent message back to responseChan")
-						return
+
 					case <-time.After(grpc.PushC2Server.GetChannelTimeout()):
 						logging.LogError(nil, "timeout trying to send to responseChannel")
-						return
-					}
 
+					}
+					EventingChannel <- EventNotification{
+						Trigger:     eventing.TriggerTaskStart,
+						OperationID: task.OperationID,
+						OperatorID:  task.OperatorID,
+						TaskID:      task.ID,
+					}
+					return
 				}
 			}
 		}
@@ -189,6 +206,27 @@ func (s *submittedTasksForAgents) removeTask(taskId int) {
 	defer s.Unlock()
 	for i := 0; i < len(*s.Tasks); i++ {
 		if (*s.Tasks)[i].TaskID == taskId {
+			EventingChannel <- EventNotification{
+				Trigger:     eventing.TriggerTaskStart,
+				OperationID: (*s.Tasks)[i].OperationID,
+				TaskID:      (*s.Tasks)[i].TaskID,
+			}
+			if (*s.Tasks)[i].IsInteractiveTask {
+				_, err := database.DB.Exec(`UPDATE task SET
+                status_timestamp_processing=$1, status_timestamp_processed=$1, completed=true 
+                WHERE id=$2`, time.Now().UTC(), taskId)
+				if err != nil {
+					logging.LogError(err, "failed to update timestamp for interactive task")
+				}
+			} else {
+				_, err := database.DB.Exec(`UPDATE task SET
+                status_timestamp_processing=$1 
+                WHERE id=$2`, time.Now().UTC(), taskId)
+				if err != nil {
+					logging.LogError(err, "failed to update timestamp for interactive task")
+				}
+			}
+
 			*s.Tasks = append((*s.Tasks)[:i], (*s.Tasks)[i+1:]...)
 			return
 		}
@@ -252,7 +290,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	baseBlockedCommandsProfile := databaseStructs.Disabledcommandsprofile{}
 	blockedCommands := []databaseStructs.Disabledcommandsprofile{}
 	// get information about the callback we're trying to task
-	if err := database.DB.Get(&callback, `SELECT 
+	err := database.DB.Get(&callback, `SELECT 
 		callback.*,
 		payload.os "payload.os",
 		payload.payload_type_id "payload.payload_type_id",
@@ -262,63 +300,103 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		WHERE
 		callback.display_id=$1 and callback.operation_id=$2`,
 		createTaskInput.CallbackDisplayID,
-		createTaskInput.CurrentOperationID); err != nil {
+		createTaskInput.CurrentOperationID)
+	if err != nil {
 		logging.LogError(err, "Failed to get callback", "callback_id", createTaskInput.CallbackDisplayID)
 		response.Error = "Failed to get callback information"
 		return response
-	} else if err := database.DB.Get(&callback.Payload.Payloadtype, `SELECT
+	}
+	err = database.DB.Get(&callback.Payload.Payloadtype, `SELECT
 			"name", id
 			FROM payloadtype
-			WHERE id=$1`, callback.Payload.PayloadTypeID); err != nil {
+			WHERE id=$1`, callback.Payload.PayloadTypeID)
+	if err != nil {
 		logging.LogError(err, "Failed to get payload type information")
 		response.Error = "Failed to get payload type information"
 		return response
 		// make sure the user's current operation matches that of the callback we're trying tot ask
-	} else if createTaskInput.CurrentOperationID != callback.OperationID {
+	}
+	if createTaskInput.CurrentOperationID != callback.OperationID {
 		response.Error = "Cannot task callback that's not in your current operation"
 		return response
 		// if the callback is locked, make sure this operator can actually task it
-	} else if callback.Locked && !createTaskInput.IsOperatorAdmin && int(callback.LockedOperatorID.Int64) != createTaskInput.OperatorID {
+	}
+	if callback.Locked && !createTaskInput.IsOperatorAdmin && int(callback.LockedOperatorID.Int64) != createTaskInput.OperatorID {
 		response.Error = "Cannot task callback that's locked!"
 		return response
 		// if we're not looking at help/clear, fetch the command info and check for block lists
-	} else if !utils.SliceContains(NonPayloadCommands, createTaskInput.CommandName) {
-		if err := database.DB.Get(&task.Command, `SELECT
-			id, attributes
-			FROM command WHERE cmd=$1 AND payload_type_id=$2`,
-			createTaskInput.CommandName, callback.Payload.PayloadTypeID); err != nil {
+	}
+	if !utils.SliceContains(NonPayloadCommands, createTaskInput.CommandName) {
+		loadedCommands := []databaseStructs.Loadedcommands{}
+		err = database.DB.Select(&loadedCommands, `SELECT
+			command.id "command.id", 
+			command.attributes "command.attributes",
+			payloadtype.name "command.payloadtype.name"
+			FROM loadedcommands 
+			JOIN command ON loadedcommands.command_id = command.id
+			JOIN payloadtype ON command.payload_type_id = payloadtype.id
+			WHERE command.cmd=$1 AND loadedcommands.callback_id=$2`,
+			createTaskInput.CommandName, callback.ID)
+		if err != nil {
 			logging.LogError(err, "Failed to get command")
 			response.Error = "Failed to get command"
+			return response
+		}
+		if len(loadedCommands) == 0 {
+			logging.LogError(err, "Failed to fetch command by that name")
+			response.Error = "Failed to fetch command by that name"
+			return response
+		}
+		if createTaskInput.PayloadType != nil && *createTaskInput.PayloadType != "" {
+			for _, loadedCommand := range loadedCommands {
+				if loadedCommand.Command.Payloadtype.Name == *createTaskInput.PayloadType {
+					task.Command = loadedCommand.Command
+					break
+				}
+			}
+		} else {
+			for _, loadedCommand := range loadedCommands {
+				if loadedCommand.Command.Payloadtype.Name == callback.Payload.Payloadtype.Name {
+					task.Command = loadedCommand.Command
+					break
+				}
+			}
+		}
+		if task.Command.ID == 0 {
+			logging.LogError(nil, "failed to find command matching payload type")
+			response.Error = "failed to find command matching payload type"
 			return response
 		}
 		task.CommandID.Int64 = int64(task.Command.ID)
 		task.CommandID.Valid = true
 		// if the operator has a command block list applied, make sure they can issue this task
 		if createTaskInput.DisabledCommandID != nil {
-			if err := database.DB.Get(&baseBlockedCommandsProfile, `SELECT
-				"name" FROM disabledcommandsprofile WHERE id=$1`, *createTaskInput.DisabledCommandID); err != nil {
+			err = database.DB.Get(&baseBlockedCommandsProfile, `SELECT
+				"name" FROM disabledcommandsprofile WHERE id=$1`, *createTaskInput.DisabledCommandID)
+			if err != nil {
 				logging.LogError(err, "Failed to fetch disabled command profile name")
 				response.Error = "Failed to get blocked command list name"
 				return response
-			} else if err := database.DB.Select(&blockedCommands, `SELECT
+			}
+			err = database.DB.Select(&blockedCommands, `SELECT
 				id FROM disabledcommandsprofile WHERE "name"=$1 AND command_id=$2 AND operation_id=$3`,
-				baseBlockedCommandsProfile.Name, task.CommandID.Int64, createTaskInput.CurrentOperationID); err != nil {
+				baseBlockedCommandsProfile.Name, task.CommandID.Int64, createTaskInput.CurrentOperationID)
+			if err != nil {
 				logging.LogError(err, "Failed to query for matching blocked commands")
 				response.Error = "Failed to get list of blocked commands"
 				return response
-			} else if len(blockedCommands) > 0 {
+			}
+			if len(blockedCommands) > 0 {
 				logging.LogError(nil, "Tasking blocked")
 				response.Error = "Block list preventing execution"
 				return response
 			}
 		}
-
 	}
 	if createTaskInput.OriginalParams == nil {
 		createTaskInput.OriginalParams = &createTaskInput.Params
 	}
 	commandAttributes := CommandAttribute{}
-	loadedCommand := databaseStructs.Loadedcommands{}
 	// set up the new task for the database
 	task.AgentTaskID = uuid.New().String()
 	task.CommandName = createTaskInput.CommandName
@@ -330,12 +408,28 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	task.OriginalParams = *createTaskInput.OriginalParams
 	task.DisplayParams = createTaskInput.Params
 	task.IsInteractiveTask = createTaskInput.IsInteractiveTask
+	if createTaskInput.EventStepInstanceID > 0 {
+		task.EventStepInstanceID.Valid = true
+		task.EventStepInstanceID.Int64 = int64(createTaskInput.EventStepInstanceID)
+		eventInstance := databaseStructs.EventStepInstance{ID: createTaskInput.EventStepInstanceID}
+		err = database.DB.Get(&eventInstance, `SELECT
+    		operator_id
+    		FROM eventstepinstance
+    		WHERE id=$1`, eventInstance.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to find operator for specified eventstepinstance")
+			response.Error = err.Error()
+			return response
+		}
+		task.OperatorID = eventInstance.OperatorID
+	}
 	if task.IsInteractiveTask {
 		if createTaskInput.InteractiveTaskType == nil {
 			logging.LogError(nil, "Missing a task type for an interactive task")
 			response.Error = "Missing task type for interactive task"
 			return response
-		} else if InteractiveTask.IsValid(*createTaskInput.InteractiveTaskType) {
+		}
+		if InteractiveTask.IsValid(*createTaskInput.InteractiveTaskType) {
 			task.InteractiveTaskType.Valid = true
 			task.InteractiveTaskType.Int64 = int64(*createTaskInput.InteractiveTaskType)
 		} else {
@@ -369,7 +463,8 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	}
 	if createTaskInput.Token != nil && *createTaskInput.Token > 0 {
 		token := databaseStructs.Token{}
-		if err := database.DB.Get(&token, `SELECT id FROM token WHERE "token_id"=$1`, *createTaskInput.Token); err != nil {
+		err = database.DB.Get(&token, `SELECT id FROM token WHERE "token_id"=$1`, *createTaskInput.Token)
+		if err != nil {
 			logging.LogError(err, "Failed to get token information")
 			response.Error = "Failed to get token information"
 			return response
@@ -384,30 +479,35 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	}
 	if createTaskInput.CommandName == "clear" {
 		return handleClearCommand(createTaskInput, callback, task)
-	} else if createTaskInput.CommandName == "help" {
+	}
+	if createTaskInput.CommandName == "help" {
 		return handleHelpCommand(createTaskInput, callback, task)
 		// make sure the command matches the OS for cases where all commands are built into the agent
-	} else if err := mapstructure.Decode(task.Command.Attributes.StructValue(), &commandAttributes); err != nil {
+	}
+	err = mapstructure.Decode(task.Command.Attributes.StructValue(), &commandAttributes)
+	if err != nil {
 		logging.LogError(err, "Failed to parse out command attributes")
 		response.Error = "Failed to parse command attributes"
 		return response
-	} else if len(commandAttributes.SupportedOS) > 0 && !utils.SliceContains(commandAttributes.SupportedOS, callback.Payload.Os) {
+	}
+	if len(commandAttributes.SupportedOS) > 0 && !utils.SliceContains(commandAttributes.SupportedOS, callback.Payload.Os) {
 		logging.LogError(nil, "Trying to issue command that doesn't match supported OS of payload")
 		response.Error = "Trying to issue command that doesn't match supported OS of payload"
 		return response
 		// make sure the command is loaded into this callback
-	} else if err := database.DB.Get(&loadedCommand, `SELECT
-		id FROM loadedcommands WHERE command_id=$1 AND callback_id=$2`,
-		task.Command.ID, callback.ID); err != nil {
-		logging.LogError(err, "Tried to run a command that's not loaded in that callback")
-		response.Error = "Command not loaded into current callback"
-		return response
-		// add the preprocessing task to the database before sending it off to the container
-	} else if err := addTaskToDatabase(&task); err != nil {
+	}
+	err = addTaskToDatabase(&task)
+	if err != nil {
 		response.Error = "Failed to create task in database"
 		return response
 	}
 	associateUploadedFilesWithTask(&task, createTaskInput.FileIDs)
+	EventingChannel <- EventNotification{
+		Trigger:     eventing.TriggerTaskCreate,
+		OperationID: task.OperationID,
+		OperatorID:  task.OperatorID,
+		TaskID:      task.ID,
+	}
 	if task.IsInteractiveTask {
 		go submittedTasksAwaitingFetching.addTask(task)
 		return CreateTaskResponse{
@@ -415,10 +515,8 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 			TaskID:        task.ID,
 			TaskDisplayID: task.DisplayID,
 		}
-	} else {
-		return submitTaskToContainer(task.ID)
 	}
-
+	return submitTaskToContainer(task.ID)
 }
 
 func associateUploadedFilesWithTask(task *databaseStructs.Task, files []string) {
@@ -434,6 +532,10 @@ func associateUploadedFilesWithTask(task *databaseStructs.Task, files []string) 
 func addTaskToDatabase(task *databaseStructs.Task) error {
 	// create the task in the database
 	//logging.LogInfo("adding task to database", "task", task)
+	if task.IsInteractiveTask {
+		task.StatusTimestampSubmitted.Valid = true
+		task.StatusTimestampSubmitted.Time = time.Now().UTC()
+	}
 	transaction, err := database.DB.Beginx()
 	if err != nil {
 		logging.LogError(err, "Failed to begin transaction")
@@ -449,11 +551,11 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 	(agent_task_id,command_name,callback_id,operator_id,command_id,token_id,params,
 		original_params,display_params,status,tasking_location,parameter_group_name,
 		parent_task_id,subtask_callback_function,group_callback_function,subtask_group_name,operation_id,
-	    is_interactive_task, interactive_task_type)
+	    is_interactive_task, interactive_task_type, eventstepinstance_id, status_timestamp_submitted)
 		VALUES (:agent_task_id, :command_name, :callback_id, :operator_id, :command_id, :token_id, :params,
 			:original_params, :display_params, :status, :tasking_location, :parameter_group_name,
 			:parent_task_id, :subtask_callback_function, :group_callback_function, :subtask_group_name, :operation_id,
-		        :is_interactive_task, :interactive_task_type)
+		        :is_interactive_task, :interactive_task_type, :eventstepinstance_id, :status_timestamp_submitted)
 			RETURNING id`); err != nil {
 		logging.LogError(err, "Failed to make a prepared statement for new task creation")
 		return err
@@ -475,8 +577,21 @@ func handleClearCommand(createTaskInput CreateTaskInput, callback databaseStruct
 		Error:  "not implemented",
 	}
 	task.Status = "processing"
+	task.StatusTimestampProcessing.Valid = true
+	task.StatusTimestampProcessing.Time = time.Now().UTC()
+	task.StatusTimestampProcessed.Valid = true
+	task.StatusTimestampProcessed.Time = time.Now().UTC()
 	if err := addTaskToDatabase(&task); err != nil {
 		logging.LogError(err, "Failed to add task to database")
+		output.Error = err.Error()
+		return output
+	}
+	_, err := database.DB.NamedExec(`UPDATE task SET 
+                status_timestamp_processing=:status_timestamp_processing, 
+                status_timestamp_processed=:status_timestamp_processed 
+            where id=:id`, task)
+	if err != nil {
+		logging.LogError(err, "Failed to update task in database")
 		output.Error = err.Error()
 		return output
 	}
@@ -508,7 +623,7 @@ func handleClearCommand(createTaskInput CreateTaskInput, callback databaseStruct
 	}
 	outputMsg := ""
 	if len(tasksToClear) == 0 {
-		outputMsg = "No tasks by that number in the 'submitted' state\n"
+		outputMsg = "No tasks in the 'submitted' state\n"
 	} else {
 		for _, t := range tasksToClear {
 			submittedTasksAwaitingFetching.removeTask(t.ID)
@@ -534,7 +649,8 @@ func addErrToTask(taskId int, output string) {
 	}
 }
 func updateTaskStatus(taskId int, status string, completed bool) {
-	if _, err := database.DB.Exec(`UPDATE task SET status=$1, completed=$2 WHERE id=$3`,
+	if _, err := database.DB.Exec(`UPDATE task SET status=$1, 
+                completed=$2 WHERE id=$3`,
 		status, completed, taskId); err != nil {
 		logging.LogError(err, "Failed to update task status")
 	}
@@ -552,41 +668,56 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 	}
 	output.TaskID = task.ID
 	output.TaskDisplayID = task.DisplayID
-	if task.Params == "" {
-		// looking for help about all loaded commands
-		loadedCommands := []databaseStructs.Loadedcommands{}
-		if err := database.DB.Select(&loadedCommands, `SELECT
+	loadedCommands := []databaseStructs.Loadedcommands{}
+	err := database.DB.Select(&loadedCommands, `SELECT
 		command.cmd "command.cmd",
+		command.id "command.id", 
 		command.attributes "command.attributes",
 		command.description "command.description",
-		command.help_cmd "command.help_cmd"
+		command.help_cmd "command.help_cmd",
+		payloadtype.name "command.payloadtype.name"
 		FROM loadedcommands
 		JOIN command ON command_id=command.id
-		WHERE loadedcommands.callback_id=$1 ORDER BY command.cmd ASC`, callback.ID); err != nil {
-			logging.LogError(err, "Failed to fetch loaded commands")
-			go updateTaskStatus(task.ID, "error", true)
-			go addErrToTask(task.ID, fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error()))
-			output.Error = fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error())
-			return output
-		} else {
-			responseUserOutput := "Loaded Commands In Agent:\n"
-			for _, cmd := range loadedCommands {
-				commandAttributes := CommandAttribute{}
-				// for a given command, first check that it's appropriate for our callback.payload.os
-				if err := mapstructure.Decode(cmd.Command.Attributes.StructValue(), &commandAttributes); err != nil {
-					logging.LogError(err, "Failed to parse out command attributes")
-				} else if len(commandAttributes.SupportedOS) == 0 || utils.SliceContains(commandAttributes.SupportedOS, callback.Payload.Os) {
+		JOIN payloadtype ON command.payload_type_id = payloadtype.id
+		WHERE loadedcommands.callback_id=$1 ORDER BY command.cmd ASC`, callback.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to fetch loaded commands")
+		go updateTaskStatus(task.ID, "error", true)
+		go addErrToTask(task.ID, fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error()))
+		output.Error = fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error())
+		return output
+	}
+	if task.Params == "" {
+		// looking for help about all loaded commands
+		responseUserOutput := "Loaded Commands In Agent:\n"
+		for _, cmd := range loadedCommands {
+			commandAttributes := CommandAttribute{}
+			// for a given command, first check that it's appropriate for our callback.payload.os
+			err = mapstructure.Decode(cmd.Command.Attributes.StructValue(), &commandAttributes)
+			if err != nil {
+				logging.LogError(err, "Failed to parse out command attributes")
+			} else if len(commandAttributes.SupportedOS) == 0 || utils.SliceContains(commandAttributes.SupportedOS, callback.Payload.Os) {
+				if cmd.Command.Payloadtype.Name != callback.Payload.Payloadtype.Name {
+					responseUserOutput += fmt.Sprintf("\n%s (%s)\n\tUsage: %s\n\tDescription: %s",
+						cmd.Command.Cmd, cmd.Command.Payloadtype.Name, cmd.Command.HelpCmd, cmd.Command.Description)
+				} else {
 					responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
 						cmd.Command.Cmd, cmd.Command.HelpCmd, cmd.Command.Description)
 				}
+
 			}
-			go updateTaskStatus(task.ID, "completed", true)
-			go addOutputToTask(task.ID, responseUserOutput, task.OperationID)
-			output.Error = ""
-			output.Status = "success"
-			return output
 		}
-	} else if task.Params == "help" {
+		responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
+			"help", "help [command]", "The 'help' command gives detailed information about specific commands or general information about all available commands.")
+		responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
+			"clear", "clear { | all | task Num}", "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents")
+		go updateTaskStatus(task.ID, "completed", true)
+		go addOutputToTask(task.ID, responseUserOutput, task.OperationID)
+		output.Error = ""
+		output.Status = "success"
+		return output
+	}
+	if task.Params == "help" {
 		// looking for detailed help about a specific command
 		responseOutput := `The 'help' command gives detailed information about specific commands or general information about all available commands.\n`
 		go updateTaskStatus(task.ID, "completed", true)
@@ -594,8 +725,9 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		output.Error = ""
 		output.Status = "success"
 		return output
-	} else if task.Params == "clear" {
-		responseOutput := "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents'.\n"
+	}
+	if task.Params == "clear" {
+		responseOutput := "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents.\n"
 		responseOutput += "Clear with no arguments or with the 'all' argument will clear all tasking in the 'submitted' or 'delegating...' state for the current callback.\n"
 		responseOutput += "Clear can also take one argument, the task number, to clear just that one task.\n"
 		go updateTaskStatus(task.ID, "completed", true)
@@ -603,74 +735,73 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		output.Error = ""
 		output.Status = "success"
 		return output
-	} else {
-		command := databaseStructs.Command{}
-		commandParameters := []databaseStructs.Commandparameters{}
-		if err := database.DB.Get(&command, `SELECT
-		attributes,
-		description,
-		help_cmd
-		FROM command
-		WHERE cmd=$1 AND payload_type_id=$2`, task.Params, callback.Payload.PayloadTypeID); err != nil {
-			logging.LogError(err, "Failed to fetch loaded commands")
-			go updateTaskStatus(task.ID, "error", true)
-			go addErrToTask(task.ID, fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error()))
-			output.Error = fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error())
-			return output
+	}
+	command := databaseStructs.Command{}
+	commandParameters := []databaseStructs.Commandparameters{}
+	responseUserOutput := ""
+	for _, cmd := range loadedCommands {
+		if cmd.Command.Cmd != task.Params {
+			continue
 		}
-		if err := database.DB.Select(&commandParameters, `SELECT
+		command = cmd.Command
+		err = database.DB.Select(&commandParameters, `SELECT
 		commandparameters.*,
 		command.attributes "command.attributes",
 		command.description "command.description",
 		command.help_cmd "command.help_cmd"
 		FROM commandparameters
 		JOIN command ON command_id=command.id
-		WHERE command.payload_type_id=$1 AND command.cmd=$2`, callback.Payload.PayloadTypeID, task.Params); err != nil {
+		WHERE command.payload_type_id=$1 AND command.cmd=$2`, callback.Payload.PayloadTypeID, task.Params)
+		if err != nil {
 			logging.LogError(err, "Failed to fetch loaded commands")
 			go updateTaskStatus(task.ID, "error", true)
 			go addErrToTask(task.ID, fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error()))
 			output.Error = fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error())
 			return output
+		}
+		commandAttributes := CommandAttribute{}
+		// for a given command, first check that it's appropriate for our callback.payload.os
+		err = mapstructure.Decode(command.Attributes.StructValue(), &commandAttributes)
+		if err != nil {
+			logging.LogError(err, "Failed to parse out command attributes")
+			continue
+		}
+		commandName := command.Cmd
+		if cmd.Command.Payloadtype.Name != callback.Payload.Payloadtype.Name {
+			commandName += " (" + cmd.Command.Payloadtype.Name + ")"
+		}
+		if attributesJSON, err := json.MarshalIndent(commandAttributes, "", "\t"); err != nil {
+			responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s\nAttributes: %v\nParameters:\n\n",
+				commandName, command.HelpCmd, command.Description, err.Error())
+			logging.LogError(err, "Failed to marshal command attributes")
 		} else {
-			responseUserOutput := ""
-			commandAttributes := CommandAttribute{}
-			// for a given command, first check that it's appropriate for our callback.payload.os
-			if err := mapstructure.Decode(command.Attributes.StructValue(), &commandAttributes); err != nil {
-				logging.LogError(err, "Failed to parse out command attributes")
-			} else {
-				if attributesJSON, err := json.MarshalIndent(commandAttributes, "", "\t"); err != nil {
-					responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s\nAttributes: %v\nParameters:\n\n",
-						command.Cmd, command.HelpCmd, command.Description, err.Error())
-					logging.LogError(err, "Failed to marshal command attributes")
-				} else {
-					responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s\nAttributes: %s\nParameters:\n\n",
-						command.Cmd, command.HelpCmd, command.Description, attributesJSON)
-				}
-
+			responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s\nAttributes: %s\nParameters:\n\n",
+				commandName, command.HelpCmd, command.Description, attributesJSON)
+		}
+		paramGroupNames := []string{}
+		for _, p := range commandParameters {
+			if !utils.SliceContains(paramGroupNames, p.ParameterGroupName) {
+				paramGroupNames = append(paramGroupNames, p.ParameterGroupName)
 			}
-			paramGroupNames := []string{}
-			for _, p := range commandParameters {
-				if !utils.SliceContains(paramGroupNames, p.ParameterGroupName) {
-					paramGroupNames = append(paramGroupNames, p.ParameterGroupName)
+		}
+		for _, groupName := range paramGroupNames {
+			responseUserOutput += fmt.Sprintf("Parameter Group: %s\n", groupName)
+			for _, param := range commandParameters {
+				if param.ParameterGroupName == groupName {
+					responseUserOutput += fmt.Sprintf("\tParameter Name: %s\n\t\tCLI Name: %s\n\t\tDisplay Name: %s\n\t\tDescription: %s\n\t\tParameter Type: %s\n",
+						param.Name, param.CliName, param.DisplayName, param.Description, param.Type)
+					responseUserOutput += fmt.Sprintf("\t\tRequired: %v\n", param.Required)
 				}
 			}
-			for _, groupName := range paramGroupNames {
-				responseUserOutput += fmt.Sprintf("Parameter Group: %s\n", groupName)
-				for _, param := range commandParameters {
-					if param.ParameterGroupName == groupName {
-						responseUserOutput += fmt.Sprintf("\tParameter Name: %s\n\t\tCLI Name: %s\n\t\tDisplay Name: %s\n\t\tDescription: %s\n\t\tParameter Type: %s\n",
-							param.Name, param.CliName, param.DisplayName, param.Description, param.Type)
-						responseUserOutput += fmt.Sprintf("\t\tRequired: %v\n", param.Required)
-					}
-				}
-			}
-			go updateTaskStatus(task.ID, "success", true)
-			go addOutputToTask(task.ID, responseUserOutput, task.OperationID)
-			output.Error = ""
-			output.Status = "success"
-			return output
 		}
 	}
+
+	go updateTaskStatus(task.ID, "success", true)
+	go addOutputToTask(task.ID, responseUserOutput, task.OperationID)
+	output.Error = ""
+	output.Status = "success"
+	return output
+
 }
 
 func submitTaskToContainer(taskID int) CreateTaskResponse {

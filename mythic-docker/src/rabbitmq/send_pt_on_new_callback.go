@@ -1,9 +1,5 @@
 package rabbitmq
 
-import (
-	"github.com/its-a-feature/Mythic/logging"
-)
-
 func (r *rabbitMQConnection) SendPtOnNewCallback(newCallbackMessage PTOnNewCallbackAllData) error {
 	if err := r.SendStructMessage(
 		MYTHIC_EXCHANGE,
@@ -12,7 +8,6 @@ func (r *rabbitMQConnection) SendPtOnNewCallback(newCallbackMessage PTOnNewCallb
 		newCallbackMessage,
 		false,
 	); err != nil {
-		logging.LogError(err, "Failed to send message")
 		return err
 	} else {
 		return nil

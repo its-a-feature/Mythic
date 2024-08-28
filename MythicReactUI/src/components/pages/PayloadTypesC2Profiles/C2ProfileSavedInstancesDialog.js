@@ -122,7 +122,7 @@ export function C2ProfileSavedInstancesDialog(props) {
           try{
               const updates = data.c2profileparametersinstance.map( (cur) => {
                   let inst = {...cur, ...cur.c2profileparameter};
-                  if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple"){
+                  if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple" || inst.parameter_type === "FileMultiple"){
                       try{
                           inst["value"] = JSON.parse(inst["value"]);
                       }catch(error){
@@ -179,7 +179,7 @@ export function C2ProfileSavedInstancesDialog(props) {
                   return inst;
               })
               updates.sort( (a, b) => a.description < b.description ? -1 : 1);
-              console.log(updates);
+              //console.log(updates);
               setCurrentParameters(updates);
           }catch(error){
               console.log(error);
@@ -257,13 +257,32 @@ export function C2ProfileSavedInstancesDialog(props) {
                 } else {
                     const newUUID = await UploadTaskFile(param.value, "Uploaded as c2 parameter for saved C2 Parameter Instance '" + instanceName + "'");
                     if (newUUID) {
-                        instanceParam = {...instanceParam, [param.name]: newUUID};
+                        if (newUUID !== "Missing file in form") {
+                            instanceParam = {...instanceParam, [param.name]: newUUID};
+                        }
                     } else {
                         snackActions.error("Failed to upload files")
                         return;
                     }
                 }
-
+            }else if(param.parameter_type === "FileMultiple"){
+                let fileMultipleValues = [];
+                for(let j = 0; j < param.value.length; j++){
+                    if (typeof param.value[j] === "string") {
+                        fileMultipleValues.push(param.value[j]);
+                    } else {
+                        const newUUID = await UploadTaskFile(param.value[j], "Uploaded as c2 parameter for saved C2 Parameter Instance '" + instanceName + "'");
+                        if (newUUID) {
+                            if (newUUID !== "Missing file in form") {
+                                fileMultipleValues.push(newUUID);
+                            }
+                        } else {
+                            snackActions.error("Failed to upload files")
+                            return;
+                        }
+                    }
+                }
+                instanceParam = {...instanceParam, [param.name]: fileMultipleValues};
             } else {
                 instanceParam = {...instanceParam, [param.name]: param.value};
             }

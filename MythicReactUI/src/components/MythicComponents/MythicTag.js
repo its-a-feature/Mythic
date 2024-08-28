@@ -5,7 +5,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from './MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
-import { Select, Input, MenuItem, Link, IconButton, } from '@mui/material';
+import { Select, Input, MenuItem, Link, IconButton } from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -24,6 +24,8 @@ import WebhookIcon from '@mui/icons-material/Webhook';
 import Chip from '@mui/material/Chip';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import Typography from '@mui/material/Typography';
 
 const createNewTagMutationTemplate = ({target_object}) => {
   // target_object should be something like "task_id"
@@ -46,7 +48,7 @@ const updateTagMutationTemplate = gql`
 const getObjectTagsQueryTemplate = ({target_object}) => {
 return gql`
 query getObjectTags ($${target_object}: Int!) {
-  tag(where: {${target_object}: {_eq: $${target_object}}}) {
+  tag(where: {${target_object}: {_eq: $${target_object}}}, order_by: {tagtype: {name: asc}}) {
     source
     url
     id
@@ -63,7 +65,7 @@ query getObjectTags ($${target_object}: Int!) {
 }
 const getTagtypesQuery = gql`
 query getTagtype {
-  tagtype {
+  tagtype(order_by: {name: asc}) {
     name
     color
     description
@@ -119,7 +121,12 @@ const TagChipDisplay = ({tag}) => {
   }
   return (
     <React.Fragment>
-      <Chip label={tag.tagtype.name} size="small" onClick={(e) => onSelectTag(e)} style={{float: "right", backgroundColor:tag.tagtype.color}} />
+      <Chip label={tag.tagtype.name} size="small" onClick={(e) => onSelectTag(e)}
+            style={{float: "right", backgroundColor:tag.tagtype.color,}}
+            sx={{
+              "& .MuiChip-label": {overflow: "visible"}
+            }}
+      />
       {openTagDisplay && 
         <MythicDialog fullWidth={true} maxWidth="xl" open={openTagDisplay}
           onClose={onClose}
@@ -151,7 +158,7 @@ const StringTagDataEntry = ({name, value}) => {
       console.log("There was an error!", error);
     })
   }
-  if(RegExp(regex).test(value)){
+  if(RegExp(regex)?.test(value)){
     const capturePieces = RegExp(captureRegex).exec(value);
     const targetPieces = RegExp(targetRegex).exec(capturePieces[3]);
     const colorPieces = RegExp(colorRegex).exec(capturePieces[3]);
@@ -192,16 +199,22 @@ function ViewTagDialog(props) {
       let newTag = {...data.tag_by_pk};
       let tagData = newTag;
       try{
-        tagData = JSON.parse(newTag.data);
-        newTag.data = tagData;
-        newTag.is_json = true;
+        if(newTag.data.constructor === Object){
+          newTag.data = {...data.tag_by_pk.data};
+          newTag.is_json = true;
+        } else if(typeof newTag.data === "string"){
+          tagData = JSON.parse(newTag.data);
+          newTag.data = tagData;
+          newTag.is_json = true;
+        }
+
       }catch(error){
         newTag.is_json = false;
       }
       setSelectedTag(newTag);
     },
     onError: error => {
-      console.log(error);
+      console.log("query error", error);
     },
     fetchPolicy: "network-only"
   })
@@ -244,7 +257,7 @@ return (
                 <TableRow>
                   <TableCell>Data</TableCell>
                   <TableCell>
-                    {selectedTag?.is_json || false ? (
+                    {selectedTag?.is_json ? (
                       <TableContainer  className="mythicElement">
                         <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                           <TableBody>
@@ -318,7 +331,12 @@ export function ViewEditTagsDialog(props) {
         setSelectedTag(data.tag[0]);
         setNewSource(data.tag[0].source);
         setNewURL(data.tag[0].url);
-        setNewData(data.tag[0].data);
+        try{
+          setNewData(JSON.stringify(data.tag[0].data, null, 2));
+        }catch(error){
+          setNewData(String(data.tag[0].data));
+        }
+
       }
     },
     onError: error => {
@@ -374,9 +392,13 @@ const onEditorChange = (value, event) => {
 }
 const handleTaskTypeChange = (evt) => {
   setSelectedTag(evt.target.value);
-  setNewData(evt.target.value.data);
   setNewSource(evt.target.value.source);
   setNewURL(evt.target.value.url);
+  try{
+    setNewData(JSON.stringify(evt.target.value.data, null, 2));
+  }catch(error){
+    setNewData(String(evt.target.value.data));
+  }
 }
 const handleNewTagCreate = ({tagtype_id, source, url, data, id}) => {
   props.onClose();
@@ -389,7 +411,6 @@ const onAcceptDelete = () => {
 return (
   <React.Fragment>
       <DialogTitle id="form-dialog-title">Edit Tags
-      <Button variant='contained' color="success" style={{float: "right"}} onClick={() => setOpenNewDialog(true)} >New</Button>
       </DialogTitle>
       <DialogContent dividers={true}>
       {openNewDialog ?
@@ -405,8 +426,13 @@ return (
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
-                  <TableCell style={{width: "30%"}}>Select Existing Tag to Edit</TableCell>
+                  <TableCell style={{width: "30%"}}>Select Existing Tag to Edit or Add New</TableCell>
                   <TableCell style={{display: "inline-flex", flexDirection: "row-reverse"}}>
+                    <MythicStyledTooltip title={"Add New Tag"}>
+                      <IconButton variant='contained' color="success" style={{float: "right"}} onClick={() => setOpenNewDialog(true)} >
+                        <AddCircleOutlineIcon />
+                      </IconButton>
+                    </MythicStyledTooltip>
                     <Select
                         labelId="demo-dialog-select-label"
                         id="demo-dialog-select"
@@ -423,7 +449,6 @@ return (
                     {selectedTag.id &&
                         <IconButton size="small" style={{float: "right"}} onClick={()=>{setOpenDeleteDialog(true);}} color="error" variant="contained"><DeleteIcon/></IconButton>
                     }
-
                       {openDelete && 
                         <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                       }
@@ -532,13 +557,25 @@ export function NewTagDialog(props) {
 
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Create new Tag Instance</DialogTitle>
+        <DialogTitle id="form-dialog-title">Add New Tag</DialogTitle>
         <DialogContent dividers={true}>
           <TableContainer className="mythicElement">
             <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableBody>
                   <TableRow hover>
-                    <TableCell style={{width: "30%"}}>Select Existing Tag Type</TableCell>
+                    <TableCell style={{width: "20%"}}>
+                      <Typography>
+                        Tag
+                      </Typography>
+                      <Typography  size="small" component="span" style={{fontSize: theme.typography.pxToRem(15)}}>
+                        To create a new tag type click <Link style={{wordBreak: "break-all"}}
+                                                             color="textPrimary"
+                                                             href={"/new/tagtypes"}
+                                                             underline="always" target="_blank">
+                        here
+                      </Link>
+                      </Typography>
+                    </TableCell>
                     <TableCell>
                       <Select
                         labelId="demo-dialog-select-label"

@@ -78,7 +78,7 @@ export function BrowserScripts({me}){
           }
         } )
         setBrowserScripts(scripts);
-        if(backdropOpen){setBackdropOpen(false);}
+        setBackdropOpen(false);
       }
     });
     const [toggleActive] = useMutation(updateBrowserScriptActive, {
@@ -117,6 +117,7 @@ export function BrowserScripts({me}){
       }
     });
     const onToggleActive = ({browserscript_id, active}) => {
+        setBackdropOpen(true);
         toggleActive({variables: {browserscript_id, active}});
     }
     const onSubmitEdit = ({browserscript_id, script, command_id, payload_type_id}) => {

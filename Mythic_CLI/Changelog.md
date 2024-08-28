@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 0.3.4 - 2024-08-27
+
+### Changed
+
+- Added option for `mythic_docker_networking` to allow for `bridge` or `host` networking
+  - This applies to all main mythic services
+  
+## 0.3.3 - 2024-08-11
+
+### Changed
+
+- Added a check for a GraphQL query to help make sure things are fully online before returning success from start
+
+## 0.3.2 - 2024-08-06
+
+### Changed
+
+- Hopefully fixed a permissions issue with the /projects directory for jupyter notebooks
+
+## 0.3.1 - 2024-08-01
+
+### Changed
+
+- Made the default for dynamic ports to bind to localhost
+
+## 0.3.0 - 2024-07-31
+
+### Changed
+
+- Added experimental support for changing the mythic_server container to host networking
+
 ## 0.2.22 - 2024-04-09
 
 ### Changed

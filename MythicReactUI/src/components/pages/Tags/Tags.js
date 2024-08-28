@@ -89,7 +89,7 @@ export function Tags(props){
        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     return (
-      <div style={{display: "flex", flexGrow: 1, flexDirection: "column"}}>
+      <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
         <TagtypesTable onDeleteTagtype={onDeleteTagtype}  tagtypes={tagtypes} onNewTag={onNewTag} onUpdateTagtype={onUpdateTagtype} me={props.me}/>
       </div>
     );

@@ -7,13 +7,15 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {PayloadBuildMessageDialog} from './PayloadBuildMessageDialog';
-import { Link } from '@mui/material';
 
 export function PayloadsTableRowBuildStatus(props){
     const [openBuildMessage, setOpenBuildMessageDialog] = React.useState(false);
     const onErrorClick = () => {
         snackActions.warning("Payload failed to build, cannot download");
         setOpenBuildMessageDialog(true);
+    }
+    if(props.deleted){
+        return null;
     }
     return (
         <React.Fragment>

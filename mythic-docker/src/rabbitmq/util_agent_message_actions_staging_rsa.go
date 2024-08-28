@@ -44,15 +44,14 @@ func handleAgentMessageStagingRSA(incoming *map[string]interface{}, uUIDInfo *ca
 	}
 
 	publicKeyToUse := agentMessage.PublicKey
-	if !strings.HasPrefix(agentMessage.PublicKey, "LS0t") {
-		publicKeyToUse = fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", agentMessage.PublicKey)
-	} else {
-		// if the public key doesn't begin with "LS0t" then it's likely the whole thing base64 encoded, so decode it
+	if strings.HasPrefix(agentMessage.PublicKey, "LS0t") {
 		decodedBytes, err := base64.StdEncoding.DecodeString(publicKeyToUse)
 		if err != nil {
 			return nil, fmt.Errorf("failed to base64 provided public key: %v", err)
 		}
 		publicKeyToUse = string(decodedBytes)
+	} else {
+		publicKeyToUse = fmt.Sprintf("-----BEGIN PUBLIC KEY-----\n%s\n-----END PUBLIC KEY-----", agentMessage.PublicKey)
 	}
 
 	encryptedNewKey, err := mythicCrypto.RsaEncryptBytes(*newKey.EncKey, []byte(publicKeyToUse))

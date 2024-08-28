@@ -11,7 +11,6 @@ import { copyStringToClipboard } from '../../utilities/Clipboard';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faCopy} from '@fortawesome/free-solid-svg-icons';
 import {Link} from '@mui/material';
-import Paper from '@mui/material/Paper';
 import {snackActions} from '../../utilities/Snackbar';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
@@ -22,6 +21,7 @@ import {b64DecodeUnicode} from "../../utilities/base64";
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {MythicTextEditDialog} from "../../MythicComponents/MythicTextEditDialog";
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
 
 /*
 export function KeylogsTableOld(props){
@@ -100,31 +100,49 @@ export function KeylogsTableOld(props){
 */
 export function KeylogsTable(props){
     const [keylogs, setKeylogs] = React.useState([]);
+    const [openGroupedKeylogData, setOpenGroupedKeylogData] = React.useState(false);
     useEffect( () => {
         setKeylogs(props.keylogs);
     }, [props.keylogs]);
-//k0["name"]
+    const groupedKeylogData = React.useRef({});
+    const onGroupKeylogData = (programName, username, hostname) => {
+        const aggregateKeylogData = keylogs.reduce( (prev, cur) => {
+            if(cur.user === username && cur.task.callback.host === hostname && cur.window === programName){
+                return prev + b64DecodeUnicode(cur.keystrokes_text) + "\n";
+            }
+            return prev;
+        }, "");
+        groupedKeylogData.current = {"keystrokes": aggregateKeylogData,
+        "title": `${username}'s keylogs in ${programName} on ${hostname}`};
+        setOpenGroupedKeylogData(true);
+    }
     return (
         
-        <TableContainer component={Paper} className="mythicElement" >
+        <TableContainer className="mythicElement" >
             <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "4rem"}}>Callback</TableCell>
+                        <TableCell style={{width: "8rem"}}>Callback</TableCell>
                         <TableCell style={{width: "4rem"}}>Task</TableCell>
                         <TableCell style={{width: "12rem"}}>Timestamp</TableCell>
-                        <TableCell >User</TableCell>
-                        <TableCell >Host</TableCell>
+                        <TableCell >User / Host</TableCell>
                         <TableCell >Window</TableCell>
                         <TableCell></TableCell>
-                        <TableCell style={{maxWidth: "70%"}}>Keylogs</TableCell>
+                        <TableCell style={{maxWidth: "50%"}}>Keylogs</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                
+                    {openGroupedKeylogData &&
+                        <MythicDialog maxWidth={"100%"} fullWidth={true} open={openGroupedKeylogData} onClose={() => {setOpenGroupedKeylogData(false);}}
+                                      innerDialog={
+                                          <MythicTextEditDialog fullWidth open={openGroupedKeylogData} onClose={() => {setOpenGroupedKeylogData(false);}}
+                                                                title={groupedKeylogData.current.title} value={groupedKeylogData.current.keystrokes}/>
+                                      } />
+                    }
                 {keylogs.map( (op) => (
                     <KeylogTableRow
                         key={"keylog" + op.id}
+                        onGroupKeylogData={onGroupKeylogData}
                         {...op}
                     />
                 ))}
@@ -170,12 +188,19 @@ function KeylogTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Typography variant="body2" >{props.user}</Typography>
-                </MythicStyledTableCell>
-                <MythicStyledTableCell >
                     <Typography variant="body2" >{props.task.callback.host}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <Typography variant="body2" >{props.window}</Typography>
+                    <MythicStyledTooltip title={"View current page data grouped together for this program"} style={{
+                        display: "inline-block"
+                    }}>
+                        <IconButton onClick={() => props.onGroupKeylogData(props.window, props.user, props.task.callback.host)}>
+                            <FullscreenIcon />
+                        </IconButton>
+                    </MythicStyledTooltip>
+                    <Typography variant="body2" style={{display: "inline-block"}}>
+                        {props.window}
+                    </Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title={"Copy to clipboard"} style={{display: "inline-block"}}>

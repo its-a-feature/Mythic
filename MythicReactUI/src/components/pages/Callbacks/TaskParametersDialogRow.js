@@ -9,14 +9,13 @@ import Switch from '@mui/material/Switch';
 import Input from '@mui/material/Input';
 import {Button, IconButton} from '@mui/material';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import Paper from '@mui/material/Paper';
 import TableHead from '@mui/material/TableHead';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {useTheme} from '@mui/material/styles';
 import CancelIcon from '@mui/icons-material/Cancel';
 import {Typography} from '@mui/material';
-import {useMutation, gql } from '@apollo/client';
+import {useMutation, gql, useLazyQuery } from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import {CredentialTableNewCredentialDialog} from '../Search/CredentialTableNewCredentialDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
@@ -24,6 +23,7 @@ import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip'
 import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
+import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 
 const getDynamicQueryParams = gql`
 mutation getDynamicParamsMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!){
@@ -60,12 +60,21 @@ fragment credentialData on credential{
 }
 `;
 const createCredentialMutation = gql`
-${credentialFragment}
-mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: bytea!) {
-    insert_credential_one(object: {account: $account, credential_raw: $credential, comment: $comment, realm: $realm, type: $type}) {
-      ...credentialData
+mutation createCredential($comment: String!, $account: String!, $realm: String!, $type: String!, $credential: String!) {
+    createCredential(account: $account, credential: $credential, comment: $comment, realm: $realm, credential_type: $type) {
+      id
+      status
+      error
     }
   }
+`;
+const getCredentialQuery = gql`
+${credentialFragment}
+query getCredential($id: Int!){
+    credential_by_pk(id: $id){
+        ...credentialData
+    }
+}
 `;
 
 export function TaskParametersDialogRow(props){
@@ -77,6 +86,7 @@ export function TaskParametersDialogRow(props){
     const [arrayValue, setArrayValue] = React.useState([""]);
     const [typedArrayValue, setTypedArrayValue] = React.useState([]);
     const [choiceMultipleValue, setChoiceMultipleValue] = React.useState([]);
+    const [chooseOneCustomValue, setChooseOneCustomValue] = React.useState("");
     const [agentConnectNewHost, setAgentConnectNewHost] = React.useState("");
     const [agentConnectHostOptions, setAgentConnectHostOptions] = React.useState([]);
     const [agentConnectNewPayload, setAgentConnectNewPayload] = React.useState(0);
@@ -88,6 +98,7 @@ export function TaskParametersDialogRow(props){
     const [openAdditionalPayloadOnHostMenu, setOpenAdditionalPayloadOnHostmenu] = React.useState(false);
     const [createCredentialDialogOpen, setCreateCredentialDialogOpen] = React.useState(false);
     const [fileValue, setFileValue] = React.useState({name: ""});
+    const [fileMultValue, setFileMultValue] = React.useState([]);
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const usingDynamicParamChoices = React.useRef(false);
     const usingParsedTypedArray = React.useRef(true);
@@ -155,13 +166,25 @@ export function TaskParametersDialogRow(props){
             console.log(data);
             setBackdropOpen(false);
         }
+    });
+    const [getCredential] = useLazyQuery(getCredentialQuery, {
+        onCompleted: (data) => {
+            updateToLatestCredential.current = true;
+            props.addedCredential(data.credential_by_pk);
+        },
+        onError: (data) => {
+            console.log(data);
+        }
     })
     const [createCredential] = useMutation(createCredentialMutation, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
             snackActions.success("Successfully created new credential");
-            updateToLatestCredential.current = true;
-            props.addedCredential(data.insert_credential_one);
+            if(data.createCredential.status === "success"){
+                getCredential({variables: {id: data.createCredential.id}});
+            } else {
+                snackActions.error(data.createCredential.error);
+            }
         },
         onError: (data) => {
             snackActions.error("Failed to create credential");
@@ -192,6 +215,8 @@ export function TaskParametersDialogRow(props){
             }
        }else if(props.type === "Array") {
            setArrayValue(props.value);
+       }else if(props.type === "FileMultiple"){
+           setFileMultValue(props.value);
        }else if(props.type === "TypedArray"){
            if(value === ""){
                //console.log(props.value);
@@ -352,6 +377,15 @@ export function TaskParametersDialogRow(props){
         setValue(value);
         props.onChange(props.name, value, error);
     }
+    const onChangeTextChooseOneCustom = (name, newValue, error) => {
+        setChooseOneCustomValue(newValue);
+        if(newValue === ""){
+            props.onChange(props.name, value, error);
+        } else {
+            props.onChange(props.name, newValue, error);
+        }
+
+    }
     const onChangeNumber = (name, value, error) => {
         setValue(parseInt(value));
         props.onChange(props.name, parseInt(value), error);
@@ -364,7 +398,10 @@ export function TaskParametersDialogRow(props){
     const onFileChange = (evt) => {
        setFileValue({name: evt.target.files[0].name});
        props.onChange(props.name, evt.target.files[0]);
-        
+    }
+    const onFileMultChange = (evt) => {
+        setFileMultValue([...evt.target.files]);
+        props.onChange(props.name, [...evt.target.files]);
     }
     const onChangeAgentConnectHost = (event) => {
         setAgentConnectHost(event.target.value); 
@@ -498,6 +535,39 @@ export function TaskParametersDialogRow(props){
     }
     const getParameterObject = () => {
         switch(props.type){
+            case "ChooseOneCustom":
+                return (
+                    <React.Fragment>
+                        <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+                            <CircularProgress color="inherit" />
+                        </Backdrop>
+                        <div style={{width: "100%", display: "flex", alignItems: "center"}}>
+                            <FormControl style={{}}>
+                                <Select
+                                    native
+                                    autoFocus={props.autoFocus}
+                                    multiple={false}
+                                    value={value}
+                                    disabled={chooseOneCustomValue !== ""}
+                                    onChange={onChangeValue}
+                                    input={<Input />}
+                                >
+                                    {
+                                        ChoiceOptions.map((opt, i) => (
+                                            <option key={props.name + i} value={opt}>{opt}</option>
+                                        ))
+                                    }
+                                </Select>
+                            </FormControl>
+                            OR
+                            <MythicTextField required={props.required} placeholder={"Custom Value"} value={chooseOneCustomValue} multiline={true} maxRows={5}
+                                             onChange={onChangeTextChooseOneCustom} display="inline-block" onEnter={props.onSubmit} autoFocus={props.autoFocus}
+                                             name={props.name}
+                            />
+                        </div>
+
+                    </React.Fragment>
+                )
             case "ChooseOne":
             case "ChooseMultiple":
                 return (
@@ -532,9 +602,11 @@ export function TaskParametersDialogRow(props){
                                 {arrayValue.map( (a, i) => (
                                     <TableRow key={'array' + props.name + i} >
                                         <MythicStyledTableCell style={{width: "2rem"}}>
-                                            <DeleteIcon onClick={(e) => {removeArrayValue(i)}} color="error"
-                                                        style={{cursor: "pointer"}}
-                                            />
+                                            <MythicStyledTooltip title={"Remove array element"}>
+                                                <DeleteIcon onClick={(e) => {removeArrayValue(i)}} color="error"
+                                                            style={{cursor: "pointer"}}
+                                                />
+                                            </MythicStyledTooltip>
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
                                             <MythicTextField required={props.required} fullWidth={true} placeholder={""} value={a} multiline={true} autoFocus={props.autoFocus || i > 0}
@@ -546,7 +618,9 @@ export function TaskParametersDialogRow(props){
                                 ))}
                                 <TableRow >
                                     <MythicStyledTableCell style={{width: "5rem", paddingLeft:"0"}}>
-                                        <IconButton onClick={addNewArrayValue} size="large"> <AddCircleIcon color="success"  /> </IconButton>
+                                        <MythicStyledTooltip title={"Add new array element"} >
+                                            <IconButton onClick={addNewArrayValue} size="large"> <AddCircleIcon color="success"  /> </IconButton>
+                                        </MythicStyledTooltip>
                                     </MythicStyledTableCell>
                                     <MythicStyledTableCell></MythicStyledTableCell>
                                 </TableRow>
@@ -620,9 +694,30 @@ export function TaskParametersDialogRow(props){
                 )
             case "File":
                 return (
-                    <Button variant="contained" component="label"> 
-                        { fileValue.name === "" ? "Select File" : fileValue.name } 
-                    <input onChange={onFileChange} type="file" hidden /> </Button>
+                    <>
+                        <Button variant="contained" component="label">
+                            { fileValue.name === "" ? "Select File" : fileValue.name }
+                            <input onChange={onFileChange} type="file" hidden />
+                        </Button>
+                    </>
+
+                )
+            case "FileMultiple":
+                return (
+                    <>
+                        <Button variant="contained" component="label">
+                            Select Files
+                            <input onChange={onFileMultChange} type="file" hidden multiple />
+                        </Button>
+                        { fileMultValue.length > 0 &&
+                            fileMultValue.map((f, i) => (
+                                <div key={i}>
+                                    {typeof f === "string" && <MythicFileContext agent_file_id={f} />}
+                                    {typeof f !== "string" && (f.name)}
+                                </div>
+                            ))
+                        }
+                    </>
                 )
             case "LinkInfo":
                 return (
@@ -663,7 +758,7 @@ export function TaskParametersDialogRow(props){
                 )
             case "AgentConnect":
                 return (
-                    <TableContainer component={Paper} className="mythicElement"> 
+                    <>
                         <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {openAdditionalPayloadOnHostMenu ? (
@@ -750,13 +845,19 @@ export function TaskParametersDialogRow(props){
                                     </TableRow>
                                     <TableRow>
                                         <MythicStyledTableCell>
-                                        <Button component="span" style={{color: theme.palette.success.main, padding: 0}} onClick={() =>{
-                                            setOpenAdditionalPayloadOnHostmenu(true);
-                                            props.setSubmenuOpenPreventTasking(true);
-                                        }}><AddCircleIcon />Register New</Button>
+                                            <MythicStyledTooltip title={"Associate new payload with a specific host for linking"}>
+                                                <Button component="span" style={{color: theme.palette.success.main, padding: 0}} onClick={() =>{
+                                                    setOpenAdditionalPayloadOnHostmenu(true);
+                                                    props.setSubmenuOpenPreventTasking(true);
+                                                }}><AddCircleIcon />Register New</Button>
+                                            </MythicStyledTooltip>
+
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
-                                        <Button component="span" style={{color: theme.palette.error.main, padding: 0}} onClick={onAgentConnectRemovePayloadOnHost}><DeleteIcon />Remove Listed</Button>
+                                            <MythicStyledTooltip title={"Mark associated payload as no longer on host and not available for linking"}>
+                                                <Button component="span" style={{color: theme.palette.error.main, padding: 0}}
+                                                        onClick={onAgentConnectRemovePayloadOnHost}><DeleteIcon />Remove Listed</Button>
+                                            </MythicStyledTooltip>
                                         </MythicStyledTableCell>
                                     </TableRow>
                                     <TableRow>
@@ -799,7 +900,7 @@ export function TaskParametersDialogRow(props){
                                 </TableBody>
                             </Table>
                         ): null}
-                    </TableContainer>
+                    </>
                 )
             case "CredentialJson":
                 return (

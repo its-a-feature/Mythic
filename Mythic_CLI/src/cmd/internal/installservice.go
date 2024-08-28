@@ -203,7 +203,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 							continue
 						}
 					} else {
-						err = moveFileToVolume("mythic_documentation_volume",
+						err = moveFileToVolume("mythic_documentation", "mythic_documentation_volume",
 							filepath.Join("content", "Agents"),
 							filepath.Join(installPath, "documentation-payload", f.Name()))
 						if err != nil {
@@ -254,7 +254,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 							continue
 						}
 					} else {
-						err = moveFileToVolume("mythic_documentation_volume",
+						err = moveFileToVolume("mythic_documentation", "mythic_documentation_volume",
 							filepath.Join("content", "C2 Profiles"),
 							filepath.Join(installPath, "documentation-c2", f.Name()))
 						if err != nil {
@@ -306,7 +306,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 							continue
 						}
 					} else {
-						err = moveFileToVolume("mythic_documentation_volume",
+						err = moveFileToVolume("mythic_documentation", "mythic_documentation_volume",
 							filepath.Join("content", "Wrappers"),
 							filepath.Join(installPath, "documentation-wrapper", f.Name()))
 						if err != nil {

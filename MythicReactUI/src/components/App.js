@@ -33,6 +33,8 @@ import { RefreshTokenDialog } from './RefreshTokenDialog';
 import { MythicDialog } from './MythicComponents/MythicDialog';
 import { ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
+import {Eventing} from "./pages/Eventing/Eventing";
+import {InviteForm} from "./pages/Login/InviteForm";
 
 
 
@@ -61,7 +63,7 @@ export function App(props) {
             createTheme(adaptV4Theme({
                 palette: {
                     primary: {
-                        main: themeMode === "dark" ? "#465a79" : "rgb(102,121,145)",
+                        main: themeMode === "dark" ? "rgb(70,91,115)" : "rgb(117,133,155)",
                     },
                     error: {
                         main: themeMode === "dark" ? '#da3237' : '#c42c32',
@@ -77,8 +79,10 @@ export function App(props) {
                     },
                     mode: themeMode,
                     background: {
-                        contrast: themeMode === 'dark' ? '#ffffff' : '#30455e',
-                        default: themeMode === "dark" ? 'rgb(31, 31, 31)' : '#ffffff',
+                        contrast: themeMode === 'dark' ? '#e1e0e0' : 'rgb(44, 52, 60)',
+                        default: themeMode === "dark" ? 'rgb(48, 48, 48)' : '#f6f6f6',
+                        paper: themeMode === "dark" ? 'rgb(37,36,36)' : '#ececec',
+                        taskLabel: themeMode === "dark" ? 'rgb(20, 20, 20)' : '#f5f5f5',
                     },
                     listSubHeader: {
                       default: themeMode === "dark" ? 'rgb(50, 50, 50)' : 'rgb(240, 240, 240)',
@@ -87,24 +91,26 @@ export function App(props) {
                         contrast: themeMode === 'dark' ? '#000' : '#fff',
                     },
                     textBackgroundColor: themeMode === 'dark' ? '#272c2f' : '#e9eaea',
-                    textBackgroundColorMythic: themeMode === 'dark' ? '#436b9f' : '#aadcf5',
+                    textBackgroundColorPrimary: themeMode === 'dark' ? '#436b9f' : '#aadcf5',
                     textBackgroundColorSuccess: themeMode === 'dark' ? '#09a21a' : '#70e373',
                     textBackgroundColorError: themeMode === 'dark' ? '#9f1616' : '#f19da3',
                     graphGroup: themeMode === 'dark' ? '#394c5d' : '#d3d7e8',
                     graphGroupRGBA: themeMode === 'dark' ? 'rgba(57, 76, 93, 0.5)' : 'rgba(211, 215, 232, 0.5)',
                     speedDialAction: themeMode === 'dark' ? '#495054' : '#ffffff',
                 },
-                pageHeaderColor: "white",
+                pageHeaderTextColor: "#ffffff",
                 folderColor: '#f1d592',
-                tableHeader: '#484848',
+                tableHeader: themeMode === 'dark' ? '#484848' : '#c4c4c4',
                 successOnMain: '#1ae302',
                 errorOnMain: '#ff656b',
                 infoOnMain: '#67ceff',
+                selectedCallbackColor: themeMode === 'dark' ? '#26456e' : '#c6e5f6',
+                selectedCallbackHierarchyColor:  themeMode === 'dark' ? '#273e5d' : '#deeff8',
                 materialReactTableHeader: themeMode === 'dark' ? '#484848' : '#d5d5d5',
                 tableBorder: themeMode === 'dark' ? 'rgba(81,81,81,1)' : 'rgba(224,224,224,1)',
-                tableHover: themeMode === 'dark' ? 'rgba(85,88,93)' : 'rgba(245, 245, 245)',
+                tableHover: themeMode === 'dark' ? 'rgba(60,60,60)' : 'rgb(232,232,232)',
                 pageHeader: {
-                    main: '#827E80',
+                    main: '#706c6e',
                 },
                 pageHeaderSecondary: {
                     main: '#444343',
@@ -146,7 +152,7 @@ export function App(props) {
                                 wordBreak: "break-all", flexDirection: "column", justifyContent: "center"}}
                                 pauseOnFocusLoss={false} />
                     <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ minHeight: '56px', flexGrow: 0 }}>
+                        <div style={{ minHeight: '50px', flexGrow: 0 }}>
                             {me.loggedIn && me.user !== undefined && me.user !== null ? (
                                 <TopAppBar me={me} theme={themeMode} toggleTheme={themeToggler} />
                             ) : null}
@@ -158,9 +164,10 @@ export function App(props) {
                                     onClose={()=>{setOpenRefreshDialog(false);}} />}
                             />
                         }
-                        <div style={{ margin: '0px 5px 5px 5px', flexGrow: 1, flexDirection: 'column', height: "calc(100% - 4rem)",  }}>
+                        <div style={{ margin: '0px 2px 0px 5px', flexGrow: 1, flexDirection: 'column', height: "calc(100% - 4rem)",  }}>
                             <Routes>
                                 <Route path='/new/login' element={<LoginForm me={me}/>}/>
+                                <Route path='/new/invite' element={<InviteForm me={me}/>}/>
                                 <Route path='/' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>} />
                                 <Route exact path='/new' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>} />
                                 <Route exact path='/new/settings' element={<LoggedInRoute me={me}><Settings me={me}/></LoggedInRoute>} />
@@ -182,6 +189,7 @@ export function App(props) {
                                 <Route exact path='/new/mitre' element={<LoggedInRoute me={me}><MitreAttack me={me}/></LoggedInRoute>} />
                                 <Route exact path='/new/tagtypes' element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>} />
                                 <Route exact path='/new/consuming_services' element={<LoggedInRoute me={me}><ConsumingServices me={me}/></LoggedInRoute>} />
+                                <Route exact path='/new/eventing' element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>} />
                             </Routes>
                         </div>
                     </div>

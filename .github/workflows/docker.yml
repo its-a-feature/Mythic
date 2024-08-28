@@ -9,7 +9,7 @@ on:
   #  types: [published]
   push:
     branches:
-      - 'docker_updates'
+      - 'Mythic3.3'
       - 'master'
     tags:
       - "v*.*.*"
@@ -43,7 +43,7 @@ env:
   # Set the container image version to the Github release tag
   VERSION: ${{ github.ref_name }}
 
-  # Branch for pushing release changes (TODO: Change this to the main branch when the rewrite is finished)
+  # Branch for pushing release changes
   RELEASE_BRANCH: master
 
 jobs:
@@ -72,6 +72,8 @@ jobs:
       # the following are unique to this job
       - name: Lowercase the server container image name
         run: echo "MYTHIC_SERVER_IMAGE_NAME=${MYTHIC_SERVER_IMAGE_NAME,,}" >> ${GITHUB_ENV}
+      - name: Copy version file over
+        run: cp VERSION mythic-docker/src/VERSION
       - name: Build and push the server container image
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:

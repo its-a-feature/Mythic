@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
+	"github.com/its-a-feature/Mythic/database/enums/PushC2Connections"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/grpc"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
@@ -38,6 +40,7 @@ type UpdateCallback struct {
 	ProcessName        *string   `json:"process_name,omitempty"`
 	IntegrityLevel     *int      `json:"integrity_level,omitempty"`
 	Domain             *string   `json:"domain,omitempty"`
+	Dead               *bool     `json:"dead,omitempty"`
 }
 
 type UpdateCallbackResponse struct {
@@ -56,116 +59,126 @@ func UpdateCallbackWebhook(c *gin.Context) {
 		})
 		return
 	}
-	if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	ginOperatorOperation, ok := c.Get("operatorOperation")
+	if !ok {
 		c.JSON(http.StatusOK, UpdateCallbackResponse{
 			Status: "error",
 			Error:  "Failed to get current operation. Is it set?",
 		})
 		return
+	}
+	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+	callback := databaseStructs.Callback{}
+	var callbacks []int
+	if input.Input.Input.CallbackDisplayIDs != nil {
+		callbacks = *input.Input.Input.CallbackDisplayIDs
+	} else if input.Input.Input.CallbackDisplayID != nil {
+		callbacks = []int{*input.Input.Input.CallbackDisplayID}
 	} else {
-		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
-		callback := databaseStructs.Callback{}
-		var callbacks []int
-		if input.Input.Input.CallbackDisplayIDs != nil {
-			callbacks = *input.Input.Input.CallbackDisplayIDs
-		} else if input.Input.Input.CallbackDisplayID != nil {
-			callbacks = []int{*input.Input.Input.CallbackDisplayID}
-		} else {
-			logging.LogError(nil, "Must supply callback_display_id or callback_display_ids when updating callbacks")
-			c.JSON(http.StatusOK, UpdateCallbackResponse{
-				Status: "error",
-				Error:  "Must supply callback_display_id or callback_display_ids when updating callbacks",
-			})
-			return
-		}
-		for _, currentCallbackDisplayID := range callbacks {
-			if err := database.DB.Get(&callback, `SELECT 
+		logging.LogError(nil, "Must supply callback_display_id or callback_display_ids when updating callbacks")
+		c.JSON(http.StatusOK, UpdateCallbackResponse{
+			Status: "error",
+			Error:  "Must supply callback_display_id or callback_display_ids when updating callbacks",
+		})
+		return
+	}
+	for _, currentCallbackDisplayID := range callbacks {
+		err := database.DB.Get(&callback, `SELECT 
 			*
 			FROM callback
 			WHERE display_id=$1 and operation_id=$2`, currentCallbackDisplayID,
-				operatorOperation.CurrentOperation.ID); err != nil {
-				logging.LogError(err, "Failed to get callback")
+			operatorOperation.CurrentOperation.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to get callback")
+			c.JSON(http.StatusOK, UpdateCallbackResponse{
+				Status: "error",
+				Error:  "Failed to get callback",
+			})
+			return
+		}
+		if input.Input.Input.Description != nil {
+			if err = updateCallbackDescription(callback, *input.Input.Input.Description); err != nil {
 				c.JSON(http.StatusOK, UpdateCallbackResponse{
 					Status: "error",
-					Error:  "Failed to get callback",
+					Error:  err.Error(),
 				})
 				return
-			} else {
-				if input.Input.Input.Description != nil {
-					if err := updateCallbackDescription(callback, *input.Input.Input.Description); err != nil {
-						c.JSON(http.StatusOK, UpdateCallbackResponse{
-							Status: "error",
-							Error:  err.Error(),
-						})
-						return
-					}
-				}
-				if input.Input.Input.Active != nil {
-					if err := updateCallbackActiveStatus(callback, *input.Input.Input.Active); err != nil {
-						c.JSON(http.StatusOK, UpdateCallbackResponse{
-							Status: "error",
-							Error:  err.Error(),
-						})
-						return
-					}
-				}
-				if input.Input.Input.Locked != nil {
-					if err := updateCallbackLock(callback, *operatorOperation, *input.Input.Input.Locked); err != nil {
-						c.JSON(http.StatusOK, UpdateCallbackResponse{
-							Status: "error",
-							Error:  err.Error(),
-						})
-						return
-					}
-				}
-				if input.Input.Input.IPs != nil {
-					if err := updateCallbackIPs(callback, *input.Input.Input.IPs); err != nil {
-
-					}
-				}
-				if input.Input.Input.Host != nil {
-					callback.Host = *input.Input.Input.Host
-				}
-				if input.Input.Input.User != nil {
-					callback.User = *input.Input.Input.User
-				}
-				if input.Input.Input.OS != nil {
-					callback.Os = *input.Input.Input.OS
-				}
-				if input.Input.Input.Architecture != nil {
-					callback.Architecture = *input.Input.Input.Architecture
-				}
-				if input.Input.Input.ExtraInfo != nil {
-					callback.ExtraInfo = *input.Input.Input.ExtraInfo
-				}
-				if input.Input.Input.SleepInfo != nil {
-					callback.SleepInfo = *input.Input.Input.SleepInfo
-				}
-				if input.Input.Input.PID != nil {
-					callback.PID = *input.Input.Input.PID
-				}
-				if input.Input.Input.ProcessName != nil {
-					callback.ProcessName = *input.Input.Input.ProcessName
-				}
-				if input.Input.Input.IntegrityLevel != nil {
-					callback.IntegrityLevel = *input.Input.Input.IntegrityLevel
-				}
-				if input.Input.Input.Domain != nil {
-					callback.Domain = *input.Input.Input.Domain
-				}
-				if _, err := database.DB.NamedExec(`UPDATE callback SET 
-				host=:host, "user"=:user, os=:os, architecture=:architecture, extra_info=:extra_info,
-				sleep_info=:sleep_info, pid=:pid, process_name=:process_name, integrity_level=:integrity_level,
-				"domain"=:domain WHERE id=:id`, callback); err != nil {
-					logging.LogError(err, "failed to update callback information")
-					c.JSON(http.StatusOK, UpdateCallbackResponse{
-						Status: "error",
-						Error:  err.Error(),
-					})
-				}
 			}
 		}
+		if input.Input.Input.Active != nil {
+			if err = updateCallbackActiveStatus(callback, *input.Input.Input.Active); err != nil {
+				c.JSON(http.StatusOK, UpdateCallbackResponse{
+					Status: "error",
+					Error:  err.Error(),
+				})
+				return
+			}
+		}
+		if input.Input.Input.Locked != nil {
+			if err = updateCallbackLock(callback, *operatorOperation, *input.Input.Input.Locked); err != nil {
+				c.JSON(http.StatusOK, UpdateCallbackResponse{
+					Status: "error",
+					Error:  err.Error(),
+				})
+				return
+			}
+		}
+		if input.Input.Input.IPs != nil {
+			if err = updateCallbackIPs(callback, *input.Input.Input.IPs); err != nil {
+				logging.LogError(err, "failed to update callback IPs")
+				c.JSON(http.StatusOK, UpdateCallbackResponse{
+					Status: "error",
+					Error:  err.Error(),
+				})
+				return
+			}
+		}
+		if input.Input.Input.Host != nil {
+			callback.Host = *input.Input.Input.Host
+		}
+		if input.Input.Input.User != nil {
+			callback.User = *input.Input.Input.User
+		}
+		if input.Input.Input.OS != nil {
+			callback.Os = *input.Input.Input.OS
+		}
+		if input.Input.Input.Architecture != nil {
+			callback.Architecture = *input.Input.Input.Architecture
+		}
+		if input.Input.Input.ExtraInfo != nil {
+			callback.ExtraInfo = *input.Input.Input.ExtraInfo
+		}
+		if input.Input.Input.SleepInfo != nil {
+			callback.SleepInfo = *input.Input.Input.SleepInfo
+		}
+		if input.Input.Input.PID != nil {
+			callback.PID = *input.Input.Input.PID
+		}
+		if input.Input.Input.ProcessName != nil {
+			callback.ProcessName = *input.Input.Input.ProcessName
+		}
+		if input.Input.Input.IntegrityLevel != nil {
+			callback.IntegrityLevel = *input.Input.Input.IntegrityLevel
+		}
+		if input.Input.Input.Domain != nil {
+			callback.Domain = *input.Input.Input.Domain
+		}
+		if input.Input.Input.Dead != nil {
+			callback.Dead = *input.Input.Input.Dead
+		}
+		_, err = database.DB.NamedExec(`UPDATE callback SET 
+				host=:host, "user"=:user, os=:os, architecture=:architecture, extra_info=:extra_info,
+				sleep_info=:sleep_info, pid=:pid, process_name=:process_name, integrity_level=:integrity_level,
+				"domain"=:domain, dead=:dead WHERE id=:id`, callback)
+		if err != nil {
+			logging.LogError(err, "failed to update callback information")
+			c.JSON(http.StatusOK, UpdateCallbackResponse{
+				Status: "error",
+				Error:  err.Error(),
+			})
+		}
 	}
+
 	c.JSON(http.StatusOK, UpdateCallbackResponse{
 		Status: "success",
 	})
@@ -182,21 +195,17 @@ func updateCallbackDescription(callback databaseStructs.Callback, description st
 		} else {
 			return updateCallbackDescriptionHelper(callback, payload.Description)
 		}
-	} else if description != "" {
-		// set the description to something new
-		return updateCallbackDescriptionHelper(callback, description)
-	} else {
-		return nil
 	}
+	// set the description to something new
+	return updateCallbackDescriptionHelper(callback, description)
 }
 
 func updateCallbackDescriptionHelper(callback databaseStructs.Callback, description string) error {
-	if _, err := database.DB.Exec(`UPDATE callback SET description=$1 WHERE id=$2`, description, callback.ID); err != nil {
+	_, err := database.DB.Exec(`UPDATE callback SET description=$1 WHERE id=$2`, description, callback.ID)
+	if err != nil {
 		logging.LogError(err, "Failed to update callback description in updateCallbackDescriptionHelper")
-		return err
-	} else {
-		return nil
 	}
+	return err
 }
 
 func updateCallbackLock(callback databaseStructs.Callback, operatorOperation databaseStructs.Operatoroperation, lockStatus bool) error {
@@ -250,46 +259,55 @@ func updateCallbackActiveStatus(callback databaseStructs.Callback, active bool) 
 	// when making something active, just change the active status
 	associatedC2Profiles := []databaseStructs.Callbackc2profiles{}
 	if callback.LastCheckin.Unix() == time.UnixMicro(0).Unix() && !active {
-		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Not hiding callback %d, it has an active PushC2 connection", callback.DisplayID),
-			callback.OperationID, "", database.MESSAGE_LEVEL_INFO)
-		return nil
+		switch grpc.PushC2Server.CheckClientConnected(callback.ID) {
+		case PushC2Connections.ConnectedOneToOne:
+			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Not hiding callback %d, it has an active PushC2 connection", callback.DisplayID),
+				callback.OperationID, "", database.MESSAGE_LEVEL_INFO)
+			return nil
+		case PushC2Connections.ConnectedOneToMany:
+			if !callback.Dead {
+				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Callback %d uses a PushC2OneToMany connection, it might not be dead, but won't check in.", callback.DisplayID),
+					callback.OperationID, "", database.MESSAGE_LEVEL_INFO)
+			}
+		default:
+		}
 	}
-	if err := database.DB.Select(&associatedC2Profiles, `SELECT
+	err := database.DB.Select(&associatedC2Profiles, `SELECT
     	c2profile.id "c2profile.id",
     	c2profile.name "c2profile.name"
     	FROM callbackc2profiles
     	JOIN c2profile on callbackc2profiles.c2_profile_id = c2profile.id
-    	WHERE callback_id=$1 AND c2profile.is_p2p=false`, callback.ID); err != nil {
+    	WHERE callback_id=$1 AND c2profile.is_p2p=false`, callback.ID)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch associated callbacks with c2 profile")
-	} else {
-		for _, c2profile := range associatedC2Profiles {
-			if callback.Active && !active {
-				if err := rabbitmq.RemoveEdgeByIds(callback.ID, callback.ID, c2profile.C2Profile.Name); err != nil {
-					logging.LogError(err, "Failed to update callback edge status")
-					return err
-				}
-			} else if !callback.Active && active {
-				if err := rabbitmq.AddEdgeById(callback.ID, callback.ID, c2profile.C2Profile.Name); err != nil {
-					logging.LogError(err, "Failed to update callback edge status")
-					return err
-				}
-			}
-		}
+		return nil
+	}
+	for _, c2profile := range associatedC2Profiles {
 		if callback.Active && !active {
-			if _, err := database.DB.Exec(`UPDATE callback SET active=false WHERE id=$1`, callback.ID); err != nil {
-				logging.LogError(err, "Failed to update callback active status to false")
+			if err := rabbitmq.RemoveEdgeByIds(callback.ID, callback.ID, c2profile.C2Profile.Name); err != nil {
+				logging.LogError(err, "Failed to update callback edge status")
 				return err
-			} else {
-				rabbitmq.MarkCallbackInfoInactive(callback.ID)
 			}
 		} else if !callback.Active && active {
-			if _, err := database.DB.Exec(`UPDATE callback SET active=true WHERE id=$1`, callback.ID); err != nil {
-				logging.LogError(err, "Failed to update callback active status to true")
+			if err := rabbitmq.AddEdgeById(callback.ID, callback.ID, c2profile.C2Profile.Name); err != nil {
+				logging.LogError(err, "Failed to update callback edge status")
 				return err
 			}
 		}
 	}
-
+	if callback.Active && !active {
+		if _, err := database.DB.Exec(`UPDATE callback SET active=false, dead=true WHERE id=$1`, callback.ID); err != nil {
+			logging.LogError(err, "Failed to update callback active status to false")
+			return err
+		} else {
+			rabbitmq.MarkCallbackInfoInactive(callback.ID)
+		}
+	} else if !callback.Active && active {
+		if _, err := database.DB.Exec(`UPDATE callback SET active=true, dead=false WHERE id=$1`, callback.ID); err != nil {
+			logging.LogError(err, "Failed to update callback active status to true")
+			return err
+		}
+	}
 	return nil
 }
 
@@ -302,13 +320,16 @@ func updateCallbackIPs(callback databaseStructs.Callback, newIPs []string) error
 		} else {
 			return nil
 		}
-	} else if ipsbytes, err := json.Marshal(newIPs); err != nil {
+	}
+	ipsbytes, err := json.Marshal(newIPs)
+	if err != nil {
 		logging.LogError(err, "Failed to marshal new IP array")
 		return err
-	} else if _, err := database.DB.Exec(`UPDATE callback SET ip=$1 WHERE id=$2`, string(ipsbytes), callback.ID); err != nil {
+	}
+	_, err = database.DB.Exec(`UPDATE callback SET ip=$1 WHERE id=$2`, string(ipsbytes), callback.ID)
+	if err != nil {
 		logging.LogError(err, "Failed to update callback ip string")
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }

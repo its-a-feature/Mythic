@@ -23,6 +23,8 @@ fragment artifactData on taskartifact{
     id
     timestamp
     base_artifact
+    needs_cleanup
+    resolved
     task {
         id
         display_id
@@ -44,91 +46,91 @@ fragment artifactData on taskartifact{
 const fetchLimit = 100;
 const artifactSearch = gql`
 ${artifactFragment}
-query artifactQuery($operation_id: Int!, $artifact: String!, $offset: Int!, $fetchLimit: Int!) {
-    taskartifact_aggregate(distinct_on: id, where: {operation_id: {_eq: $operation_id}, artifact_text: {_ilike: $artifact}}) {
+query artifactQuery($artifact: String!, $offset: Int!, $fetchLimit: Int!, $needs_cleanup_a: Boolean!, $needs_cleanup_b: Boolean!, $resolved_a: Boolean!, $resolved_b: Boolean!) {
+    taskartifact_aggregate(distinct_on: id, where: {artifact_text: {_ilike: $artifact}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}) {
       aggregate {
         count
       }
     }
-    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {operation_id: {_eq: $operation_id}, artifact_text: {_ilike: $artifact}}) {
+    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {artifact_text: {_ilike: $artifact}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}) {
       ...artifactData
     }
 }
 `;
 const hostSearch = gql`
 ${artifactFragment}
-query hostQuery($operation_id: Int!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
-    taskartifact_aggregate(distinct_on: id, where: {host: {_ilike: $host}, operation_id: {_eq: $operation_id}}) {
+query hostQuery($host: String!, $offset: Int!, $fetchLimit: Int!, $needs_cleanup_a: Boolean!, $needs_cleanup_b: Boolean!, $resolved_a: Boolean!, $resolved_b: Boolean!) {
+    taskartifact_aggregate(distinct_on: id, where: {host: {_ilike: $host}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}) {
       aggregate {
         count
       }
     }
-    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, operation_id: {_eq: $operation_id}}) {
+    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host},_and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}) {
       ...artifactData
     }
 }
 `;
 const commandSearch = gql`
 ${artifactFragment}
-query commandQuery($operation_id: Int!, $command: String!, $offset: Int!, $fetchLimit: Int!) {
-    taskartifact_aggregate(distinct_on: id, where: {task: {command: {cmd: {_ilike: $command}}}, operation_id: {_eq: $operation_id}}){
+query commandQuery($command: String!, $offset: Int!, $fetchLimit: Int!, $needs_cleanup_a: Boolean!, $needs_cleanup_b: Boolean!, $resolved_a: Boolean!, $resolved_b: Boolean!) {
+    taskartifact_aggregate(distinct_on: id, where: {task: {command: {cmd: {_ilike: $command}}}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}){
       aggregate {
         count
       }
     }
-    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task: {command: {cmd: {_ilike: $command}}}, operation_id: {_eq: $operation_id}}) {
+    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task: {command: {cmd: {_ilike: $command}}}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}) {
       ...artifactData
     }
 }
 `;
 const operatorSearch = gql`
 ${artifactFragment}
-query operatorQuery($operation_id: Int!, $username: String!, $offset: Int!, $fetchLimit: Int!) {
-    taskartifact_aggregate(distinct_on: id, where: {task: {operator: {username: {_ilike: $username}}}, operation_id: {_eq: $operation_id}}){
+query operatorQuery($username: String!, $offset: Int!, $fetchLimit: Int!, $needs_cleanup_a: Boolean!, $needs_cleanup_b: Boolean!, $resolved_a: Boolean!, $resolved_b: Boolean!) {
+    taskartifact_aggregate(distinct_on: id, where: {task: {operator: {username: {_ilike: $username}}}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}){
       aggregate {
         count
       }
     }
-    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task: {operator: {username: {_ilike: $username}}}, operation_id: {_eq: $operation_id}}) {
+    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task: {operator: {username: {_ilike: $username}}}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}) {
       ...artifactData
     }
 }
 `;
 const typeSearch = gql`
 ${artifactFragment}
-query typeQuery($operation_id: Int!, $type: String!, $offset: Int!, $fetchLimit: Int!) {
-    taskartifact_aggregate(distinct_on: id, where: {base_artifact: {_ilike: $type}, operation_id: {_eq: $operation_id}}){
+query typeQuery( $type: String!, $offset: Int!, $fetchLimit: Int!, $needs_cleanup_a: Boolean!, $needs_cleanup_b: Boolean!, $resolved_a: Boolean!, $resolved_b: Boolean!) {
+    taskartifact_aggregate(distinct_on: id, where: {base_artifact: {_ilike: $type}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}){
       aggregate {
         count
       }
     }
-    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {base_artifact: {_ilike: $type}, operation_id: {_eq: $operation_id}}) {
+    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {base_artifact: {_ilike: $type}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}) {
       ...artifactData
     }
 }
 `;
 const taskSearch = gql`
 ${artifactFragment}
-query taskQuery($operation_id: Int!, $task_id: Int!, $offset: Int!, $fetchLimit: Int!) {
-    taskartifact_aggregate(distinct_on: id, where: {task_id: {_eq: $task_id}, operation_id: {_eq: $operation_id}}){
+query taskQuery($task_id: Int!, $offset: Int!, $fetchLimit: Int!, $needs_cleanup_a: Boolean!, $needs_cleanup_b: Boolean!, $resolved_a: Boolean!, $resolved_b: Boolean!) {
+    taskartifact_aggregate(distinct_on: id, where: {task: { display_id: {_eq: $task_id}}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}){
       aggregate {
         count
       }
     }
-    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task_id: {_eq: $task_id}, operation_id: {_eq: $operation_id}}) {
+    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task: {display_id: {_eq: $task_id}}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}) {
       ...artifactData
     }
 }
 `;
 const callbackSearch = gql`
 ${artifactFragment}
-query taskQuery($operation_id: Int!, $callback_id: Int!, $offset: Int!, $fetchLimit: Int!) {
-    taskartifact_aggregate(distinct_on: id, where: {task: {callback: { display_id: {_eq: $callback_id}}}, operation_id: {_eq: $operation_id}}){
+query taskQuery($callback_id: Int!, $offset: Int!, $fetchLimit: Int!, $needs_cleanup_a: Boolean!, $needs_cleanup_b: Boolean!, $resolved_a: Boolean!, $resolved_b: Boolean!) {
+    taskartifact_aggregate(distinct_on: id, where: {task: {callback: { display_id: {_eq: $callback_id}}}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}){
       aggregate {
         count
       }
     }
-    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task: {callback: { display_id: {_eq: $callback_id}}}, operation_id: {_eq: $operation_id}}) {
+    taskartifact(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task: {callback: { display_id: {_eq: $callback_id}}}, _and: [ {_or: [{resolved: {_eq: $resolved_a}}, {resolved: {_eq: $resolved_b}}]}, {_or: [{needs_cleanup: {_eq: $needs_cleanup_a}}, {needs_cleanup: {_eq: $needs_cleanup_b}}]} ]}) {
       ...artifactData
     }
 }
@@ -145,6 +147,8 @@ const SearchTabArtifactsSearchPanel = (props) => {
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Artifact");
     const searchFieldOptions = ["Artifact", "Command", "Host", "Type", "Task", "Callback", "Operator"];
+    const CleanupOptions = ["All Artifacts", "Needs Cleanup", "Already Cleaned"];
+    const [cleanupField, setCleanupField] = React.useState("All Artifacts");
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
         props.onChangeSearchField(event.target.value);
@@ -152,6 +156,10 @@ const SearchTabArtifactsSearchPanel = (props) => {
     }
     const handleSearchValueChange = (name, value, error) => {
         setSearch(value);
+    }
+    const handleCleanupChange = (event) => {
+        setCleanupField(event.target.value);
+        props.onChangeCleanupField(event.target.value);
     }
     const submitSearch = (event, querySearch, querySearchField) => {
         let adjustedSearchField = querySearchField ? querySearchField : searchField;
@@ -229,6 +237,17 @@ const SearchTabArtifactsSearchPanel = (props) => {
                         ))
                     }
                 </Select>
+                <Select
+                    style={{marginBottom: "10px", width: "15rem"}}
+                    value={cleanupField}
+                    onChange={handleCleanupChange}
+                >
+                    {
+                        CleanupOptions.map((opt, i) => (
+                            <MenuItem key={"cleanup" + opt} value={opt}>{opt}</MenuItem>
+                        ))
+                    }
+                </Select>
             </Grid>
         </Grid>
     );
@@ -238,8 +257,12 @@ export const SearchTabArtifactsPanel = (props) =>{
     const [totalCount, setTotalCount] = React.useState(0);
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Artifact");
+    const cleanupField = React.useRef("All Artifacts");
     const me = props.me;
-
+    const onChangeCleanupField = (field) => {
+        cleanupField.current = field;
+        onChangeSearchField(searchField);
+    }
     const onChangeSearchField = (field) => {
         setSearchField(field);
         switch(field){
@@ -311,7 +334,17 @@ export const SearchTabArtifactsPanel = (props) =>{
         fetchPolicy: "no-cache",
         onCompleted: handleCallbackSearchResults,
         onError: handleCallbackSearchFailure
-    })
+    });
+    const getCleanupSearchOptions = () => {
+        switch(cleanupField.current){
+            case "All Artifacts":
+                return {needs_cleanup_a: true, needs_cleanup_b: false, resolved_a: true, resolved_b: false};
+            case "Needs Cleanup":
+                return {needs_cleanup_a: true, needs_cleanup_b: true, resolved_a: false, resolved_b: false};
+            case "Already Cleaned":
+                return {needs_cleanup_a: true, needs_cleanup_b: true, resolved_a: true, resolved_b: true};
+        }
+    }
     const onArtifactSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
@@ -319,11 +352,13 @@ export const SearchTabArtifactsPanel = (props) =>{
         if(new_search === ""){
             new_search = "_";
         }
+        let cleanupOptions = getCleanupSearchOptions();
         getArtifactSearch({variables:{
             operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             artifact: "%" + new_search + "%",
+            ...cleanupOptions,
         }})
     }
     const onCommandSearch = ({search, offset}) => {
@@ -333,11 +368,13 @@ export const SearchTabArtifactsPanel = (props) =>{
         if(new_search === ""){
             new_search = "_";
         }
+        let cleanupOptions = getCleanupSearchOptions();
         getCommandSearch({variables:{
             operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             command: "%" + new_search + "%",
+                ...cleanupOptions,
         }})
     }
     const onHostSearch = ({search, offset}) => {
@@ -347,11 +384,13 @@ export const SearchTabArtifactsPanel = (props) =>{
         if(new_search === ""){
             new_search = "_";
         }
+        let cleanupOptions = getCleanupSearchOptions();
         getHostSearch({variables:{
             operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             host: "%" + new_search + "%",
+                ...cleanupOptions
         }})
     }
     const onTypeSearch = ({search, offset}) => {
@@ -361,11 +400,13 @@ export const SearchTabArtifactsPanel = (props) =>{
         if(new_search === ""){
             new_search = "_";
         }
+        let cleanupOptions = getCleanupSearchOptions();
         getTypeSearch({variables:{
             operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             type: "%" + new_search + "%",
+                ...cleanupOptions
         }})
     }
     const onTaskSearch = ({search, offset}) => {
@@ -375,11 +416,13 @@ export const SearchTabArtifactsPanel = (props) =>{
         }
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
+        let cleanupOptions = getCleanupSearchOptions();
         getTaskSearch({variables:{
             operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             task_id: parseInt(search),
+                ...cleanupOptions
         }})
     }
     const onCallbackSearch = ({search, offset}) => {
@@ -388,12 +431,14 @@ export const SearchTabArtifactsPanel = (props) =>{
             return;
         }
         //snackActions.info("Searching...", {persist:true});
+        let cleanupOptions = getCleanupSearchOptions();
         setSearch(search);
         getCallbackSearch({variables:{
             operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             callback_id: search,
+                ...cleanupOptions
         }})
     }
     const onOperatorSearch = ({search, offset}) => {
@@ -402,11 +447,13 @@ export const SearchTabArtifactsPanel = (props) =>{
         if(new_search === ""){
             new_search = "_";
         }
+        let cleanupOptions = getCleanupSearchOptions();
         getOperatorSearch({variables:{
             operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             username: "%" + new_search + "%",
+                ...cleanupOptions
         }})
     }
     const onChangePage = (event, value) => {
@@ -441,7 +488,8 @@ export const SearchTabArtifactsPanel = (props) =>{
                 <SearchTabArtifactsSearchPanel onChangeSearchField={onChangeSearchField} onArtifactSearch={onArtifactSearch} 
                     onTaskSearch={onTaskSearch} value={props.value} index={props.index}
                     onCommandSearch={onCommandSearch} onHostSearch={onHostSearch} onOperatorSearch={onOperatorSearch}
-                    onTypeSearch={onTypeSearch} onCallbackSearch={onCallbackSearch} 
+                    onTypeSearch={onTypeSearch} onCallbackSearch={onCallbackSearch}
+                                               onChangeCleanupField={onChangeCleanupField}
                     changeSearchParam={props.changeSearchParam}/>
          
             <div style={{overflowY: "auto", flexGrow: 1}}>
@@ -452,7 +500,7 @@ export const SearchTabArtifactsPanel = (props) =>{
             </div>
 
             <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: "5px", paddingBottom: "10px"}}>
-                <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="primary" boundaryCount={1}
+                <Pagination count={Math.ceil(totalCount / fetchLimit)} variant="outlined" color="info" boundaryCount={1}
                     siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
                 <Typography style={{paddingLeft: "10px"}}>Total Results: {totalCount}</Typography>
             </div>

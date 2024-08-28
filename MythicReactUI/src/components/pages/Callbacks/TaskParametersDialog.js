@@ -10,7 +10,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import {TaskParametersDialogRow} from './TaskParametersDialogRow';
 import {gql, useLazyQuery, useMutation, useQuery} from '@apollo/client';
 import FormControl from '@mui/material/FormControl';
@@ -20,7 +19,6 @@ import Input from '@mui/material/Input';
 import {UploadTaskFile} from '../../MythicComponents/MythicFileUpload';
 import {Backdrop, CircularProgress} from '@mui/material';
 import Divider from '@mui/material/Divider';
-import {useTheme} from '@mui/material/styles';
 import {b64DecodeUnicode} from './ResponseDisplay';
 import {snackActions} from "../../utilities/Snackbar";
 
@@ -243,6 +241,7 @@ query getCommandQuery($id: Int!){
       choices
       choices_are_all_commands
       choices_are_loaded_commands
+      limit_credentials_by_type
       default_value
       description
       id
@@ -287,7 +286,6 @@ export const commandInParsedParameters = (cmd, parsedParameters) =>{
     return undefined
 }
 export function TaskParametersDialog(props) {
-    const theme = useTheme();
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const [commandInfo, setCommandInfo] = useState({});
     const [parameterGroups, setParameterGroups] = useState([]);
@@ -484,11 +482,17 @@ export function TaskParametersDialog(props) {
                         if(parsedParameterName){
                             return [...prev, {...cmd, value: props.command.parsedParameters[parsedParameterName]}];
                         }else if(cmd.default_value.length > 0){
-                            return [...prev, {...cmd, value: JSON.parse(cmd.default_value)}];
+                            try {
+                                return [...prev, {...cmd, value: JSON.parse(cmd.default_value)}];
+                            }catch(error){
+                                return [...prev, {...cmd, value: [[cmd.default_value, ""]] }];
+                            }
+
                         }else{
                             return [...prev, {...cmd, value: []}];
                         }
                     case "ChooseOne":
+                    case "ChooseOneCustom":
                     case "ChooseMultiple":
                         let choices = cmd.choices;
                         let defaultV = cmd.default_value;
@@ -558,16 +562,30 @@ export function TaskParametersDialog(props) {
                             return [...prev, {...cmd, choices: choices, default_value: defaultV, value: defaultV}];
                         }
                     case "File":
-                        return [...prev, {...cmd, value: {} }];                   
+                        return [...prev, {...cmd, value: {} }];
+                    case "FileMultiple":
+                        return [...prev, {...cmd, value: []}];
                     case "CredentialJson":
-                        if (loadedCredentialsLoading.credential.length > 0){
+                        let credentialChoices = loadedCredentialsLoading.credential;
+                        if(credentialChoices === undefined || credentialChoices === null){
+                            credentialChoices = [];
+                        }
+                        if(cmd.limit_credentials_by_type?.length > 0){
+                            credentialChoices = credentialChoices.reduce( (existingCreds, curCred) => {
+                                if(cmd.limit_credentials_by_type.includes(curCred.type)){
+                                    return [...existingCreds, curCred];
+                                }
+                                return [...existingCreds];
+                            }, []);
+                        }
+                        if (credentialChoices.length > 0){
                             if(parsedParameterName){
                                 cmd.value = props.command.parsedParameters[parsedParameterName];
                             }
                             else if(cmd.value === "" || (typeof(cmd.value) === Object && Object.keys(cmd.value).length === 0) || cmd.value === undefined){
-                                cmd.value = loadedCredentialsLoading.credential[0];
+                                cmd.value = credentialChoices[0];
                             }
-                            return [...prev, {...cmd, choices: loadedCredentialsLoading.credential}];
+                            return [...prev, {...cmd, choices: credentialChoices}];
                         }else{
                             return [...prev, {...cmd, value: {}, choices: []}];
                         }
@@ -816,6 +834,7 @@ export function TaskParametersDialog(props) {
                 case "Boolean":
                 case "Number":
                 case "ChooseOne":
+                case "ChooseOneCustom":
                 case "ChooseMultiple":
                 case "PayloadList":
                 case "Array":
@@ -832,15 +851,36 @@ export function TaskParametersDialog(props) {
                     collapsedParameters[param.name] = param.value;
                     break
                 case "File":
-                    setBackdropOpen(true);
                     const newUUID = await UploadTaskFile(param.value, "Uploaded as part of tasking");
                     if(newUUID){
-                        newFileUUIDs.push(newUUID);
-                        collapsedParameters[param.name] = newUUID;
+                        if(newUUID !== "Missing file in form"){
+                            newFileUUIDs.push(newUUID);
+                            collapsedParameters[param.name] = newUUID;
+                        }
                     }else{
-                        setBackdropOpen(false);
                         return;
                     }
+                    break;
+                case "FileMultiple":
+                    let fileIDs = [];
+                    for(let i = 0; i < param.value.length; i++){
+                        if(typeof param.value[i] === "string"){
+                            fileIDs.push(param.value[i]);
+                            continue
+                        }
+                        const newUUID = await UploadTaskFile(param.value[i], "Uploaded as part of tasking");
+                        if(newUUID){
+                            if(newUUID !== "Missing file in form"){
+                                newFileUUIDs.push(newUUID);
+                                fileIDs.push(newUUID);
+                            } else {
+                                snackActions.warning("Failed to upload file");
+                            }
+                        } else {
+                            snackActions.warning("Failed to upload file");
+                        }
+                    }
+                    collapsedParameters[param.name] = fileIDs;
                     break;
                 case "CredentialJson":
                     collapsedParameters[param.name] = {
@@ -856,7 +896,7 @@ export function TaskParametersDialog(props) {
             }
         }
         setBackdropOpen(false);
-        props.onSubmit(props.command.cmd, JSON.stringify(collapsedParameters), newFileUUIDs, selectedParameterGroup);
+        props.onSubmit(props.command.cmd, JSON.stringify(collapsedParameters), newFileUUIDs, selectedParameterGroup, props.command?.payload_type?.name);
         
     }
     const onAgentConnectAddNewPayloadOnHost = (host, payload) => {

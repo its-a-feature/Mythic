@@ -24,6 +24,7 @@ export function Step5Build(props){
     const [description, setDescription] = React.useState("");
     const [startSubscription, setStartSubscription] = React.useState(false);
     const [subscriptionID, setSubscriptionID] = React.useState("");
+    const [showExtraOptions, setShowExtraOptions] = React.useState(false);
     const [createPayloadMutation] = useMutation(create_payload, {
         update: (cache, {data}) => {
             if(data.createPayload.status === "success"){
@@ -31,6 +32,7 @@ export function Step5Build(props){
                 if(!startSubscription){
                     setStartSubscription(true);
                 }
+                setShowExtraOptions(true);
                 snackActions.info("Submitted payload to build pipeline", {autoClose: 1000});
             }else{
                 snackActions.error(data.createPayload.error);
@@ -64,17 +66,37 @@ export function Step5Build(props){
                 }, {});
                 buildParameters.push({name: param.name, value: newDict});
             } else if (param.parameter_type === "File") {
-                if(typeof param.value === "string"){
+                if (typeof param.value === "string") {
                     buildParameters.push({name: param.name, value: param.value});
                 } else {
                     const newUUID = await UploadTaskFile(param.value, "Uploaded as build parameter for " + filename);
                     if (newUUID) {
-                        buildParameters.push({name: param.name, value: newUUID});
+                        if (newUUID !== "Missing file in form") {
+                            buildParameters.push({name: param.name, value: newUUID});
+                        }
                     } else {
                         snackActions.error("Failed to upload files")
                         return;
                     }
                 }
+            } else if(param.parameter_type === "FileMultiple") {
+                let fileMultipleValues = [];
+                for(let j = 0; j < param.value.length; j++){
+                    if (typeof param.value[j] === "string") {
+                        fileMultipleValues.push(param.value[j]);
+                    } else {
+                        const newUUID = await UploadTaskFile(param.value[j], "Uploaded as build parameter for " + filename);
+                        if (newUUID) {
+                            if (newUUID !== "Missing file in form") {
+                                fileMultipleValues.push(newUUID);
+                            }
+                        } else {
+                            snackActions.error("Failed to upload files")
+                            return;
+                        }
+                    }
+                }
+                buildParameters.push({name: param.name, value: fileMultipleValues});
             } else {
                 buildParameters.push({name: param.name, value: param.value});
             }
@@ -97,15 +119,19 @@ export function Step5Build(props){
     }
 
     return (
-        <div >
+        <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
             <Typography variant="h3" align="left" id="selectc2profiles" component="div" 
                 style={{"marginLeft": "10px"}}>
                   Payload Review
             </Typography>
             <br/>
-            <MythicTextField onEnter={finished} autoFocus={true} required={false} placeholder={"Filename"} value={filename} multiline={false} onChange={onChangeFilename} display="inline-block"/>
-            <MythicTextField onEnter={finished} required={false} placeholder={"description"} value={description} multiline={false} onChange={onChangeDescription} display="inline-block"/>
-            <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={canceled} finished={finished} startOver={props.startOver} />
+            <div style={{display: "flex", flexDirection: "column", flexGrow: 1}}>
+                <MythicTextField onEnter={finished} autoFocus={true} required={false} placeholder={"Filename"} value={filename} multiline={false} onChange={onChangeFilename} display="inline-block"/>
+                <MythicTextField onEnter={finished} required={false} placeholder={"description"} value={description} multiline={false} onChange={onChangeDescription} display="inline-block"/>
+
+            </div>
+            <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={canceled}
+                                            finished={finished} startOver={props.startOver} showExtraOptions={showExtraOptions} />
             <br/><br/>
             {startSubscription && <PayloadSubscriptionNotification me={props.me} subscriptionID={subscriptionID} fromNow={fromNow}/>}
         </div>

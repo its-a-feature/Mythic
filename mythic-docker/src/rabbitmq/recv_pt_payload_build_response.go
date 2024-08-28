@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -67,57 +68,73 @@ func init() {
 func processPayloadBuildResponse(msg amqp.Delivery) {
 	logging.LogInfo("got message", "routingKey", msg.RoutingKey)
 	payloadBuildResponse := PayloadBuildResponse{}
-	if err := json.Unmarshal(msg.Body, &payloadBuildResponse); err != nil {
+	err := json.Unmarshal(msg.Body, &payloadBuildResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to process payload build response message")
-	} else {
-		//logging.LogInfo("got build response", "buildMsg", payloadBuildResponse)
-		databasePayload := databaseStructs.Payload{}
-		if err := database.DB.Get(&databasePayload, `SELECT 
+		return
+	}
+	//logging.LogInfo("got build response", "buildMsg", payloadBuildResponse)
+	databasePayload := databaseStructs.Payload{}
+	err = database.DB.Get(&databasePayload, `SELECT 
 			payload.build_message, payload.build_stderr, payload.build_stdout, payload.id, payload.build_phase,
+			payload.eventstepinstance_id, payload.operation_id, payload.operator_id,
 			filemeta.filename "filemeta.filename",
 			filemeta.id "filemeta.id"
 			FROM payload 
 			JOIN filemeta ON payload.file_id = filemeta.id
 			WHERE uuid=$1 
-			LIMIT 1`, payloadBuildResponse.PayloadUUID); err != nil {
-			logging.LogError(err, "Failed to get payload from the database")
-		} else {
-			databasePayload.BuildMessage += payloadBuildResponse.BuildMessage
-			databasePayload.BuildStderr += payloadBuildResponse.BuildStdErr
-			databasePayload.BuildStdout += payloadBuildResponse.BuildStdOut
-			if payloadBuildResponse.Success {
-				databasePayload.BuildPhase = PAYLOAD_BUILD_STATUS_SUCCESS
-			} else {
-				databasePayload.BuildPhase = PAYLOAD_BUILD_STATUS_ERROR
-			}
-			if payloadBuildResponse.UpdatedFilename != nil {
-				databasePayload.Filemeta.Filename = []byte(*payloadBuildResponse.UpdatedFilename)
-				if _, err := database.DB.NamedExec(`UPDATE filemeta SET 
+			LIMIT 1`, payloadBuildResponse.PayloadUUID)
+	if err != nil {
+		logging.LogError(err, "Failed to get payload from the database")
+		return
+	}
+	_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE payload_id=$1`, databasePayload.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to update the apitokens to set to deleted")
+	}
+	databasePayload.BuildMessage += payloadBuildResponse.BuildMessage
+	databasePayload.BuildStderr += payloadBuildResponse.BuildStdErr
+	databasePayload.BuildStdout += payloadBuildResponse.BuildStdOut
+	if payloadBuildResponse.Success {
+		databasePayload.BuildPhase = PAYLOAD_BUILD_STATUS_SUCCESS
+	} else {
+		databasePayload.BuildPhase = PAYLOAD_BUILD_STATUS_ERROR
+	}
+	if payloadBuildResponse.UpdatedFilename != nil {
+		databasePayload.Filemeta.Filename = []byte(*payloadBuildResponse.UpdatedFilename)
+		if _, err := database.DB.NamedExec(`UPDATE filemeta SET 
                     filename=:filename
                     WHERE id=:id`, databasePayload.Filemeta); err != nil {
-					logging.LogError(err, "Failed to update filename for payload")
-				}
-			}
-			// update the payload in the database
-			if _, updateError := database.DB.NamedExec(`UPDATE payload SET 
+			logging.LogError(err, "Failed to update filename for payload")
+		}
+	}
+	// update the payload in the database
+	if _, updateError := database.DB.NamedExec(`UPDATE payload SET 
 				build_phase=:build_phase, build_stderr=:build_stderr, build_message=:build_message, build_stdout=:build_stdout
 				WHERE id=:id`, databasePayload,
-			); updateError != nil {
-				logging.LogError(updateError, "Failed to update payload's build status")
-				return
-			}
-			database.UpdateRemainingBuildSteps(databasePayload)
-			if databasePayload.BuildPhase == PAYLOAD_BUILD_STATUS_SUCCESS {
-				// process the additional UpdatedCommands
-				if err := updateLoadedCommandsFromPayloadBuild(databasePayload, payloadBuildResponse.UpdatedCommandList); err != nil {
-					database.UpdatePayloadWithError(databasePayload, err)
-					//database.UpdateRemainingBuildSteps(databasePayload)
-					return
-				}
-			}
-		}
-		logging.LogDebug("Finished processing payload build response message")
+	); updateError != nil {
+		logging.LogError(updateError, "Failed to update payload's build status")
+		return
 	}
+	database.UpdateRemainingBuildSteps(databasePayload)
+	if databasePayload.BuildPhase == PAYLOAD_BUILD_STATUS_SUCCESS {
+		// process the additional UpdatedCommands
+		if err := updateLoadedCommandsFromPayloadBuild(databasePayload, payloadBuildResponse.UpdatedCommandList); err != nil {
+			database.UpdatePayloadWithError(databasePayload, err)
+			//database.UpdateRemainingBuildSteps(databasePayload)
+		}
+	}
+	EventingChannel <- EventNotification{
+		Trigger:             eventing.TriggerPayloadBuildFinish,
+		EventStepInstanceID: int(databasePayload.EventStepInstanceID.Int64),
+		PayloadID:           databasePayload.ID,
+		OperationID:         databasePayload.OperationID,
+		OperatorID:          databasePayload.OperatorID,
+		ActionSuccess:       databasePayload.BuildPhase == PAYLOAD_BUILD_STATUS_SUCCESS,
+		ActionStdout:        databasePayload.BuildStdout,
+		ActionStderr:        databasePayload.BuildStderr,
+	}
+	logging.LogDebug("Finished processing payload build response message")
 }
 
 func updateLoadedCommandsFromPayloadBuild(databasePayload databaseStructs.Payload, newCommandList *[]string) error {

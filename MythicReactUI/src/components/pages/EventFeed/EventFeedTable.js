@@ -47,7 +47,7 @@ export function EventFeedTable(props){
     return (
         <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
             <div>
-                <Grid container spacing={2} style={{paddingTop: "10px", maxWidth: "100%"}}>
+                <Grid container spacing={2} style={{maxWidth: "100%"}}>
                     <Grid item xs={10}>
                         <MythicTextField placeholder="Search..." value={search}
                                          onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{

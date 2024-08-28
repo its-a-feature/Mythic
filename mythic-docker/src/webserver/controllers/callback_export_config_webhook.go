@@ -21,9 +21,10 @@ type ExportCallbackConfig struct {
 }
 
 type ExportCallbackConfigResponse struct {
-	Status string `json:"status"`
-	Config string `json:"config"`
-	Error  string `json:"error"`
+	Status          string `json:"status"`
+	Config          string `json:"config"`
+	Error           string `json:"error"`
+	AgentCallbackID string `json:"agent_callback_id"`
 }
 type ExportCallbackConfigurationPayloadType struct {
 	Name                     string `json:"name"`
@@ -133,8 +134,9 @@ func ExportCallbackConfigWebhook(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, ExportCallbackConfigResponse{
-		Status: "success",
-		Config: string(payloadConfigurationString),
+		Status:          "success",
+		AgentCallbackID: input.Input.AgentCallbackID,
+		Config:          string(payloadConfigurationString),
 	})
 	return
 

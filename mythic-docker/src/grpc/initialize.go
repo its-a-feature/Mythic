@@ -3,6 +3,7 @@ package grpc
 import (
 	"errors"
 	"fmt"
+	"github.com/its-a-feature/Mythic/database/enums/PushC2Connections"
 	"github.com/its-a-feature/Mythic/grpc/services"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
@@ -279,23 +280,30 @@ func (t *pushC2Server) SetPushC2OneToManyChannelExited(c2ProfileName string) {
 func (t *pushC2Server) CheckListening() (listening bool, latestError string) {
 	return t.listening, t.latestError
 }
-func (t *pushC2Server) CheckClientConnected(CallbackAgentID int) bool {
+
+func (t *pushC2Server) CheckClientConnected(CallbackAgentID int) PushC2Connections.ConnectionType {
 	t.RLock()
 	defer t.RUnlock()
 	if _, ok := t.clients[CallbackAgentID]; ok {
-		return t.clients[CallbackAgentID].connected
+		if t.clients[CallbackAgentID].connected {
+			return PushC2Connections.ConnectedOneToOne
+		}
+		return PushC2Connections.DisconnectedOneToOne
 	}
 	for c2, _ := range t.clientsOneToMany {
 		c2ProfileToCallbackIDsMapLock.RLock()
 		if _, ok := c2ProfileToCallbackIDsMap[c2]; ok {
 			if _, ok = c2ProfileToCallbackIDsMap[c2][CallbackAgentID]; ok {
 				c2ProfileToCallbackIDsMapLock.RUnlock()
-				return t.clientsOneToMany[c2].connected
+				if t.clientsOneToMany[c2].connected {
+					return PushC2Connections.ConnectedOneToMany
+				}
+				return PushC2Connections.DisconnectedOneToMany
 			}
 		}
 		c2ProfileToCallbackIDsMapLock.RUnlock()
 	}
-	return false
+	return PushC2Connections.NeverConnected
 }
 func (t *pushC2Server) GetConnectedClients() []int {
 	clientIDs := []int{}
@@ -324,11 +332,16 @@ func (t *pushC2Server) GetChannelTimeout() time.Duration {
 	return t.channelSendTimeout
 }
 
-func Initialize() {
+var pushC2StreamingConnectNotification chan int
+var pushC2StreamingDisconnectNotification chan int
+
+func Initialize(connectNotification chan int, disconnectNotification chan int) {
 	// need to open a port to accept gRPC connections
 	var (
 		connectString string
 	)
+	pushC2StreamingConnectNotification = connectNotification
+	pushC2StreamingDisconnectNotification = disconnectNotification
 	// initialize the clients
 	TranslationContainerServer.clients = make(map[string]*grpcTranslationContainerClientConnections)
 	TranslationContainerServer.connectionTimeout = connectionTimeoutSeconds * time.Second

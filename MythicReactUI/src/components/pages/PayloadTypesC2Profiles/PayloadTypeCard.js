@@ -11,10 +11,14 @@ import IconButton from '@mui/material/IconButton';
 import BuildIcon from '@mui/icons-material/Build';
 import TableRow from '@mui/material/TableRow';
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
-
 import {gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import SendTwoToneIcon from '@mui/icons-material/SendTwoTone';
+import {PayloadTypeCommandDialog} from "./PayloadTypeCommandsDialog";
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 
 const toggleDeleteStatus = gql`
 mutation togglePayloadTypeDeleteStatus($payloadtype_id: Int!, $deleted: Boolean!){
@@ -41,7 +45,9 @@ export function PayloadTypeRow({service, showDeleted}){
             }
 
         }
-    })
+    });
+    const [openCommandsDialog, setOpenCommandsDialog] = React.useState(false);
+    const [openListFilesDialog, setOpenListFilesDialog] = React.useState(false);
     const onAcceptDelete = () => {
         updateDeleted({variables: {payloadtype_id: service.id, deleted: !service.deleted}})
         setOpenDeleteDialog(false);
@@ -76,13 +82,13 @@ export function PayloadTypeRow({service, showDeleted}){
                     )}
                 </MythicTableCell>
                 <MythicTableCell>
-                    <img src={"/static/" + service.name + ".svg"} style={{width: "80px", padding: "10px", objectFit: "unset"}} />
+                    <MythicAgentSVGIcon payload_type={service.name} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
                 </MythicTableCell>
                 <MythicTableCell>
                     {service.name}
                 </MythicTableCell>
                 <MythicTableCell>
-                    {service.wrapper ? "Wrapper" : service.agent_type === "agent" ? "Agent" : "3rd Party Service"}
+                    {service.wrapper ? "Wrapper" : service.agent_type === "agent" ? "Agent" : service.agent_type === "service" ? "3rd Party Service" : "Command Augmentation"}
                 </MythicTableCell>
                 <MythicTableCell>
                     <Typography variant="body1" component="p">
@@ -123,6 +129,23 @@ export function PayloadTypeRow({service, showDeleted}){
                             <BuildIcon />
                         </IconButton>
                     </MythicStyledTooltip>
+                    <MythicStyledTooltip title={"Commands"}>
+                        <IconButton
+                            onClick={()=>{setOpenCommandsDialog(true)}}
+                            color={"secondary"}
+                            size={"large"}>
+                            <SendTwoToneIcon />
+                        </IconButton>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
+                        <IconButton
+                            color={"secondary"}
+                            disabled={!service.container_running}
+                            onClick={()=>{setOpenListFilesDialog(true);}}
+                            size="large">
+                            <AttachFileIcon />
+                        </IconButton>
+                    </MythicStyledTooltip>
                 </MythicTableCell>
             </TableRow>
             {openDelete &&
@@ -137,6 +160,18 @@ export function PayloadTypeRow({service, showDeleted}){
                               innerDialog={<PayloadTypeBuildDialog {...service} onClose={()=>{setOpenBuildingDialog(false);}}
                                                                    payload_name={service.name} />}
                 />}
+            {openCommandsDialog &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openCommandsDialog}
+                              onClose={()=>{setOpenCommandsDialog(false);}}
+                              innerDialog={<PayloadTypeCommandDialog service={service} onClose={()=>{setOpenCommandsDialog(false);}}
+                                                                   payload_name={service.name} />}
+                />}
+            {openListFilesDialog &&
+                <MythicDialog fullWidth={true} maxWidth="md" open={openListFilesDialog}
+                              onClose={()=>{setOpenListFilesDialog(false);}}
+                              innerDialog={<C2ProfileListFilesDialog container_name={service.name} {...service} onClose={()=>{setOpenListFilesDialog(false);}} />}
+                />
+            }
         </>
 
     );

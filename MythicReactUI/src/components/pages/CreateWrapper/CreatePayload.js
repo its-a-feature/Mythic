@@ -58,15 +58,36 @@ export function CreatePayloadWrapper(props){
       }, [noOperation]);
 
     return (
-        <div >
+        <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
             <Stepper activeStep={activeStep} alternativeLabel style={{marginTop: "10px"}}>
                 {steps.map((label, index) => (
-                  <Step key={label}>
-                    <StepLabel>{label}</StepLabel>
-                  </Step>
+                    <Step key={label} sx={{
+                        '& .MuiStepLabel-root .Mui-completed': {
+                            color: 'success.main', // circle color (COMPLETED)
+                        },
+                        '& .MuiStepLabel-label.Mui-completed.MuiStepLabel-alternativeLabel':
+                            {
+                                color: 'grey.500', // Just text label (COMPLETED)
+                            },
+                        '& .MuiStepLabel-root .Mui-active': {
+                            color: 'info.main', // circle color (ACTIVE)
+                        },
+                        '& .MuiStepLabel-label.Mui-active.MuiStepLabel-alternativeLabel':
+                            {
+                                fontWeight: "bold", // Just text label (ACTIVE)
+                                color: ''
+                            },
+                        '& .MuiStepLabel-root .Mui-active .MuiStepIcon-text': {
+                            fill: 'black', // circle's number (ACTIVE)
+                        },
+                    }}>
+                        <StepLabel>{label}</StepLabel>
+                    </Step>
                 ))}
-              </Stepper>
-            {getStepContent(activeStep)}
+            </Stepper>
+            <div style={{display: "flex", flexDirection: "column", flexGrow: 1, overflowY: 'auto'}}>
+                {getStepContent(activeStep)}
+            </div>
         </div>
     );
 } 

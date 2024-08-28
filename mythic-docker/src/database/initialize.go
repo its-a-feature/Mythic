@@ -13,7 +13,7 @@ import (
 )
 
 var DB *sqlx.DB
-var currentMigrationVersion int64 = 3002006
+var currentMigrationVersion int64 = 3003002
 
 // initial structs made with './tables-to-go -u mythic_user -p [password here] -h [ip here] -v -d mythic_db -of output -pn database_structs'
 // package pulled from https://github.com/fraenky8/tables-to-go
@@ -29,65 +29,66 @@ func Initialize() {
 			_, err = DB.Exec(Schema)
 			if err != nil {
 				logging.LogFatalError(err, "Failed to initialize postgres schema")
-			} else {
-				logging.LogInfo("Disconnecting from database and reconnecting to load new schema")
-				DB.Close()
-				DB = getNewDbConnection()
-				// we need to initialize the admin user and operation
-				salt := uuid.NewString()
-				newUser := databaseStructs.Operator{
-					Username: utils.MythicConfig.AdminUser,
-					Salt:     salt,
-					Admin:    true,
-					Active:   true,
-				}
-				newOperation := databaseStructs.Operation{
-					Name:    utils.MythicConfig.DefaultOperationName,
-					Webhook: utils.MythicConfig.DefaultOperationWebhook,
-					Channel: utils.MythicConfig.DefaultOperationChannel,
-				}
-				newUser.Password = HashUserPassword(newUser, utils.MythicConfig.AdminPassword)
-				if statement, err := DB.PrepareNamed(`INSERT INTO operator 
+			}
+			logging.LogInfo("Disconnecting from database and reconnecting to load new schema")
+			DB.Close()
+			DB = getNewDbConnection()
+			// we need to initialize the admin user and operation
+			salt := uuid.NewString()
+			newUser := databaseStructs.Operator{
+				Username: utils.MythicConfig.AdminUser,
+				Salt:     salt,
+				Admin:    true,
+				Active:   true,
+			}
+			newOperation := databaseStructs.Operation{
+				Name:    utils.MythicConfig.DefaultOperationName,
+				Webhook: utils.MythicConfig.DefaultOperationWebhook,
+				Channel: utils.MythicConfig.DefaultOperationChannel,
+			}
+			newUser.Password = HashUserPassword(newUser, utils.MythicConfig.AdminPassword)
+			if statement, err := DB.PrepareNamed(`INSERT INTO operator 
 				(username, "password", salt, "admin", active)
 				VALUES
 				(:username, :password, :salt, :admin, :active)
 				RETURNING id`); err != nil {
-					logging.LogError(err, "Failed to prep creating the original admin user")
-				} else if err := statement.Get(&newUser.ID, newUser); err != nil {
-					logging.LogError(err, "Failed to create new operator in database")
-				} else {
-					newOperation.AdminID = newUser.ID
-					if statement, err = DB.PrepareNamed(`INSERT INTO operation
+				logging.LogError(err, "Failed to prep creating the original admin user")
+			} else if err := statement.Get(&newUser.ID, newUser); err != nil {
+				logging.LogError(err, "Failed to create new operator in database")
+			} else {
+				newOperation.AdminID = newUser.ID
+				if statement, err = DB.PrepareNamed(`INSERT INTO operation
 					("name", admin_id, webhook, channel)
 					VALUES
 					(:name, :admin_id, :webhook, :channel)
 					RETURNING id`); err != nil {
-						logging.LogError(err, "Failed to create initial operation statement")
-					} else if err := statement.Get(&newOperation.ID, newOperation); err != nil {
-						logging.LogError(err, "Failed to create initial operation")
-					} else {
-						// now we need to make the new User's current operation the new operation
-						newUser.CurrentOperationID.Valid = true
-						newUser.CurrentOperationID.Int64 = int64(newOperation.ID)
-						if _, err := DB.NamedExec(`UPDATE operator
+					logging.LogError(err, "Failed to create initial operation statement")
+				} else if err := statement.Get(&newOperation.ID, newOperation); err != nil {
+					logging.LogError(err, "Failed to create initial operation")
+				} else {
+					// now we need to make the new User's current operation the new operation
+					newUser.CurrentOperationID.Valid = true
+					newUser.CurrentOperationID.Int64 = int64(newOperation.ID)
+					if _, err := DB.NamedExec(`UPDATE operator
 						SET current_operation_id=:current_operation_id
 						WHERE id=:id`, newUser); err != nil {
-							logging.LogError(err, "Failed to set the new user's default operation")
-						}
-						operatorOperation := databaseStructs.Operatoroperation{
-							OperatorID:  newUser.ID,
-							OperationID: newOperation.ID,
-							ViewMode:    "lead",
-						}
-						if _, err := DB.NamedExec(`INSERT INTO operatoroperation
+						logging.LogError(err, "Failed to set the new user's default operation")
+					}
+					operatorOperation := databaseStructs.Operatoroperation{
+						OperatorID:  newUser.ID,
+						OperationID: newOperation.ID,
+						ViewMode:    "lead",
+					}
+					if _, err := DB.NamedExec(`INSERT INTO operatoroperation
 						(operator_id, operation_id, view_mode)
 						VALUES
 						(:operator_id, :operation_id, :view_mode)`, operatorOperation); err != nil {
-							logging.LogError(err, "Failed to create operator operation mapping for new operator and new operation")
-						}
+						logging.LogError(err, "Failed to create operator operation mapping for new operator and new operation")
 					}
+					CreateOperationBotForOperation(newOperation)
 				}
 			}
+
 		} else {
 			// got some other sort of error, abort
 			logging.LogFatalError(err, "pq error", GetDatabaseErrorString(err))

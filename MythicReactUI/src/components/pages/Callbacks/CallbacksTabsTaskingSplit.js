@@ -55,7 +55,7 @@ export function CallbacksTabsTaskingSplitLabel(props){
             {openEditDescriptionDialog &&
                 <MythicDialog fullWidth={true} open={openEditDescriptionDialog}  onClose={() => {setOpenEditDescriptionDialog(false);}}
                     innerDialog={
-                        <MythicModifyStringDialog title={"Edit Tab's Description"} onClose={() => {setOpenEditDescriptionDialog(false);}} value={description} onSubmit={editDescriptionSubmit} />
+                        <MythicModifyStringDialog title={"Edit Tab's Description - Displays as one line"} onClose={() => {setOpenEditDescriptionDialog(false);}} value={description} onSubmit={editDescriptionSubmit} />
                     }
                 />
             }
@@ -63,7 +63,7 @@ export function CallbacksTabsTaskingSplitLabel(props){
     )
 }
 // this is to listen for the latest tasking
-const fetchLimit = 10;
+const fetchLimit = 30;
 const getTaskingQuery = gql`
 ${taskingDataFragment}
 subscription getTasking($callback_id: Int!, $fromNow: timestamp!, $limit: Int){
@@ -85,6 +85,7 @@ query getBatchTasking($callback_id: Int!, $offset: Int!, $fetchLimit: Int!){
 `;
 export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTab, me}) =>{
     const [taskLimit, setTaskLimit] = React.useState(10);
+    const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
     const [taskingData, setTaskingData] = React.useState({task: []});
@@ -99,7 +100,6 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
         "everythingButList": [],
         "hideErrors": false,
     });
-    const [canScroll, setCanScroll] = React.useState(true);
     const [selectedTask, setSelectedTask] = React.useState({id: 0});
     const mountedRef = React.useRef(true);
     const newlyIssuedTasks = useRef(null);
@@ -178,17 +178,11 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             const index = prev.findIndex(element => element.id === cur.id);
             if(index > -1){
                 // need to update an element
-                const updated = prev.map( (element) => {
-                    if(element.id === cur.id){
-                        if(selectedTask.id === cur.id){
-                            return {...cur, selected: true}
-                        }
-                        return {...cur, selected: false};
-                    }else{
-                        return {...element, selected: false};
-                    }
-                });
-                return updated;
+                prev[index] = {...cur}
+                if(prev[index].id === selectedTask.id){
+                    prev[index].selected = true;
+                }
+                return [...prev];
             }else{
                 return [...prev, cur];
             }
@@ -198,8 +192,8 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             setTaskingData({task: mergedData});
         }
         if(mergedData.length > oldLength){
-            setCanScroll(true);
-        }     
+            //setCanScroll(true);
+        }
         if(mergedData.length > taskLimit){
             setTaskLimit(mergedData.length);
         }
@@ -218,17 +212,6 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
         },
         fetchPolicy: "no-cache",
         onData: subscriptionDataCallback});
-    const scrollToBottom = useCallback( () => {
-        if(taskingData && messagesEndRef.current){
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-      }, [taskingData, messagesEndRef]);
-    useLayoutEffect( () => {
-        if(canScroll){
-            scrollToBottom();
-            setCanScroll(false);
-        }
-    }, [canScroll, scrollToBottom]);
     const [getInfiniteScrollTasking, {loading: loadingMore}] = useLazyQuery(getNextBatchTaskingQuery, {
         onError: data => {
             console.error(data);
@@ -270,17 +253,22 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                     setFetchedAllTasks(false);
                 }
             }
+            if(!scrollToBottom){setScrollToBottom(true)}
         },
         fetchPolicy: "no-cache"
     });
     useEffect( () => {
         getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
-        setCanScroll(true);
         return() => {
             mountedRef.current = false;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, []);
+    useEffect( () => {
+        if(scrollToBottom){
+            messagesEndRef.current.scrollIntoView();
+        }
+    }, [scrollToBottom]);
     const loadMoreTasks = () => {
         getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
     }
@@ -397,7 +385,12 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
             let index = taskingDataRef.current.task.findIndex(e => e.id === newlyIssuedTasks.current)
             if(index > -1){
                 newlyIssuedTasks.current = null;
-                changeSelectedTask(taskingDataRef.current.task[index]);
+                if(taskingDataRef.current.task[index]?.operator?.username === (me?.user?.username || "")){
+                    let el = document.getElementById(`taskingPanelSplit${tabInfo.callbackID}`);
+                    if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 100){
+                        changeSelectedTask(taskingDataRef.current.task[index]);
+                    }
+                }
             }
 
         }
@@ -405,33 +398,36 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     return (
         <MythicTabPanel index={index} value={value} >
             <Split direction="horizontal" minSize={[0,0]} style={{width: "100%", height: "100%", overflowY: "auto", display: "flex"}} sizes={[30, 70]} >
-                <div className="bg-gray-base" style={{display: "inline-flex", flexDirection: "column"}}>
+                <div className="bg-gray-base" style={{display: "inline-flex", flexDirection: "column"}} >
 
-                    <div style={{overflowY: "auto", flexGrow: 1}}>
+                    <div style={{overflowY: "auto", flexGrow: 1}} id={`taskingPanelSplit${tabInfo.callbackID}`}>
 
                         {!fetchedAllTasks &&
                             <MythicStyledTooltip title="Fetch Older Tasks">
-                            <IconButton
-                            onClick={loadMoreTasks}
-                            variant="contained"
-                            color="primary"
-                            style={{marginLeft: "50%"}}
-                            size="large"><AutorenewIcon /></IconButton>
+                                <IconButton
+                                    onClick={loadMoreTasks}
+                                    variant="contained"
+                                    color="success"
+                                    style={{marginLeft: "50%"}}
+                                    size="large"><AutorenewIcon/></IconButton>
                             </MythicStyledTooltip>}
                         {!fetched && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
                         {loadingMore && <LinearProgress color="info" thickness={2} style={{paddingTop: "5px"}}/>}
                         {
-                            taskingData.task.map( (task) => (
-                            <TaskDisplayFlat key={"taskinteractdisplaysplit" + task.id} me={me} task={task}
-                                             command_id={task.command == null ? 0 : task.command.id}
-                                             filterOptions={filterOptions}
-                                             onSelectTask={(tsk) => {changeSelectedTask(tsk)}}
-                                             showOnSelectTask={true} selectedTask={selectedTask}
-                            />
-                        ))
+                            taskingData.task.map((task) => (
+                                <TaskDisplayFlat key={"taskinteractdisplaysplit" + task.id} me={me} task={task}
+                                                 command_id={task.command == null ? 0 : task.command.id}
+                                                 filterOptions={filterOptions}
+                                                 onSelectTask={(tsk) => {
+                                                     changeSelectedTask(tsk)
+                                                 }}
+                                                 showOnSelectTask={true} selectedTask={selectedTask}
+                                />
+                            ))
                         }
+                        <div ref={messagesEndRef}/>
                     </div>
-                    <div ref={messagesEndRef} />
+
                 </div>
                 <div className="bg-gray-light" style={{display: "inline-flex", height: "100%"}}>
                     <CallbacksTabsTaskingSplitTable selectedTask={selectedTask} me={me} filterOptions={filterOptions}

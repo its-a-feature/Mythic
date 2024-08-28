@@ -12,9 +12,9 @@ type Task struct {
 	DisplayID                          int               `db:"display_id" json:"display_id"`
 	AgentTaskID                        string            `db:"agent_task_id" json:"agent_task_id"`
 	OperationID                        int               `db:"operation_id" json:"operation_id"`
-	Operation                          Operation         `db:"operation"`
+	Operation                          Operation         `db:"operation" json:"-"`
 	CommandID                          structs.NullInt64 `db:"command_id" json:"command_id"`
-	Command                            Command           `db:"command" json:"command"`
+	Command                            Command           `db:"command" json:"-"`
 	CommandName                        string            `db:"command_name" json:"command_name"`
 	Params                             string            `db:"params" json:"params"`
 	StatusTimestampPreprocessing       time.Time         `db:"status_timestamp_preprocessing" json:"status_timestamp_preprocessing"`
@@ -58,4 +58,7 @@ type Task struct {
 	ResponseCount                      int               `db:"response_count" json:"response_count"`
 	IsInteractiveTask                  bool              `db:"is_interactive_task" json:"is_interactive_task"`
 	InteractiveTaskType                structs.NullInt64 `db:"interactive_task_type" json:"interactive_task_type"`
+	EventStepInstanceID                structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`
+	APITokensID                        structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
+	HasInterceptedResponse             bool              `db:"has_intercepted_response" json:"has_intercepted_response"`
 }

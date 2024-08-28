@@ -15,7 +15,7 @@ export function C2ProfileStartStopOutputDialog(props) {
   const theme = useTheme();
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">{props.payload_name}'s Current Stdout/Stderr</DialogTitle>
+        <DialogTitle id="form-dialog-title">{props.container_name}'s Current Stdout/Stderr</DialogTitle>
         <DialogContent dividers={true}>
           <DialogContentText>
             This is the current Stdout/Stderr for the profile. This goes away once you close this dialog.

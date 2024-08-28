@@ -10,7 +10,7 @@ import MenuItem from '@mui/material/MenuItem';
 
 const GET_Payload_Types = gql`
 query getPayloadTypesBuildParametersQuery($os: jsonb!) {
-  payloadtype(where: {supported_os: {_contains: $os}, deleted: {_eq: false}, wrapper: {_eq: false}}, order_by: {name: asc}) {
+  payloadtype(where: {supported_os: {_contains: $os}, deleted: {_eq: false}, wrapper: {_eq: false}, _or: [ {agent_type: {_eq: "agent"}}, {agent_type: {_eq: "service"}}] }, order_by: {name: asc}) {
     name
     id
     file_extension
@@ -33,8 +33,7 @@ query getPayloadTypesBuildParametersQuery($os: jsonb!) {
 export const getDefaultValueForType = (parameter) => {
     // all default values will be strings, so convert them
     if(parameter.randomize && parameter.format_string !== ""){
-        const random = new RandExp(parameter.format_string).gen();
-        return random;
+        return new RandExp(parameter.format_string).gen();
     }
     switch (parameter.parameter_type) {
         case "String":
@@ -43,6 +42,8 @@ export const getDefaultValueForType = (parameter) => {
             // automatic casting to number for multiplication
             return parameter.default_value * 1;
         case "ChooseOne":
+            return parameter.default_value;
+        case "ChooseOneCustom":
             return parameter.default_value;
         case "ChooseMultiple":
             // default_value will be a json string of an array
@@ -65,6 +66,8 @@ export const getDefaultValueForType = (parameter) => {
                     return {...c, value: c.default_value}
                 });
             }
+        case "FileMultiple":
+            return [];
         case "File":
             return {name: ""};
         case "Date":
@@ -200,7 +203,7 @@ export function Step2SelectPayloadType(props){
         return <div>Error! {error.message}</div>;
     }
     return (
-        <div >
+        <div style={{height: "100%", display: "flex", flexDirection: "column"}}>
             <Typography variant="h3" align="left" id="selectospage" component="div" 
                 style={{"marginLeft": "10px"}}>
                   Select Target Payload Type
@@ -215,7 +218,9 @@ export function Step2SelectPayloadType(props){
                 ))
             }
             </Select><br/>
-            <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters} />
+            <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
+                <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters} />
+            </div>
             <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={canceled} finished={finished} />
             <br/><br/>
         </div>

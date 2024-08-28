@@ -24,6 +24,7 @@ type MythicTree struct {
 	Metadata        MythicJSONText    `db:"metadata"`
 	TreeType        string            `db:"tree_type" mapstructure:"tree_type"`
 	Os              string            `db:"os" mapstructure:"os"`
+	APITokensID     structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 }
 
 const TREE_TYPE_FILE string = "file"

@@ -1,6 +1,6 @@
 import {MythicTabPanel, MythicTabLabel} from '../../MythicComponents/MythicTabPanel';
 import React, {useEffect, useRef} from 'react';
-import {gql, useQuery, useSubscription } from '@apollo/client';
+import {gql, useQuery, useSubscription, useLazyQuery } from '@apollo/client';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {useTheme} from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
@@ -19,15 +19,16 @@ import InputLabel from '@mui/material/InputLabel';
 import Input from '@mui/material/Input';
 import {ViewCallbackMythicTreeGroupsDialog} from "./ViewCallbackMythicTreeGroupsDialog";
 import WidgetsIcon from '@mui/icons-material/Widgets';
+import {snackActions} from "../../utilities/Snackbar";
+import { Backdrop, Typography } from '@mui/material';
+import {CircularProgress} from '@mui/material';
+import ExpandIcon from '@mui/icons-material/Expand';
 
 const treeFragment = gql`
 fragment treeObjData on mythictree {
     comment
     deleted
     task_id
-    filemeta {
-        id
-    }
     tags {
         tagtype {
             name
@@ -56,11 +57,11 @@ fragment treeObjData on mythictree {
 `;
 const treeSubscription = gql`
     ${treeFragment}
-    subscription liveData($now: timestamp!, $operation_id: Int!) {
+    subscription liveData($now: timestamp!) {
         mythictree_stream(
             batch_size: 1000,
-            cursor: {initial_value: {timestamp: $now}},
-            where: { operation_id: { _eq: $operation_id }, tree_type: {_eq: "process"} }
+            cursor: {initial_value: {timestamp: $now}}, 
+            where: {tree_type: {_eq: "process"} }
         ) {
             ...treeObjData
         }
@@ -68,13 +69,20 @@ const treeSubscription = gql`
 `;
 const rootQuery = gql`
     ${treeFragment}
-    query myRootFolderQuery($operation_id: Int!) {
-        mythictree(where: { operation_id: { _eq: $operation_id }, tree_type: {_eq: "process"} }, order_by: {id: asc}) {
+    query myRootProcessesQuery {
+        mythictree(where: {parent_path_text: { _eq: "" }, tree_type: {_eq: "process"} }, order_by: {id: asc}) {
             ...treeObjData
         }
     }
 `;
-export const uniqueSplitString = "$&%^";
+const treeHostQuery = gql`
+    ${treeFragment}
+    query processesPerHostQuery($host: String!){
+        mythictree(where: {host: {_eq: $host}, tree_type: {_eq: "process"} }, order_by: {id: asc}) {
+            ...treeObjData
+        }
+    }
+`;
 export function CallbacksTabsProcessBrowserLabel(props){
     const [description, setDescription] = React.useState("Processes: " + props.tabInfo.displayID)
     const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
@@ -109,7 +117,7 @@ export function CallbacksTabsProcessBrowserLabel(props){
             {openEditDescriptionDialog &&
                 <MythicDialog fullWidth={true} open={openEditDescriptionDialog}  onClose={() => {setOpenEditDescriptionDialog(false);}}
                     innerDialog={
-                        <MythicModifyStringDialog title={"Edit Tab's Description"} onClose={() => {setOpenEditDescriptionDialog(false);}} value={description} onSubmit={editDescriptionSubmit} />
+                        <MythicModifyStringDialog title={"Edit Tab's Description - Displays as one line"} onClose={() => {setOpenEditDescriptionDialog(false);}} value={description} onSubmit={editDescriptionSubmit} />
                     }
                 />
             }
@@ -117,7 +125,9 @@ export function CallbacksTabsProcessBrowserLabel(props){
     )
 }
 export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>{
-    const [fromNow, setFromNow] = React.useState((new Date()));
+    const fromNow = React.useRef((new Date()));
+    const [backdropOpen, setBackdropOpen] = React.useState(false);
+    const [expandOrCollapseAll, setExpandOrCollapseAll] = React.useState(false);
     const treeRootDataRef = React.useRef({}); // hold all the actual data
     const [treeAdjMtx, setTreeAdjMtx] = React.useState({}); // hold the simple adjacency matrix for parent/child relationships
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
@@ -126,12 +136,37 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
     const [showDeletedFiles, setShowDeletedFiles] = React.useState(false);
     const [selectedHost, setSelectedHost] = React.useState("");
     const [selectedGroup, setSelectedGroup] = React.useState("");
+    const getNewMatrix = () => {
+        let newMatrix = {};
+        for(const[group, groupMatrix] of Object.entries(treeRootDataRef.current)){
+            if(newMatrix[group] === undefined){newMatrix[group] = {}}
+            for(const[host, hostMatrix] of Object.entries(treeRootDataRef.current[group])){
+                if(newMatrix[group][host] === undefined){newMatrix[group][host] = {"":[]}}
+                for(const[full_path_text, node] of Object.entries(treeRootDataRef.current[group][host])){
+                    if(newMatrix[group][host][ node["parent_path_text"] ] === undefined){
+                        newMatrix[group][host][ node["parent_path_text"] ] = {}
+                    }
+                    newMatrix[group][host][ node["parent_path_text"] ][full_path_text] = 1
+                }
+            }
+        }
+        return newMatrix;
+    }
     useQuery(rootQuery, {
-        variables: { operation_id: me?.user?.current_operation_id ||0},
         onCompleted: (data) => {
            // use an adjacency matrix but only for full_path_text -> children, not both directions
+            let defaultGroup = "Default";
             for(let i = 0; i < data.mythictree.length; i++){
                 let currentGroups = data.mythictree[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
+                try{
+                    if(data.mythictree[i]?.['callback']?.['id'] === tabInfo.callbackID){
+                        if(!currentGroups.includes(defaultGroup, 0)){
+                            defaultGroup = currentGroups[0];
+                        }
+                    }
+                }catch(error){
+                    console.log(error);
+                }
                 for(let j = 0; j < currentGroups.length; j++){
                     if(treeRootDataRef.current[currentGroups[j]] === undefined){
                         treeRootDataRef.current[currentGroups[j]] = {};
@@ -140,39 +175,28 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         // new host discovered
                         treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] = {};
                     }
-                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"] /*+ uniqueSplitString + data.mythictree[i]["callback_id"]*/] = {...data.mythictree[i]}
+                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
+                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].callbacks = [data.mythictree[i].callback]
                 }
             }
             // create the top level data in the adjacency matrix
-            const newMatrix = data.mythictree.reduce( (prev, cur) => {
-                let currentGroups = cur?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
-                for(let j = 0; j < currentGroups.length; j++) {
-                    if (prev[currentGroups[j]] === undefined) {
-                        prev[currentGroups[j]] = {};
-                    }
-                    if (prev[currentGroups[j]][cur["host"]] === undefined) {
-                        // the current host isn't tracked in the adjacency matrix, so add it
-                        prev[currentGroups[j]][cur["host"]] = {}
-                    }
-                    if(cur["parent_path_text"] === ""){
-                        if(prev[currentGroups[j]][cur['host']][""] === undefined){
-                            prev[currentGroups[j]][cur['host']][""] = {}
-                        }
-                        prev[currentGroups[j]][cur['host']][""][cur["full_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = 1;
-                        continue
-                    }
-                    if (prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] === undefined) {
-                        // the current parent's path isn't tracked, so add it and ourselves as children
-                        prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = {};
-                    }
-                    prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/][cur["full_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = 1;
-                }
-                return prev;
-            }, {...treeAdjMtx});
+            const newMatrix = getNewMatrix();
            setTreeAdjMtx(newMatrix);
            // first see if we can find a group that matches our host, if not, then we can do first of each
-            let groups = Object.keys(newMatrix).sort();
+           let groups = Object.keys(newMatrix).sort();
            if(groups.length > 0){
+               if(groups.includes(defaultGroup)){
+                   setSelectedGroup(defaultGroup);
+                   const hosts = Object.keys(newMatrix[defaultGroup]).sort();
+                   if(hosts.length > 0){
+                       if(hosts.includes(tabInfo.host)){
+                           setSelectedHost(tabInfo.host);
+                       } else {
+                           setSelectedHost(hosts[0]);
+                       }
+                   }
+                   return
+               }
                for(let i = 0; i < groups.length; i++){
                    const hosts = Object.keys(newMatrix[groups[i]]).sort();
                    if(hosts.length > 0){
@@ -193,7 +217,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         fetchPolicy: 'no-cache',
     });
     useSubscription(treeSubscription, {
-        variables: {now: fromNow, operation_id: me?.user?.current_operation_id ||0},
+        variables: {now: fromNow.current},
         fetchPolicy: "no-cache",
         onData: ({data}) => {
             for(let i = 0; i < data.data.mythictree_stream.length; i++){
@@ -206,35 +230,68 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         // new host discovered
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]] = {};
                     }
-                    treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"] /*+ uniqueSplitString + data.data.mythictree_stream[i]["callback_id"]*/] = {...data.data.mythictree_stream[i]};
+                    if(treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] === undefined){
+                        // first time we're seeing this file data, just add it
+                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]};
+                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]].callbacks = [data.data.mythictree_stream[i].callback]
+                    } else {
+                        // we need to merge data in because we already have some info
+                        let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
+                        existingData.callbacks.push(data.data.mythictree_stream[i].callback)
+                        existingData.comment += data.data.mythictree_stream[i].comment;
+                        existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];
+                        existingData.metadata = {...existingData.metadata, ...data.data.mythictree_stream[i].metadata};
+                        treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...existingData};
+                    }
                 }
             }
-            const newMatrix = data.data.mythictree_stream.reduce( (prev, cur) => {
-                let currentGroups = cur?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
-                for(let j = 0; j < currentGroups.length; j++) {
-                    if (prev[currentGroups[j]] === undefined) {
-                        prev[currentGroups[j]] = {};
-                    }
-                    if (prev[currentGroups[j]][cur["host"]] === undefined) {
-                        // the current host isn't tracked in the adjacency matrix, so add it
-                        prev[currentGroups[j]][cur["host"]] = {}
-                    }
-                    if(cur["parent_path_text"] === ""){
-                        if(prev[currentGroups[j]][cur['host']][""] === undefined){
-                            prev[currentGroups[j]][cur['host']][""] = {}
-                        }
-                        prev[currentGroups[j]][cur['host']][""][cur["full_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = 1;
-                        continue
-                    }
-                    if (prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] === undefined) {
-                        // the current parent's path isn't tracked, so add it and ourselves as children
-                        prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = {};
-                    }
-                    prev[currentGroups[j]][cur["host"]][cur["parent_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/][cur["full_path_text"] /*+ uniqueSplitString + cur["callback_id"]*/] = 1;
-                }
-                return prev;
-            }, {...treeAdjMtx});
+            const newMatrix = getNewMatrix();
             setTreeAdjMtx(newMatrix);
+        }
+    })
+    const [getHostProcessesQuery] = useLazyQuery(treeHostQuery, {
+        onError: (data) => {
+            console.error(data);
+        },
+        fetchPolicy: 'no-cache',
+        onCompleted: (data) => {
+            snackActions.dismiss();
+            // add in all of the raw data
+            for(let i = 0; i < data.mythictree.length; i++){
+                let currentGroups = data.mythictree[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
+                for(let j = 0; j < currentGroups.length; j++){
+                    if(treeRootDataRef.current[currentGroups[j]] === undefined){
+                        treeRootDataRef.current[currentGroups[j]] = {};
+                    }
+                    if( treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] === undefined) {
+                        // new host discovered
+                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] = {};
+                    }
+                    if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] === undefined){
+                        // first time we're seeing this file data, just add it
+                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]};
+                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].callbacks = [data.mythictree[i].callback];
+                    } else {
+                        // we need to merge data in because we already have some info
+                        let existingData = treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
+                        existingData.comment += data.mythictree[i].comment;
+                        existingData.callbacks.push(data.mythictree[i].callback)
+                        existingData.tags = [...existingData.tags, ...data.mythictree[i].tags];
+                        if(existingData.id > data.mythictree[i].id){
+                            existingData.metadata = {...existingData.metadata};
+                        } else {
+                            existingData.metadata = {...data.mythictree[i].metadata};
+                        }
+                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...existingData};
+                    }
+                }
+            }
+            // create the top level data in the adjacency matrix
+            const newMatrix = getNewMatrix();
+            //console.log(treeRootDataRef.current);
+            setTreeAdjMtx(newMatrix);
+            //console.log("just set treeAdjMtx, about to close backdrop")
+            setBackdropOpen(false);
         }
     })
     const onListFilesButton = () => {
@@ -265,6 +322,10 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         }
     }
     React.useEffect( () => {
+        getHostProcessesQuery({variables: {host: selectedHost}});
+        setBackdropOpen(true);
+    }, [selectedHost]);
+    React.useEffect( () => {
         return() => {
             mountedRef.current = false;
         }
@@ -272,8 +333,23 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
     }, [])
     return (
         <MythicTabPanel index={index} value={value} >
-            <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
+            <div style={{display: "flex", flexGrow: 1, overflowY: "auto", position: "relative"}}>
+
                 <div style={{width: "100%", display: "flex", flexDirection: "column", flexGrow: 1}}>
+                    <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute",}} invisible={false}>
+                        <div style={{
+                            borderRadius: "4px",
+                            border: "1px solid black",
+                            padding: "5px",
+                            backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                            alignItems: "center",
+                            display: "flex", flexDirection: "column"}}>
+                            <CircularProgress color="inherit" />
+                            <Typography variant={"h5"}>
+                                Gathering Processes from database for {selectedHost}...
+                            </Typography>
+                        </div>
+                    </Backdrop>
                     <ProcessBrowserTableTop 
                         onListFilesButton={onListFilesButton}
                         tabInfo={tabInfo}
@@ -284,6 +360,8 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         updateSelectedGroup={updateSelectedGroup}
                         groupOptions={treeRootDataRef.current}
                         hostOptions={treeRootDataRef.current[selectedGroup] || {}}
+                        expandOrCollapseAll={expandOrCollapseAll}
+                        setExpandOrCollapseAll={setExpandOrCollapseAll}
                     />
                     <CallbacksTabsProcessBrowserTable 
                         showDeletedFiles={showDeletedFiles}
@@ -293,6 +371,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         treeAdjMatrix={treeAdjMtx}
                         host={selectedHost}
                         group={selectedGroup}
+                        expandOrCollapseAll={expandOrCollapseAll}
                         onTaskRowAction={onTaskRowAction}
                         me={me}/>
                   
@@ -318,7 +397,9 @@ const ProcessBrowserTableTop = ({
     host,
     group,
     hostOptions,
-    groupOptions
+    groupOptions,
+    expandOrCollapseAll,
+    setExpandOrCollapseAll
 }) => {
     const theme = useTheme();
     const [showDeletedFiles, setLocalShowDeletedFiles] = React.useState(false);
@@ -337,6 +418,9 @@ const ProcessBrowserTableTop = ({
     }
     const handleGroupChange = (event) => {
         updateSelectedGroup(event.target.value);
+    }
+    const onLocalExpandOrCollapseAllButton = () => {
+        setExpandOrCollapseAll(!expandOrCollapseAll);
     }
     return (
         <Grid container spacing={0} style={{paddingTop: "10px"}}>
@@ -374,6 +458,12 @@ const ProcessBrowserTableTop = ({
                 <React.Fragment>
                     <MythicStyledTooltip title="Task Callback to List Processes">
                         <IconButton style={{padding: "3px"}} onClick={onLocalListFilesButton} size="large"><RefreshIcon style={{color: theme.palette.info.main}}/></IconButton>
+                    </MythicStyledTooltip>
+                    <MythicStyledTooltip title={expandOrCollapseAll ? "Collapse all processes" : "Expand all processes"} >
+                        <IconButton style={{padding: "3px"}}
+                                    onClick={onLocalExpandOrCollapseAllButton} size={"large"}>
+                            <ExpandIcon color={expandOrCollapseAll ? "info" : "success"} />
+                        </IconButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={showDeletedFiles ? 'Hide Deleted Processes' : 'Show Deleted Processes'}>
                             <IconButton

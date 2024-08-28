@@ -14,19 +14,23 @@ import (
 
 type Config struct {
 	// server configuration
-	AdminUser               string
-	AdminPassword           string
-	DefaultOperationName    string
-	DefaultOperationWebhook string
-	DefaultOperationChannel string
-	AllowedIPBlocks         []*net.IPNet
-	DebugAgentMessage       bool
-	DebugLevel              string
-	ServerPort              uint
-	ServerBindLocalhostOnly bool
-	ServerDynamicPorts      []uint32
-	ServerGRPCPort          uint
-	GlobalServerName        string
+	AdminUser                           string
+	AdminPassword                       string
+	DefaultOperationName                string
+	DefaultOperationWebhook             string
+	DefaultOperationChannel             string
+	AllowedIPBlocks                     []*net.IPNet
+	DebugAgentMessage                   bool
+	DebugLevel                          string
+	ServerPort                          uint
+	ServerBindLocalhostOnly             bool
+	ServerDynamicPorts                  []uint32
+	ServerDynamicPortsBindLocalhostOnly bool
+	ServerDockerNetworking              string
+	ServerGRPCPort                      uint
+	GlobalServerName                    string
+	MythicServerAllowInviteLinks        bool
+	ServerVersion                       string
 
 	// rabbitmq configuration
 	RabbitmqHost     string
@@ -57,11 +61,14 @@ func Initialize() {
 	mythicEnv.SetDefault("mythic_server_port", 17443)
 	mythicEnv.SetDefault("mythic_server_bind_localhost_only", true)
 	mythicEnv.SetDefault("mythic_server_dynamic_ports", "7000-7010")
+	mythicEnv.SetDefault("mythic_server_dynamic_ports_bind_localhost_only", true)
+	mythicEnv.SetDefault("mythic_docker_networking", "bridge")
 	mythicEnv.SetDefault("mythic_server_grpc_port", 17444)
 	mythicEnv.SetDefault("mythic_admin_user", "mythic_admin")
 	mythicEnv.SetDefault("mythic_admin_password", "mythic_password")
 	mythicEnv.SetDefault("allowed_ip_blocks", "0.0.0.0/0")
 	mythicEnv.SetDefault("debug_level", "warning")
+	mythicEnv.SetDefault("mythic_server_allow_invite_links", "false")
 	// postgres configuration
 	mythicEnv.SetDefault("postgres_host", "mythic_postgres")
 	mythicEnv.SetDefault("postgres_port", 5432)
@@ -104,6 +111,13 @@ func Initialize() {
 
 func setConfigFromEnv(mythicEnv *viper.Viper) {
 	// mythic server configuration
+	serverFileContents, err := os.ReadFile(filepath.Join(getCwdFromExe(), "VERSION"))
+	if err != nil {
+		MythicConfig.ServerVersion = "-1"
+	}
+	if err == nil {
+		MythicConfig.ServerVersion = string(serverFileContents)
+	}
 	MythicConfig.DebugAgentMessage = mythicEnv.GetBool("mythic_debug_agent_message")
 	MythicConfig.ServerPort = mythicEnv.GetUint("mythic_server_port")
 	MythicConfig.ServerBindLocalhostOnly = mythicEnv.GetBool("mythic_server_bind_localhost_only")
@@ -143,12 +157,15 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 
 		}
 	}
+	MythicConfig.ServerDynamicPortsBindLocalhostOnly = mythicEnv.GetBool("mythic_server_dynamic_ports_bind_localhost_only")
+	MythicConfig.ServerDockerNetworking = mythicEnv.GetString("mythic_docker_networking")
 	MythicConfig.AdminUser = mythicEnv.GetString("mythic_admin_user")
 	MythicConfig.AdminPassword = mythicEnv.GetString("mythic_admin_password")
 	MythicConfig.DefaultOperationName = mythicEnv.GetString("default_operation_name")
 	MythicConfig.DefaultOperationWebhook = mythicEnv.GetString("default_operation_webhook_url")
 	MythicConfig.DefaultOperationChannel = mythicEnv.GetString("default_operation_webhook_channel")
 	MythicConfig.GlobalServerName = mythicEnv.GetString("global_server_name")
+	MythicConfig.MythicServerAllowInviteLinks = mythicEnv.GetBool("mythic_server_allow_invite_links")
 	allowedIPBlocks := []*net.IPNet{}
 	for _, ipBlock := range strings.Split(mythicEnv.GetString("allowed_ip_blocks"), ",") {
 		if _, subnet, err := net.ParseCIDR(ipBlock); err != nil {
@@ -197,6 +214,10 @@ func SetConfigValue(configKey string, configValue interface{}) error {
 	switch configKey {
 	case "MYTHIC_DEBUG_AGENT_MESSAGE":
 		MythicConfig.DebugAgentMessage = configValue.(bool)
+	case "MYTHIC_SERVER_ALLOW_INVITE_LINKS":
+		MythicConfig.MythicServerAllowInviteLinks = configValue.(bool)
+	case "MYTHIC_GLOBAL_SERVER_NAME":
+		MythicConfig.GlobalServerName = configValue.(string)
 	default:
 		return errors.New("unknown configKey to update")
 	}
@@ -205,6 +226,9 @@ func SetConfigValue(configKey string, configValue interface{}) error {
 
 func GetGlobalConfig() map[string]interface{} {
 	return map[string]interface{}{
-		"MYTHIC_DEBUG_AGENT_MESSAGE": MythicConfig.DebugAgentMessage,
+		"MYTHIC_DEBUG_AGENT_MESSAGE":       MythicConfig.DebugAgentMessage,
+		"MYTHIC_SERVER_ALLOW_INVITE_LINKS": MythicConfig.MythicServerAllowInviteLinks,
+		"MYTHIC_GLOBAL_SERVER_NAME":        MythicConfig.GlobalServerName,
+		"MYTHIC_SERVER_VERSION":            MythicConfig.ServerVersion,
 	}
 }
