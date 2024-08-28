@@ -308,20 +308,20 @@ const FileBrowserVirtualTreePreMemo = ({
       if(depth === 0){
         return [
           {
-            id: treeRootData[group][host][node].id,
-            name: treeRootData[group][host][node].name_text,
-            full_path_text: treeRootData[group][host][node].full_path_text,
-            deleted: treeRootData[group][host][node].deleted,
+            id: treeRootData[group]?.[host]?.[node].id,
+            name: treeRootData[group]?.[host]?.[node].name_text,
+            full_path_text: treeRootData[group]?.[host]?.[node].full_path_text,
+            deleted: treeRootData[group]?.[host]?.[node].deleted,
             depth,
-            isLeaf: Object.keys(treeAdjMatrix[group][host]?.[node] || {}).length === 0,
-            can_have_children: treeRootData[group][host][node].can_have_children,
+            isLeaf: Object.keys(treeAdjMatrix[group]?.[host]?.[node] || {}).length === 0,
+            can_have_children: treeRootData[group]?.[host]?.[node].can_have_children,
             isOpen: true,
             children: (treeAdjMatrix[group][host]?.[node] || {}),
             host,
             group,
             root: true
           },
-          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).sort(caseInsensitiveCompare).reduce( (prev, cur) => {
+          ...(Object.keys(treeAdjMatrix[group]?.[host]?.[node] || {})).sort(caseInsensitiveCompare).reduce( (prev, cur) => {
             if(!treeRootData[group][host][cur].can_have_children){return [...prev]}
             return [...prev, flattenNode(cur, group, host, depth+1)];
         }, []).flat()
@@ -335,15 +335,15 @@ const FileBrowserVirtualTreePreMemo = ({
             full_path_text: treeRootData[group][host][node].full_path_text,
             deleted: treeRootData[group][host][node].deleted,
             depth,
-            isLeaf: Object.keys(treeAdjMatrix[group][host]?.[node] || {}).length === 0,
+            isLeaf: Object.keys(treeAdjMatrix[group]?.[host]?.[node] || {}).length === 0,
             can_have_children: treeRootData[group][host][node].can_have_children,
             isOpen: true,
-            children: (treeAdjMatrix[group][host]?.[node] || {}),
+            children: (treeAdjMatrix[group]?.[host]?.[node] || {}),
             host,
             group,
             root: false,
           },
-          ...(Object.keys(treeAdjMatrix[group][host]?.[node] || {})).sort(caseInsensitiveCompare).reduce( (prev, cur) => {
+          ...(Object.keys(treeAdjMatrix[group]?.[host]?.[node] || {})).sort(caseInsensitiveCompare).reduce( (prev, cur) => {
             if(!treeRootData[group][host][cur].can_have_children){return [...prev]}
             if(!showDeletedFiles && treeRootData[group][host][cur].deleted){return [...prev]}
             return [...prev, flattenNode(cur, group, host, depth+1)];
@@ -352,13 +352,13 @@ const FileBrowserVirtualTreePreMemo = ({
       }
       return [
         {
-          id: treeRootData[group][host][node].id,
-          name: treeRootData[group][host][node].name_text,
-          full_path_text: treeRootData[group][host][node].full_path_text,
-          deleted: treeRootData[group][host][node].deleted,
+          id: treeRootData[group]?.[host]?.[node].id,
+          name: treeRootData[group]?.[host]?.[node].name_text,
+          full_path_text: treeRootData[group]?.[host]?.[node].full_path_text,
+          deleted: treeRootData[group]?.[host]?.[node].deleted,
           depth,
           isLeaf: Object.keys(treeAdjMatrix[group]?.[host]?.[node] || {}).length === 0,
-          can_have_children: treeRootData[group][host][node].can_have_children,
+          can_have_children: treeRootData[group]?.[host]?.[node].can_have_children,
           isOpen: false,
           children: (treeAdjMatrix[group]?.[host]?.[node] || {}),
           host,
@@ -368,7 +368,7 @@ const FileBrowserVirtualTreePreMemo = ({
       ];
      
     },
-    [openNodes, showDeletedFiles] // eslint-disable-line react-hooks/exhaustive-deps
+    [openNodes, showDeletedFiles, treeAdjMatrix] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const flattenedNodes = useMemo(() => {
     //console.log("in tree", treeRootData, treeAdjMatrix)

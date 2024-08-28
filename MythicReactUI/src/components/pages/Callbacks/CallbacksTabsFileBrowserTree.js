@@ -124,6 +124,7 @@ export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatri
         event.stopPropagation();
         setOpenContextMenu(false);
     };
+    //console.log(selectedFolderData)
   return(
       <>
           <FileBrowserVirtualTree

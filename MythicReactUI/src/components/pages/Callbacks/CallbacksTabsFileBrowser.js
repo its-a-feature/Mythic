@@ -297,6 +297,11 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]].filemeta = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]].filemeta.map(f => {
                             return {...f, filename_text: b64DecodeUnicode(f.filename_text)}
                         })
+                        if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === data.data.mythictree_stream[i]["host"] &&
+                            selectedFolderData.full_path_text === data.data.mythictree_stream[i]["full_path_text"]){
+                            setSelectedFolderData({...treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]],
+                                group: currentGroups[j]});
+                        }
                     } else {
                         // we need to merge data in because we already have some info
                         let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
@@ -898,7 +903,7 @@ const FileBrowserTableTop = ({
                                 <MythicStyledTooltip title={"Move up a directory"} >
                                     <IconButton style={{padding: "0 0 0 0"}}
                                                 onClick={onLocalMoveUpDirectoryButton}
-                                                disabled={selectedFolderData?.parent_path_text?.length === 0 || selectedFolderData.root || fullPath === ""}
+                                                disabled={!selectedFolderData?.parent_path_text || selectedFolderData?.parent_path_text?.length === 0 || selectedFolderData.root || fullPath === ""}
                                     >
                                         <KeyboardReturnIcon style={{rotate: "90deg"}} ></KeyboardReturnIcon>
                                     </IconButton>
