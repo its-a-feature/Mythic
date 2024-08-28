@@ -98,7 +98,8 @@ export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatri
             options.push(...contextMenuOptions(tabInfo["callbackID"], tabInfo["displayID"], contextMenuData.current?.item));
             if(contextMenuData.current?.item?.callback?.["display_id"] !== tabInfo["displayID"]){
                 options.push({
-                    name: "Original Callback", icon: null, click: () => {}, type: "menu",
+                    name: "Original Callback " + contextMenuData.current?.item?.callback?.["display_id"],
+                    icon: null, click: () => {}, type: "menu",
                     menuItems: [
                         ...contextMenuOptions(contextMenuData.current?.item?.callback?.id, contextMenuData.current?.item?.callback?.display_id)
                     ]

@@ -38,7 +38,10 @@ const testFileWebhookMutation = gql`
     }
 `;
 export function TestEventGroupFileDialog({onClose}){
-    const [fileText, setFileText] = React.useState("");
+    const fileText = React.useRef("");
+    const onChangeFileText = (newText) => {
+        fileText.current = newText;
+    }
     const submitAsFile = async (evt) => {
         let blob = new Blob([fileText], { type: 'text/plain' });
         let file = new File([blob], "manual_eventing.yaml", {type: "text/plain"});
@@ -72,7 +75,7 @@ export function TestEventGroupFileDialog({onClose}){
                 Create and Verify Eventing Workflow
             </DialogTitle>
             <DialogContent style={{height: "calc(95vh)", margin: 0, padding: 0}}>
-                <ResponseDisplayPlaintext plaintext={fileText} onChangeContent={setFileText} initial_mode={"yaml"} expand={true} />
+                <ResponseDisplayPlaintext plaintext={""} onChangeContent={onChangeFileText} initial_mode={"yaml"} expand={true} />
             </DialogContent>
             <DialogActions>
                 <Button variant="contained" onClick={onClose} color="primary">
