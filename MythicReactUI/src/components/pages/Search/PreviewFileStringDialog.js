@@ -33,12 +33,13 @@ import 'ace-builds/src-noconflict/mode-kotlin';
 import 'ace-builds/src-noconflict/mode-dockerfile';
 import 'ace-builds/src-noconflict/mode-sh';
 import 'ace-builds/src-noconflict/mode-ini';
+import 'ace-builds/src-noconflict/mode-apache_conf';
 import {useTheme} from '@mui/material/styles';
 import FormControl from '@mui/material/FormControl';
 
 export const modeOptions = ["csharp", "golang", "html", "json", "markdown", "ruby", "python", "java",
     "javascript", "yaml", "toml", "swift", "sql", "rust", "powershell", "pgsql", "perl", "php", "objectivec",
-    "nginx", "makefile", "kotlin", "dockerfile", "sh", "ini"].sort();
+    "nginx", "makefile", "kotlin", "dockerfile", "sh", "ini", "conf"].sort();
 export function PreviewFileStringDialog(props) {
   const theme = useTheme();
   const [mode, setMode] = React.useState("json");

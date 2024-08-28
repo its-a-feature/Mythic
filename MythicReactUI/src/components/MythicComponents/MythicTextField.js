@@ -93,7 +93,7 @@ class MythicTextField extends React.Component {
                     error={this.checkError()}
                     type={this.props.type === undefined ? "text" : this.props.type}
                     onWheel={ event => event.target.blur() }
-                    InputProps={this.props.InputProps}
+                    InputProps={{...this?.props?.InputProps, spellCheck: false}}
                     helperText={this.checkError() ? this.props.errorText : this.props.helperText}
                     style={{
                         padding:0,

@@ -388,6 +388,11 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]].filemeta = treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]].filemeta.map(f => {
                             return {...f, filename_text: b64DecodeUnicode(f.filename_text)}
                         })
+                        if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === mythictree[i]["host"] &&
+                            selectedFolderData.full_path_text === mythictree[i]["full_path_text"]){
+                            setSelectedFolderData({...treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]],
+                                group: currentGroups[j]});
+                        }
                     } else {
                         // we need to merge data in because we already have some info
                         let existingData = treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]];

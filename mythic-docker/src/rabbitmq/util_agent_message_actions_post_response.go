@@ -1925,6 +1925,12 @@ func updateTreeNode(treeNode databaseStructs.MythicTree) {
 `, treeNode); err != nil {
 		logging.LogError(err, "Failed to update tree node")
 	}
+	if treeNode.Success.Valid {
+		_, err := database.DB.NamedExec(`UPDATE mythictree SET success=:success WHERE id=:id`, treeNode)
+		if err != nil {
+			logging.LogError(err, "failed to update success status on tree node")
+		}
+	}
 }
 func deleteTreeNode(treeNode databaseStructs.MythicTree, cascade bool) {
 	if cascade {
@@ -1957,7 +1963,7 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 		ON CONFLICT (host, operation_id, full_path, tree_type, callback_id)
 		DO UPDATE SET
 		task_id=:task_id, "name"=:name, parent_path=:parent_path, can_have_children=:can_have_children,
-		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false, success=:success
+		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false
 		    RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to create new mythictree statement")
@@ -1966,6 +1972,12 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 	err = statement.Get(&treeNode.ID, treeNode)
 	if err != nil {
 		logging.LogError(err, "Failed to create new mythictree entry")
+	}
+	if treeNode.Success.Valid {
+		_, err = database.DB.NamedExec(`UPDATE mythictree SET success=:success WHERE id=:id`, treeNode)
+		if err != nil {
+			logging.LogError(err, "failed to update success status on tree node")
+		}
 	}
 }
 func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.Filemeta) {

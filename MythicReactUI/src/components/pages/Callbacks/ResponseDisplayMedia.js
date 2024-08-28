@@ -38,6 +38,7 @@ import 'ace-builds/src-noconflict/mode-kotlin';
 import 'ace-builds/src-noconflict/mode-dockerfile';
 import 'ace-builds/src-noconflict/mode-sh';
 import 'ace-builds/src-noconflict/mode-ini';
+import 'ace-builds/src-noconflict/mode-apache_conf';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
@@ -170,7 +171,7 @@ const textExtensionTypes = ["txt", "ps1", "php", "json", "yml", "yaml", "config"
     "html", "xml", "js", "java", "conf", "cs", "rb", "toml", "sh", "md", "ini", "py", "kirbi", "bash_profile", "rc",
     "local", "gitconfig", "gitignore", "zsh_history", "bash_history", "ps", "psql_history", "lesshst", "gcloudignore",
     "pem", "boto", "zsh_profile", "pub", "python_history", "sqlite_history", "viminfo", "zprofile", "zshrc",
-    "history", "historynew"
+    "history", "historynew", "bashrc"
 ];
 const textExtensionTypesToSyntax = {
     "json": "json",
@@ -197,7 +198,10 @@ const textExtensionTypesToSyntax = {
     "Makefile": "Makefile",
     "sh": "sh",
     "rc": "sh",
+    "bashrc": "sh",
+    "zshrc": "sh",
     "ini": "ini",
+    "conf": "apache_conf"
 }
 const knownTextFiles = ["config", "credentials", "known_hosts", "config_default", "id_rsa", "Dockerfile", "Makefile"];
 const imgExtensionTypes = ["png", "jpg", "gif", "jpeg", "pdf"];
