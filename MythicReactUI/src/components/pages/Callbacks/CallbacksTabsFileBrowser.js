@@ -244,7 +244,13 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         // new host discovered
                         treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] = {};
                     }
-                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
+                    if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] === undefined){
+                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]};
+                    } else {
+                        if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].success === null){
+                            treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
+                        }
+                    }
                 }
            }
            // create the top level data in the adjacency matrix
@@ -300,7 +306,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === data.data.mythictree_stream[i]["host"] &&
                             selectedFolderData.full_path_text === data.data.mythictree_stream[i]["full_path_text"]){
                             setSelectedFolderData({...treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]],
-                                group: currentGroups[j]});
+                                group: currentGroups[j], fromHistory: selectedFolderData.fromHistory});
                         }
                     } else {
                         // we need to merge data in because we already have some info
@@ -319,10 +325,11 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                             return {...f, filename_text: b64DecodeUnicode(f.filename_text)};
                         })
                         existingData.filemeta = [...existingData.filemeta, ...newfileData]
+
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...existingData};
                         if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === data.data.mythictree_stream[i]["host"] &&
                             selectedFolderData.full_path_text === data.data.mythictree_stream[i]["full_path_text"]){
-                            setSelectedFolderData({...existingData, group: currentGroups[j]});
+                            setSelectedFolderData({...existingData, group: currentGroups[j], fromHistory: selectedFolderData.fromHistory});
                         }
                     }
                 }
@@ -391,7 +398,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === mythictree[i]["host"] &&
                             selectedFolderData.full_path_text === mythictree[i]["full_path_text"]){
                             setSelectedFolderData({...treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]],
-                                group: currentGroups[j]});
+                                group: currentGroups[j], fromHistory: selectedFolderData.fromHistory});
                         }
                     } else {
                         // we need to merge data in because we already have some info
@@ -413,7 +420,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]] = {...existingData};
                         if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === mythictree[i]["host"] &&
                             selectedFolderData.full_path_text === mythictree[i]["full_path_text"]){
-                            setSelectedFolderData({...existingData, group: currentGroups[j]});
+                            setSelectedFolderData({...existingData,
+                                group: currentGroups[j],
+                                fromHistory: selectedFolderData.fromHistory});
                         }
                     }
                 }
@@ -483,7 +492,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             host: parentData.host,
             full_path_text: parentData.full_path_text
         };
-        setSelectedFolderData(parentData);
+        setSelectedFolderData({...parentData, fromHistory: false});
     };
     const localSelectedToken = React.useRef("");
     const onChangeSelectedToken = (token) => {
@@ -736,7 +745,7 @@ const FileBrowserTableTop = ({
             return;
         }
         if(selectedFolderData.id !== ""){
-            if(history[0]?.id !== selectedFolderData.id){
+            if(history[0]?.full_path_text !== selectedFolderData.full_path_text){
                 // always add newest things to the bottom of the stack
                 setHistory([selectedFolderData, ...history]);
                 if(history.length > 20){
@@ -756,6 +765,7 @@ const FileBrowserTableTop = ({
     }
     const moveIndexToNextListing = () => {
         // we're getting close to index 0, the newest listing
+        console.log(historyIndex, history);
         if(historyIndex <= 0){
             return
         }

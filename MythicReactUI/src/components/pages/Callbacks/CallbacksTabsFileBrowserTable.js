@@ -940,8 +940,10 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                 <SettingsIcon />
             </IconButton>
             {treeRootData[selectedFolderData.host][cellData]?.filemeta.length > 0 ?
-                <MythicStyledTooltip title={"Preview Media"}>
-                    <FontAwesomeIcon icon={faPhotoVideo} style={{height: "15px", marginRight: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
+                <MythicStyledTooltip title={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.complete ?
+                    "Preview Media" : "Preview Partial Media"}>
+                    <FontAwesomeIcon icon={faPhotoVideo} style={{height: "15px", marginRight: "5px",
+                        position: "relative", cursor: "pointer", display: "inline-block"}}
                                      onClick={openFilePreview}/>
                 </MythicStyledTooltip>
 

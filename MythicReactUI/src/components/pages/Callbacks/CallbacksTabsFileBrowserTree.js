@@ -14,13 +14,21 @@ export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatri
     const [openNodes, setOpenNodes] = React.useState({});
     const groupName = React.useRef("");
     const [openViewGroupsDialog, setOpenViewGroupDialog] = React.useState(false);
+    const lastOpenedNodeRef = React.useRef({group: "", host: "", full_path_text: ""});
     const toggleNodeExpanded = (nodeId, nodeData) => {
         //console.log("toggleNodeExpanded", nodeId, nodeData);
+        let lastOpenedNodeNewState = true;
+        let lastOpenedNodeID = getOpenIDFromNode(lastOpenedNodeRef.current);
+        if(!lastOpenedNodeRef.current?.metadata?.has_children){
+            lastOpenedNodeNewState = false;
+        }
+        lastOpenedNodeRef.current = {...nodeData};
         setTableData(nodeData);
         fetchFolderData(nodeData);
         setOpenNodes({
           ...openNodes,
-          [getOpenIDFromNode(nodeData)]: true
+          [getOpenIDFromNode(nodeData)]: true,
+          [lastOpenedNodeID]: lastOpenedNodeNewState
         });
       };
     const toggleNodeCollapsed =  (nodeId, nodeData) => {

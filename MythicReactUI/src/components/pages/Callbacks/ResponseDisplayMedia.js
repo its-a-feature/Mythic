@@ -64,6 +64,9 @@ const fileMetaQuery = gql`
             full_remote_path_text
             size
             agent_file_id
+            complete
+            total_chunks
+            chunks_received
             task {
                 display_id
                 id
@@ -97,6 +100,9 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     size: data.filemeta[0].size,
                     agent_file_id: data.filemeta[0].agent_file_id,
                     task_display_id: data.filemeta[0]?.task?.display_id,
+                    complete: data.filemeta[0].complete,
+                    total_chunks: data.filemeta[0].total_chunks,
+                    chunks_received: data.filemeta[0].chunks_received
                 })
             } else {
                 snackActions.warning("failed to find file specified")
@@ -324,7 +330,25 @@ const DisplayFileMetaData = ({fileMetaData}) => {
             </TableHead>
             <TableBody>
                 <TableRow>
-                    <MythicStyledTableCell><TableRowSizeCell cellData={fileMetaData.size}/></MythicStyledTableCell>
+                    <MythicStyledTableCell>
+                        <TableRowSizeCell cellData={fileMetaData.size}/>
+                        {fileMetaData.complete ? null : (
+                            <>
+                                <br/>
+                                <Typography style={{display: "inline-block", color: "red"}}>
+                                    {fileMetaData.chunks_received}
+                                </Typography>
+                                /
+                                <Typography style={{display: "inline-block"}}>
+                                    {fileMetaData.total_chunks}
+                                </Typography>
+                                 <Typography style={{display: "inline-block", whiteSpace: "pre"}}>
+                                     {" Chunks"}
+                                 </Typography>
+                            </>
+
+                        )}
+                    </MythicStyledTableCell>
                     <MythicStyledTableCell style={{wordBreak: "break-all"}}>{fileMetaData.host}</MythicStyledTableCell>
                     <MythicStyledTableCell style={{wordBreak: "break-all"}}>{fileMetaData.filename}</MythicStyledTableCell>
                     <MythicStyledTableCell style={{wordBreak: "break-all"}}>{fileMetaData.full_remote_path}</MythicStyledTableCell>
