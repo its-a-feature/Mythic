@@ -7,22 +7,16 @@ import DialogTitle from '@mui/material/DialogTitle';
 import {useMutation, gql} from '@apollo/client';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 
 import {snackActions} from "../../utilities/Snackbar";
 import {UploadEventGroupFile} from "../../MythicComponents/MythicFileUpload";
 import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
-import {previewFileQuery, updateFileDeleted} from "../Search/FileMetaTable";
+import { updateFileDeleted} from "../Search/FileMetaTable";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import hexFile from "../../../assets/file_bin.png";
-import txtFile from "../../../assets/file_txt.png";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
-import {PreviewFileStringDialog} from "../Search/PreviewFileStringDialog";
-import {PreviewFileHexDialog} from "../Search/PreviewFileHexDialog";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -56,7 +50,7 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
 
             <DialogContent dividers={true} style={{maxHeight: "calc(70vh)"}}>
                 <DialogContentText>
-                    These files can be accessed via `eventgroup.filename` in a step's inputs.
+                    These files can be accessed via `workflow.filename` in a step's inputs.
                 </DialogContentText>
                 <Table>
                     <TableBody>

@@ -10,6 +10,7 @@ import {classes} from './styles';
 const HeaderCellContext = createContext({});
 
 const MIN_COLUMN_WIDTH = 50;
+const MIN_FLEX_COLUMN_WIDTH = 150;
 
 const CellRenderer = (VariableSizeGridProps) => {
     return VariableSizeGridProps.rowIndex === 0 ? null : <Cell VariableSizeGridProps={VariableSizeGridProps} />;
@@ -84,7 +85,12 @@ const ResizableGridWrapper = ({
     /* Hooks */
     const { width: scrollbarWidth } = useScrollbarSize();
 
-    const [columnWidths, setColumnWidths] = useState(columns.map((column) => column.width || MIN_COLUMN_WIDTH));
+    const [columnWidths, setColumnWidths] = useState(columns.map((column) => {
+        if(column.fillWidth){
+            return Math.max(column?.width || 0, MIN_FLEX_COLUMN_WIDTH);
+        }
+        return Math.max(column?.width || 0, MIN_COLUMN_WIDTH);
+    }));
     const gridUUID = React.useMemo( () => getShortRandomString(), []);
     const gridRef = useRef(null);
     const dragHandlesRef = useRef(null);
@@ -108,7 +114,7 @@ const ResizableGridWrapper = ({
         const totalWidth = AutoSizerProps.width - scrollbarWidth;
         const updatedColumnWidths = columns.map((column) => column.width || MIN_COLUMN_WIDTH);
         const totalWidthDiff = totalWidth - updatedColumnWidths.reduce((a, b) => a + b, 0);
-        if (totalWidthDiff > 0) {
+        if (totalWidthDiff !== 0) {
             let updatedWidthIndexs = [];
             for(let i = 0; i < columns.length; i++){
                 // check if any of the columns have the `fillWidth` property to true
@@ -120,7 +126,7 @@ const ResizableGridWrapper = ({
                 updatedWidthIndexs.push(columns.length - 1);
             }
             for(let i = 0; i < updatedWidthIndexs.length; i++){
-                updatedColumnWidths[updatedWidthIndexs[i]] += totalWidthDiff / updatedWidthIndexs.length;
+                updatedColumnWidths[updatedWidthIndexs[i]] += Math.max(totalWidthDiff / updatedWidthIndexs.length, MIN_FLEX_COLUMN_WIDTH);
             }
             //updatedColumnWidths[updatedWidthIndex] += totalWidthDiff;
         }

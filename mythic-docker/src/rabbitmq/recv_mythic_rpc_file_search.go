@@ -2,7 +2,6 @@ package rabbitmq
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -145,7 +144,7 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 		searchParameters := []interface{}{
 			input.Filename, input.IsPayload, input.IsDownloadFromAgent, input.IsScreenshot, operationId,
 		}
-		if input.MaxResults > 0 {
+		if input.MaxResults > 0 && !input.LimitByCallback {
 			searchString += ` LIMIT $6`
 			searchParameters = append(searchParameters, input.MaxResults)
 		}
@@ -155,8 +154,8 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 			return response
 		}
 	}
-
 	finalFiles := []FileData{}
+	totalFound := 0
 	for _, file := range files {
 		if input.LimitByCallback {
 			if file.TaskID.Valid {
@@ -164,17 +163,25 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 				if err := database.DB.Get(&fileCallbackID, `SELECT callback_id FROM task WHERE id=$1`, file.TaskID.Int64); err != nil {
 					logging.LogError(err, "Failed to get the task information for callback")
 				} else if fileCallbackID == callbackId {
-					finalFiles = append(finalFiles, convertFileMetaToFileData(file))
+					if input.MaxResults > 0 && totalFound < input.MaxResults {
+						finalFiles = append(finalFiles, convertFileMetaToFileData(file))
+						totalFound += 1
+					}
+
 				}
 			} else {
 				// this means this file wasn't directly uploaded _just_ for this callback, but could be used in this callback anyway
 				tasks := []databaseStructs.Task{}
+				fileIDSearch := "%" + file.AgentFileID + "%"
 				err := database.DB.Select(&tasks, `SELECT id FROM task WHERE
-                        callback_id=$1 AND params LIKE $2 LIMIT 1`, callbackId, fmt.Sprintf("%%%s%%", file.AgentFileID))
+                        callback_id=$1 AND params LIKE $2 AND (status='success' OR status='completed') LIMIT 1`, callbackId, fileIDSearch)
 				if err != nil {
 					logging.LogError(err, "failed to search for tasks with params that include file id")
 				} else if len(tasks) > 0 {
-					finalFiles = append(finalFiles, convertFileMetaToFileData(file))
+					if input.MaxResults > 0 && totalFound < input.MaxResults {
+						finalFiles = append(finalFiles, convertFileMetaToFileData(file))
+						totalFound += 1
+					}
 				}
 			}
 

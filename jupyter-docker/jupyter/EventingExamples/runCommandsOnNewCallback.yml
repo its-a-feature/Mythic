@@ -1,0 +1,70 @@
+name: "triage new callbacks"
+description: "automatically triage new callbacks"
+trigger: callback_new
+trigger_data:
+  payload_types:
+    - poseidon
+keywords:
+  - poseidon_callback
+  
+environment:
+steps:
+  - name: "issue whoami"
+    description:
+    inputs:
+      CALLBACK_ID: env.display_id
+      COMMAND: shell
+    action: task_create
+    action_data:
+      callback_display_id: CALLBACK_ID
+      params: whoami
+      command_name: COMMAND
+  - name: "getenv"
+    description:
+    inputs:
+      CALLBACK_ID: env.display_id
+    action: task_create
+    action_data:
+      callback_display_id: CALLBACK_ID
+      params: 
+      command_name: getenv
+    continue_on_error: true
+  - name: "import script"
+    description: "import the HealthInspector script into the callback"
+    inputs:
+      CALLBACK_ID: env.display_id
+      FILE_ID: workflow.HealthInspector.js
+    action: task_create
+    action_data:
+      callback_display_id: CALLBACK_ID
+      params_dictionary:
+        file_id: FILE_ID 
+      command_name: jsimport
+  - name: "run script"
+    description: "run the HealthInspector script"
+    inputs:
+      CALLBACK_ID: env.display_id
+    action: task_create
+    action_data:
+      callback_display_id: CALLBACK_ID
+      params_dictionary:
+        filename: HealthInspector.js
+        code: All_Checks(); 
+      command_name: jsimport_call
+    depends_on:
+      - import script
+    outputs:
+      SCRIPT_TASK_ID: id
+  - name: "check for EDR"
+    description: "Process the output of the HealthInspector task to see if there's any EDR running"
+    inputs:
+      SCRIPT_TASK_ID: "run script.SCRIPT_TASK_ID"
+      APIToken: mythic.apitoken
+      CALLBACK_ID: env.display_id
+    action: custom_function
+    action_data:
+      function_name: HealthInspectorOutputEDRCheck
+      container_name: opsecChecker
+    depends_on:
+      - run script
+

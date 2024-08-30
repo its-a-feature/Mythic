@@ -159,6 +159,7 @@ export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatri
                   }
               />
           }
+          {openContextMenu &&
               <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
                   <Dropdown
                       isOpen={contextMenuData.current.dropdownAnchorRef}
@@ -200,7 +201,7 @@ export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatri
                               ) : null))
                       ]}/>
               </ClickAwayListener>
-
+          }
       </>
 
   )

@@ -1192,7 +1192,7 @@ function FileMetaEventingWorkflowsTableRow(props){
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell  style={{wordBreak: "break-all"}}>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/new/eventing?eventgroup=" +  props.eventgroup.id}>{props.eventgroup.name}</Link>
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/new/eventing?eventgroup=" +  props.eventgroup?.id}>{props.eventgroup?.name}</Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {getStringSize({cellData: {"plaintext": props.size}})}

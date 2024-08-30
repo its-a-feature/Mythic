@@ -462,7 +462,10 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             } else {
                 // we couldn't find the path specified, so we must not have data for it, so check if the user wants us to auto issue an ls
                 if(autoTaskLsOnEmptyDirectoriesRef.current){
-                    onListFilesButtonFromTableWithNoEntries()
+                    // don't want to auto ls when we get to the root/host object in the view
+                    if(selectedFolderData.full_path_text !== ""){
+                        onListFilesButtonFromTableWithNoEntries()
+                    }
                 }
             }
         },

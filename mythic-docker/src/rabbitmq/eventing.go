@@ -472,6 +472,7 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 }
 func getStepInstanceOutputs(eventNotification EventNotification, eventStepInstance databaseStructs.EventStepInstance) map[string]interface{} {
 	output := eventStepInstance.EventStep.Outputs.StructValue()
+	actionOutputData := make(map[string]interface{})
 	for key, val := range eventNotification.Outputs {
 		output[key] = val
 	}
@@ -483,19 +484,19 @@ func getStepInstanceOutputs(eventNotification EventNotification, eventStepInstan
 			logging.LogError(err, "Failed to get payload", "id", payload.ID)
 			return output
 		}
+		triggerBytes, err := json.Marshal(payload)
+		if err != nil {
+			logging.LogError(err, "failed to marshal task into bytes for saving trigger metadata")
+			return output
+		}
+		err = json.Unmarshal(triggerBytes, &actionOutputData)
 		for key, val := range eventStepInstance.EventStep.Outputs.StructValue() {
 			logging.LogInfo("looping through outputs of stepinstance", "key", key, "value", val)
 			valString := val.(string)
-			switch valString {
-			case "uuid":
-				output[key] = payload.UuID
-			case "build_phase":
-				output[key] = payload.BuildPhase
-			case "id":
-				output[key] = payload.ID
-			default:
-				logging.LogError(nil, "unknown output value")
+			if _, ok := actionOutputData[valString]; !ok {
 				output[key] = valString
+			} else {
+				output[key] = actionOutputData[valString]
 			}
 		}
 	case eventing.ActionCreateTask:
@@ -505,31 +506,19 @@ func getStepInstanceOutputs(eventNotification EventNotification, eventStepInstan
 			logging.LogError(err, "Failed to get task", "id", task.ID)
 			return output
 		}
+		triggerBytes, err := json.Marshal(task)
+		if err != nil {
+			logging.LogError(err, "failed to marshal task into bytes for saving trigger metadata")
+			return output
+		}
+		err = json.Unmarshal(triggerBytes, &actionOutputData)
 		for key, val := range eventStepInstance.EventStep.Outputs.StructValue() {
 			logging.LogInfo("looping through outputs of stepinstance", "key", key, "value", val)
 			valString := val.(string)
-			switch valString {
-			case "id":
-				output[key] = task.ID
-			case "status":
-				output[key] = task.Status
-			case "params":
-				output[key] = task.Params
-			case "original_params":
-				output[key] = task.OriginalParams
-			case "command_name":
-				output[key] = task.CommandName
-			case "display_id":
-				output[key] = task.DisplayID
-			case "token":
-				output[key] = int(task.TokenID.Int64)
-			case "parent_task_id":
-				output[key] = int(task.ParentTaskID.Int64)
-			case "agent_task_id":
-				output[key] = task.AgentTaskID
-			default:
-				logging.LogError(nil, "unknown output value")
+			if _, ok := actionOutputData[valString]; !ok {
 				output[key] = valString
+			} else {
+				output[key] = actionOutputData[valString]
 			}
 		}
 	case eventing.ActionCreateCallback:
@@ -539,19 +528,19 @@ func getStepInstanceOutputs(eventNotification EventNotification, eventStepInstan
 			logging.LogError(err, "Failed to get callback", "id", callback.ID)
 			return output
 		}
+		triggerBytes, err := json.Marshal(callback)
+		if err != nil {
+			logging.LogError(err, "failed to marshal task into bytes for saving trigger metadata")
+			return output
+		}
+		err = json.Unmarshal(triggerBytes, &actionOutputData)
 		for key, val := range eventStepInstance.EventStep.Outputs.StructValue() {
 			logging.LogInfo("looping through outputs of stepinstance", "key", key, "value", val)
 			valString := val.(string)
-			switch valString {
-			case "display_id":
-				output[key] = callback.DisplayID
-			case "agent_callback_id":
-				output[key] = callback.AgentCallbackID
-			case "id":
-				output[key] = callback.ID
-			default:
-				logging.LogError(nil, "unknown output value")
+			if _, ok := actionOutputData[valString]; !ok {
 				output[key] = valString
+			} else {
+				output[key] = actionOutputData[valString]
 			}
 		}
 	case eventing.ActionCustomFunction:

@@ -382,6 +382,19 @@ query uuidFileMetaScreenshotQuery($operation_id: Int!, $agent_file_id: String!, 
     }
   }
 `;
+const uuidFileMetaEventingWorkflowSearch = gql`
+${fileMetaFragment}
+query uuidFileMetaEventingWorkflowQuery($operation_id: Int!, $agent_file_id: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, agent_file_id: {_ilike: $agent_file_id}, is_payload: {_eq: false}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false},task_id: {_is_null: true}, eventgroup_id: {_is_null: false}}) {
+      aggregate {
+        count
+      }
+    }
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, agent_file_id: {_ilike: $agent_file_id}, is_payload: {_eq: false}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}, eventgroup_id: {_is_null: false}}) {
+      ...filemetaData
+    }
+  }
+`;
 
 export function SearchTabFilesLabel(props) {
     return (
@@ -800,6 +813,11 @@ export const SearchTabFilesPanel = (props) => {
         onCompleted: handleFileMetaScreenshotSearchResults,
         onError: handleCallbackSearchFailure
     })
+    const [getUUIDFileMetaEventingWorkflowSearch] = useLazyQuery(uuidFileMetaEventingWorkflowSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleFileMetaUploadSearchResults,
+        onError: handleCallbackSearchFailure
+    })
     const onFilenameSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
@@ -1035,6 +1053,17 @@ export const SearchTabFilesPanel = (props) => {
             })
         } else if (adjustedSearchLocation === "Downloads") {
             getUUIDFileMetaDownloadSearch({
+                variables: {
+                    operation_id: me?.user?.current_operation_id || 0,
+                    offset: offset,
+                    fetchLimit: fetchLimit,
+                    agent_file_id: "%" + search + "%",
+                    host: "%" + searchHost + "%",
+                    deleted: showDeleted.current
+                }
+            })
+        } else if (adjustedSearchLocation === "Eventing Workflows") {
+            getUUIDFileMetaEventingWorkflowSearch({
                 variables: {
                     operation_id: me?.user?.current_operation_id || 0,
                     offset: offset,

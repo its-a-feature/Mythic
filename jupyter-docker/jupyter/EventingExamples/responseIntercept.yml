@@ -1,0 +1,9 @@
+name: "output intercept"
+description: "intercept responses and make some 'enrichments'"
+trigger: response_intercept
+steps:
+  - name: "output enhancement"
+    description: "augment shell output with more data"
+    action: "response_intercept"
+    action_data:
+      container_name: "opsecChecker"

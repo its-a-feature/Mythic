@@ -1,0 +1,14 @@
+name: "intercepting tasks"
+description: "perform extra opsec checks against all tasks before execution"
+trigger: task_intercept
+steps:
+  - name: "binaryCheck"
+    description: "block a task if it has any bad strings in binaries"
+    action: "task_intercept"
+    action_data:
+      container_name: "opsecChecker"
+    inputs:
+      apitoken: "mythic.apitoken"
+      command: "env.command_name"
+      params: "env.params"
+  

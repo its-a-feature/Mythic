@@ -1,0 +1,29 @@
+name: "generate apollo payloads via cron"
+description: "Generate shellcode, and service wrapper payloads"
+trigger: cron
+trigger_data:
+  cron: "* * * * *"
+steps:
+  - name: "apollo bin"
+    description: "generate shellcode"
+    action: "payload_create"
+    action_data:
+      payload_type: "apollo"
+      description: "apollo test payload shellcode"
+      selected_os: "Windows"
+      build_parameters:
+      - name: "output_type"
+        value: "Shellcode"
+      filename: "apollo.bin"
+      c2_profiles:
+      - c2_profile: "websocket"
+        c2_profile_parameters:
+          AESPSK: "aes256_hmac"
+          callback_host: "ws://192.168.0.118"
+          tasking_type: "Push"
+      commands:
+      - shell
+      - exit
+      - load
+    outputs:
+      PayloadUUID: "uuid"

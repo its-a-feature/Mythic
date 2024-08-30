@@ -43,7 +43,7 @@ export function TestEventGroupFileDialog({onClose}){
         fileText.current = newText;
     }
     const submitAsFile = async (evt) => {
-        let blob = new Blob([fileText], { type: 'text/plain' });
+        let blob = new Blob([fileText.current], { type: 'text/plain' });
         let file = new File([blob], "manual_eventing.yaml", {type: "text/plain"});
         let uploadStatus = await UploadEventFile(file, "New Manual Eventing Workflow");
         if(!uploadStatus){
@@ -67,7 +67,7 @@ export function TestEventGroupFileDialog({onClose}){
         }
     })
     const testFile = () => {
-        testFileMutation({variables: {file_contents: fileText}});
+        testFileMutation({variables: {file_contents: fileText.current}});
     }
     return (
         <React.Fragment>
@@ -75,7 +75,7 @@ export function TestEventGroupFileDialog({onClose}){
                 Create and Verify Eventing Workflow
             </DialogTitle>
             <DialogContent style={{height: "calc(95vh)", margin: 0, padding: 0}}>
-                <ResponseDisplayPlaintext plaintext={""} onChangeContent={onChangeFileText} initial_mode={"yaml"} expand={true} />
+                <ResponseDisplayPlaintext plaintext={fileText.current} onChangeContent={onChangeFileText} initial_mode={"yaml"} expand={true} />
             </DialogContent>
             <DialogActions>
                 <Button variant="contained" onClick={onClose} color="primary">
