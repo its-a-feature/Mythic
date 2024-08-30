@@ -227,12 +227,16 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 	} else {
 		for _, dest := range g.adjMatrix[source.ID] {
 			if dest.DestinationId == destination.ID && dest.C2ProfileName == c2profileName {
+				g.lock.Unlock()
 				//logging.LogDebug("Found existing p2p connection, not adding new one to memory")
+				if dest.DestinationId == source.ID {
+					return
+				}
 				updateTime := time.Now().UTC()
 				if isCallbackStreaming(source.ID) {
 					updateTime = time.UnixMicro(0)
 				}
-				g.lock.Unlock()
+
 				callbackIDs := g.getAllChildIDs(source.ID)
 				go updateTimes(updateTime, callbackIDs)
 				return
