@@ -156,6 +156,7 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 	}
 	finalFiles := []FileData{}
 	totalFound := 0
+	//logging.LogInfo("found results", "length", len(files), "callbackid", input.CallbackID)
 	for _, file := range files {
 		if input.LimitByCallback {
 			if file.TaskID.Valid {
@@ -163,11 +164,13 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 				if err := database.DB.Get(&fileCallbackID, `SELECT callback_id FROM task WHERE id=$1`, file.TaskID.Int64); err != nil {
 					logging.LogError(err, "Failed to get the task information for callback")
 				} else if fileCallbackID == callbackId {
+					//logging.LogInfo("found matching callback_id", "filename", string(file.Filename), "maxResults", input.MaxResults)
 					if input.MaxResults > 0 && totalFound < input.MaxResults {
 						finalFiles = append(finalFiles, convertFileMetaToFileData(file))
 						totalFound += 1
+					} else if input.MaxResults <= 0 {
+						finalFiles = append(finalFiles, convertFileMetaToFileData(file))
 					}
-
 				}
 			} else {
 				// this means this file wasn't directly uploaded _just_ for this callback, but could be used in this callback anyway
@@ -181,6 +184,8 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 					if input.MaxResults > 0 && totalFound < input.MaxResults {
 						finalFiles = append(finalFiles, convertFileMetaToFileData(file))
 						totalFound += 1
+					} else if input.MaxResults <= 0 {
+						finalFiles = append(finalFiles, convertFileMetaToFileData(file))
 					}
 				}
 			}
@@ -191,6 +196,7 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 	}
 	response.Success = true
 	response.Files = finalFiles
+	//logging.LogInfo("final files length", "length", len(finalFiles))
 	return response
 
 }
