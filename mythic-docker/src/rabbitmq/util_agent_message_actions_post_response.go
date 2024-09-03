@@ -961,6 +961,112 @@ func listenForWriteDownloadChunkToLocalDisk() {
 		}
 	}
 }
+func handleAgentMessageWriteDownloadChunkToLocalDisk(task databaseStructs.Task, fileMeta databaseStructs.Filemeta, agentResponse agentMessagePostResponse) (string, error) {
+	if !fileMeta.Complete {
+		if agentResponse.Download.ChunkData != nil && len(*agentResponse.Download.ChunkData) > 0 {
+			knownChunkSize := 0
+			if fileMeta.ChunkSize > 0 {
+				knownChunkSize = fileMeta.ChunkSize
+			} else if agentResponse.Download.ChunkSize != nil {
+				if *agentResponse.Download.ChunkSize > 0 {
+					knownChunkSize = *agentResponse.Download.ChunkSize
+				}
+			}
+			chunksWritten := make(chan int, 1)
+			base64DecodedFileData, err := base64.StdEncoding.DecodeString(*agentResponse.Download.ChunkData)
+			//base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.Download.ChunkData)))
+			//totalBase64Bytes, err := base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.Download.ChunkData))
+			if err != nil {
+				logging.LogError(err, "Failed to base64 decode data to write to disk, bailing out")
+				return "", err
+			}
+			//logging.LogDebug("0. about to have mythic write to disk", "chunk num", *agentResponse.Download.ChunkNum, "byte sample", string(base64DecodedFileData[:10]))
+			writeDownloadChunkToDiskChan <- writeDownloadChunkToDisk{
+				ChunkData:       base64DecodedFileData,
+				ChunkNum:        *agentResponse.Download.ChunkNum,
+				LocalMythicPath: fileMeta.Path,
+				KnownChunkSize:  knownChunkSize,
+				ChunksWritten:   chunksWritten,
+				FileMetaID:      fileMeta.ID,
+			}
+			latestChunkWritten := <-chunksWritten
+			if latestChunkWritten > 0 {
+				fileMeta.ChunksReceived = latestChunkWritten
+			}
+			fileDisk, err := os.Stat(fileMeta.Path)
+			if err != nil {
+				logging.LogError(err, "Failed to write file to disk")
+			} else {
+				fileMeta.Size = fileDisk.Size()
+			}
+			// we don't know the chunk size ahead of time and one was reported back as part of the file write
+			//logging.LogDebug("3. finished writing", "chunk num", *agentResponse.Download.ChunkNum)
+			if *agentResponse.Download.ChunkNum == fileMeta.TotalChunks && fileMeta.TotalChunks > 1 {
+
+			} else {
+				fileMeta.ChunkSize = len(base64DecodedFileData)
+			}
+
+		}
+	}
+	// check about updating total chunk count in case the agent didn't know it ahead of time
+	if agentResponse.Download.TotalChunks != nil && *agentResponse.Download.TotalChunks > 0 {
+		if *agentResponse.Download.TotalChunks > fileMeta.TotalChunks {
+			fileMeta.TotalChunks = *agentResponse.Download.TotalChunks
+		}
+	}
+	if fileMeta.ChunksReceived == fileMeta.TotalChunks {
+		fileMeta.Complete = true
+		// also calculate new md5 and sha1 sums
+		sha1Hash := sha1.New()
+		md5Hash := md5.New()
+		if file, err := os.Open(fileMeta.Path); err != nil {
+			logging.LogError(err, "Failed to open file to calculate md5 and sha1 sums")
+			return "", err
+		} else if _, err := io.Copy(sha1Hash, file); err != nil {
+			logging.LogError(err, "Failed to copy file contents for sha1 hash")
+			return "", err
+		} else if _, err := file.Seek(0, 0); err != nil {
+			logging.LogError(err, "Failed to move file pointer back to beginning")
+		} else if _, err := io.Copy(md5Hash, file); err != nil {
+			logging.LogError(err, "Failed to copy file contents for md5 hash")
+			return "", err
+		} else {
+			fileMeta.Sha1 = hex.EncodeToString(sha1Hash.Sum(nil))
+			fileMeta.Md5 = hex.EncodeToString(md5Hash.Sum(nil))
+		}
+		fileDisk, err := os.Stat(fileMeta.Path)
+		if err != nil {
+			logging.LogError(err, "Failed to write file to disk")
+		} else {
+			fileMeta.Size = fileDisk.Size()
+		}
+	}
+	if _, err := database.DB.NamedExec(`UPDATE filemeta SET
+			host=:host, is_screenshot=:is_screenshot, 
+			full_remote_path=:full_remote_path, complete=:complete, md5=:md5, sha1=:sha1,
+			filename=:filename, total_chunks=:total_chunks, chunk_size=:chunk_size, size=:size
+			WHERE id=:id`, fileMeta); err != nil {
+		logging.LogError(err, "Failed to update filemeta based on agent file download")
+		return "", err
+	} else {
+		if fileMeta.Complete {
+			go func(file databaseStructs.Filemeta) {
+				trigger := eventing.TriggerFileDownload
+				if file.IsScreenshot {
+					trigger = eventing.TriggerScreenshot
+				}
+				EventingChannel <- EventNotification{
+					Trigger:     trigger,
+					OperationID: task.OperationID,
+					OperatorID:  task.OperatorID,
+					FileMetaID:  file.ID,
+				}
+			}(fileMeta)
+		}
+		return fileMeta.AgentFileID, nil
+	}
+}
 func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResponse agentMessagePostResponse) (string, error) {
 	// might need to return a file_id if we're initially registering a file for transfer from agent to Mythic
 	// two stages:
@@ -996,111 +1102,7 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 			if agentResponse.Download.IsScreenshot != nil && *agentResponse.Download.IsScreenshot {
 				fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
 			}
-			if !fileMeta.Complete {
-				if agentResponse.Download.ChunkData != nil && len(*agentResponse.Download.ChunkData) > 0 {
-					knownChunkSize := 0
-					if fileMeta.ChunkSize > 0 {
-						knownChunkSize = fileMeta.ChunkSize
-					} else if agentResponse.Download.ChunkSize != nil {
-						if *agentResponse.Download.ChunkSize > 0 {
-							knownChunkSize = *agentResponse.Download.ChunkSize
-						}
-					}
-					chunksWritten := make(chan int, 1)
-					base64DecodedFileData, err := base64.StdEncoding.DecodeString(*agentResponse.Download.ChunkData)
-					//base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.Download.ChunkData)))
-					//totalBase64Bytes, err := base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.Download.ChunkData))
-					if err != nil {
-						logging.LogError(err, "Failed to base64 decode data to write to disk, bailing out")
-						return "", err
-					}
-					//logging.LogDebug("0. about to have mythic write to disk", "chunk num", *agentResponse.Download.ChunkNum, "byte sample", string(base64DecodedFileData[:10]))
-					writeDownloadChunkToDiskChan <- writeDownloadChunkToDisk{
-						ChunkData:       base64DecodedFileData,
-						ChunkNum:        *agentResponse.Download.ChunkNum,
-						LocalMythicPath: fileMeta.Path,
-						KnownChunkSize:  knownChunkSize,
-						ChunksWritten:   chunksWritten,
-						FileMetaID:      fileMeta.ID,
-					}
-					latestChunkWritten := <-chunksWritten
-					if latestChunkWritten > 0 {
-						fileMeta.ChunksReceived = latestChunkWritten
-					}
-					fileDisk, err := os.Stat(fileMeta.Path)
-					if err != nil {
-						logging.LogError(err, "Failed to write file to disk")
-					} else {
-						fileMeta.Size = fileDisk.Size()
-					}
-					// we don't know the chunk size ahead of time and one was reported back as part of the file write
-					//logging.LogDebug("3. finished writing", "chunk num", *agentResponse.Download.ChunkNum)
-					if *agentResponse.Download.ChunkNum == fileMeta.TotalChunks && fileMeta.TotalChunks > 1 {
-
-					} else {
-						fileMeta.ChunkSize = len(base64DecodedFileData)
-					}
-
-				}
-			}
-			// check about updating total chunk count in case the agent didn't know it ahead of time
-			if agentResponse.Download.TotalChunks != nil && *agentResponse.Download.TotalChunks > 0 {
-				if *agentResponse.Download.TotalChunks > fileMeta.TotalChunks {
-					fileMeta.TotalChunks = *agentResponse.Download.TotalChunks
-				}
-			}
-			if fileMeta.ChunksReceived == fileMeta.TotalChunks {
-				fileMeta.Complete = true
-				// also calculate new md5 and sha1 sums
-				sha1Hash := sha1.New()
-				md5Hash := md5.New()
-				if file, err := os.Open(fileMeta.Path); err != nil {
-					logging.LogError(err, "Failed to open file to calculate md5 and sha1 sums")
-					return "", err
-				} else if _, err := io.Copy(sha1Hash, file); err != nil {
-					logging.LogError(err, "Failed to copy file contents for sha1 hash")
-					return "", err
-				} else if _, err := file.Seek(0, 0); err != nil {
-					logging.LogError(err, "Failed to move file pointer back to beginning")
-				} else if _, err := io.Copy(md5Hash, file); err != nil {
-					logging.LogError(err, "Failed to copy file contents for md5 hash")
-					return "", err
-				} else {
-					fileMeta.Sha1 = hex.EncodeToString(sha1Hash.Sum(nil))
-					fileMeta.Md5 = hex.EncodeToString(md5Hash.Sum(nil))
-				}
-				fileDisk, err := os.Stat(fileMeta.Path)
-				if err != nil {
-					logging.LogError(err, "Failed to write file to disk")
-				} else {
-					fileMeta.Size = fileDisk.Size()
-				}
-			}
-			if _, err := database.DB.NamedExec(`UPDATE filemeta SET
-			host=:host, is_screenshot=:is_screenshot, 
-			full_remote_path=:full_remote_path, complete=:complete, md5=:md5, sha1=:sha1,
-			filename=:filename, total_chunks=:total_chunks, chunk_size=:chunk_size, size=:size
-			WHERE id=:id`, fileMeta); err != nil {
-				logging.LogError(err, "Failed to update filemeta based on agent file download")
-				return "", err
-			} else {
-				go EmitFileLog(fileMeta.ID)
-				if fileMeta.Complete {
-					go func(file databaseStructs.Filemeta) {
-						trigger := eventing.TriggerFileDownload
-						if file.IsScreenshot {
-							trigger = eventing.TriggerScreenshot
-						}
-						EventingChannel <- EventNotification{
-							Trigger:     trigger,
-							OperationID: task.OperationID,
-							OperatorID:  task.OperatorID,
-							FileMetaID:  file.ID,
-						}
-					}(fileMeta)
-				}
-				return fileMeta.AgentFileID, nil
-			}
+			return handleAgentMessageWriteDownloadChunkToLocalDisk(task, fileMeta, agentResponse)
 		}
 	} else if agentResponse.Download.TotalChunks != nil {
 		// new to make a new file_id and register it for the agent to use for downloading a file
@@ -1161,7 +1163,9 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 		} else {
 			go EmitFileLog(fileMeta.ID)
 			go addFileMetaToMythicTree(task, fileMeta)
-			return fileMeta.AgentFileID, nil
+			// handle the case where the agent sends a chunk along with the registration information
+			return handleAgentMessageWriteDownloadChunkToLocalDisk(task, fileMeta, agentResponse)
+			//return fileMeta.AgentFileID, nil
 		}
 	} else {
 		errorString := "download request without total_chunks or file_id"
