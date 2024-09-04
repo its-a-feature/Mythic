@@ -4,10 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-
-	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
-	"github.com/its-a-feature/Mythic/database"
-	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -17,6 +13,7 @@ type MythicRPCCallbackEncryptBytesMessage struct {
 	Message             []byte `json:"message"`           // required
 	IncludeUUID         bool   `json:"include_uuid"`
 	Base64ReturnMessage bool   `json:"base64_message"`
+	C2Profile           string `json:"c2_profile"`
 }
 type MythicRPCCallbackEncryptBytesMessageResponse struct {
 	Success bool   `json:"success"`
@@ -38,7 +35,7 @@ func MythicRPCCallbackEncryptBytes(input MythicRPCCallbackEncryptBytesMessage) M
 	response := MythicRPCCallbackEncryptBytesMessageResponse{
 		Success: false,
 	}
-	if cipherText, err := CallbackEncryptMessage(input.AgentCallbackUUID, input.Message, input.IncludeUUID, input.Base64ReturnMessage); err != nil {
+	if cipherText, err := CallbackEncryptMessage(input); err != nil {
 		response.Error = err.Error()
 		return response
 	} else {
@@ -47,85 +44,55 @@ func MythicRPCCallbackEncryptBytes(input MythicRPCCallbackEncryptBytesMessage) M
 		return response
 	}
 }
-
-func CallbackEncryptMessage(agentCallbackUUID string, message []byte, includeUUID bool, base64ReturnMessage bool) ([]byte, error) {
-	callback := databaseStructs.Callback{}
-	payloadtype := databaseStructs.Payloadtype{}
-	if err := database.DB.Get(&callback, `SELECT 
-	callback.id, callback.enc_key, callback.crypto_type, 
-	payload.payload_type_id "payload.payload_type_id"
-	FROM callback
-	JOIN payload ON callback.registered_payload_id = payload.id
-	WHERE agent_callback_id=$1`, agentCallbackUUID); err != nil {
-		logging.LogError(err, "Failed to fetch callback in CallbackEncryptMessage")
+func CallbackEncryptMessage(input MythicRPCCallbackEncryptBytesMessage) ([]byte, error) {
+	cachedInfo, err := LookupEncryptionData(input.C2Profile, input.AgentCallbackUUID, false)
+	if err != nil {
 		return nil, err
-	} else if err := database.DB.Get(&payloadtype, `SELECT
-	mythic_encrypts, translation_container_id, name, message_uuid_length, message_format
-	FROM payloadtype
-	WHERE id=$1`, callback.Payload.PayloadTypeID); err != nil {
-		logging.LogError(err, "Failed to get payloadtype information in CallbackEncryptMessage")
-		return nil, err
-	} else if payloadtype.MythicEncrypts {
+	}
+	if cachedInfo.MythicEncrypts {
 		// Mythic does encryption, so handle it
-		var cipherText []byte
-		var err error
-		if callback.EncKey == nil {
-			cipherText = message
-		} else if cipherText, err = mythicCrypto.EncryptAES256HMAC(*callback.EncKey, message); err != nil {
-			logging.LogError(err, "Failed to encrypt message")
+		cipherText, err := cachedInfo.IterateAndAct(input.Message, "encrypt")
+		if err != nil {
 			return nil, err
 		}
 		//logging.LogDebug("CallbackEncryptMessage", "encrypted", cipherText)
-		if includeUUID {
-			uuidBytes, err := GetUUIDBytes(agentCallbackUUID, payloadtype.MessageUUIDLength)
+		if input.IncludeUUID {
+			uuidBytes, err := GetUUIDBytes(input.AgentCallbackUUID, cachedInfo.PayloadTypeMessageUUIDLength)
 			if err != nil {
 				return nil, err
 			}
 			cipherText = append(uuidBytes, cipherText...)
 		}
-		if base64ReturnMessage {
-			//logging.LogDebug("CallbackEncryptMessage", "about to base64", cipherText)
-			base64Message := make([]byte, base64.StdEncoding.EncodedLen(len(cipherText)))
-			base64.StdEncoding.Encode(base64Message, cipherText)
-			//logging.LogDebug("CallbackEncryptMessage", "base64 encoded", base64Message)
-			return base64Message, nil
-		} else {
-			return cipherText, nil
+		if input.Base64ReturnMessage {
+			return []byte(base64.StdEncoding.EncodeToString(cipherText)), nil
 		}
-	} else if payloadtype.TranslationContainerID.Valid {
+		return cipherText, nil
+	} else if cachedInfo.TranslationContainerID > 0 {
 		// Mythic doesn't encrypt, and there's a translation container associated
-		translationContainer := databaseStructs.Translationcontainer{}
-		if err := database.DB.Get(&translationContainer, `SELECT
-		id, "name", container_running 
-		FROM translationcontainer
-		WHERE id=$1`, payloadtype.TranslationContainerID.Int64); err != nil {
-			logging.LogError(err, "Failed to get translation container data when trying to encrypt")
-			return nil, err
-		} else if !translationContainer.ContainerRunning {
-			err := errors.New("Translation container is not online, can't task with encrypting message")
-			logging.LogError(err, "Failed to encrypt message")
+		encKey := make([]byte, 0)
+		switch cachedInfo.UUIDType {
+		case UUIDTYPECALLBACK:
+			encKey = *cachedInfo.CallbackEncKey
+		case UUIDTYPESTAGING:
+			encKey = *cachedInfo.StagingEncKey
+		case UUIDTYPEPAYLOAD:
+			encKey = *cachedInfo.PayloadEncKey
+		default:
+		}
+		if resp, err := RabbitMQConnection.SendTrRPCEncryptBytes(TrEncryptBytesMessage{
+			TranslationContainerName: cachedInfo.TranslationContainerName,
+			EncryptionKey:            encKey,
+			CryptoType:               cachedInfo.CryptoType,
+			Message:                  input.Message,
+			IncludeUUID:              input.IncludeUUID,
+			Base64ReturnMessage:      input.Base64ReturnMessage,
+		}); err != nil {
+			logging.LogError(err, "Failed to send RPC message to encrypt message")
 			return nil, err
 		} else {
-			var key []byte
-			if callback.EncKey != nil {
-				key = *callback.EncKey
-			} else {
-				key = make([]byte, 0)
-			}
-			if resp, err := RabbitMQConnection.SendTrRPCEncryptBytes(TrEncryptBytesMessage{
-				TranslationContainerName: translationContainer.Name,
-				EncryptionKey:            key,
-				CryptoType:               callback.CryptoType,
-				Message:                  message,
-				IncludeUUID:              includeUUID,
-				Base64ReturnMessage:      base64ReturnMessage,
-			}); err != nil {
-				logging.LogError(err, "Failed to send RPC message to encrypt message")
-				return nil, err
-			} else {
-				return resp.Message, nil
-			}
+			return resp.Message, nil
 		}
+
 	} else {
 		// Mythic doesn't encrypt, but there's no translation container, just error
 		return nil, errors.New("Mythic doesn't encrypt for this payload type and there's no translation container associated")

@@ -36,20 +36,20 @@ func generateCerts() error {
 	if !utils.DirExists(filepath.Join(utils.GetCwdFromExe(), "nginx-docker", "ssl")) {
 		err := os.MkdirAll(filepath.Join(utils.GetCwdFromExe(), "nginx-docker", "ssl"), os.ModePerm)
 		if err != nil {
-			fmt.Printf("[-] Failed to make ssl folder in nginx-docker folder\n")
+			log.Printf("[-] Failed to make ssl folder in nginx-docker folder\n")
 			return err
 		}
-		fmt.Printf("[+] Successfully made ssl folder in nginx-docker folder\n")
+		log.Printf("[+] Successfully made ssl folder in nginx-docker folder\n")
 	}
 	certPath := filepath.Join(utils.GetCwdFromExe(), "nginx-docker", "ssl", "mythic-cert.crt")
 	keyPath := filepath.Join(utils.GetCwdFromExe(), "nginx-docker", "ssl", "mythic-ssl.key")
 	if checkCerts(certPath, keyPath) == nil {
 		return nil
 	}
-	fmt.Printf("[*] Failed to find SSL certs for Nginx container, generating now...\n")
+	log.Printf("[*] Failed to find SSL certs for Nginx container, generating now...\n")
 	priv, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
-		fmt.Printf("[-] failed to generate private key: %s\n", err)
+		log.Printf("[-] failed to generate private key: %s\n", err)
 		return err
 	}
 	notBefore := time.Now()
@@ -58,7 +58,7 @@ func generateCerts() error {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		fmt.Printf("[-] failed to generate serial number: %s\n", err)
+		log.Printf("[-] failed to generate serial number: %s\n", err)
 		return err
 	}
 	template := x509.Certificate{
@@ -75,12 +75,12 @@ func generateCerts() error {
 	}
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
 	if err != nil {
-		fmt.Printf("[-] Failed to create certificate: %s\n", err)
+		log.Printf("[-] Failed to create certificate: %s\n", err)
 		return err
 	}
 	certOut, err := os.Create(certPath)
 	if err != nil {
-		fmt.Printf("[-] failed to open "+certPath+" for writing: %s\n", err)
+		log.Printf("[-] failed to open "+certPath+" for writing: %s\n", err)
 		return err
 	}
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
@@ -92,12 +92,12 @@ func generateCerts() error {
 	}
 	marshalKey, err := x509.MarshalECPrivateKey(priv)
 	if err != nil {
-		fmt.Printf("[-] Unable to marshal ECDSA private key: %v\n", err)
+		log.Printf("[-] Unable to marshal ECDSA private key: %v\n", err)
 		return err
 	}
 	pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: marshalKey})
 	keyOut.Close()
-	fmt.Printf("[+] Successfully generated new SSL certs\n")
+	log.Printf("[+] Successfully generated new SSL certs\n")
 	return nil
 }
 
@@ -139,7 +139,7 @@ func tarFileToBytes(sourceName string) (*bytes.Buffer, error) {
 		// walk through every file in the folder
 		absSourcePath, err := filepath.Abs(sourceName)
 		if err != nil {
-			fmt.Printf("[-] Failed to get absolute path of folder to copy over. Resulting directory structure might be weird\n")
+			log.Printf("[-] Failed to get absolute path of folder to copy over. Resulting directory structure might be weird\n")
 			return nil, err
 		}
 		// absSourcePath is the parent directory to copy over now

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc6] - 2024-09-04
+
+### Changed
+
+- Added new tag for FileHosted to indicate and track that a file was hosted through a C2 Profile
+- Updated the file download process to check if there's an alert notification requested as part of FileHosting and sends the alert
+- Updated MythicRPCCallbackEncrypt and MythicRPCCallbackDecrypt to support Payload/Staging UUIDs and C2Profile information
+
 ## [3.3.1-rc5] - 2024-09-02
 
 ### Changed

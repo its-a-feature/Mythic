@@ -14,10 +14,11 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import Input from '@mui/material/Input';
+import Switch from '@mui/material/Switch';
 
 const hostFileMutation = gql`
-mutation hostFileMutation($c2_id: Int!, $file_uuid: String!, $host_url: String!) {
-  c2HostFile(c2_id: $c2_id, file_uuid: $file_uuid, host_url: $host_url) {
+mutation hostFileMutation($c2_id: Int!, $file_uuid: String!, $host_url: String!, $alert_on_download: Boolean) {
+  c2HostFile(c2_id: $c2_id, file_uuid: $file_uuid, host_url: $host_url, alert_on_download: $alert_on_download) {
       status
       error
   }
@@ -36,6 +37,7 @@ export function HostFileDialog(props) {
     const [message, setMessage] = useState("");
     const [availableC2Profiles, setAvailableC2Profiles] = React.useState([]);
     const [selectedC2Profile, setSelectedC2Profile] = React.useState({id: 0});
+    const [alertOnDownload, setAlertOnDownload] = React.useState(false);
     const [hostFile] = useMutation(hostFileMutation, {
         onCompleted: (data) => {
             if(data.c2HostFile.status === "success"){
@@ -65,6 +67,9 @@ export function HostFileDialog(props) {
     const handleChange = (event) => {
         setSelectedC2Profile(event.target.value);
     };
+    const onChangeAlert = (event) => {
+        setAlertOnDownload(event.target.checked);
+    }
     const submit = () => {
         if(message.length === 0){
             snackActions.warning("Must supply a hosting path");
@@ -73,7 +78,7 @@ export function HostFileDialog(props) {
         } else if(selectedC2Profile.id === 0){
             snackActions.warning("Must select a running, egress C2 Profile to host");
         } else {
-            hostFile({variables: {c2_id: selectedC2Profile.id, file_uuid: props.file_uuid, host_url: message}});
+            hostFile({variables: {c2_id: selectedC2Profile.id, file_uuid: props.file_uuid, host_url: message, alert_on_download: alertOnDownload}});
         }
     }
 
@@ -110,6 +115,12 @@ export function HostFileDialog(props) {
                         <MythicTableCell>
                             <MythicTextField value={message} onChange={onChangeHostURL} requiredValue={true} >
                             </MythicTextField>
+                        </MythicTableCell>
+                    </TableRow>
+                    <TableRow hover>
+                        <MythicTableCell>Send alert when file is downloaded?</MythicTableCell>
+                        <MythicTableCell>
+                            <Switch color={"warning"} onChange={onChangeAlert} checked={alertOnDownload}></Switch>
                         </MythicTableCell>
                     </TableRow>
                 </TableBody>

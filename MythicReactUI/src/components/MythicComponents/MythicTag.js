@@ -87,6 +87,15 @@ query getSingleTag($tag_id: Int!){
     url
     id
     data
+    apitokens_id
+    credential_id
+    filemeta_id
+    keylog_id
+    mythictree_id
+    operation_id
+    response_id
+    task_id
+    taskartifact_id
     tagtype {
       name
       description
@@ -180,7 +189,7 @@ const StringTagDataEntry = ({name, value}) => {
     return (
           <Link href={capturePieces[2]} color="textPrimary" target={"_blank"} >{capturePieces[1]}</Link>
     )
-  } else if(value.startsWith("http")){
+  } else if(value.startsWith("http:") || value.startsWith("https:")){
     return (
         <>
           {"Click for: "}
@@ -193,9 +202,27 @@ const StringTagDataEntry = ({name, value}) => {
 function ViewTagDialog(props) {
   const theme = useTheme();
   const [selectedTag, setSelectedTag] = React.useState({});
+  const [objectInfo, setObjectInfo] = React.useState({object_type: "", object_id: ""});
   const {} = useQuery(getSingleTag, {
     variables: {tag_id: props.target_object_id},
     onCompleted: data => {
+      if(data.tag_by_pk.apitokens_id !== null){
+        setObjectInfo({object_type: "apitokens_id", object_id: data.tag_by_pk.apitokens_id});
+      }else if(data.tag_by_pk.credential_id !== null){
+        setObjectInfo({object_type: "credential_id", object_id: data.tag_by_pk.credential_id});
+      }else if(data.tag_by_pk.filemeta_id !== null){
+        setObjectInfo({object_type: "filemeta_id", object_id: data.tag_by_pk.filemeta_id});
+      }else if(data.tag_by_pk.keylog_id !== null){
+        setObjectInfo({object_type: "keylog_id", object_id: data.tag_by_pk.keylog_id});
+      }else if(data.tag_by_pk.mythictree_id !== null){
+        setObjectInfo({object_type: "mythictree_id", object_id: data.tag_by_pk.mythictree_id});
+      }else if(data.tag_by_pk.response_id !== null){
+        setObjectInfo({object_type: "response_id", object_id: data.tag_by_pk.response_id});
+      }else if(data.tag_by_pk.task_id !== null){
+        setObjectInfo({object_type: "task_id", object_id: data.tag_by_pk.task_id});
+      }else if(data.tag_by_pk.taskartifact_id !== null){
+        setObjectInfo({object_type: "taskartifact_id", object_id: data.tag_by_pk.taskartifact_id});
+      }
       let newTag = {...data.tag_by_pk};
       let tagData = newTag;
       try{
@@ -236,6 +263,7 @@ return (
                   <TableCell style={{width: "20%"}}>Tag Type</TableCell>
                   <TableCell style={{display: "inline-flex", flexDirection: "row", width: "100%"}}>
                     <Chip label={selectedTag?.tagtype?.name||""} size="small" style={{float: "right", backgroundColor:selectedTag?.tagtype?.color||""}} />
+                    <ViewEditTags target_object={objectInfo.object_type} target_object_id={objectInfo.object_id} me={props.me} />
                   </TableCell>
                 </TableRow>
                 <TableRow hover>
@@ -269,7 +297,7 @@ return (
                                       <StringTagDataEntry name={key} value={selectedTag.data[key]} />
                                     </TableCell>
                                 ) : typeof selectedTag.data[key] === "object" ? (
-                                    <TableCell>{selectedTag.data[key].toString()}</TableCell>
+                                    <TableCell style={{whiteSpace: "pre-wrap"}}>{JSON.stringify(selectedTag.data[key], null, 2)}</TableCell>
                                 ) : typeof selectedTag.data[key] === "boolean" ? (
                                     <TableCell>{selectedTag.data[key] ? "True" : "False"}</TableCell>
                                 ) :
@@ -655,11 +683,11 @@ export const ViewEditTags = ({target_object, target_object_id, me}) => {
   return(
     <React.Fragment>
     <IconButton onClick={(e) => toggleTagDialog(e, true)} size="small" style={{display: "inline-block", float: "right"}}><LocalOfferOutlinedIcon /></IconButton>
-    {openTagDialog ?
-      (<MythicDialog fullWidth={true} maxWidth="xl" open={openTagDialog}
+    {openTagDialog &&
+      <MythicDialog fullWidth={true} maxWidth="xl" open={openTagDialog}
         onClose={(e)=>{toggleTagDialog(e, false)}}
         innerDialog={<ViewEditTagsDialog me={me} target_object={target_object} target_object_id={target_object_id} onClose={(e)=>{toggleTagDialog(e, false)}} />}
-    />) : null}
+    />}
     </React.Fragment>
   )
   

@@ -16,6 +16,7 @@ type Mutation {
     c2_id: Int!
     file_uuid: String!
     host_url: String!
+    alert_on_download: Boolean
   ): c2HostFileOutput
 }
 

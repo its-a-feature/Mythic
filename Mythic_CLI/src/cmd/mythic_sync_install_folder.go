@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
 	"github.com/spf13/cobra"
+	"log"
 	"os"
 )
 
@@ -22,9 +22,9 @@ func init() {
 
 func installMythicSyncFolder(cmd *cobra.Command, args []string) {
 	if err := internal.InstallMythicSyncFolder(args[0]); err != nil {
-		fmt.Printf("[-] Failed to install service: %v\n", err)
+		log.Printf("[-] Failed to install service: %v\n", err)
 		os.Exit(1)
 	} else {
-		fmt.Printf("[+] Successfully installed service!\n")
+		log.Printf("[+] Successfully installed service!\n")
 	}
 }

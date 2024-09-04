@@ -11,6 +11,8 @@ import (
 	"github.com/creack/pty"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/spf13/viper"
@@ -93,15 +95,15 @@ func (d *DockerComposeManager) IsServiceRunning(service string) bool {
 func (d *DockerComposeManager) DoesImageExist(service string) bool {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		log.Fatalf("Failed to get client in GetLogs: %v", err)
+		log.Fatalf("Failed to get docker client: %v", err)
 	}
 	desiredImage := fmt.Sprintf("%v:latest", strings.ToLower(service))
-	images, err := cli.ImageList(context.Background(), types.ImageListOptions{All: true})
+	images, err := cli.ImageList(context.Background(), image.ListOptions{All: true})
 	if err != nil {
 		log.Fatalf("Failed to get container list: %v", err)
 	}
-	for _, image := range images {
-		for _, name := range image.RepoTags {
+	for _, dockerImage := range images {
+		for _, name := range dockerImage.RepoTags {
 			if name == desiredImage {
 				return true
 			}
@@ -118,37 +120,59 @@ func (d *DockerComposeManager) RemoveImages() error {
 		return err
 	}
 	defer cli.Close()
+	/*
+		images, err := cli.ImageList(ctx, image.ListOptions{All: true})
+		if err != nil {
+			log.Fatalf("[-] Failed to get list of images: %v\n", err)
+		}
 
-	images, err := cli.ImageList(ctx, types.ImageListOptions{})
-	if err != nil {
-		log.Fatalf("[-] Failed to get list of images: %v\n", err)
-	}
-
-	for _, image := range images {
-		if utils.StringInSlice("<none>:<none>", image.RepoTags) {
-			_, err = cli.ImageRemove(ctx, image.ID, types.ImageRemoveOptions{
-				Force:         true,
-				PruneChildren: true,
-			})
-			if err != nil {
-				log.Printf("[-] Failed to remove unused image: %v\n", err)
+		for _, dockerImage := range images {
+			if utils.StringInSlice("<none>:<none>", dockerImage.RepoTags) {
+				_, err = cli.ImageRemove(ctx, dockerImage.ID, image.RemoveOptions{
+					Force:         true,
+					PruneChildren: true,
+				})
+				if err != nil {
+					log.Printf("[-] Failed to remove unused image: %v\n", err)
+				}
 			}
 		}
+
+	*/
+	pruneReport, err := cli.ImagesPrune(ctx, filters.Args{})
+	if err != nil {
+		log.Printf("[-] Failed to prune images: %v\n", err)
+	} else {
+		log.Printf("[*] Reclaimed %s space from unused images\n", utils.ByteCountSI(int64(pruneReport.SpaceReclaimed)))
 	}
 	return nil
 }
 
-func (d *DockerComposeManager) RemoveContainers(services []string) error {
-	err := d.runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, services...))
+func (d *DockerComposeManager) RemoveContainers(services []string, keepVolume bool) error {
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return err
+		log.Fatalf("Failed to get docker client: %v", err)
 	}
-	_, err = d.runDocker(append([]string{"rm", "-f"}, services...))
+	allContainers, err := cli.ContainerList(context.Background(), container.ListOptions{All: true})
 	if err != nil {
-		return err
-	} else {
-		return nil
+		log.Fatalf("Failed to get container list: %v", err)
 	}
+	for _, service := range services {
+		for _, dockerContainer := range allContainers {
+			if dockerContainer.Labels["name"] == strings.ToLower(service) {
+				err = cli.ContainerRemove(context.Background(),
+					dockerContainer.ID,
+					container.RemoveOptions{Force: true, RemoveVolumes: !keepVolume})
+				if err != nil {
+					log.Printf("[-] Failed to remove container: %v\n", err)
+					return err
+				} else {
+					log.Printf("[+] Removed container: %s\n", service)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (d *DockerComposeManager) SaveImages(services []string, outputPath string) error {
@@ -313,7 +337,7 @@ func (d *DockerComposeManager) GetPathTo3rdPartyServicesOnDisk() string {
 }
 
 // StopServices stops certain containers that are running and optionally deletes the backing images
-func (d *DockerComposeManager) StopServices(services []string, deleteImages bool) error {
+func (d *DockerComposeManager) StopServices(services []string, deleteImages bool, keepVolume bool) error {
 	dockerComposeContainers, err := d.GetAllInstalled3rdPartyServiceNames()
 	if err != nil {
 		return err
@@ -326,28 +350,50 @@ func (d *DockerComposeManager) StopServices(services []string, deleteImages bool
 	if len(services) == 0 {
 		services = append(dockerComposeContainers, currentMythicServices...)
 	}
-	/*
-		if utils.StringInSlice("mythic_react", services) {
-			if mythicEnv.GetBool("mythic_react_debug") {
-				// only need to remove the container if we're switching between debug and regular
-				if err = d.runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, "mythic_react")); err != nil {
-					fmt.Printf("[-] Failed to remove mythic_react\n")
-					return err
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatalf("Failed to get docker client: %v", err)
+	}
+	allContainers, err := cli.ContainerList(context.Background(), container.ListOptions{All: true})
+	if err != nil {
+		log.Fatalf("Failed to get container list: %v", err)
+	}
+	for _, service := range services {
+		found := false
+		for _, dockerContainer := range allContainers {
+			if dockerContainer.Labels["name"] == strings.ToLower(service) {
+				found = true
+				if deleteImages {
+					err = cli.ContainerRemove(context.Background(),
+						dockerContainer.ID,
+						container.RemoveOptions{Force: true, RemoveVolumes: !keepVolume})
+					if err != nil {
+						log.Printf("[-] Failed to remove container: %v\n", err)
+						return err
+					} else {
+						log.Printf("[+] Removed container: %s\n", service)
+					}
+				} else {
+					err = cli.ContainerStop(context.Background(), dockerContainer.ID, container.StopOptions{})
+					if err != nil {
+						log.Printf("[-] Failed to stop container: %v\n", err)
+						return err
+					} else {
+						log.Printf("[+] Stopped container: %s\n", service)
+					}
 				}
+
 			}
 		}
-
-	*/
-	if deleteImages {
-		return d.runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, services...))
-	} else {
-		return d.runDockerCompose(append([]string{"stop"}, services...))
+		if !found {
+			log.Printf("[-] Failed to find container: %s\n", service)
+		}
 	}
-
+	return nil
 }
 
 // RemoveServices removes certain container entries from the docker-compose
-func (d *DockerComposeManager) RemoveServices(services []string) error {
+func (d *DockerComposeManager) RemoveServices(services []string, keepVolume bool) error {
 	curConfig := d.readInDockerCompose()
 	allConfigValues := curConfig.AllSettings()
 	for key, _ := range allConfigValues {
@@ -355,7 +401,7 @@ func (d *DockerComposeManager) RemoveServices(services []string) error {
 			allServices := allConfigValues["services"].(map[string]interface{})
 			for _, service := range services {
 				if d.IsServiceRunning(service) {
-					_ = d.StopServices([]string{strings.ToLower(service)}, true)
+					_ = d.StopServices([]string{strings.ToLower(service)}, true, keepVolume)
 
 				}
 				delete(allServices, strings.ToLower(service))
@@ -409,12 +455,11 @@ func (d *DockerComposeManager) StartServices(services []string, rebuildOnStart b
 }
 
 // BuildServices rebuilds services images and creates containers based on those images
-func (d *DockerComposeManager) BuildServices(services []string) error {
+func (d *DockerComposeManager) BuildServices(services []string, keepVolume bool) error {
 	if len(services) == 0 {
 		return nil
 	}
-
-	err := d.runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, services...))
+	err := d.StopServices(services, true, keepVolume)
 	if err != nil {
 		return err
 	}
@@ -832,7 +877,7 @@ func (d *DockerComposeManager) ResetDatabase(useVolume bool) {
 			log.Printf("[+] Successfully reset datbase files\n")
 		}
 	} else {
-		_ = d.RemoveContainers([]string{"mythic_postgres"})
+		_ = d.RemoveContainers([]string{"mythic_postgres"}, false)
 		err := d.RemoveVolume("mythic_postgres_volume")
 		if err != nil {
 			log.Printf("[-] Failed to remove database:\n%v\n", err)
@@ -1252,16 +1297,14 @@ func (d *DockerComposeManager) runDocker(args []string) (string, error) {
 	return outputString, nil
 }
 func (d *DockerComposeManager) runDockerCompose(args []string) error {
-	lookPath, err := exec.LookPath("docker-compose")
+	lookPath, err := exec.LookPath("docker")
 	if err != nil {
-		lookPath, err = exec.LookPath("docker")
-		if err != nil {
-			log.Fatalf("[-] docker-compose and docker are not installed or available in the current PATH\n")
-		} else {
-			// adjust the current args for docker compose subcommand
-			args = append([]string{"compose"}, args...)
-		}
+		log.Fatalf("[-] docker is not installed or available in the current PATH\n")
+	} else {
+		// adjust the current args for docker compose subcommand
+		args = append([]string{"compose"}, args...)
 	}
+
 	exe, err := os.Executable()
 	if err != nil {
 		log.Fatalf("[-] Failed to get lookPath to current executable\n")
@@ -1299,8 +1342,8 @@ func (d *DockerComposeManager) runDockerCompose(args []string) error {
 		}
 		err = command.Wait()
 		if err != nil {
-			fmt.Printf("[-] Error from docker-compose: %v\n", err)
-			fmt.Printf("[*] Docker compose command: %v\n", args)
+			log.Printf("[-] Error from docker-compose: %v\n", err)
+			log.Printf("[*] Docker compose command: %v\n", args)
 			return err
 		}
 	} else {
@@ -1311,7 +1354,8 @@ func (d *DockerComposeManager) runDockerCompose(args []string) error {
 }
 func (d *DockerComposeManager) setDockerComposeDefaultsAndWrite(curConfig map[string]interface{}) error {
 	file := filepath.Join(utils.GetCwdFromExe(), "docker-compose.yml")
-	curConfig["version"] = "2.4"
+	//curConfig["version"] = "2.4"
+	delete(curConfig, "version")
 	delete(curConfig, "networks")
 	content, err := yaml.Marshal(curConfig)
 	if err != nil {

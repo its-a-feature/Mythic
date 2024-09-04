@@ -712,7 +712,7 @@ func AddMythicService(service string, removeVolume bool) {
 	case "mythic_sync":
 		absPath, err := filepath.Abs(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service))
 		if err != nil {
-			fmt.Printf("[-] Failed to get abs path for mythic_sync\n")
+			log.Printf("[-] Failed to get abs path for mythic_sync\n")
 			return
 		}
 
@@ -747,6 +747,22 @@ func AddMythicService(service string, removeVolume bool) {
 		}
 		if !mythicEnv.InConfig("MYTHIC_API_KEY") {
 			config.AskVariable("Please enter your Mythic API Key (optional)", "MYTHIC_API_KEY")
+		}
+		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
+			delete(pStruct, "network_mode")
+			delete(pStruct, "extra_hosts")
+		} else {
+			pStruct["network_mode"] = "host"
+			pStruct["extra_hosts"] = []string{
+				"mythic_server:127.0.0.1",
+				"mythic_rabbitmq:127.0.0.1",
+				"mythic_nginx:127.0.0.1",
+				"mythic_react:127.0.0.1",
+				"mythic_documentation:127.0.0.1",
+				"mythic_graphql:127.0.0.1",
+				"mythic_jupyter:127.0.0.1",
+				"mythic_postgres:127.0.0.1",
+			}
 		}
 
 	}
@@ -874,7 +890,7 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 	return manager.GetManager().SetServiceConfiguration(service, existingConfig)
 }
 func RemoveService(service string) error {
-	return manager.GetManager().RemoveServices([]string{service})
+	return manager.GetManager().RemoveServices([]string{service}, false)
 }
 
 func Initialize() {

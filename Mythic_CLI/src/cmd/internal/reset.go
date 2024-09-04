@@ -9,7 +9,7 @@ import (
 func DatabaseReset(force bool) {
 	if force {
 		log.Printf("[*] Stopping Mythic\n")
-		manager.GetManager().StopServices([]string{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
+		manager.GetManager().StopServices([]string{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"), false)
 		manager.GetManager().ResetDatabase(config.GetMythicEnv().GetBool("postgres_use_volume"))
 		log.Printf("[*] Removing database files\n")
 		return
@@ -19,7 +19,7 @@ func DatabaseReset(force bool) {
 		confirm = config.AskConfirm("Are you absolutely sure? This will delete ALL data with your database forever. ")
 		if confirm {
 			log.Printf("[*] Stopping Mythic\n")
-			manager.GetManager().StopServices([]string{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
+			manager.GetManager().StopServices([]string{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"), false)
 			manager.GetManager().ResetDatabase(config.GetMythicEnv().GetBool("postgres_use_volume"))
 			log.Printf("[*] Removing database files\n")
 		}
@@ -44,7 +44,7 @@ func DatabaseRestore(backupPath string) {
 			if err != nil {
 				log.Fatalf("[-] Failed to restore database: %v\n", err)
 			} else {
-				manager.GetManager().StopServices([]string{"mythic_postgres"}, false)
+				manager.GetManager().StopServices([]string{"mythic_postgres"}, false, true)
 				manager.GetManager().StartServices([]string{"mythic_postgres"}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
 			}
 		}
@@ -68,7 +68,7 @@ func FilesRestore(backupPath string) {
 			if err != nil {
 				log.Fatalf("[-] Failed to restore files: %v\n", err)
 			} else {
-				manager.GetManager().StopServices([]string{"mythic_server"}, false)
+				manager.GetManager().StopServices([]string{"mythic_server"}, false, true)
 				manager.GetManager().StartServices([]string{"mythic_server"}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
 			}
 		}

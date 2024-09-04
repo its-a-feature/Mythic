@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 0.3.5 - 2024-09-03
+
+### Changed
+
+- Dropped support for `docker-compose` script as it causes too many breaking issues in Kali
+  - Make sure the `compose` plugin is installed with Docker (should be default in modern installs)
+- Added support for `--keep-volume` flag with start, build, and install commands
+  - This allows you to manually override on a per-command basis if you want to keep the volume with an agent/c2 container or not
+  - By default, if `rebuild_on_start` is true, then volumes will be removed when containers start.
+  - By default, volumes are removed on explicit `build` commands.
+- Added support for tracking an installed service's `install_location`
+  - `mythic-cli update --all-services` and `./mythic-cli update --services [name] [name]` can check for updated remote_images
+
 ## 0.3.4 - 2024-08-27
 
 ### Changed

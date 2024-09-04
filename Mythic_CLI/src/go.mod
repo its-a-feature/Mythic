@@ -6,7 +6,7 @@ toolchain go1.22.2
 
 require (
 	github.com/creack/pty v1.1.23
-	github.com/docker/docker v26.0.2+incompatible
+	github.com/docker/docker v27.2.0+incompatible
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0

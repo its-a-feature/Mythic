@@ -80,7 +80,7 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 			})
 			return
 		}
-		go tagFileAs(filemeta.ID, operatorOperation.CurrentOperator.Username, filemeta.OperationID, tagTypeDownload)
+		go tagFileAs(filemeta.ID, operatorOperation.CurrentOperator.Username, filemeta.OperationID, tagTypeDownload, nil, c)
 		file, err := os.Open(filemeta.Path)
 		if err != nil {
 			logging.LogError(err, "Failed to open file", "path", filemeta.Path)

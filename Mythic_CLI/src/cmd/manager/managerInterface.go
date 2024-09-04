@@ -25,7 +25,7 @@ type CLIManager interface {
 	// LoadImages loads the images specified at the outputPath
 	LoadImages(outputPath string) error
 	// RemoveContainers stop existing containers and removes them completely
-	RemoveContainers(services []string) error
+	RemoveContainers(services []string, keepVolume bool) error
 	// GetVolumes returns a map of volumes and their configurations specified to be used (not necessarily what's actually created)
 	GetVolumes() (map[string]interface{}, error)
 	// SetVolumes updates the information about volumes that should be expected to exist or tracked
@@ -35,13 +35,13 @@ type CLIManager interface {
 	// SetServiceConfiguration sets the specified configuration for a Mythic or specified 3rd party service
 	SetServiceConfiguration(string, map[string]interface{}) error
 	// StopServices should stop the listed services from running
-	StopServices(services []string, deleteImages bool) error
+	StopServices(services []string, deleteImages bool, keepVolume bool) error
 	// RemoveServices should stop and remove services from the configuration so that they aren't started again
-	RemoveServices(services []string) error
+	RemoveServices(services []string, keepVolume bool) error
 	// StartServices should build images if needed and start the associated containers
 	StartServices(services []string, rebuildOnStart bool) error
 	// BuildServices should re-build specific images and start those new containers
-	BuildServices(services []string) error
+	BuildServices(services []string, keepVolume bool) error
 	// GetInstalled3rdPartyServicesOnDisk returns the names of the installed services on disk
 	GetInstalled3rdPartyServicesOnDisk() ([]string, error)
 	// GetAllExistingNonMythicServiceNames reads current configuration and returns all non-mythic services

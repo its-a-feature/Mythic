@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 // configCmd represents the config command
@@ -21,8 +21,8 @@ func init() {
 
 func save(cmd *cobra.Command, args []string) {
 	if err := internal.DockerSave(args); err != nil {
-		fmt.Printf("%v\n", err)
+		log.Printf("%v\n", err)
 	} else {
-		fmt.Printf("[+] Successfully saved file\n")
+		log.Printf("[+] Successfully saved file\n")
 	}
 }

@@ -15,10 +15,17 @@ var buildCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(buildCmd)
+	buildCmd.Flags().BoolVarP(
+		&keepVolume,
+		"keep-volume",
+		"",
+		false,
+		`Force keep the container's existing volume (if any) when starting the container`,
+	)
 }
 
 func buildContainer(cmd *cobra.Command, args []string) {
-	if err := internal.ServiceBuild(args); err != nil {
+	if err := internal.ServiceBuild(args, keepVolume); err != nil {
 
 	}
 }

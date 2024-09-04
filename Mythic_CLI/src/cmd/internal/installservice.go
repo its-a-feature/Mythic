@@ -14,7 +14,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-func InstallFolder(installPath string, overWrite bool) error {
+func InstallFolder(installPath string, overWrite bool, keepVolume bool, installURL string) error {
+	installLocation := installPath
+	if installURL != "" {
+		installLocation = installURL
+	}
 	workingPath := utils.GetCwdFromExe()
 	if !utils.FileExists(filepath.Join(installPath, "config.json")) {
 		log.Fatal("[-] Failed to find config.json in cloned down repo\n")
@@ -26,10 +30,10 @@ func InstallFolder(installPath string, overWrite bool) error {
 	installConfig.AddConfigPath(installPath)
 	if err := installConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			fmt.Printf("[-] Error while reading in installConfig file: %s", err)
+			log.Printf("[-] Error while reading in installConfig file: %s", err)
 			return err
 		} else {
-			fmt.Printf("[-] Error while parsing installConfig file: %s", err)
+			log.Printf("[-] Error while parsing installConfig file: %s", err)
 			return err
 		}
 	}
@@ -47,18 +51,18 @@ func InstallFolder(installPath string, overWrite bool) error {
 		// handle the payload type copying here
 		files, err := ioutil.ReadDir(filepath.Join(installPath, "Payload_Type"))
 		if err != nil {
-			fmt.Printf("[-] Failed to list contents of new Payload_Type folder: %v\n", err)
+			log.Printf("[-] Failed to list contents of new Payload_Type folder: %v\n", err)
 			return err
 		}
 		for _, f := range files {
 			if f.IsDir() {
-				fmt.Printf("[*] Processing Payload Type %s\n", f.Name())
+				log.Printf("[*] Processing Payload Type %s\n", f.Name())
 
 				if utils.DirExists(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), f.Name())) {
 					if overWrite || config.AskConfirm("[*] "+f.Name()+" already exists. Replace current version? ") {
 						log.Printf("[*] Stopping current container\n")
 						if manager.GetManager().IsServiceRunning(strings.ToLower(f.Name())) {
-							if err := ServiceStop([]string{f.Name()}); err != nil {
+							if err := ServiceStop([]string{f.Name()}, keepVolume); err != nil {
 								log.Printf("[-] Failed to stop current container: %v\n", err)
 								return err
 							}
@@ -86,28 +90,28 @@ func InstallFolder(installPath string, overWrite bool) error {
 				}
 				log.Printf("[*] Adding service into docker-compose\n")
 				if installConfig.IsSet("docker-compose") {
-					err = Add3rdPartyService(f.Name(), installConfig.GetStringMap("docker-compose"), true)
+					err = Add3rdPartyService(f.Name(), installConfig.GetStringMap("docker-compose"), !keepVolume)
 					if err != nil {
 						log.Printf("[-] Failed to add service to docker-compose: %v\n", err)
 					} else {
-						err = manager.GetManager().BuildServices([]string{f.Name()})
+						err = manager.GetManager().BuildServices([]string{f.Name()}, keepVolume)
 						if err != nil {
 							log.Printf("[-] Failed to start service: %v\n", err)
 						}
 					}
 				} else {
-					err = Add3rdPartyService(f.Name(), make(map[string]interface{}), true)
+					err = Add3rdPartyService(f.Name(), make(map[string]interface{}), !keepVolume)
 					if err != nil {
 						log.Printf("[-] Failed to add service to docker-compose: %v\n", err)
 					} else {
-						err = manager.GetManager().BuildServices([]string{f.Name()})
+						err = manager.GetManager().BuildServices([]string{f.Name()}, keepVolume)
 						if err != nil {
 							log.Printf("[-] Failed to start service: %v\n", err)
 						}
 					}
 				}
-
 			}
+			config.SetNewConfigStrings(fmt.Sprintf("%s_install_location", f.Name()), installLocation)
 		}
 		log.Printf("[+] Successfully installed service\n")
 	} else {
@@ -127,7 +131,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 					if overWrite || config.AskConfirm("[*] "+f.Name()+" already exists. Replace current version? ") {
 						log.Printf("[*] Stopping current container\n")
 						if manager.GetManager().IsServiceRunning(strings.ToLower(f.Name())) {
-							if err := ServiceStop([]string{f.Name()}); err != nil {
+							if err := ServiceStop([]string{f.Name()}, keepVolume); err != nil {
 								log.Printf("[-] Failed to stop container: %v\n", err)
 								return err
 							}
@@ -155,16 +159,17 @@ func InstallFolder(installPath string, overWrite bool) error {
 				}
 				// now add payload type to yaml installConfig
 				log.Printf("[*] Adding c2, %s, into docker-compose\n", f.Name())
-				err = Add3rdPartyService(f.Name(), make(map[string]interface{}), true)
+				err = Add3rdPartyService(f.Name(), make(map[string]interface{}), !keepVolume)
 				if err != nil {
 					log.Printf("[-] Failed to add %s to docker-compose: %v\n", f.Name(), err)
 				} else {
-					err = manager.GetManager().BuildServices([]string{f.Name()})
+					err = manager.GetManager().BuildServices([]string{f.Name()}, keepVolume)
 					if err != nil {
 						log.Printf("[-] Failed to start service: %v\n", err)
 					}
 				}
 			}
+			config.SetNewConfigStrings(fmt.Sprintf("%s_install_location", f.Name()), installLocation)
 		}
 		log.Printf("[+] Successfully installed c2\n")
 	} else {
@@ -321,15 +326,39 @@ func InstallFolder(installPath string, overWrite bool) error {
 	} else {
 		log.Printf("[*] Skipping over Wrapper Documentation\n")
 	}
-
 	if manager.GetManager().IsServiceRunning("mythic_documentation") {
-		fmt.Printf("[*] Restarting mythic_documentation container to pull in changes\n")
-		ServiceStop([]string{"mythic_documentation"})
-		ServiceStart([]string{"mythic_documentation"})
+		log.Printf("[*] Restarting mythic_documentation container to pull in changes\n")
+		ServiceStop([]string{"mythic_documentation"}, true)
+		ServiceStart([]string{"mythic_documentation"}, true)
 	}
 	return nil
 }
-func InstallService(url string, branch string, overWrite bool) error {
+func GitClone(url string, branch string) (string, error) {
+	workingPath := utils.GetCwdFromExe()
+	if utils.DirExists(filepath.Join(workingPath, "tmp")) {
+		err := os.RemoveAll(filepath.Join(workingPath, "tmp"))
+		if err != nil {
+			log.Printf("[-] tmp directory couldn't be deleted for a fresh install: %v\n", err)
+			return "", err
+		}
+	}
+	err := os.Mkdir(filepath.Join(workingPath, "tmp"), 0755)
+	if err != nil {
+		log.Printf("[-] Failed to make temp directory for cloning: %v\n", err)
+		return "", err
+	}
+	//log.Printf("[*] Cloning branch \"%s\" from %s\n", branch, url)
+	err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")}, false)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(workingPath, "tmp"), nil
+}
+func RemoveGitClone() error {
+	workingPath := utils.GetCwdFromExe()
+	return os.RemoveAll(filepath.Join(workingPath, "tmp"))
+}
+func InstallService(url string, branch string, overWrite bool, keepVolume bool) error {
 	// make our temp directory to clone into
 	workingPath := utils.GetCwdFromExe()
 	log.Printf("[*] Creating temporary directory\n")
@@ -346,18 +375,36 @@ func InstallService(url string, branch string, overWrite bool) error {
 		log.Printf("[-] Failed to make temp directory for cloning: %v\n", err)
 		return err
 	}
+	installURL := url
 	if branch == "" {
 		log.Printf("[*] Cloning %s\n", url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")})
+		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")}, true)
 	} else {
 		log.Printf("[*] Cloning branch \"%s\" from %s\n", branch, url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")})
+		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")}, true)
 	}
 	if err != nil {
 		log.Printf("[-] Failed to clone down repository: %v\n", err)
 		return err
 	}
-	if err = InstallFolder(filepath.Join(workingPath, "tmp"), overWrite); err != nil {
+	if branch == "" {
+		fileContents, err := os.ReadFile(filepath.Join(workingPath, "tmp", ".git", "HEAD"))
+		if err != nil {
+			log.Printf("[-] Failed to read .git HEAD: %v\n", err)
+			branch = "main"
+		} else {
+			pieces := strings.Split(string(fileContents), "/")
+			if len(pieces) == 0 {
+				log.Printf("[-] Failed to parse HEAD ref\n")
+				branch = "main"
+			} else {
+				branch = strings.TrimSpace(pieces[len(pieces)-1])
+			}
+		}
+	}
+	installURL = fmt.Sprintf("%s;%s", url, branch)
+
+	if err = InstallFolder(filepath.Join(workingPath, "tmp"), overWrite, keepVolume, installURL); err != nil {
 		log.Printf("[-] Failed to install: %v\n", err)
 		return err
 	} else {
@@ -369,16 +416,16 @@ func installServiceByName(service string) error {
 	agentURL := fmt.Sprintf("https://github.com/MythicAgents/%s", service)
 	c2URL := fmt.Sprintf("https://github.com/MythicC2Profiles/%s", service)
 	if err := runGitLsRemote([]string{"lfs-remote", agentURL, "HEAD"}); err != nil {
-		if err := runGitLsRemote([]string{"lfs-remote", c2URL, "HEAD"}); err != nil {
-			fmt.Printf("[-] Failed to find an agent or c2 profile by that name")
+		if err = runGitLsRemote([]string{"lfs-remote", c2URL, "HEAD"}); err != nil {
+			log.Printf("[-] Failed to find an agent or c2 profile by that name")
 			return err
 		} else {
 			// this exists as a c2 profile repo, so we can pull that down
-			return InstallService(c2URL, "", true)
+			return InstallService(c2URL, "", true, false)
 		}
 	} else {
 		// this exists as an agent repo, so we can pull that down
-		return InstallService(agentURL, "", true)
+		return InstallService(agentURL, "", true, false)
 	}
 }
 func UninstallService(services []string) {
@@ -391,13 +438,13 @@ func UninstallService(services []string) {
 		if utils.DirExists(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service)) {
 			log.Printf("[*] Stopping and removing container\n")
 			if manager.GetManager().IsServiceRunning(strings.ToLower(service)) {
-				if err := ServiceStop([]string{strings.ToLower(service)}); err != nil {
+				if err := ServiceStop([]string{strings.ToLower(service)}, false); err != nil {
 					log.Printf("[-] Failed to stop container: %v\n", err)
 					return
 				}
 			}
 			log.Printf("[*] Removing %s from docker-compose\n", strings.ToLower(service))
-			err := manager.GetManager().RemoveServices([]string{strings.ToLower(service)})
+			err := manager.GetManager().RemoveServices([]string{strings.ToLower(service)}, false)
 			if err != nil {
 				log.Printf("[-] Failed to remove docker compose entry: %v\n", err)
 				return
@@ -443,8 +490,8 @@ func UninstallService(services []string) {
 			log.Printf("[+] Successfully Uninstalled %s\n", service)
 			if manager.GetManager().IsServiceRunning("mythic_documentation") {
 				log.Printf("[*] Restarting mythic_documentation container to pull in changes\n")
-				ServiceStop([]string{"mythic_documentation"})
-				ServiceStart([]string{"mythic_documentation"})
+				ServiceStop([]string{"mythic_documentation"}, true)
+				ServiceStart([]string{"mythic_documentation"}, true)
 			}
 			return
 		} else {
@@ -458,7 +505,7 @@ func UninstallService(services []string) {
 func InstallMythicSyncFolder(installPath string) error {
 	service := "mythic_sync"
 	if manager.GetManager().IsServiceRunning(service) {
-		err := manager.GetManager().StopServices([]string{service}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
+		err := manager.GetManager().StopServices([]string{service}, config.GetMythicEnv().GetBool("REBUILD_ON_START"), false)
 		if err != nil {
 			log.Printf("[-] Failed to stop current docker container: %v\n", err)
 			return err
@@ -481,7 +528,7 @@ func InstallMythicSyncFolder(installPath string) error {
 	log.Printf("[+] Successfully installed mythic_sync!\n")
 	if manager.GetManager().IsServiceRunning("mythic_server") {
 		log.Printf("[*] Starting mythic_sync")
-		err = ServiceStart([]string{strings.ToLower(service)})
+		err = ServiceStart([]string{strings.ToLower(service)}, false)
 		if err != nil {
 			log.Printf("[-] Failed to start mythic_sync: %v\n", err)
 		}
@@ -505,10 +552,10 @@ func InstallMythicSync(url string, branch string) error {
 	}
 	if branch == "" {
 		log.Printf("[*] Cloning %s\n", url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")})
+		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", url, filepath.Join(workingPath, "tmp")}, true)
 	} else {
 		log.Printf("[*] Cloning branch \"%s\" from %s\n", branch, url)
-		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")})
+		err = runGitClone([]string{"-c", "http.sslVerify=false", "clone", "--depth", "1", "--recurse-submodules", "--single-branch", "--branch", branch, url, filepath.Join(workingPath, "tmp")}, true)
 	}
 	if err != nil {
 		log.Printf("[-] Failed to clone down repository: %v\n", err)
@@ -520,7 +567,7 @@ func InstallMythicSync(url string, branch string) error {
 func UninstallMythicSync() {
 	service := "mythic_sync"
 	if manager.GetManager().IsServiceRunning(service) {
-		ServiceStop([]string{service})
+		ServiceStop([]string{service}, false)
 	}
 	RemoveService(service)
 	if utils.DirExists(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service)) {

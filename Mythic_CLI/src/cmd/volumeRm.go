@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
 	"github.com/spf13/cobra"
+	"log"
 	"os"
 )
 
@@ -22,9 +22,9 @@ func init() {
 func volumesRmCommand(cmd *cobra.Command, args []string) {
 	err := internal.DockerRemoveVolume(args[0])
 	if err != nil {
-		fmt.Printf("[-] error removing volume: \n%v\n", err)
+		log.Printf("[-] error removing volume: \n%v\n", err)
 		os.Exit(1)
 	} else {
-		fmt.Printf("[+] Successfully removed volume\n")
+		log.Printf("[+] Successfully removed volume\n")
 	}
 }

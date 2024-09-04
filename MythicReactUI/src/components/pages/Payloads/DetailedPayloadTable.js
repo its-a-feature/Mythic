@@ -26,6 +26,7 @@ import {HostFileDialog} from "./HostFileDialog";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import {TableRowSizeCell} from "../Callbacks/CallbacksTabsFileBrowserTable";
 
 const GET_Payload_Details = gql`
 query GetPayloadDetails($payload_id: Int!) {
@@ -66,6 +67,7 @@ query GetPayloadDetails($payload_id: Int!) {
       id
       md5
       sha1
+      size
     }
     payload_build_steps(order_by: {step_number: asc}) {
       step_name
@@ -383,6 +385,12 @@ function DetailedPayloadInnerTable(props){
                     <TableRow hover>
                         <TableCell>MD5</TableCell>
                         <TableCell>{data.payload[0].filemetum.md5}</TableCell>
+                    </TableRow>
+                    <TableRow hover>
+                        <TableCell>Size</TableCell>
+                        <TableCell>
+                            <TableRowSizeCell cellData={data.payload[0].filemetum.size} />
+                        </TableCell>
                     </TableRow>
                     <TableRow hover>
                         <TableCell>Created By</TableCell>

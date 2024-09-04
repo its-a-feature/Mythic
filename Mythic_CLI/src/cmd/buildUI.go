@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 // configCmd represents the config command
@@ -21,8 +21,8 @@ func init() {
 
 func buildReactUI(cmd *cobra.Command, args []string) {
 	if err := internal.DockerBuildReactUI(); err != nil {
-		fmt.Printf("[-] Failed to build UI\n")
+		log.Printf("[-] Failed to build UI\n")
 	} else {
-		fmt.Printf("[+] Successfully built UI!\n")
+		log.Printf("[+] Successfully built UI!\n")
 	}
 }

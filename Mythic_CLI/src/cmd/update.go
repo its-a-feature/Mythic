@@ -2,12 +2,16 @@ package cmd
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
+	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
+	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,6 +26,8 @@ var updateCmd = &cobra.Command{
 	Long:  `Check for a Mythic update against a specific branch or against HEAD by default.`,
 	Run:   updateCheck,
 }
+var agents []string
+var allAgents bool
 
 func init() {
 	rootCmd.AddCommand(updateCmd)
@@ -31,6 +37,20 @@ func init() {
 		"b",
 		"",
 		`Check update status from a specific branch instead of HEAD`,
+	)
+	updateCmd.Flags().StringArrayVarP(
+		&agents,
+		"services",
+		"s",
+		nil,
+		`Check for potential updates for specific installed services instead of Mythic`,
+	)
+	updateCmd.Flags().BoolVarP(
+		&allAgents,
+		"all-services",
+		"a",
+		false,
+		`Check for potential updates for all installed services instead of Mythic`,
 	)
 }
 
@@ -42,80 +62,85 @@ func updateCheck(cmd *cobra.Command, args []string) {
 		Timeout:   5 * time.Second,
 		Transport: tr,
 	}
-	urlBase := "https://raw.githubusercontent.com/its-a-feature/Mythic/"
+	if agents == nil && !allAgents {
+		urlBase := "https://raw.githubusercontent.com/its-a-feature/Mythic/"
 
-	targetURL := urlBase + "master"
-	if len(args) == 1 {
-		branch = args[0]
+		targetURL := urlBase + "master"
+		if len(args) == 1 {
+			branch = args[0]
+		}
+		if len(branch) > 0 {
+			targetURL = urlBase + branch
+		}
+
+		_, err := checkMythicVersion(client, targetURL)
+		if err != nil {
+			log.Fatalf("Failed to check mythic version: %v", err)
+		}
+		_, err = checkUIVersion(client, targetURL)
+		if err != nil {
+			log.Fatalf("Failed to check UI version: %v", err)
+		}
+		_, err = checkCLIVersion(client, targetURL)
+		if err != nil {
+			log.Fatalf("Failed to check cli version: %v", err)
+		}
+		return
 	}
-	if len(branch) > 0 {
-		targetURL = urlBase + branch
+	err := checkAgentVersions(agents, allAgents)
+	if err != nil {
+		log.Fatalf("Failed to check agent versions: %v", err)
 	}
-
-	if mythicNeedsUpdate, err := checkMythicVersion(client, targetURL); err != nil {
-
-	} else if mythicNeedsUpdate {
-
-	} else if uiNeedsUpdate, err := checkUIVersion(client, targetURL); err != nil {
-
-	} else if uiNeedsUpdate {
-
-	} else if cliNeedsUpdate, err := checkCLIVersion(client, targetURL); err != nil {
-
-	} else if cliNeedsUpdate {
-
-	}
-
 }
 func checkMythicVersion(client *http.Client, urlBase string) (needsUpdate bool, err error) {
 	targetURL := urlBase + "/VERSION"
 	if req, err := http.NewRequest("GET", targetURL, nil); err != nil {
-		fmt.Printf("[!] Failed to make new request: %v\n", err)
+		log.Printf("[!] Failed to make new request: %v\n", err)
 		return false, err
 	} else if resp, err := client.Do(req); err != nil {
-		fmt.Printf("[!] Error client.Do: %v\n", err)
+		log.Printf("[!] Error client.Do: %v\n", err)
 		return false, err
 	} else if resp.StatusCode != 200 {
-		fmt.Printf("[!] Error resp.StatusCode: %v\n", resp.StatusCode)
+		log.Printf("[!] Error resp.StatusCode: %v\n", resp.StatusCode)
 		return false, err
 	} else {
 		defer resp.Body.Close()
 		if body, err := io.ReadAll(resp.Body); err != nil {
-			fmt.Printf("[!] Failed to read file contents: %v\n", err)
+			log.Printf("[!] Failed to read file contents: %v\n", err)
 			return false, err
 		} else if fileContents, err := os.ReadFile("VERSION"); err != nil {
-			fmt.Printf("[!] Failed to get Mythic version: %v\n", err)
+			log.Printf("[!] Failed to get Mythic version: %v\n", err)
 			return false, err
 		} else {
 			remoteVersion := "v" + string(body)
 			localVersion := "v" + string(fileContents)
 			versionComparison := semver.Compare(localVersion, remoteVersion)
-			fmt.Printf("[*] Mythic Local Version:  %s\n", localVersion)
-			fmt.Printf("[*] Mythic Remote Version: %s\n", remoteVersion)
+			log.Printf("[*] Mythic Local Version:  %s\n", localVersion)
+			log.Printf("[*] Mythic Remote Version: %s\n", remoteVersion)
 			if !semver.IsValid(localVersion) {
-				fmt.Printf("[-] Local version isn't valid\n")
+				log.Printf("[-] Local version isn't valid\n")
 				return false, errors.New("Local version isn't valid\n")
 			} else if !semver.IsValid(remoteVersion) {
-				fmt.Printf("[-] Remote version isn't valid\n")
+				log.Printf("[-] Remote version isn't valid\n")
 				return false, errors.New("Remote version isn't valid\n")
 			} else if versionComparison == 0 {
-				fmt.Printf("[+] Mythic is up to date!\n")
+				log.Printf("[+] Mythic is up to date!\n")
 				return false, nil
 			} else if versionComparison < 0 {
-				fmt.Printf("[+] Mythic update available!\n")
+				log.Printf("[+] Mythic update available!\n")
 				if semver.Major(localVersion) != semver.Major(remoteVersion) {
-					fmt.Printf("[!] Major version update available. This means a major update in how Mythic operates\n")
-					fmt.Printf("This will require a completely new clone of Mythic\n")
+					log.Printf("[!] Major version update available. This means a major update in how Mythic operates\n")
+					log.Printf("This will require a completely new clone of Mythic\n")
 				} else if semver.MajorMinor(localVersion) != semver.MajorMinor(remoteVersion) {
-					fmt.Printf("[!] Minor version update available. This means there has been some database updates, but not a major change to how Mythic operates.\n")
-					fmt.Printf("This will require doing a 'git pull' and making a new 'mythic-cli' via 'sudo make'. Then restart Mythic\n")
+					log.Printf("[!] Minor version update available. This means there has been some database updates, but not a major change to how Mythic operates.\n")
+					log.Printf("This will require doing a 'git pull' and making a new 'mythic-cli' via 'sudo make'. Then restart Mythic\n")
 				} else {
-					fmt.Printf("[+] A patch is available. This means no database schema has changed and only bug fixes applied. This is safe to update now.\n")
-					fmt.Printf("This will require doing a 'git pull' and making a new 'mythic-cli' via 'sudo make'. Then restart Mythic\n")
+					log.Printf("[+] A patch is available. This means no database schema has changed and only bug fixes applied. This is safe to update now.\n")
+					log.Printf("This will require doing a 'git pull' and making a new 'mythic-cli' via 'sudo make'. Then restart Mythic\n")
 				}
 				return true, nil
 			} else {
-				fmt.Printf("[+] Local version is ahead of remote!\n")
+				log.Printf("[+] Local version is ahead of remote!\n")
 				return false, nil
 			}
 		}
@@ -124,42 +149,42 @@ func checkMythicVersion(client *http.Client, urlBase string) (needsUpdate bool, 
 func checkUIVersion(client *http.Client, urlBase string) (needsUpdate bool, err error) {
 	targetURL := urlBase + "/MythicReactUI/src/index.js"
 	if req, err := http.NewRequest("GET", targetURL, nil); err != nil {
-		fmt.Printf("[!] Failed to make new request: %v\n", err)
+		log.Printf("[!] Failed to make new request: %v\n", err)
 		return false, err
 	} else if resp, err := client.Do(req); err != nil {
-		fmt.Printf("[!] Error client.Do: %v\n", err)
+		log.Printf("[!] Error client.Do: %v\n", err)
 		return false, err
 	} else if resp.StatusCode != 200 {
-		fmt.Printf("[!] Error trying to fetch UI version resp.StatusCode: %v\n", resp.StatusCode)
+		log.Printf("[!] Error trying to fetch UI version resp.StatusCode: %v\n", resp.StatusCode)
 		return false, err
 	} else {
 		defer resp.Body.Close()
 		if body, err := io.ReadAll(resp.Body); err != nil {
-			fmt.Printf("[!] Failed to read file contents: %v\n", err)
+			log.Printf("[!] Failed to read file contents: %v\n", err)
 			return false, err
 		} else if fileContents, err := os.ReadFile(filepath.Join(".", "MythicReactUI", "src", "index.js")); err != nil {
-			fmt.Printf("[!] Failed to get MythicReactUI version: %v\n", err)
+			log.Printf("[!] Failed to get MythicReactUI version: %v\n", err)
 			return false, err
 		} else {
 			remoteVersion := "v" + getUIVersionFromFileContents(string(body))
 			localVersion := "v" + string(getUIVersionFromFileContents(string(fileContents)))
 			versionComparison := semver.Compare(localVersion, remoteVersion)
-			fmt.Printf("[*] UI Local Version:  %s\n", localVersion)
-			fmt.Printf("[*] UI Remote Version: %s\n", remoteVersion)
+			log.Printf("[*] UI Local Version:  %s\n", localVersion)
+			log.Printf("[*] UI Remote Version: %s\n", remoteVersion)
 			if !semver.IsValid(localVersion) {
-				fmt.Printf("[-] Local version isn't valid\n")
+				log.Printf("[-] Local version isn't valid\n")
 				return false, errors.New("Local version isn't valid\n")
 			} else if !semver.IsValid(remoteVersion) {
-				fmt.Printf("[-] Remote version isn't valid\n")
+				log.Printf("[-] Remote version isn't valid\n")
 				return false, errors.New("Remote version isn't valid\n")
 			} else if versionComparison == 0 {
-				fmt.Printf("[+] Your UI is up to date!\n")
+				log.Printf("[+] Your UI is up to date!\n")
 				return false, nil
 			} else if versionComparison < 0 {
-				fmt.Printf("[+] UI update available! This is safe to update now.\n")
+				log.Printf("[+] UI update available! This is safe to update now.\n")
 				return true, nil
 			} else {
-				fmt.Printf("[+] Local version is ahead of remote!\n")
+				log.Printf("[+] Local version is ahead of remote!\n")
 				return false, nil
 			}
 		}
@@ -179,42 +204,42 @@ func getUIVersionFromFileContents(contents string) string {
 func checkCLIVersion(client *http.Client, urlBase string) (needsUpdate bool, err error) {
 	targetURL := urlBase + "/Mythic_CLI/src/cmd/config/vars.go"
 	if req, err := http.NewRequest("GET", targetURL, nil); err != nil {
-		fmt.Printf("[!] Failed to make new request: %v\n", err)
+		log.Printf("[!] Failed to make new request: %v\n", err)
 		return false, err
 	} else if resp, err := client.Do(req); err != nil {
-		fmt.Printf("[!] Error client.Do: %v\n", err)
+		log.Printf("[!] Error client.Do: %v\n", err)
 		return false, err
 	} else if resp.StatusCode != 200 {
-		fmt.Printf("[!] Error trying to fetch mythic-cli version resp.StatusCode: %v\n", resp.StatusCode)
+		log.Printf("[!] Error trying to fetch mythic-cli version resp.StatusCode: %v\n", resp.StatusCode)
 		return false, err
 	} else {
 		defer resp.Body.Close()
 		if body, err := io.ReadAll(resp.Body); err != nil {
-			fmt.Printf("[!] Failed to read file contents: %v\n", err)
+			log.Printf("[!] Failed to read file contents: %v\n", err)
 			return false, err
 		} else {
 			remoteVersion := getCLIVersionFromFileContents(string(body))
 			localVersion := config.Version
 			versionComparison := semver.Compare(localVersion, remoteVersion)
-			fmt.Printf("[*] mythic-cli Local Version:  %s\n", localVersion)
-			fmt.Printf("[*] mythic-cli Remote Version: %s\n", remoteVersion)
+			log.Printf("[*] mythic-cli Local Version:  %s\n", localVersion)
+			log.Printf("[*] mythic-cli Remote Version: %s\n", remoteVersion)
 			if !semver.IsValid(localVersion) {
-				fmt.Printf("[-] Local version isn't valid\n")
+				log.Printf("[-] Local version isn't valid\n")
 				return false, errors.New("Local version isn't valid\n")
 			} else if !semver.IsValid(remoteVersion) {
-				fmt.Printf("[-] Remote version isn't valid\n")
+				log.Printf("[-] Remote version isn't valid\n")
 				return false, errors.New("Remote version isn't valid\n")
 			} else if versionComparison == 0 {
-				fmt.Printf("[+] Your mythic-cli is up to date!\n")
+				log.Printf("[+] Your mythic-cli is up to date!\n")
 				return false, nil
 			} else if versionComparison < 0 {
-				fmt.Printf("[+] mythic-cli update available! This is safe to update now.\n")
-				fmt.Printf("Update with the following:\n")
-				fmt.Printf("1. git pull\n")
-				fmt.Printf("2. make")
+				log.Printf("[+] mythic-cli update available! This is safe to update now.\n")
+				log.Printf("Update with the following:\n")
+				log.Printf("1. git pull\n")
+				log.Printf("2. make")
 				return true, nil
 			} else {
-				fmt.Printf("[+] Local version is ahead of remote!\n")
+				log.Printf("[+] Local version is ahead of remote!\n")
 				return false, nil
 			}
 		}
@@ -230,4 +255,92 @@ func getCLIVersionFromFileContents(contents string) string {
 		}
 	}
 	return "Failed to find version"
+}
+func checkConfigJsonVersion(body []byte, agentName string) (updateVersion string, err error) {
+	currentVersion := config.GetMythicEnv().GetString(fmt.Sprintf("%s_remote_image", agentName))
+	configMap := map[string]interface{}{}
+	err = json.Unmarshal(body, &configMap)
+	if err != nil {
+		log.Printf("[!] Failed to unmarshal json: %v\n", err)
+		return "", err
+	}
+	if _, ok := configMap["remote_images"]; !ok {
+		log.Printf("[*] No remote images found, can't check for updates for %s\n", agentName)
+		return "", nil
+	}
+	remoteImages := configMap["remote_images"].(map[string]interface{})
+	for agent, image := range remoteImages {
+		if agent == agentName {
+			if image.(string) != currentVersion {
+				return fmt.Sprintf("%s -> %s", currentVersion, image.(string)), nil
+			}
+			return "", nil
+		}
+	}
+	log.Printf("[!] No matching remote image found for %s, can't check for updates\n", agentName)
+	return "", nil
+}
+func checkAgentVersions(agents []string, allAgents bool) error {
+	localAgents := agents
+	if len(localAgents) == 0 || allAgents {
+		dockerComposeContainers, err := manager.GetManager().GetAllInstalled3rdPartyServiceNames()
+		if err != nil {
+			return err
+		}
+		localAgents = dockerComposeContainers
+	}
+	for _, agent := range localAgents {
+		installLocation := config.GetMythicEnv().GetString(fmt.Sprintf("%s_install_location", agent))
+		if installLocation == "" {
+			log.Printf("[-] No tracked install location for %s, install again to start tracking location\n", agent)
+			continue
+		}
+		if strings.HasPrefix(installLocation, "http") {
+			// check a remote location
+			targetInfoPieces := strings.Split(installLocation, ";")
+			if len(targetInfoPieces) != 2 {
+				log.Printf("[!] Invalid install location for agent %s: %s\n", agent, installLocation)
+				continue
+			}
+			workingPath, err := internal.GitClone(targetInfoPieces[0], targetInfoPieces[1])
+			if err != nil {
+				log.Printf("[!] Failed to clone working path for %s: %v\n", agent, err)
+				continue
+			}
+			configDataBytes, err := os.ReadFile(filepath.Join(workingPath, "config.json"))
+			internal.RemoveGitClone()
+			if err != nil {
+				log.Printf("[!] Failed to read config.json for %s: %v\n", agent, err)
+				continue
+			}
+			needsUpdate, err := checkConfigJsonVersion(configDataBytes, agent)
+			if err != nil {
+				log.Printf("[!] Failed to parse config.json for %s: %v\n", agent, err)
+				continue
+			}
+			if needsUpdate != "" {
+				log.Printf("[+] %s has an update available! %s\n", agent, needsUpdate)
+			} else {
+				log.Printf("[*] %s is up to date!\n", agent)
+			}
+		} else {
+			// checking a folder on disk
+			configDataBytes, err := os.ReadFile(filepath.Join(installLocation, "config.json"))
+			if err != nil {
+				log.Printf("[!] Failed to read config.json for %s: %v\n", agent, err)
+				continue
+			}
+			needsUpdate, err := checkConfigJsonVersion(configDataBytes, agent)
+			if err != nil {
+				log.Printf("[!] Failed to parse config.json for %s: %v\n", agent, err)
+				continue
+			}
+			if needsUpdate != "" {
+				log.Printf("[+] %s has an update available! %s\n", agent, needsUpdate)
+			} else {
+				log.Printf("[*] %s is up to date!\n", agent)
+			}
+		}
+	}
+	return nil
 }

@@ -33,15 +33,19 @@ func GetUserIDFromGinAllowCookies(c *gin.Context) (int, error) {
 }
 
 const (
-	tagTypePreview             = "FilePreviewed"
-	tagTypePreviewDescription  = "The file was previewed in the UI by an operator"
-	tagTypePreviewColor        = "#c39a43"
-	tagTypeDownload            = "FileDownloaded"
-	tagTypeDownloadDescription = "The file was downloaded by an operator in the UI"
-	tagTypeDownloadColor       = "#709567"
+	tagTypePreview               = "FilePreviewed"
+	tagTypePreviewDescription    = "The file was previewed in the UI by an operator"
+	tagTypePreviewColor          = "#c39a43"
+	tagTypeDownload              = "FileDownloaded"
+	tagTypeDownloadDescription   = "The file was downloaded by an operator in the UI"
+	tagTypeDownloadColor         = "#709567"
+	tagTypeHostedByC2            = "FileHosted"
+	tagTypeHostedByC2Description = "The file was hosted by an operator in the UI through a C2 Profile"
+	tagTypeHostedByC2Color       = "#cb7a00"
 )
 
-func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssignment string) {
+func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssignment string, tagData map[string]interface{}, c *gin.Context) {
+	// create the tag type in general if needed
 	tagtype := databaseStructs.TagType{}
 	err := database.DB.Get(&tagtype, `SELECT * FROM tagtype WHERE name=$1 AND operation_id=$2`,
 		tagTypeAssignment, operationID)
@@ -58,6 +62,9 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 		case tagTypePreview:
 			newTagType.Description = tagTypePreviewDescription
 			newTagType.Color = tagTypePreviewColor
+		case tagTypeHostedByC2:
+			newTagType.Description = tagTypeHostedByC2Description
+			newTagType.Color = tagTypeHostedByC2Color
 		default:
 		}
 		statement, err := database.DB.PrepareNamed(`INSERT INTO tagtype 
@@ -85,16 +92,25 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 	}
 	tag.FileMeta.Valid = true
 	tag.FileMeta.Int64 = int64(fileMetaID)
+	// start processing the new tag
 	newKey := fmt.Sprintf("%s", time.Now().UTC().Format(rabbitmq.TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS))
-	tag.Data = rabbitmq.GetMythicJSONTextFromStruct(
-		map[string]interface{}{
-			operatorName: newKey,
-		},
-	)
+	newTagData := map[string]interface{}{
+		operatorName: newKey,
+	}
+	switch tagTypeAssignment {
+	case tagTypePreview:
+		fallthrough
+	case tagTypeDownload:
+	case tagTypeHostedByC2:
+		newTagData = tagData
+	default:
+	}
+
 	err = database.DB.Get(&tag, `SELECT * FROM tag WHERE filemeta_id=$1 AND operation_id=$2 AND tagtype_id=$3 AND source='mythic'`,
 		fileMetaID, operationID, tagtype.ID)
 	if errors.Is(err, sql.ErrNoRows) {
-		// we create it
+		// we haven't tagged this file with this tagtype before, so create a new tag with initial data
+		tag.Data = rabbitmq.GetMythicJSONTextFromStruct(newTagData)
 		_, err = database.DB.NamedExec(`INSERT INTO tag (filemeta_id, operation_id, tagtype_id, source, data)
 			VALUES (:filemeta_id, :operation_id, :tagtype_id, :source, :data )`, tag)
 		if err != nil {
@@ -106,9 +122,63 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 		return
 	}
 	// the tag exists, we just need to update the data
-	tagData := tag.Data.StructValue()
-	tagData[operatorName] = newKey
-	tag.Data = rabbitmq.GetMythicJSONTextFromStruct(tagData)
+	updateTagData := tag.Data.StructValue()
+	switch tagTypeAssignment {
+	case tagTypePreview:
+		updateTagData[operatorName] = newKey
+	case tagTypeDownload:
+		if operatorName != "unknown" {
+			updateTagData[operatorName] = newKey
+			break
+		}
+		// unknown operator download, check to see if there's a file hosted tag
+		hostedTagType := databaseStructs.TagType{}
+		err = database.DB.Get(&hostedTagType, `SELECT * FROM tagtype WHERE name=$1 AND operation_id=$2`,
+			tagTypeHostedByC2, operationID)
+		if err != nil {
+			// nothing ever hosted via c2, so nothing special to do
+			//logging.LogInfo("Nothing hosted via c2")
+			updateTagData[operatorName] = newKey
+			break
+		}
+		hostedTag := databaseStructs.Tag{}
+		err = database.DB.Get(&hostedTag, `SELECT * FROM tag WHERE filemeta_id=$1 AND operation_id=$2 AND tagtype_id=$3 AND source='mythic'`,
+			fileMetaID, operationID, hostedTagType.ID)
+		if err != nil {
+			// this file wasn't hosted via c2, nothing special to do
+			//logging.LogInfo("file wasn't hosted via c2")
+			updateTagData[operatorName] = newKey
+			break
+		}
+		// this file was hosted by c2, so check if there's an alert that needs to be sent about it
+		c2Profile := c.GetHeader("mythic")
+		//logging.LogInfo("header for downloading file", "mythic header", c2Profile)
+		hostedTagData := hostedTag.Data.StructValue()
+		for _, val := range hostedTagData {
+			hostedTagDataEntry := val.(map[string]interface{})
+			//logging.LogInfo("looping through hosted data", "hostedTagDataEntry", hostedTagDataEntry)
+			if hostedTagDataEntry["c2_profile"].(string) == c2Profile || c2Profile == "" {
+				updateTagData[newKey] = fmt.Sprintf("Via C2 Profile (%s) hosted at %s", c2Profile, hostedTagDataEntry["host_url"].(string))
+				if hostedTagDataEntry["alert_on_download"].(bool) {
+					go rabbitmq.SendAllOperationsMessage(
+						fmt.Sprintf("%s was downloaded at %s via %s at %s",
+							hostedTagDataEntry["filename"],
+							newKey,
+							hostedTagDataEntry["c2_profile"],
+							hostedTagDataEntry["host_url"]),
+						operationID, "alert_on_download", database.MESSAGE_LEVEL_WARNING)
+				}
+				break
+			}
+		}
+	case tagTypeHostedByC2:
+		for key, val := range tagData {
+			updateTagData[key] = val
+		}
+	default:
+	}
+
+	tag.Data = rabbitmq.GetMythicJSONTextFromStruct(updateTagData)
 	_, err = database.DB.NamedExec(`UPDATE tag SET data=:data WHERE id=:id`, tag)
 	if err != nil {
 		logging.LogError(err, "failed to update tag")

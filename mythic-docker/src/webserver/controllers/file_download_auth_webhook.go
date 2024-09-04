@@ -47,7 +47,7 @@ func DownloadFileAuthWebhook(c *gin.Context) {
 		return
 	}
 	if !strings.Contains(c.Request.URL.Path, "screencaptures") {
-		go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypeDownload)
+		go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypeDownload, nil, c)
 	}
 	c.FileAttachment(filemeta.Path, string(filemeta.Filename))
 	logging.LogDebug("Downloading a file to the user", "path", filemeta.Path, "filename", filemeta.Filename)

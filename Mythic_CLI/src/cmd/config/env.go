@@ -369,7 +369,9 @@ Setting this to "true" means that the local Mythic/hasura-docker/Dockerfile is u
 This can cause agent and c2 profile containers to have their volumes wiped on each start (and thus deleting any changes). 
 This also drastically increases the start time for Mythic overall. 
 This should only be needed if you're doing a bunch of development on Mythic itself. 
-If you need to rebuild a specific container, you should use './mythic-cli build [container name]' instead to just rebuild that one container`
+If you need to rebuild a specific container, you should use './mythic-cli build [container name]' instead to just rebuild that one container.
+This will also delete any volumes in use (which will remove things like C2 Profile's config.json updates). 
+To keep these around when starting or building, use the --keep-volume flag`
 
 	// Mythic instance configuration ---------------------------------------------
 	mythicEnv.SetDefault("mythic_admin_user", "mythic_admin")
