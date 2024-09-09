@@ -10,6 +10,8 @@ import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
 import {useTheme} from '@mui/material/styles';
+import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
+import {textExtensionTypesToSyntax} from "../Callbacks/ResponseDisplayMedia";
 
 const getProfileConfigQuery = gql`
 query getProfileConfigOutput($container_name: String!, $filename: String!) {
@@ -21,10 +23,22 @@ query getProfileConfigOutput($container_name: String!, $filename: String!) {
   }
 }
 `;
-
+const getInitialMode = (filename) => {
+    let extension = filename.split(".");
+    if(extension.length > 0){
+        extension = extension[extension.length - 1];
+        if(textExtensionTypesToSyntax[extension]){
+            return textExtensionTypesToSyntax[extension];
+        }
+    } else {
+        if(textExtensionTypesToSyntax[filename]){
+            return textExtensionTypesToSyntax[filename];
+        }
+    }
+    return "html";
+}
 export function C2ProfileConfigDialog(props) {
     const [config, setConfig] = useState("");
-    const theme = useTheme();
     const { loading, error } = useQuery(getProfileConfigQuery, {
         variables: {container_name: props.container_name, filename: props.filename},
         onCompleted: data => {
@@ -37,42 +51,30 @@ export function C2ProfileConfigDialog(props) {
         },
         fetchPolicy: "network-only"
     });
-    
+    const initialMode = React.useRef(getInitialMode(props.filename));
+
     if (loading) {
      return <LinearProgress />;
     }
     if (error) {
      console.error(error);
-     return <div>Error!</div>;
+     return <div>Error! {error.message}</div>;
     }
     const onConfigSubmit = () => {
         props.onConfigSubmit(btoa(config));
         props.onClose();
     }
-    const onChange = (value, event) => {
-        setConfig(value);
-    }
-  
+
   return (
-    <React.Fragment>
-        <DialogTitle id="form-dialog-title">{props.container_name}'s Current Configuration</DialogTitle>
-        <DialogContent dividers={true}>
-            <AceEditor 
-              mode="json"
-              theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
-              onChange={onChange}
-              fontSize={14}
-              showGutter={true}
-              highlightActiveLine={true}
-              value={config}
-              focus={true}
-              width={"100%"}
-              setOptions={{
-                showLineNumbers: true,
-                  useWorker: false,
-                tabSize: 4
-              }}/>
-        </DialogContent>
+    <>
+        <DialogTitle id="form-dialog-title">{props.container_name}'s {props.filename}</DialogTitle>
+        <div style={{height: "calc(80vh)"}}>
+            <ResponseDisplayPlaintext
+                onChangeContent={setConfig}
+                initial_mode={initialMode.current}
+                plaintext={config}
+                expand={true} />
+        </div>
         <DialogActions>
           <Button variant="contained" onClick={props.onClose} color="primary">
             Close
@@ -81,7 +83,7 @@ export function C2ProfileConfigDialog(props) {
             Submit
           </Button>
         </DialogActions>
-  </React.Fragment>
+  </>
   );
 }
 

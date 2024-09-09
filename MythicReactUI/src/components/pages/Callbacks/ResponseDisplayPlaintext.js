@@ -26,6 +26,8 @@ import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import { useReactiveVar } from '@apollo/client';
 import { meState } from '../../../cache';
 import CodeIcon from '@mui/icons-material/Code';
+import {GetOutputFormatAll} from "./ResponseDisplayInteractive";
+import PaletteIcon from '@mui/icons-material/Palette';
 
 const MaxRenderSize = 2000000;
 export const ResponseDisplayPlaintext = (props) =>{
@@ -35,8 +37,9 @@ export const ResponseDisplayPlaintext = (props) =>{
   const [plaintextView, setPlaintextView] = React.useState("");
   const initialMode = props?.initial_mode || "html";
   const [mode, setMode] = React.useState(initialMode);
-  const [wrapText, setWrapText] = React.useState(true);
+  const [wrapText, setWrapText] = React.useState(props?.wrap_text === undefined ? true : props.wrap_text);
   const [showOptions, setShowOptions] = React.useState(false);
+  const [renderColors, setRenderColors] = React.useState(props?.render_colors === undefined ? false : props.render_colors);
   const onChangeText = (data) => {
       if(props.onChangeContent){
           props?.onChangeContent(data);
@@ -127,6 +130,11 @@ export const ResponseDisplayPlaintext = (props) =>{
                           <CodeIcon color={"info"} style={{cursor: "pointer"}} />
                       </IconButton>
                   </MythicStyledTooltip>
+                  <MythicStyledTooltip title={renderColors ? "Render Plaintext" : "Render Colors"} >
+                      <IconButton onClick={() => {setRenderColors(!renderColors)}}>
+                          <PaletteIcon color={renderColors ? "success" : "secondary"} style={{cursor: "pointer"}} />
+                      </IconButton>
+                  </MythicStyledTooltip>
               </div>
           }
           <div style={{height: "1px", width: "100%", display: "flex", zIndex: 1,  backgroundColor: theme.palette.secondary.main}}>
@@ -138,31 +146,45 @@ export const ResponseDisplayPlaintext = (props) =>{
               }
           </div>
 
-          <div style={{display: "flex", flexGrow: 1, height: "100%"}}>
-                <AceEditor
-                    className={"roundedBottomCorners"}
-                    ref={currentContentRef}
-                    mode={mode}
-                    theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
-                    fontSize={14}
-                    showGutter={true}
-                    onChange={onChangeText}
-                    //onLoad={onLoad}
-                    highlightActiveLine={false}
-                    showPrintMargin={false}
-                    value={plaintextView}
-                    height={props.expand ? "100%": undefined}
-                    maxLines={props.expand ? undefined : 20}
-                    width={"100%"}
-                    //autoScrollEditorIntoView={true}
-                    wrapEnabled={wrapText}
-                    minLines={1}
-                    //maxLines={props.expand ? 50 : 20}
-                    setOptions={{
-                      showLineNumbers: true,
-                      tabSize: 4,
-                      useWorker: false
-                    }}/>
+          <div style={{flexGrow: 1, height: "100%", paddingLeft: renderColors ? "15px" : "0px", paddingRight: renderColors ? "5px": "0px"}}>
+              {renderColors &&
+                  <GetOutputFormatAll data={[
+                      {response: plaintextView,  id: props?.task?.id || 0, timestamp: "1970-01-01"}]}
+                                      myTask={false}
+                                      taskID={props?.task?.id || 0}
+                                      useASNIColor={true}
+                                      messagesEndRef={null}
+                                      showTaskStatus={false}
+                                      search={undefined}
+                                      wrapText={wrapText}/>
+              }
+              {!renderColors &&
+                  <AceEditor
+                      className={"roundedBottomCorners"}
+                      ref={currentContentRef}
+                      mode={mode}
+                      theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
+                      fontSize={14}
+                      showGutter={true}
+                      onChange={onChangeText}
+                      //onLoad={onLoad}
+                      highlightActiveLine={false}
+                      showPrintMargin={false}
+                      value={plaintextView}
+                      height={props.expand ? "100%": undefined}
+                      maxLines={props.expand ? undefined : 20}
+                      width={"100%"}
+                      //autoScrollEditorIntoView={true}
+                      wrapEnabled={wrapText}
+                      minLines={1}
+                      //maxLines={props.expand ? 50 : 20}
+                      setOptions={{
+                          showLineNumbers: true,
+                          tabSize: 4,
+                          useWorker: false
+                      }}/>
+              }
+
           </div>
       </div>
   )

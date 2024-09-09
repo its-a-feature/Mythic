@@ -818,9 +818,9 @@ func handleAgentMessagePostResponseCallbackTokens(task databaseStructs.Task, cal
 					databaseToken.ID = databaseID
 				}
 			} else if err := database.DB.Get(&databaseToken, `SELECT id FROM token WHERE
-				 token_id=$1 AND host=$2 AND operation_id=$3`,
+				 token_id=$1 AND host=$2 AND operation_id=$3 AND deleted=false`,
 				databaseToken.TokenID, databaseToken.Host, task.OperationID); err != nil {
-				logging.LogError(err, "Failed to find token to add to callback")
+				logging.LogError(err, "Failed to find token to add to callback", "token_id", databaseToken.TokenID, "host", databaseToken.Host)
 				continue
 			}
 			databaseCallbackToken := databaseStructs.Callbacktoken{

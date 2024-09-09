@@ -166,7 +166,7 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 							newKey,
 							hostedTagDataEntry["c2_profile"],
 							hostedTagDataEntry["host_url"]),
-						operationID, "alert_on_download", database.MESSAGE_LEVEL_WARNING)
+						operationID, "", database.MESSAGE_LEVEL_WARNING)
 				}
 				break
 			}

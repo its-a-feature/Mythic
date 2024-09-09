@@ -15,9 +15,10 @@ type C2GetDebugOutputMessage struct {
 }
 
 type C2GetDebugOutputMessageResponse struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error"`
-	Message string `json:"message"`
+	Success               bool   `json:"success"`
+	Error                 string `json:"error"`
+	Message               string `json:"message"`
+	InternalServerRunning bool   `json:"server_running"`
 }
 
 func (r *rabbitMQConnection) SendC2RPCGetDebugOutput(getDebugOutput C2GetDebugOutputMessage) (*C2GetDebugOutputMessageResponse, error) {

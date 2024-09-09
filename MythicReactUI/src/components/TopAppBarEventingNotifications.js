@@ -18,7 +18,7 @@ subscription OperationEventingCounts {
 
 export function TopAppBarEventingNotifications(props) {
     const [totalRunning, setTotalRunning] = React.useState([]);
-  const { loading, error, data } = useSubscription(OperationEventingCounts, {
+    const { loading, error, data } = useSubscription(OperationEventingCounts, {
       onData: ({data}) => {
         const newRunningCounts = data.data.eventgroupinstance_stream.reduce( (prev, cur) => {
             let existingIndex = prev.findIndex( e => e.id === cur.id);

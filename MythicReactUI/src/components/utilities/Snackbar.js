@@ -5,13 +5,7 @@ import Button from '@mui/material/Button';
 import React from 'react';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Paper from '@mui/material/Paper';
-import {useTheme} from '@mui/material/styles';
 import SnoozeIcon from '@mui/icons-material/Snooze';
 import {Dropdown, DropdownMenuItem} from "../MythicComponents/MythicNestedMenus";
 
@@ -131,29 +125,35 @@ const stillDoNotDisturb = () => {
 }
 export const snackActions = {
   success(msg, options) {
-    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "success", ...options});
+    if(document.hidden){return}
+    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "success", onClick: this.dismiss, ...options});
   },
   warning(msg, options) {
+    if(document.hidden){return}
     if(stillDoNotDisturb()){
       return;
     }
-    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "warning", closeButton: CloseButton, ...options});
+    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "warning", onClick: this.dismiss, closeButton: CloseButton, ...options});
   },
   info(msg, options) {
+    if(document.hidden){return}
     if(stillDoNotDisturb()){
       return;
     }
-    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "info", closeButton: CloseButton, ...options});
+    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "info", onClick: this.dismiss, closeButton: CloseButton, ...options});
   },
   error(msg, options) {
-    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "error", ...options});
+    if(document.hidden){return}
+    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "error", onClick: this.dismiss, ...options});
   },
   update(msg, toastID, options) {
+    if(document.hidden){return}
     if(toast.isActive){
       toast.update(toastID, {...options, render: msg});
     }    
   },
   loading(msg, options) {
+    if(document.hidden){return}
     toast.loading(msg,{position: toast.POSITION.TOP_CENTER, ...options})
   },
   dismiss(){

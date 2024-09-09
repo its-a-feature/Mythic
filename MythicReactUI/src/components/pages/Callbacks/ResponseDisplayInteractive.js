@@ -78,6 +78,30 @@ const getClassnames = (entry) => {
     //console.log(entry);
     return classnames.join(" ");
 }
+const handleTerminalCodes = (response) => {
+    let output = response.replaceAll("[?2004h", "");
+    output = output.replaceAll("[?2004l", "");
+    let indexOfTitleSeq = output.indexOf("]0");
+    if(indexOfTitleSeq >= 0){
+        let endIndexOfTitleSeq = output.indexOf("]");
+        if(endIndexOfTitleSeq >= 0 && endIndexOfTitleSeq > indexOfTitleSeq){
+            output = output.substring(0, indexOfTitleSeq + 2) + output.substring(endIndexOfTitleSeq);
+        }
+    }
+    let indexOfClearLeft = output.indexOf("[J");
+    if(indexOfClearLeft >= 0){
+        let indexOfLastNewLine = 0;
+        for(let i = indexOfClearLeft; i >= 0; i--){
+            if(output[i] === "\n"){
+                indexOfLastNewLine = i;
+                break;
+            }
+        }
+        output = output.substring(0, indexOfLastNewLine+1) + output.substring(indexOfClearLeft + 2);
+    }
+
+    return output;
+}
 export const GetOutputFormatAll = ({data, myTask, taskID,  useASNIColor, messagesEndRef, showTaskStatus, wrapText, search}) => {
     const [dataElement, setDataElement] = React.useState(null);
     React.useEffect( () => {
@@ -92,7 +116,8 @@ export const GetOutputFormatAll = ({data, myTask, taskID,  useASNIColor, message
                 </pre>)
                 } else {
                     if(useASNIColor){
-                        let ansiJSON = Anser.ansiToJson(d.response, { use_classes: true });
+                        let removedTerminalCodes = handleTerminalCodes(d.response);
+                        let ansiJSON = Anser.ansiToJson(removedTerminalCodes, { use_classes: true });
                         //console.log(ansiJSON)
                         return (
                             ansiJSON.map( (a, i) => (
@@ -472,6 +497,10 @@ const InteractiveTaskingBar = ({
         event.stopPropagation();
         event.preventDefault();
         if(event.shiftKey){
+            setInputText(inputText + selectedEnterOption.value);
+            return;
+        }
+        if(event.metaKey || event.ctrlKey){
             setInputText(inputText + selectedEnterOption.value);
             return;
         }

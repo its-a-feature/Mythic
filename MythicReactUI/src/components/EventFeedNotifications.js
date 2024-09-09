@@ -4,23 +4,8 @@ import {snackActions} from './utilities/Snackbar';
 
 //fromNow must be in ISO format for hasura/postgres stuff
 //new Date().toISOString() will do it
-/*
+
 const subscribe_payloads = gql`
-subscription EventFeedNotificationSubscription($fromNow: timestamp!, $operation_id: Int!) {
-  operationeventlog(limit: 1, where: {deleted: {_eq: false}, timestamp: {_gte: $fromNow}, operation_id: {_eq: $operation_id}}, order_by: {id: desc}) {
-    operator {
-        username
-    }
-    id
-    message
-    level
-    resolved
-    source
-  }
-}
- `;
- */
- const subscribe_payloads = gql`
  subscription EventFeedNotificationSubscription($fromNow: timestamp!) {
    operationeventlog_stream(cursor: {initial_value: {timestamp: $fromNow}, ordering: ASC}, batch_size: 1, where: {deleted: {_eq: false}}) {
      operator {
@@ -37,9 +22,9 @@ subscription EventFeedNotificationSubscription($fromNow: timestamp!, $operation_
 
 export function EventFeedNotifications(props) {
     const me = props.me;
-    const fromNow = React.useRef( (new Date()).toISOString() );
+    //const fromNow = React.useRef(  );
     const { loading, error, data } = useSubscription(subscribe_payloads, {
-        variables: {fromNow: fromNow.current}, 
+        variables: {fromNow: (new Date()).toISOString()},
         fetchPolicy: "no-cache",
         shouldResubscribe: true,
         onError: (errorData) => {

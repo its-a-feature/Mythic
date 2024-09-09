@@ -86,7 +86,7 @@ export function C2ProfileBuildDialog(props) {
   
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">{props.payload_name}'s Build Parameters</DialogTitle>
+        <DialogTitle id="form-dialog-title">{props.container_name}'s Build Parameters</DialogTitle>
         <DialogContent dividers={true}>
           <DialogContentText>
             These are the build parameters associated with this payload

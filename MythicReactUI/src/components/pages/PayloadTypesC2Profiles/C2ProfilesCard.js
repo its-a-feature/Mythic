@@ -77,19 +77,24 @@ export function C2ProfilesRow({service, showDeleted}) {
 
         setDropdownOpen(false);
     };
+    const [alreadyRunningStartStop, setAlreadyRunningStartStop] = React.useState(false);
     const [startStopProfile] = useMutation(startStopProfileMutation, {
-        update: (cache, {data}) => {
-
-        },
         onError: data => {
             console.error(data);
         },
         onCompleted: data => {
+            setAlreadyRunningStartStop(false);
+            if(data.startStopProfile.output.length === 0){
+                snackActions.info("No output from container");
+                return;
+            }
             setOutput(data.startStopProfile.output);
             setOpenProfileStartStopDialog(true);
+
         }
     });
     const onStartStopProfile = () => {
+        setAlreadyRunningStartStop(true);
         if(service.running){
             snackActions.info("Submitting stop task. Waiting 3s for output ..." );
         }else{
@@ -208,9 +213,16 @@ export function C2ProfilesRow({service, showDeleted}) {
                         service.running ?
                             (
                                 <ButtonGroup variant="contained" color={"secondary"} ref={dropdownAnchorRef} aria-label="split button" >
-                                    <Button size="small" color={service.running ? "success" : "error"} onClick={onStartStopProfile} style={{width: "100%"}}>Stop Profile</Button>
+                                    <Button size="small"
+                                            disabled={alreadyRunningStartStop}
+                                            color={service.running ? "success" : "error"}
+                                            onClick={onStartStopProfile}
+                                            style={{width: "100%"}}>
+                                        {alreadyRunningStartStop ? "Waiting..." : "Stop Profile"}
+                                    </Button>
                                     <Button
                                         size="small"
+                                        disabled={alreadyRunningStartStop}
                                         aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                                         aria-expanded={dropdownOpen ? 'true' : undefined}
                                         aria-label="select merge strategy"
@@ -226,9 +238,16 @@ export function C2ProfilesRow({service, showDeleted}) {
                             (
                                 service.is_p2p ? null : (
                                     <ButtonGroup size="small" variant="contained" ref={dropdownAnchorRef} aria-label="split button" color={service.running ? "success" : "error"} >
-                                        <Button size="small" onClick={onStartStopProfile} color={service.running ? "success" : "error"} style={{width: "100%"}}>Start Profile</Button>
+                                        <Button size="small"
+                                                disabled={alreadyRunningStartStop}
+                                                onClick={onStartStopProfile}
+                                                color={service.running ? "success" : "error"}
+                                                style={{width: "100%"}}>
+                                            {alreadyRunningStartStop ? "Waiting..." : "Start Profile"}
+                                        </Button>
                                         <Button
                                             size="small"
+                                                disabled={alreadyRunningStartStop}
                                             aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                                             aria-expanded={dropdownOpen ? 'true' : undefined}
                                             aria-label="select merge strategy"
@@ -311,7 +330,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                     />
                 }
                 {openProfileStartStopDialog &&
-                    <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileStartStopDialog}
+                    <MythicDialog fullWidth={true} maxWidth="xl" open={openProfileStartStopDialog}
                                   onClose={()=>{setOpenProfileStartStopDialog(false);}}
                                   innerDialog={<C2ProfileStartStopOutputDialog output={output}
                                                                                onClose={()=>{setOpenProfileStartStopDialog(false);}}
@@ -325,7 +344,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                                          acceptColor={service.deleted ? "success": "error"} />
                 }
                 {openProfileDialog &&
-                    <MythicDialog fullWidth={true} maxWidth="lg" open={openProfileDialog}
+                    <MythicDialog fullWidth={true} maxWidth="xl"  open={openProfileDialog}
                                   onClose={()=>{setOpenProfileDialog(false);}}
                                   innerDialog={<C2ProfileOutputDialog {...service}  container_name={service.name}
                                                                       onClose={()=>{setOpenProfileDialog(false);}}
@@ -350,7 +369,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                     />
                 }
                 {openListFilesDialog &&
-                    <MythicDialog fullWidth={true} maxWidth="md" open={openListFilesDialog}
+                    <MythicDialog fullWidth={true} maxWidth="lg" open={openListFilesDialog}
                                   onClose={()=>{setOpenListFilesDialog(false);}}
                                   innerDialog={<C2ProfileListFilesDialog container_name={service.name} {...service} onClose={()=>{setOpenListFilesDialog(false);}} />}
                     />

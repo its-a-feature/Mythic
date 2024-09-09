@@ -173,13 +173,13 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
         </div>
     )
 }
-const textExtensionTypes = ["txt", "ps1", "php", "json", "yml", "yaml", "config", "cfg", "go",
+export const textExtensionTypes = ["txt", "ps1", "php", "json", "yml", "yaml", "config", "cfg", "go",
     "html", "xml", "js", "java", "conf", "cs", "rb", "toml", "sh", "md", "ini", "py", "kirbi", "bash_profile", "rc",
     "local", "gitconfig", "gitignore", "zsh_history", "bash_history", "ps", "psql_history", "lesshst", "gcloudignore",
     "pem", "boto", "zsh_profile", "pub", "python_history", "sqlite_history", "viminfo", "zprofile", "zshrc",
     "history", "historynew", "bashrc"
 ];
-const textExtensionTypesToSyntax = {
+export const textExtensionTypesToSyntax = {
     "json": "json",
     "cs": "csharp",
     "go": "golang",
@@ -200,8 +200,8 @@ const textExtensionTypesToSyntax = {
     "php": "php",
     "m": "objectivec",
     "mm": "objectivec",
-    "Dockerfile": "Dockerfile",
-    "Makefile": "Makefile",
+    "Dockerfile": "dockerfile",
+    "Makefile": "makefile",
     "sh": "sh",
     "rc": "sh",
     "bashrc": "sh",

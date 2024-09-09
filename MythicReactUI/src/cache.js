@@ -1,5 +1,4 @@
 import { makeVar } from '@apollo/client';
-import React from 'react';
 import {restartWebsockets} from "./index";
 import {snackActions} from "./components/utilities/Snackbar";
 

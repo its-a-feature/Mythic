@@ -50,7 +50,7 @@ export function EventFeedTable(props){
                 <Grid container spacing={2} style={{maxWidth: "100%"}}>
                     <Grid item xs={10}>
                         <MythicTextField placeholder="Search..." value={search}
-                                         onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
+                                         onChange={handleSearchValueChange} onEnter={submitSearch} InputProps={{
                             endAdornment:
                                 <React.Fragment>
                                     <Tooltip title="Search">

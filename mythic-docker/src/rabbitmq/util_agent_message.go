@@ -352,12 +352,12 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	// 4. look up c2 profile and information about UUID
 	uuidInfo, err := LookupEncryptionData(agentMessageInput.C2Profile, messageUUID.String(), agentMessageInput.UpdateCheckinTime)
 	if err != nil {
-		logging.LogError(err, "Failed to get encryption data and information about UUID")
 		errorMessage := fmt.Sprintf("Failed to correlate UUID, %s, to something Mythic knows.\n", messageUUID.String())
 		errorMessage += fmt.Sprintf("%s is likely a Callback or Payload from a Mythic instance that was deleted or had the database reset.\n", messageUUID.String())
 		errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
 		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
-		instanceResponse.Err = err
+		logging.LogError(err, errorMessage)
+		instanceResponse.Err = errors.New(errorMessage)
 		return instanceResponse
 	}
 	decryptedMessage, err := DecryptMessage(uuidInfo, base64DecodedMessage[agentUUIDLength:totalBase64Bytes])
@@ -818,7 +818,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 	} else {
 		// we couldn't find a match for the UUID
 		logging.LogError(err, "Failed to find UUID in callbacks, staging, or payloads")
-		return &newCache, errors.New("Failed to find UUID in callbacks, staging, or payloads")
+		return &newCache, errors.New(fmt.Sprintf("Failed to find UUID (%s) in callbacks, staging, or payloads", messageUUID))
 	}
 	if newCache.TranslationContainerID > 0 {
 		if err := database.DB.Get(&newCache.TranslationContainerName, `SELECT

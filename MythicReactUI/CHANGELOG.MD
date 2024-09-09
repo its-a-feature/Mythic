@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.41] - 2024-09-09
+
+### Changed
+
+- Updated the toast notifications to not accumulate when you're not looking at the tab
+- Updated the toast notifications to dismiss all in queue when you click one
+- Updated the nested menu layers to not get hidden behind toast notification's ZIndex
+- Updated the C2 Profile/Container File viewer to more closely align with Plaintext views of tasking
+- Updated some of the interactive terminal code parsing to start handling some non-ASNI Color cases
+- Updated the C2 Profile start/stop button to disable between clicks so you can't accidentally spam it
+- Updated C2 Profile debug output view to default to non-wrapped color processed data
+- Added option to view standard output with ANSI colors processed
+
 ## [0.2.40] - 2024-09-04
 
 ### Changed

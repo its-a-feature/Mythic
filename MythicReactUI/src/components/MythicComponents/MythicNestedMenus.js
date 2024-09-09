@@ -69,6 +69,7 @@ export const Dropdown = React.forwardRef(
             <>
                 <Menu
                     PaperProps={{ sx: { minWidth: minWidth ?? 0 } }}
+                    style={{zIndex: 100000}}
                     anchorEl={isOpen}
                     transition={"true"}
                     open={!!externallyOpen}
@@ -214,7 +215,7 @@ const NestedMenuItem = React.forwardRef((props, ref) => {
             </MenuItem>
             <Menu
                 hideBackdrop
-                style={{ pointerEvents: "none" }}
+                style={{ pointerEvents: "none", zIndex: 100000}}
                 anchorEl={menuItemRef.current}
                 anchorOrigin={{
                     vertical: "top",
