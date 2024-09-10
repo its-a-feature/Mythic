@@ -38,16 +38,18 @@ const getInitialMode = (filename) => {
     return "html";
 }
 export function C2ProfileConfigDialog(props) {
-    const [config, setConfig] = useState("");
+    const config = React.useRef("");
+    const [fetchedData, setFetchedData] = React.useState(false);
     const { loading, error } = useQuery(getProfileConfigQuery, {
         variables: {container_name: props.container_name, filename: props.filename},
         onCompleted: data => {
             if(data.containerDownloadFile.status === "error"){
-                setConfig("Errored trying to read file from container\n" + data.containerDownloadFile.error);
+                config.current = "Errored trying to read file from container\n" + data.containerDownloadFile.error;
             }else{
                 //console.log(data);
-                setConfig(atob(data.containerDownloadFile.data));
+                config.current = atob(data.containerDownloadFile.data);
             }
+            setFetchedData(true);
         },
         fetchPolicy: "network-only"
     });
@@ -61,8 +63,11 @@ export function C2ProfileConfigDialog(props) {
      return <div>Error! {error.message}</div>;
     }
     const onConfigSubmit = () => {
-        props.onConfigSubmit(btoa(config));
+        props.onConfigSubmit(btoa(config.current));
         props.onClose();
+    }
+    const setConfig = (newData) => {
+        config.current = newData;
     }
 
   return (
@@ -72,7 +77,7 @@ export function C2ProfileConfigDialog(props) {
             <ResponseDisplayPlaintext
                 onChangeContent={setConfig}
                 initial_mode={initialMode.current}
-                plaintext={config}
+                plaintext={config.current}
                 expand={true} />
         </div>
         <DialogActions>
