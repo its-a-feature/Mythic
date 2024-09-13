@@ -323,7 +323,15 @@ export function C2ProfileSavedInstancesDialog(props) {
             instance_name: instanceName
         };
         configuration.c2_instance = currentParameters.reduce( (prev, cur) => {
-            return {...prev, [cur.name]:cur.value};
+            switch (cur.parameter_type) {
+                case "Dictionary":
+                    const condensed = cur.value.reduce( (p, c) => {
+                        return {...p, [c.name]: c.value}
+                    }, {});
+                    return {...prev, [cur.name]: condensed};
+                default:
+                    return {...prev, [cur.name]:cur.value};
+            }
         }, {});
         const dataBlob = new Blob([JSON.stringify(configuration, null, 2)], {type: 'text/plain'});
         const ele = document.getElementById("download_instance");

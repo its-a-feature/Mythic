@@ -2,6 +2,9 @@ package webserver
 
 import (
 	"fmt"
+	"github.com/its-a-feature/Mythic/database"
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
 	"time"
 
@@ -100,6 +103,21 @@ func InitializeGinLogger() gin.HandlerFunc {
 			source := c.GetHeader("MythicSource")
 			if source == "" {
 				source = "scripting"
+			}
+			graphQLOperationName := c.GetString("GraphQLName")
+			if tokenStruct, ok := c.Get("apitoken_logging_struct"); ok {
+				if param.Path == "/graphql/webhook" {
+					if graphQLOperationName == "" {
+						graphQLOperationName = " with a subscription"
+					} else {
+						graphQLOperationName = "for " + graphQLOperationName
+					}
+					token := tokenStruct.(databaseStructs.Apitokens)
+					go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("APIToken, %s, for user %s (%s) just used %s",
+						token.Name, token.Operator.Username, token.Operator.AccountType, graphQLOperationName),
+						int(token.Operator.CurrentOperationID.Int64), token.TokenValue,
+						database.MESSAGE_LEVEL_DEBUG)
+				}
 			}
 			logging.LogInfo("WebServer Logging",
 				"ClientIP", param.ClientIP,

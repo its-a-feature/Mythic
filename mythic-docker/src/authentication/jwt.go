@@ -107,16 +107,25 @@ func TokenValid(c *gin.Context) error {
 		} else {
 			c.Request.Header.Add("MythicSource", "apitoken")
 		}
+		c.Set("apitoken_logging_struct", databaseApiToken)
 		c.Set("user_id", databaseApiToken.OperatorID)
 		c.Set("username", databaseApiToken.Operator.Username)
 		c.Set("apitoken", databaseApiToken.Name)
 		c.Set("account", databaseApiToken.Operator.AccountType)
-		go func(token databaseStructs.Apitokens) {
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("APIToken, %s (%s), for user %s (%s) just used",
-				token.Name, token.TokenType, token.Operator.Username, token.Operator.AccountType),
-				int(token.Operator.CurrentOperationID.Int64), token.TokenValue,
-				database.MESSAGE_LEVEL_DEBUG)
-		}(databaseApiToken)
+		/*
+			if hasura, ok := c.Get("hasura"); ok {
+				logging.LogInfo("got hasura info", "hasura", hasura)
+			} else {
+				logging.LogInfo("no hasura info yet")
+			}
+			go func(token databaseStructs.Apitokens) {
+				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("APIToken, %s, for user %s (%s) just used",
+					token.Name, token.Operator.Username, token.Operator.AccountType),
+					int(token.Operator.CurrentOperationID.Int64), token.TokenValue,
+					database.MESSAGE_LEVEL_DEBUG)
+			}(databaseApiToken)
+
+		*/
 		return nil
 	}
 	claims := mythicjwt.CustomClaims{}
@@ -162,6 +171,14 @@ func ExtractToken(c *gin.Context) (string, error) {
 		if c.Request.Method == "POST" {
 			if _, ok := c.Get("hasura"); !ok {
 				// don't try to double process, only do this once
+				/*
+					var buf bytes.Buffer
+					tee := io.TeeReader(c.Request.Body, &buf)
+					body, _ := ioutil.ReadAll(tee)
+					c.Request.Body = ioutil.NopCloser(&buf)
+					logging.LogInfo("raw hasura info", "raw body", string(body))
+
+				*/
 				var input HasuraRequest
 				if err := c.ShouldBindJSON(&input); err != nil {
 					logging.LogError(err, "Failed to find hasura request")
@@ -171,6 +188,7 @@ func ExtractToken(c *gin.Context) (string, error) {
 					c.Request.Header.Add(key, value)
 				}
 				c.Set("hasura", input)
+				//logging.LogInfo("hasura info", "hasura", input)
 			}
 		}
 		token = c.Request.Header.Get("Authorization")
@@ -196,6 +214,14 @@ func ExtractAPIToken(c *gin.Context) (string, error) {
 		if c.Request.Method == "POST" {
 			if _, ok := c.Get("hasura"); !ok {
 				// don't try to double process, only do this once
+				/*
+					var buf bytes.Buffer
+					tee := io.TeeReader(c.Request.Body, &buf)
+					body, _ := ioutil.ReadAll(tee)
+					c.Request.Body = ioutil.NopCloser(&buf)
+					logging.LogInfo("raw hasura info", "raw body", string(body))
+
+				*/
 				var input HasuraRequest
 				if err := c.ShouldBindJSON(&input); err != nil {
 					logging.LogError(err, "Failed to find hasura request")
@@ -205,6 +231,7 @@ func ExtractAPIToken(c *gin.Context) (string, error) {
 					c.Request.Header.Add(key, value)
 				}
 				c.Set("hasura", input)
+				//logging.LogInfo("hasura info", "hasura", input)
 			}
 		}
 		token = c.Request.Header.Get("apitoken")

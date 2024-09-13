@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated some of the logging for bad messages to be clearer
 
+## [3.3.1-rc8] - 2024-09-13
+
+### Changed
+
+- Added more verbose error messages on connections to include user agent and full URL + Query paths
+  - Requires latest `http` and `websocket` profiles to forward the necessary headers
+- Added more context for GraphQL queries used by APITokens/Scripting to the event log
+- Fixed a bug with exporting saved c2 profile instances that would then break imports
+
 ## [3.3.1-rc6] - 2024-09-04
 
 ### Changed

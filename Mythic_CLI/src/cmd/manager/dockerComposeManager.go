@@ -386,7 +386,7 @@ func (d *DockerComposeManager) StopServices(services []string, deleteImages bool
 			}
 		}
 		if !found {
-			log.Printf("[-] Failed to find container: %s\n", service)
+			log.Printf("[*] Container not running: %s\n", service)
 		}
 	}
 	return nil
@@ -685,7 +685,8 @@ func (d *DockerComposeManager) Status(verbose bool) {
 		log.Fatalf("[-] Failed to get client in Status check: %v", err)
 	}
 	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
-		All: true,
+		All:  true,
+		Size: true,
 	})
 	if err != nil {
 		log.Fatalf("[-] Failed to get container list: %v\n", err)
