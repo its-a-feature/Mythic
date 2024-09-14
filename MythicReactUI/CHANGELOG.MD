@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.44] - 2024-09-14
+
+### Changed
+
+- Updated the tasking UI buttons, console view, and split view to also pass along the payload_type field for tasking
+  - This helps with command augmentation containers know which version of a command to execute
+  
 ## [0.2.43] - 2024-09-13
 
 ## Changed

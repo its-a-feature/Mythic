@@ -282,7 +282,13 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
         }
         if(cmd.commandparameters.length === 0){
             // if there are no parameters, just send whatever the user types along
-            onCreateTask({callback_id: tabInfo.displayID, command: cmd.cmd, params: params, parameter_group_name: "Default", tasking_location: newTaskingLocation});
+            onCreateTask({callback_id: tabInfo.displayID,
+                command: cmd.cmd,
+                params: params,
+                parameter_group_name: "Default",
+                tasking_location: newTaskingLocation,
+                payload_type: cmd.payloadtype?.name,
+            });
         }else{
             // check if there's a "file" component that needs to be displayed
             const fileParamExists = cmd.commandparameters.find(param => {
@@ -321,7 +327,7 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
                     setCommandInfo({...cmd, "parsedParameters": parsed});
                 }
                 setOpenParametersDialog(true);
-                return;
+
             }else{
                 delete parsed["_"];
                 onCreateTask({callback_id: tabInfo.displayID,
@@ -329,20 +335,28 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
                     params: JSON.stringify(parsed),
                     tasking_location: newTaskingLocation,
                     original_params: params,
-                    parameter_group_name: cmdGroupNames[0]});
+                    parameter_group_name: cmdGroupNames[0],
+                    payload_type: cmd.payloadtype?.name,
+                });
             }
         }
     }
-    const submitParametersDialog = (cmd, parameters, files, selectedParameterGroup) => {
+    const submitParametersDialog = (cmd, parameters, files, selectedParameterGroup, payload_type) => {
         setOpenParametersDialog(false);
-        onCreateTask({callback_id: tabInfo.displayID, command: cmd, params: parameters, files: files, tasking_location: "modal", parameter_group_name: selectedParameterGroup});
+        onCreateTask({callback_id: tabInfo.displayID,
+            command: cmd,
+            params: parameters,
+            files: files,
+            tasking_location: "modal",
+            parameter_group_name: selectedParameterGroup,
+            payload_type: payload_type
+        });
     }
-    const onCreateTask = ({callback_id, command, params, files, tasking_location, original_params, parameter_group_name}) => {
-        //console.log(selectedToken)
+    const onCreateTask = ({callback_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type}) => {
         if(selectedToken.token_id !== undefined){
-            createTask({variables: {callback_id, command, params, files, token_id: selectedToken.token_id, tasking_location, original_params, parameter_group_name}});
+            createTask({variables: {callback_id, command, params, files, token_id: selectedToken.token_id, tasking_location, original_params, parameter_group_name, payload_type}});
         }else{
-            createTask({variables: {callback_id, command, params, files, tasking_location, original_params, parameter_group_name}});
+            createTask({variables: {callback_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type}});
         }
     }
     const onSubmitFilter = (newFilter) => {

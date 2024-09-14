@@ -352,7 +352,6 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         });
     }
     const onCreateTask = ({callback_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type}) => {
-        //console.log(selectedToken)
         if(selectedToken.token_id !== undefined){
             createTask({variables: {callback_id, command, params, files, token_id: selectedToken.token_id, tasking_location, original_params, parameter_group_name, payload_type}});
         }else{

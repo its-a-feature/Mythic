@@ -1225,6 +1225,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             return;
         }
         console.log("positional args added in:", parsedWithPositionalParameters);
+        console.log("about to call onSubmitCommandLine", cmd);
         props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, unmodifiedHistoryValue);
         setMessage("");
         setTaskOptionsIndex(-1);

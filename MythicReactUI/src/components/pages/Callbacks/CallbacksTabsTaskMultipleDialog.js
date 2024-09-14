@@ -10,7 +10,6 @@ import {CallbacksTableIPCell, CallbacksTableLastCheckinCell} from "./CallbacksTa
 import { DataGrid } from '@mui/x-data-grid';
 import { validate as uuidValidate } from 'uuid';
 import {snackActions} from "../../utilities/Snackbar";
-import {useTheme} from '@mui/material/styles';
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -194,7 +193,8 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                 openDialog: false,
                 parameters: params,
                 tasking_location: newTaskingLocation,
-                dontShowSuccessDialog: false
+                dontShowSuccessDialog: false,
+                payload_type: cmd.payloadtype?.name,
             };
             submitTasking();
             return;
@@ -239,7 +239,8 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                         groupName: cmdGroupNames[0],
                         parameters: params,
                         tasking_location: newTaskingLocation,
-                        dontShowSuccessDialog: false
+                        dontShowSuccessDialog: false,
+                        payload_type: cmd.payloadtype?.name,
                     };
                 }else{
                     finalTaskedParameters.current = undefined;
@@ -250,7 +251,8 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                         parsedParameters: parsed,
                         parameters: params,
                         tasking_location: newTaskingLocation,
-                        dontShowSuccessDialog: false
+                        dontShowSuccessDialog: false,
+                        payload_type: cmd.payloadtype?.name,
                     };
                 }
                 submitTasking();
@@ -267,7 +269,8 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
                     parsedParameters: parsed,
                     tasking_location: newTaskingLocation,
                     dontShowSuccessDialog: false,
-                    parameter_group_name: cmdGroupNames[0]
+                    parameter_group_name: cmdGroupNames[0],
+                    payload_type: cmd.payloadtype?.name,
                 };
                 submitTasking();
             }

@@ -242,7 +242,8 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
             savedFinalVariables.current = new_parameters;
         }
         
-        onSubmitTasking({variables: {callback_id: callbackData.callback_by_pk.display_id,
+        onSubmitTasking({variables: {
+            callback_id: callbackData.callback_by_pk.display_id,
                 command: cmd,
                 params: new_parameters,
                 files,
@@ -315,22 +316,46 @@ export const TaskFromUIButton = ({callback_id, callback_ids, cmd, ui_feature, pa
             }else{
                 savedFinalVariables.current = parameters;
                 if(typeof(parameters) === "string"){
-                    onSubmitTasking({variables: {callback_id: callbackData.callback_by_pk.display_id, command: selectedCommand.cmd, params: parameters, tasking_location: "command_line"}});
+                    onSubmitTasking({variables: {
+                            callback_id: callbackData.callback_by_pk.display_id,
+                            command: selectedCommand.cmd,
+                            params: parameters,
+                            payload_type: selectedCommand?.payloadtype?.name,
+                            tasking_location: "command_line"}});
                 }else{
-                    onSubmitTasking({variables: {callback_id: callbackData.callback_by_pk.display_id, command: selectedCommand.cmd, params: JSON.stringify(parameters), tasking_location: taskingLocation}});
+                    onSubmitTasking({variables: {
+                        callback_id: callbackData.callback_by_pk.display_id,
+                            command: selectedCommand.cmd,
+                            params: JSON.stringify(parameters),
+                            payload_type: selectedCommand?.payloadtype?.name,
+                            tasking_location: taskingLocation}});
                 }
                 
             }
         }else{
             if(parameters === undefined || parameters === null){
                 savedFinalVariables.current = "";
-                onSubmitTasking({variables: {callback_id: callbackData.callback_by_pk.display_id, command: selectedCommand.cmd, params: ""}});
+                onSubmitTasking({variables: {
+                    callback_id: callbackData.callback_by_pk.display_id,
+                        command: selectedCommand.cmd,
+                        payload_type: selectedCommand?.payloadtype?.name,
+                        params: ""}});
             }else{
                 savedFinalVariables.current = parameters;
                 if(typeof(parameters) === "string"){
-                    onSubmitTasking({variables: {callback_id: callbackData.callback_by_pk.display_id, command: selectedCommand.cmd, params: parameters, tasking_location: "command_line"}});
+                    onSubmitTasking({variables: {
+                        callback_id: callbackData.callback_by_pk.display_id,
+                            command: selectedCommand.cmd,
+                            payload_type: selectedCommand?.payloadtype?.name,
+                            params: parameters,
+                            tasking_location: "command_line"}});
                 }else{
-                    onSubmitTasking({variables: {callback_id: callbackData.callback_by_pk.display_id, command: selectedCommand.cmd, params: JSON.stringify(parameters), tasking_location: taskingLocation}});
+                    onSubmitTasking({variables: {
+                        callback_id: callbackData.callback_by_pk.display_id,
+                            command: selectedCommand.cmd,
+                            payload_type: selectedCommand?.payloadtype?.name,
+                            params: JSON.stringify(parameters),
+                            tasking_location: taskingLocation}});
                 }
             }
             
