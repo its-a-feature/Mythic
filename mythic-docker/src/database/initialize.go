@@ -21,6 +21,48 @@ var currentMigrationVersion int64 = 3003002
 func Initialize() {
 	DB = getNewDbConnection()
 	logging.LogInfo("Successfully connected to database, initializing...")
+
+	// background process to reconnect to the database if we lose connection
+	go checkDBConnection()
+	migrations := &migrate.FileMigrationSource{
+		Dir: "database/migrations",
+	}
+	migrationList, err := migrations.FindMigrations()
+	if err != nil {
+		logging.LogFatalError(err, "Failed to find migrations")
+	}
+	currentMigrationVersionID := ""
+	for i, _ := range migrationList {
+		logging.LogInfo("migration info", "NumberPrefixMatches", migrationList[i].NumberPrefixMatches(),
+			"version", migrationList[i].VersionInt(), "id", migrationList[i].Id)
+		if migrationList[i].VersionInt() == currentMigrationVersion {
+			currentMigrationVersionID = migrationList[i].Id
+		}
+	}
+	if currentMigrationVersionID == "" {
+		logging.LogFatalError(nil, "Current migration version set to a non-existing file", "version", currentMigrationVersion)
+	}
+	// Migrations generated via https://github.com/djrobstep/migra/blob/master/docs/options.md
+	migrate.SetSchema("public")
+	migrate.SetTable("mythic_server_migration_tracking")
+	n, err := migrate.ExecVersion(DB.DB, "postgres", migrations, migrate.Up, currentMigrationVersion)
+	if err != nil {
+		//logging.LogError(err, "Error from migrate.ExecVersion")
+		appliedMigrations := []migrate.MigrationRecord{}
+		if err2 := DB.Select(&appliedMigrations, `SELECT * FROM mythic_server_migration_tracking`); err2 != nil {
+			logging.LogFatalError(err2, "Failed to get applied migrations from database")
+		}
+		successfullyAppliedMigrations := false
+		for i, _ := range appliedMigrations {
+			if appliedMigrations[i].Id == currentMigrationVersionID && !appliedMigrations[i].AppliedAt.IsZero() {
+				successfullyAppliedMigrations = true
+			}
+		}
+		if !successfullyAppliedMigrations {
+			logging.LogFatalError(err, "Failed to apply all necessary migrations for specified version", "version", currentMigrationVersion)
+		}
+	}
+	logging.LogInfo("Applied migrations up to current version", "version", currentMigrationVersion, "applied", n)
 	operators := []databaseStructs.Operator{}
 	if err := DB.Select(&operators, "SELECT * FROM operator LIMIT 1"); err != nil {
 		if AreDatabaseErrorsEqual(err, UndefinedTable) {
@@ -94,47 +136,6 @@ func Initialize() {
 			logging.LogFatalError(err, "pq error", GetDatabaseErrorString(err))
 		}
 	}
-	// background process to reconnect to the database if we lose connection
-	go checkDBConnection()
-	migrations := &migrate.FileMigrationSource{
-		Dir: "database/migrations",
-	}
-	migrationList, err := migrations.FindMigrations()
-	if err != nil {
-		logging.LogFatalError(err, "Failed to find migrations")
-	}
-	currentMigrationVersionID := ""
-	for i, _ := range migrationList {
-		logging.LogInfo("migration info", "NumberPrefixMatches", migrationList[i].NumberPrefixMatches(),
-			"version", migrationList[i].VersionInt(), "id", migrationList[i].Id)
-		if migrationList[i].VersionInt() == currentMigrationVersion {
-			currentMigrationVersionID = migrationList[i].Id
-		}
-	}
-	if currentMigrationVersionID == "" {
-		logging.LogFatalError(nil, "Current migration version set to a non-existing file", "version", currentMigrationVersion)
-	}
-	// Migrations generated via https://github.com/djrobstep/migra/blob/master/docs/options.md
-	migrate.SetSchema("public")
-	migrate.SetTable("mythic_server_migration_tracking")
-	n, err := migrate.ExecVersion(DB.DB, "postgres", migrations, migrate.Up, currentMigrationVersion)
-	if err != nil {
-		//logging.LogError(err, "Error from migrate.ExecVersion")
-		appliedMigrations := []migrate.MigrationRecord{}
-		if err2 := DB.Select(&appliedMigrations, `SELECT * FROM mythic_server_migration_tracking`); err2 != nil {
-			logging.LogFatalError(err2, "Failed to get applied migrations from database")
-		}
-		successfullyAppliedMigrations := false
-		for i, _ := range appliedMigrations {
-			if appliedMigrations[i].Id == currentMigrationVersionID && !appliedMigrations[i].AppliedAt.IsZero() {
-				successfullyAppliedMigrations = true
-			}
-		}
-		if !successfullyAppliedMigrations {
-			logging.LogFatalError(err, "Failed to apply all necessary migrations for specified version", "version", currentMigrationVersion)
-		}
-	}
-	logging.LogInfo("Applied migrations up to current version", "version", currentMigrationVersion, "applied", n)
 	initializeMitreAttack()
 	logging.LogInfo("Database Initialized")
 }

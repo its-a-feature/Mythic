@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.3.1-rc7] - 2024-09-09
+## [3.3.1-rc9] - 2024-09-17
 
 ### Changed
 
-- Updated some of the logging for bad messages to be clearer
+- Changed the order of initializing the database so that migrations happen before initializing operators/operations
 
 ## [3.3.1-rc8] - 2024-09-13
 
@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Requires latest `http` and `websocket` profiles to forward the necessary headers
 - Added more context for GraphQL queries used by APITokens/Scripting to the event log
 - Fixed a bug with exporting saved c2 profile instances that would then break imports
+
+## [3.3.1-rc7] - 2024-09-09
+
+### Changed
+
+- Updated some of the logging for bad messages to be clearer
 
 ## [3.3.1-rc6] - 2024-09-04
 
