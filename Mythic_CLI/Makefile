@@ -1,3 +1,4 @@
+BINARY_NAME=mythic-cli
 LOCAL_PATH=$(shell pwd)
 BUILDER_IMAGE=ghcr.io/its-a-feature/mythic_cli:v3.3.0.14
 .PHONY: default
