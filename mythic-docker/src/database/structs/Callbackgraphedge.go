@@ -19,4 +19,5 @@ type Callbackgraphedge struct {
 	C2ProfileID    int               `db:"c2_profile_id"`
 	C2Profile      C2profile         `db:"c2profile"`
 	APITokensID    structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
+	UpdatedAt      time.Time         `db:"updated_at"`
 }
