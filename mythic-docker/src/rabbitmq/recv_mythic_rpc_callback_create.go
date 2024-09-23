@@ -246,7 +246,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 				return response
 			} else {
 				logging.LogInfo("Created new callbackgraph edge", "c2", input.C2ProfileName, "callback", callback.ID)
-				callbackGraph.Add(callback, callback, pc2p.C2profile.Name)
+				callbackGraph.Add(callback, callback, pc2p.C2profile.Name, false)
 			}
 		}
 		for _, c2paraminstance := range payloadC2ProfileParameterInstances {

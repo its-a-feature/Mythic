@@ -156,6 +156,7 @@ func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 	return callbackIDsToUpdate
 }
 func updateTimes(updatedTime time.Time, callbackIDs []int) {
+	//logging.LogInfo("updateTimes", "callbacks", callbackIDs)
 	query, args, err := sqlx.Named(`UPDATE callback SET last_checkin=:last_checkin, active=:active WHERE id IN (:ids)`,
 		map[string]interface{}{"last_checkin": updatedTime, "ids": callbackIDs, "active": true})
 	if err != nil {
@@ -170,7 +171,7 @@ func updateTimes(updatedTime time.Time, callbackIDs []int) {
 	query = database.DB.Rebind(query)
 	_, err = database.DB.Exec(query, args...)
 	if err != nil {
-		logging.LogError(err, "Failed to update callback time when push one-to-many c2 disconnected")
+		logging.LogError(err, "Failed to update callback time when push one-to-many c2 disconnected or P2P connection updated")
 		return
 	}
 }
@@ -179,10 +180,10 @@ func listenForPushConnectDisconnectMessages() {
 		select {
 		case connectCallbackId := <-pushC2StreamingConnectNotification:
 			callbackIDs := callbackGraph.getAllChildIDs(connectCallbackId)
-			go updateTimes(time.UnixMicro(0), callbackIDs)
+			updateTimes(time.UnixMicro(0), callbackIDs)
 		case disconnectCallbackId := <-pushC2StreamingDisconnectNotification:
 			callbackIDs := callbackGraph.getAllChildIDs(disconnectCallbackId)
-			go updateTimes(time.Now().UTC(), callbackIDs)
+			updateTimes(time.Now().UTC(), callbackIDs)
 		}
 	}
 }
@@ -206,13 +207,13 @@ func (g *cbGraph) Initialize() {
 	} else {
 		// make our initial adjacency matrix and tree root data
 		for _, edge := range edges {
-			g.Add(edge.Source, edge.Destination, edge.C2Profile.Name)
-			g.Add(edge.Destination, edge.Source, edge.C2Profile.Name)
+			g.Add(edge.Source, edge.Destination, edge.C2Profile.Name, true)
+			g.Add(edge.Destination, edge.Source, edge.C2Profile.Name, true)
 		}
 	}
 	BFSCache.cache = make(map[int]map[int][][]cbGraphAdjMatrixEntry)
 }
-func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStructs.Callback, c2profileName string) {
+func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStructs.Callback, c2profileName string, initializing bool) {
 	g.lock.Lock()
 	if _, ok := g.adjMatrix[source.ID]; !ok {
 		// add it
@@ -229,7 +230,8 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 			if dest.DestinationId == destination.ID && dest.C2ProfileName == c2profileName {
 				g.lock.Unlock()
 				//logging.LogDebug("Found existing p2p connection, not adding new one to memory")
-				if dest.DestinationId == source.ID {
+				if initializing {
+					// don't update callback times when initializing, this is when the Mythic server starts up
 					return
 				}
 				updateTime := time.Now().UTC()
@@ -238,7 +240,10 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 				}
 
 				callbackIDs := g.getAllChildIDs(source.ID)
-				go updateTimes(updateTime, callbackIDs)
+				if len(callbackIDs) > 0 {
+					updateTimes(updateTime, callbackIDs)
+				}
+
 				return
 			}
 		}
@@ -282,8 +287,8 @@ func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName
 	edge.OperationID = sourceCallback.OperationID
 	edge.C2ProfileID = getC2ProfileIdForName(c2profileName)
 	// only add / talk to database if the in-memory piece gets updated
-	g.Add(sourceCallback, destinationCallback, c2profileName)
-	g.Add(destinationCallback, sourceCallback, c2profileName)
+	g.Add(sourceCallback, destinationCallback, c2profileName, false)
+	g.Add(destinationCallback, sourceCallback, c2profileName, false)
 	// can't have a unique constraint with a NULL value, NULL != NULL
 	err := database.DB.Get(&edge.ID, `SELECT id FROM callbackgraphedge
 		WHERE operation_id=$1 AND source_id=$2 AND destination_id=$3 AND
@@ -471,7 +476,7 @@ func AddEdgeById(sourceId int, destinationId int, c2profileName string) error {
 		return err
 	}
 	logging.LogInfo("added new callbackgraph edge in addEdgeById", "c2", c2profileName, "callback", sourceId)
-	callbackGraph.Add(sourceCallback, destinationCallback, c2profileName)
+	callbackGraph.Add(sourceCallback, destinationCallback, c2profileName, false)
 	return nil
 }
 func getC2ProfileIdForName(c2profileName string) int {

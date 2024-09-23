@@ -641,7 +641,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		// we found an instance of the cache info with c2 profile encryption data
 		if cachedUUIDInfoMap[messageUUID+c2profile].UUIDType == "callback" {
 			if updateCheckinTime {
-				go UpdateCallbackEdgesAndCheckinTime(cachedUUIDInfoMap[messageUUID+c2profile])
+				UpdateCallbackEdgesAndCheckinTime(cachedUUIDInfoMap[messageUUID+c2profile])
 			}
 
 		}
@@ -650,7 +650,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		// we found an instance of the cache info with payload encryption data
 		if cachedUUIDInfoMap[messageUUID].UUIDType == "callback" {
 			if updateCheckinTime {
-				go UpdateCallbackEdgesAndCheckinTime(cachedUUIDInfoMap[messageUUID])
+				UpdateCallbackEdgesAndCheckinTime(cachedUUIDInfoMap[messageUUID])
 			}
 
 		}
@@ -1119,7 +1119,7 @@ func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 			WHERE id=:id`, callback); err != nil {
 			logging.LogError(err, "Failed to update last_checkin time", "callback", uuidInfo.UUID)
 		} else {
-			callbackGraph.Add(callback, callback, uuidInfo.C2ProfileName)
+			callbackGraph.Add(callback, callback, uuidInfo.C2ProfileName, false)
 			//callbackGraph.AddByAgentIds(callback.AgentCallbackID, callback.AgentCallbackID, uuidInfo.C2ProfileName)
 			if uuidInfo.EdgeId == 0 {
 				if err := database.DB.Get(&uuidInfo.EdgeId, `SELECT id FROM callbackgraphedge
