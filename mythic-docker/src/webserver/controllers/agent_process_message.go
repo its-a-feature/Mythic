@@ -90,6 +90,10 @@ func AgentMessageWebhook(c *gin.Context) {
 		UpdateCheckinTime: true,
 	})
 	if err != nil {
+		errorMessage := "Error! Failed to process agent message. Check the following details for more information about the request:\nConnection to: "
+		errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\nUser-Agent: %s\n%v\n", requestUrl, c.Request.Method, requestIp, requestUserAgent, err)
+		go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_bad_message", database.MESSAGE_LEVEL_WARNING)
+		logging.LogError(err, "Failed to process agent message in body of get request", "errorMsg", errorMessage)
 		c.Status(http.StatusNotFound)
 		return
 	}

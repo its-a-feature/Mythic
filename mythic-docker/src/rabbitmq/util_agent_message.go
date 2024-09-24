@@ -283,9 +283,9 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 		if err != nil {
 			base64DecodedMessage, err = base64.URLEncoding.DecodeString(string(*agentMessageInput.Base64Message))
 			if err != nil {
-				errorMessage := "Failed to base64 decode message\n"
+				errorMessage := fmt.Sprintf("Failed to base64 decode message\n")
 				errorMessage += fmt.Sprintf("message: %s\n", string(*agentMessageInput.Base64Message))
-				errorMessage += fmt.Sprintf("Connection from %s\n", agentMessageInput.RemoteIP)
+				errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
 				logging.LogError(err, "Failed to base64 decode agent message")
 				go SendAllOperationsMessage(errorMessage, 0, "agent_message_base64", database.MESSAGE_LEVEL_WARNING)
 				instanceResponse.Err = err
@@ -295,8 +295,8 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	} else if agentMessageInput.RawMessage != nil {
 		base64DecodedMessage = *agentMessageInput.RawMessage
 	} else {
-		errorMessage := "Failed to get message\n"
-		errorMessage += fmt.Sprintf("Connection from %s\n", agentMessageInput.RemoteIP)
+		errorMessage := fmt.Sprintf("Failed to get message from %s profile\n", agentMessageInput.C2Profile)
+		errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
 		logging.LogError(err, "Failed to get agent message")
 		go SendAllOperationsMessage(errorMessage, 0, "agent_message_base64", database.MESSAGE_LEVEL_WARNING)
 		instanceResponse.Err = err
@@ -309,8 +309,9 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	if base64DecodedMessageLength < 36 {
 		if base64DecodedMessageLength < 16 {
 			// if a message is less than 16 bytes, then it can't possibly have a UUID in it
-			errorMessage := "Message length too short\n"
-			errorMessage += fmt.Sprintf("message: %s\n", string(base64DecodedMessage))
+			errorMessage := fmt.Sprintf("Message length too short\n")
+			errorMessage += fmt.Sprintf("Message: %s\n", string(base64DecodedMessage))
+			errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
 			go SendAllOperationsMessage(errorMessage, 0, "agent_message_length", database.MESSAGE_LEVEL_WARNING)
 			logging.LogError(nil, "Message length too short")
 			instanceResponse.Err = errors.New("message too short")
@@ -319,9 +320,9 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 		// if a message is between 16 and 36 bytes, then it might have a 16 byte UUID
 		if messageUUID, err = uuid.FromBytes(base64DecodedMessage[:16]); err != nil {
 			logging.LogError(err, "Failed to parse UUID from beginning of message")
-			errorMessage := fmt.Sprintf("Failed to parse a valid UUID from the beginning of an agent message\n")
+			errorMessage := fmt.Sprintf("Failed to parse a valid UUID from the beginning of an agent message\nMessage: %s\n", string(base64DecodedMessage))
 			errorMessage += "This likely happens if somme sort of traffic came through your C2 profile (ports too open) that isn't actually an agent message\n"
-			errorMessage += fmt.Sprintf("Connection from %s\n", agentMessageInput.RemoteIP)
+			errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
 			go SendAllOperationsMessage(errorMessage, 0, "agent_message_uuid", database.MESSAGE_LEVEL_WARNING)
 			instanceResponse.Err = err
 			return instanceResponse
@@ -332,9 +333,9 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	} else if messageUUID, err = uuid.Parse(string(base64DecodedMessage[:36])); err != nil {
 		if messageUUID, err = uuid.FromBytes(base64DecodedMessage[:16]); err != nil {
 			logging.LogError(err, "Failed to parse UUID from beginning of message")
-			errorMessage := fmt.Sprintf("Failed to parse a valid UUID from the beginning of an agent message\n")
+			errorMessage := fmt.Sprintf("Failed to parse a valid UUID from the beginning of an agent message\nMessage: %s\n", string(base64DecodedMessage))
 			errorMessage += "This likely happens if somme sort of traffic came through your C2 profile (ports too open) that isn't actually an agent message\n"
-			errorMessage += fmt.Sprintf("Connection from %s\n", agentMessageInput.RemoteIP)
+			errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
 			go SendAllOperationsMessage(errorMessage, 0, "agent_message_uuid", database.MESSAGE_LEVEL_WARNING)
 			instanceResponse.Err = err
 			return instanceResponse
@@ -364,13 +365,16 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	if err != nil {
 		logging.LogError(err, "Failed to decrypt message and process as JSON")
 		errorMessage := fmt.Sprintf("Failed to decrypt message due to: %s\n", err.Error())
+		errorMessage += fmt.Sprintf("Message: %s\n", string(base64DecodedMessage[agentUUIDLength:totalBase64Bytes]))
 		errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
 		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
 		instanceResponse.Err = err
 		return instanceResponse
 	}
 	if _, ok := decryptedMessage["action"]; !ok {
-		instanceResponse.Err = errors.New("missing action")
+		errorMessage := fmt.Sprintf("Missing action in message:\n%s\n", decryptedMessage)
+		errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
+		instanceResponse.Err = errors.New(errorMessage)
 		return instanceResponse
 	}
 	if utils.MythicConfig.DebugAgentMessage {
@@ -447,14 +451,15 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 		}
 	case "staging_translation":
 		{
-			if finalBytes, err := handleAgentMessageStagingTranslation(&decryptedMessage, uuidInfo); err != nil {
+			finalBytes, err := handleAgentMessageStagingTranslation(&decryptedMessage, uuidInfo)
+			if err != nil {
 				logging.LogError(err, "Failed to handle translation staging function")
 				instanceResponse.Err = err
 				return instanceResponse
-			} else {
-				instanceResponse.Message = *finalBytes
-				return instanceResponse
 			}
+			instanceResponse.Message = *finalBytes
+			return instanceResponse
+
 		}
 	default:
 		{
@@ -626,9 +631,6 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 
 func ProcessAgentMessage(agentMessageInput AgentMessageRawInput) ([]byte, error) {
 	response := recursiveProcessAgentMessage(agentMessageInput)
-	if response.Err != nil {
-		go SendAllOperationsMessage(response.Err.Error(), 0, "agent_message", database.MESSAGE_LEVEL_WARNING)
-	}
 	return response.Message, response.Err
 }
 
