@@ -305,7 +305,12 @@ func (c *callbackPortsInUse) ListenForNewByteTransferUpdates() {
 		}
 	}
 }
+
 func updateCallbackPortStats(field string, value int64, callbackPortID int) {
+	updatedValue := value
+	if updatedValue > POSTGRES_MAX_BIGINT {
+		updatedValue = POSTGRES_MAX_BIGINT - 1
+	}
 	_, err := database.DB.Exec(fmt.Sprintf("UPDATE callbackport SET %s=$1 WHERE id=$2",
 		field), value, callbackPortID)
 	if err != nil {

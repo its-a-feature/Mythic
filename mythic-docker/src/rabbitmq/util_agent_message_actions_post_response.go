@@ -29,6 +29,9 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 )
 
+const POSTGRES_MAX_INT = 2147483647
+const POSTGRES_MAX_BIGINT = 9223372036854775807
+
 type agentMessagePostResponseMessage struct {
 	Responses []agentMessagePostResponse `json:"responses" mapstructure:"responses" xml:"responses"`
 	Other     map[string]interface{}     `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
@@ -998,10 +1001,13 @@ func handleAgentMessageWriteDownloadChunkToLocalDisk(task databaseStructs.Task, 
 				logging.LogError(err, "Failed to write file to disk")
 			} else {
 				fileMeta.Size = fileDisk.Size()
+				if fileMeta.Size >= POSTGRES_MAX_INT {
+					fileMeta.Size = POSTGRES_MAX_INT - 1
+				}
 			}
 			// we don't know the chunk size ahead of time and one was reported back as part of the file write
 			//logging.LogDebug("3. finished writing", "chunk num", *agentResponse.Download.ChunkNum)
-			if *agentResponse.Download.ChunkNum == fileMeta.TotalChunks && fileMeta.TotalChunks > 1 {
+			if *agentResponse.Download.ChunkNum >= fileMeta.TotalChunks && fileMeta.TotalChunks > 1 {
 
 			} else {
 				fileMeta.ChunkSize = len(base64DecodedFileData)
@@ -1015,7 +1021,7 @@ func handleAgentMessageWriteDownloadChunkToLocalDisk(task databaseStructs.Task, 
 			fileMeta.TotalChunks = *agentResponse.Download.TotalChunks
 		}
 	}
-	if fileMeta.ChunksReceived == fileMeta.TotalChunks {
+	if fileMeta.ChunksReceived >= fileMeta.TotalChunks {
 		fileMeta.Complete = true
 		// also calculate new md5 and sha1 sums
 		sha1Hash := sha1.New()
@@ -1040,6 +1046,9 @@ func handleAgentMessageWriteDownloadChunkToLocalDisk(task databaseStructs.Task, 
 			logging.LogError(err, "Failed to write file to disk")
 		} else {
 			fileMeta.Size = fileDisk.Size()
+			if fileMeta.Size >= POSTGRES_MAX_INT {
+				fileMeta.Size = POSTGRES_MAX_INT - 1
+			}
 		}
 	}
 	if _, err := database.DB.NamedExec(`UPDATE filemeta SET
