@@ -125,7 +125,7 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
     };
     return (
         <div >
-            <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" style={{marginTop: "10px"}} color="primary">
+            <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" style={{marginTop: "0px", marginLeft: "25px"}} color="primary">
                 <Button size="small" color="primary" aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                         aria-expanded={dropdownOpen ? 'true' : undefined}
                         aria-haspopup="menu"

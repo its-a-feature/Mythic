@@ -170,7 +170,12 @@ func ManuallyToggleProxy(input ProxyStop) ProxyStopResponse {
 		return resp
 
 	} else if input.Action == "stop" {
-		err = proxyPorts.Remove(callbackPort.CallbackID, callbackPort.PortType, callbackPort.LocalPort, input.OperatorOperation.CurrentOperation.ID)
+		err = proxyPorts.Remove(callbackPort.CallbackID,
+			callbackPort.PortType,
+			callbackPort.LocalPort,
+			input.OperatorOperation.CurrentOperation.ID,
+			callbackPort.RemoteIP,
+			callbackPort.RemotePort)
 		if err != nil {
 			resp.Error = err.Error()
 		}
@@ -575,27 +580,38 @@ func (c *callbackPortsInUse) Test(callbackId int, portType CallbackPortType, loc
 	return nil
 
 }
-func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, localPort int, operationId int) error {
+func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, localPort int, operationId int, remoteIP string, remotePort int) error {
 	for i := 0; i < len(c.ports); i++ {
 		if c.ports[i].CallbackID == callbackId &&
 			c.ports[i].OperationID == operationId &&
 			c.ports[i].PortType == portType &&
 			c.ports[i].LocalPort == localPort {
-			if err := c.ports[i].Stop(); err != nil {
+			if remoteIP != "" && remotePort != 0 && (remoteIP != c.ports[i].RemoteIP || remotePort != c.ports[i].RemotePort) {
+				continue
+			}
+			err := c.ports[i].Stop()
+			if err != nil {
 				logging.LogError(err, "Failed to stop proxy")
 				//c.Unlock()
 				return err
-			} else if _, err := database.DB.Exec(`UPDATE callbackport SET deleted=true WHERE
-				callback_id=$1 AND local_port=$2 AND port_type=$3 AND operation_id=$4 AND deleted=false`,
-				callbackId, localPort, portType, operationId); err != nil {
+			}
+			queryString := `UPDATE callbackport SET deleted=true WHERE
+				callback_id=$1 AND local_port=$2 AND port_type=$3 AND operation_id=$4 AND deleted=false`
+			queryArgs := []interface{}{callbackId, localPort, portType, operationId}
+			if remoteIP != "" && remotePort != 0 {
+				queryString += " AND remote_ip=$4 AND remote_port=$5"
+				queryArgs = append(queryArgs, remoteIP, remotePort)
+			}
+			_, err = database.DB.Exec(queryString, queryArgs...)
+			if err != nil {
 				logging.LogError(err, "Failed to delete port mapping from database for proxy")
 				//c.Unlock()
 				return err
-			} else {
-				c.ports = append((c.ports)[:i], (c.ports)[i+1:]...)
-				//c.Unlock()
-				return nil
 			}
+			c.ports = append((c.ports)[:i], (c.ports)[i+1:]...)
+			//c.Unlock()
+			return nil
+
 		}
 	}
 	//c.Unlock()

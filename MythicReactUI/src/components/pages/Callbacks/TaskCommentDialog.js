@@ -6,6 +6,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
+import {MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
 
 const updateCommentMutation = gql`
 mutation updateComment ($task_id: Int!, $comment: String) {
@@ -51,8 +52,8 @@ export function TaskCommentDialog(props) {
      console.error(error);
      return <div>Error!</div>;
     }
-    const onCommitSubmit = () => {
-        updateComment({variables: {task_id: props.task_id, comment: comment}});
+    const onCommitSubmit = (newValue) => {
+        updateComment({variables: {task_id: props.task_id, comment: newValue}});
         props.onClose();
     }
     const onChange = (name, value, error) => {
@@ -61,18 +62,10 @@ export function TaskCommentDialog(props) {
   
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Edit Task Comment</DialogTitle>
-        <DialogContent dividers={true}>
-            <MythicTextField autoFocus onEnter={onCommitSubmit} onChange={onChange} value={comment} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
-            Close
-          </Button>
-          <Button onClick={onCommitSubmit} variant="contained" color="success">
-            Submit
-          </Button>
-        </DialogActions>
+        <MythicModifyStringDialog title={`Edit Task Comment`}
+                                  onClose={props.onClose}
+                                  value={comment}
+                                  onSubmit={onCommitSubmit} />
   </React.Fragment>
   );
 }

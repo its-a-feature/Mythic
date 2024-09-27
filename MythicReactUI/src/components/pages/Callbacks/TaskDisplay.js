@@ -58,7 +58,11 @@ export const StyledPaper = styled(Paper)((
 
   [`& .${classes.heading}`]: {
     fontSize: theme.typography.pxToRem(15),
-    display: "inline",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    display: "-webkit-box",
+    WebkitLineClamp: "2",
+    WebkitBoxOrient: "vertical",
     cursor: "default",
     wordBreak: "break-all",
   },
@@ -88,7 +92,6 @@ export const StyledPaper = styled(Paper)((
     display: "block",
     overflow: "auto",
     maxWidth: "100%",
-    whiteSpace: "break-all",
     wordBreak: "break-all",
   },
   [`& .${classes.icon}`]: {
@@ -104,7 +107,7 @@ export const StyledPaper = styled(Paper)((
     padding: "0 5px 0 0",
     display: "inline-block",
     margin: 0,
-    height: "auto"
+    height: "auto",
   }
 }));
 
@@ -247,7 +250,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
     if(onClick){
       onClick(e);
     }
-    preventPropagation(e);
+    //preventPropagation(e);
   }
 
   return (
@@ -315,8 +318,8 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
               <TaskStatusDisplay task={task} theme={theme}/>
               {task.comment.length > 0 ? (
                   <span className={classes.column}>
-                    <IconButton size="small" style={{padding: "0"}} color="info"
-                                onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
+                    <IconButton size="small" style={{padding: "0"}}
+                                onClick={toggleDisplayComment}><ChatOutlinedIcon fontSize={"small"}/></IconButton>
                   </span>
               ) : null}
               {task.comment}
@@ -333,9 +336,14 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                 {task.tasks.length > 0 && displayChildren &&
                     <ExpandLessIcon onClick={toggleDisplayChildren} />
                 }
-                <Typography className={classes.heading} onClick={onLocalClick}>
-                  {(task?.command?.cmd || task.command_name) + " " + task.display_params}
-                </Typography>
+                <MythicStyledTooltip maxWidth={"calc(80vw)"}
+                                     enterDelay={2000}
+                    placement={"top"}
+                    title={(task?.command?.cmd || task.command_name) + " " + task.display_params} >
+                  <Typography className={classes.heading} onClick={onLocalClick} >
+                    {(task?.command?.cmd || task.command_name) + " " + task.display_params}
+                  </Typography>
+                </MythicStyledTooltip>
               </Badge>
             </div>
           </div>

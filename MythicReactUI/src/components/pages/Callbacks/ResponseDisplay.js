@@ -109,7 +109,7 @@ const NonInteractiveResponseDisplay = (props) => {
   const search = React.useRef("");
   const [totalCount, setTotalCount] = React.useState(0);
   const [openBackdrop, setOpenBackdrop] = React.useState(true);
-  const initialResponseStreamLimit = useMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 10, output: "number"})
+  const initialResponseStreamLimit = useMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 50, output: "number"})
   const [fetchMoreResponses] = useLazyQuery(getResponsesLazyQuery, {
     fetchPolicy: "network-only",
     onCompleted: (data) => {

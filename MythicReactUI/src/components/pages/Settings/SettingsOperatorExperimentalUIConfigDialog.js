@@ -18,7 +18,7 @@ export function SettingsOperatorExperimentalUIConfigDialog(props) {
     const me = props.me;
     const initialNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: "false"});
     const [newBrowserScriptTables, setNewBrowserScriptTables] = React.useState(false);
-    const initialResponseStreamLimit = useMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 10, output: "number"})
+    const initialResponseStreamLimit = useMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 50, output: "number"})
     const [newResponseStreamLimit, setNewResponseStreamLimit] = React.useState(initialResponseStreamLimit);
 
     const onBrowserScriptTablesChanged = (evt) => {
@@ -40,7 +40,7 @@ export function SettingsOperatorExperimentalUIConfigDialog(props) {
     }
     const setDefaults = () => {
         setNewBrowserScriptTables(false);
-        setNewResponseStreamLimit(10);
+        setNewResponseStreamLimit(50);
     }
   
   return (

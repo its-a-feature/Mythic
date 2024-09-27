@@ -102,7 +102,7 @@ export function TaskOpsecDialog(props) {
           {(opsecData.opsec_pre_blocked === true && !opsecData.opsec_pre_bypassed) || (opsecData.opsec_post_blocked === true && !opsecData.opsec_post_bypassed) ?
           (
             <Button onClick={onRequestSubmit} variant="contained" color="warning">Submit Bypass Request</Button>
-          ) : (null) }
+          ) : null }
           
         </DialogActions>
   </React.Fragment>

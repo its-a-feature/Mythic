@@ -794,6 +794,7 @@ function CallbacksTablePreMemo(props){
             {openEditDescriptionDialog &&
                 <MythicDialog
                     fullWidth={true}
+                    maxWidth={"lg"}
                     open={openEditDescriptionDialog}
                     onClose={() => {setOpenEditDescriptionDialog(false);}}
                     innerDialog={

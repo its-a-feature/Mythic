@@ -330,18 +330,21 @@ function SpeedDialWrapperPreMemo({ setTopDisplay }) {
                 onOpen={() => {
                     setOpen(true);
                 }}
-                FabProps={{ color: 'info', size: "small", variant: "extended" }}
+                FabProps={{ color: 'info', size: "small", variant: "extended",
+                    sx: {
+                        height: "25px", minWidth: "unset", width: "25px"
+                    } }}
                 open={open}
-                style={{ marginTop:"35px" }}
+                style={{ marginTop:"15px"}}
                 direction='down'>
                 {actions.map((action) => (
                     <SpeedDialAction
                         arrow
                         className={classes.speedDialAction}
                         key={action.name}
-                        TooltipClasses={{ ".MuiTooltip-tooltip": classes.tooltip,
+                        TooltipClasses={{
+                            ".MuiTooltip-tooltip": classes.tooltip,
                             ".MuiTooltip-tooltipArrow": classes.arrow,
-
                         }}
                         icon={action.icon}
                         tooltipTitle={action.name}

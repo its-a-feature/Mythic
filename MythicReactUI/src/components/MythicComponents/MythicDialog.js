@@ -78,12 +78,13 @@ export function MythicModifyStringDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
-        <DialogContent dividers={true} style={{height: "100%"}}>
+        <DialogContent dividers={true} style={{height: "100%", margin: 0, padding: 0}}>
             <AceEditor
                 mode="json"
                 theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
                 width="100%"
                 height="100%"
+                wrapEnabled={props.wrap ? props.wrap : false}
                 minLines={props.maxRows ? props.maxRows : 10}
                 maxLines={props.maxRows ? props.maxRows : 10}
                 value={comment}
@@ -98,9 +99,11 @@ export function MythicModifyStringDialog(props) {
           <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
-          <Button onClick={onCommitSubmit} variant="contained" color="success">
-            Submit
-          </Button>
+            {props.onSubmit &&
+                <Button onClick={onCommitSubmit} variant="contained" color="success">
+                    Submit
+                </Button>
+            }
         </DialogActions>
     </React.Fragment>
   );

@@ -89,7 +89,8 @@ export const TaskDisplayContainer = ({task, me}) => {
               me={me}
               responseRef={responseRef}
               viewBrowserScript={viewBrowserScript}
-              style={{position: "relative", zIndex: 2, display: "flex", flexDirection: "row-reverse", width: '100%', bottom: "20px", right: "5px", height: 0}}
+              style={{position: "relative", zIndex: 2, display: "flex", flexDirection: "row-reverse", width: '100%',
+                bottom: "25px", right: "4px", height: 0}}
               fabStyle={{   }}
               viewAllOutput={selectAllOutput}/>
             <Grid item xs={12}>
@@ -147,7 +148,7 @@ export const TaskDisplayContainerFlat = ({task, me}) => {
                                 taskData={task}
                                 viewBrowserScript={viewBrowserScript}
                                 me={me} responseRef={responseRef}
-                                style={{position: "absolute", bottom: 0, zIndex: 2}}
+                                style={{position: "absolute", bottom: "15px", zIndex: 2}}
                                 fabStyle={{  }}
                                 viewAllOutput={selectAllOutput}/>
         </div>
@@ -182,7 +183,7 @@ export const TaskDisplayContainerConsole = ({task, me}) => {
                             me={me}
                             viewBrowserScript={viewBrowserScript}
                             responseRef={responseRef}
-                            style={{  bottom: "20px", right: "5px", zIndex: 2, height: "0px", position: "relative", display: "flex", flexDirection: "row-reverse"}}
+                            style={{  bottom: "25px", right: "4px", zIndex: 2, height: "0px", position: "relative", display: "flex", flexDirection: "row-reverse"}}
                             fabStyle={{ }}
                             viewAllOutput={true}/>
             <ResponseDisplayConsole
@@ -241,7 +242,8 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
     setOpenSpeedDial(false);
   };
   const copyToClipboard = () => {
-    let result = copyStringToClipboard(task.original_params);
+    let command = task?.command?.cmd || task.command_name;
+    let result = copyStringToClipboard(command + " " + task.original_params);
     if(result){
       snackActions.success("Copied text!");
     }else{
@@ -308,18 +310,18 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
       <React.Fragment>
         <Backdrop open={openSpeedDial} onClick={()=>{setOpenSpeedDial(false);}} style={{zIndex: 2, position: "absolute"}}/>
         {openTaskTagDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openTaskTagDialog}
+            (<MythicDialog fullWidth={true} maxWidth="lg" open={openTaskTagDialog}
                            onClose={()=>{setOpenTaskTagDialog(false);}}
                            innerDialog={<ViewEditTagsDialog me={me} target_object={"task_id"} target_object_id={task.id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
             />) : null}
         {openCommentDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openCommentDialog}
+            (<MythicDialog fullWidth={true} maxWidth="lg" open={openCommentDialog}
                            onClose={()=>{setOpenCommentDialog(false);}}
                            innerDialog={<TaskCommentDialog task_id={task.id} onClose={()=>{setOpenCommentDialog(false);}} />}
             />) : null
         }
         {openParametersDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openParametersDialog}
+            (<MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog}
                            onClose={()=>{setOpenParametersDialog(false);}}
                            innerDialog={<TaskViewParametersDialog task_id={task.id} onClose={()=>{setOpenParametersDialog(false);}} />}
             />) : null
@@ -338,7 +340,7 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
         }
 
         {openStdoutStderrDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openStdoutStderrDialog}
+            (<MythicDialog fullWidth={true} maxWidth="lg" open={openStdoutStderrDialog}
                            onClose={()=>{setOpenStdoutStderrDialog(false);}}
                            innerDialog={<TaskViewStdoutStderrDialog task_id={task.id} onClose={()=>{setOpenStdoutStderrDialog(false);}} />}
             />) : null

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.46] - 2024-09-27
+
+### Changed
+
+- Updated the default response fetch to 50 from 10 (still changeable in user settings)
+- Truncating long command lines to 2 lines wrapped and the full text on hover after 2s
+- Updated the copy command parameters speeddial function to also include the command name
+- Updated a few of the text-based dialogs to use Ace editors instead of text boxes for more consistency
+
 ## [0.2.45] - 2024-09-23
 
 ### Changed

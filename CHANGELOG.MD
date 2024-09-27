@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc15] - 2024-09-27
+
+### Changed
+
+- Updated the proxy stop through the UI to be more precise instead of stopping all proxies based on callback id, port, and port type
+  - It didn't account for variations in remote ip/port combinations
+  
+## [3.3.1-rc14] - 2024-09-25
+
+### Changed
+
+- Added some checks for port byte tracking max sizes and file max sizes to not hit postgres limits
+
 ## [3.3.1-rc12] - 2024-09-23
 
 ### Changed
