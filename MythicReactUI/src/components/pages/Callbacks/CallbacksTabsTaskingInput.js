@@ -6,12 +6,15 @@ import TuneIcon from '@mui/icons-material/Tune';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {CallbacksTabsTaskingFilterDialog} from './CallbacksTabsTaskingFilterDialog';
 import {CallbacksTabsTaskingInputTokenSelect} from './CallbacksTabsTaskingInputTokenSelect';
-import { gql, useSubscription } from '@apollo/client';
+import { gql, useSubscription, useMutation } from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
 import { validate as uuidValidate } from 'uuid';
 import {MythicSelectFromListDialog} from "../../MythicComponents/MythicSelectFromListDialog";
+import { Backdrop } from '@mui/material';
+import {CircularProgress} from '@mui/material';
+import {getDynamicQueryParams} from "./TaskParametersDialogRow";
 
 const GetLoadedCommandsSubscription = gql`
 subscription GetLoadedCommandsSubscription($callback_id: Int!){
@@ -139,22 +142,54 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const snackMessageStyles = {anchorOrigin:{vertical: "bottom", horizontal: "left"}, autoHideDuration: 2000, preventDuplicate: true, maxSnack: 1, style:{marginBottom: "50px"}};
     const snackReverseSearchMessageStyles = {anchorOrigin:{vertical: "bottom", horizontal: "left"}, autoHideDuration: 1000, preventDuplicate: true, maxSnack: 1, style:{marginBottom: "100px"}};
     const [message, setMessage] = React.useState("");
-    const [loadedOptions, setLoadedOptions] = React.useState([]);
-    const [taskOptions, setTaskOptions] = React.useState([]);
-    const [taskOptionsIndex, setTaskOptionsIndex] = React.useState(-1);
+    const loadedOptions = React.useRef([]);
+    const taskOptions = React.useRef([]);
+    const taskOptionsIndex = React.useRef(-1);
     const [filteredTaskOptions, setFilteredTaskOptions] = React.useState([]);
+    const [backdropOpen, setBackdropOpen] = React.useState(false);
+    const tabOptions = React.useRef([]);
+    const tabOptionsIndex = React.useRef(-1);
+    const tabOptionsType = React.useRef("param_name");
+    const [getDynamicParams] = useMutation(getDynamicQueryParams, {
+        onCompleted: (data) => {
+            if(data.dynamic_query_function.status === "success"){
+                try{
+                    if(data.dynamic_query_function.choices.length > 0){
+                        tabOptions.current = data.dynamic_query_function.choices;
+                        tabOptionsIndex.current = 0;
+                        let newChoice = data.dynamic_query_function.choices[0].includes(" ") ? "\"" + data.dynamic_query_function.choices[0] + "\"" : data.dynamic_query_function.choices[0];
+                        let newMsg = message + newChoice;
+                        setMessage(newMsg);
+                        tabOptionsType.current = "param_value";
+                    } else {
+                        snackActions.warning("No options available");
+                    }
+                }catch(error){
+                    setBackdropOpen(false);
+                    snackActions.warning("Failed to parse dynamic parameter results");
+                    tabOptions.current = [];
+                    tabOptionsType.current = "param_name";
+                }
 
-    const [tabOptions, setTabOptions] = React.useState([]);
-    const [tabOptionsIndex, setTabOptionsIndex] = React.useState(-1);
-
+            }else{
+                snackActions.warning(data.dynamic_query_function.error);
+            }
+            setBackdropOpen(false);
+        },
+        onError: (data) => {
+            snackActions.warning("Failed to perform dynamic parameter query");
+            console.log(data);
+            setBackdropOpen(false);
+        }
+    });
     const [openFilterOptionsDialog, setOpenFilterOptionsDialog] = React.useState(false);
-    const [tokenOptions, setTokenOptions] = React.useState([]);
+    const tokenOptions = React.useRef([]);
     const [activeFiltering, setActiveFiltering] = React.useState(false);
     const [unmodifiedHistoryValue, setUnmodifiedHistoryValue] = React.useState("parsed_cli");
     const [reverseSearching, setReverseSearching] = React.useState(false);
     const [reverseSearchString, setReverseSearchString] = React.useState('');
-    const [reverseSearchOptions, setReverseSearchOptions] = React.useState([]);
-    const [reverseSearchIndex, setReverseSearchIndex] = React.useState(-1);
+    const reverseSearchOptions = React.useRef([]);
+    const reverseSearchIndex = React.useRef(-1);
     const mountedRef = React.useRef(true);
     const commandOptions = React.useRef([]);
     const commandOptionsForcePopup = React.useRef(false);
@@ -178,7 +213,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(!mountedRef.current || !props.parentMountedRef.current){
                 return;
             }
-            setTokenOptions(data.data.callbacktoken);
+            tokenOptions.current = data.data.callbacktoken;
         }
       });
     useSubscription(subscriptionTask, {
@@ -196,9 +231,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 } else {
                     return [...prev, {...cur}];
                 }
-            }, [...taskOptions]);
+            }, [...taskOptions.current]);
             newTasks.sort((a,b) => a.id > b.id ? -1 : 1);
-            setTaskOptions(newTasks);
+            taskOptions.current= newTasks;
             const filteredOptions = newTasks.filter( c => applyFilteringToTasks(c));
             setFilteredTaskOptions(filteredOptions);
         }
@@ -218,12 +253,12 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             cmds.push({cmd: "help", description: "Get help for a command or info about loaded commands", commandparameters: [], attributes: {supported_os: []}});
             cmds.push({cmd: "clear", description: "Clear 'submitted' jobs from being pulled down by an agent", commandparameters: [], attributes: {supported_os: []}});
             cmds.sort((a,b) => a.cmd > b.cmd ? 1 : -1);
-            setLoadedOptions(cmds);
+            loadedOptions.current = cmds;
         }
     });
     React.useEffect( () => {
         //console.log("filter updated")
-        const filteredOptions = taskOptions.filter( c => applyFilteringToTasks(c));
+        const filteredOptions = taskOptions.current.filter( c => applyFilteringToTasks(c));
         setFilteredTaskOptions(filteredOptions);
         let active = false;
         if(props.filterOptions?.commandsList?.length > 0){
@@ -287,8 +322,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
           return true;
     }
     const handleInputChange = (event) => {
-        setTabOptions([]);
-        setTabOptionsIndex(0);
+        tabOptions.current = [];
+        tabOptionsType.current = "param_name";
+        tabOptionsIndex.current = 0;
         setMessage(event.target.value);
         if(event.target.value.length <= 1){
             setUnmodifiedHistoryValue("parsed_cli");
@@ -318,7 +354,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(message.includes(" ")){
                 // this means we're not trying to help with the initial command since there's already a space in what the user typed
                 // first find the command in question
-                let cmd = loadedOptions.find( l => l.cmd === message.split(" ")[0]);
+                let cmd = loadedOptions.current.find( l => l.cmd === message.split(" ")[0]);
                 if(!cmd){
                     snackActions.warning("unknown command");
                     return
@@ -331,17 +367,18 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     } else {
                         helpCmd = "";
                     }
-                    if(tabOptions.length === 0){
-                        let opts = loadedOptions.filter( l => l.cmd.toLowerCase().startsWith(helpCmd.toLocaleLowerCase()) && (l.attributes.supported_os.length === 0 || l.attributes.supported_os.includes(props.callback_os)));
-                        setTabOptions(opts);
-                        setTabOptionsIndex(0);
+                    if(tabOptions.current.length === 0){
+                        let opts = loadedOptions.current.filter( l => l.cmd.toLowerCase().startsWith(helpCmd.toLocaleLowerCase()) && (l.attributes.supported_os.length === 0 || l.attributes.supported_os.includes(props.callback_os)));
+                        tabOptions.current = opts;
+                        tabOptionsType.current = "param_name";
+                        tabOptionsIndex.current = 0;
                         if(opts.length > 0){
                             setMessage("help " + opts[0].cmd);
                         }
                     }else{
-                        let newIndex = forwardOrBackwardTabIndex(event, tabOptionsIndex, tabOptions);
-                        setTabOptionsIndex(newIndex);
-                        setMessage("help " + tabOptions[newIndex].cmd);
+                        let newIndex = forwardOrBackwardTabIndex(event, tabOptionsIndex.current, tabOptions.current);
+                        tabOptionsIndex.current = newIndex;
+                        setMessage("help " + tabOptions.current[newIndex].cmd);
                     }
                     return;
                 }
@@ -357,6 +394,30 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         if(cmdGroupNames === undefined){
                             snackActions.warning("Two or more of the specified parameters can't be used together", snackMessageStyles);
                             return;
+                        }
+                        const lastSuppliedParameter = getLastSuppliedArgument(cmd, message, parsed);
+                        console.log("lastSuppliedParameter", lastSuppliedParameter)
+                        if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined){
+                            if(["ChooseOne"].includes(lastSuppliedParameter.parameter_type) && parsed[lastSuppliedParameter.cli_name] === ""){
+                                if(lastSuppliedParameter.dynamic_query_function !== ""){
+                                    setBackdropOpen(true);
+                                    snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
+                                    getDynamicParams({variables:{
+                                            callback: props.callback_id,
+                                            parameter_name: lastSuppliedParameter.name,
+                                            command: cmd.cmd,
+                                            payload_type: cmd.payloadtype.name
+                                        }});
+                                    return;
+                                } else if (lastSuppliedParameter.choices.length > 0){
+                                    tabOptions.current = lastSuppliedParameter.choices;
+                                    tabOptionsIndex.current = 0;
+                                    tabOptionsType.current = "param_value";
+                                    let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
+                                    let newMsg = message + newChoice;
+                                    setMessage(newMsg);
+                                }
+                            }
                         }
                         console.log("cmdGroupNames in tab", cmdGroupNames);
                         for(let i = 0; i < cmd.commandparameters.length; i++){
@@ -383,12 +444,20 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         // somebody hit tab when looking at something like `shell dj` or `shell -command`
                         // so, we should check if the last word is a -CommandParameterName and if so, determine other parameters to replace it
                         // if we're looking at the first option, do nothing until they hit space
-                        if(tabOptions.length > 0){
-                            let newIndex = forwardOrBackwardTabIndex(event, tabOptionsIndex, tabOptions);
-                            //const newIndex = (tabOptionsIndex + 1) % tabOptions.length;
-                            setTabOptionsIndex(newIndex);
-                            let newMessage = message.split(" ").slice(0, -1).join(" ") + " -" + tabOptions[newIndex];
-                            setMessage(newMessage);
+                        if(tabOptions.current.length > 0){
+                            let newIndex = forwardOrBackwardTabIndex(event, tabOptionsIndex.current, tabOptions.current);
+                            if(tabOptionsType.current === "param_name"){
+                                tabOptionsIndex.current = newIndex;
+                                let newMessage = message.split(" ").slice(0, -1).join(" ") + " -" + tabOptions.current[newIndex];
+                                setMessage(newMessage);
+                            }else if(tabOptionsType.current === "param_value"){
+                                let oldChoice = tabOptions.current[tabOptionsIndex.current].includes(" ") ? "\"" + tabOptions.current[tabOptionsIndex.current] + "\"" : tabOptions.current[tabOptionsIndex.current];
+                                let newChoice =tabOptions.current[newIndex].includes(" ") ? "\"" + tabOptions.current[newIndex] + "\"" : tabOptions.current[newIndex];
+                                let newMessage = message.substring(0, message.length - oldChoice.length);
+                                tabOptionsIndex.current = newIndex;
+                                newMessage += newChoice;
+                                setMessage(newMessage);
+                            }
                             return;
                         }
                         const pieces = message.split(" ");
@@ -448,13 +517,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             }, [])
                             if(paramOptions.length > 0){
                                 if(paramOptions.length === 1){
-                                    setTabOptions([]);
-                                    setTabOptionsIndex(0);
+                                    tabOptions.current = [];
+                                    tabOptionsType.current = "param_name";
+                                    tabOptionsIndex.current = 0;
                                     let newMsg = pieces.slice(0,-1).join(" ") + " -" + paramOptions[0];
                                     setMessage(newMsg);
                                 }else{
-                                    setTabOptions(paramOptions);
-                                    setTabOptionsIndex(0);
+                                    tabOptions.current = paramOptions;
+                                    tabOptionsType.current = "param_name";
+                                    tabOptionsIndex.current = 0;
                                     let newMsg = pieces.slice(0,-1).join(" ") + " -" + paramOptions[0];
                                     setMessage(newMsg);
                                 }
@@ -477,19 +548,18 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 
             }else{
                 // somebody hit tab with either a blank message or a partial word
-                if(tabOptions.length === 0){
-                    let opts = loadedOptions.filter( l => l.cmd.toLowerCase().startsWith(message.toLocaleLowerCase()) && (l.attributes.supported_os.length === 0 || l.attributes.supported_os.includes(props.callback_os)));
-                    setTabOptions(opts);
-                    setTabOptionsIndex(0);
+                if(tabOptions.current.length === 0){
+                    let opts = loadedOptions.current.filter( l => l.cmd.toLowerCase().startsWith(message.toLocaleLowerCase()) && (l.attributes.supported_os.length === 0 || l.attributes.supported_os.includes(props.callback_os)));
+                    tabOptions.current = opts;
+                    tabOptionsType.current = "param_name";
+                    tabOptionsIndex.current = 0;
                     if(opts.length > 0){
                         setMessage(opts[0].cmd);
                     }
                 }else{
-                    let newIndex = forwardOrBackwardTabIndex(event, tabOptionsIndex, tabOptions);
-                    setTabOptionsIndex(newIndex);
-                    setMessage(tabOptions[newIndex].cmd);
-                    //setTabOptionsIndex( (tabOptionsIndex + 1) % tabOptions.length );
-                    //setMessage(tabOptions[(tabOptionsIndex + 1) % tabOptions.length].cmd)
+                    let newIndex = forwardOrBackwardTabIndex(event, tabOptionsIndex.current, tabOptions.current);
+                    tabOptionsIndex.current = newIndex;
+                    setMessage(tabOptions.current[newIndex].cmd);
                 }
             }
         }else if(event.key === "Enter"){
@@ -507,11 +577,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 return;
             }else{
                 
-                let newIndex = (taskOptionsIndex + 1);
+                let newIndex = (taskOptionsIndex.current + 1);
                 if(newIndex > filteredTaskOptions.length -1){
                     newIndex = filteredTaskOptions.length -1;
                 }
-                setTaskOptionsIndex(newIndex);
+                taskOptionsIndex.current = newIndex;
                 setMessage(GetUpDownArrowName(filteredTaskOptions[newIndex]));
                 setUnmodifiedHistoryValue(filteredTaskOptions[newIndex].tasking_location);
             }
@@ -520,19 +590,20 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 snackActions.warning("No previous tasks", snackMessageStyles);
                 return;
             }else{
-                let newIndex = (taskOptionsIndex - 1);
+                let newIndex = (taskOptionsIndex.current - 1);
                 if(newIndex < 0){
                     newIndex = 0;
                 }
-                setTaskOptionsIndex(newIndex);
+                taskOptionsIndex.current = newIndex;
                 setMessage(GetUpDownArrowName(filteredTaskOptions[newIndex]));
                 setUnmodifiedHistoryValue(filteredTaskOptions[newIndex].tasking_location);
             }
         }else if(!event.shiftKey){
-            setTabOptions([]);
-            setTabOptionsIndex(0);
-            if(taskOptionsIndex !== -1){
-                setTaskOptionsIndex(-1);
+            tabOptions.current = [];
+            tabOptionsType.current = "param_name";
+            tabOptionsIndex.current = 0;
+            if(taskOptionsIndex.current !== -1){
+                taskOptionsIndex.current = -1;
             }
         }
     }
@@ -876,6 +947,24 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         };
         return result;
     }
+    const getLastSuppliedArgument = (cmd, command_line, yargs) => {
+        let last_command_index = -1;
+        let new_command_line = command_line;
+        let last_command_parameter = undefined;
+        const argv = parseToArgv(new_command_line);
+        for(let i = 0; i < argv.length; i++){
+            for(let j = 0; j < cmd.commandparameters.length; j++){
+                if(yargs[cmd.commandparameters[j].cli_name] !== undefined){
+                    if(i > last_command_index){
+                        last_command_parameter = cmd.commandparameters[j];
+                        last_command_index = i;
+                    }
+                }
+            }
+        }
+
+        return last_command_parameter;
+    }
     const parseCommandLine = (command_line, cmd) => {
         // given a command line and the associated command
         
@@ -1218,8 +1307,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 }
             }
             setMessage("");
-            setTaskOptionsIndex(-1);
-            setReverseSearchIndex(-1);
+            taskOptionsIndex.current = -1;
+            reverseSearchIndex.current = -1;
             setReverseSearching(false);
             setUnmodifiedHistoryValue("parsed_cli");
             return;
@@ -1228,8 +1317,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         console.log("about to call onSubmitCommandLine", cmd);
         props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, unmodifiedHistoryValue);
         setMessage("");
-        setTaskOptionsIndex(-1);
-        setReverseSearchIndex(-1);
+        taskOptionsIndex.current = -1;
+        reverseSearchIndex.current = -1;
         setReverseSearching(false);
         setUnmodifiedHistoryValue("parsed_cli");
     }
@@ -1238,7 +1327,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         evt.stopPropagation();
         //console.log("onSubmitCommandLine", evt, message);
         let splitMessage = message.trim().split(" ");
-        let cmd = loadedOptions.filter( l => l.cmd === splitMessage[0]);
+        let cmd = loadedOptions.current.filter( l => l.cmd === splitMessage[0]);
         if(cmd === undefined || cmd.length === 0){
             snackActions.warning("Unknown (or not loaded) command", snackMessageStyles);
             return;
@@ -1260,15 +1349,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         setReverseSearchString(event.target.value);
         if(event.target.value.length === 0){
             setMessage("");
-            setReverseSearchOptions([]);
-            setReverseSearchIndex(0);
+            reverseSearchOptions.current = [];
+            reverseSearchIndex.current = 0;
             return;
         }
         // need to do a reverse i search through taskOptions
         const lowerCaseTextSearch = event.target.value.toLowerCase();
-        const matchingOptions = taskOptions.filter( x => (x?.command?.cmd + " " + x.original_params).toLowerCase().includes(lowerCaseTextSearch));
+        const matchingOptions = taskOptions.current.filter( x => (x?.command?.cmd + " " + x.original_params).toLowerCase().includes(lowerCaseTextSearch));
         const filteredMatches = matchingOptions.filter( x => applyFilteringToTasks(x))
-        setReverseSearchOptions(filteredMatches);
+        reverseSearchOptions.current = filteredMatches;
         if(filteredMatches.length > 0){
             setMessage(filteredMatches[0].command?.cmd + " " + filteredMatches[0].original_params);
         }
@@ -1276,46 +1365,46 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const onReverseSearchKeyDown = (event) => {
         if(event.key === "Escape"){
             setReverseSearching(false);
-            setReverseSearchIndex(0);
-            setReverseSearchOptions([]);
+            reverseSearchIndex.current = 0;
+            reverseSearchOptions.current=[];
         }else if(event.key === "Tab"){
             setReverseSearching(false);
-            setReverseSearchIndex(0);
-            setReverseSearchOptions([]);
+            reverseSearchIndex.current = 0;
+            reverseSearchOptions.current=[];
         }else if(event.key === "Enter"){
             setReverseSearching(false);
-            setReverseSearchIndex(0);
-            setReverseSearchOptions([]);
+            reverseSearchIndex.current = 0;
+            reverseSearchOptions.current=[];
             onSubmitCommandLine(event);
         }else if(event.key === "ArrowUp"){
             // go up through the reverseSearchOptions by incrementing reverseSearchIndex
             // setMessage to teh value
-            if(reverseSearchOptions.length === 0){
+            if(reverseSearchOptions.current.length === 0){
                 snackActions.warning("No matching options", snackReverseSearchMessageStyles);
                 return;
             }else{
-                let newIndex = (reverseSearchIndex + 1);
-                if(newIndex > reverseSearchOptions.length -1){
-                    newIndex = reverseSearchOptions.length -1;
+                let newIndex = (reverseSearchIndex.current + 1);
+                if(newIndex > reverseSearchOptions.current.length -1){
+                    newIndex = reverseSearchOptions.current.length -1;
                 }
-                setReverseSearchIndex(newIndex);
-                setMessage(GetUpDownArrowName(reverseSearchOptions[newIndex]));
-                setUnmodifiedHistoryValue(reverseSearchOptions[newIndex].tasking_location);
+                reverseSearchIndex.current = newIndex;
+                setMessage(GetUpDownArrowName(reverseSearchOptions.current[newIndex]));
+                setUnmodifiedHistoryValue(reverseSearchOptions.current[newIndex].tasking_location);
             }
         }else if(event.key === "ArrowDown"){
             // go down through the reverseSearchOptions by decrementing reverseSearchIndex
             // setMessage to the value
-            if(reverseSearchOptions.length === 0){
+            if(reverseSearchOptions.current.length === 0){
                 snackActions.warning("No matching options", snackReverseSearchMessageStyles);
                 return;
             }else{
-                let newIndex = (reverseSearchIndex - 1);
+                let newIndex = (reverseSearchIndex.current - 1);
                 if(newIndex < 0){
                     newIndex = 0;
                 }
-                setReverseSearchIndex(newIndex);
-                setMessage(GetUpDownArrowName(reverseSearchOptions[newIndex]));
-                setUnmodifiedHistoryValue(reverseSearchOptions[newIndex].tasking_location);
+                reverseSearchIndex.current = newIndex;
+                setMessage(GetUpDownArrowName(reverseSearchOptions.current[newIndex]));
+                setUnmodifiedHistoryValue(reverseSearchOptions.current[newIndex].tasking_location);
             }
         }else if(event.key === "r" && event.ctrlKey){
             //this means they typed ctrl+r, so they're wanting to do a reverse search for a command
@@ -1326,6 +1415,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     }
     return (
         <React.Fragment>
+            <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+                <CircularProgress color="inherit" />
+            </Backdrop>
             {reverseSearching &&
                 <TextField
                     placeholder={"Search previous commands"}

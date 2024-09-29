@@ -25,7 +25,7 @@ import {CircularProgress} from '@mui/material';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 
-const getDynamicQueryParams = gql`
+export const getDynamicQueryParams = gql`
 mutation getDynamicParamsMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!){
     dynamic_query_function(callback: $callback, command: $command, payload_type: $payload_type, parameter_name: $parameter_name){
         status
