@@ -61,6 +61,10 @@ export function App(props) {
     const theme = React.useMemo(
         () =>
             createTheme(adaptV4Theme({
+                transitions: {
+                    // So we have `transition: none;` everywhere
+                    create: () => 'none',
+                },
                 palette: {
                     primary: {
                         main: themeMode === "dark" ? "rgb(70,91,115)" : "rgb(117,133,155)",

@@ -160,6 +160,7 @@ func (d *DockerComposeManager) RemoveContainers(services []string, keepVolume bo
 	for _, service := range services {
 		for _, dockerContainer := range allContainers {
 			if dockerContainer.Labels["name"] == strings.ToLower(service) {
+				log.Printf("[*] Removing container: %s...\n", service)
 				err = cli.ContainerRemove(context.Background(),
 					dockerContainer.ID,
 					container.RemoveOptions{Force: true, RemoveVolumes: !keepVolume})
@@ -364,6 +365,7 @@ func (d *DockerComposeManager) StopServices(services []string, deleteImages bool
 			if dockerContainer.Labels["name"] == strings.ToLower(service) {
 				found = true
 				if deleteImages {
+					log.Printf("[*] Removing container: %s...\n", service)
 					err = cli.ContainerRemove(context.Background(),
 						dockerContainer.ID,
 						container.RemoveOptions{Force: true, RemoveVolumes: !keepVolume})
@@ -1151,6 +1153,7 @@ func (d *DockerComposeManager) RemoveVolume(volumeName string) error {
 				for _, m := range c.Mounts {
 					if m.Name == volumeName {
 						containerName := c.Labels["name"]
+						log.Printf("[*] Removing container %s...\n", containerName)
 						err = cli.ContainerRemove(ctx, c.ID, container.RemoveOptions{Force: true})
 						if err != nil {
 							log.Printf(fmt.Sprintf("[!] Failed to remove container that's using the volume: %v\n", err))
