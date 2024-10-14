@@ -59,7 +59,15 @@ func MythicRPCProxyStop(input MythicRPCProxyStopMessage) MythicRPCProxyStopMessa
 			}
 		}
 		response.LocalPort = input.Port
-		if err := proxyPorts.Remove(task.CallbackID, input.PortType, input.Port, task.OperationID, "", 0); err != nil {
+		err := proxyPorts.Remove(task.CallbackID,
+			input.PortType,
+			input.Port,
+			task.OperationID,
+			"",
+			0,
+			"",
+			"")
+		if err != nil {
 			logging.LogError(err, "Failed to stop callback port")
 			response.Error = err.Error()
 			return response

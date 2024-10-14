@@ -26,7 +26,7 @@ func (r *rabbitMQConnection) SendC2RPCStopServer(stopServer C2StopServerMessage)
 	exclusiveQueue := true
 	if opsecBytes, err := json.Marshal(stopServer); err != nil {
 		logging.LogError(err, "Failed to convert stopServer to JSON", "stopServer", stopServer)
-		return nil, err
+		return &c2StopServerResponse, err
 	} else if response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCStopServerRoutingKey(stopServer.Name),
@@ -34,10 +34,10 @@ func (r *rabbitMQConnection) SendC2RPCStopServer(stopServer C2StopServerMessage)
 		exclusiveQueue,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
-		return nil, err
+		return &c2StopServerResponse, err
 	} else if err := json.Unmarshal(response, &c2StopServerResponse); err != nil {
 		logging.LogError(err, "Failed to parse c2 stop server response back to struct", "response", response)
-		return nil, err
+		return &c2StopServerResponse, err
 	} else {
 		return &c2StopServerResponse, nil
 	}

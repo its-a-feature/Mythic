@@ -31,7 +31,7 @@ export function EventFeedTable(props){
     const [search, setSearch] = React.useState("");
     const [level, setLevel] = React.useState("All Levels");
     const levelOptions = [
-        "All Levels", "warning", "info", "debug"
+        "All Levels", "warning (unresolved)", "warning (resolved)", "info", "debug"
     ];
 
     const handleSearchValueChange = (name, value, error) => {
@@ -46,8 +46,8 @@ export function EventFeedTable(props){
     }
     return (
         <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
-            <div>
-                <Grid container spacing={2} style={{maxWidth: "100%"}}>
+            <Paper elevation={5} style={{backgroundColor: theme.body, marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}}>
+                <Grid container spacing={1} style={{maxWidth: "100%", marginTop: "1px"}}>
                     <Grid item xs={10}>
                         <MythicTextField placeholder="Search..." value={search}
                                          onChange={handleSearchValueChange} onEnter={submitSearch} InputProps={{
@@ -80,14 +80,14 @@ export function EventFeedTable(props){
                         </Select>
                     </Grid>
                 </Grid>
-            </div>
-            <div style={{display: "flex", flexDirection: "column", width: "100%", overflowY: "auto"}}>
-                <Paper elevation={5} style={{position: "relative", flexGrow: 1, overflowY: "scroll", backgroundColor: theme.body, paddingBottom: "20px"}} variant={"elevation"}>
+            </Paper>
+            <div style={{display: "flex", flexDirection: "column", width: "100%", overflowY: "auto", flexGrow: 1}}>
+                <span style={{position: "relative", flexGrow: 1, overflowY: "scroll", backgroundColor: theme.body, paddingBottom: "20px"}}>
                     <EventList 
                         onUpdateResolution={props.onUpdateResolution}
                         onUpdateLevel={props.onUpdateLevel}
                         operationeventlog={props.operationeventlog}/>
-                </Paper>
+                </span>
                 
             </div>
             <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: "5px", paddingBottom: "10px"}}>

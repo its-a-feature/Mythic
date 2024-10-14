@@ -61,7 +61,7 @@ export function ProxySearchTable(props){
                         <TableCell style={{width: "1rem"}}></TableCell>
                         <TableCell >User@Host</TableCell>
                         <TableCell style={{width: "9rem"}}>Callback / Task</TableCell>
-                        <TableCell style={{width: "6rem"}}>Local Port</TableCell>
+                        <TableCell style={{width: "7rem"}}>Bound Port</TableCell>
                         <TableCell >Remote Connection</TableCell>
                         <TableCell style={{width: "9rem"}}>
                             <MythicStyledTooltip title={"Rx is bytes Mythic received from the agent. Tx is bytes Mythic sent to the agent"} >
@@ -177,6 +177,13 @@ function ProxySearchTableRow(props){
                 <TableCell>
                     {props.remote_port !== 0 &&
                         <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.remote_ip}:{props.remote_port}</Typography>
+                    }
+                    {props.username !== "" &&
+                        <Typography variant="body2" style={{wordBreak: "break-all"}}>
+                            <b>Authentication Required</b><br/>
+                            Username: <b>{props.username}</b><br/>
+                            Password: <b>{props.password}</b>
+                        </Typography>
                     }
 
                 </TableCell>

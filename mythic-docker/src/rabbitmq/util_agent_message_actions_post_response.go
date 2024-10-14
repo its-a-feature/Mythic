@@ -1277,6 +1277,30 @@ func uploadDeleteAfterFetch(fileMeta databaseStructs.Filemeta) {
 func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseStructs.Task, agentResponse agentMessagePostResponse, uploadResponse agentMessagePostResponseUploadResponse) {
 	// update the host/full path/filename if they're specified
 	// create a new fileMeta object for the full path/host/task if the fileMeta.task is different from task
+	if (!fileMeta.TaskID.Valid || fileMeta.TaskID.Int64 != int64(task.ID)) && agentResponse.Upload.ChunkNum-1 == 0 {
+		// this was uploaded manually through the file hosting and not part of a task or was uploaded as part of a different task
+		// either way, we need to make a new fileMeta tracker for it
+		newFileMeta := fileMeta
+		newFileMeta.TaskID.Int64 = int64(task.ID)
+		newFileMeta.TaskID.Valid = true
+		newFileMeta.AgentFileID = uuid.NewString()
+		if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
+			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,comment,operator_id,
+			 delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_download_from_agent,is_screenshot,
+			 host,size,is_payload)
+			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, 
+			        :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_download_from_agent, :is_screenshot, 
+			        :host, :size, :is_payload)
+			RETURNING id`); err != nil {
+			logging.LogError(err, "Failed to insert new filemeta data for a separate task pulling down an already uploaded file")
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		} else if err = statement.Get(&newFileMeta, newFileMeta); err != nil {
+			logging.LogError(err, "Failed to insert net filemeta data for a separate task")
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		} else {
+			go EmitFileLog(newFileMeta.ID)
+		}
+	}
 	if agentResponse.Upload.FullPath != nil && *agentResponse.Upload.FullPath != "" {
 		if filePieces, err := utils.SplitFilePathGetHost(*agentResponse.Upload.FullPath, "", []string{}); err != nil {
 			logging.LogError(err, "Failed to parse out the full path returned by the agent for an upload")
@@ -1294,25 +1318,19 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 				// this was uploaded manually through the file hosting and not part of a task or was uploaded as part of a different task
 				// either way, we need to make a new fileMeta tracker for it
 				newFileMeta := fileMeta
-				newFileMeta.TaskID.Int64 = int64(task.ID)
 				newFileMeta.TaskID.Valid = true
+				newFileMeta.TaskID.Int64 = int64(task.ID)
 				newFileMeta.FullRemotePath = []byte(*agentResponse.Upload.FullPath)
-				newFileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
-				newFileMeta.AgentFileID = uuid.NewString()
-				newFileMeta.Host = filePieces.Host
-				if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
-			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,comment,operator_id,delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_download_from_agent,is_screenshot,host)
-			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_download_from_agent, :is_screenshot, :host)
-			RETURNING id`); err != nil {
-					logging.LogError(err, "Failed to insert new filemeta data for a separate task pulling down an already uploaded file")
-					go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-				} else if err = statement.Get(&newFileMeta, newFileMeta); err != nil {
-					logging.LogError(err, "Failed to insert net filemeta data for a separate task")
-					go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-				} else {
-					go EmitFileLog(newFileMeta.ID)
-					go associateFileMetaWithMythicTree(filePieces, newFileMeta, task)
+				//newFileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
+				_, err = database.DB.NamedExec(`UPDATE filemeta 
+					SET full_remote_path=:full_remote_path, host=:host
+         			WHERE task_id=:task_id AND md5=:md5 AND sha1=:sha1`, newFileMeta)
+				if err != nil {
+					logging.LogError(err, "failed to find file_id for updating file path on task that didn't upload the file originally")
+					return
 				}
+				go associateFileMetaWithMythicTree(filePieces, newFileMeta, task)
+				go EmitFileLog(newFileMeta.ID)
 			} else {
 				// this might be a new full path for the current file meta that we need to update
 				fileMeta.FullRemotePath = []byte(*agentResponse.Upload.FullPath)

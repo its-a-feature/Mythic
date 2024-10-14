@@ -49,7 +49,7 @@ func installGitHub(cmd *cobra.Command, args []string) {
 	}
 	localKeepVolume := keepVolume
 	if !keepVolume {
-		keepVolume = !config.GetMythicEnv().GetBool("REBUILD_ON_START")
+		localKeepVolume = !config.GetMythicEnv().GetBool("REBUILD_ON_START")
 	}
 	if err := internal.InstallService(args[0], branch, force, localKeepVolume); err != nil {
 		log.Printf("[-] Failed to install service: %v\n", err)

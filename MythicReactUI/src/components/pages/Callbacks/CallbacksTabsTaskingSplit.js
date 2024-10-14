@@ -84,7 +84,7 @@ query getBatchTasking($callback_id: Int!, $offset: Int!, $fetchLimit: Int!){
 }
 `;
 export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTab, me}) =>{
-    const [taskLimit, setTaskLimit] = React.useState(10);
+    const [taskLimit, setTaskLimit] = React.useState(30);
     const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
@@ -451,6 +451,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                 </div>
             </Split>
             <CallbacksTabsTaskingInput filterTasks={true} me={me} onSubmitFilter={onSubmitFilter}
+                                       payloadtype_name={tabInfo.payloadtype}
                                        onSubmitCommandLine={onSubmitCommandLine} changeSelectedToken={changeSelectedToken}
                                        filterOptions={filterOptions} callback_id={tabInfo.callbackID}
                                        callback_os={tabInfo.os} parentMountedRef={mountedRef} />

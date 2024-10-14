@@ -242,9 +242,9 @@ export function TaskParametersDialogRow(props){
                setValue(props.value);
                setChoiceOptions(props.choices);
            }
-       }else if(props.type === "ChooseMultiple" && props.dynamic_query_function === null){
+       }else if(props.type === "ChooseMultiple" && props.dynamic_query_function === ""){
+           //console.log("ChooseMultiple", props.value, value);
            if(value === ""){
-               //console.log(props.value);
                 setChoiceMultipleValue(props.value);
                 setValue(props.value);
                 setChoiceOptions(props.choices);
@@ -363,15 +363,15 @@ export function TaskParametersDialogRow(props){
     }
     const onChangeChoiceMultiple = (event) => {
         const { options } = event.target;
-        const value = [];
+        let localValue = [];
         for (let i = 0, l = options.length; i < l; i += 1) {
           if (options[i].selected) {
-            value.push(options[i].value);
+              localValue.push(options[i].value);
           }
         }
-        setChoiceMultipleValue(value);
-        setValue(value);
-        props.onChange(props.name, value, false);
+        setChoiceMultipleValue(localValue);
+        setValue(localValue);
+        props.onChange(props.name, localValue, false);
     }
     const onChangeText = (name, value, error) => {
         setValue(value);

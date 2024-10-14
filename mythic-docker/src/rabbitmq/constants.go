@@ -225,6 +225,8 @@ const (
 	// MYTHIC_RPC_PROXY_START proxy operations
 	MYTHIC_RPC_PROXY_START = "mythic_rpc_proxy_start"
 	MYTHIC_RPC_PROXY_STOP  = "mythic_rpc_proxy_stop"
+	// C2
+	MYTHIC_RPC_C2_UPDATE_STATUS = "mythic_rpc_c2_update_status"
 	//
 	MYTHIC_RPC_APITOKEN_CREATE = "mythic_rpc_apitoken_create"
 	// MYTHIC_RPC_BLANK blank

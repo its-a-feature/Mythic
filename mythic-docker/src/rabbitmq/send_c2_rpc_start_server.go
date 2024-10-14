@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"github.com/its-a-feature/Mythic/database"
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 
 	"github.com/its-a-feature/Mythic/logging"
 )
@@ -24,12 +25,18 @@ type C2StartServerMessageResponse struct {
 
 func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
 	go func() {
+		c2Profile := databaseStructs.C2profile{Name: c2ProfileName}
+		err := database.DB.Get(&c2Profile, `SELECT id FROM c2profile WHERE name=$1`, c2ProfileName)
+		if err != nil {
+			go SendAllOperationsMessage("Failed to find C2 Profile", 0, "host_file", database.MESSAGE_LEVEL_WARNING)
+		}
 		if sendNotifications {
 			go SendAllOperationsMessage("Stopping C2 Profile after hosting new file...", 0, "host_file", database.MESSAGE_LEVEL_INFO)
 		}
 		stopC2ProfileResponse, err := RabbitMQConnection.SendC2RPCStopServer(C2StopServerMessage{
 			Name: c2ProfileName,
 		})
+		UpdateC2ProfileRunningStatus(c2Profile, stopC2ProfileResponse.InternalServerRunning)
 		if err != nil {
 			logging.LogError(err, "Failed to send RPC call to c2 profile in C2HostFileMessageWebhook", "c2_profile", c2ProfileName)
 			if sendNotifications {
@@ -38,10 +45,12 @@ func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
 			return
 		}
 		if !stopC2ProfileResponse.Success {
-			if sendNotifications {
-				go SendAllOperationsMessage(stopC2ProfileResponse.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
+			if stopC2ProfileResponse.Error != "Server not running" {
+				if sendNotifications {
+					go SendAllOperationsMessage(stopC2ProfileResponse.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
+				}
+				return
 			}
-			return
 		}
 		if sendNotifications {
 			go SendAllOperationsMessage("Starting C2 Profile after hosting new file...", 0, "host_file", database.MESSAGE_LEVEL_INFO)
@@ -49,6 +58,7 @@ func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
 		startC2ProfileResponse, err := RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{
 			Name: c2ProfileName,
 		})
+		UpdateC2ProfileRunningStatus(c2Profile, startC2ProfileResponse.InternalServerRunning)
 		if err != nil {
 			logging.LogError(err, "Failed to send RPC call to c2 profile in C2HostFileMessageWebhook", "c2_profile", c2ProfileName)
 			if sendNotifications {
@@ -72,7 +82,7 @@ func (r *rabbitMQConnection) SendC2RPCStartServer(startServer C2StartServerMessa
 	exclusiveQueue := true
 	if opsecBytes, err := json.Marshal(startServer); err != nil {
 		logging.LogError(err, "Failed to convert startServer to JSON", "startServer", startServer)
-		return nil, err
+		return &c2StartServerResponse, err
 	} else if response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCStartServerRoutingKey(startServer.Name),
@@ -80,10 +90,10 @@ func (r *rabbitMQConnection) SendC2RPCStartServer(startServer C2StartServerMessa
 		exclusiveQueue,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
-		return nil, err
+		return &c2StartServerResponse, err
 	} else if err := json.Unmarshal(response, &c2StartServerResponse); err != nil {
 		logging.LogError(err, "Failed to parse start server response back to struct", "response", response)
-		return nil, err
+		return &c2StartServerResponse, err
 	} else {
 		return &c2StartServerResponse, nil
 	}

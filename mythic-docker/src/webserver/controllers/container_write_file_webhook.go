@@ -66,7 +66,9 @@ func ContainerWriteFileWebhook(c *gin.Context) {
 		})
 		return
 	}
-	go rabbitmq.RestartC2ServerAfterUpdate(input.Input.ContainerName, false)
+	if input.Input.Filename == "config.json" {
+		go rabbitmq.RestartC2ServerAfterUpdate(input.Input.ContainerName, false)
+	}
 	c.JSON(http.StatusOK, WriteContainerFileResponse{
 		Status: "success",
 	})

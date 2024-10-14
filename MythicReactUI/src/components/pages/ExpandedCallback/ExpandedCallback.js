@@ -67,11 +67,11 @@ export function ExpandedCallback(props){
     const {callbackDisplayId} = useParams();
     const [callback, setCallbacks] = React.useState({"payload": {"payloadtype": {"name": ""}}, "callbacktokens": []});
     const [tabInfo, setTabInfo] = React.useState({displayID: parseInt(callbackDisplayId)});
-    const callbackEdges = React.useRef([]);
+    const [callbackEdges, setCallbackEdges] = React.useState([]);
     useQuery(Query_Callbacks_And_Edges, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
-            callbackEdges.current = data.callbackgraphedge;
+            setCallbackEdges(data.callbackgraphedge);
         }
     })
     useSubscription(SUB_Callbacks, {
@@ -105,13 +105,13 @@ export function ExpandedCallback(props){
                 }
                 prev[existingIndex] = {...prev[existingIndex], ...cur};
                 return [...prev];
-            }, callbackEdges.current);
-            callbackEdges.current = updated;
+            }, callbackEdges);
+            setCallbackEdges(updated);
         }
     });
     return (
         <div style={{width: "100%", height: "100%", maxHeight: "100%",}}>
-            <CallbackGraphEdgesContext.Provider value={callbackEdges.current}>
+            <CallbackGraphEdgesContext.Provider value={callbackEdges}>
                 {tabInfo.payloadtype !== undefined ? (
                     <Split direction="horizontal" style={{width: "100%", height: "100%", display: "flex", flexDirection: "row" }} sizes={[30, 70]} >
                         <div className="bg-gray-base" style={{display: "inline-flex"}}>

@@ -37,12 +37,15 @@ func Login(c *gin.Context) {
 		return
 	}
 	user := map[string]interface{}{
-		"current_operation":    currentOperation.CurrentOperation.Name,
-		"current_operation_id": currentOperation.CurrentOperation.ID,
-		"username":             currentOperation.CurrentOperator.Username,
-		"id":                   currentOperation.CurrentOperator.ID,
-		"user_id":              currentOperation.CurrentOperator.ID,
-		"view_utc_time":        currentOperation.CurrentOperator.ViewUtcTime,
+		"current_operation":              currentOperation.CurrentOperation.Name,
+		"current_operation_banner_text":  currentOperation.CurrentOperation.BannerText,
+		"current_operation_banner_color": currentOperation.CurrentOperation.BannerColor,
+		"current_operation_complete":     currentOperation.CurrentOperation.Complete,
+		"current_operation_id":           currentOperation.CurrentOperation.ID,
+		"username":                       currentOperation.CurrentOperator.Username,
+		"id":                             currentOperation.CurrentOperator.ID,
+		"user_id":                        currentOperation.CurrentOperator.ID,
+		"view_utc_time":                  currentOperation.CurrentOperator.ViewUtcTime,
 	}
 	// setting cookie max age to 2 days
 	c.SetCookie("mythic", accessToken, 60*60*24*2, "/", strings.Split(c.Request.Host, ":")[0], true, true)
@@ -73,11 +76,14 @@ func GetMeWebhook(c *gin.Context) {
 	} else {
 		//logging.LogInfo("got mewebhook info", "currentOperation", currentOperation)
 		c.JSON(http.StatusOK, gin.H{
-			"status":               "success",
-			"current_operation":    currentOperation.CurrentOperation.Name,
-			"current_operation_id": currentOperation.CurrentOperation.ID,
-			"user_id":              currentOperation.CurrentOperator.ID,
-			"id":                   currentOperation.CurrentOperator.ID,
+			"status":                         "success",
+			"current_operation":              currentOperation.CurrentOperation.Name,
+			"current_operation_banner_text":  currentOperation.CurrentOperation.BannerText,
+			"current_operation_banner_color": currentOperation.CurrentOperation.BannerColor,
+			"current_operation_complete":     currentOperation.CurrentOperation.Complete,
+			"current_operation_id":           currentOperation.CurrentOperation.ID,
+			"user_id":                        currentOperation.CurrentOperator.ID,
+			"id":                             currentOperation.CurrentOperator.ID,
 		})
 		return
 	}
@@ -109,11 +115,14 @@ func RefreshJWT(c *gin.Context) {
 		return
 	}
 	user := map[string]interface{}{
-		"current_operation_name": currentOperation.CurrentOperation.Name,
-		"current_operation_id":   currentOperation.OperationID,
-		"username":               currentOperation.CurrentOperator.Username,
-		"id":                     currentOperation.CurrentOperator.ID,
-		"user_id":                currentOperation.CurrentOperator.ID,
+		"current_operation_name":         currentOperation.CurrentOperation.Name,
+		"current_operation_id":           currentOperation.OperationID,
+		"current_operation_banner_text":  currentOperation.CurrentOperation.BannerText,
+		"current_operation_banner_color": currentOperation.CurrentOperation.BannerColor,
+		"current_operation_complete":     currentOperation.CurrentOperation.Complete,
+		"username":                       currentOperation.CurrentOperator.Username,
+		"id":                             currentOperation.CurrentOperator.ID,
+		"user_id":                        currentOperation.CurrentOperator.ID,
 	}
 	// setting cookie max age to 2 days
 	c.Set("user_id", currentOperation.CurrentOperator.ID)

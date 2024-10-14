@@ -17,8 +17,8 @@ import Input from '@mui/material/Input';
 import Switch from '@mui/material/Switch';
 
 const hostFileMutation = gql`
-mutation hostFileMutation($c2_id: Int!, $file_uuid: String!, $host_url: String!, $alert_on_download: Boolean) {
-  c2HostFile(c2_id: $c2_id, file_uuid: $file_uuid, host_url: $host_url, alert_on_download: $alert_on_download) {
+mutation hostFileMutation($c2_id: Int!, $file_uuid: String!, $host_url: String!, $alert_on_download: Boolean, $remove: Boolean) {
+  c2HostFile(c2_id: $c2_id, file_uuid: $file_uuid, host_url: $host_url, alert_on_download: $alert_on_download, remove: $remove) {
       status
       error
   }
@@ -38,10 +38,16 @@ export function HostFileDialog(props) {
     const [availableC2Profiles, setAvailableC2Profiles] = React.useState([]);
     const [selectedC2Profile, setSelectedC2Profile] = React.useState({id: 0});
     const [alertOnDownload, setAlertOnDownload] = React.useState(false);
+    const removing = React.useRef(false);
     const [hostFile] = useMutation(hostFileMutation, {
         onCompleted: (data) => {
             if(data.c2HostFile.status === "success"){
-                snackActions.success("Successfully hosted file")
+                if (removing.current){
+                    snackActions.success("Successfully stop hosting file");
+                } else {
+                    snackActions.success("Successfully hosted file");
+                }
+
                 props.onClose();
             } else {
                 snackActions.error(data.c2HostFile.error);
@@ -78,8 +84,22 @@ export function HostFileDialog(props) {
         } else if(selectedC2Profile.id === 0){
             snackActions.warning("Must select a running, egress C2 Profile to host");
         } else {
-            hostFile({variables: {c2_id: selectedC2Profile.id, file_uuid: props.file_uuid, host_url: message, alert_on_download: alertOnDownload}});
+            hostFile({variables: {c2_id: selectedC2Profile.id,
+                    file_uuid: props.file_uuid,
+                    host_url: message,
+                    alert_on_download: alertOnDownload,
+                    remove: false
+                }});
         }
+    }
+    const stopHosting = () => {
+        removing.current = true;
+        hostFile({variables: {c2_id: selectedC2Profile.id,
+                file_uuid: props.file_uuid,
+                host_url: message,
+                alert_on_download: alertOnDownload,
+                remove: true
+            }});
     }
 
   return (
@@ -89,7 +109,7 @@ export function HostFileDialog(props) {
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableBody>
                     <TableRow hover>
-                        <MythicTableCell>File</MythicTableCell>
+                        <MythicTableCell style={{width: "30%"}}>File</MythicTableCell>
                         <MythicTableCell style={{wordBreak: "all"}}>{props.file_name}</MythicTableCell>
                     </TableRow>
                     <TableRow hover>
@@ -111,16 +131,16 @@ export function HostFileDialog(props) {
                         </MythicTableCell>
                     </TableRow>
                     <TableRow hover>
-                        <MythicTableCell style={{width: "20%"}}>Hosting URL Path (with /)</MythicTableCell>
+                        <MythicTableCell >Hosting URL Path (with /)</MythicTableCell>
                         <MythicTableCell>
-                            <MythicTextField value={message} onChange={onChangeHostURL} requiredValue={true} >
+                            <MythicTextField value={message} onEnter={submit} onChange={onChangeHostURL} requiredValue={true} >
                             </MythicTextField>
                         </MythicTableCell>
                     </TableRow>
                     <TableRow hover>
                         <MythicTableCell>Send alert when file is downloaded?</MythicTableCell>
                         <MythicTableCell>
-                            <Switch color={"warning"} onChange={onChangeAlert} checked={alertOnDownload}></Switch>
+                            <Switch color={"success"} onChange={onChangeAlert} checked={alertOnDownload}></Switch>
                         </MythicTableCell>
                     </TableRow>
                 </TableBody>
@@ -130,9 +150,12 @@ export function HostFileDialog(props) {
           <Button variant="contained" onClick={props.onClose} color="primary">
             Close
           </Button>
-            <Button variant="contained" onClick={submit} color={"success"}>
-                Submit
+            <Button variant="contained" onClick={stopHosting} color="error">
+                Stop Hosting
             </Button>
+          <Button variant="contained" onClick={submit} color={"success"}>
+            Submit
+          </Button>
         </DialogActions>
   </React.Fragment>
   );

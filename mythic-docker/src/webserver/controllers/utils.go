@@ -40,11 +40,12 @@ const (
 	tagTypeDownloadDescription   = "The file was downloaded by an operator in the UI"
 	tagTypeDownloadColor         = "#709567"
 	tagTypeHostedByC2            = "FileHosted"
-	tagTypeHostedByC2Description = "The file was hosted by an operator in the UI through a C2 Profile"
-	tagTypeHostedByC2Color       = "#cb7a00"
+	tagTypeHostedByC2Description = `The file was hosted by an operator in the UI through a C2 Profile.
+Use the host file button (blue globe) to then remove this file from being hosted.`
+	tagTypeHostedByC2Color = "#cb7a00"
 )
 
-func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssignment string, tagData map[string]interface{}, c *gin.Context) {
+func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssignment string, tagData map[string]interface{}, c *gin.Context, remove bool) {
 	// create the tag type in general if needed
 	tagtype := databaseStructs.TagType{}
 	err := database.DB.Get(&tagtype, `SELECT * FROM tagtype WHERE name=$1 AND operation_id=$2`,
@@ -158,29 +159,70 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 			hostedTagDataEntry := val.(map[string]interface{})
 			//logging.LogInfo("looping through hosted data", "hostedTagDataEntry", hostedTagDataEntry)
 			if hostedTagDataEntry["c2_profile"].(string) == c2Profile || c2Profile == "" {
-				updateTagData[newKey] = fmt.Sprintf("Via C2 Profile (%s) hosted at %s", c2Profile, hostedTagDataEntry["host_url"].(string))
+				remoteIP := requestGetRemoteAddress(c)
+				remoteURL := requestGetRemoteURL(c)
+				remoteUserAgent := requestGetRemoteUserAgent(c)
+				remoteHost := requestGetRemoteHost(c)
+				downloadMessage := fmt.Sprintf(`
+%s was downloaded at %s: 
+C2 Profile:    %s
+Hosted Path:   %s
+Downloader IP: %s
+Requested URL: %s
+User-Agent:    %s
+Target Host:   %s`,
+					hostedTagDataEntry["filename"],
+					newKey,
+					hostedTagDataEntry["c2_profile"],
+					hostedTagDataEntry["host_url"],
+					remoteIP, remoteURL, remoteUserAgent, remoteHost)
+				updateTagData[newKey] = downloadMessage
+				alertLevel := database.MESSAGE_LEVEL_INFO
 				if hostedTagDataEntry["alert_on_download"].(bool) {
-					go rabbitmq.SendAllOperationsMessage(
-						fmt.Sprintf("%s was downloaded at %s via %s at %s",
-							hostedTagDataEntry["filename"],
-							newKey,
-							hostedTagDataEntry["c2_profile"],
-							hostedTagDataEntry["host_url"]),
-						operationID, "", database.MESSAGE_LEVEL_WARNING)
+					alertLevel = database.MESSAGE_LEVEL_WARNING
 				}
+				go rabbitmq.SendAllOperationsMessage(downloadMessage, operationID, "", alertLevel)
 				break
 			}
 		}
 	case tagTypeHostedByC2:
-		for key, val := range tagData {
-			updateTagData[key] = val
+		if remove {
+			for key, val := range updateTagData {
+				for _, newTagVal := range tagData {
+					newTagMap := newTagVal.(map[string]interface{})
+					oldTagMap := val.(map[string]interface{})
+					if newTagMap["agent_file_id"].(string) == oldTagMap["agent_file_id"].(string) &&
+						newTagMap["c2_profile"].(string) == oldTagMap["c2_profile"].(string) &&
+						(newTagMap["host_url"].(string) == "" ||
+							newTagMap["host_url"].(string) == oldTagMap["host_url"].(string)) {
+						delete(updateTagData, key)
+					}
+				}
+			}
+		} else {
+			for key, val := range tagData {
+				updateTagData[key] = val
+			}
 		}
 	default:
 	}
+	if len(updateTagData) > 0 {
+		tag.Data = rabbitmq.GetMythicJSONTextFromStruct(updateTagData)
+		_, err = database.DB.NamedExec(`UPDATE tag SET data=:data WHERE id=:id`, tag)
+	} else {
+		_, err = database.DB.NamedExec(`DELETE FROM tag WHERE id=:id`, tag)
+	}
 
-	tag.Data = rabbitmq.GetMythicJSONTextFromStruct(updateTagData)
-	_, err = database.DB.NamedExec(`UPDATE tag SET data=:data WHERE id=:id`, tag)
 	if err != nil {
 		logging.LogError(err, "failed to update tag")
+		return
+	}
+	_, err = database.DB.Exec(`UPDATE filemeta SET timestamp=now() WHERE id=$1`, fileMetaID)
+	if err != nil {
+		logging.LogError(err, "failed to update file timestamp")
+	}
+	_, err = database.DB.Exec(`UPDATE payload SET timestamp=now() WHERE file_id=$1`, fileMetaID)
+	if err != nil {
+		logging.LogError(err, "failed to update payload timestamp")
 	}
 }

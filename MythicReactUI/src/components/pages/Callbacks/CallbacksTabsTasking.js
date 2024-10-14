@@ -82,7 +82,7 @@ query getBatchTasking($callback_id: Int!, $offset: Int!, $fetchLimit: Int!){
 }
 `;
 export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, parentMountedRef, me}) =>{
-    const [taskLimit, setTaskLimit] = React.useState(10);
+    const [taskLimit, setTaskLimit] = React.useState(20);
     const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
@@ -370,6 +370,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             setSelectedToken(token);
         }
     }
+
     return (
         <MythicTabPanel index={index} value={value} >
             {!fetched && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
@@ -393,8 +394,14 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                 <div ref={messagesEndRef}/>
             </div>
 
-            <CallbacksTabsTaskingInput filterTasks={true} me={me} onSubmitFilter={onSubmitFilter} onSubmitCommandLine={onSubmitCommandLine} changeSelectedToken={changeSelectedToken}
-            filterOptions={filterOptions} callback_id={tabInfo.callbackID} callback_os={tabInfo.os} parentMountedRef={mountedRef} />
+            <CallbacksTabsTaskingInput filterTasks={true} me={me}
+                                       onSubmitFilter={onSubmitFilter}
+                                       onSubmitCommandLine={onSubmitCommandLine}
+                                       changeSelectedToken={changeSelectedToken}
+                                       filterOptions={filterOptions}
+                                       callback_id={tabInfo.callbackID}
+                                       payloadtype_name={tabInfo.payloadtype}
+                                       callback_os={tabInfo.os} parentMountedRef={mountedRef} />
         {openParametersDialog && 
             <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog} 
                 onClose={()=>{setOpenParametersDialog(false);}} 

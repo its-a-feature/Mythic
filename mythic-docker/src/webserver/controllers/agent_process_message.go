@@ -51,16 +51,31 @@ func requestGetRemoteAddress(c *gin.Context) string {
 	}
 	return "127.0.0.1"
 }
-func AgentMessageWebhook(c *gin.Context) {
-	// get variables from the POST request
+func requestGetRemoteURL(c *gin.Context) string {
 	requestUrl := c.Request.URL.RawPath
 	if forwardedURL := c.GetHeader("x-forwarded-url"); forwardedURL != "" {
 		requestUrl = forwardedURL
 	}
+	return requestUrl
+}
+func requestGetRemoteUserAgent(c *gin.Context) string {
 	requestUserAgent := c.Request.UserAgent()
 	if forwardedUserAgent := c.GetHeader("x-forwarded-user-agent"); forwardedUserAgent != "" {
 		requestUserAgent = forwardedUserAgent
 	}
+	return requestUserAgent
+}
+func requestGetRemoteHost(c *gin.Context) string {
+	requestHost := c.Request.Host
+	if forwardedHost := c.GetHeader("X-Forwarded-Host"); forwardedHost != "" {
+		requestHost = forwardedHost
+	}
+	return requestHost
+}
+func AgentMessageWebhook(c *gin.Context) {
+	// get variables from the POST request
+	requestUrl := requestGetRemoteURL(c)
+	requestUserAgent := requestGetRemoteUserAgent(c)
 	requestIp := requestGetRemoteAddress(c)
 	agentMessage, err := io.ReadAll(c.Request.Body)
 	c.Request.Body.Close()
@@ -107,14 +122,8 @@ func AgentMessageGetWebhook(c *gin.Context) {
 	// first check for first query param
 	// then check for first cookie
 	// finally check for request body
-	requestUrl := c.Request.URL.String()
-	if forwardedURL := c.GetHeader("x-forwarded-url"); forwardedURL != "" {
-		requestUrl = forwardedURL
-	}
-	requestUserAgent := c.Request.UserAgent()
-	if forwardedUserAgent := c.GetHeader("x-forwarded-user-agent"); forwardedUserAgent != "" {
-		requestUserAgent = forwardedUserAgent
-	}
+	requestUrl := requestGetRemoteURL(c)
+	requestUserAgent := requestGetRemoteUserAgent(c)
 	requestIp := requestGetRemoteAddress(c)
 	c2Header := c.GetHeader("mythic")
 	if c2Header == "" {

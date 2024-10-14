@@ -38,7 +38,7 @@ func init() {
 func installFolder(cmd *cobra.Command, args []string) {
 	localKeepVolume := keepVolume
 	if !keepVolume {
-		keepVolume = !config.GetMythicEnv().GetBool("REBUILD_ON_START")
+		localKeepVolume = !config.GetMythicEnv().GetBool("REBUILD_ON_START")
 	}
 	if err := internal.InstallFolder(args[0], force, localKeepVolume, ""); err != nil {
 		log.Printf("[-] Failed to install service: %v\n", err)

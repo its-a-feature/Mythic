@@ -25,18 +25,22 @@ type UpdateOperation struct {
 	Webhook     *string `json:"webhook,omitempty"`
 	AdminID     *int    `json:"admin_id,omitempty"`
 	Deleted     *bool   `json:"deleted,omitempty"`
+	BannerText  *string `json:"banner_text,omitempty"`
+	BannerColor *string `json:"banner_color,omitempty"`
 }
 
 type UpdateOperationResponse struct {
-	Status   string `json:"status"`
-	Error    string `json:"error"`
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Channel  string `json:"channel"`
-	Complete bool   `json:"complete"`
-	Webhook  string `json:"webhook"`
-	AdminID  int    `json:"admin_id"`
-	Deleted  bool   `json:"deleted"`
+	Status      string `json:"status"`
+	Error       string `json:"error"`
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	Channel     string `json:"channel"`
+	Complete    bool   `json:"complete"`
+	Webhook     string `json:"webhook"`
+	AdminID     int    `json:"admin_id"`
+	Deleted     bool   `json:"deleted"`
+	BannerText  string `json:"banner_text"`
+	BannerColor string `json:"banner_color"`
 }
 
 func UpdateOperationWebhook(c *gin.Context) {
@@ -126,6 +130,12 @@ func UpdateOperationWebhook(c *gin.Context) {
 	}
 	if input.Input.Channel != nil {
 		currentOperation.Channel = *input.Input.Channel
+	}
+	if input.Input.BannerText != nil {
+		currentOperation.BannerText = *input.Input.BannerText
+	}
+	if input.Input.BannerColor != nil {
+		currentOperation.BannerColor = *input.Input.BannerColor
 	}
 	if input.Input.AdminID != nil {
 		// trying to update the lead of the operation
@@ -217,7 +227,9 @@ func UpdateOperationWebhook(c *gin.Context) {
 		}
 	}
 	_, err = database.DB.NamedExec(`UPDATE operation SET 
-		 	"name"=:name, complete=:complete, webhook=:webhook, channel=:channel, deleted=:deleted WHERE id=:id`,
+		 	"name"=:name, complete=:complete, webhook=:webhook, 
+		 	channel=:channel, deleted=:deleted, banner_text=:banner_text, banner_color=:banner_color 
+                 WHERE id=:id`,
 		currentOperation)
 	if err != nil {
 		logging.LogError(err, "Failed to update operation data")
@@ -245,14 +257,16 @@ func UpdateOperationWebhook(c *gin.Context) {
 		})
 	}
 	c.JSON(http.StatusOK, UpdateOperationResponse{
-		Status:   "success",
-		Name:     currentOperation.Name,
-		Channel:  currentOperation.Channel,
-		Complete: currentOperation.Complete,
-		Webhook:  currentOperation.Webhook,
-		Deleted:  currentOperation.Deleted,
-		ID:       currentOperation.ID,
-		AdminID:  currentOperation.AdminID,
+		Status:      "success",
+		Name:        currentOperation.Name,
+		Channel:     currentOperation.Channel,
+		Complete:    currentOperation.Complete,
+		Webhook:     currentOperation.Webhook,
+		Deleted:     currentOperation.Deleted,
+		ID:          currentOperation.ID,
+		AdminID:     currentOperation.AdminID,
+		BannerText:  currentOperation.BannerText,
+		BannerColor: currentOperation.BannerColor,
 	})
 	return
 }

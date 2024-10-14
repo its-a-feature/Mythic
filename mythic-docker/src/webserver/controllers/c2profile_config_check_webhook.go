@@ -93,7 +93,7 @@ func C2ProfileConfigCheckWebhook(c *gin.Context) {
 		} else {
 			output += fmt.Sprintf("Configuration Check for %s\n%s\n", c2ProfileName, c2ConfigCheckMessageResponse.Message)
 		}
-		go rabbitmq.RestartC2ServerAfterUpdate(c2ProfileName, false)
+		//go rabbitmq.RestartC2ServerAfterUpdate(c2ProfileName, false)
 	}
 	c.JSON(http.StatusOK, GetC2ConfigCheckResponse{
 		Status: "success",

@@ -17,6 +17,7 @@ type Mutation {
     file_uuid: String!
     host_url: String!
     alert_on_download: Boolean
+    remove: Boolean
   ): c2HostFileOutput
 }
 
@@ -460,6 +461,8 @@ type Mutation {
     webhook: String
     admin_id: Int
     deleted: Boolean
+    banner_text: String
+    banner_color: String
   ): updateOperationOutput
 }
 
@@ -739,6 +742,10 @@ type updateCurrentOperationOutput {
   status: String!
   error: String
   operation_id: Int
+  name: String
+  complete: Boolean
+  banner_text: String
+  banner_color: String
 }
 
 type deleteBlockListOutput {
@@ -873,6 +880,8 @@ type updateOperationOutput {
   webhook: String
   admin_id: Int
   deleted: Boolean
+  banner_text: String
+  banner_color: String
   id: Int
 }
 

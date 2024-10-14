@@ -61,6 +61,7 @@ import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwo
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import {TopAppBarEventingNotifications} from "./TopAppBarEventingNotifications";
 import {useQuery, gql} from '@apollo/client';
+import VerifiedTwoToneIcon from '@mui/icons-material/VerifiedTwoTone';
 
 
 const PREFIX = 'TopAppBar';
@@ -215,8 +216,8 @@ export function TopAppBar(props) {
               >
                 <MenuIcon fontSize={"large"} />
             </IconButton>
-            <div style={{width: "100%"}}>
-              <div className={'hideOnSmallWidth'}>
+            <span style={{width: "100%"}}>
+              <span className={'hideOnSmallWidth'}>
                 <TopBarShortcuts />
                 {me?.user?.current_operation_id === 0 ? (
                     <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "#f84d4d",
@@ -224,14 +225,19 @@ export function TopAppBar(props) {
                       {"CLICK HERE TO SET OPERATION!"}
                     </Link>
                 ) : (
-                    <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "white", textDecoration: "none"}} to="/new/operations">
-                      {me?.user?.current_operation}
-                    </Link>
+                    <>
+                      <Link style={{paddingRight: "10px", color: "white", textDecoration: "none", fontSize: "1em"}} to="/new/operations">
+                        {me?.user?.current_operation}
+                        {me?.user?.current_operation_complete &&
+                            <IconButton disabled>
+                              <VerifiedTwoToneIcon style={{padding: 0, color: "white"}} />
+                            </IconButton>
+                        }
+                      </Link>
+                    </>
                 )}
-
-              </div>
-
-            </div>
+              </span>
+            </span>
 
           <TopBarRightShortcuts me={me} toggleTheme={props.toggleTheme} serverName={serverName} />
         </Toolbar>
@@ -382,6 +388,12 @@ export function TopAppBar(props) {
             </List>
         <Divider />
       </StyledDrawer>
+      {me?.user?.current_operation_banner_text !== "" &&
+        <Typography style={{backgroundColor: me?.user?.current_operation_banner_color,
+          width: "100%", textAlign: "center", fontWeight: "600", color: "white", borderRadius: "4px", border: "1px solid grey"}} >
+          {me?.user?.current_operation_banner_text}
+        </Typography>
+      }
     </>
   );
 }

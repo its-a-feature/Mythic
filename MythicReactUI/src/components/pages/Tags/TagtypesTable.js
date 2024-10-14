@@ -106,7 +106,7 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
                 }
             </Paper>  
             <div style={{display: "flex", flexGrow: 1, overflow: "auto"}}>
-                <TableContainer component={Paper} className="mythicElement">
+                <TableContainer className="mythicElement">
                     <Table stickyHeader={true} size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableHead>
                             <TableRow>

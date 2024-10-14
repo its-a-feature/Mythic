@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/base64"
 	"errors"
@@ -15,6 +16,7 @@ import (
 	"math/rand"
 	"net"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -40,6 +42,7 @@ type proxyFromAgentMessage struct {
 }
 type acceptedConnection struct {
 	conn                         net.Conn
+	udpListener                  *net.UDPConn
 	port                         int
 	shouldClose                  chan bool
 	messagesFromAgent            chan proxyFromAgentMessage
@@ -67,6 +70,8 @@ type callbackPortUsage struct {
 	RemotePort                 int              `json:"remote_port" db:"remote_port"`
 	RemoteIP                   string           `json:"remote_ip" db:"remote_ip"`
 	OperationID                int              `json:"operation_id" db:"operation_id"`
+	Username                   string           `json:"username" db:"username"`
+	Password                   string           `json:"password" db:"password"`
 	PortType                   CallbackPortType `json:"port_type" db:"port_type"`
 	listener                   *net.Listener
 	bytesReceivedFromAgentChan chan bytesReceivedFromAgentMessage
@@ -153,10 +158,18 @@ func ManuallyToggleProxy(input ProxyStop) ProxyStopResponse {
 		return resp
 	}
 	if input.Action == "start" {
-		err = proxyPorts.Add(callbackPort.CallbackID, callbackPort.PortType,
-			callbackPort.LocalPort, callbackPort.RemotePort, callbackPort.RemoteIP,
-			callbackPort.TaskID, input.OperatorOperation.CurrentOperation.ID, callbackPort.BytesSent,
-			callbackPort.BytesReceived, callbackPort.ID)
+		err = proxyPorts.Add(callbackPort.CallbackID,
+			callbackPort.PortType,
+			callbackPort.LocalPort,
+			callbackPort.RemotePort,
+			callbackPort.RemoteIP,
+			callbackPort.TaskID,
+			input.OperatorOperation.CurrentOperation.ID,
+			callbackPort.BytesSent,
+			callbackPort.BytesReceived,
+			callbackPort.ID,
+			callbackPort.Username,
+			callbackPort.Password)
 		if err != nil {
 			resp.Error = err.Error()
 			return resp
@@ -175,7 +188,10 @@ func ManuallyToggleProxy(input ProxyStop) ProxyStopResponse {
 			callbackPort.LocalPort,
 			input.OperatorOperation.CurrentOperation.ID,
 			callbackPort.RemoteIP,
-			callbackPort.RemotePort)
+			callbackPort.RemotePort,
+			callbackPort.Username,
+			callbackPort.Password,
+		)
 		if err != nil {
 			resp.Error = err.Error()
 		}
@@ -223,6 +239,8 @@ func (c *callbackPortsInUse) Initialize() {
 				RemotePort:                   proxy.RemotePort,
 				PortType:                     proxy.PortType,
 				OperationID:                  proxy.OperationID,
+				Username:                     proxy.Username,
+				Password:                     proxy.Password,
 				bytesSentToAgentChan:         c.bytesSentToAgentChan,
 				bytesReceivedFromAgentChan:   c.bytesReceivedFromAgentChan,
 				messagesToAgent:              make(chan proxyToAgentMessage, 1000),
@@ -484,7 +502,7 @@ func (c *callbackPortsInUse) GetDataForCallbackId(callbackId int, portType strin
 }
 func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, localPort int, remotePort int,
 	remoteIP string, taskId int, operationId int, bytesSentToAgent int64, bytesReceivedFromAgent int64,
-	callbackPortID int) error {
+	callbackPortID int, username string, password string) error {
 	if callbackPortID > 0 {
 		c.bytesSentToAgentChan <- bytesSentToAgentMessage{
 			ByteCount:      bytesSentToAgent,
@@ -506,6 +524,8 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 		RemoteIP:                     remoteIP,
 		OperationID:                  operationId,
 		PortType:                     portType,
+		Username:                     username,
+		Password:                     password,
 		bytesSentToAgentChan:         c.bytesSentToAgentChan,
 		bytesReceivedFromAgentChan:   c.bytesReceivedFromAgentChan,
 		messagesToAgent:              make(chan proxyToAgentMessage, 1000),
@@ -526,12 +546,12 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 	callbackPort := databaseStructs.Callbackport{}
 	err = database.DB.Get(&callbackPort, `SELECT id FROM callbackport WHERE
                                 operation_id=$1 AND callback_id=$2 AND local_port=$3 AND port_type=$4
-                                AND remote_ip=$5 AND remote_port=$6`,
-		operationId, callbackId, localPort, portType, remoteIP, remotePort)
-	if err == sql.ErrNoRows {
+                                AND remote_ip=$5 AND remote_port=$6 AND username=$7 AND password=$8`,
+		operationId, callbackId, localPort, portType, remoteIP, remotePort, username, password)
+	if errors.Is(err, sql.ErrNoRows) {
 		statement, err := database.DB.PrepareNamed(`INSERT INTO callbackport 
-		(task_id, operation_id, callback_id, local_port, port_type, remote_port, remote_ip)
-		VALUES (:task_id, :operation_id, :callback_id, :local_port, :port_type, :remote_port, :remote_ip)
+		(task_id, operation_id, callback_id, local_port, port_type, remote_port, remote_ip, username, password)
+		VALUES (:task_id, :operation_id, :callback_id, :local_port, :port_type, :remote_port, :remote_ip, :username, :password)
 		RETURNING id`)
 		if err != nil {
 			logging.LogError(err, "Failed to prepare new named statement for callbackports")
@@ -550,7 +570,7 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 		}
 	} else if err == nil {
 		_, err = database.DB.NamedExec(`UPDATE callbackport SET deleted=false WHERE id=:id`, callbackPort)
-	} else if err != nil {
+	} else {
 		logging.LogError(err, "Failed to create new callback port mapping")
 		if err := newPort.Stop(); err != nil {
 			logging.LogError(err, "Failed to stop new callback port")
@@ -580,11 +600,14 @@ func (c *callbackPortsInUse) Test(callbackId int, portType CallbackPortType, loc
 	return nil
 
 }
-func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, localPort int, operationId int, remoteIP string, remotePort int) error {
+func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, localPort int, operationId int, remoteIP string, remotePort int,
+	username string, password string) error {
 	for i := 0; i < len(c.ports); i++ {
 		if c.ports[i].CallbackID == callbackId &&
 			c.ports[i].OperationID == operationId &&
 			c.ports[i].PortType == portType &&
+			c.ports[i].Username == username &&
+			c.ports[i].Password == password &&
 			c.ports[i].LocalPort == localPort {
 			if remoteIP != "" && remotePort != 0 && (remoteIP != c.ports[i].RemoteIP || remotePort != c.ports[i].RemotePort) {
 				continue
@@ -596,10 +619,11 @@ func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, l
 				return err
 			}
 			queryString := `UPDATE callbackport SET deleted=true WHERE
-				callback_id=$1 AND local_port=$2 AND port_type=$3 AND operation_id=$4 AND deleted=false`
-			queryArgs := []interface{}{callbackId, localPort, portType, operationId}
+				callback_id=$1 AND local_port=$2 AND port_type=$3 AND operation_id=$4 AND deleted=false
+				AND username=$5 AND password=$6`
+			queryArgs := []interface{}{callbackId, localPort, portType, operationId, username, password}
 			if remoteIP != "" && remotePort != 0 {
-				queryString += " AND remote_ip=$4 AND remote_port=$5"
+				queryString += " AND remote_ip=$7 AND remote_port=$8"
 				queryArgs = append(queryArgs, remoteIP, remotePort)
 			}
 			_, err = database.DB.Exec(queryString, queryArgs...)
@@ -669,18 +693,6 @@ func (p *callbackPortUsage) Start() error {
 	case CALLBACK_PORT_TYPE_RPORTFWD:
 		// start managing incoming/outgoing connections
 		go p.manageConnections()
-		// test outbound connectivity
-		/*
-			go func() {
-				if !canReachRemoteHost(p.RemoteIP, p.RemotePort) {
-					err := errors.New(fmt.Sprintf("Testing remote connection for rpfwd:\nfailed to reach remote host, %s:%d", p.RemoteIP, p.RemotePort))
-					go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-				} else {
-					go SendAllOperationsMessage(fmt.Sprintf("Testing remote connection for rpfwd:\nsuccessfully connected to remote host, %s:%d", p.RemoteIP, p.RemotePort),
-						p.OperationID, "", database.MESSAGE_LEVEL_INFO)
-				}
-			}()
-		*/
 	case CALLBACK_PORT_TYPE_INTERACTIVE:
 		if isPortExposedThroughDocker(p.LocalPort) {
 			addr := fmt.Sprintf("0.0.0.0:%d", p.LocalPort)
@@ -713,7 +725,7 @@ func (p *callbackPortUsage) Start() error {
 func (p *callbackPortUsage) Stop() error {
 	if p.listener != nil {
 		if err := (*p.listener).Close(); err != nil {
-			if err == net.ErrClosed {
+			if errors.Is(err, net.ErrClosed) {
 				logging.LogInfo("tasking to stop all connections via channel")
 				select {
 				case p.stopAllConnections <- true:
@@ -805,7 +817,13 @@ func (p *callbackPortUsage) manageConnections() {
 				case newConn.shouldClose <- true:
 				default:
 				}
-				newConn.conn.Close()
+				if newConn.conn != nil {
+					newConn.conn.Close()
+				}
+				if newConn.udpListener != nil {
+					logging.LogInfo("about to close udpListener")
+					(*newConn.udpListener).Close()
+				}
 				if newConn.TaskUUID != nil {
 					close(newConn.interactiveMessagesFromAgent)
 				} else {
@@ -841,7 +859,14 @@ func (p *callbackPortUsage) manageConnections() {
 					default:
 					}
 					close(connectionMap[removeCon.ServerID].messagesFromAgent)
-					connectionMap[removeCon.ServerID].conn.Close()
+					if connectionMap[removeCon.ServerID].conn != nil {
+						connectionMap[removeCon.ServerID].conn.Close()
+					}
+
+					if connectionMap[removeCon.ServerID].udpListener != nil {
+						logging.LogInfo("about to close udpListener")
+						(*connectionMap[removeCon.ServerID].udpListener).Close()
+					}
 					delete(connectionMap, removeCon.ServerID)
 					if !removeCon.AgentClosedConnection {
 						// we're closing the connection, not the agent, so tell the agent to close
@@ -964,16 +989,210 @@ func (p *callbackPortUsage) manageConnections() {
 				} else {
 					close(rmProxyData.messagesFromAgent)
 				}
-				rmProxyData.conn.Close()
+				if rmProxyData.conn != nil {
+					rmProxyData.conn.Close()
+				}
 				delete(connectionMap, rmProxyData.ServerID)
 			}
-			return
+			continue
 			//case <-time.After(10 * time.Second):
 			//logging.LogError(nil, "1s timeout, re-looping", "p.newConnectionChannel", len(p.newConnectionChannel),
 			//	"p.removeConnectionsChannel", len(p.removeConnectionsChannel),
 			//	"p.messagesFromAgent", len(p.messagesFromAgent))
 		}
 		//logging.LogInfo("in Manage connection, finished loop")
+	}
+}
+func (p *callbackPortUsage) socksUsernamePasswordAuthCheck(conn net.Conn) bool {
+	versionAndUsernameLength := make([]byte, 2)
+	_, err := conn.Read(versionAndUsernameLength)
+	//logging.LogInfo("version and username bytes", "bytes", versionAndUsernameLength)
+	if err != nil {
+		logging.LogError(err, "failed to read version and username length bytes")
+		return false
+	}
+	if versionAndUsernameLength[0] != '\x01' {
+		logging.LogError(nil, "version isn't supported for auth, should be 0x01")
+		_, err = conn.Write([]byte{'\x01', '\x01'})
+		if err != nil {
+			logging.LogError(err, "Failed to send the \\x05\\x00 no-auth bytes for new socks connection")
+			return false
+		}
+		return false
+	}
+	clientUsername := make([]byte, versionAndUsernameLength[1])
+	_, err = conn.Read(clientUsername)
+	if err != nil {
+		logging.LogError(err, "failed to read username bytes")
+		return false
+	}
+	logging.LogInfo("username", "bytes", clientUsername)
+	passwordLength := make([]byte, 1)
+	_, err = conn.Read(passwordLength)
+	if err != nil {
+		logging.LogError(err, "failed to read password length bytes")
+		return false
+	}
+	clientPassword := make([]byte, passwordLength[0])
+	_, err = conn.Read(clientPassword)
+	if err != nil {
+		logging.LogError(err, "failed to read password bytes")
+		return false
+	}
+	if string(clientUsername) != p.Username {
+		logging.LogError(nil, "Username mismatch")
+		_, err = conn.Write([]byte{'\x01', '\x01'})
+		go SendAllOperationsMessage(
+			fmt.Sprintf("failed username (%s) auth to socks port %d from %s",
+				string(clientUsername), p.LocalPort, conn.RemoteAddr().String()),
+			p.OperationID, fmt.Sprintf("%d_%s", p.LocalPort, p.PortType),
+			database.MESSAGE_LEVEL_WARNING)
+		if err != nil {
+			//logging.LogError(err, "Failed to send the \\x01\\x01 bad-auth bytes for new socks connection")
+			return false
+		}
+		return false
+	}
+	if string(clientPassword) != p.Password {
+		logging.LogError(nil, "Invalid Password for socks access")
+		_, err = conn.Write([]byte{'\x01', '\x01'})
+		go SendAllOperationsMessage(
+			fmt.Sprintf("failed password (%s) auth to socks port %d from %s",
+				string(clientPassword), p.LocalPort, conn.RemoteAddr().String()),
+			p.OperationID, fmt.Sprintf("%d_%s", p.LocalPort, p.PortType),
+			database.MESSAGE_LEVEL_WARNING)
+		if err != nil {
+			//logging.LogError(err, "Failed to send the \\x01\\x01 bad-auth bytes for new socks connection")
+			return false
+		}
+		return false
+	}
+	_, err = conn.Write([]byte{'\x01', '\x00'})
+	if err != nil {
+		//logging.LogError(err, "Failed to send the \\x01\\x00 good-auth bytes for new socks connection")
+		return false
+	}
+	return true
+}
+
+const Socks5Version = '\x05'
+const Socks5NoAuth = '\x00'
+const Socks5UsernamePasswordAuth = '\x02'
+const Socks5CmdConnect = '\x01'
+const Socks5CmdBind = '\x02'
+const Socks5CmdUdpAssociate = '\x03'
+const Socks5AtypIPV4 = '\x01'
+const Socks5AtypDomainName = '\x03'
+const Socks5AtypIPV6 = '\x04'
+const Socks5ReplySucceeded = '\x00'
+const Socks5ReplyGeneralFailure = '\x01'
+const Socks5ReplyConnectionNotAllowed = '\x02'
+
+var Socks5UnrecognizedAddrType = fmt.Errorf("unrecognized address type")
+var Socks5StartNoAuth = []byte{'\x05', '\x00'}
+var Socks5StartUsernamePasswordAuth = []byte{'\x05', '\x02'}
+
+// ***** start section from https://github.com/armon/go-socks5 ********
+type AddrSpec struct {
+	FQDN string
+	IP   net.IP
+	Port int
+}
+
+func ReadAddrSpec(r io.Reader) (*AddrSpec, error) {
+	d := &AddrSpec{}
+
+	// Get the address type
+	addrType := []byte{0}
+	if _, err := r.Read(addrType); err != nil {
+		return nil, err
+	}
+
+	// Handle on a per type basis
+	//fmt.Printf("addr type case: %v\n", addrType[0])
+	switch addrType[0] {
+	case Socks5AtypIPV4:
+		addr := make([]byte, 4)
+		if _, err := io.ReadAtLeast(r, addr, len(addr)); err != nil {
+			return nil, err
+		}
+		d.IP = net.IP(addr)
+
+	case Socks5AtypIPV6:
+		addr := make([]byte, 16)
+		if _, err := io.ReadAtLeast(r, addr, len(addr)); err != nil {
+			return nil, err
+		}
+		d.IP = net.IP(addr)
+
+	case Socks5AtypDomainName:
+		if _, err := r.Read(addrType); err != nil {
+			return nil, err
+		}
+		addrLen := int(addrType[0])
+		fqdn := make([]byte, addrLen)
+		if _, err := io.ReadAtLeast(r, fqdn, addrLen); err != nil {
+			return nil, err
+		}
+		d.FQDN = string(fqdn)
+
+	default:
+		return nil, Socks5UnrecognizedAddrType
+	}
+
+	// Read the port
+	port := []byte{0, 0}
+	if _, err := io.ReadAtLeast(r, port, 2); err != nil {
+		return nil, err
+	}
+	d.Port = (int(port[0]) << 8) | int(port[1])
+
+	return d, nil
+}
+func (a AddrSpec) Address() string {
+	if 0 != len(a.IP) {
+		return net.JoinHostPort(a.IP.String(), strconv.Itoa(a.Port))
+	}
+	return net.JoinHostPort(a.FQDN, strconv.Itoa(a.Port))
+}
+
+// ***** end section from https://github.com/armon/go-socks5 ********
+func (p *callbackPortUsage) readFromAgentSocksConn(newConnection *acceptedConnection) {
+	// function for reading from agents to send to Mythic's connections
+	for {
+		select {
+		case <-newConnection.shouldClose:
+			//logging.LogDebug("got message to close connection", "server_id", newConnection.ServerID)
+			//p.removeConnectionsChannel <- &newConnection
+			return
+		case agentMessage := <-newConnection.messagesFromAgent:
+			//logging.LogDebug("Writing to connection from agent", "serverID", agentMessage.ServerID)
+			dataBytes, err := base64.StdEncoding.DecodeString(agentMessage.Message)
+			if err != nil {
+				logging.LogError(err, "Failed to base64 decode agent socks message", "server_id", newConnection.ServerID)
+				continue
+			}
+			_, err = newConnection.conn.Write(dataBytes)
+			if err != nil {
+				logging.LogError(err, "Failed to write to connection", "server_id", newConnection.ServerID)
+				p.removeConnectionsChannel <- newConnection
+				return
+			}
+			// non-blocking send stats update
+			go func(byteCount int64, callbackPortID int) {
+				select {
+				case p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
+				}
+			}(int64(len(dataBytes)), p.CallbackPortID)
+
+			if agentMessage.IsExit {
+				//logging.LogDebug("got message from agent isExit", "server_id", newConnection.ServerID)
+				// cleanup the connection data, but don't tell the agent to close
+				newConnection.AgentClosedConnection = true
+				p.removeConnectionsChannel <- newConnection
+				return
+			}
+		}
 	}
 }
 func (p *callbackPortUsage) handleSocksConnections() {
@@ -983,7 +1202,6 @@ func (p *callbackPortUsage) handleSocksConnections() {
 			logging.LogError(nil, "Listener is nil, exiting the handleSocksConnections loop", "port", p.LocalPort)
 			return
 		}
-		//logging.LogInfo("waiting to accept new connection")
 		tempConn, err := (*p.listener).Accept()
 		if err != nil {
 			logging.LogError(err, "Failed to accept new connection on port", "port", p.LocalPort)
@@ -994,41 +1212,74 @@ func (p *callbackPortUsage) handleSocksConnections() {
 			//p.listener = nil
 			return
 		}
-		//logging.LogInfo("got new connection")
 		go func(conn net.Conn) {
 			// this reads from the connection and writes data for the agent to process
+			//	+----+----------+----------+
+			//	|VER | NMETHODS | METHODS  |
+			//	+----+----------+----------+
+			//	| 1  |    1     | 1 to 255 |
+			//	+----+----------+----------+
 			initial := make([]byte, 2)
-			_, err = conn.Read(initial)
+			_, err = conn.Read(initial) // should be \x05 followed by the number of Auth methods supported
 			if err != nil {
+				conn.Close()
 				logging.LogError(err, "failed to read initial SOCKS connection data")
 				return
 			}
-			if initial[0] != '\x05' {
+			if initial[0] != Socks5Version {
 				logging.LogError(nil, "Initial message from SOCKS client didn't say it was SOCKS5")
 				return
 			}
 			authBytes := make([]byte, initial[1])
-			_, err = conn.Read(authBytes)
+			_, err = conn.Read(authBytes) // should be a list of supported auth types (\x00, \x01, \0x02, \0x03-\xFF no good)
 			if err != nil {
+				conn.Close()
 				logging.LogError(err, "failed to read auth bytes", "authSize", initial[1])
 				return
 			}
-			supportsNoAuth := false
-			for i, _ := range authBytes {
-				if authBytes[i] == '\x00' {
-					supportsNoAuth = true
+			if p.Username == "" && p.Password == "" {
+				//logging.LogInfo("blank username/password")
+				supportsNoAuth := false
+				for i, _ := range authBytes {
+					if authBytes[i] == Socks5NoAuth {
+						supportsNoAuth = true
+					}
+				}
+				if !supportsNoAuth {
+					conn.Close()
+					logging.LogError(nil, "Client doesn't support no auth (x00), can't communicate")
+					return
+				}
+				_, err = conn.Write(Socks5StartNoAuth)
+				if err != nil {
+					conn.Close()
+					logging.LogError(err, "Failed to send the \\x05\\x00 no-auth bytes for new socks connection")
+					return
+				}
+			} else {
+				//logging.LogInfo("needs auth", "username", p.Username, "pass", p.Password)
+				supportsUserPasswordAuth := false
+				for i, _ := range authBytes {
+					if authBytes[i] == Socks5UsernamePasswordAuth {
+						supportsUserPasswordAuth = true
+					}
+				}
+				if !supportsUserPasswordAuth {
+					conn.Close()
+					logging.LogError(nil, "Client doesn't support username/password auth, can't communicate")
+					return
+				}
+				_, err = conn.Write(Socks5StartUsernamePasswordAuth)
+				if err != nil {
+					conn.Close()
+					logging.LogError(err, "Failed to send the \\x05\\x02 user/pass auth bytes for new socks connection")
+					return
+				}
+				if !p.socksUsernamePasswordAuthCheck(conn) {
+					conn.Close()
+					return
 				}
 			}
-			if !supportsNoAuth {
-				logging.LogError(nil, "Client doesn't support no auth (x00), can't communicate")
-				return
-			}
-			_, err = conn.Write([]byte{'\x05', '\x00'})
-			if err != nil {
-				logging.LogError(err, "Failed to send the \\x05\\x00 no-auth bytes for new socks connection")
-				return
-			}
-			//logging.LogInfo("making new connection to track")
 			newConnection := acceptedConnection{
 				conn:              conn,
 				shouldClose:       make(chan bool, 1),
@@ -1037,53 +1288,283 @@ func (p *callbackPortUsage) handleSocksConnections() {
 				port:              p.LocalPort,
 			}
 			p.newConnectionChannel <- &newConnection
-			//logging.LogInfo("tracked new connection, now to read/write")
-			//logging.LogDebug("Got new connection", "server_id", newConnection.ServerID)
-			go func(conn net.Conn) {
-				// function for reading from agents to send to Mythic's connections
-				for {
-					select {
-					case <-newConnection.shouldClose:
-						//logging.LogDebug("got message to close connection", "server_id", newConnection.ServerID)
-						//p.removeConnectionsChannel <- &newConnection
-						return
-					case agentMessage := <-newConnection.messagesFromAgent:
-						//logging.LogDebug("Writing to connection from agent", "serverID", agentMessage.ServerID)
-						dataBytes, err := base64.StdEncoding.DecodeString(agentMessage.Message)
-						if err != nil {
-							logging.LogError(err, "Failed to base64 decode agent socks message", "server_id", newConnection.ServerID)
-							continue
-						}
-						_, err = conn.Write(dataBytes)
-						if err != nil {
-							logging.LogError(err, "Failed to write to connection", "server_id", newConnection.ServerID)
-							p.removeConnectionsChannel <- &newConnection
-							return
-						}
-						// non-blocking send stats update
-						go func(byteCount int64, callbackPortID int) {
-							select {
-							case p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
-							}
-						}(int64(len(dataBytes)), p.CallbackPortID)
-
-						if agentMessage.IsExit {
-							//logging.LogDebug("got message from agent isExit", "server_id", newConnection.ServerID)
-							// cleanup the connection data, but don't tell the agent to close
-							newConnection.AgentClosedConnection = true
-							p.removeConnectionsChannel <- &newConnection
-							return
-						}
-					}
-				}
-			}(conn)
+			go p.readFromAgentSocksConn(&newConnection)
 			go func(conn net.Conn) {
 				// function for reading from Mythic's connections to send to agents
+				firstRead := true
 				for {
 					buf := make([]byte, 4096)
-					//logging.LogDebug("looping to read from connection again", "server_id", newConnection.ServerID)
+					logging.LogDebug("looping to read from connection again", "server_id", newConnection.ServerID)
 					length, err := conn.Read(buf)
 					if length > 0 {
+						if firstRead {
+							firstRead = false
+							// the first message that gets sent has connection information
+							// we need to inspect it in case it's a UDP Associate request
+							//	+----+-----+-------+------+----------+----------+
+							//	|VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
+							//	+----+-----+-------+------+----------+----------+
+							//	| 1  |  1  | X'00' |  1   | Variable |    2     |
+							//	+----+-----+-------+------+----------+----------+
+							// replies to this initial message:
+							//	+----+-----+-------+------+----------+----------+
+							//	|VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
+							//	+----+-----+-------+------+----------+----------+
+							//	| 1  |  1  | X'00' |  1   | Variable |    2     |
+							//	+----+-----+-------+------+----------+----------+
+							// version should be Socks5Version
+							if buf[0] != Socks5Version {
+								p.removeConnectionsChannel <- &newConnection
+								return
+							}
+							switch buf[1] {
+							case Socks5CmdConnect:
+								// this is handled within the agent, nothing to do
+							case Socks5CmdBind:
+								// this is handled within the agent, nothing to do
+								/*
+										The BIND request is used in protocols which require the client to
+									   accept connections from the server.  FTP is a well-known example,
+									   which uses the primary client-to-server connection for commands and
+									   status reports, but may use a server-to-client connection for
+									   transferring data on demand (e.g. LS, GET, PUT).
+
+									   It is expected that the client side of an application protocol will
+									   use the BIND request only to establish secondary connections after a
+									   primary connection is established using CONNECT.  In is expected that
+									   a SOCKS server will use DST.ADDR and DST.PORT in evaluating the BIND
+									   request.
+
+									   Two replies are sent from the SOCKS server to the client during a
+									   BIND operation.  The first is sent after the server creates and binds
+									   a new socket.  The BND.PORT field contains the port number that the
+									   SOCKS server assigned to listen for an incoming connection.  The
+									   BND.ADDR field contains the associated IP address.  The client will
+									   typically use these pieces of information to notify (via the primary
+									   or control connection) the application server of the rendezvous
+									   address.  The second reply occurs only after the anticipated incoming
+									   connection succeeds or fails.
+
+								*/
+							case Socks5CmdUdpAssociate:
+								/*
+										The UDP ASSOCIATE request is used to establish an association within
+									   the UDP relay process to handle UDP datagrams.  The DST.ADDR and
+									   DST.PORT fields contain the address and port that the client expects
+									   to use to send UDP datagrams on for the association.  The server MAY
+									   use this information to limit access to the association.  If the
+									   client is not in possesion of the information at the time of the UDP
+									   ASSOCIATE, the client MUST use a port number and address of all
+									   zeros.
+
+									   A UDP association terminates when the TCP connection that the UDP
+									   ASSOCIATE request arrived on terminates.
+
+									   In the reply to a UDP ASSOCIATE request, the BND.PORT and BND.ADDR
+									   fields indicate the port number/address where the client MUST send
+									   UDP request messages to be relayed.
+								*/
+								if utils.MythicConfig.ServerDockerNetworking != "host" {
+									logging.LogError(nil, "UDP Associate only for host networking")
+									p.removeConnectionsChannel <- &newConnection
+									go SendAllOperationsMessage(
+										fmt.Sprintf("UDP Associate SOCKS5 connections only avaiable with 'host' networking. Currently in 'bridge' networking."),
+										p.OperationID, "udp_associate", database.MESSAGE_LEVEL_WARNING)
+									return
+								}
+								// buf[2] is reserved to be \x00
+								go func() {
+									byteReader := bytes.NewReader(buf[3:])
+									destination, err := ReadAddrSpec(byteReader)
+									if err != nil {
+										logging.LogError(err, "Failed to read destination address", "server_id", newConnection.ServerID)
+										p.removeConnectionsChannel <- &newConnection
+										return
+									}
+									// check addr and port to see if all 0 or not, if not all 0 use it to limit access to new udp port
+									// start listening on udp port
+									addr := &net.UDPAddr{
+										IP:   net.IPv4(0, 0, 0, 0),
+										Port: 0,
+										Zone: "",
+									}
+									// bind to 127.0.0.1 if we're doing host networking and asked dynamic ports to bind locally
+									if utils.MythicConfig.ServerDynamicPortsBindLocalhostOnly {
+										addr = &net.UDPAddr{
+											IP:   net.IPv4(127, 0, 0, 1),
+											Port: 0,
+											Zone: "",
+										}
+									}
+									udpListener, err := net.ListenUDP("udp", addr)
+									if err != nil {
+										logging.LogError(err, "Failed to start listening on new port for UDP associate")
+										go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+										p.removeConnectionsChannel <- &newConnection
+										return
+									}
+									newConnection.udpListener = udpListener
+									newUDPPort := uint16(udpListener.LocalAddr().(*net.UDPAddr).Port)
+									newUDPAddressIPV4 := conn.LocalAddr().(*net.TCPAddr).IP.To4()
+									udpAssociateResponse := make([]byte, 10)
+									udpAssociateResponse[0] = Socks5Version
+									udpAssociateResponse[1] = Socks5ReplySucceeded
+									udpAssociateResponse[2] = '\x00'
+									udpAssociateResponse[3] = Socks5AtypIPV4
+									copy(udpAssociateResponse[4:], newUDPAddressIPV4)
+									// have to get the port into the right network octet order
+									udpAssociateResponse[8] = byte(newUDPPort >> 8)
+									udpAssociateResponse[9] = byte(newUDPPort & 0xff)
+									time.Sleep(1 * time.Second)
+									// reply back with bnd.port and bind.addr of where to send connection data
+									_, err = conn.Write(udpAssociateResponse)
+									if err != nil {
+										logging.LogError(err, "Failed to send UDP associate message to server", "bytes", udpAssociateResponse)
+										p.removeConnectionsChannel <- &newConnection
+										return
+									}
+									/*
+										A UDP-based client MUST send its datagrams to the UDP relay server at
+										   the UDP port indicated by BND.PORT in the reply to the UDP ASSOCIATE
+										   request.  If the selected authentication method provides
+										   encapsulation for the purposes of authenticity, integrity, and/or
+										   confidentiality, the datagram MUST be encapsulated using the
+										   appropriate encapsulation.  Each UDP datagram carries a UDP request
+										   header with it:
+										      +----+------+------+----------+----------+----------+
+										      |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
+										      +----+------+------+----------+----------+----------+
+										      | 2  |  1   |  1   | Variable |    2     | Variable |
+										      +----+------+------+----------+----------+----------+
+
+										     The fields in the UDP request header are:
+
+										          o  RSV  Reserved X'0000'
+										          o  FRAG    Current fragment number
+										          o  ATYP    address type of following addresses:
+										             o  IP V4 address: X'01'
+										             o  DOMAINNAME: X'03'
+										             o  IP V6 address: X'04'
+										          o  DST.ADDR       desired destination address
+										          o  DST.PORT       desired destination port
+										          o  DATA     user data
+
+										   When a UDP relay server decides to relay a UDP datagram, it does so
+										   silently, without any notification to the requesting client.
+										   Similarly, it will drop datagrams it cannot or will not relay.  When
+										   a UDP relay server receives a reply datagram from a remote host, it
+										   MUST encapsulate that datagram using the above UDP request header,
+										   and any authentication-method-dependent encapsulation.
+
+										   The UDP relay server MUST acquire from the SOCKS server the expected
+										   IP address of the client that will send datagrams to the BND.PORT
+										   given in the reply to UDP ASSOCIATE.  It MUST drop any datagrams
+										   arriving from any source IP address other than the one recorded for
+										   the particular association.
+
+										   The FRAG field indicates whether or not this datagram is one of a
+										   number of fragments.  If implemented, the high-order bit indicates
+										   end-of-fragment sequence, while a value of X'00' indicates that this
+										   datagram is standalone.
+									*/
+									originatorIP := newConnection.conn.RemoteAddr().(*net.TCPAddr).IP
+									for {
+										newUDPConnectionBuf := make([]byte, 1024)
+										logging.LogInfo("waiting to accept udp connection")
+										newUDPConnectionBufLength, tempUDPConn, err := udpListener.ReadFromUDP(newUDPConnectionBuf)
+										if err != nil {
+											logging.LogError(err, "failed to accept udp connection")
+											p.removeConnectionsChannel <- &newConnection
+											return
+										}
+										logging.LogInfo("accepted udp connection")
+										if !originatorIP.Equal(tempUDPConn.IP) && destination.IP.String() != "0.0.0.0" {
+											// connection rejected
+											logging.LogError(nil, "Rejecting UDP connection based on IP connection", "IP", tempUDPConn.String(), "expected IP", destination.IP.String())
+											continue
+										}
+										// connection accepted
+										newUDPConnection := acceptedConnection{
+											shouldClose:       make(chan bool, 1),
+											messagesFromAgent: make(chan proxyFromAgentMessage, 1000),
+											ServerID:          uint32(rand.Intn(math.MaxInt32)), // randomized id
+											port:              p.LocalPort,
+										}
+										// track it so we can get the output back to the right addr
+										p.newConnectionChannel <- &newUDPConnection
+										interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
+											Message: proxyToAgentMessage{
+												Message:  newUDPConnectionBuf[:newUDPConnectionBufLength],
+												IsExit:   false,
+												ServerID: newUDPConnection.ServerID,
+												Port:     p.LocalPort,
+											},
+											MessagesToAgent: p.messagesToAgent,
+											CallbackID:      p.CallbackID,
+											ProxyType:       p.PortType,
+										}
+										// non-blocking send stats update
+										go func(byteCount int64, callbackPortID int) {
+											select {
+											case p.bytesSentToAgentChan <- bytesSentToAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
+											}
+										}(int64(newUDPConnectionBufLength), p.CallbackPortID)
+										go func(remoteAddr net.Addr) {
+											// work on this section!!
+											// handle the read from agent and write back out to socket here so we can use the same addr
+											for {
+												select {
+												case <-newUDPConnection.shouldClose:
+													//logging.LogDebug("got message to close connection", "server_id", newConnection.ServerID)
+													p.removeConnectionsChannel <- &newUDPConnection
+													return
+												case agentMessage := <-newUDPConnection.messagesFromAgent:
+													//logging.LogDebug("Writing to connection from agent", "serverID", agentMessage.ServerID)
+													dataBytes, err := base64.StdEncoding.DecodeString(agentMessage.Message)
+													if err != nil {
+														logging.LogError(err, "Failed to base64 decode agent socks message", "server_id", newUDPConnection.ServerID)
+														continue
+													}
+													_, err = udpListener.WriteTo(dataBytes, remoteAddr)
+													if err != nil {
+														logging.LogError(err, "Failed to write to connection", "server_id", newUDPConnection.ServerID)
+														p.removeConnectionsChannel <- &newUDPConnection
+														return
+													}
+													// non-blocking send stats update
+													go func(byteCount int64, callbackPortID int) {
+														select {
+														case p.bytesReceivedFromAgentChan <- bytesReceivedFromAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
+														}
+													}(int64(len(dataBytes)), p.CallbackPortID)
+
+													if agentMessage.IsExit {
+														//logging.LogDebug("got message from agent isExit", "server_id", newConnection.ServerID)
+														// cleanup the connection data, but don't tell the agent to close
+														newUDPConnection.AgentClosedConnection = true
+														p.removeConnectionsChannel <- &newUDPConnection
+														return
+													}
+													interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
+														Message: proxyToAgentMessage{
+															Message:  nil,
+															IsExit:   true,
+															ServerID: newUDPConnection.ServerID,
+															Port:     p.LocalPort,
+														},
+														MessagesToAgent: p.messagesToAgent,
+														CallbackID:      p.CallbackID,
+														ProxyType:       p.PortType,
+													}
+												}
+											}
+										}(tempUDPConn)
+									}
+								}()
+								continue
+							default:
+							}
+						}
 						//logging.LogDebug("Message received from proxychains", "serverID", newConnection.ServerID, "size", length)
 						interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
 							Message: proxyToAgentMessage{
@@ -1102,15 +1583,9 @@ func (p *callbackPortUsage) handleSocksConnections() {
 							case p.bytesSentToAgentChan <- bytesSentToAgentMessage{ByteCount: byteCount, CallbackPortID: callbackPortID, Initial: false}:
 							}
 						}(int64(length), p.CallbackPortID)
-
-						//logging.LogDebug("Message sent to p.messagesToAgent channel", "channel_id", newConnection.ServerID)
 					}
 					if err != nil {
-						if err != io.EOF {
-							logging.LogError(err, "Failed to read from connection, sending exit", "serverID", newConnection.ServerID)
-						} else {
-							//logging.LogInfo("Got normal EOF from connection, exiting on Mythic side", "serverID", newConnection.ServerID)
-						}
+						logging.LogError(err, "closing tcp connection")
 						if length > 0 {
 							// we already indicated for the agent to close, don't send another
 							newConnection.AgentClosedConnection = true
@@ -1118,9 +1593,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 						p.removeConnectionsChannel <- &newConnection
 						return
 					}
-
 				}
-
 			}(conn)
 		}(tempConn)
 

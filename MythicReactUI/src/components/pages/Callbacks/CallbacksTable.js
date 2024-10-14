@@ -809,7 +809,10 @@ function CallbacksTablePreMemo(props){
             {openMetaDialog &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openMetaDialog}
                               onClose={()=>{setOpenMetaDialog(false);}}
-                              innerDialog={<DetailedCallbackTable onClose={()=>{setOpenMetaDialog(false);}} callback_id={openMetaDialogRef.current} />}
+                              innerDialog={
+                    <DetailedCallbackTable onClose={()=>{setOpenMetaDialog(false);}}
+                                           callback_id={openMetaDialogRef.current} />
+                }
                 />
             }
             {openEditMythicTreeGroupsDialog &&

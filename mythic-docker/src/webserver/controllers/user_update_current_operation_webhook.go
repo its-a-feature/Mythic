@@ -22,6 +22,10 @@ type UpdateCurrentOperationResponse struct {
 	Status      string `json:"status"`
 	Error       string `json:"error"`
 	OperationID int    `json:"operation_id"`
+	Name        string `json:"name"`
+	Complete    bool   `json:"complete"`
+	BannerText  string `json:"banner_text"`
+	BannerColor string `json:"banner_color"`
 }
 
 func UpdateCurrentOperationWebhook(c *gin.Context) {
@@ -87,9 +91,15 @@ func UpdateCurrentOperationWebhook(c *gin.Context) {
 	if err != nil {
 		logging.LogError(err, "Failed to update claims")
 	}
+	currentOperation := databaseStructs.Operation{}
+	err = database.DB.Get(&currentOperation, "SELECT * FROM operation WHERE id=$1", input.Input.OperationID)
 	c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
 		Status:      "success",
-		OperationID: input.Input.OperationID,
+		OperationID: currentOperation.ID,
+		Name:        currentOperation.Name,
+		Complete:    currentOperation.Complete,
+		BannerText:  currentOperation.BannerText,
+		BannerColor: currentOperation.BannerColor,
 	})
 	return
 

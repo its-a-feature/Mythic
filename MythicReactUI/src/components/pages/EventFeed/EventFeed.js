@@ -4,6 +4,24 @@ import {EventFeedTable} from './EventFeedTable';
 import {snackActions} from '../../utilities/Snackbar';
 
 const GET_Event_Feed = gql`
+query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $level: String!, $resolved: Boolean!) {
+  operationeventlog(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}, resolved: {_eq: $resolved}}, order_by: {id: desc}, limit: $limit, offset: $offset) {
+    id
+    level
+    message
+    resolved
+    timestamp
+    count
+    source
+  }
+  operationeventlog_aggregate(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}, resolved: {_eq: $resolved}}) {
+    aggregate {
+      count
+    }
+  }
+}
+ `;
+const GET_Event_Feed_No_Resolved = gql`
 query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $level: String!) {
   operationeventlog(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}}, order_by: {id: desc}, limit: $limit, offset: $offset) {
     id
@@ -73,7 +91,7 @@ mutation UpdateLevelOperationEventLog($id: Int!) {
 export function EventFeed(props){
   const [pageData, setPageData] = React.useState({
     "totalCount": 0,
-    "fetchLimit": 50
+    "fetchLimit": 100
   });
   const [operationeventlog, setOperationEventLog] = React.useState([]);
   const [fromNow, setFromNow] = React.useState((new Date()).toISOString());
@@ -110,6 +128,21 @@ export function EventFeed(props){
         newEventLog.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
         setOperationEventLog(newEventLog);
       }
+  });
+  const [getMoreTaskingNoResolved] = useLazyQuery(GET_Event_Feed_No_Resolved, {
+    onError: data => {
+      console.error(data)
+    },
+    fetchPolicy: "network-only",
+    onCompleted: (data) => {
+      snackActions.dismiss();
+      let tempPageData = {...pageData};
+      tempPageData.totalCount = data.operationeventlog_aggregate.aggregate.count;
+      setPageData(tempPageData);
+      let newEventLog = [...data.operationeventlog];
+      newEventLog.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
+      setOperationEventLog(newEventLog);
+    }
   });
   const [updateResolution] = useMutation(Update_Resolution, {
     update: (cache, {data}) => {
@@ -188,17 +221,34 @@ export function EventFeed(props){
       localSearch = "%" + search + "%";
     }
     let localLevel = level;
+    let localResolved = undefined;
     if(level === "All Levels"){
       localLevel = "%_%";
+    } else if(level === "warning (unresolved)"){
+      localResolved = false;
+      localLevel = "warning";
+    } else if(level === "warning (resolved)"){
+      localResolved = true;
+      localLevel = "warning";
     }
-    getMoreTasking({variables: {offset: (value - 1) * pageData.fetchLimit,
-        limit: pageData.fetchLimit,
-        search: localSearch,
-        level: localLevel
-      }})
+    if(localResolved === undefined){
+      getMoreTaskingNoResolved({variables: {offset: (value - 1) * pageData.fetchLimit,
+          limit: pageData.fetchLimit,
+          search: localSearch,
+          level: localLevel
+        }})
+    } else {
+      getMoreTasking({variables: {offset: (value - 1) * pageData.fetchLimit,
+          limit: pageData.fetchLimit,
+          search: localSearch,
+          level: localLevel,
+          resolved: localResolved
+        }})
+    }
+
   }
   React.useEffect( () => {
-    getMoreTasking({variables: {offset: 0,
+    getMoreTaskingNoResolved({variables: {offset: 0,
         limit: pageData.fetchLimit, search: "%_%", level: "%_%"
       }})
   }, [])

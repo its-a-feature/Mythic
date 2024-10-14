@@ -2158,8 +2158,10 @@
           - operation_id
           - remote_port
           - task_id
+          - password
           - port_type
           - remote_ip
+          - username
           - updated_at
         filter:
           operation_id:
@@ -2177,8 +2179,10 @@
           - operation_id
           - remote_port
           - task_id
+          - password
           - port_type
           - remote_ip
+          - username
           - updated_at
         filter:
           operation_id:
@@ -2196,8 +2200,10 @@
           - operation_id
           - remote_port
           - task_id
+          - password
           - port_type
           - remote_ip
+          - username
           - updated_at
         filter:
           operation_id:
@@ -2215,8 +2221,10 @@
           - operation_id
           - remote_port
           - task_id
+          - password
           - port_type
           - remote_ip
+          - username
           - updated_at
         filter:
           operation_id:
@@ -2234,8 +2242,10 @@
           - operation_id
           - remote_port
           - task_id
+          - password
           - port_type
           - remote_ip
+          - username
           - updated_at
         filter:
           operation_id:
@@ -5028,6 +5038,8 @@
           - alert_count
           - apitokens_id
           - id
+          - banner_color
+          - banner_text
           - channel
           - name
           - webhook
@@ -5044,6 +5056,8 @@
           - alert_count
           - apitokens_id
           - id
+          - banner_color
+          - banner_text
           - channel
           - name
           - webhook
@@ -5060,6 +5074,8 @@
           - alert_count
           - apitokens_id
           - id
+          - banner_color
+          - banner_text
           - channel
           - name
           - webhook
@@ -5076,6 +5092,8 @@
           - alert_count
           - apitokens_id
           - id
+          - banner_color
+          - banner_text
           - channel
           - name
           - webhook
@@ -5092,6 +5110,8 @@
           - alert_count
           - apitokens_id
           - id
+          - banner_color
+          - banner_text
           - channel
           - name
           - webhook

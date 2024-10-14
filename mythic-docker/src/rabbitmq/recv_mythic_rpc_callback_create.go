@@ -389,19 +389,32 @@ func addCommandAugmentsToCallback(callbackID int, payloadOS string, payloadType 
 			continue
 		}
 		commandAugmentCommands := []databaseStructs.Command{}
-		err = database.DB.Select(&commandAugmentCommands, `SELECT id, version FROM command WHERE payload_type_id=$1`,
+		err = database.DB.Select(&commandAugmentCommands, `SELECT id, version, attributes FROM command WHERE payload_type_id=$1`,
 			commandAugmentPayloadTypes[i].ID)
 		if err != nil {
 			logging.LogError(err, "failed to get command augment commands")
 			continue
 		}
 		for j, _ := range commandAugmentCommands {
-			_, err = database.DB.Exec(`INSERT INTO loadedcommands  
+			attributes := commandAugmentCommands[j].Attributes.StructValue()
+			builtin := false
+			suggested := false
+			if builtinInterface, ok := attributes["builtin"]; ok {
+				builtin = builtinInterface.(bool)
+			}
+			if suggestedInterface, ok := attributes["suggested"]; ok {
+				suggested = suggestedInterface.(bool)
+			}
+			// only add augment commands where the command is builtin or suggested
+			// this allows 'load' and 'unload' style commands to be created for more granular control
+			if builtin || suggested {
+				_, err = database.DB.Exec(`INSERT INTO loadedcommands  
                                (command_id, callback_id, operator_id, version)
                                VALUES ($1, $2, $3, $4)`,
-				commandAugmentCommands[j].ID, callbackID, operatorID, commandAugmentCommands[j].Version)
-			if err != nil {
-				logging.LogError(err, "failed to add loaded command to callback")
+					commandAugmentCommands[j].ID, callbackID, operatorID, commandAugmentCommands[j].Version)
+				if err != nil {
+					logging.LogError(err, "failed to add loaded command to callback")
+				}
 			}
 		}
 	}

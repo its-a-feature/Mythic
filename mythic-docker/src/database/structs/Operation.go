@@ -15,5 +15,7 @@ type Operation struct {
 	Deleted     bool              `db:"deleted"`
 	AlertCount  int               `db:"alert_count"`
 	UpdatedAt   time.Time         `db:"updated_at"`
+	BannerText  string            `db:"banner_text"`
+	BannerColor string            `db:"banner_color"`
 	APITokensID structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 }

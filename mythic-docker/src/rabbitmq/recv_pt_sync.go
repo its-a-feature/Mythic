@@ -1236,6 +1236,9 @@ func reSyncPayloadTypes() {
 	} else {
 		for _, pt := range payloadTypes {
 			if pt.ContainerRunning {
+				if pt.Wrapper {
+					continue
+				}
 				if _, err = RabbitMQConnection.SendPTRPCReSync(PTRPCReSyncMessage{Name: pt.Name}); err != nil {
 					logging.LogError(err, "Failed to ask payload type to resync")
 				}

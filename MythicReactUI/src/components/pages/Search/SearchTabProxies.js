@@ -34,6 +34,8 @@ subscription portsSub{
         port_type
         bytes_received
         bytes_sent
+        username
+        password
         task {
             display_id
         }

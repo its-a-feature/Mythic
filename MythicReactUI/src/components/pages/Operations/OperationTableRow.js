@@ -24,6 +24,10 @@ mutation updateCurrentOpertionMutation($operator_id: Int!, $operation_id: Int!) 
     status
     error
     operation_id
+    name
+    complete
+    banner_text
+    banner_color
   }
 }
 `;
@@ -62,7 +66,13 @@ export function OperationTableRow(props){
     const [updateCurrentOperation] = useMutation(updateCurrentOperationMutation, {
       onCompleted: (data) => {
         if(data.updateCurrentOperation.status === "success"){
-          meState({...meState(), user: {...meState().user, current_operation_id: data.updateCurrentOperation.operation_id, current_operation: props.name}});
+          meState({...meState(), user: {...meState().user,
+                  current_operation_id: data.updateCurrentOperation.operation_id,
+                  current_operation: data.updateCurrentOperation.name,
+                  current_operation_complete: data.updateCurrentOperation.complete,
+                  current_operation_banner_text: data.updateCurrentOperation.banner_text,
+                  current_operation_banner_color: data.updateCurrentOperation.banner_color,
+              }});
           localStorage.setItem("user", JSON.stringify(meState().user));
           snackActions.success("Updated current operation");
           restartWebsockets();

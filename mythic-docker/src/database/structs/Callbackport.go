@@ -14,5 +14,7 @@ type Callbackport struct {
 	Deleted       bool      `db:"deleted"`
 	BytesReceived int64     `db:"bytes_received"`
 	BytesSent     int64     `db:"bytes_sent"`
+	Username      string    `db:"username"`
+	Password      string    `db:"password"`
 	UpdatedAt     time.Time `db:"updated_at"`
 }

@@ -37,6 +37,9 @@ func GetUserCurrentOperation(userID int) (*databaseStructs.Operatoroperation, er
 	operator.view_utc_time "operator.view_utc_time",
 	operation.id "operation.id",
 	operation.name "operation.name", 
+	operation.banner_text "operation.banner_text",
+	operation.banner_color "operation.banner_color",
+	operation.complete "operation.complete",
 	operation.admin_id "operation.admin_id",
 	operation.webhook "operation.webhook",
 	operation.channel "operation.channel"

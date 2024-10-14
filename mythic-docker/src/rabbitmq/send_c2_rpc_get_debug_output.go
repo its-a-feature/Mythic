@@ -26,7 +26,7 @@ func (r *rabbitMQConnection) SendC2RPCGetDebugOutput(getDebugOutput C2GetDebugOu
 	exclusiveQueue := true
 	if opsecBytes, err := json.Marshal(getDebugOutput); err != nil {
 		logging.LogError(err, "Failed to convert getDebugOutput to JSON", "getDebugOutput", getDebugOutput)
-		return nil, err
+		return &c2GetDebutOutputResponse, err
 	} else if response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCGetServerDebugOutputRoutingKey(getDebugOutput.Name),
@@ -34,10 +34,10 @@ func (r *rabbitMQConnection) SendC2RPCGetDebugOutput(getDebugOutput C2GetDebugOu
 		exclusiveQueue,
 	); err != nil {
 		logging.LogError(err, "Failed to send RPC message")
-		return nil, err
+		return &c2GetDebutOutputResponse, err
 	} else if err := json.Unmarshal(response, &c2GetDebutOutputResponse); err != nil {
 		logging.LogError(err, "Failed to parse c2 get debug output response back to struct", "response", response)
-		return nil, err
+		return &c2GetDebutOutputResponse, err
 	} else {
 		return &c2GetDebutOutputResponse, nil
 	}

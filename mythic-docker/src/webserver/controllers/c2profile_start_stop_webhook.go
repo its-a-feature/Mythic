@@ -39,7 +39,8 @@ func StartStopC2ProfileWebhook(c *gin.Context) {
 	}
 	// get the associated database information
 	c2profile := databaseStructs.C2profile{}
-	if err := database.DB.Get(&c2profile, `SELECT "name", id FROM c2profile WHERE id=$1`, input.Input.C2ProfileID); err != nil {
+	err := database.DB.Get(&c2profile, `SELECT "name", id FROM c2profile WHERE id=$1`, input.Input.C2ProfileID)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch c2 profile from database by ID", "id", input.Input.C2ProfileID)
 		c.JSON(http.StatusOK, StartStopC2ProfileResponse{
 			Status: "error",
@@ -47,10 +48,13 @@ func StartStopC2ProfileWebhook(c *gin.Context) {
 		})
 		return
 		// send the RPC request to the container
-	} else if input.Input.Action == "start" {
-		if c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCStartServer(rabbitmq.C2StartServerMessage{
+	}
+	if input.Input.Action == "start" {
+		c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCStartServer(rabbitmq.C2StartServerMessage{
 			Name: c2profile.Name,
-		}); err != nil {
+		})
+		go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
+		if err != nil {
 			logging.LogError(err, "Failed to send SendC2RPCStartServer to c2 profile", "c2_profile", c2profile.Name)
 			c.JSON(http.StatusOK, StartStopC2ProfileResponse{
 				Status: "error",
@@ -58,26 +62,28 @@ func StartStopC2ProfileWebhook(c *gin.Context) {
 			})
 			return
 			// check the response from the RPC call for success or error
-		} else if !c2ProfileResponse.Success {
+		}
+		if !c2ProfileResponse.Success {
 			logging.LogError(nil, c2ProfileResponse.Error, "Failed to start c2 container")
-			go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
 			c.JSON(http.StatusOK, StartStopC2ProfileResponse{
 				Status: "error",
 				Output: c2ProfileResponse.Error,
 			})
 			return
-		} else {
-			c.JSON(http.StatusOK, StartStopC2ProfileResponse{
-				Status: "success",
-				Output: c2ProfileResponse.Message,
-			})
-			go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
-			return
 		}
-	} else if input.Input.Action == "stop" {
-		if c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCStopServer(rabbitmq.C2StopServerMessage{
+		c.JSON(http.StatusOK, StartStopC2ProfileResponse{
+			Status: "success",
+			Output: c2ProfileResponse.Message,
+		})
+		return
+
+	}
+	if input.Input.Action == "stop" {
+		c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCStopServer(rabbitmq.C2StopServerMessage{
 			Name: c2profile.Name,
-		}); err != nil {
+		})
+		go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
+		if err != nil {
 			logging.LogError(err, "Failed to send SendC2RPCStopServer to c2 profile", "c2_profile", c2profile.Name)
 			c.JSON(http.StatusOK, StartStopC2ProfileResponse{
 				Status: "error",
@@ -85,22 +91,22 @@ func StartStopC2ProfileWebhook(c *gin.Context) {
 			})
 			return
 			// check the response from the RPC call for success or error
-		} else if !c2ProfileResponse.Success {
+		}
+		if !c2ProfileResponse.Success {
 			logging.LogError(nil, c2ProfileResponse.Error, "Failed to stop c2 container")
-			go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
 			c.JSON(http.StatusOK, StartStopC2ProfileResponse{
 				Status: "error",
 				Output: c2ProfileResponse.Error,
 			})
 			return
-		} else {
-			c.JSON(http.StatusOK, StartStopC2ProfileResponse{
-				Status: "success",
-				Output: c2ProfileResponse.Message,
-			})
-			go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
-			return
 		}
+
+		c.JSON(http.StatusOK, StartStopC2ProfileResponse{
+			Status: "success",
+			Output: c2ProfileResponse.Message,
+		})
+		return
+
 	} else {
 		logging.LogError(nil, "Unknown action")
 		c.JSON(http.StatusOK, StartStopC2ProfileResponse{

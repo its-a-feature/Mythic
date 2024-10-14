@@ -293,6 +293,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
         <Grid item xs={12} >
             <CallbacksTabsTaskingInput filterTasks={false} onSubmitFilter={()=>{}} onSubmitCommandLine={onSubmitCommandLine}
                                        changeSelectedToken={changeSelectedToken}
+                                       payloadtype_name={callback.payload.payloadtype.name}
                                        filterOptions={{}} callback_id={callback.id} callback_os={callback.payload.os} parentMountedRef={mountedRef} />
         </Grid>
         {openTaskingButton && 

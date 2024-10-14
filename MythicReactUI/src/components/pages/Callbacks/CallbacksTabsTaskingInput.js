@@ -15,6 +15,7 @@ import {MythicSelectFromListDialog} from "../../MythicComponents/MythicSelectFro
 import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import {getDynamicQueryParams} from "./TaskParametersDialogRow";
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 
 const GetLoadedCommandsSubscription = gql`
 subscription GetLoadedCommandsSubscription($callback_id: Int!){
@@ -78,6 +79,9 @@ subscription tasksSubscription($callback_id: Int!){
                 type
                 name
             }
+            payloadtype {
+                name
+            }
         }
     }
 }
@@ -122,6 +126,7 @@ const IsCLIPossibleParameterType = (parameter_type) => {
         case "TypedArray":
         case "ChooseMultiple":
         case "String":
+        case "File":
             return true;
         default:
             return false;
@@ -139,8 +144,10 @@ const IsRepeatableCLIParameterType = (parameter_type) => {
     }
 }
 export function CallbacksTabsTaskingInputPreMemo(props){
-    const snackMessageStyles = {anchorOrigin:{vertical: "bottom", horizontal: "left"}, autoHideDuration: 2000, preventDuplicate: true, maxSnack: 1, style:{marginBottom: "50px"}};
-    const snackReverseSearchMessageStyles = {anchorOrigin:{vertical: "bottom", horizontal: "left"}, autoHideDuration: 1000, preventDuplicate: true, maxSnack: 1, style:{marginBottom: "100px"}};
+    const toastId = "tasking-toast-message";
+    const snackMessageStyles = {position:"bottom-left", autoClose: 1000, style:{marginBottom: "50px"}, toastId: toastId};
+    const snackReverseSearchMessageStyles = {position:"bottom-left", autoClose: 1000, style:{marginBottom: "100px"}, toastId: toastId};
+    const [commandPayloadType, setCommandPayloadType] = React.useState("");
     const [message, setMessage] = React.useState("");
     const loadedOptions = React.useRef([]);
     const taskOptions = React.useRef([]);
@@ -341,6 +348,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             setMessage("");
             setReverseSearchString("");
             setUnmodifiedHistoryValue("parsed_cli");
+            setCommandPayloadType("");
             event.stopPropagation();
             event.preventDefault();
             return;
@@ -354,11 +362,32 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(message.includes(" ")){
                 // this means we're not trying to help with the initial command since there's already a space in what the user typed
                 // first find the command in question
-                let cmd = loadedOptions.current.find( l => l.cmd === message.split(" ")[0]);
-                if(!cmd){
-                    snackActions.warning("unknown command");
+                let cmd = loadedOptions.current.filter( l => l.cmd === message.split(" ")[0]);
+                if(!cmd || cmd.length === 0){
+                    setCommandPayloadType("");
+                    snackActions.warning("unknown command", snackMessageStyles);
                     return
                 }
+                if(commandPayloadType === ""){
+                    // default to the same payload type name as the callback if possible
+                    let cmdOpts = cmd.find(c => c?.payloadtype?.name === props.payloadtype_name)
+                    if(cmdOpts){
+                        setCommandPayloadType(props.payloadtype_name);
+                        cmd = cmdOpts;
+                    } else {
+                        setCommandPayloadType(cmd[0]?.payloadtype?.name || "");
+                        cmd = cmd[0];
+                    }
+
+                } else {
+                    cmd = cmd.find(c => c?.payloadtype?.name === commandPayloadType);
+                    if(!cmd){
+                        setCommandPayloadType("");
+                        snackActions.warning("unknown command", snackMessageStyles);
+                        return
+                    }
+                }
+                //commandPayloadTypeRef.current = cmd.payloadtype.name;
                 if(cmd.cmd === "help"){
                     // somebody hit tab with either a blank message or a partial word
                     let helpCmd = message.split(" ");
@@ -398,10 +427,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         const lastSuppliedParameter = getLastSuppliedArgument(cmd, message, parsed);
                         console.log("lastSuppliedParameter", lastSuppliedParameter)
                         if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined){
-                            if(["ChooseOne"].includes(lastSuppliedParameter.parameter_type) && parsed[lastSuppliedParameter.cli_name] === ""){
+                            if(lastSuppliedParameter.choices.length > 0){
                                 if(lastSuppliedParameter.dynamic_query_function !== ""){
                                     setBackdropOpen(true);
-                                    snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
+                                    snackActions.info("Querying payload type container for options...",   snackMessageStyles);
                                     getDynamicParams({variables:{
                                             callback: props.callback_id,
                                             parameter_name: lastSuppliedParameter.name,
@@ -416,6 +445,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                     let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
                                     let newMsg = message + newChoice;
                                     setMessage(newMsg);
+                                    return;
                                 }
                             }
                         }
@@ -555,11 +585,13 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     tabOptionsIndex.current = 0;
                     if(opts.length > 0){
                         setMessage(opts[0].cmd);
+                        setCommandPayloadType(opts[0]?.payloadtype?.name || "");
                     }
                 }else{
                     let newIndex = forwardOrBackwardTabIndex(event, tabOptionsIndex.current, tabOptions.current);
                     tabOptionsIndex.current = newIndex;
                     setMessage(tabOptions.current[newIndex].cmd);
+                    setCommandPayloadType(tabOptions.current[newIndex]?.payloadtype?.name || "");
                 }
             }
         }else if(event.key === "Enter"){
@@ -584,6 +616,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 taskOptionsIndex.current = newIndex;
                 setMessage(GetUpDownArrowName(filteredTaskOptions[newIndex]));
                 setUnmodifiedHistoryValue(filteredTaskOptions[newIndex].tasking_location);
+                setCommandPayloadType(filteredTaskOptions[newIndex]?.command?.payloadtype?.name || "");
             }
         }else if(event.key === "ArrowDown"){
             if(filteredTaskOptions.length === 0){
@@ -597,6 +630,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 taskOptionsIndex.current = newIndex;
                 setMessage(GetUpDownArrowName(filteredTaskOptions[newIndex]));
                 setUnmodifiedHistoryValue(filteredTaskOptions[newIndex].tasking_location);
+                setCommandPayloadType(filteredTaskOptions[newIndex]?.command?.payloadtype?.name || "");
             }
         }else if(!event.shiftKey){
             tabOptions.current = [];
@@ -605,6 +639,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(taskOptionsIndex.current !== -1){
                 taskOptionsIndex.current = -1;
             }
+        }
+        if(message === ""){
+            setCommandPayloadType("");
         }
     }
     const parseToArgv = (str) => {
@@ -948,21 +985,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         return result;
     }
     const getLastSuppliedArgument = (cmd, command_line, yargs) => {
-        let last_command_index = -1;
         let new_command_line = command_line;
         let last_command_parameter = undefined;
         const argv = parseToArgv(new_command_line);
-        for(let i = 0; i < argv.length; i++){
-            for(let j = 0; j < cmd.commandparameters.length; j++){
-                if(yargs[cmd.commandparameters[j].cli_name] !== undefined){
-                    if(i > last_command_index){
-                        last_command_parameter = cmd.commandparameters[j];
-                        last_command_index = i;
-                    }
-                }
+        for(let j = 0; j < cmd.commandparameters.length; j++){
+            if(`-${cmd.commandparameters[j].cli_name}` === argv[argv.length -1]){
+                last_command_parameter = cmd.commandparameters[j];
+                break;
             }
         }
-
         return last_command_parameter;
     }
     const parseCommandLine = (command_line, cmd) => {
@@ -1233,7 +1264,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const processCommandAndCommandLine = (cmd) => {
         if(commandOptionsForcePopup.current && cmd.commandparameters.length === 0){
             snackActions.info("No defined parameters for " +
-                cmd?.cmd + "( " + cmd?.payloadtype?.name + "), so no modal available");
+                cmd?.cmd + "( " + cmd?.payloadtype?.name + "), so no modal available", snackMessageStyles);
             return;
         }
         let splitMessage = message.trim().split(" ");
@@ -1337,6 +1368,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             processCommandAndCommandLine(cmd[0], force_parsed_popup)
             return;
         }
+        if(commandPayloadType !== ""){
+            cmd = cmd.find(c => c.payloadtype.name === commandPayloadType);
+            if(cmd === undefined){
+                snackActions.warning("Unknown (or not loaded) command", snackMessageStyles);
+                return;
+            }
+            processCommandAndCommandLine(cmd, force_parsed_popup)
+            return;
+        }
         // two or more commands share the same name, we need to disambiguate between them
         cmd = cmd.map( c => {return {...c, display: `${c.cmd} (${c.payloadtype.name})`}});
         commandOptions.current = cmd;
@@ -1355,11 +1395,12 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         }
         // need to do a reverse i search through taskOptions
         const lowerCaseTextSearch = event.target.value.toLowerCase();
-        const matchingOptions = taskOptions.current.filter( x => (x?.command?.cmd + " " + x.original_params).toLowerCase().includes(lowerCaseTextSearch));
+        const matchingOptions = taskOptions.current.filter( x => (GetCommandName(x)).toLowerCase().includes(lowerCaseTextSearch));
         const filteredMatches = matchingOptions.filter( x => applyFilteringToTasks(x))
         reverseSearchOptions.current = filteredMatches;
         if(filteredMatches.length > 0){
-            setMessage(filteredMatches[0].command?.cmd + " " + filteredMatches[0].original_params);
+            setMessage(GetCommandName(filteredMatches[0]) + " " + filteredMatches[0].original_params);
+            setCommandPayloadType(filteredMatches[0]?.command?.payloadtype?.name || "");
         }
     }
     const onReverseSearchKeyDown = (event) => {
@@ -1390,6 +1431,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 reverseSearchIndex.current = newIndex;
                 setMessage(GetUpDownArrowName(reverseSearchOptions.current[newIndex]));
                 setUnmodifiedHistoryValue(reverseSearchOptions.current[newIndex].tasking_location);
+                setCommandPayloadType(reverseSearchOptions.current[newIndex]?.command?.payloadtype?.name || "");
             }
         }else if(event.key === "ArrowDown"){
             // go down through the reverseSearchOptions by decrementing reverseSearchIndex
@@ -1405,6 +1447,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 reverseSearchIndex.current = newIndex;
                 setMessage(GetUpDownArrowName(reverseSearchOptions.current[newIndex]));
                 setUnmodifiedHistoryValue(reverseSearchOptions.current[newIndex].tasking_location);
+                setCommandPayloadType(reverseSearchOptions.current[newIndex]?.command?.payloadtype?.name || "");
             }
         }else if(event.key === "r" && event.ctrlKey){
             //this means they typed ctrl+r, so they're wanting to do a reverse search for a command
@@ -1452,7 +1495,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 InputProps={{
                     type: 'search',
                     spellCheck: false,
-                    style: {paddingTop: "0px", paddingBottom: "0px"},
+                    style: {paddingTop: "0px", paddingBottom: "0px", paddingRight: "5px"},
                     endAdornment:
                     <React.Fragment>
                     <IconButton
@@ -1465,12 +1508,17 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             color={activeFiltering ? "warning" : "secondary"}
                             variant="contained"
                             onClick={onClickFilter}
+                            style={{paddingLeft: 0}}
                             size="large"><TuneIcon/></IconButton>
-                            }
+                    }
+                        {commandPayloadType !== "" &&
+                            <MythicAgentSVGIcon payload_type={commandPayloadType}
+                                                style={{width: "35px", height: "35px"}}/>
+                        }
                     </React.Fragment>
                     ,
                     startAdornment: <React.Fragment>
-                        {tokenOptions.length > 0 ? (
+                        {tokenOptions.current.length > 0 ? (
                             <CallbacksTabsTaskingInputTokenSelect options={tokenOptions} changeSelectedToken={props.changeSelectedToken}/>
                         ) : null}
                         

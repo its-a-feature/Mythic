@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc16] - 2024-10-14
+
+### Changed
+
+- Updated file uploads to better track the same file uploads across multiple callbacks
+- Updated file download message for files hosted through C2 Profiles to be more descriptive
+- Added support for operation banner_text and banner_color
+- Reworked C2 Profile status updates so they can be more async and C2 profiles can opt for their own restarts
+  - Removed unnecessary C2 Profile restarts when checking configurations and building payloads
+  - C2 Profile Functions can now set a field for RestartInternalServer to ask Mythic to restart it for them
+- Updated payload build to go on in background instead of blocking build API call
+- Updated CommandAugment commands to only autoload builtin and suggested commands to new callbacks
+- Added Username/Password auth options for SOCKS ports
+- Added support for UDP Associate
+  - Agents need to inspect first packet for new server_id to see if it's \x00\x00 (UDP) or \x05 (TCP)
+
 ## [3.3.1-rc15] - 2024-09-27
 
 ### Changed

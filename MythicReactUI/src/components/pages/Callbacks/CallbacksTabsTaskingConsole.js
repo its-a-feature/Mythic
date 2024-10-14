@@ -60,7 +60,7 @@ export function CallbacksTabsTaskingConsoleLabel(props){
 }
 
 // this is to listen for the latest tasking
-const fetchLimit = 10;
+const fetchLimit = 20;
 const getTaskingQuery = gql`
 ${taskingDataFragment}
 subscription getTasking($callback_id: Int!, $fromNow: timestamp!, $limit: Int){
@@ -397,7 +397,9 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
             </div>
 
             <CallbacksTabsTaskingInput filterTasks={true} me={me} onSubmitFilter={onSubmitFilter} onSubmitCommandLine={onSubmitCommandLine} changeSelectedToken={changeSelectedToken}
-                                       filterOptions={filterOptions} callback_id={tabInfo.callbackID} callback_os={tabInfo.os} parentMountedRef={mountedRef} />
+                                       filterOptions={filterOptions} callback_id={tabInfo.callbackID}
+                                       payloadtype_name={tabInfo.payloadtype}
+                                       callback_os={tabInfo.os} parentMountedRef={mountedRef} />
             {openParametersDialog &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog}
                               onClose={()=>{setOpenParametersDialog(false);}}

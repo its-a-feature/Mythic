@@ -78,7 +78,7 @@ func PreviewFileWebhook(c *gin.Context) {
 		})
 		return
 	}
-	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypePreview, nil, c)
+	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypePreview, nil, c, false)
 	file, err := os.Open(filemeta.Path)
 	if err != nil {
 		logging.LogError(err, "Failed to open file from disk")

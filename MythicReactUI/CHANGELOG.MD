@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.49] - 2024-10-14
+
+### Changed
+
+- Updated the eventlog page to have options to view only unresolved/resolved warnings
+- Fixed some issues with the reverse search box in tasking
+- Added an option to stop hosting a file via the host file dialog box
+- Fixed but when deleting a tag causing an error
+- Added banner_text and banner_color options to operations that applies to every page
+- Added a timer for interactive task backdrop notification
+- Fixed issue with ChooseMultiple options not being populated in modal based on command line with shift+enter
+- Fixed an issue in interactive tasking with empty response being treated as a task
+- Added ability to tab-out choices for ChooseOne, ChooseOneCustom, ChooseMultiple, TypedArray, Array fields
+  - Includes ones with dynamic query functions set
+
 ## [0.2.48] - 2024-10-01
 
 ### Changed

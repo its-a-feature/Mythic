@@ -14,6 +14,7 @@ type C2HostFileMessage struct {
 	Name     string `json:"c2_profile_name"`
 	FileUUID string `json:"file_uuid"`
 	HostURL  string `json:"host_url"`
+	Remove   bool   `json:"remove"`
 }
 
 type C2HostFileMessageResponse struct {

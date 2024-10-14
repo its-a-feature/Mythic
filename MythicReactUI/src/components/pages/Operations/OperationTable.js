@@ -21,6 +21,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { IconButton } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import {meState} from "../../../cache";
+import {restartWebsockets} from "../../../index";
 
 const newOperatorMutation = gql`
 mutation NewOperator($username: String!, $password: String!) {
@@ -32,12 +34,14 @@ mutation NewOperator($username: String!, $password: String!) {
 }
 `;
 const Update_Operation = gql`
-mutation MyMutation($operation_id: Int!, $channel: String!, $complete: Boolean!, $name: String!, $webhook: String!) {
-    updateOperation(operation_id: $operation_id, channel: $channel, complete: $complete, name: $name, webhook: $webhook) {
+mutation MyMutation($operation_id: Int!, $channel: String!, $complete: Boolean!, $name: String!, $webhook: String!, $banner_text: String!, $banner_color: String!) {
+    updateOperation(operation_id: $operation_id, channel: $channel, complete: $complete, name: $name, webhook: $webhook, banner_text: $banner_text, banner_color: $banner_color) {
         status
         error
         name
         complete
+        banner_text
+        banner_color
         id
     }
 }
@@ -77,6 +81,15 @@ export function OperationTable(props){
             if(data.updateOperation.status === "success"){
                 props.onUpdateOperation(data.updateOperation);
                 snackActions.success("Successfully updated operation");
+
+                meState({...meState(), user: {...meState().user,
+                        current_operation_id: data.updateOperation.id,
+                        current_operation: data.updateOperation.name,
+                        current_operation_complete: data.updateOperation.complete,
+                        current_operation_banner_text: data.updateOperation.banner_text,
+                        current_operation_banner_color: data.updateOperation.banner_color,
+                    }});
+                localStorage.setItem("user", JSON.stringify(meState().user));
             } else {
                 snackActions.error(data.updateOperation.error);
             }
@@ -102,13 +115,15 @@ export function OperationTable(props){
             console.log(data);
         }
     })
-    const onUpdateOperation = ({operation_id, name, channel, webhook, complete}) => {
+    const onUpdateOperation = ({operation_id, name, channel, webhook, complete, banner_text, banner_color}) => {
         updateOperation({variables:{
             operation_id,
             name,
             channel,
             webhook,
-            complete
+            complete,
+                banner_text,
+                banner_color
         }});
     }
     const onSubmitNewOperator = (id, username, passwordOld, passwordNew) => {

@@ -38,6 +38,7 @@ query GetCallbackDetails($callback_id: Int!) {
       creation_time
       payloadtype{
           name
+          agent_type
           id
       }
       filemetum {

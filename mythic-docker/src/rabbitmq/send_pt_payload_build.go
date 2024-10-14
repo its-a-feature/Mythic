@@ -215,7 +215,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 		Filename:           string(fileMeta.Filename),
 		Secrets:            GetSecrets(operatorOperation.CurrentOperator.ID, payloadDefinition.EventStepInstance),
 	}
-	SendPayloadBuildMessage(databasePayload, rabbitmqPayloadBuildMsg)
+	go SendPayloadBuildMessage(databasePayload, rabbitmqPayloadBuildMsg)
 	EventingChannel <- EventNotification{
 		Trigger:             eventing.TriggerPayloadBuildStart,
 		PayloadID:           databasePayload.ID,
@@ -295,7 +295,6 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 			checksPassed = false
 			buildOutput += "[-] !!! C2 Configuration check failed !!! \n" + configCheckResponse.Error + "\n"
 		} else {
-			go RestartC2ServerAfterUpdate(c2.Name, false)
 			buildOutput += configCheckResponse.Message + "\n"
 		}
 		if !c2.IsP2P {

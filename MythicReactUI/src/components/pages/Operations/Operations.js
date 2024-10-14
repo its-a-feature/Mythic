@@ -8,6 +8,8 @@ const GET_Operations = gql`
 query GetOperations {
   operation(order_by: {name: asc}) {
     complete
+    banner_text
+    banner_color
     name
     id
     deleted

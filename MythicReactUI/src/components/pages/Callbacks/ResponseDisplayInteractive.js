@@ -106,7 +106,7 @@ export const GetOutputFormatAll = ({data, myTask, taskID,  useASNIColor, message
     const [dataElement, setDataElement] = React.useState(null);
     React.useEffect( () => {
         const elements = data.map( d => {
-            if(d.response) {
+            if(d.response !== undefined) {
                 // we're looking at response output
                 if(d.is_error){
                     return (<pre id={"response" + d.timestamp + d.id} style={{display: "inline",backgroundColor: "#311717", color: "white", margin: "0 0 0 0",
@@ -376,6 +376,10 @@ export const ResponseDisplayInteractive = (props) =>{
             setBackdropOpen(false);
         }
     }, [loadingTasks]);
+    setTimeout(() => {
+        // close the backdrop after 2 seconds in case there's no data to fetch
+        setBackdropOpen(false);
+    }, 2000);
   return (
 
       <div style={{
@@ -401,7 +405,7 @@ export const ResponseDisplayInteractive = (props) =>{
               <SearchBar onSubmitSearch={onSubmitSearch}/>
           }
           <div style={{overflowY: "auto", width: "100%", marginBottom: "5px",
-              flexGrow: 1, paddingLeft: "10px"}} ref={props.responseRef}
+              flexGrow: 1, paddingLeft: "10px", minHeight: "50px"}} ref={props.responseRef}
                id={`ptytask${props.task.id}`}>
 
                   <GetOutputFormatAll data={alloutput}

@@ -39,7 +39,8 @@ func C2ProfileStatusWebhook(c *gin.Context) {
 	}
 	// get the associated database information
 	c2profile := databaseStructs.C2profile{}
-	if err := database.DB.Get(&c2profile, `SELECT name, id FROM c2profile WHERE id=$1`, input.Input.C2ProfileID); err != nil {
+	err := database.DB.Get(&c2profile, `SELECT name, id FROM c2profile WHERE id=$1`, input.Input.C2ProfileID)
+	if err != nil {
 		logging.LogError(err, "Failed to fetch c2 profile from database by ID", "id", input.Input.C2ProfileID)
 		c.JSON(http.StatusOK, GetC2ProfileOutputResponse{
 			Status: "error",
@@ -47,9 +48,12 @@ func C2ProfileStatusWebhook(c *gin.Context) {
 		})
 		return
 		// send the RPC request to the container
-	} else if c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCGetDebugOutput(rabbitmq.C2GetDebugOutputMessage{
+	}
+	c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCGetDebugOutput(rabbitmq.C2GetDebugOutputMessage{
 		Name: c2profile.Name,
-	}); err != nil {
+	})
+	go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
+	if err != nil {
 		logging.LogError(err, "Failed to send C2ProfileStatusWebhook to c2 profile", "c2_profile", c2profile.Name)
 		c.JSON(http.StatusOK, GetC2ProfileOutputResponse{
 			Status: "error",
@@ -57,18 +61,19 @@ func C2ProfileStatusWebhook(c *gin.Context) {
 		})
 		return
 		// check the response from the RPC call for success or error
-	} else if !c2ProfileResponse.Success {
+	}
+	if !c2ProfileResponse.Success {
 		logging.LogError(nil, string(c2ProfileResponse.Message), "Failed to get file from c2 container")
 		c.JSON(http.StatusOK, GetC2ProfileOutputResponse{
 			Status: "error",
 			Error:  "Failed to get file from C2 Profile",
 		})
 		return
-	} else {
-		c.JSON(http.StatusOK, GetC2ProfileOutputResponse{
-			Status: "success",
-			Output: c2ProfileResponse.Message,
-		})
-		return
 	}
+	c.JSON(http.StatusOK, GetC2ProfileOutputResponse{
+		Status: "success",
+		Output: c2ProfileResponse.Message,
+	})
+	return
+
 }

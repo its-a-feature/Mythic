@@ -53,11 +53,11 @@ func FileDirectDownloadWebhook(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		go tagFileAs(payload.Filemeta.ID, operatorUsername, payload.Filemeta.OperationID, tagTypeDownload, nil, c)
+		go tagFileAs(payload.Filemeta.ID, operatorUsername, payload.Filemeta.OperationID, tagTypeDownload, nil, c, false)
 		c.FileAttachment(payload.Filemeta.Path, string(payload.Filemeta.Filename))
 		return
 	}
-	go tagFileAs(filemeta.ID, operatorUsername, filemeta.OperationID, tagTypeDownload, nil, c)
+	go tagFileAs(filemeta.ID, operatorUsername, filemeta.OperationID, tagTypeDownload, nil, c, false)
 	c.FileAttachment(filemeta.Path, string(filemeta.Filename))
 	return
 }

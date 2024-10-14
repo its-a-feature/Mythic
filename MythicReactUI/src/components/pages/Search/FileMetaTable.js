@@ -652,7 +652,7 @@ function FileMetaUploadTableRow(props){
                     
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    {props.deleted || props.size === 0 ? null : (
+                    {props.deleted ? null : (
                         <>
                             <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
                                         onClick={()=>{setOpenDelete(true);}}/>

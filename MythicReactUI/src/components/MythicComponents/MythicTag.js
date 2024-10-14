@@ -279,7 +279,11 @@ return (
                 <TableRow hover>
                   <TableCell>Reference URL</TableCell>
                   <TableCell>
-                    <Link href={selectedTag?.url || "#"} color="textPrimary" target="_blank" referrerPolicy='no'>{selectedTag?.url ? "click here" : "No reference link provided"}</Link>
+                    {selectedTag?.url === "" ? (
+                        "No reference link provided"
+                    ) : (
+                        <Link href={selectedTag?.url || "#"} color="textPrimary" target="_blank" referrerPolicy='no'>{selectedTag?.url ? "click here" : "No reference link provided"}</Link>
+                    )}
                   </TableCell>
                 </TableRow>
                 <TableRow>
@@ -293,16 +297,29 @@ return (
                               <TableRow key={key} hover>
                                 <TableCell>{key}</TableCell>
                                 {typeof selectedTag.data[key] === "string" ? (
-                                    <TableCell>
-                                      <StringTagDataEntry name={key} value={selectedTag.data[key]} />
+                                    <TableCell style={{whiteSpace: "pre-wrap"}}>
+                                      <StringTagDataEntry name={key} value={String(selectedTag.data[key])} />
                                     </TableCell>
                                 ) : typeof selectedTag.data[key] === "object" ? (
-                                    <TableCell style={{whiteSpace: "pre-wrap"}}>{JSON.stringify(selectedTag.data[key], null, 2)}</TableCell>
+                                    Array.isArray(selectedTag.data[key]) ? (
+                                        <TableCell style={{whiteSpace: "pre-wrap"}}>{JSON.stringify(selectedTag.data[key], null, 2)}</TableCell>
+                                    ) : (
+                                        <Table size={"small"} >
+                                          {Object.keys(selectedTag.data[key]).map(key2 => (
+                                              <TableRow key={key2} >
+                                                <TableCell>{key2}</TableCell>
+                                                <TableCell>
+                                                  <StringTagDataEntry name={key2} value={String(selectedTag.data[key][key2])} />
+                                                </TableCell>
+                                              </TableRow>
+                                          ))}
+                                        </Table>
+                                    )
                                 ) : typeof selectedTag.data[key] === "boolean" ? (
                                     <TableCell>{selectedTag.data[key] ? "True" : "False"}</TableCell>
                                 ) :
                                 (
-                                    <TableCell>{selectedTag.data[key]}</TableCell>
+                                    <TableCell>{String(selectedTag.data[key])}</TableCell>
                                 )
                                 }
 
@@ -379,7 +396,11 @@ export function ViewEditTagsDialog(props) {
       setExistingTags(newTags);
       if(newTags.length > 0){
         setSelectedTag(newTags[0]);
-        setNewData(newTags[0].data);
+        try{
+          setNewData(JSON.stringify(newTags[0].data, null, 2));
+        }catch(error){
+          setNewData(String(newTags[0].data));
+        }
         setNewSource(newTags[0].source);
         setNewURL(newTags[0].url);
       } else {
