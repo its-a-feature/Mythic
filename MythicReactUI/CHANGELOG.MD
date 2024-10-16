@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.50] - 2024-10-16
+
+### Changed
+
+- Updated the tab-complete ability for a parameter's `choices` to support partial context
+- Updated callbacks table to locally save column widths locally
+
 ## [0.2.49] - 2024-10-14
 
 ### Changed

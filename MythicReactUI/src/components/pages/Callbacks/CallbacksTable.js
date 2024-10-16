@@ -31,7 +31,7 @@ import {
 } from 'material-react-table';
 import {useTheme} from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import {SetMythicSetting, useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting, SetMythicSetting, useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {DetailedCallbackTable} from "./DetailedCallbackTable";
 import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
 import Paper from '@mui/material/Paper';
@@ -102,7 +102,7 @@ function CallbacksTablePreMemo(props){
     const callbacks = useContext(CallbacksContext);
     const onOpenTab = useContext(OnOpenTabContext);
     const onOpenTabs = useContext(OnOpenTabsContext);
-    const interactType = useMythicSetting({setting_name: "interactType", default_value: "interact", output: "string"})
+    const interactType = GetMythicSetting({setting_name: "interactType", default_value: "interact", output: "string"});
     const theme = useTheme();
     const [openMultipleTabsDialog, setOpenMultipleTabsDialog] = React.useState({open: false, tabType: "interact"});
     const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
@@ -182,9 +182,25 @@ function CallbacksTablePreMemo(props){
     const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState({open: false, data: {}});
     const [filterOptions, setFilterOptions] = React.useState({});
     const [selectedColumn, setSelectedColumn] = React.useState({});
-    const [columnVisibility, setColumnVisibility] = React.useState({
-        "visible": ["Interact", "Host", "Domain", "User", "Description", "Last Checkin", "Agent",  "IP", "PID"],
-        "hidden": ["Arch", "Sleep", "Process Name", "External IP", "C2",  "OS", "Groups"]
+    const [columnVisibility, setColumnVisibility] = React.useState(() => {
+        let defaults = {"visible": ["Interact", "Host", "Domain", "User", "Description", "Last Checkin", "Agent",  "IP", "PID"],
+            "hidden": ["Arch", "Sleep", "Process Name", "External IP", "C2",  "OS", "Groups"]}
+        try {
+            const storageItem = GetMythicSetting({setting_name: "callbacks_table_columns", default_value: {}, output: "json"});
+            if(storageItem !== null){
+                let allColumns = [...defaults["visible"].map(c => c), ...defaults["hidden"].map(c => c)];
+                let newHidden = [];
+                allColumns.forEach((v,i,a) => {
+                    if(!storageItem.includes(v)){
+                        newHidden.push(v);
+                    }
+                })
+                return {visible: storageItem, hidden: newHidden};
+            }
+        }catch(error){
+            console.log("Failed to load callbacks_table_columns", error);
+        }
+        return defaults;
     });
     const [updateSleep] = useMutation(updateSleepInfoCallbackMutation, {
       update: (cache, {data}) => {
@@ -483,34 +499,32 @@ function CallbacksTablePreMemo(props){
     }
     const onSubmitAdjustColumns = ({left, right}) => {
       setColumnVisibility({visible: right, hidden: left});
-      localStorage.setItem("callbacks_table_columns", JSON.stringify(right));
+      SetMythicSetting({setting_name: "callbacks_table_columns", value: right, output: "json"});
     }
     React.useEffect( () => {
       // on startup, want to see if `callbacks_table_columns` exists in storage and load it if possible
       try {
-        const storageItem = localStorage.getItem("callbacks_table_columns");
+        const storageItem = GetMythicSetting({setting_name: "callbacks_table_columns", default_value: {}, output: "json"});
         if(storageItem !== null){
-          let loadedColumnNames = JSON.parse(storageItem);
           let allColumns = [...columnVisibility["visible"].map(c => c), ...columnVisibility["hidden"].map(c => c)];
           let newHidden = [];
           allColumns.forEach((v,i,a) => {
-            if(!loadedColumnNames.includes(v)){
+            if(!storageItem.includes(v)){
               newHidden.push(v);
             }
           })
-          setColumnVisibility({visible: loadedColumnNames, hidden: newHidden});
+          setColumnVisibility({visible: storageItem, hidden: newHidden});
         }
       }catch(error){
         console.log("Failed to load callbacks_table_columns", error);
       }
       try {
-        const storageItemOptions = localStorage.getItem("callbacks_table_filter_options");
+        const storageItemOptions = GetMythicSetting({setting_name: "callbacks_table_filter_options", default_value: {}, output: "json"});
         if(storageItemOptions !== null){
-            let filters = JSON.parse(storageItemOptions);
-            setFilterOptions(filters);
+            setFilterOptions(storageItemOptions);
         }
       }catch(error){
-        console.log("Failed to load callbacks_table_columns", error);
+        console.log("Failed to load callbacks_table_filter_options", error);
     }
     }, [])
     const columns = useMemo( 
@@ -598,11 +612,6 @@ function CallbacksTablePreMemo(props){
             }
         }
     ];
-    useEffect( () => {
-      let localSettings = localStorage.getItem("callbacks_table_columns");
-      if(localSettings !== null){
-      }
-    }, [columns]);
     const updateSleepInfo = React.useCallback( ({callback_display_id, sleep_info}) => {
       updateSleep({variables: {callback_display_id: callback_display_id, sleep_info}})
     }, [])
@@ -733,8 +742,7 @@ function CallbacksTablePreMemo(props){
     const onSubmitFilterOptions = (newFilterOptions) => {
       setFilterOptions(newFilterOptions);
       try{
-          let options = JSON.stringify(newFilterOptions);
-          localStorage.setItem("callbacks_table_filter_options", options);
+          SetMythicSetting({setting_name: "callbacks_table_filter_options", value: newFilterOptions, output: "json"});
       }catch(error){
           console.log("failed to save filter options");
       }
@@ -770,6 +778,7 @@ function CallbacksTablePreMemo(props){
     return (
         <div style={{width: '100%', height: '100%', position: "relative",}}>
             <MythicResizableGrid
+                name={"callbacks_table"}
                 callbackTableGridRef={props.callbackTableGridRef}
                 columns={columns}
                 sortIndicatorIndex={sortColumn}
@@ -929,417 +938,3 @@ function CallbacksTablePreMemo(props){
     )
 }
 export const CallbacksTable = React.memo(CallbacksTablePreMemo);
-const accessorFn = (row, h) => {
-    if(h.type === "timestamp"){
-        let d = new Date(row[h.key] || 0);
-        if (d.getFullYear() === 1970){
-            d = new Date();
-            d = d + d.getTimezoneOffset();
-        }
-        return d;
-    }
-    if(h.type === "number" || h.type === "size"){
-        try{
-            return Number(row[h.key] || 0);
-        }catch(error){
-            return row[h.key] || 0;
-        }
-    }
-    if(h.name === "Groups"){
-        return row.mythictree_groups.join(", ");
-    }
-    if(h.name === "IP"){
-        try{
-            return JSON.parse(row[h.key])[0];
-        }catch(error){
-            return row[h.key];
-        }
-    }
-    if(h.name === "Agent"){
-        return row.payload.payloadtype.name;
-    }
-    return row[h.key] || "";
-};
-function CallbacksTableMaterialReactTablePreMemo(props){
-    const callbacks = useContext(CallbacksContext);
-    const theme = useTheme();
-    const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
-    const openMetaDialogRef = React.useRef(0);
-    const metaDialog = (callback_id) => {
-        openMetaDialogRef.current = callback_id;
-        setOpenMetaDialog(true);
-    }
-    const [openEditMythicTreeGroupsDialog, setOpenEditMythicTreeGroupsDialog] = React.useState(false);
-    const mythicTreeGroupsDialogRef = React.useRef(0);
-    const editMythicTreeGroupsDialog = (callback_id) => {
-        mythicTreeGroupsDialogRef.current = callback_id;
-        setOpenEditMythicTreeGroupsDialog(true);
-    }
-    const [openHideMultipleDialog, setOpenHideMultipleDialog] = React.useState(false);
-    const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState({open: false, data: {}});
-    const [openEditDescriptionDialog, setOpenEditDescriptionDialog] = React.useState(false);
-    const [updateDescriptionMutation] = useMutation(updateDescriptionCallbackMutation, {
-        update: (cache, {data}) => {
-            if(data.updateCallback.status === "success"){
-                snackActions.success("Updated Callback");
-            }else{
-                snackActions.warning(data.updateCallback.error);
-            }
-
-        },
-        onError: data => {
-            console.log(data);
-            snackActions.warning(data);
-        }
-    });
-    const updateDescriptionRef = React.useRef({payload_description: "", callback_display_id: 0, description: ""});
-    const updateDescription = ({payload_description, callback_display_id, description}) => {
-        updateDescriptionRef.current = {
-            payload_description: payload_description,
-            callback_display_id: callback_display_id,
-            description: description
-        };
-        setOpenEditDescriptionDialog(true);
-    }
-    const editDescriptionSubmit = (description) => {
-        setOpenEditDescriptionDialog(false);
-        if(description === ""){
-            updateDescriptionSubmit({
-                description: updateDescriptionRef.current.payload_description,
-                callback_display_id: updateDescriptionRef.current.callback_display_id
-            });
-        } else {
-            updateDescriptionSubmit({
-                description: description,
-                callback_display_id: updateDescriptionRef.current.callback_display_id
-            });
-        }
-    }
-    const updateDescriptionSubmit = React.useCallback( ({callback_display_id, description}) => {
-        updateDescriptionMutation({variables: {callback_display_id: callback_display_id, description}})
-    }, []);
-    const [openCallbackDropdown, setOpenCallbackDropdown] = React.useState(false);
-    const callbackDropdownRef = React.useRef({options: [], callback: {}});
-
-    const callbackDropdown = ({options, callback, dropdownAnchorRef}) => {
-        callbackDropdownRef.current.options = options;
-        callbackDropdownRef.current.callback = callback;
-        callbackDropdownRef.current.dropdownAnchorRef = dropdownAnchorRef;
-        setOpenCallbackDropdown(true);
-    }
-    const handleMenuItemClick = (event, index) => {
-        callbackDropdownRef.current.options[index].click(event);
-        setOpenCallbackDropdown(false);
-    };
-    const handleClose = (event) => {
-        if (callbackDropdownRef.current.dropdownAnchorRef && callbackDropdownRef.current.dropdownAnchorRef.contains(event.target)) {
-            return;
-        }
-        setOpenCallbackDropdown(false);
-    };
-    const [updateSleep] = useMutation(updateSleepInfoCallbackMutation, {
-        update: (cache, {data}) => {
-            snackActions.success("Updated Callback");
-
-        },
-        onError: data => {
-            console.log(data);
-            snackActions.warning(data);
-        }
-    });
-    const updateSleepInfo = React.useCallback( ({callback_display_id, sleep_info}) => {
-        updateSleep({variables: {callback_display_id: callback_display_id, sleep_info}})
-    }, [])
-    const columnFields = [
-        {key: "id", type: 'number', name: "Interact", width: 150, disableCopy: true, enableHiding: false},
-        {key: "mythictree_groups", type: 'array', name: "Groups", enableHiding: true},
-        {key: "ip", type: 'ip', name: "IP", width: 150, enableHiding: true},
-        {key: "external_ip",type: 'string', name: "External IP", width: 150, enableHiding: true},
-        {key: "host", type: 'string', name: "Host", fillWidth: true, enableHiding: true},
-        {key: "user", type: 'string', name: "User", fillWidth: true, enableHiding: true},
-        {key: "domain", type: 'string', name: "Domain", fillWidth: true, enableHiding: true},
-        {key: "os", type: 'string', name: "OS", width: 75, disableCopy: true, enableHiding: true},
-        {key: "architecture", type: 'string', name: "Arch", width: 75, enableHiding: true},
-        {key: "pid", type: 'number', name: "PID", width: 75, enableHiding: true},
-        {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true, disableCopy: true, enableHiding: true},
-        {key: "description", type: 'string', name: "Description", width: 400, enableHiding: true},
-        {key: "sleep", type: 'string', name: "Sleep", width: 75, disableSort: true, disableCopy: true, enableHiding: true},
-        {key: "agent", type: 'string', name: "Agent", width: 100, disableSort: true, disableCopy: true, enableHiding: true},
-        {key: "c2", type: 'string', name: "C2", width: 75, disableSort: true, disableFilterMenu: true, disableCopy: true, enableHiding: true},
-        {key: "process_short_name", type: 'string', name: "Process Name", fillWidth: true, enableHiding: true},
-    ];
-    const initialColumnVisibility = useMythicSetting({setting_name: "callbacks_table_columns",
-        output: "json",
-        default_value: {
-            id: true,
-            host: true,
-            domain:true,
-            user:true,
-            description:true,
-            last_checkin: true,
-            agent: true,
-            ip: true,
-            pid: true,
-            architecture: false,
-            sleep: false,
-            process_short_name: false,
-            external_ip: false,
-            c2: true,
-            os: false,
-            mythictree_groups: false
-        }});
-    const initialColumnFilters = useMythicSetting({setting_name: "callbacks_table_filters",
-        output: "json-array",
-        default_value: []});
-    const [columnVisibility, setColumnVisibility] = React.useState(initialColumnVisibility);
-    const [columnFilters, setColumnFilters] = React.useState(initialColumnFilters);
-    React.useEffect(  () => {
-        SetMythicSetting({setting_name: "callbacks_table_columns",
-            value: columnVisibility, output:"json"});
-        SetMythicSetting({setting_name: "callbacks_table_filters",
-            value: columnFilters, output: "json-array"});
-    }, [columnVisibility, columnFilters]);
-    const localCellRender = React.useCallback( ({cell, h}) => {
-        let row = cell.row?.original;
-        switch(h.name){
-            case "Interact":
-                return <CallbacksTableIDCell
-                    rowData={row}
-                    updateDescription={updateDescription}
-                    editMythicTreeGroupsDialog={editMythicTreeGroupsDialog}
-                    metaDialog={metaDialog}
-                    callbackDropdown={callbackDropdown}
-                    setOpenHideMultipleDialog={setOpenHideMultipleDialog}
-                    setOpenTaskMultipleDialog={setOpenTaskMultipleDialog}
-                />;
-            case "Groups":
-                return <CallbacksTableStringCell cellData={row.mythictree_groups.join(", ")} />;
-            case "IP":
-                return <CallbacksTableIPCell  cellData={row.ip} rowData={row} callback_id={row.id} />;
-            case "External IP":
-                return <CallbacksTableStringCell  cellData={row.external_ip} rowData={row} />;
-            case "Host":
-                return <CallbacksTableStringCell cellData={row.host} rowData={row} />;
-            case "User":
-                return <CallbacksTableStringCell  cellData={row.user} rowData={row} />;
-            case "Domain":
-                return <CallbacksTableStringCell  cellData={row.domain} rowData={row} />;
-            case "OS":
-                return <CallbacksTableOSCell rowData={row} cellData={row.os} />;
-            case "Arch":
-                return <CallbacksTableStringCell  rowData={row} cellData={row.architecture} />;
-            case "PID":
-                return <CallbacksTableStringCell  cellData={row.pid} rowData={row} />;
-            case "Last Checkin":
-                return <CallbacksTableLastCheckinCell  rowData={row} cellData={row.last_checkin} />;
-            case "Description":
-                return <CallbacksTableStringCell  cellData={row.description} rowData={row} />;
-            case "Sleep":
-                return <CallbacksTableSleepCell rowData={row} cellData={row.sleep_info} updateSleepInfo={updateSleepInfo} />;
-            case "Agent":
-                return <CallbacksTablePayloadTypeCell  rowData={row} cellData={row.payload.payloadtype.name}/>;
-            case "C2":
-                return <CallbacksTableC2Cell  rowData={row} />
-            case "Process Name":
-                return <CallbacksTableStringCell  cellData={row.process_short_name} rowData={row} />;
-        }
-    }, []);
-    const columns = React.useMemo( () => columnFields.map( h => {
-        return {
-            accessorKey: h.key,
-            header: h.key,
-            size: h.width,
-            id: h.key,
-            enableClickToCopy: !h.disableCopy,
-            filterVariant: h.type === 'number' || h.type === 'size' ? 'range' : 'text',
-            enableResizing: true,
-            enableHiding: h.enableHiding,
-            enableSorting: !h.disableSort,
-            enableColumnFilter: true,
-            grow: h.fillWidth,
-            accessorFn: (row) => accessorFn(row, h),
-            Cell: ({cell}) => localCellRender({cell, h})
-        }
-    }), [columnFields])
-    const materialReactTable = useMaterialReactTable({
-        columns,
-        data: callbacks,
-        memoMode: "cell",
-        layoutMode: "grid",
-        autoResetPageIndex: false,
-        enableFacetedValues: true,
-        enablePagination: true,
-        //enableRowVirtualization: true,
-        //rowVirtualizerOptions: {overscan: 10},
-        enableBottomToolbar: false,
-        enableStickyHeader: true,
-        enableDensityToggle: false,
-        enableColumnResizing: true,
-        enableRowPinning: true,
-        positionPagination: "top",
-        columnFilterDisplayMode: 'popover', //filter inputs will show in a popover (like excel)
-        rowPinningDisplayMode: 'top-and-bottom',
-        //enableColumnOrdering: true,
-        //columnResizeMode: 'onEnd',
-        initialState: {
-            density: 'compact',
-            columnVisibility,
-            columnFilters
-        },
-        state: {columnVisibility, columnFilters},
-        onColumnVisibilityChange: setColumnVisibility,
-        onColumnFiltersChange: setColumnFilters,
-        defaultDisplayColumn: { enableResizing: true },
-        muiTableContainerProps: { sx: { alignItems: "flex-start" } },
-        mrtTheme: (theme) => ({
-            baseBackgroundColor: theme.palette.background.default, //change default background color
-        }),
-        muiSearchTextFieldProps: {
-            placeholder: 'Search loaded data',
-            size: 'small',
-            sx: { minWidth: '300px' },
-            variant: 'outlined',
-        },
-        muiTableHeadCellProps: {
-            sx: {
-                border: '1px solid rgba(81, 81, 81, .5)',
-                fontStyle: 'italic',
-                fontWeight: 'bold',
-            },
-            style: {
-                zIndex: 1,
-                height: "36px",
-            }
-        },
-        muiTableHeadRowProps: {
-            sx: {
-                alignItems: "flex-start",
-                height: "36px",
-            }
-        },
-        muiTableBodyCellProps: ({ cell, table }) => {
-            return {
-                sx: {
-                    padding: "0 0 0 10px",
-                }
-            }
-        },
-        muiTableBodyRowProps: ({ row }) => ({
-            sx: {
-                height: "40px",
-            },
-            style: {padding: 0}
-        }),
-        enableRowActions: false,
-        muiTablePaperProps: {
-            sx: { display: "flex", flexDirection: "column", width: "100%"}
-        },
-        muiTopToolbarProps: {
-            sx: {
-                backgroundColor: theme.materialReactTableHeader,
-                display: "flex",
-                justifyContent: "flex-start"
-            }
-        },
-        renderEmptyRowsFallback: ({ table }) => (
-            <div style={{display: "flex", width: "100%", height: "100%", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
-                <Typography variant={"h4"} >
-                    {callbacks.length === 0 ? "No Data" : null}
-                </Typography>
-            </div>
-        ),
-
-    });
-    return (
-        <div style={{ width: '100%', height: '100%', position: "relative", display: "flex" }}>
-            <MaterialReactTable table={materialReactTable} />
-            {openEditDescriptionDialog &&
-                <MythicDialog
-                    fullWidth={true}
-                    open={openEditDescriptionDialog}
-                    onClose={() => {setOpenEditDescriptionDialog(false);}}
-                    innerDialog={
-                        <MythicModifyStringDialog title={`Edit Callback ${updateDescriptionRef.current.callback_display_id} Description`}
-                                                  onClose={() => {setOpenEditDescriptionDialog(false);}}
-                                                  value={updateDescriptionRef.current.description}
-                                                  onSubmit={editDescriptionSubmit}
-                        />
-                    }
-                />
-            }
-            {openMetaDialog &&
-                <MythicDialog fullWidth={true} maxWidth="lg" open={openMetaDialog}
-                              onClose={()=>{setOpenMetaDialog(false);}}
-                              innerDialog={<DetailedCallbackTable onClose={()=>{setOpenMetaDialog(false);}} callback_id={openMetaDialogRef.current} />}
-                />
-            }
-            {openEditMythicTreeGroupsDialog &&
-                <MythicDialog
-                    fullWidth={true}
-                    maxWidth={"lg"}
-                    open={openEditMythicTreeGroupsDialog}
-                    onClose={() => {setOpenEditMythicTreeGroupsDialog(false);}}
-                    innerDialog={
-                        <ModifyCallbackMythicTreeGroupsDialog callback_id={mythicTreeGroupsDialogRef.current}
-                                                              onClose={() => {setOpenEditMythicTreeGroupsDialog(false);}} />
-                    }
-                />
-            }
-            <Popper open={openCallbackDropdown} anchorEl={callbackDropdownRef.current.dropdownAnchorRef} role={undefined} transition style={{zIndex: 200}}>
-                {({ TransitionProps, placement }) => (
-                    <Grow
-                        {...TransitionProps}
-                        style={{
-                            transformOrigin: placement === 'bottom' ? 'top left' : 'top center',
-                        }}
-                    >
-                        <Paper className={"dropdownMenuColored"} elevation={5}>
-                            <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
-                                <MenuList id="split-button-menu">
-                                    <MenuItem disabled={true}>
-                                        Callback: {callbackDropdownRef.current.callback.display_id}
-                                    </MenuItem>
-
-                                    {callbackDropdownRef.current.options.map((option, index) => (
-                                        <MenuItem
-                                            key={option.name}
-                                            onClick={(event) => handleMenuItemClick(event, index)}
-                                        >
-                                            {option.icon}{option.name}
-                                        </MenuItem>
-                                    ))}
-                                </MenuList>
-                            </ClickAwayListener>
-                        </Paper>
-                    </Grow>
-                )}
-            </Popper>
-            {openHideMultipleDialog &&
-                <MythicDialog
-                    fullWidth={true}
-                    maxWidth="xl"
-                    open={openHideMultipleDialog}
-                    onClose={() => {setOpenHideMultipleDialog(false);}}
-                    innerDialog={
-                        <CallbacksTabsHideMultipleDialog onClose={() => {setOpenHideMultipleDialog(false);}} />
-                    }
-                />
-            }
-            {openTaskMultipleDialog.open &&
-                <MythicDialog
-                    fullWidth={true}
-                    maxWidth="xl"
-                    open={openTaskMultipleDialog.open}
-                    onClose={() => {setOpenTaskMultipleDialog({open: false, data: {}});}}
-                    innerDialog={
-                        <CallbacksTabsTaskMultipleDialog callback={openTaskMultipleDialog.data}
-                                                         onClose={() => {setOpenTaskMultipleDialog({open: false, data: {}});}}
-                                                         me={props.me}/>
-                    }
-                />
-            }
-        </div>
-
-    )
-}
-export const CallbacksTableMaterialReactTable = React.memo(CallbacksTableMaterialReactTablePreMemo)

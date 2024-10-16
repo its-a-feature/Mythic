@@ -7,6 +7,7 @@ import HeaderCell from './HeaderCell';
 import Cell from './Cell';
 import DraggableHandles from './DraggableHandles';
 import {classes} from './styles';
+import {GetMythicSetting, SetMythicSetting} from "../MythicSavedUserSetting";
 const HeaderCellContext = createContext({});
 
 const MIN_COLUMN_WIDTH = 50;
@@ -65,6 +66,7 @@ const getShortRandomString = () => {
     return (Math.random() + 1).toString(36).substring(2);
 }
 const ResizableGridWrapper = ({
+    name,
     columns,
     sortIndicatorIndex,
     sortDirection,
@@ -84,8 +86,12 @@ const ResizableGridWrapper = ({
 }) => {
     /* Hooks */
     const { width: scrollbarWidth } = useScrollbarSize();
-
-    const [columnWidths, setColumnWidths] = useState(columns.map((column) => {
+    const localColumnsRef = React.useRef(columns);
+    const initialSavedWidths = name === undefined ? [] : GetMythicSetting({setting_name: `${name}_column_widths`, default_value: {}, output: "json-array"});
+    const [columnWidths, setColumnWidths] = useState(columns.map((column, index) => {
+        if(initialSavedWidths.length > 0){
+            return initialSavedWidths[index];
+        }
         if(column.fillWidth){
             return Math.max(column?.width || 0, MIN_FLEX_COLUMN_WIDTH);
         }
@@ -109,10 +115,15 @@ const ResizableGridWrapper = ({
         },
         [rowHeight, headerRowHeight]
     );
-
     useEffect(() => {
+        if(initialSavedWidths.length > 0 && localColumnsRef.current.length === columns.length){
+            return;
+        }
+        localColumnsRef.current = columns;
         const totalWidth = AutoSizerProps.width - scrollbarWidth;
-        const updatedColumnWidths = columns.map((column) => column.width || MIN_COLUMN_WIDTH);
+        const updatedColumnWidths = columns.map((column, index) => {
+            return column.width || MIN_COLUMN_WIDTH
+        });
         const totalWidthDiff = totalWidth - updatedColumnWidths.reduce((a, b) => a + b, 0);
         if (totalWidthDiff !== 0) {
             let updatedWidthIndexs = [];
@@ -131,7 +142,8 @@ const ResizableGridWrapper = ({
             //updatedColumnWidths[updatedWidthIndex] += totalWidthDiff;
         }
         setColumnWidths(updatedColumnWidths);
-    }, [scrollbarWidth, columns, AutoSizerProps.width]); // eslint-disable-line react-hooks/exhaustive-deps
+        SetMythicSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, output: "json-array"});
+    }, [scrollbarWidth, columns, AutoSizerProps.width, localColumnsRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         gridRef.current.resetAfterColumnIndex(0, true);
@@ -140,15 +152,15 @@ const ResizableGridWrapper = ({
     /* Event Handlers */
 
     const resizeColumn = (x, columnIndex) => {
-        const updatedWidths = columnWidths.map((columnWidth, index) => {
+        const updatedColumnWidths = columnWidths.map((columnWidth, index) => {
             if (columnIndex === index) {
                 return Math.floor(Math.max(columnWidth + x, MIN_COLUMN_WIDTH));
             }
             return Math.floor(columnWidth);
         });
-        setColumnWidths(updatedWidths);
+        setColumnWidths(updatedColumnWidths);
+        SetMythicSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, output: "json-array"});
     };
-
     const autosizeColumn =  ({columnIndex}) => {
         if(columns[columnIndex].disableDoubleClick){
             return
@@ -211,7 +223,7 @@ const ResizableGridWrapper = ({
             }
 
         }));
-        const updatedWidths = columnWidths.map((columnWidth, index) => {
+        const updatedColumnWidths = columnWidths.map((columnWidth, index) => {
             if (columnIndex === index) {
                 if(isNaN(longestElementInColumn)){
                     return MIN_COLUMN_WIDTH;
@@ -221,8 +233,10 @@ const ResizableGridWrapper = ({
             return Math.floor(columnWidth);
         });
         //console.log(updatedWidths, longestElementInColumn);
-        setColumnWidths(updatedWidths);
+        setColumnWidths(updatedColumnWidths);
+        SetMythicSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, output: "json-array"});
     };
+
     useEffect( () => {
         if(callbackTableGridRef){
             callbackTableGridRef.current = gridRef.current;
@@ -298,11 +312,13 @@ const MythicResizableGrid = ({
     headerRowHeight = 20,
     callbackTableGridRef,
     onRowClick,
+    name,
 }) => {
     return (
         <AutoSizer style={{height: "100%"}}>
             {(AutoSizerProps) => (
                 <ResizableGridWrapper
+                    name={name}
                     columns={columns}
                     callbackTableGridRef={callbackTableGridRef}
                     headerNameKey={headerNameKey}

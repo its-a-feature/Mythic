@@ -343,7 +343,6 @@ export function CallbacksTop(props){
       }
        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    const initialNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: "false"});
     return (
       <div style={{height: "100%", width: "100%"}}>
           <CallbackGraphEdgesContext.Provider value={callbackEdges.current}>

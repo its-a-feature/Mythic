@@ -168,7 +168,7 @@ export function App(props) {
                                     onClose={()=>{setOpenRefreshDialog(false);}} />}
                             />
                         }
-                        <div style={{ margin: '0px 2px 0px 5px', flexGrow: 1, flexDirection: 'column', height: "calc(100% - 4rem)",  }}>
+                        <div style={{ margin: '0px 2px 0px 5px', flexGrow: 1, flexDirection: 'column', height: "calc(100% - 5rem)",  }}>
                             <Routes>
                                 <Route path='/new/login' element={<LoginForm me={me}/>}/>
                                 <Route path='/new/invite' element={<InviteForm me={me}/>}/>

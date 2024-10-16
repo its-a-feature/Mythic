@@ -157,34 +157,51 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const tabOptions = React.useRef([]);
     const tabOptionsIndex = React.useRef(-1);
     const tabOptionsType = React.useRef("param_name");
+    const lastValueTypedBeforeDynamicParamsRef = React.useRef("");
     const [getDynamicParams] = useMutation(getDynamicQueryParams, {
         onCompleted: (data) => {
             if(data.dynamic_query_function.status === "success"){
                 try{
                     if(data.dynamic_query_function.choices.length > 0){
-                        tabOptions.current = data.dynamic_query_function.choices;
+                        const choices = data.dynamic_query_function.choices.filter( c => {
+                            if(c.toLowerCase().includes(lastValueTypedBeforeDynamicParamsRef.current.toLowerCase())){
+                                return c;
+                            }
+                        })
+                        if ( choices.length === 0){
+                            tabOptions.current = [];
+                            tabOptionsType.current = "param_name";
+                            if (lastValueTypedBeforeDynamicParamsRef.current === ""){
+                                snackActions.info("no available options", snackMessageStyles);
+                            } else {
+                                snackActions.info("no available options match the supplied data", snackMessageStyles);
+                            }
+                            setBackdropOpen(false);
+                            return;
+                        }
+                        tabOptions.current = choices;
                         tabOptionsIndex.current = 0;
-                        let newChoice = data.dynamic_query_function.choices[0].includes(" ") ? "\"" + data.dynamic_query_function.choices[0] + "\"" : data.dynamic_query_function.choices[0];
-                        let newMsg = message + newChoice;
+                        let newChoice = choices[0].includes(" ") ? "\"" + choices[0] + "\"" : choices[0];
+                        let newMsg = message.substring(0, message.length - lastValueTypedBeforeDynamicParamsRef.current.length) + newChoice;
                         setMessage(newMsg);
                         tabOptionsType.current = "param_value";
                     } else {
-                        snackActions.warning("No options available");
+                        snackActions.warning("no available options", snackMessageStyles);
                     }
                 }catch(error){
                     setBackdropOpen(false);
-                    snackActions.warning("Failed to parse dynamic parameter results");
+                    snackActions.warning("Failed to parse dynamic parameter results", snackMessageStyles);
                     tabOptions.current = [];
                     tabOptionsType.current = "param_name";
                 }
 
             }else{
-                snackActions.warning(data.dynamic_query_function.error);
+                snackActions.warning(data.dynamic_query_function.error, snackMessageStyles);
             }
             setBackdropOpen(false);
         },
         onError: (data) => {
-            snackActions.warning("Failed to perform dynamic parameter query");
+            snackActions.warning("Failed to query payload type container for options", snackMessageStyles);
             console.log(data);
             setBackdropOpen(false);
         }
@@ -424,29 +441,28 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             snackActions.warning("Two or more of the specified parameters can't be used together", snackMessageStyles);
                             return;
                         }
-                        const lastSuppliedParameter = getLastSuppliedArgument(cmd, message, parsed);
-                        console.log("lastSuppliedParameter", lastSuppliedParameter)
-                        if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined){
-                            if(lastSuppliedParameter.choices.length > 0){
-                                if(lastSuppliedParameter.dynamic_query_function !== ""){
-                                    setBackdropOpen(true);
-                                    snackActions.info("Querying payload type container for options...",   snackMessageStyles);
-                                    getDynamicParams({variables:{
-                                            callback: props.callback_id,
-                                            parameter_name: lastSuppliedParameter.name,
-                                            command: cmd.cmd,
-                                            payload_type: cmd.payloadtype.name
-                                        }});
-                                    return;
-                                } else if (lastSuppliedParameter.choices.length > 0){
-                                    tabOptions.current = lastSuppliedParameter.choices;
-                                    tabOptionsIndex.current = 0;
-                                    tabOptionsType.current = "param_value";
-                                    let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
-                                    let newMsg = message + newChoice;
-                                    setMessage(newMsg);
-                                    return;
-                                }
+                        const [lastSuppliedParameter, lastSuppliedParameterHasValue] = getLastSuppliedArgument(cmd, message, parsed);
+                        console.log("lastSuppliedParameter", lastSuppliedParameter, "has_value", lastSuppliedParameterHasValue);
+                        lastValueTypedBeforeDynamicParamsRef.current = lastSuppliedParameterHasValue;
+                        if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined && lastSuppliedParameterHasValue === ""){
+                            if(lastSuppliedParameter.dynamic_query_function !== ""){
+                                setBackdropOpen(true);
+                                //snackActions.info("Querying payload type container for options...",   snackMessageStyles);
+                                getDynamicParams({variables:{
+                                        callback: props.callback_id,
+                                        parameter_name: lastSuppliedParameter.name,
+                                        command: cmd.cmd,
+                                        payload_type: cmd.payloadtype.name
+                                    }});
+                                return;
+                            } else if (lastSuppliedParameter.choices.length > 0){
+                                tabOptions.current = lastSuppliedParameter.choices;
+                                tabOptionsIndex.current = 0;
+                                tabOptionsType.current = "param_value";
+                                let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
+                                let newMsg = message + newChoice;
+                                setMessage(newMsg);
+                                return;
                             }
                         }
                         console.log("cmdGroupNames in tab", cmdGroupNames);
@@ -566,6 +582,39 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             }
                         }else{
                             // the last thing doesn't start with -, so we're just looking at text, do nothing for now
+                            const parsed = parseCommandLine(message, cmd);
+                            if(parsed === undefined){
+                                return;
+                            }
+                            const cmdGroupNames = determineCommandGroupName(cmd, parsed);
+                            if(cmdGroupNames === undefined){
+                                snackActions.warning("Two or more of the specified parameters can't be used together", snackMessageStyles);
+                                return;
+                            }
+                            const [lastSuppliedParameter, lastSuppliedParameterHasValue] = getLastSuppliedArgument(cmd, message, parsed);
+                            console.log("lastSuppliedParameter", lastSuppliedParameter)
+                            lastValueTypedBeforeDynamicParamsRef.current = lastSuppliedParameterHasValue;
+                            if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined){
+                                if(lastSuppliedParameter.dynamic_query_function !== ""){
+                                    setBackdropOpen(true);
+                                    //snackActions.info("Querying payload type container for options...",   snackMessageStyles);
+                                    getDynamicParams({variables:{
+                                            callback: props.callback_id,
+                                            parameter_name: lastSuppliedParameter.name,
+                                            command: cmd.cmd,
+                                            payload_type: cmd.payloadtype.name
+                                        }});
+                                    return;
+                                } else if (lastSuppliedParameter.choices.length > 0){
+                                    tabOptions.current = lastSuppliedParameter.choices;
+                                    tabOptionsIndex.current = 0;
+                                    tabOptionsType.current = "param_value";
+                                    let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
+                                    let newMsg = message + newChoice;
+                                    setMessage(newMsg);
+                                    return;
+                                }
+                            }
                             return;
                         }
                         
@@ -988,13 +1037,17 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         let new_command_line = command_line;
         let last_command_parameter = undefined;
         const argv = parseToArgv(new_command_line);
-        for(let j = 0; j < cmd.commandparameters.length; j++){
-            if(`-${cmd.commandparameters[j].cli_name}` === argv[argv.length -1]){
-                last_command_parameter = cmd.commandparameters[j];
-                break;
+        let has_value = false;
+        for(let i = argv.length-1; i >= 0; i --){
+            for(let j = 0; j < cmd.commandparameters.length; j++){
+                if(`-${cmd.commandparameters[j].cli_name}` === argv[i]){
+                    last_command_parameter = cmd.commandparameters[j];
+                    has_value = i !== argv.length -1;
+                    break;
+                }
             }
         }
-        return last_command_parameter;
+        return [last_command_parameter, has_value ? argv[argv.length-1] : ""];
     }
     const parseCommandLine = (command_line, cmd) => {
         // given a command line and the associated command
