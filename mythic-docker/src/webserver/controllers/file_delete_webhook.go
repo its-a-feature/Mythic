@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
 	"os"
 	"time"
@@ -72,7 +73,7 @@ func DeleteFileWebhook(c *gin.Context) {
 	}
 	if filemeta.IsPayload {
 		payload := databaseStructs.Payload{}
-		if err := database.DB.Get(&payload, `SELECT id FROM payload WHERE file_id=$1`, filemeta.ID); err != nil {
+		if err := database.DB.Get(&payload, `SELECT id, uuid FROM payload WHERE file_id=$1`, filemeta.ID); err != nil {
 			logging.LogError(err, "Failed to fetch payload for associated file_id")
 		} else {
 			payload.Deleted = true
@@ -80,6 +81,8 @@ func DeleteFileWebhook(c *gin.Context) {
 			if _, err := database.DB.Exec(`UPDATE payload SET deleted=true WHERE id=$1`, payload.ID); err != nil {
 				logging.LogError(err, "Failed to update payload deleted status")
 			}
+			// make sure to invalidate existing cache entries based on this payload UUID so new callbacks can't be created
+			go rabbitmq.InvalidateCachedUUIDInfo(payload.UuID)
 		}
 	}
 	if filemeta.EventGroupID.Valid {
@@ -104,7 +107,7 @@ func DeleteFileWebhook(c *gin.Context) {
 			deletedFileIDs = append(deletedFileIDs, file.ID)
 			if file.IsPayload {
 				payload := databaseStructs.Payload{}
-				if err := database.DB.Get(&payload, `SELECT id FROM payload WHERE file_id=$1`, file.ID); err != nil {
+				if err := database.DB.Get(&payload, `SELECT id, uuid FROM payload WHERE file_id=$1`, file.ID); err != nil {
 					logging.LogError(err, "Failed to fetch payload for associated file_id")
 				} else {
 					payload.Deleted = true
@@ -112,6 +115,7 @@ func DeleteFileWebhook(c *gin.Context) {
 					if _, err := database.DB.Exec(`UPDATE payload SET deleted=true WHERE id=$1`, payload.ID); err != nil {
 						logging.LogError(err, "Failed to update payload deleted status")
 					}
+					go rabbitmq.InvalidateCachedUUIDInfo(payload.UuID)
 				}
 			}
 			if _, err := database.DB.Exec(`UPDATE filemeta SET deleted=true WHERE id=$1`, file.ID); err != nil {
