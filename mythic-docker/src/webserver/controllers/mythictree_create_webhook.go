@@ -52,6 +52,7 @@ func MythictreeCreateWebhook(c *gin.Context) {
 		callback.host "callback.host",
 		callback.user "callback.user",
 		callback.id "callback.id",
+		callback.mythictree_groups "callback.mythictree_groups",
 		callback.display_id "callback.display_id",
 		payload.payload_type_id "callback.payload.payload_type_id",
 		payload.os "callback.payload.os"

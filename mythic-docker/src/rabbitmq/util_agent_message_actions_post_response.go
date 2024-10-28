@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
 	"github.com/its-a-feature/Mythic/eventing"
+	"github.com/jmoiron/sqlx"
 	"github.com/mitchellh/mapstructure"
 	"io"
 	"math"
@@ -331,6 +332,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			callback.user "callback.user",
 			callback.id "callback.id",
 			callback.display_id "callback.display_id",
+			callback.mythictree_groups "callback.mythictree_groups",
 			payload.payload_type_id "callback.payload.payload_type_id",
 			payload.os "callback.payload.os"
 			FROM task
@@ -1639,99 +1641,39 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 		host = strings.ToUpper(*(*processes)[0].Host)
 	}
 	if updateDeleted {
+		idsToDelete := []int{}
 		var existingTreeEntries []databaseStructs.MythicTree
-		if err := database.DB.Select(&existingTreeEntries, `SELECT 
-    			id, "name", success, full_path, parent_path, operation_id, host, tree_type
-				FROM mythictree WHERE
-				operation_id=$1 AND host=$2 AND tree_type=$3 AND callback_id=$4`,
-			task.OperationID, host, databaseStructs.TREE_TYPE_PROCESS, task.Callback.ID); err != nil {
+		err := database.DB.Select(&existingTreeEntries, `SELECT 
+    			mythictree.id, mythictree."name", mythictree.success, mythictree.full_path, mythictree.parent_path, 
+    			mythictree.operation_id, mythictree.host, mythictree.tree_type,
+    			callback.mythictree_groups "callback.mythictree_groups"
+				FROM mythictree 
+				JOIN callback ON mythictree.callback_id = callback.id
+				WHERE
+				mythictree.operation_id=$1 AND mythictree.host=$2 AND mythictree.tree_type=$3 AND callback.mythictree_groups && $4`,
+			task.OperationID, host, databaseStructs.TREE_TYPE_PROCESS, task.Callback.MythicTreeGroups)
+		if err != nil {
 			logging.LogError(err, "Failed to fetch existing children")
 			return err
-		} else {
-			// we have all the current processes for that host, track which ones need updating/deleting
-			var namesToDeleteAndUpdate []string // will get existing database IDs for things that aren't in the files list
-			for _, existingEntry := range existingTreeEntries {
-				existingEntryStillExists := false
-				for _, newEntry := range *processes {
-					if newEntry.Name == "" {
-						newEntry.Name = "unknown"
-					}
-					if strconv.Itoa(newEntry.ProcessID) == string(existingEntry.FullPath) &&
-						newEntry.Name == string(existingEntry.Name) &&
-						strconv.Itoa(newEntry.ParentProcessID) == string(existingEntry.ParentPath) {
-						namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, strconv.Itoa(newEntry.ProcessID))
-						existingEntryStillExists = true
-						// update the entry in the database
-						parentPath := strconv.Itoa(newEntry.ParentProcessID)
-						if newEntry.ParentProcessID <= 0 {
-							parentPath = ""
-						}
-						fullPath := treeNodeGetFullPath(
-							[]byte(parentPath),
-							[]byte(strconv.Itoa(newEntry.ProcessID)),
-							[]byte("/"),
-							databaseStructs.TREE_TYPE_PROCESS)
-						newTree := databaseStructs.MythicTree{
-							Host:            host,
-							TaskID:          task.ID,
-							OperationID:     task.OperationID,
-							Name:            []byte(newEntry.Name),
-							ParentPath:      []byte(parentPath),
-							FullPath:        fullPath,
-							TreeType:        databaseStructs.TREE_TYPE_PROCESS,
-							CanHaveChildren: true,
-							Deleted:         false,
-						}
-						if newEntry.OS != nil {
-							newTree.Os = *newEntry.OS
-						} else {
-							newTree.Os = task.Callback.Payload.Os
-						}
-						metadata := map[string]interface{}{
-							"process_id":              newEntry.ProcessID,
-							"parent_process_id":       newEntry.ParentProcessID,
-							"architecture":            newEntry.Architecture,
-							"bin_path":                newEntry.BinPath,
-							"name":                    newEntry.Name,
-							"user":                    newEntry.User,
-							"command_line":            newEntry.CommandLine,
-							"integrity_level":         newEntry.IntegrityLevel,
-							"start_time":              newEntry.StartTime,
-							"description":             newEntry.Description,
-							"signer":                  newEntry.Signer,
-							"protected_process_level": newEntry.ProtectionProcessLevel,
-						}
-						reflectBackOtherKeys(&metadata, &newEntry.Other)
-						newTree.Metadata = GetMythicJSONTextFromStruct(metadata)
-						newTree.CallbackID.Valid = true
-						newTree.CallbackID.Int64 = int64(task.Callback.ID)
-						if apitokensId > 0 {
-							newTree.APITokensID.Valid = true
-							newTree.APITokensID.Int64 = int64(apitokensId)
-						}
-						createTreeNode(&newTree)
-					}
-				}
-				if !existingEntryStillExists {
-					// full path is just the string of the PID
-					namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.FullPath))
-					existingEntry.Deleted = true
-					deleteTreeNode(existingEntry, false)
-				}
-
-			}
-			// now all existing ones have been updated or deleted, so it's time to add new ones
-
+		}
+		// we have all the current processes for that host, track which ones need updating/deleting
+		var namesToDeleteAndUpdate []string // will get existing database IDs for things that aren't in the files list
+		for _, existingEntry := range existingTreeEntries {
+			existingEntryStillExists := false
 			for _, newEntry := range *processes {
 				if newEntry.Name == "" {
 					newEntry.Name = "unknown"
 				}
-				if !utils.SliceContains(namesToDeleteAndUpdate, strconv.Itoa(newEntry.ProcessID)) {
-					// this isn't marked as updated or deleted, so let's create it
-					parentPath := strconv.Itoa(newEntry.ParentProcessID)
-					if newEntry.ParentProcessID <= 0 {
-						parentPath = ""
-					}
+				parentPath := strconv.Itoa(newEntry.ParentProcessID)
+				if newEntry.ParentProcessID <= 0 {
+					parentPath = ""
+				}
+				if strconv.Itoa(newEntry.ProcessID) == string(existingEntry.FullPath) &&
+					newEntry.Name == string(existingEntry.Name) &&
+					parentPath == string(existingEntry.ParentPath) {
+					namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, strconv.Itoa(newEntry.ProcessID))
+					existingEntryStillExists = true
+					// update the entry in the database
 					fullPath := treeNodeGetFullPath(
 						[]byte(parentPath),
 						[]byte(strconv.Itoa(newEntry.ProcessID)),
@@ -1778,7 +1720,94 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 					createTreeNode(&newTree)
 				}
 			}
-
+			if !existingEntryStillExists {
+				// full path is just the string of the PID
+				namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.FullPath))
+				//existingEntry.Deleted = true
+				//logging.LogInfo("found process to delete", "name", string(existingEntry.Name), "pid", string(existingEntry.FullPath))
+				idsToDelete = append(idsToDelete, existingEntry.ID)
+				//deleteTreeNode(existingEntry, false)
+			}
+		}
+		// now all existing ones have been updated or deleted, so it's time to add new ones
+		for _, newEntry := range *processes {
+			if newEntry.Name == "" {
+				newEntry.Name = "unknown"
+			}
+			if !utils.SliceContains(namesToDeleteAndUpdate, strconv.Itoa(newEntry.ProcessID)) {
+				// this isn't marked as updated or deleted, so let's create it
+				parentPath := strconv.Itoa(newEntry.ParentProcessID)
+				if newEntry.ParentProcessID <= 0 {
+					parentPath = ""
+				}
+				fullPath := treeNodeGetFullPath(
+					[]byte(parentPath),
+					[]byte(strconv.Itoa(newEntry.ProcessID)),
+					[]byte("/"),
+					databaseStructs.TREE_TYPE_PROCESS)
+				newTree := databaseStructs.MythicTree{
+					Host:            host,
+					TaskID:          task.ID,
+					OperationID:     task.OperationID,
+					Name:            []byte(newEntry.Name),
+					ParentPath:      []byte(parentPath),
+					FullPath:        fullPath,
+					TreeType:        databaseStructs.TREE_TYPE_PROCESS,
+					CanHaveChildren: true,
+					Deleted:         false,
+				}
+				if newEntry.OS != nil {
+					newTree.Os = *newEntry.OS
+				} else {
+					newTree.Os = task.Callback.Payload.Os
+				}
+				metadata := map[string]interface{}{
+					"process_id":              newEntry.ProcessID,
+					"parent_process_id":       newEntry.ParentProcessID,
+					"architecture":            newEntry.Architecture,
+					"bin_path":                newEntry.BinPath,
+					"name":                    newEntry.Name,
+					"user":                    newEntry.User,
+					"command_line":            newEntry.CommandLine,
+					"integrity_level":         newEntry.IntegrityLevel,
+					"start_time":              newEntry.StartTime,
+					"description":             newEntry.Description,
+					"signer":                  newEntry.Signer,
+					"protected_process_level": newEntry.ProtectionProcessLevel,
+				}
+				reflectBackOtherKeys(&metadata, &newEntry.Other)
+				newTree.Metadata = GetMythicJSONTextFromStruct(metadata)
+				newTree.CallbackID.Valid = true
+				newTree.CallbackID.Int64 = int64(task.Callback.ID)
+				if apitokensId > 0 {
+					newTree.APITokensID.Valid = true
+					newTree.APITokensID.Int64 = int64(apitokensId)
+				}
+				createTreeNode(&newTree)
+			}
+		}
+		// delete all the ids marked for deletion
+		if len(idsToDelete) > 0 {
+			deleteQuery, args, err := sqlx.Named(`UPDATE mythictree SET
+        			deleted=true, "timestamp"=now() 
+					WHERE id IN (:ids)`, map[string]interface{}{
+				"ids": idsToDelete,
+			})
+			if err != nil {
+				logging.LogError(err, "Failed to make named statement when updated deleted process status")
+				return err
+			}
+			deleteQuery, args, err = sqlx.In(deleteQuery, args...)
+			if err != nil {
+				logging.LogError(err, "Failed to do sqlx.In")
+				return err
+			}
+			deleteQuery = database.DB.Rebind(deleteQuery)
+			_, err = database.DB.Exec(deleteQuery, args...)
+			if err != nil {
+				logging.LogError(err, "Failed to exec sqlx.IN modified statement")
+				return err
+			}
 		}
 	} else {
 		for _, newEntry := range *processes {
@@ -1840,7 +1869,6 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 			createTreeNode(&newTree)
 		}
 	}
-
 	return nil
 }
 func resolveAndCreateParentPathsForTreeNode(pathData utils.AnalyzedPath, task databaseStructs.Task, treeType string) {

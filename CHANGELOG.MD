@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc18] - 2024-10-28
+
+### Changed
+
+- Updated the `update_deleted` code for process listings to not filter on callback, but on callback groups
+  - this should fix a bug where processes weren't getting marked as deleted even though they should be
+  
 ## [3.3.1.-rc17] - 2024-10-18
 
 ### Changed
