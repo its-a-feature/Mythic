@@ -144,6 +144,7 @@
           - eventstepinstance_id
           - id
           - operator_id
+          - payload_id
           - task_id
           - name
           - token_type
@@ -165,6 +166,7 @@
           - eventstepinstance_id
           - id
           - operator_id
+          - payload_id
           - task_id
           - name
           - token_type
@@ -189,6 +191,7 @@
           - eventstepinstance_id
           - id
           - operator_id
+          - payload_id
           - task_id
           - name
           - token_type
@@ -210,6 +213,7 @@
           - eventstepinstance_id
           - id
           - operator_id
+          - payload_id
           - task_id
           - name
           - token_type
@@ -231,6 +235,7 @@
           - eventstepinstance_id
           - id
           - operator_id
+          - payload_id
           - task_id
           - name
           - token_type
@@ -1677,6 +1682,7 @@
           - ip
           - os
           - process_name
+          - process_short_name
           - sleep_info
           - user
           - init_callback
@@ -1720,6 +1726,7 @@
           - ip
           - os
           - process_name
+          - process_short_name
           - sleep_info
           - user
           - init_callback
@@ -1763,6 +1770,7 @@
           - ip
           - os
           - process_name
+          - process_short_name
           - sleep_info
           - user
           - init_callback
@@ -1806,6 +1814,7 @@
           - ip
           - os
           - process_name
+          - process_short_name
           - sleep_info
           - user
           - init_callback
@@ -1849,6 +1858,7 @@
           - ip
           - os
           - process_name
+          - process_short_name
           - sleep_info
           - user
           - init_callback
@@ -2049,6 +2059,7 @@
           - metadata
           - end_timestamp
           - start_timestamp
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2065,6 +2076,7 @@
           - metadata
           - end_timestamp
           - start_timestamp
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2081,6 +2093,7 @@
           - metadata
           - end_timestamp
           - start_timestamp
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2097,6 +2110,7 @@
           - metadata
           - end_timestamp
           - start_timestamp
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2113,6 +2127,7 @@
           - metadata
           - end_timestamp
           - start_timestamp
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2136,15 +2151,18 @@
         columns:
           - bytes_received
           - bytes_sent
-          - callback_id
           - deleted
+          - callback_id
           - id
           - local_port
           - operation_id
-          - port_type
-          - remote_ip
           - remote_port
           - task_id
+          - password
+          - port_type
+          - remote_ip
+          - username
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2154,15 +2172,18 @@
         columns:
           - bytes_received
           - bytes_sent
-          - callback_id
           - deleted
+          - callback_id
           - id
           - local_port
           - operation_id
-          - port_type
-          - remote_ip
           - remote_port
           - task_id
+          - password
+          - port_type
+          - remote_ip
+          - username
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2172,15 +2193,18 @@
         columns:
           - bytes_received
           - bytes_sent
-          - callback_id
           - deleted
+          - callback_id
           - id
           - local_port
           - operation_id
-          - port_type
-          - remote_ip
           - remote_port
           - task_id
+          - password
+          - port_type
+          - remote_ip
+          - username
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2190,15 +2214,18 @@
         columns:
           - bytes_received
           - bytes_sent
-          - callback_id
           - deleted
+          - callback_id
           - id
           - local_port
           - operation_id
-          - port_type
-          - remote_ip
           - remote_port
           - task_id
+          - password
+          - port_type
+          - remote_ip
+          - username
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2208,15 +2235,18 @@
         columns:
           - bytes_received
           - bytes_sent
-          - callback_id
           - deleted
+          - callback_id
           - id
           - local_port
           - operation_id
-          - port_type
-          - remote_ip
           - remote_port
           - task_id
+          - password
+          - port_type
+          - remote_ip
+          - username
+          - updated_at
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -2518,112 +2548,117 @@
     - role: developer
       permission:
         columns:
-          - id
-          - command_id
-          - name
-          - display_name
-          - cli_name
-          - type
-          - default_value
-          - choices
-          - description
-          - supported_agents
-          - supported_agent_build_parameters
-          - choice_filter_by_command_attributes
           - choices_are_all_commands
           - choices_are_loaded_commands
-          - dynamic_query_function
-          - parameter_group_name
           - required
+          - command_id
+          - id
           - ui_position
+          - choice_filter_by_command_attributes
+          - choices
+          - limit_credentials_by_type
+          - supported_agent_build_parameters
+          - supported_agents
+          - cli_name
+          - default_value
+          - description
+          - display_name
+          - dynamic_query_function
+          - name
+          - parameter_group_name
+          - type
         filter: {}
     - role: mythic_admin
       permission:
         columns:
-          - id
-          - command_id
-          - name
-          - display_name
-          - cli_name
-          - type
-          - default_value
-          - choices
-          - description
-          - supported_agents
-          - supported_agent_build_parameters
-          - choice_filter_by_command_attributes
           - choices_are_all_commands
           - choices_are_loaded_commands
-          - dynamic_query_function
-          - parameter_group_name
           - required
+          - command_id
+          - id
           - ui_position
+          - choice_filter_by_command_attributes
+          - choices
+          - limit_credentials_by_type
+          - supported_agent_build_parameters
+          - supported_agents
+          - cli_name
+          - default_value
+          - description
+          - display_name
+          - dynamic_query_function
+          - name
+          - parameter_group_name
+          - type
         filter: {}
     - role: operation_admin
       permission:
         columns:
-          - id
-          - command_id
-          - name
-          - display_name
-          - cli_name
-          - type
-          - default_value
-          - choices
-          - description
-          - supported_agents
-          - supported_agent_build_parameters
-          - choice_filter_by_command_attributes
           - choices_are_all_commands
           - choices_are_loaded_commands
-          - dynamic_query_function
-          - parameter_group_name
           - required
+          - command_id
+          - id
           - ui_position
+          - choice_filter_by_command_attributes
+          - choices
+          - limit_credentials_by_type
+          - supported_agent_build_parameters
+          - supported_agents
+          - cli_name
+          - default_value
+          - description
+          - display_name
+          - dynamic_query_function
+          - name
+          - parameter_group_name
+          - type
         filter: {}
     - role: operator
       permission:
         columns:
-          - id
-          - command_id
-          - name
-          - display_name
-          - cli_name
-          - type
-          - default_value
-          - choices
-          - description
-          - supported_agents
-          - supported_agent_build_parameters
-          - choice_filter_by_command_attributes
           - choices_are_all_commands
           - choices_are_loaded_commands
-          - dynamic_query_function
-          - parameter_group_name
           - required
+          - command_id
+          - id
           - ui_position
+          - choice_filter_by_command_attributes
+          - choices
+          - limit_credentials_by_type
+          - supported_agent_build_parameters
+          - supported_agents
+          - cli_name
+          - default_value
+          - description
+          - display_name
+          - dynamic_query_function
+          - name
+          - parameter_group_name
+          - type
         filter: {}
     - role: spectator
       permission:
         columns:
-          - id
-          - command_id
-          - name
-          - display_name
-          - cli_name
-          - type
-          - default_value
-          - choices
-          - description
-          - supported_agents
-          - supported_agent_build_parameters
-          - choice_filter_by_command_attributes
           - choices_are_all_commands
           - choices_are_loaded_commands
-          - dynamic_query_function
-          - parameter_group_name
           - required
+          - command_id
+          - id
           - ui_position
+          - choice_filter_by_command_attributes
+          - choices
+          - limit_credentials_by_type
+          - supported_agent_build_parameters
+          - supported_agents
+          - cli_name
+          - default_value
+          - description
+          - display_name
+          - dynamic_query_function
+          - name
+          - parameter_group_name
+          - type
         filter: {}
 - table:
     name: consuming_container
@@ -5003,6 +5038,8 @@
           - alert_count
           - apitokens_id
           - id
+          - banner_color
+          - banner_text
           - channel
           - name
           - webhook
@@ -5019,6 +5056,8 @@
           - alert_count
           - apitokens_id
           - id
+          - banner_color
+          - banner_text
           - channel
           - name
           - webhook
@@ -5035,6 +5074,8 @@
           - alert_count
           - apitokens_id
           - id
+          - banner_color
+          - banner_text
           - channel
           - name
           - webhook
@@ -5051,6 +5092,8 @@
           - alert_count
           - apitokens_id
           - id
+          - banner_color
+          - banner_text
           - channel
           - name
           - webhook
@@ -5067,6 +5110,8 @@
           - alert_count
           - apitokens_id
           - id
+          - banner_color
+          - banner_text
           - channel
           - name
           - webhook
@@ -6519,6 +6564,7 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - use_display_params_for_cli_history
           - wrapper
           - id
           - message_uuid_length
@@ -6540,6 +6586,7 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - use_display_params_for_cli_history
           - wrapper
           - id
           - message_uuid_length
@@ -6561,6 +6608,7 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - use_display_params_for_cli_history
           - wrapper
           - id
           - message_uuid_length
@@ -6582,6 +6630,7 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - use_display_params_for_cli_history
           - wrapper
           - id
           - message_uuid_length
@@ -6603,6 +6652,7 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - use_display_params_for_cli_history
           - wrapper
           - id
           - message_uuid_length

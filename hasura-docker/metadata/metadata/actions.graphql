@@ -16,6 +16,8 @@ type Mutation {
     c2_id: Int!
     file_uuid: String!
     host_url: String!
+    alert_on_download: Boolean
+    remove: Boolean
   ): c2HostFileOutput
 }
 
@@ -149,6 +151,7 @@ type Mutation {
 type Mutation {
   createTask(
     command: String!
+    payload_type: String
     params: String!
     files: [String]
     callback_id: Int
@@ -230,6 +233,12 @@ type Mutation {
   ): dynamicQueryOutput
 }
 
+type Query {
+  eventingTestFile(
+    file_contents: String!
+  ): eventingTestFileOutput
+}
+
 type Mutation {
   eventingTriggerCancel(
     eventgroupinstance_id: Int!
@@ -253,6 +262,13 @@ type Mutation {
   eventingTriggerRetry(
     eventgroupinstance_id: Int!
   ): eventingTriggerRetryOutput
+}
+
+type Mutation {
+  eventingTriggerRetryFromStep(
+    eventstepinstance_id: Int!
+    retry_all_groups: Boolean
+  ): eventingTriggerRetryFromStepOutput
 }
 
 type Mutation {
@@ -388,6 +404,12 @@ type Mutation {
 }
 
 type Mutation {
+  testProxy(
+    callbackport_id: Int!
+  ): testProxyOutput
+}
+
+type Mutation {
   toggleProxy(
     callbackport_id: Int!
     action: String!
@@ -439,6 +461,8 @@ type Mutation {
     webhook: String
     admin_id: Int
     deleted: Boolean
+    banner_text: String
+    banner_color: String
   ): updateOperationOutput
 }
 
@@ -481,6 +505,7 @@ type Mutation {
 input OperatorInput {
   username: String!
   password: String
+  email: String
   bot: Boolean
 }
 
@@ -556,6 +581,7 @@ type createAPITokenResponse {
   operator_id: Int
   name: String
   created_by: Int
+  token_type: String
 }
 
 type OperatorOutput {
@@ -575,6 +601,7 @@ type OperatorOutput {
   failed_login_count: Int
   last_failed_login_timestamp: String
   account_type: String
+  email: String
 }
 
 type createPayloadOutput {
@@ -715,6 +742,10 @@ type updateCurrentOperationOutput {
   status: String!
   error: String
   operation_id: Int
+  name: String
+  complete: Boolean
+  banner_text: String
+  banner_color: String
 }
 
 type deleteBlockListOutput {
@@ -745,6 +776,10 @@ type generateReportOutput {
 type previewFileOutput {
   status: String!
   error: String
+  size: Int
+  host: String
+  full_remote_path: String
+  filename: String
   contents: String
 }
 
@@ -845,6 +880,8 @@ type updateOperationOutput {
   webhook: String
   admin_id: Int
   deleted: Boolean
+  banner_text: String
+  banner_color: String
   id: Int
 }
 
@@ -924,6 +961,7 @@ type globalSettingsOutput {
 type exportCallbackConfigOutput {
   status: String!
   error: String
+  agent_callback_id: String
   config: String
 }
 
@@ -1034,5 +1072,20 @@ type containerWriteFileOutput {
   error: String
   filename: String
   version: String
+}
+
+type eventingTriggerRetryFromStepOutput {
+  status: String!
+  error: String
+}
+
+type testProxyOutput {
+  status: String!
+  error: String
+}
+
+type eventingTestFileOutput {
+  status: String!
+  error: String
 }
 

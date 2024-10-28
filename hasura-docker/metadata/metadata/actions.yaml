@@ -331,6 +331,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: eventingTestFile
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_test_file_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: eventingTriggerCancel
     definition:
       kind: synchronous
@@ -365,6 +375,16 @@ actions:
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_trigger_retry_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: eventingTriggerRetryFromStep
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_trigger_retry_from_step_webhook'
       forward_client_headers: true
     permissions:
       - role: operator
@@ -585,6 +605,16 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
+  - name: testProxy
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/test_proxy_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: toggleProxy
     definition:
       kind: synchronous
@@ -809,4 +839,7 @@ custom_types:
     - name: containerListFilesOutput
     - name: containerUploadFileOutput
     - name: containerWriteFileOutput
+    - name: eventingTriggerRetryFromStepOutput
+    - name: testProxyOutput
+    - name: eventingTestFileOutput
   scalars: []
