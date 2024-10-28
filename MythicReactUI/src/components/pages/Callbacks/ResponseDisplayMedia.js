@@ -177,7 +177,7 @@ export const textExtensionTypes = ["txt", "ps1", "php", "json", "yml", "yaml", "
     "html", "xml", "js", "java", "conf", "cs", "rb", "toml", "sh", "md", "ini", "py", "kirbi", "bash_profile", "rc",
     "local", "gitconfig", "gitignore", "zsh_history", "bash_history", "ps", "psql_history", "lesshst", "gcloudignore",
     "pem", "boto", "zsh_profile", "pub", "python_history", "sqlite_history", "viminfo", "zprofile", "zshrc",
-    "history", "historynew", "bashrc"
+    "history", "historynew", "bashrc",
 ];
 export const textExtensionTypesToSyntax = {
     "json": "json",
@@ -200,21 +200,26 @@ export const textExtensionTypesToSyntax = {
     "php": "php",
     "m": "objectivec",
     "mm": "objectivec",
-    "Dockerfile": "dockerfile",
-    "Makefile": "makefile",
+    "dockerfile": "dockerfile",
+    "makefile": "makefile",
     "sh": "sh",
     "rc": "sh",
     "bashrc": "sh",
     "zshrc": "sh",
+    "zprofile": "sh",
+    "bash_profile": "sh",
     "ini": "ini",
-    "conf": "apache_conf"
+    "conf": "apache_conf",
+    "bash_history": "sh",
+    "zsh_history": "sh",
+    "python_history": "python",
 }
-const knownTextFiles = ["config", "credentials", "known_hosts", "config_default", "id_rsa", "Dockerfile", "Makefile"];
+const knownTextFiles = ["config", "credentials", "known_hosts", "config_default", "id_rsa", "dockerfile", "makefile"];
 const imgExtensionTypes = ["png", "jpg", "gif", "jpeg", "pdf"];
 const mimeType = (path) => {
     if(!path){return undefined}
     let extension = path.split(".");
-    if(extension.length > 0){
+    if(extension.length > 1){
         extension = extension[extension.length - 1];
         if(imgExtensionTypes.includes(extension.toLowerCase())){
             return "object";
@@ -428,14 +433,14 @@ const DisplayText = ({agent_file_id, expand, filename, preview, fileMetaData}) =
         }
         if(filename){
             let extension = filename.split(".");
-            if(extension.length > 0){
+            if(extension.length > 1){
                 extension = extension[extension.length - 1];
                 if(textExtensionTypesToSyntax[extension]){
                     setMode(textExtensionTypesToSyntax[extension]);
                 }
             } else {
-                if(textExtensionTypesToSyntax[filename]){
-                    setMode(textExtensionTypesToSyntax[filename]);
+                if(textExtensionTypesToSyntax[filename.toLowerCase()]){
+                    setMode(textExtensionTypesToSyntax[filename.toLowerCase()]);
                 }
             }
         }

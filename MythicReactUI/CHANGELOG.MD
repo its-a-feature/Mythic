@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.51] - 2024-10-21
+
+### Changed
+
+- Updated the Callback/Payload add/remove command dialogs to not show deleted commands
+- Added label for select options when no options are available in task modals
+- Updating the file extension syntax checker to better identify known text files without extensions
+  - ex: Makefile, Dockerfile
+- Added new field to user settings for showing display parameters or original parameters when doing an up/down arrow through cli history
+- Added a check to re-sync payload types when a new wrapper payload type is registered
+
 ## [0.2.50] - 2024-10-16
 
 ### Changed
@@ -37,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Added ability to tab through ChooseOne parameter type values on the command line
-  - 
+
 ## [0.2.46] - 2024-09-27
 
 ### Changed

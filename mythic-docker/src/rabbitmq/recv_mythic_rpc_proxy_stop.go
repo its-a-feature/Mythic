@@ -14,6 +14,8 @@ type MythicRPCProxyStopMessage struct {
 	TaskID   int    `json:"task_id"`
 	Port     int    `json:"port"`
 	PortType string `json:"port_type"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 type MythicRPCProxyStopMessageResponse struct {
 	Success   bool   `json:"success"`
@@ -65,8 +67,8 @@ func MythicRPCProxyStop(input MythicRPCProxyStopMessage) MythicRPCProxyStopMessa
 			task.OperationID,
 			"",
 			0,
-			"",
-			"")
+			input.Username,
+			input.Password)
 		if err != nil {
 			logging.LogError(err, "Failed to stop callback port")
 			response.Error = err.Error()

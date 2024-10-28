@@ -16,6 +16,7 @@ import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import {getDynamicQueryParams} from "./TaskParametersDialogRow";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import {GetMythicSetting, SetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 
 const GetLoadedCommandsSubscription = gql`
 subscription GetLoadedCommandsSubscription($callback_id: Int!){
@@ -81,14 +82,21 @@ subscription tasksSubscription($callback_id: Int!){
             }
             payloadtype {
                 name
+                use_display_params_for_cli_history
             }
         }
     }
 }
 `;
 
-const GetUpDownArrowName = (task) => {
+const GetUpDownArrowName = (task, useDisplayParamsForCLIHistoryUserSetting) => {
     if(task.command){
+        if(task?.command?.payloadtype?.use_display_params_for_cli_history){
+            if(useDisplayParamsForCLIHistoryUserSetting){
+                return task.command.cmd + " " + task.display_params;
+            }
+            return task.command.cmd + " " + task.original_params;
+        }
         return task.command.cmd + " " + task.original_params;
     } else {
         return task.command_name + " " + task.original_params;
@@ -219,6 +227,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const commandOptionsForcePopup = React.useRef(false);
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
     const me = useReactiveVar(meState);
+    const useDisplayParamsForCLIHistoryUserSetting = React.useRef(GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: "true"}));
     const forwardOrBackwardTabIndex = (event, currentIndex, options) => {
         if(event.shiftKey){
             let newIndex = currentIndex - 1;
@@ -663,7 +672,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     newIndex = filteredTaskOptions.length -1;
                 }
                 taskOptionsIndex.current = newIndex;
-                setMessage(GetUpDownArrowName(filteredTaskOptions[newIndex]));
+                setMessage(GetUpDownArrowName(filteredTaskOptions[newIndex], useDisplayParamsForCLIHistoryUserSetting.current));
                 setUnmodifiedHistoryValue(filteredTaskOptions[newIndex].tasking_location);
                 setCommandPayloadType(filteredTaskOptions[newIndex]?.command?.payloadtype?.name || "");
             }
@@ -677,7 +686,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     newIndex = 0;
                 }
                 taskOptionsIndex.current = newIndex;
-                setMessage(GetUpDownArrowName(filteredTaskOptions[newIndex]));
+                setMessage(GetUpDownArrowName(filteredTaskOptions[newIndex], useDisplayParamsForCLIHistoryUserSetting.current));
                 setUnmodifiedHistoryValue(filteredTaskOptions[newIndex].tasking_location);
                 setCommandPayloadType(filteredTaskOptions[newIndex]?.command?.payloadtype?.name || "");
             }
@@ -1482,7 +1491,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     newIndex = reverseSearchOptions.current.length -1;
                 }
                 reverseSearchIndex.current = newIndex;
-                setMessage(GetUpDownArrowName(reverseSearchOptions.current[newIndex]));
+                setMessage(GetUpDownArrowName(reverseSearchOptions.current[newIndex], useDisplayParamsForCLIHistoryUserSetting.current));
                 setUnmodifiedHistoryValue(reverseSearchOptions.current[newIndex].tasking_location);
                 setCommandPayloadType(reverseSearchOptions.current[newIndex]?.command?.payloadtype?.name || "");
             }
@@ -1498,7 +1507,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     newIndex = 0;
                 }
                 reverseSearchIndex.current = newIndex;
-                setMessage(GetUpDownArrowName(reverseSearchOptions.current[newIndex]));
+                setMessage(GetUpDownArrowName(reverseSearchOptions.current[newIndex], useDisplayParamsForCLIHistoryUserSetting.current));
                 setUnmodifiedHistoryValue(reverseSearchOptions.current[newIndex].tasking_location);
                 setCommandPayloadType(reverseSearchOptions.current[newIndex]?.command?.payloadtype?.name || "");
             }

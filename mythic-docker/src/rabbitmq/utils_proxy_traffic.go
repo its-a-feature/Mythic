@@ -570,6 +570,7 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 		}
 	} else if err == nil {
 		_, err = database.DB.NamedExec(`UPDATE callbackport SET deleted=false WHERE id=:id`, callbackPort)
+		newPort.CallbackPortID = callbackPort.ID
 	} else {
 		logging.LogError(err, "Failed to create new callback port mapping")
 		if err := newPort.Stop(); err != nil {
@@ -618,14 +619,8 @@ func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, l
 				//c.Unlock()
 				return err
 			}
-			queryString := `UPDATE callbackport SET deleted=true WHERE
-				callback_id=$1 AND local_port=$2 AND port_type=$3 AND operation_id=$4 AND deleted=false
-				AND username=$5 AND password=$6`
-			queryArgs := []interface{}{callbackId, localPort, portType, operationId, username, password}
-			if remoteIP != "" && remotePort != 0 {
-				queryString += " AND remote_ip=$7 AND remote_port=$8"
-				queryArgs = append(queryArgs, remoteIP, remotePort)
-			}
+			queryString := `UPDATE callbackport SET deleted=true WHERE id=$1`
+			queryArgs := []interface{}{c.ports[i].CallbackPortID}
 			_, err = database.DB.Exec(queryString, queryArgs...)
 			if err != nil {
 				logging.LogError(err, "Failed to delete port mapping from database for proxy")
@@ -1045,7 +1040,7 @@ func (p *callbackPortUsage) socksUsernamePasswordAuthCheck(conn net.Conn) bool {
 		go SendAllOperationsMessage(
 			fmt.Sprintf("failed username (%s) auth to socks port %d from %s",
 				string(clientUsername), p.LocalPort, conn.RemoteAddr().String()),
-			p.OperationID, fmt.Sprintf("%d_%s", p.LocalPort, p.PortType),
+			p.OperationID, fmt.Sprintf("%d_%s_%s", p.LocalPort, p.PortType, string(clientUsername)),
 			database.MESSAGE_LEVEL_WARNING)
 		if err != nil {
 			//logging.LogError(err, "Failed to send the \\x01\\x01 bad-auth bytes for new socks connection")
@@ -1059,7 +1054,7 @@ func (p *callbackPortUsage) socksUsernamePasswordAuthCheck(conn net.Conn) bool {
 		go SendAllOperationsMessage(
 			fmt.Sprintf("failed password (%s) auth to socks port %d from %s",
 				string(clientPassword), p.LocalPort, conn.RemoteAddr().String()),
-			p.OperationID, fmt.Sprintf("%d_%s", p.LocalPort, p.PortType),
+			p.OperationID, fmt.Sprintf("%d_%s_%s", p.LocalPort, p.PortType, string(clientUsername)),
 			database.MESSAGE_LEVEL_WARNING)
 		if err != nil {
 			//logging.LogError(err, "Failed to send the \\x01\\x01 bad-auth bytes for new socks connection")
@@ -1186,7 +1181,7 @@ func (p *callbackPortUsage) readFromAgentSocksConn(newConnection *acceptedConnec
 			}(int64(len(dataBytes)), p.CallbackPortID)
 
 			if agentMessage.IsExit {
-				//logging.LogDebug("got message from agent isExit", "server_id", newConnection.ServerID)
+				logging.LogDebug("got message from agent isExit", "server_id", newConnection.ServerID)
 				// cleanup the connection data, but don't tell the agent to close
 				newConnection.AgentClosedConnection = true
 				p.removeConnectionsChannel <- newConnection

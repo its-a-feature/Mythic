@@ -5,6 +5,7 @@ import TableBody from '@mui/material/TableBody';
 import TableRow from '@mui/material/TableRow';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
+import InputLabel from '@mui/material/InputLabel';
 import Switch from '@mui/material/Switch';
 import Input from '@mui/material/Input';
 import {Button, IconButton} from '@mui/material';
@@ -576,8 +577,12 @@ export function TaskParametersDialogRow(props){
                             <CircularProgress color="inherit" />
                         </Backdrop>
                         <FormControl style={{width: "100%"}}>
+                            {ChoiceOptions.length === 0 &&
+                                <InputLabel>{"No Options Available"}</InputLabel>
+                            }
                             <Select
                             native
+                            disabled={ChoiceOptions.length === 0}
                             autoFocus={props.autoFocus}
                             multiple={props.type === "ChooseMultiple"}
                             value={props.type === "ChooseMultiple" ? choiceMultipleValue : value}

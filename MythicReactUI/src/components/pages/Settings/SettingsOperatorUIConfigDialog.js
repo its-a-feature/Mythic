@@ -12,10 +12,11 @@ import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import Typography from '@mui/material/Typography';
 import {HexColorInput, HexColorPicker} from 'react-colorful';
-import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {useMythicSetting, SetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Input from '@mui/material/Input';
+import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 
 const interactTypeOptions = [
     {value: "interact", display: "Accordions"},
@@ -63,6 +64,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const initialShowCallbackGroupsValue = useMythicSetting({setting_name: "showCallbackGroups", default_value: "false"});
     const [showCallbackGroups, setShowCallbackGroups] = React.useState(initialShowCallbackGroupsValue);
 
+    const initialUseDisplayParamsForCLIHistory = useMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: "true"});
+    const [useDisplayParamsForCLIHistory, setUseDisplayParamsForCLIHistory] = React.useState(initialUseDisplayParamsForCLIHistory);
+
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
     const onChangeFontSize = (name, value, error) => {
       setFontSize(value);
@@ -91,6 +95,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onChangeInteractType = (evt) => {
         setInteractType(evt.target.value);
     }
+    const onChangeUseDisplayParamsForCLIHistory = (evt) => {
+        setUseDisplayParamsForCLIHistory(!useDisplayParamsForCLIHistory);
+    }
     const onAccept = () => {
       if(resumeNotifications){
           localStorage.setItem("dnd", JSON.stringify({
@@ -108,6 +115,7 @@ export function SettingsOperatorUIConfigDialog(props) {
         localStorage.setItem(`${me?.user?.user_id || 0}-topColor`, topColor);
         localStorage.setItem(`${me?.user?.user_id || 0}-showMedia`, showMedia);
         localStorage.setItem(`${me?.user?.user_id || 0}-interactType`, interactType);
+        SetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", value: useDisplayParamsForCLIHistory});
         window.location.reload();
       props.onClose();
     }
@@ -141,20 +149,20 @@ export function SettingsOperatorUIConfigDialog(props) {
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
-                  <TableCell style={{width: "30%"}}>Font Size</TableCell>
-                  <TableCell>
+                  <MythicStyledTableCell style={{width: "30%"}}>Font Size</MythicStyledTableCell>
+                  <MythicStyledTableCell>
                     <MythicTextField type="number" value={fontSize} onChange={onChangeFontSize} showLabel={false} />
-                  </TableCell>
+                  </MythicStyledTableCell>
                 </TableRow>
                 <TableRow hover>
-                  <TableCell>Font Family</TableCell>
-                  <TableCell>
-                  <MythicTextField value={fontFamily} onChange={onChangeFontFamily} showLabel={false} multiline maxRows={5} />
-                  </TableCell>
+                  <MythicStyledTableCell>Font Family</MythicStyledTableCell>
+                  <MythicStyledTableCell>
+                    <MythicTextField value={fontFamily} onChange={onChangeFontFamily} showLabel={false} multiline maxRows={5} />
+                  </MythicStyledTableCell>
                 </TableRow>
                 <TableRow hover>
-                  <TableCell>Hide Usernames In Tasking</TableCell>
-                  <TableCell>
+                  <MythicStyledTableCell>Hide Usernames In Tasking</MythicStyledTableCell>
+                  <MythicStyledTableCell>
                     <Switch
                       checked={hideUsernames}
                       onChange={onHideUsernamesChanged}
@@ -162,11 +170,11 @@ export function SettingsOperatorUIConfigDialog(props) {
                       inputProps={{ 'aria-label': 'info checkbox' }}
                       name="hide_usernames"
                     />
-                  </TableCell>
+                  </MythicStyledTableCell>
                 </TableRow>
                   <TableRow hover>
-                      <TableCell>Show Callback IP In Tasking</TableCell>
-                      <TableCell>
+                      <MythicStyledTableCell>Show Callback IP In Tasking</MythicStyledTableCell>
+                      <MythicStyledTableCell>
                           <Switch
                               checked={showIP}
                               onChange={onShowIPChanged}
@@ -174,11 +182,11 @@ export function SettingsOperatorUIConfigDialog(props) {
                               inputProps={{ 'aria-label': 'info checkbox' }}
                               name="show_ip"
                           />
-                      </TableCell>
+                      </MythicStyledTableCell>
                   </TableRow>
                   <TableRow hover>
-                      <TableCell>Show Callback Hostname In Tasking</TableCell>
-                      <TableCell>
+                      <MythicStyledTableCell>Show Callback Hostname In Tasking</MythicStyledTableCell>
+                      <MythicStyledTableCell>
                           <Switch
                               checked={showHostname}
                               onChange={onShowHostnameChanged}
@@ -186,11 +194,11 @@ export function SettingsOperatorUIConfigDialog(props) {
                               inputProps={{ 'aria-label': 'info checkbox' }}
                               name="show_hostname"
                           />
-                      </TableCell>
+                      </MythicStyledTableCell>
                   </TableRow>
                   <TableRow hover>
-                      <TableCell>Show Callback Groups In Tasking</TableCell>
-                      <TableCell>
+                      <MythicStyledTableCell>Show Callback Groups In Tasking</MythicStyledTableCell>
+                      <MythicStyledTableCell>
                           <Switch
                               checked={showCallbackGroups}
                               onChange={onShowCallbackGroupsChanged}
@@ -198,11 +206,11 @@ export function SettingsOperatorUIConfigDialog(props) {
                               inputProps={{ 'aria-label': 'info checkbox' }}
                               name="show_callback_groups"
                           />
-                      </TableCell>
+                      </MythicStyledTableCell>
                   </TableRow>
                   <TableRow hover>
-                      <TableCell>Automatically show Media in Browser scripts</TableCell>
-                      <TableCell>
+                      <MythicStyledTableCell>Automatically show Media in Browser scripts</MythicStyledTableCell>
+                      <MythicStyledTableCell>
                           <Switch
                               checked={showMedia}
                               onChange={onShowMediaChanged}
@@ -210,11 +218,11 @@ export function SettingsOperatorUIConfigDialog(props) {
                               inputProps={{ 'aria-label': 'info checkbox' }}
                               name="show_media"
                           />
-                      </TableCell>
+                      </MythicStyledTableCell>
                   </TableRow>
                 <TableRow hover>
-                      <TableCell>Resume Info/Warning Notifications</TableCell>
-                      <TableCell>
+                      <MythicStyledTableCell>Resume Info/Warning Notifications</MythicStyledTableCell>
+                      <MythicStyledTableCell>
                           <Switch
                               checked={resumeNotifications}
                               onChange={onResumeNotifications}
@@ -222,13 +230,25 @@ export function SettingsOperatorUIConfigDialog(props) {
                               inputProps={{ 'aria-label': 'info checkbox' }}
                               name="resumeNotifications"
                           />
-                      </TableCell>
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Show Display Parameters in CLI History</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <Switch
+                              checked={useDisplayParamsForCLIHistory}
+                              onChange={onChangeUseDisplayParamsForCLIHistory}
+                              color="info"
+                              inputProps={{ 'aria-label': 'info checkbox' }}
+                              name="use display params"
+                          />
+                      </MythicStyledTableCell>
                   </TableRow>
                   <TableRow>
-                      <TableCell>
+                      <MythicStyledTableCell>
                           Choose default type of tasking display
-                      </TableCell>
-                      <TableCell>
+                      </MythicStyledTableCell>
+                      <MythicStyledTableCell>
                           <Select
                               labelId="demo-dialog-select-label"
                               id="demo-dialog-select"
@@ -240,17 +260,17 @@ export function SettingsOperatorUIConfigDialog(props) {
                                   <MenuItem value={opt.value} key={opt.value}>{opt.display}</MenuItem>
                               ) )}
                           </Select>
-                      </TableCell>
+                      </MythicStyledTableCell>
                   </TableRow>
                 <TableRow hover>
-                  <TableCell>Top App Bar Color</TableCell>
-                  <TableCell>
+                  <MythicStyledTableCell>Top App Bar Color</MythicStyledTableCell>
+                  <MythicStyledTableCell>
                     <HexColorPicker color={topColor} onChange={setTopColor} />
                     <HexColorInput color={topColor} onChange={setTopColor} />
                     <Box sx={{width: "100%", height: 25, backgroundColor: topColor}} >
                         <Typography style={{color: "white"}}>Operation Chimera Sample</Typography>
                     </Box>
-                  </TableCell>
+                  </MythicStyledTableCell>
                 </TableRow>
               </TableBody>
             </Table>

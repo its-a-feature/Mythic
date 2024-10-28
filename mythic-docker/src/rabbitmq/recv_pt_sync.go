@@ -82,6 +82,7 @@ type PayloadType struct {
 	AgentType                     string           `json:"agent_type"`
 	MessageUUIDLength             int              `json:"message_uuid_length"`
 	CommandAugmentSupportedAgents []string         `json:"command_augment_supported_agents"`
+	UseDisplayParamsForCLIHistory bool             `json:"use_display_params_for_cli_history"`
 }
 
 type Command struct {
@@ -221,6 +222,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.SupportedOs = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedOS)
 		payloadtype.SupportsDynamicLoading = in.PayloadType.SupportsDynamicLoading
 		payloadtype.Wrapper = in.PayloadType.Wrapper
+		payloadtype.UseDisplayParamsForCLIHistory = in.PayloadType.UseDisplayParamsForCLIHistory
 		if in.PayloadType.MessageFormat == "" {
 			payloadtype.MessageFormat = "json"
 		} else if utils.SliceContains(messageFormats, in.PayloadType.MessageFormat) {
@@ -250,8 +252,8 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			payloadtype.MessageUUIDLength = 36
 		}
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO payloadtype 
-			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper,agent_type,message_format,command_augment_supported_agents,message_uuid_length) 
-			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper,:agent_type, :message_format, :command_augment_supported_agents, :message_uuid_length) 
+			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper,agent_type,message_format,command_augment_supported_agents,message_uuid_length,use_display_params_for_cli_history) 
+			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper,:agent_type, :message_format, :command_augment_supported_agents, :message_uuid_length, :use_display_params_for_cli_history) 
 			RETURNING id`,
 		); err != nil {
 			logging.LogError(err, "Failed to create new payloadtype statement")
@@ -260,8 +262,10 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			if err = statement.Get(&payloadtype.ID, payloadtype); err != nil {
 				logging.LogError(err, "Failed to create new payloadtype")
 				return err
-			} else {
-				//logging.LogDebug("New payloadtype", "payloadtype", payloadtype)
+			}
+			// when we get a new wrapper, resync payloads that might support it
+			if payloadtype.Wrapper {
+				go reSyncPayloadTypes()
 			}
 		}
 	} else {
@@ -277,6 +281,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.SupportsDynamicLoading = in.PayloadType.SupportsDynamicLoading
 		payloadtype.Deleted = false
 		payloadtype.Wrapper = in.PayloadType.Wrapper
+		payloadtype.UseDisplayParamsForCLIHistory = in.PayloadType.UseDisplayParamsForCLIHistory
 		if in.PayloadType.MessageFormat == "" {
 			payloadtype.MessageFormat = "json"
 		} else if utils.SliceContains(messageFormats, in.PayloadType.MessageFormat) {
@@ -309,7 +314,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			author=:author, container_running=:container_running, file_extension=:file_extension, mythic_encrypts=:mythic_encrypts,
 			note=:note, supported_os=:supported_os, supports_dynamic_loading=:supports_dynamic_loading, wrapper=:wrapper, deleted=:deleted,
 			agent_type=:agent_type, message_format=:message_format, command_augment_supported_agents=:command_augment_supported_agents,
-			message_uuid_length=:message_uuid_length
+			message_uuid_length=:message_uuid_length, use_display_params_for_cli_history=:use_display_params_for_cli_history
 			WHERE id=:id`, payloadtype,
 		)
 		if err != nil {
@@ -1229,7 +1234,7 @@ func updatePayloadBuildSteps(in PayloadTypeSyncMessage, payloadtype databaseStru
 func reSyncPayloadTypes() {
 	payloadTypes := []databaseStructs.Payloadtype{}
 	if err := database.DB.Select(&payloadTypes, `SELECT
-		"name", container_running
+		"name", container_running, wrapper
 		FROM payloadtype
 		WHERE deleted=false`); err != nil {
 		logging.LogError(err, "Failed to fetch payload types from database")

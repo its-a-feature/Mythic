@@ -6564,6 +6564,7 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - use_display_params_for_cli_history
           - wrapper
           - id
           - message_uuid_length
@@ -6585,6 +6586,7 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - use_display_params_for_cli_history
           - wrapper
           - id
           - message_uuid_length
@@ -6606,6 +6608,7 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - use_display_params_for_cli_history
           - wrapper
           - id
           - message_uuid_length
@@ -6627,6 +6630,7 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - use_display_params_for_cli_history
           - wrapper
           - id
           - message_uuid_length
@@ -6648,6 +6652,7 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - use_display_params_for_cli_history
           - wrapper
           - id
           - message_uuid_length

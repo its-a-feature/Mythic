@@ -22,7 +22,7 @@ query getCommandsQuery($uuid: String!) {
     }
     id
   }
-  command(where: {payloadtype: {payloads: {uuid: {_eq: $uuid}}}}) {
+  command(where: {deleted: {_eq: false}, payloadtype: {payloads: {uuid: {_eq: $uuid}}}}) {
     cmd
     id
   }

@@ -29,14 +29,14 @@ query GetCallbackDetails($callback_id: Int!) {
     payload {
       payloadtype {
         name
-        commands {
+        commands(where: {deleted: {_eq: false}}) {
           cmd
           id
         }
       }
     }
   }
-  command(where: {payloadtype: {agent_type: {_eq: "command_augment"}}}){
+  command(where: {deleted: {_eq: false}, payloadtype: {agent_type: {_eq: "command_augment"}}}){
     cmd
     id
     payloadtype {
