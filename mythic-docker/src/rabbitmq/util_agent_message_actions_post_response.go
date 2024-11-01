@@ -1173,7 +1173,9 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 			return "", err
 		} else {
 			go EmitFileLog(fileMeta.ID)
-			go addFileMetaToMythicTree(task, fileMeta)
+			if !fileMeta.IsScreenshot {
+				go addFileMetaToMythicTree(task, fileMeta)
+			}
 			// handle the case where the agent sends a chunk along with the registration information
 			return handleAgentMessageWriteDownloadChunkToLocalDisk(task, fileMeta, agentResponse)
 			//return fileMeta.AgentFileID, nil
