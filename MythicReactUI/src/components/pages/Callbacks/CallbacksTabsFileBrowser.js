@@ -28,6 +28,7 @@ import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
 import {SetMythicSetting, useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";
+import {loadedCommandsQuery} from "./CallbacksTabsProcessBrowser";
 
 const fileDataFragment = gql`
     fragment fileObjData on mythictree {
@@ -220,6 +221,8 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         group: "",
         full_path_text: ""
     });
+    const loadedCommandsRef = React.useRef({});
+    const loadingCommandsRef = React.useRef(false);
     useQuery(rootFileQuery, {
         onCompleted: (data) => {
            // use an adjacency matrix but only for full_path_text -> children, not both directions
@@ -368,6 +371,40 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             }
         }
     })
+    const [getLoadedCommandsQuery] = useLazyQuery(loadedCommandsQuery, {
+        fetchPolicy: 'no-cache',
+        onCompleted: (data) => {
+            if(data.loadedcommands.length > 0){
+                loadedCommandsRef.current[data.loadedcommands[0].callback_id] = [...data.loadedcommands];
+            }
+            loadingCommandsRef.current = false;
+        },
+        onError: (data) => {
+            console.log(data);
+            loadingCommandsRef.current = false;
+        }
+    });
+    async function getLoadedCommandForUIFeature (callback_id, uifeature){
+        while(loadingCommandsRef.current){
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        if(loadedCommandsRef.current[callback_id] === undefined){
+            loadingCommandsRef.current = true;
+            getLoadedCommandsQuery({variables: {callback_id: callback_id}});
+            while(loadingCommandsRef.current){
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        }
+        if(loadedCommandsRef.current[callback_id] === undefined){
+            return undefined;
+        }
+        for(let i = 0; i < loadedCommandsRef.current[callback_id].length; i++){
+            if(loadedCommandsRef.current[callback_id][i].command.supported_ui_features.includes(uifeature)){
+                return loadedCommandsRef.current[callback_id][i];
+            }
+        }
+        return undefined;
+    }
     const [getFolderData] = useLazyQuery(folderQuery, {
         onError: (data) => {
             console.error(data);
@@ -589,7 +626,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
     const taskListing = (nodeData, callback_id, callback_display_id) => {
         taskingData.current = ({
             "token": localSelectedToken.current,
-            "parameters": {path: nodeData.full_path_text, full_path: nodeData.full_path_text, host: selectedFolderData.host, file: ""},
+            "parameters": {path: nodeData.full_path_text, full_path: nodeData.full_path_text, host: nodeData.host, file: ""},
             "ui_feature": "file_browser:list", callback_id, callback_display_id});
         setOpenTaskingButton(true);
     }
@@ -623,6 +660,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                         setTableData={onSetTableData}
                         taskListing={taskListing}
                         tableOpenedPathId={tableOpenedPathIdRef.current}
+                        getLoadedCommandForUIFeature={getLoadedCommandForUIFeature}
                     />
 
                 </div>
@@ -658,6 +696,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                                 autoTaskLsOnEmptyDirectories={autoTaskLsOnEmptyDirectoriesRef.current}
                                 onTaskRowAction={onTaskRowAction}
                                 onTaskRowActions={onTaskRowActions}
+                                getLoadedCommandForUIFeature={getLoadedCommandForUIFeature}
                                 me={me}
                             />
                         </div>
@@ -768,7 +807,7 @@ const FileBrowserTableTop = ({
     }
     const moveIndexToNextListing = () => {
         // we're getting close to index 0, the newest listing
-        console.log(historyIndex, history);
+        //console.log(historyIndex, history);
         if(historyIndex <= 0){
             return
         }

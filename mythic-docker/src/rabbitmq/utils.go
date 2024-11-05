@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/mitchellh/mapstructure"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -139,7 +140,7 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 		case int64:
 			return fmt.Sprintf("%v", v), nil
 		case float64:
-			return fmt.Sprintf("%v", v), nil
+			return fmt.Sprintf("%v", int(math.Round(v))), nil
 		case int:
 			return fmt.Sprintf("%v", v), nil
 		case nil:
@@ -318,7 +319,7 @@ func GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(parameterType s
 		case int64:
 			return fmt.Sprintf("%v", v), nil
 		case float64:
-			return fmt.Sprintf("%v", v), nil
+			return fmt.Sprintf("%v", int(math.Round(v))), nil
 		case int:
 			return fmt.Sprintf("%v", v), nil
 		case nil:

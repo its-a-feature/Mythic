@@ -5,4 +5,5 @@ type Wrappedpayloadtypes struct {
 	WrapperID int         `db:"wrapper_id"`
 	Wrapper   Payloadtype `db:"wrapper"`
 	WrappedID int         `db:"wrapped_id"`
+	Wrapped   Payloadtype `db:"wrapped"`
 }

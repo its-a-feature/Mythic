@@ -1052,7 +1052,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 if(`-${cmd.commandparameters[j].cli_name}` === argv[i]){
                     last_command_parameter = cmd.commandparameters[j];
                     has_value = i !== argv.length -1;
-                    break;
+                    return [last_command_parameter, has_value ? argv[argv.length-1] : ""];
                 }
             }
         }

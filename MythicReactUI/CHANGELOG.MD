@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.52] - 2024-11-
+
+### Changed
+
+- Fixed bug where right-clicking file browser tree and issuing "list" would list current callback host instead of selected file host
+- Fixed bug where selecting "original callback" -> "list" would crash for file browser
+- Fixed an alignment issue with trash icons
+- Fixed a bug where you could only tab complete the first parameter's options on the command line
+- Updated search page for processes to indicate if a process is marked as deleted or not
+- Updated process browser to only show active processes
+- Updated file browser right-click context menu
+- Updated file browser table row action button to not duplicate what's in the context menu for the row
+- Updated process browser info buttons 
+
 ## [0.2.51] - 2024-10-21
 
 ### Changed

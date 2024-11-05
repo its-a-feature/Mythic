@@ -22,6 +22,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
+import {faSkullCrossbones, faSyringe, faKey,} from '@fortawesome/free-solid-svg-icons';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 
 const getPermissionsDataQuery = gql`
     query getPermissionsQuery($mythictree_id: Int!) {
@@ -40,7 +42,9 @@ const updateFileComment = gql`
     }
 `;
 
-export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick, onTaskRowAction, host, group, showDeletedFiles, tabInfo, expandOrCollapseAll}) => {
+export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, me, onRowDoubleClick,
+                                                     onTaskRowAction, host, group, showDeletedFiles, tabInfo,
+                                                     expandOrCollapseAll, getLoadedCommandForUIFeature}) => {
     //const [allData, setAllData] = React.useState([]);
     //console.log("treeAdjMatrix updated in table", treeAdjMatrix)
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
@@ -461,6 +465,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                                             viewSingleTreeData={viewSingleTreeData}
                                             setSingleTree={setSingleTree}
                                             toggleViewSingleTreeData={toggleViewSingleTreeData}
+                                            getLoadedCommandForUIFeature={getLoadedCommandForUIFeature}
                                             onTaskRowAction={onTaskRowAction} />;
                             case "Name":
                                 return <FileBrowserTableRowNameCell 
@@ -696,9 +701,19 @@ const FileBrowserTableRowStringCell = ({cellData, treeRootData, host, rowData}) 
         <div>{cellData}</div>
     )
 }
-const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, host, viewSingleTreeData,setSingleTree, toggleViewSingleTreeData, tabInfo}) => {
+const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, host, viewSingleTreeData,
+                                           setSingleTree, toggleViewSingleTreeData, tabInfo,
+                                           getLoadedCommandForUIFeature}) => {
     const dropdownAnchorRef = React.useRef(null);
     const theme = useTheme();
+    const loadingMenuDisplay = {
+        name: "Loading Dynamic Menu Items...", icon: null,
+        type: "item",
+        disabled: true,
+        click: ({event}) => {
+            event.stopPropagation();
+        }
+    };
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [viewPermissionsDialogOpen, setViewPermissionsDialogOpen] = React.useState(false);
     const [permissionData, setPermissionData] = React.useState({});
@@ -721,13 +736,11 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
             snackActions.success('updated comment');
         },
     });
+    const [customMenuOptions, setCustomMenuOptions] = React.useState([loadingMenuDisplay]);
     const onSubmitUpdatedComment = (comment) => {
         updateComment({ variables: { mythictree_id: treeRootData[host][rowData["full_path_text"] /*+ uniqueSplitString + rowData["callback_id"]*/].id, comment: comment } });
     };
-    const handleDropdownToggle = (evt) => {
-        evt.stopPropagation();
-        setDropdownOpen((prevOpen) => !prevOpen);
-    };
+
     const handleMenuItemClick = (event, click) => {
         click({event});
         setDropdownOpen(false);
@@ -737,18 +750,19 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
           return;
         }
         setDropdownOpen(false);
+        setCustomMenuOptions([loadingMenuDisplay]);
     };
     const optionsA = [
         {
             name: 'View Detailed Data', icon: <VisibilityIcon style={{paddingRight: "5px"}}/>,
-            type: "item",
+            type: "item", disabled: false,
             click: ({event}) => {
                 event.stopPropagation();
                 getPermissions({variables: {mythictree_id: rowData.id}});
             }
         },
         {
-            name: 'Edit Comment', type: "item",
+            name: 'Edit Comment', type: "item", disabled: false,
             icon: <EditIcon style={{ paddingRight: '5px' }} />,
             click: ({event}) => {
                 event.stopPropagation();
@@ -761,86 +775,128 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                 <VisibilityOffIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/> :
                 <AccountTreeIcon style={{paddingRight: "5px", color: theme.palette.success.main}}/>,
             type: "item",
+            disabled: false,
             click: ({event}) => {
                 setSingleTree(rowData);
                 toggleViewSingleTreeData();
             }
         }
     ];
-    const optionsB = (callback_id, callback_display_id) => [
-        {
-            name: 'Task Inject', icon: <GetAppIcon style={{paddingRight: "5px", color: theme.palette.success.main}}/>,
-            type: "item",
-            click: ({event}) => {
-                event.stopPropagation();
-                onTaskRowAction({
-                    process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
-                    architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
-                    uifeature: "process_browser:inject",
-                    callback_id,
-                    display_id: callback_display_id
-                });
-            }
-        },
-        {
-            name: 'Task Token Listing', icon: <ListIcon style={{paddingRight: "5px", color: theme.palette.warning.main}}/>,
-            type: "item",
-            click: ({event}) => {
-                event.stopPropagation();
-                onTaskRowAction({
-                    process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
-                    architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
-                    uifeature: "process_browser:list_tokens",
-                    callback_id,
-                    display_id: callback_display_id
-                });
+    async function optionsB (callback_id, callback_display_id){
+        const injectCommand = await getLoadedCommandForUIFeature(callback_id, "process_browser:inject");
+        let injectDisplay = "Task Inject (Unsupported)";
+        if(injectCommand !== undefined){
+            injectDisplay = `Task Inject (${injectCommand.command.cmd})`
+        }
+        const tokenListCommand = await getLoadedCommandForUIFeature(callback_id, "process_browser:list_tokens");
+        let tokenListDisplay = "Task Token Listing (Unsupported)";
+        if(tokenListCommand !== undefined){
+            tokenListDisplay = `Task Token Listing (${tokenListCommand.command.cmd})`
+        }
+        const stealTokenCommand = await getLoadedCommandForUIFeature(callback_id, "process_browser:steal_token");
+        let stealTokenDisplay = "Task Steal Token (Unsupported)";
+        if(stealTokenCommand !== undefined){
+            stealTokenDisplay = `Task Steal Token (${stealTokenCommand.command.cmd})`
+        }
+        const killProcessCommand = await getLoadedCommandForUIFeature(callback_id, "process_browser:kill");
+        let killProcessDisplay = "Task Kill Process (Unsupported)";
+        if(killProcessCommand !== undefined){
+            killProcessDisplay = `Task Kill Process (${killProcessCommand.command.cmd})`
+        }
+        return [
+            {
+                name: injectDisplay, icon: <FontAwesomeIcon icon={faSyringe} style={{paddingRight: "5px", color: theme.palette.warning.main}}/>,
+                type: "item",
+                disabled: injectCommand === undefined,
+                click: ({event}) => {
+                    event.stopPropagation();
+                    onTaskRowAction({
+                        process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
+                        architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
+                        uifeature: "process_browser:inject",
+                        callback_id,
+                        display_id: callback_display_id
+                    });
+                }
             },
-            os: ["Windows"]
-        },
-        {
-            name: 'Task Steal Token', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>,
-            type: "item",
-            click: ({event}) => {
-                event.stopPropagation();
-                onTaskRowAction({
-                    process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
-                    architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
-                    uifeature: "process_browser:steal_token",
-                    callback_id,
-                    display_id: callback_display_id
-                });
+            {
+                name: tokenListDisplay, icon: <ListIcon style={{paddingRight: "5px", color: theme.palette.warning.main}}/>,
+                type: "item",
+                disabled: tokenListCommand === undefined,
+                click: ({event}) => {
+                    event.stopPropagation();
+                    onTaskRowAction({
+                        process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
+                        architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
+                        uifeature: "process_browser:list_tokens",
+                        callback_id,
+                        display_id: callback_display_id
+                    });
+                },
+                os: ["Windows"]
+            },
+            {
+                name: stealTokenDisplay, icon: <FontAwesomeIcon icon={faKey} style={{paddingRight: "5px", color: theme.palette.error.main}}/>,
+                type: "item",
+                disabled: stealTokenCommand === undefined,
+                click: ({event}) => {
+                    event.stopPropagation();
+                    onTaskRowAction({
+                        process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
+                        architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
+                        uifeature: "process_browser:steal_token",
+                        callback_id,
+                        display_id: callback_display_id
+                    });
 
+                },
+                os: ["Windows"]},
+            {
+                name: killProcessDisplay, icon: <FontAwesomeIcon icon={faSkullCrossbones} style={{paddingRight: "5px", color: theme.palette.error.main}}/>,
+                type: "item",
+                disabled: killProcessCommand === undefined,
+                click: ({event}) => {
+                    event.stopPropagation();
+                    onTaskRowAction({
+                        process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
+                        architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
+                        uifeature: "process_browser:kill",
+                        confirm_dialog: true,
+                        callback_id,
+                        display_id: callback_display_id
+                    });
+                }
             },
-            os: ["Windows"]},
-        {
-            name: 'Task Kill Process', icon: <DeleteIcon style={{paddingRight: "5px", color: theme.palette.error.main}}/>,
-            type: "item",
-            click: ({event}) => {
-                event.stopPropagation();
-                onTaskRowAction({
-                    process_id: treeRootData[host][rowData["full_path_text"] ].metadata.process_id,
-                    architecture: treeRootData[host][rowData["full_path_text"] ].metadata.architecture,
-                    uifeature: "process_browser:kill",
-                    confirm_dialog: true,
-                    callback_id,
-                    display_id: callback_display_id
-                });
-            }
-        },
-    ];
-    const getMenuOptions = () => {
+        ];
+    }
+    async function getMenuOptions() {
         let options = [...optionsA];
-        options.push(...optionsB(tabInfo["callbackID"], tabInfo["displayID"]));
+        options.push(...await optionsB(tabInfo["callbackID"], tabInfo["displayID"]));
         if(treeRootData[host][rowData["full_path_text"] ]?.callback?.["id"] !== tabInfo["callbackID"]){
             options.push({
-                name: "Original Callback", icon: null, click: () => {}, type: "menu",
+                name: `Original Callback: ${treeRootData[host][rowData["full_path_text"] ]?.callback?.["id"]}`,
+                icon: null, click: () => {}, type: "menu",
                 menuItems: [
-                    ...optionsB(rowData?.callback?.id, rowData?.callback?.display_id)
+                    ...await optionsB(treeRootData[host][rowData["full_path_text"] ]?.callback?.["id"],
+                        treeRootData[host][rowData["full_path_text"] ]?.callback?.display_id)
                 ]
             })
         }
         return options;
     }
+    const handleDropdownToggle = (evt) => {
+        evt.stopPropagation();
+        setDropdownOpen((prevOpen) => !prevOpen);
+        if(!dropdownOpen){
+            getMenuOptions().then(r => {
+                if(r){
+                    setCustomMenuOptions(r);
+                }
+            });
+        } else {
+            setCustomMenuOptions([loadingMenuDisplay]);
+        }
+    };
     return (
         treeRootData[host][rowData["full_path_text"] ]?.id ? (
         <React.Fragment>
@@ -864,11 +920,11 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                         onOpen={setDropdownOpen}
                         externallyOpen={dropdownOpen}
                         menu={[
-                            ...getMenuOptions().map((option, index) => (
+                            ...customMenuOptions.map((option, index) => (
                                 option.type === 'item' ? (
                                     <DropdownMenuItem
                                         key={option.name}
-                                        disabled={!(option.os === undefined || option.os.includes(treeRootData[host][rowData["full_path_text"]].os))}
+                                        disabled={option.disabled}
                                         onClick={(event) => handleMenuItemClick(event, option.click)}
                                     >
                                         {option.icon} {option.name}
@@ -881,7 +937,7 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                                             option.menuItems.map((menuOption, indx) => (
                                                 <DropdownMenuItem
                                                     key={menuOption.name}
-                                                    disabled={!(menuOption.os === undefined || menuOption.os.includes(treeRootData[host][rowData["full_path_text"]].os))}
+                                                    disabled={menuOption.disabled}
                                                     onClick={(event) => handleMenuItemClick(event, menuOption.click)}
                                                 >
                                                     {menuOption.icon}{menuOption.name}

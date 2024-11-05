@@ -61,7 +61,7 @@ const treeSubscription = gql`
         mythictree_stream(
             batch_size: 1000,
             cursor: {initial_value: {timestamp: $now}}, 
-            where: {tree_type: {_eq: "process"} }
+            where: {tree_type: {_eq: "process"}, deleted: {_eq: false} }
         ) {
             ...treeObjData
         }
@@ -78,10 +78,28 @@ const rootQuery = gql`
 const treeHostQuery = gql`
     ${treeFragment}
     query processesPerHostQuery($host: String!){
-        mythictree(where: {host: {_eq: $host}, tree_type: {_eq: "process"} }, order_by: {id: asc}) {
+        mythictree(where: {host: {_eq: $host}, tree_type: {_eq: "process"}, deleted: {_eq: false} }, order_by: {id: asc}) {
             ...treeObjData
         }
     }
+`;
+export const loadedCommandsQuery = gql`
+query loadedCommandUIFeatures($callback_id: Int!){
+    loadedcommands(where: {callback_id: {_eq: $callback_id}}){
+        callback_id
+        command {
+            supported_ui_features
+            cmd
+            id
+            payloadtype {
+                name
+                id
+            }
+        }
+        id
+        version
+    }
+}
 `;
 export function CallbacksTabsProcessBrowserLabel(props){
     const [description, setDescription] = React.useState("Processes: " + props.tabInfo.displayID)
@@ -136,6 +154,8 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
     const [showDeletedFiles, setShowDeletedFiles] = React.useState(false);
     const [selectedHost, setSelectedHost] = React.useState("");
     const [selectedGroup, setSelectedGroup] = React.useState("");
+    const loadedCommandsRef = React.useRef({});
+    const loadingCommandsRef = React.useRef(false);
     const getNewMatrix = () => {
         let newMatrix = {};
         for(const[group, groupMatrix] of Object.entries(treeRootDataRef.current)){
@@ -216,6 +236,19 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         },
         fetchPolicy: 'no-cache',
     });
+    const [getLoadedCommandsQuery] = useLazyQuery(loadedCommandsQuery, {
+        fetchPolicy: 'no-cache',
+        onCompleted: (data) => {
+            if(data.loadedcommands.length > 0){
+                loadedCommandsRef.current[data.loadedcommands[0].callback_id] = [...data.loadedcommands];
+            }
+            loadingCommandsRef.current = false;
+        },
+        onError: (data) => {
+            console.log(data);
+            loadingCommandsRef.current = false;
+        }
+    });
     useSubscription(treeSubscription, {
         variables: {now: fromNow.current},
         fetchPolicy: "no-cache",
@@ -232,15 +265,24 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                     }
                     if(treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] === undefined){
                         // first time we're seeing this file data, just add it
+                        if(data.data.mythictree_stream[i].deleted){continue}
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...data.data.mythictree_stream[i]};
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]].callbacks = [data.data.mythictree_stream[i].callback]
                     } else {
                         // we need to merge data in because we already have some info
+                        if(data.data.mythictree_stream[i].deleted){
+                            delete treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
+                            continue;
+                        }
                         let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
                         existingData.callbacks.push(data.data.mythictree_stream[i].callback)
                         existingData.comment += data.data.mythictree_stream[i].comment;
                         existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];
-                        existingData.metadata = {...existingData.metadata, ...data.data.mythictree_stream[i].metadata};
+                        if(existingData.id > data.data.mythictree_stream[i].id){
+                            existingData.metadata = {...data.data.mythictree_stream[i].metadata, ...existingData.metadata};
+                        } else {
+                            existingData.metadata = {...existingData.metadata, ...data.data.mythictree_stream[i].metadata};
+                        }
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...existingData};
                     }
                 }
@@ -273,14 +315,18 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].callbacks = [data.mythictree[i].callback];
                     } else {
                         // we need to merge data in because we already have some info
+                        if(data.mythictree[i].deleted){
+                            delete treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
+                            continue;
+                        }
                         let existingData = treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
                         existingData.comment += data.mythictree[i].comment;
                         existingData.callbacks.push(data.mythictree[i].callback)
                         existingData.tags = [...existingData.tags, ...data.mythictree[i].tags];
                         if(existingData.id > data.mythictree[i].id){
-                            existingData.metadata = {...existingData.metadata};
+                            existingData.metadata = {...data.mythictree[i].metadata, ...existingData.metadata};
                         } else {
-                            existingData.metadata = {...data.mythictree[i].metadata};
+                            existingData.metadata = {...existingData.metadata, ...data.mythictree[i].metadata};
                         }
                         treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...existingData};
                     }
@@ -320,6 +366,27 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         } else {
             setSelectedHost("");
         }
+    }
+    async function getLoadedCommandForUIFeature (callback_id, uifeature){
+        while(loadingCommandsRef.current){
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        if(loadedCommandsRef.current[callback_id] === undefined){
+            loadingCommandsRef.current = true;
+            getLoadedCommandsQuery({variables: {callback_id: callback_id}});
+            while(loadingCommandsRef.current){
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        }
+        if(loadedCommandsRef.current[callback_id] === undefined){
+            return undefined;
+        }
+        for(let i = 0; i < loadedCommandsRef.current[callback_id].length; i++){
+            if(loadedCommandsRef.current[callback_id][i].command.supported_ui_features.includes(uifeature)){
+                return loadedCommandsRef.current[callback_id][i];
+            }
+        }
+        return undefined;
     }
     React.useEffect( () => {
         getHostProcessesQuery({variables: {host: selectedHost}});
@@ -373,6 +440,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         group={selectedGroup}
                         expandOrCollapseAll={expandOrCollapseAll}
                         onTaskRowAction={onTaskRowAction}
+                        getLoadedCommandForUIFeature={getLoadedCommandForUIFeature}
                         me={me}/>
                   
                 </div>
@@ -436,7 +504,7 @@ const ProcessBrowserTableTop = ({
                         endAdornment={
                             <React.Fragment>
                                 <MythicStyledTooltip title="View Callbacks associated with this group">
-                                    <IconButton style={{padding: "3px"}} onClick={() => {setOpenViewGroupDialog(true);}} size="large"><WidgetsIcon style={{color: theme.palette.info.main}}/></IconButton>
+                                    <IconButton style={{padding: "3px", paddingRight: "25px"}} onClick={() => {setOpenViewGroupDialog(true);}} size="large"><WidgetsIcon style={{color: theme.palette.info.main}}/></IconButton>
                                 </MythicStyledTooltip>
                             </React.Fragment>
                         }
@@ -465,18 +533,7 @@ const ProcessBrowserTableTop = ({
                             <ExpandIcon color={expandOrCollapseAll ? "info" : "success"} />
                         </IconButton>
                     </MythicStyledTooltip>
-                    <MythicStyledTooltip title={showDeletedFiles ? 'Hide Deleted Processes' : 'Show Deleted Processes'}>
-                            <IconButton
-                                style={{ padding: '3px' }}
-                                onClick={onLocalToggleShowDeletedFiles}
-                                size="large">
-                                {showDeletedFiles ? (
-                                    <VisibilityIcon color="success" />
-                                ) : (
-                                    <VisibilityOffIcon color="error"  />
-                                )}
-                            </IconButton>
-                        </MythicStyledTooltip>
+                    <div style={{paddingRight: "20px"}} />
                 </React.Fragment>
                     }
                   >

@@ -55,6 +55,9 @@ export function TranslationContainerRow({service, showDeleted}) {
       updateDeleted({variables: {translationcontainer_id: service.id, deleted: !service.deleted}})
       setOpenDeleteDialog(false);
     }
+    if(service.deleted && !showDeleted){
+        return null;
+    }
   return (
 
         <TableRow hover>

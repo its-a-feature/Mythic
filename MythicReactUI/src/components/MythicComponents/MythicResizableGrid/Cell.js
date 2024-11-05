@@ -61,14 +61,16 @@ const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, da
             contextMenuLocationRef.current.y = event.clientY;
             if(data.onRowContextMenuClick){
                 const newMenuItems = data.onRowContextMenuClick({rowDataStatic: data.items[rowIndex][columnIndex]?.props?.rowData});
-                if(newMenuItems.length > 0){
-                    setContextMenuOptions(newMenuItems);
+                Promise.resolve(newMenuItems).then(function(value) {
+                    if(value.length > 0){
+                        setContextMenuOptions(value);
+                        setOpenContextMenu(true);
+                    }
+                })
+            } else {
+                if(contextMenuOptions && contextMenuOptions.length > 0){
                     setOpenContextMenu(true);
-                    return;
                 }
-            }
-            if(contextMenuOptions && contextMenuOptions.length > 0){
-                setOpenContextMenu(true);
             }
         },
         [contextMenuOptions, data.onRowContextMenuClick] // eslint-disable-line react-hooks/exhaustive-deps

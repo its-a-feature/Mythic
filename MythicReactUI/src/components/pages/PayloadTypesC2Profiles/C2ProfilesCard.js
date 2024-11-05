@@ -152,11 +152,11 @@ export function C2ProfilesRow({service, showDeleted}) {
             <TableRow hover>
                 <MythicTableCell>
                     {service.deleted ? (
-                        <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="success" size="large">
+                        <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="success" size="small">
                             <RestoreFromTrashOutlinedIcon/>
                         </IconButton>
                     ) : (
-                        <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="error" size="large">
+                        <IconButton onClick={()=>{setOpenDeleteDialog(true);}} color="error" size="small">
                             <DeleteIcon/>
                         </IconButton>
                     )}
