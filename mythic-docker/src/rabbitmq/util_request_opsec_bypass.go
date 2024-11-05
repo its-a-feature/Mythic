@@ -80,7 +80,7 @@ func RequestOpsecBypass(input RequestOpsecBypassMessage) RequestOpsecBypassMessa
 						FROM operatoroperation 
 						JOIN operator ON operatoroperation.operator_id = operator.id
 						WHERE operatoroperation.operation_id=$1 AND operatoroperation.view_mode!=$2
-						AND operator.account_type!=$3`,
+						AND operator.account_type!=$3 AND operator.active=true AND operator.deleted=false`,
 						input.OperatorOperation.CurrentOperation.ID,
 						database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR,
 						databaseStructs.AccountTypeBot); err != nil {
@@ -144,7 +144,7 @@ func RequestOpsecBypass(input RequestOpsecBypassMessage) RequestOpsecBypassMessa
 						FROM operatoroperation 
 						JOIN operator ON operatoroperation.operator_id = operator.id
 						WHERE operatoroperation.operation_id=$1 AND operatoroperation.view_mode!=$2
-						AND operator.account_type!=$3`,
+						AND operator.account_type!=$3 AND operator.active=true AND operator.deleted=false`,
 						input.OperatorOperation.CurrentOperation.ID,
 						database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR,
 						databaseStructs.AccountTypeBot); err != nil {
