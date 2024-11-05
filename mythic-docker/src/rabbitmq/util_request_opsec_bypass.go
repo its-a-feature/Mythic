@@ -75,9 +75,15 @@ func RequestOpsecBypass(input RequestOpsecBypassMessage) RequestOpsecBypassMessa
 				} else {
 					// need to check if we're the only possible choice, if we're the only option, then we succeed
 					operators := []databaseStructs.Operatoroperation{}
-					if err := database.DB.Select(&operators, `SELECT id
-						FROM operatoroperation WHERE operation_id=$1 AND view_mode!=$2`,
-						input.OperatorOperation.CurrentOperation.ID, database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR); err != nil {
+					if err := database.DB.Select(&operators, `SELECT 
+    					operatoroperation.id
+						FROM operatoroperation 
+						JOIN operator ON operatoroperation.operator_id = operator.id
+						WHERE operatoroperation.operation_id=$1 AND operatoroperation.view_mode!=$2
+						AND operator.account_type!=$3`,
+						input.OperatorOperation.CurrentOperation.ID,
+						database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR,
+						databaseStructs.AccountTypeBot); err != nil {
 						logging.LogError(err, "Failed to search for other operator / lead users for the operation")
 						response.Error = err.Error()
 						return response
@@ -133,9 +139,15 @@ func RequestOpsecBypass(input RequestOpsecBypassMessage) RequestOpsecBypassMessa
 				} else {
 					// need to check if we're the only possible choice, if we're the only option, then we succeed
 					operators := []databaseStructs.Operatoroperation{}
-					if err := database.DB.Select(&operators, `SELECT id
-						FROM operatoroperation WHERE operation_id=$1 AND view_mode!=$2`,
-						input.OperatorOperation.CurrentOperation.ID, database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR); err != nil {
+					if err := database.DB.Select(&operators, `SELECT 
+    					operatoroperation.id
+						FROM operatoroperation 
+						JOIN operator ON operatoroperation.operator_id = operator.id
+						WHERE operatoroperation.operation_id=$1 AND operatoroperation.view_mode!=$2
+						AND operator.account_type!=$3`,
+						input.OperatorOperation.CurrentOperation.ID,
+						database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR,
+						databaseStructs.AccountTypeBot); err != nil {
 						logging.LogError(err, "Failed to search for other operator / lead users for the operation")
 						response.Error = err.Error()
 						return response
