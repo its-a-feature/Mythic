@@ -326,7 +326,11 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	if err != nil {
 		return err
 	}
-	err = updatePayloadTypeWrappers(in, payloadtype)
+	if payloadtype.Wrapper {
+		err = updatePayloadTypeWrappersForWrapper(in, payloadtype)
+	} else {
+		err = updatePayloadTypeWrappers(in, payloadtype)
+	}
 	if err != nil {
 		return err
 	}
@@ -638,6 +642,63 @@ func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseSt
 			logging.LogError(err, "Failed to find payloadtype to associate for wrapping", "wrapper", name, "wrapped", payloadtype.Name)
 		} else {
 			databaseWrapper = databaseStructs.Wrappedpayloadtypes{WrapperID: targetWrapper.ID, WrappedID: payloadtype.ID}
+			if _, err := database.DB.NamedExec(`INSERT INTO
+				wrappedpayloadtypes (wrapper_id, wrapped_id)
+				VALUES (:wrapper_id, :wrapped_id)`,
+				databaseWrapper); err != nil {
+				logging.LogError(err, "Failed to create new wrappedpayloadtype mapping")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func updatePayloadTypeWrappersForWrapper(in PayloadTypeSyncMessage, payloadtype databaseStructs.Payloadtype) error {
+	// get all currently associated payloadtype wrappers from the database
+	// if payloadtype in database but not in sync message, delete it
+	// if payloadtype in sync message, but not database, add it
+
+	syncingWrappers := in.PayloadType.SupportedWrapperPayloadTypes
+	databaseWrapper := databaseStructs.Wrappedpayloadtypes{}
+	if rows, err := database.DB.NamedQuery(`SELECT
+    wrappedpayloadtypes.id,
+		payloadtype.name "wrapped.name",
+		payloadtype.id "wrapper.id"
+		FROM wrappedpayloadtypes
+		JOIN payloadtype ON wrappedpayloadtypes.wrapped_id = payloadtype.id
+		WHERE
+		wrapper_id = :id
+	`, payloadtype); err != nil {
+		logging.LogError(err, "Failed to get wrappedpayloadtypes from database")
+		return err
+	} else {
+		for rows.Next() {
+			if err = rows.StructScan(&databaseWrapper); err != nil {
+				logging.LogError(err, "Failed to get row from wrappedpayloadtypes for importing new payloadtype")
+				return err
+			} else {
+				logging.LogDebug("Got row from wrappedpayloadtypes", "row", databaseWrapper)
+				if utils.SliceContains(syncingWrappers, databaseWrapper.Wrapper.Name) {
+					syncingWrappers = utils.RemoveStringFromSliceNoOrder(syncingWrappers, databaseWrapper.Wrapper.Name)
+					continue
+				} else {
+					// got a current wrapper payload type that shouldn't exist anymore, delete it from the database
+					if _, err = database.DB.NamedExec("DELETE FROM wrappedpayloadtypes WHERE id=:id", databaseWrapper); err != nil {
+						logging.LogError(err, "Failed to delete wrappedpayloadtypes mapping")
+						return err
+					}
+				}
+			}
+		}
+	}
+	// everything else left in syncingWrappers needs to be added
+	for _, name := range syncingWrappers {
+		targetWrapper := databaseStructs.Payloadtype{Name: name}
+		if err := database.DB.Get(&targetWrapper, "SELECT id FROM payloadtype WHERE name=$1", name); err != nil {
+			logging.LogError(err, "Failed to find payloadtype to associate for wrapping", "wrapper", name, "wrapped", payloadtype.Name)
+		} else {
+			databaseWrapper = databaseStructs.Wrappedpayloadtypes{WrapperID: payloadtype.ID, WrappedID: targetWrapper.ID}
 			if _, err := database.DB.NamedExec(`INSERT INTO
 				wrappedpayloadtypes (wrapper_id, wrapped_id)
 				VALUES (:wrapper_id, :wrapped_id)`,
