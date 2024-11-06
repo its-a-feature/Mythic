@@ -134,7 +134,6 @@ const IsCLIPossibleParameterType = (parameter_type) => {
         case "TypedArray":
         case "ChooseMultiple":
         case "String":
-        case "File":
             return true;
         default:
             return false;
@@ -454,7 +453,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         console.log("lastSuppliedParameter", lastSuppliedParameter, "has_value", lastSuppliedParameterHasValue);
                         lastValueTypedBeforeDynamicParamsRef.current = lastSuppliedParameterHasValue;
                         if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined && lastSuppliedParameterHasValue === ""){
-                            if(lastSuppliedParameter.dynamic_query_function !== ""){
+                            if (lastSuppliedParameter.choices.length > 0){
+                                tabOptions.current = lastSuppliedParameter.choices;
+                                tabOptionsIndex.current = 0;
+                                tabOptionsType.current = "param_value";
+                                let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
+                                let newMsg = message + newChoice;
+                                setMessage(newMsg);
+                                return;
+                            } else if(lastSuppliedParameter.dynamic_query_function !== ""){
                                 setBackdropOpen(true);
                                 //snackActions.info("Querying payload type container for options...",   snackMessageStyles);
                                 getDynamicParams({variables:{
@@ -463,14 +470,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                         command: cmd.cmd,
                                         payload_type: cmd.payloadtype.name
                                     }});
-                                return;
-                            } else if (lastSuppliedParameter.choices.length > 0){
-                                tabOptions.current = lastSuppliedParameter.choices;
-                                tabOptionsIndex.current = 0;
-                                tabOptionsType.current = "param_value";
-                                let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
-                                let newMsg = message + newChoice;
-                                setMessage(newMsg);
                                 return;
                             }
                         }
@@ -604,7 +603,15 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             console.log("lastSuppliedParameter", lastSuppliedParameter)
                             lastValueTypedBeforeDynamicParamsRef.current = lastSuppliedParameterHasValue;
                             if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined){
-                                if(lastSuppliedParameter.dynamic_query_function !== ""){
+                                if (lastSuppliedParameter.choices.length > 0){
+                                    tabOptions.current = lastSuppliedParameter.choices;
+                                    tabOptionsIndex.current = 0;
+                                    tabOptionsType.current = "param_value";
+                                    let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
+                                    let newMsg = message + newChoice;
+                                    setMessage(newMsg);
+                                    return;
+                                } else if(lastSuppliedParameter.dynamic_query_function !== ""){
                                     setBackdropOpen(true);
                                     //snackActions.info("Querying payload type container for options...",   snackMessageStyles);
                                     getDynamicParams({variables:{
@@ -613,14 +620,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                             command: cmd.cmd,
                                             payload_type: cmd.payloadtype.name
                                         }});
-                                    return;
-                                } else if (lastSuppliedParameter.choices.length > 0){
-                                    tabOptions.current = lastSuppliedParameter.choices;
-                                    tabOptionsIndex.current = 0;
-                                    tabOptionsType.current = "param_value";
-                                    let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
-                                    let newMsg = message + newChoice;
-                                    setMessage(newMsg);
                                     return;
                                 }
                             }
