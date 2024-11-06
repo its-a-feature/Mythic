@@ -132,6 +132,12 @@ func MythicRPCPayloadSearch(input MythicRPCPayloadSearchMessage) MythicRPCPayloa
 					response.Error = err.Error()
 					return response
 				} else {
+					if input.Description != "" && finalPayload.Description != input.Description {
+						continue
+					}
+					if input.Filename != "" && finalPayload.Filename != input.Filename {
+						continue
+					}
 					finalPayloads = append(finalPayloads, finalPayload)
 				}
 			}
@@ -140,6 +146,12 @@ func MythicRPCPayloadSearch(input MythicRPCPayloadSearchMessage) MythicRPCPayloa
 			response.Error = err.Error()
 			return response
 		} else {
+			if input.Description != "" && finalPayload.Description != input.Description {
+				continue
+			}
+			if input.Filename != "" && finalPayload.Filename != input.Filename {
+				continue
+			}
 			finalPayloads = append(finalPayloads, finalPayload)
 		}
 	}
