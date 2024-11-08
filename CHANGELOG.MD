@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Payload Search wasn't properly filtering on filename or description
+- Added an update to make sure that the payload is not deleted and the build phase was a success too
 
 ## [3.3.1-rc21] - 2024-11-5
 

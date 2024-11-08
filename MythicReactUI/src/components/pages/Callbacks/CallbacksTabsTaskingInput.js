@@ -751,8 +751,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 else if(value === " "){
                     if(backslash){
                         backslash = false;
-                        buffer += " ";
-                        return;
+                        //buffer += " ";
+                        buffer += "\\";
+                        //return;
                     }
                     if(buffer.length > 0){
                         if(buffer[buffer.length-1] === buffer[0] && [`'`, `"`].includes(buffer[0])){
@@ -1562,6 +1563,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     <IconButton
                         color="info"
                         variant="contained"
+                        disableRipple={true}
+                        disableFocusRipple={true}
                         onClick={onSubmitCommandLine}
                         size="large"><SendIcon/></IconButton>
                     {props.filterTasks &&
@@ -1570,6 +1573,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             variant="contained"
                             onClick={onClickFilter}
                             style={{paddingLeft: 0}}
+                            disableRipple={true}
+                            disableFocusRipple={true}
                             size="large"><TuneIcon/></IconButton>
                     }
                         {commandPayloadType !== "" &&
@@ -1590,7 +1595,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
               {openFilterOptionsDialog &&
                 <MythicDialog fullWidth={true} maxWidth="md" open={openFilterOptionsDialog} 
                     onClose={()=>{setOpenFilterOptionsDialog(false);}} 
-                    innerDialog={<CallbacksTabsTaskingFilterDialog filterCommandOptions={loadedOptions} onSubmit={props.onSubmitFilter} filterOptions={props.filterOptions} onClose={()=>{setOpenFilterOptionsDialog(false);}} />}
+                    innerDialog={<CallbacksTabsTaskingFilterDialog filterCommandOptions={loadedOptions.current} onSubmit={props.onSubmitFilter} filterOptions={props.filterOptions} onClose={()=>{setOpenFilterOptionsDialog(false);}} />}
                 />
               }
             {openSelectCommandDialog &&
