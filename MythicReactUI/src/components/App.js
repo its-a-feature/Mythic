@@ -53,6 +53,7 @@ query getUserSettings {
 export function App(props) {
     const me = useReactiveVar(meState);
     const preferences = useReactiveVar(mePreferences);
+    const [loadingPreference, setLoadingPreferences] = React.useState(true);
     const [themeMode, themeToggler] = useDarkMode();
     const theme = React.useMemo(
         () =>
@@ -124,17 +125,17 @@ export function App(props) {
                     fontFamily: preferences?.fontFamily
                 },
             })),
-        [themeMode, preferences.topColor, preferences.fontSize, preferences.fontFamily]
+        [themeMode, loadingPreference]
     );
     const mountedRef = React.useRef(true);
     const [openRefreshDialog, setOpenRefreshDialog] = React.useState(false);
-    const [loadingPreference, setLoadingPreferences] = React.useState(true);
+
     useQuery(userSettingsQuery, {
         onCompleted: (data) => {
             //console.log("got preferences", data.getOperatorPreferences.preferences)
             if(data.getOperatorPreferences.status === "success"){
                 if(data.getOperatorPreferences.preferences !== null){
-                    mePreferences(data.getOperatorPreferences.preferences);
+                    mePreferences({...preferences, ...data.getOperatorPreferences.preferences});
                 }
             } else {
                 snackActions.error(`Failed to get user preferences:\n${data.getOperatorPreferences.error}`);

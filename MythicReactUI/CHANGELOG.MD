@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.56] - 2024-11-14
+
+### Changed
+
+- Updated the initialization to save the defaults incase the database gets set to empty
+- Updated some MythicTooltip pieces to forward some embedded styles
+
 ## [0.2.55] - 2024-11-14
 
 ### Changed

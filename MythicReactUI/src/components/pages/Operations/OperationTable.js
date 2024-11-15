@@ -22,7 +22,6 @@ import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip'
 import { IconButton } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import {meState} from "../../../cache";
-import {restartWebsockets} from "../../../index";
 
 const newOperatorMutation = gql`
 mutation NewOperator($username: String!, $password: String!) {
@@ -151,7 +150,7 @@ export function OperationTable(props){
                 Operations
             </Typography>
             {showDeleted ? (
-                <MythicStyledTooltip title={"Hide Deleted Operations"} style={{float: "right"}}>
+                <MythicStyledTooltip title={"Hide Deleted Operations"} tooltipStyle={{float: "right"}}>
                     <IconButton size="small" style={{float: "right", marginTop: "5px", marginRight: "10px"}}
                                 variant="contained" onClick={() => setShowDeleted(!showDeleted)}>
                         <VisibilityIcon />
@@ -159,14 +158,14 @@ export function OperationTable(props){
                 </MythicStyledTooltip>
                 
               ) : (
-                <MythicStyledTooltip title={"Show Deleted Operations"} style={{float: "right"}}>
+                <MythicStyledTooltip title={"Show Deleted Operations"} tooltipStyle={{float: "right"}}>
                   <IconButton size="small" style={{float: "right",  marginTop: "5px", marginRight: "10px"}}
                               variant="contained" onClick={() => setShowDeleted(!showDeleted)} >
                       <VisibilityOffIcon />
                   </IconButton>
                 </MythicStyledTooltip>
               )}
-            <MythicStyledTooltip title={"Create new operator"} style={{float: "right"}}>
+            <MythicStyledTooltip title={"Create new operator"} tooltipStyle={{float: "right"}}>
                 <IconButton size="small"
                             onClick={()=>{setOpenNewOperatorDialog(true);}}
                             style={{marginRight: "10px", float: "right", marginTop: "5px"}}

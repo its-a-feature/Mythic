@@ -168,7 +168,7 @@ export function PayloadBuildStepStatusDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Step {props.step.step_number + 1} - {props.step.step_name}</DialogTitle>
-            <TableContainer component={Paper} className="mythicElement">
+            <TableContainer className="mythicElement">
                 <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                     <TableHead>
                         <TableRow>
