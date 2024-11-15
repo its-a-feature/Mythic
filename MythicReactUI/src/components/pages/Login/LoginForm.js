@@ -3,7 +3,7 @@ import {Button, Paper} from '@mui/material';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import logo from '../../../assets/mythic-red.png';
 import { Navigate } from 'react-router-dom';
-import { meState, successfulLogin, FailedRefresh } from '../../../cache';
+import {meState, successfulLogin, FailedRefresh, mePreferences} from '../../../cache';
 import { useReactiveVar } from '@apollo/client';
 import {restartWebsockets, isJWTValid} from '../../../index';
 import { snackActions } from '../../utilities/Snackbar';

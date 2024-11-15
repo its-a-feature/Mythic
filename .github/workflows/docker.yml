@@ -358,6 +358,8 @@ jobs:
       # Pull in the repository code
       - name: Checkout the repository
         uses: actions/checkout@v4 # ref: https://github.com/marketplace/actions/checkout
+        with:
+          lfs: true
       - name: Log in to the container registry
         uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
         with:

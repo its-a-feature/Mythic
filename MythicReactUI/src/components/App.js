@@ -26,7 +26,7 @@ import { Reporting } from './pages/Reporting/Reporting';
 import { MitreAttack } from './pages/MITRE_ATTACK/MitreAttack';
 import {Tags} from './pages/Tags/Tags';
 import { Tooltip } from 'react-tooltip';
-import {useQuery, gql } from '@apollo/client';
+import {useQuery, useLazyQuery, gql } from '@apollo/client';
 //background-color: #282c34;
 import { Route, Routes } from 'react-router-dom';
 import { useInterval } from './utilities/Time';
@@ -39,7 +39,7 @@ import {Eventing} from "./pages/Eventing/Eventing";
 import {InviteForm} from "./pages/Login/InviteForm";
 import {snackActions} from "./utilities/Snackbar";
 
-const userSettingsQuery = gql`
+export const userSettingsQuery = gql`
 query getUserSettings {
     getOperatorPreferences {
         status
@@ -129,8 +129,7 @@ export function App(props) {
     );
     const mountedRef = React.useRef(true);
     const [openRefreshDialog, setOpenRefreshDialog] = React.useState(false);
-
-    useQuery(userSettingsQuery, {
+    const [getUserPreferences] = useLazyQuery(userSettingsQuery, {
         onCompleted: (data) => {
             //console.log("got preferences", data.getOperatorPreferences.preferences)
             if(data.getOperatorPreferences.status === "success"){
@@ -161,9 +160,24 @@ export function App(props) {
             }
         }
     }, 600000, mountedRef, mountedRef);
+    React.useEffect( () => {
+        if(me.loggedIn){
+            setLoadingPreferences(true);
+            getUserPreferences();
+        } else {
+            setLoadingPreferences(false);
+        }
+    }, [me.loggedIn])
     if(loadingPreference){
         // make sure we've loaded preferences before loading actual app content
-        return null
+        return (
+            <StyledEngineProvider injectFirst>
+                <ThemeProvider theme={theme}>
+                    <GlobalStyles theme={theme} />
+                    <CssBaseline />
+                </ThemeProvider>
+            </StyledEngineProvider>
+        )
     }
     return (
         <StyledEngineProvider injectFirst>
