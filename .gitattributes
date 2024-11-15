@@ -1,2 +1,0 @@
-main.*.js.* filter=lfs diff=lfs merge=lfs -text
-main.*.js filter=lfs diff=lfs merge=lfs -text
