@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.55] - 2024-11-14
+
+### Changed
+
+- Updated the string display dialog for browser script tables to match other text fields
+- Updated user preferences to be stored outside of local storage
+- Updated Tooltip from MUI to react-tooltip to speed things up a bit
+
 ## [0.2.54] - 2024-11-8
 
 ### Changed

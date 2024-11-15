@@ -460,6 +460,17 @@ actions:
       forward_client_headers: true
     permissions:
       - role: mythic_admin
+  - name: getOperatorPreferences
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_get_preferences_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: getOperatorSecrets
     definition:
       kind: ""
@@ -690,6 +701,17 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: updateOperatorPreferences
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_update_preferences_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: updateOperatorSecrets
     definition:
       kind: synchronous
@@ -842,4 +864,6 @@ custom_types:
     - name: eventingTriggerRetryFromStepOutput
     - name: testProxyOutput
     - name: eventingTestFileOutput
+    - name: getOperatorPreferencesOutput
+    - name: updateOperatorPreferencesOutput
   scalars: []

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc23] - 2024-11-14
+
+### Changed
+
+- Added a new field to file browser responses, `set_as_user_output` (bool) to indicate that this structured data should be turned into JSON and set as user_output data by Mythic
+  - This allows agents to send file browser data once, but get it counted for both the file browser and user_output
+- Added endpoints to leverage/set user preferences
+
 ## [3.3.1-rc22] -2024-11-6
 
 ### Changed

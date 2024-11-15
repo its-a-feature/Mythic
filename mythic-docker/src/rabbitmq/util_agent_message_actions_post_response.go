@@ -64,17 +64,18 @@ type agentMessagePostResponse struct {
 var ValidCredentialTypesList = []string{"plaintext", "certificate", "hash", "key", "ticket", "cookie", "hex"}
 
 type agentMessagePostResponseFileBrowser struct {
-	Host          string                                         `json:"host" mapstructure:"host" xml:"host"`
-	IsFile        bool                                           `json:"is_file" mapstructure:"is_file" xml:"is_file"`
-	Permissions   interface{}                                    `json:"permissions" mapstructure:"permissions" xml:"permissions"`
-	Name          string                                         `json:"name" mapstructure:"name" xml:"name"`
-	ParentPath    string                                         `json:"parent_path" mapstructure:"parent_path" xml:"parent_path"`
-	Success       *bool                                          `json:"success,omitempty" mapstructure:"success,omitempty" xml:"success,omitempty"`
-	AccessTime    uint64                                         `json:"access_time" mapstructure:"access_time" xml:"access_time"`
-	ModifyTime    uint64                                         `json:"modify_time" mapstructure:"modify_time" xml:"modify_time"`
-	Size          uint64                                         `json:"size" mapstructure:"size" xml:"size"`
-	UpdateDeleted *bool                                          `json:"update_deleted,omitempty" mapstructure:"update_deleted,omitempty" xml:"update_deleted,omitempty"` // option to treat this response as full source of truth
-	Files         *[]agentMessagePostResponseFileBrowserChildren `json:"files" mapstructure:"files" xml:"files"`
+	Host            string                                         `json:"host" mapstructure:"host" xml:"host"`
+	IsFile          bool                                           `json:"is_file" mapstructure:"is_file" xml:"is_file"`
+	Permissions     interface{}                                    `json:"permissions" mapstructure:"permissions" xml:"permissions"`
+	Name            string                                         `json:"name" mapstructure:"name" xml:"name"`
+	ParentPath      string                                         `json:"parent_path" mapstructure:"parent_path" xml:"parent_path"`
+	Success         *bool                                          `json:"success,omitempty" mapstructure:"success,omitempty" xml:"success,omitempty"`
+	AccessTime      uint64                                         `json:"access_time" mapstructure:"access_time" xml:"access_time"`
+	ModifyTime      uint64                                         `json:"modify_time" mapstructure:"modify_time" xml:"modify_time"`
+	Size            uint64                                         `json:"size" mapstructure:"size" xml:"size"`
+	UpdateDeleted   *bool                                          `json:"update_deleted,omitempty" mapstructure:"update_deleted,omitempty" xml:"update_deleted,omitempty"` // option to treat this response as full source of truth
+	Files           *[]agentMessagePostResponseFileBrowserChildren `json:"files" mapstructure:"files" xml:"files"`
+	SetAsUserOutput *bool                                          `json:"set_as_user_output,omitempty" mapstructure:"set_as_user_output,omitempty"`
 }
 type agentMessagePostResponseFileBrowserChildren struct {
 	IsFile      bool        `json:"is_file" mapstructure:"is_file" xml:"is_file"`
@@ -1455,6 +1456,20 @@ func addChildFilePermissions(fileBrowser *agentMessagePostResponseFileBrowserChi
 func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBrowser *agentMessagePostResponseFileBrowser,
 	apitokensId int) error {
 	// given a FileBrowser object, need to insert it into database and potentially insert parents along the way
+	if fileBrowser.SetAsUserOutput != nil && *fileBrowser.SetAsUserOutput {
+		go func(fileBrowserForOutput *agentMessagePostResponseFileBrowser) {
+			outputBytes, err := json.Marshal(fileBrowser)
+			if err != nil {
+				logging.LogError(err, "failed to marshal filebrowser data to JSON")
+				return
+			}
+			asyncAgentMessagePostResponseChannel <- agentAgentMessagePostResponseChannelMessage{
+				Task:        task,
+				Response:    string(outputBytes),
+				SequenceNum: nil,
+			}
+		}(fileBrowser)
+	}
 	pathData, err := utils.SplitFilePathGetHost(fileBrowser.ParentPath, fileBrowser.Name, []string{})
 	if err != nil {
 		logging.LogError(err, "Failed to add data for file browser due to path issue")

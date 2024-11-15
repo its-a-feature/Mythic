@@ -15,7 +15,7 @@ import {gql, useSubscription } from '@apollo/client';
 import {TaskDisplayContainer, TaskDisplayContainerConsole} from './TaskDisplayContainer';
 import {TagsDisplay} from '../../MythicComponents/MythicTag';
 import {taskingDataFragment} from './CallbackMutations';
-import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
 import CropRotateTwoToneIcon from '@mui/icons-material/CropRotateTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
@@ -233,11 +233,11 @@ const GetOperatorDisplay = ({initialHideUsernameValue, task}) => {
 export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded }) => {
   const [displayComment, setDisplayComment] = React.useState(false);
   const [alertBadges, setAlertBadges] = React.useState(0);
-  const initialHideUsernameValue = useMythicSetting({setting_name: "hideUsernames", default_value: "false"});
-  const initialShowIPValue = useMythicSetting({setting_name: "showIP", default_value: "false"});
+  const initialHideUsernameValue = GetMythicSetting({setting_name: "hideUsernames", default_value: false});
+  const initialShowIPValue = GetMythicSetting({setting_name: "showIP", default_value: false});
   const ipValue = JSON.parse(task.callback.ip)[0];
-  const initialShowHostnameValue = useMythicSetting({setting_name: "showHostname", default_value: "false"});
-  const initialShowCallbackGroupsValue = useMythicSetting({setting_name: "showCallbackGroups", default_value: "false"});
+  const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: false});
+  const initialShowCallbackGroupsValue = GetMythicSetting({setting_name: "showCallbackGroups", default_value: false});
   const toggleDisplayComment = (evt) => {
     evt.stopPropagation();
     setDisplayComment(!displayComment);

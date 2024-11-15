@@ -21,10 +21,12 @@ import { SingleTaskView } from './pages/SingleTaskView/SingleTaskView';
 import { createTheme, ThemeProvider, StyledEngineProvider, adaptV4Theme } from '@mui/material/styles';
 import { GlobalStyles } from '../themes/GlobalStyles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { FailedRefresh, meState } from '../cache';
+import {FailedRefresh, mePreferences, meState} from '../cache';
 import { Reporting } from './pages/Reporting/Reporting';
 import { MitreAttack } from './pages/MITRE_ATTACK/MitreAttack';
 import {Tags} from './pages/Tags/Tags';
+import { Tooltip } from 'react-tooltip';
+import {useQuery, gql } from '@apollo/client';
 //background-color: #282c34;
 import { Route, Routes } from 'react-router-dom';
 import { useInterval } from './utilities/Time';
@@ -35,29 +37,23 @@ import { ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 import {Eventing} from "./pages/Eventing/Eventing";
 import {InviteForm} from "./pages/Login/InviteForm";
+import {snackActions} from "./utilities/Snackbar";
 
+const userSettingsQuery = gql`
+query getUserSettings {
+    getOperatorPreferences {
+        status
+        error
+        preferences
+    }
+}
+`;
 
 
 export function App(props) {
     const me = useReactiveVar(meState);
+    const preferences = useReactiveVar(mePreferences);
     const [themeMode, themeToggler] = useDarkMode();
-    const localStorageFontSize = localStorage.getItem(`${me?.user?.user_id || 0}-fontSize`);
-    const initialLocalStorageFontSizeValue = localStorageFontSize === null ? 12 : parseInt(localStorageFontSize);
-    const localStorageFontFamily = localStorage.getItem(`${me?.user?.user_id || 0}-fontFamily`);
-    const initialLocalStorageFontFamilyValue = localStorageFontFamily === null ? [
-        '-apple-system',
-        'BlinkMacSystemFont',
-        '"Segoe UI"',
-        'Roboto',
-        '"Helvetica Neue"',
-        'Arial',
-        'sans-serif',
-        '"Apple Color Emoji"',
-        '"Segoe UI Emoji"',
-        '"Segoe UI Symbol"',
-      ].join(',') : localStorageFontFamily;
-    const localStorageTopColor = localStorage.getItem(`${me?.user?.user_id || 0}-topColor`);
-    const initialLocalStorageTopColorValue = localStorageTopColor === null ? "#3c4d67" : localStorageTopColor;
     const theme = React.useMemo(
         () =>
             createTheme(adaptV4Theme({
@@ -122,16 +118,35 @@ export function App(props) {
                 pageHeaderText: {
                     main: 'white',
                 },
-                topAppBarColor: initialLocalStorageTopColorValue,
+                topAppBarColor: preferences?.topColor,
                 typography: {
-                    fontSize: initialLocalStorageFontSizeValue,
-                    fontFamily: initialLocalStorageFontFamilyValue
+                    fontSize: preferences?.fontSize,
+                    fontFamily: preferences?.fontFamily
                 },
             })),
-        [themeMode]
+        [themeMode, preferences.topColor, preferences.fontSize, preferences.fontFamily]
     );
     const mountedRef = React.useRef(true);
     const [openRefreshDialog, setOpenRefreshDialog] = React.useState(false);
+    const [loadingPreference, setLoadingPreferences] = React.useState(true);
+    useQuery(userSettingsQuery, {
+        onCompleted: (data) => {
+            //console.log("got preferences", data.getOperatorPreferences.preferences)
+            if(data.getOperatorPreferences.status === "success"){
+                if(data.getOperatorPreferences.preferences !== null){
+                    mePreferences(data.getOperatorPreferences.preferences);
+                }
+            } else {
+                snackActions.error(`Failed to get user preferences:\n${data.getOperatorPreferences.error}`);
+            }
+            setLoadingPreferences(false);
+        },
+        onError: (error) => {
+            console.log(error);
+            snackActions.error(error.message);
+            setLoadingPreferences(false);
+        }
+    })
     useInterval( () => {
         // interval should run every 10 minutes (600000 milliseconds) to check JWT status
         let millisecondsLeft = JWTTimeLeft();
@@ -145,11 +160,16 @@ export function App(props) {
             }
         }
     }, 600000, mountedRef, mountedRef);
+    if(loadingPreference){
+        // make sure we've loaded preferences before loading actual app content
+        return null
+    }
     return (
         <StyledEngineProvider injectFirst>
             <ThemeProvider theme={theme}>
                 <GlobalStyles theme={theme} />
                 <CssBaseline />
+                <Tooltip id={"my-tooltip"} style={{zIndex: 100000}}/>
                 <ToastContainer limit={2} autoClose={3000}
                                 theme={themeMode}
                                 style={{maxWidth: "100%", minWidth: "40%", width: "40%", marginTop: "20px", display: "flex", flexWrap: "wrap",

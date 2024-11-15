@@ -7,19 +7,26 @@ import HeaderCell from './HeaderCell';
 import Cell from './Cell';
 import DraggableHandles from './DraggableHandles';
 import {classes} from './styles';
-import {GetMythicSetting, SetMythicSetting} from "../MythicSavedUserSetting";
+import {GetMythicSetting, useSetMythicSetting} from "../MythicSavedUserSetting";
+
 const HeaderCellContext = createContext({});
 
 const MIN_COLUMN_WIDTH = 50;
 const MIN_FLEX_COLUMN_WIDTH = 150;
 
-const CellRenderer = (VariableSizeGridProps) => {
-    return VariableSizeGridProps.rowIndex === 0 ? null : <Cell VariableSizeGridProps={VariableSizeGridProps} />;
+
+const CellRendererPreMemo = ({ style, rowIndex, columnIndex, data }) => {
+    return rowIndex === 0 ? null : <Cell style={style} rowIndex={rowIndex} columnIndex={columnIndex} data={data} />;
 };
-const innerElementType = React.forwardRef(({ children, ...rest }, ref) => {
+const CellRenderer = React.memo(CellRendererPreMemo);
+const innerElementType = React.forwardRef(({ children, style }, ref) => {
     const HeaderCellData = useContext(HeaderCellContext);
+    const onHeaderDoubleClick = React.useCallback( (e, columnIndex) => {
+        if (HeaderCellData.columns[columnIndex].disableAutosize) return;
+        HeaderCellData.autosizeColumn({columnIndex});
+    }, [HeaderCellData.columns, HeaderCellData.autosizeColumn]);
     return (
-        <div ref={ref} {...rest}>
+        <div ref={ref} style={style}>
             {/* always render header cells */}
             <div
                 className={classes.headerCellRow}
@@ -33,10 +40,7 @@ const innerElementType = React.forwardRef(({ children, ...rest }, ref) => {
                             key={i}
                             headerNameKey={HeaderCellData.headerNameKey}
                             onClick={HeaderCellData.onClickHeader}
-                            onDoubleClick={(e, columnIndex) => {
-                                if (column.disableAutosize) return;
-                                HeaderCellData.autosizeColumn({columnIndex});
-                            }}
+                            onDoubleClick={onHeaderDoubleClick}
                             contextMenuOptions={HeaderCellData.contextMenuOptions}
                             sortIndicatorIndex={HeaderCellData.sortIndicatorIndex}
                             sortDirection={HeaderCellData.sortDirection}
@@ -62,7 +66,7 @@ const innerElementType = React.forwardRef(({ children, ...rest }, ref) => {
     );
 });
 
-const getShortRandomString = () => {
+export const GetShortRandomString = () => {
     return (Math.random() + 1).toString(36).substring(2);
 }
 const ResizableGridWrapper = ({
@@ -97,9 +101,10 @@ const ResizableGridWrapper = ({
         }
         return Math.max(column?.width || 0, MIN_COLUMN_WIDTH);
     }));
-    const gridUUID = React.useMemo( () => getShortRandomString(), []);
+    const gridUUID = React.useMemo( () => GetShortRandomString(), []);
     const gridRef = useRef(null);
     const dragHandlesRef = useRef(null);
+    const [updateSetting] = useSetMythicSetting();
     const getColumnWidth = useCallback(
         (index) => {
             return columnWidths[index] || MIN_COLUMN_WIDTH;
@@ -142,7 +147,10 @@ const ResizableGridWrapper = ({
             //updatedColumnWidths[updatedWidthIndex] += totalWidthDiff;
         }
         setColumnWidths(updatedColumnWidths);
-        SetMythicSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, output: "json-array"});
+        if(name !== undefined){
+            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+        }
+
     }, [scrollbarWidth, columns, AutoSizerProps.width, localColumnsRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
@@ -151,7 +159,7 @@ const ResizableGridWrapper = ({
 
     /* Event Handlers */
 
-    const resizeColumn = (x, columnIndex) => {
+    const resizeColumn = useCallback( (x, columnIndex) => {
         const updatedColumnWidths = columnWidths.map((columnWidth, index) => {
             if (columnIndex === index) {
                 return Math.floor(Math.max(columnWidth + x, MIN_COLUMN_WIDTH));
@@ -159,9 +167,12 @@ const ResizableGridWrapper = ({
             return Math.floor(columnWidth);
         });
         setColumnWidths(updatedColumnWidths);
-        SetMythicSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, output: "json-array"});
-    };
-    const autosizeColumn =  ({columnIndex}) => {
+        if(name !== undefined){
+            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+        }
+
+    }, [columnWidths]);
+    const autosizeColumn =  useCallback( ({columnIndex}) => {
         if(columns[columnIndex].disableDoubleClick){
             return
         }
@@ -234,8 +245,11 @@ const ResizableGridWrapper = ({
         });
         //console.log(updatedWidths, longestElementInColumn);
         setColumnWidths(updatedColumnWidths);
-        SetMythicSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths, output: "json-array"});
-    };
+        if(name !== undefined){
+            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+        }
+
+    }, [columnWidths]);
 
     useEffect( () => {
         if(callbackTableGridRef){
@@ -255,7 +269,13 @@ const ResizableGridWrapper = ({
         "sortDirection": sortDirection,
         "getColumnWidth": getColumnWidth,
         "itemsWithHeader": itemsWithHeader,
-    }
+    };
+    const localOnScroll = React.useCallback( ({scrollLeft}) => {
+
+        if (dragHandlesRef.current) {
+            dragHandlesRef.current.scrollTo({ left: scrollLeft });
+        }
+    }, [dragHandlesRef.current])
     return (
         <>
             <HeaderCellContext.Provider value={headerCellData}>
@@ -272,12 +292,9 @@ const ResizableGridWrapper = ({
                         rowContextMenuOptions, onRowClick,
                         onRowContextMenuClick}}
                     innerElementType={innerElementType}
-                    overscanRowCount={10}
-                    onScroll={({ scrollLeft }) => {
-                        if (dragHandlesRef.current) {
-                            dragHandlesRef.current.scrollTo({ left: scrollLeft });
-                        }
-                    }}
+                    overscanRowCount={20}
+                    useIsScrolling={false}
+                    onScroll={localOnScroll}
                     ref={gridRef}>
                     {CellRenderer}
                 </VariableSizeGrid>

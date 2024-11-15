@@ -25,20 +25,10 @@ import {CallbacksTabsHideMultipleDialog} from "./CallbacksTabsHideMultipleDialog
 import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog";
 import ip6 from 'ip6';
 import {CallbacksContext, OnOpenTabContext, OnOpenTabsContext} from "./CallbacksTop";
-import {
-    MaterialReactTable,
-    useMaterialReactTable,
-} from 'material-react-table';
 import {useTheme} from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
-import {GetMythicSetting, SetMythicSetting, useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting, SetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {DetailedCallbackTable} from "./DetailedCallbackTable";
 import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
-import Paper from '@mui/material/Paper';
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import {getCallbackIdFromClickedTab} from './Callbacks';
 import {Dropdown, DropdownNestedMenuItem, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
@@ -58,6 +48,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import {TaskFromUIButton} from "./TaskFromUIButton";
 import {CallbacksTabsOpenMultipleDialog} from "./CallbacksTabsOpenMultipleDialog";
+import {operatorSettingDefaults} from "../../../cache";
 
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
@@ -186,7 +177,8 @@ function CallbacksTablePreMemo(props){
         let defaults = {"visible": ["Interact", "Host", "Domain", "User", "Description", "Last Checkin", "Agent",  "IP", "PID"],
             "hidden": ["Arch", "Sleep", "Process Name", "External IP", "C2",  "OS", "Groups"]}
         try {
-            const storageItem = GetMythicSetting({setting_name: "callbacks_table_columns", default_value: {}, output: "json"});
+            const storageItem = GetMythicSetting({setting_name: "callbacks_table_columns", default_value: operatorSettingDefaults.callbacks_table_columns});
+
             if(storageItem !== null){
                 let allColumns = [...defaults["visible"].map(c => c), ...defaults["hidden"].map(c => c)];
                 let newHidden = [];
@@ -282,6 +274,7 @@ function CallbacksTablePreMemo(props){
     })
     const taskingData = React.useRef({"parameters": "", "ui_feature": "callback_table:exit"});
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
+    const [updateSetting] = useSetMythicSetting();
     const onRowContextClick = ({rowDataStatic}) => {
         // based on row, return updated options array?
         let defaultInteractIcon = <KeyboardIcon style={{paddingRight: "5px"}}/>;
@@ -499,12 +492,12 @@ function CallbacksTablePreMemo(props){
     }
     const onSubmitAdjustColumns = ({left, right}) => {
       setColumnVisibility({visible: right, hidden: left});
-      SetMythicSetting({setting_name: "callbacks_table_columns", value: right, output: "json"});
+      updateSetting({setting_name: "callbacks_table_columns", value: right});
     }
     React.useEffect( () => {
       // on startup, want to see if `callbacks_table_columns` exists in storage and load it if possible
       try {
-        const storageItem = GetMythicSetting({setting_name: "callbacks_table_columns", default_value: {}, output: "json"});
+        const storageItem = GetMythicSetting({setting_name: "callbacks_table_columns", default_value: operatorSettingDefaults.callbacks_table_columns});
         if(storageItem !== null){
           let allColumns = [...columnVisibility["visible"].map(c => c), ...columnVisibility["hidden"].map(c => c)];
           let newHidden = [];
@@ -519,7 +512,7 @@ function CallbacksTablePreMemo(props){
         console.log("Failed to load callbacks_table_columns", error);
       }
       try {
-        const storageItemOptions = GetMythicSetting({setting_name: "callbacks_table_filter_options", default_value: {}, output: "json"});
+        const storageItemOptions = GetMythicSetting({setting_name: "callbacks_table_filter_options", default_value: operatorSettingDefaults.callbacks_table_filters});
         if(storageItemOptions !== null){
             setFilterOptions(storageItemOptions);
         }
@@ -742,7 +735,7 @@ function CallbacksTablePreMemo(props){
     const onSubmitFilterOptions = (newFilterOptions) => {
       setFilterOptions(newFilterOptions);
       try{
-          SetMythicSetting({setting_name: "callbacks_table_filter_options", value: newFilterOptions, output: "json"});
+          updateSetting({setting_name: "callbacks_table_filter_options", value: newFilterOptions});
       }catch(error){
           console.log("failed to save filter options");
       }

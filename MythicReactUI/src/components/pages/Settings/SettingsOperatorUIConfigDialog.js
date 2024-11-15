@@ -3,7 +3,6 @@ import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
@@ -12,11 +11,12 @@ import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import Typography from '@mui/material/Typography';
 import {HexColorInput, HexColorPicker} from 'react-colorful';
-import {useMythicSetting, SetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {SetMythicSetting, GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Input from '@mui/material/Input';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
+import {operatorSettingDefaults} from "../../../cache";
 
 const interactTypeOptions = [
     {value: "interact", display: "Accordions"},
@@ -24,50 +24,38 @@ const interactTypeOptions = [
     {value: "interactConsole", display: "Console Like"}
 ];
 export function SettingsOperatorUIConfigDialog(props) {
-    const me = props.me;
-    const initialLocalStorageInteractType = useMythicSetting({setting_name: 'interactType', default_value: "interact", output: "string"});
+    const initialLocalStorageInteractType = GetMythicSetting({setting_name: 'interactType', default_value: operatorSettingDefaults.interactType});
     const [interactType, setInteractType] = React.useState(initialLocalStorageInteractType);
 
-    const localStorageFontSize = localStorage.getItem(`${me?.user?.user_id || 0}-fontSize`);
-    const initialLocalStorageFontSizeValue = localStorageFontSize === null ? 12 : parseInt(localStorageFontSize);
-    const localStorageFontFamily = localStorage.getItem(`${me?.user?.user_id || 0}-fontFamily`);
-    const initialLocalStorageFontFamilyValue = localStorageFontFamily === null ? [
-        '-apple-system',
-        'BlinkMacSystemFont',
-        '"Segoe UI"',
-        'Roboto',
-        '"Helvetica Neue"',
-        'Arial',
-        'sans-serif',
-        '"Apple Color Emoji"',
-        '"Segoe UI Emoji"',
-        '"Segoe UI Symbol"',
-      ].join(',') : localStorageFontFamily;
-    const localStorageTopColor = localStorage.getItem(`${me?.user?.user_id || 0}-topColor`);
-    const initialLocalStorageTopColorValue = localStorageTopColor === null ?  "#3c4d67" : localStorageTopColor;
+    const initialLocalStorageFontSizeValue = GetMythicSetting({setting_name: "fontSize", default_value: operatorSettingDefaults.fontSize});
     const [fontSize, setFontSize] = React.useState(initialLocalStorageFontSizeValue);
+
+    const initialLocalStorageFontFamilyValue = GetMythicSetting({setting_name: "fontFamily", default_value: operatorSettingDefaults.fontFamily});
     const [fontFamily, setFontFamily] = React.useState(initialLocalStorageFontFamilyValue);
+
+    const initialLocalStorageTopColorValue = GetMythicSetting({setting_name: "topColor", default_value: operatorSettingDefaults.topColor});
     const [topColor, setTopColor] = React.useState(initialLocalStorageTopColorValue);
 
-    const initialShowMediaValue = useMythicSetting({setting_name: "showMedia", default_value: "true"});
+    const initialShowMediaValue = GetMythicSetting({setting_name: "showMedia", default_value: operatorSettingDefaults.showMedia});
     const [showMedia, setShowMedia] = React.useState(initialShowMediaValue);
 
-    const initialHideUsernameValue = useMythicSetting({setting_name: "hideUsernames", default_value: "false"});
+    const initialHideUsernameValue = GetMythicSetting({setting_name: "hideUsernames", default_value: operatorSettingDefaults.hideUsernames});
     const [hideUsernames, setHideUsernames] = React.useState(initialHideUsernameValue);
 
-    const initialShowIPValue = useMythicSetting({setting_name: "showIP", default_value: "false"});
+    const initialShowIPValue = GetMythicSetting({setting_name: "showIP", default_value: operatorSettingDefaults.showIP});
     const [showIP, setShowIP] = React.useState(initialShowIPValue);
 
-    const initialShowHostnameValue = useMythicSetting({setting_name: "showHostname", default_value: "false"});
+    const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: operatorSettingDefaults.showHostname});
     const [showHostname, setShowHostname] = React.useState(initialShowHostnameValue);
 
-    const initialShowCallbackGroupsValue = useMythicSetting({setting_name: "showCallbackGroups", default_value: "false"});
+    const initialShowCallbackGroupsValue = GetMythicSetting({setting_name: "showCallbackGroups", default_value: operatorSettingDefaults.showCallbackGroups});
     const [showCallbackGroups, setShowCallbackGroups] = React.useState(initialShowCallbackGroupsValue);
 
-    const initialUseDisplayParamsForCLIHistory = useMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: "true"});
+    const initialUseDisplayParamsForCLIHistory = GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: operatorSettingDefaults.useDisplayParamsForCLIHistory});
     const [useDisplayParamsForCLIHistory, setUseDisplayParamsForCLIHistory] = React.useState(initialUseDisplayParamsForCLIHistory);
 
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
+    const [_, updateSettings] = useSetMythicSetting();
     const onChangeFontSize = (name, value, error) => {
       setFontSize(value);
     }
@@ -106,40 +94,33 @@ export function SettingsOperatorUIConfigDialog(props) {
               "doNotDisturbMinutes": 0
           }))
       }
-        localStorage.setItem(`${me?.user?.user_id || 0}-hideUsernames`, hideUsernames);
-        localStorage.setItem(`${me?.user?.user_id || 0}-showIP`, showIP);
-        localStorage.setItem(`${me?.user?.user_id || 0}-showHostname`, showHostname);
-        localStorage.setItem(`${me?.user?.user_id || 0}-showCallbackGroups`, showCallbackGroups);
-        localStorage.setItem(`${me?.user?.user_id || 0}-fontSize`, fontSize);
-        localStorage.setItem(`${me?.user?.user_id || 0}-fontFamily`, fontFamily);
-        localStorage.setItem(`${me?.user?.user_id || 0}-topColor`, topColor);
-        localStorage.setItem(`${me?.user?.user_id || 0}-showMedia`, showMedia);
-        localStorage.setItem(`${me?.user?.user_id || 0}-interactType`, interactType);
-        SetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", value: useDisplayParamsForCLIHistory});
+      updateSettings({settings: {
+              hideUsernames,
+              showIP,
+              showHostname,
+              showCallbackGroups,
+              fontSize,
+              fontFamily,
+              topColor,
+              showMedia,
+              interactType,
+              useDisplayParamsForCLIHistory,
+      }});
         window.location.reload();
       props.onClose();
     }
     const setDefaults = () => {
-      setFontSize(12);
-      setFontFamily([
-        '-apple-system',
-        'BlinkMacSystemFont',
-        '"Segoe UI"',
-        'Roboto',
-        '"Helvetica Neue"',
-        'Arial',
-        'sans-serif',
-        '"Apple Color Emoji"',
-        '"Segoe UI Emoji"',
-        '"Segoe UI Symbol"',
-      ].join(','));
-      setTopColor( "#3c4d67");
-      setHideUsernames(false);
-      setShowIP(false);
-      setShowHostname(false);
-      setShowCallbackGroups(false);
-      setShowMedia(true);
-      setInteractType("interact");
+      setFontSize(operatorSettingDefaults.fontSize);
+      setFontFamily(operatorSettingDefaults.fontFamily);
+      setTopColor( operatorSettingDefaults.topColor);
+      setHideUsernames(operatorSettingDefaults.hideUsernames);
+      setShowIP(operatorSettingDefaults.showIP);
+      setShowHostname(operatorSettingDefaults.showHostname);
+      setShowCallbackGroups(operatorSettingDefaults.showCallbackGroups);
+      setShowMedia(operatorSettingDefaults.showMedia);
+      setInteractType(operatorSettingDefaults.interactType);
+      setUseDisplayParamsForCLIHistory(operatorSettingDefaults.useDisplayParamsForCLIHistory);
+      setResumeNotifications(false);
     }
   
   return (

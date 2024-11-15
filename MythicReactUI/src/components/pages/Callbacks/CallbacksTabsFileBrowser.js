@@ -26,7 +26,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
-import {SetMythicSetting, useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {SetMythicSetting, useGetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";
 import {loadedCommandsQuery} from "./CallbacksTabsProcessBrowser";
 
@@ -731,10 +731,10 @@ const FileBrowserTableTop = ({
     openDirectoryPath,
     tabInfo
 }) => {
-    const initialAutoTaskLsOnEmptyDirectories = useMythicSetting({
-        setting_name: "autoTaskLsOnEmptyDirectories", default_value: "false"
+    const autoTaskLsOnEmptyDirectories = useGetMythicSetting({
+        setting_name: "autoTaskLsOnEmptyDirectories", default_value: false
     });
-    const [autoTaskLsOnEmptyDirectories, setAutoTaskLsOnEmptyDirectories] = React.useState(initialAutoTaskLsOnEmptyDirectories);
+    const [updateMythicSetting] = useSetMythicSetting();
     const [fullPath, setFullPath] = React.useState('');
     const selectedToken = React.useRef("Default Token");
     const [tokenOptions, setTokenOptions] = React.useState([]);
@@ -842,8 +842,7 @@ const FileBrowserTableTop = ({
         }
     };
     const onToggleAutoTaskLsOnEmptyDirectories = () => {
-        SetMythicSetting({setting_name: "autoTaskLsOnEmptyDirectories", value: !autoTaskLsOnEmptyDirectories});
-        setAutoTaskLsOnEmptyDirectories(!autoTaskLsOnEmptyDirectories);
+        updateMythicSetting({setting_name: "autoTaskLsOnEmptyDirectories", value: !autoTaskLsOnEmptyDirectories});
         if(autoTaskLsOnEmptyDirectories){
             snackActions.info("No longer auto issuing listings for empty paths");
         } else {

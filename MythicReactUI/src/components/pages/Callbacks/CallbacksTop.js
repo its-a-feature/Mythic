@@ -1,8 +1,7 @@
 import React, {createContext} from 'react';
-import {useSubscription, gql, useQuery, useLazyQuery } from '@apollo/client';
-import {CallbacksTable, CallbacksTableMaterialReactTable} from './CallbacksTable';
+import {useSubscription, gql, useQuery } from '@apollo/client';
+import {CallbacksTable} from './CallbacksTable';
 import {CallbacksGraph} from './CallbacksGraph';
-import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 export const CallbackGraphEdgesContext = createContext([]);
 export const OnOpenTabContext = createContext( () => {});
 export const OnOpenTabsContext = createContext( () => {});

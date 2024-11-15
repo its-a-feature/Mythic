@@ -1,7 +1,7 @@
 import React from 'react';
 import {Typography, Link} from '@mui/material';
 import { Button, IconButton } from '@mui/material';
-import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {modeOptions} from "../Search/PreviewFileStringDialog";
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
@@ -234,7 +234,7 @@ const mimeType = (path) => {
     return undefined;
 }
 export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaData}) => {
-    const showMediaSetting = useMythicSetting({setting_name: "showMedia", default_value: "true"});
+    const showMediaSetting = GetMythicSetting({setting_name: "showMedia", default_value: true});
     const [showMedia, setShowMedia] = React.useState(showMediaSetting);
     const [fileData, setFileData] = React.useState({
         display: false,

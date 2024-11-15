@@ -318,6 +318,10 @@ type Query {
 }
 
 type Query {
+  getOperatorPreferences: getOperatorPreferencesOutput
+}
+
+type Query {
   getOperatorSecrets(
     operator_id: Int
   ): getOperatorSecretsOutput
@@ -475,6 +479,12 @@ type Mutation {
     view_mode_spectators: [Int]
     disabled_command_map: [disabledCommand]
   ): updateOperatorOperationOutput
+}
+
+type Mutation {
+  updateOperatorPreferences(
+    preferences: jsonb!
+  ): updateOperatorPreferencesOutput
 }
 
 type Mutation {
@@ -1085,6 +1095,17 @@ type testProxyOutput {
 }
 
 type eventingTestFileOutput {
+  status: String!
+  error: String
+}
+
+type getOperatorPreferencesOutput {
+  status: String!
+  error: String
+  preferences: jsonb
+}
+
+type updateOperatorPreferencesOutput {
   status: String!
   error: String
 }

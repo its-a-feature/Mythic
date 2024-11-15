@@ -3,7 +3,7 @@ import {classes} from './styles';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../MythicNestedMenus";
 
-const CellPreMemo = ({ VariableSizeGridProps: { style, rowIndex, columnIndex, data } }) => {
+const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const rowClassName = data.gridUUID + "row" + rowIndex;
     const [contextMenuOptions, setContextMenuOptions] = React.useState(data?.rowContextMenuOptions || []);

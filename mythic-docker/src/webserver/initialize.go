@@ -203,6 +203,8 @@ func setRoutes(r *gin.Engine) {
 			protected.POST("/api/v1.4/create_operator", webcontroller.CreateOperatorWebhook)
 			protected.POST("/api/v1.4/operator_get_secrets_webhook", webcontroller.GetSecretsWebhook)
 			protected.POST("/api/v1.4/operator_update_secrets_webhook", webcontroller.UpdateSecretsWebhook)
+			protected.POST("/api/v1.4/operator_get_preferences_webhook", webcontroller.GetPreferencesWebhook)
+			protected.POST("/api/v1.4/operator_update_preferences_webhook", webcontroller.UpdatePreferencesWebhook)
 			// operation
 			protected.POST("/api/v1.4/create_operation_webhook", webcontroller.CreateOperationWebhook)
 			// following require you to have an operation set

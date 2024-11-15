@@ -26,14 +26,14 @@ import { areEqual } from 'react-window';
 import {CallbackGraphEdgesContext, OnOpenTabContext} from './CallbacksTop';
 import Moment from 'react-moment';
 import moment from 'moment';
-import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import TerminalIcon from '@mui/icons-material/Terminal';
 import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
 
 export const CallbacksTableIDCell = React.memo(({rowData, metaDialog, updateDescription, editMythicTreeGroupsDialog, setOpenHideMultipleDialog, setOpenTaskMultipleDialog, callbackDropdown}) =>{
     const dropdownAnchorRef = React.useRef(null);
     const onOpenTab = useContext(OnOpenTabContext);
-    const interactType = useMythicSetting({setting_name: "interactType", default_value: "interact", output: "string"})
+    const interactType = GetMythicSetting({setting_name: "interactType", default_value: "interact"})
     const [rowDataStatic, setRowDataStatic] = React.useState(rowData);
     React.useEffect( () => {
         let update = false;

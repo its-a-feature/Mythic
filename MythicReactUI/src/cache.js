@@ -4,6 +4,25 @@ import {snackActions} from "./components/utilities/Snackbar";
 
 export const meState = makeVar({loggedIn:false, user: null, access_token: null, refresh_token: null});
 export const menuOpen = makeVar(false);
+export const operatorSettingDefaults =  {
+    fontSize: 12,
+    fontFamily: "Verdana",
+    topColor: "#3c4d67",
+    showMedia: true,
+    hideUsernames: false,
+    showIP: false,
+    showHostname: false,
+    showCallbackGroups: false,
+    useDisplayParamsForCLIHistory: true,
+    interactType: "interact",
+    callbacks_table_columns: ["Interact", "Host", "Domain", "User", "Description", "Last Checkin", "Agent",  "IP", "PID"],
+    callbacks_table_filters: {},
+    autoTaskLsOnEmptyDirectories: false,
+    ["experiment-responseStreamLimit"]: 50,
+
+}
+export const mePreferences = makeVar(operatorSettingDefaults);
+
 
 export const successfulLogin = (data) => {
     localStorage.setItem("access_token", data.access_token);
@@ -41,6 +60,7 @@ export const FailedRefresh = () =>{
         refresh_token: null,
         user: null
     });
+    mePreferences(operatorSettingDefaults);
     snackActions.clearAll();
     restartWebsockets();
 }

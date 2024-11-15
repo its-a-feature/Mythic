@@ -14,7 +14,7 @@ import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import Pagination from '@mui/material/Pagination';
 import {ResponseDisplayInteractive} from "./ResponseDisplayInteractive";
 import {ResponseDisplayMedia} from "./ResponseDisplayMedia";
-import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {DrawBrowserScriptElementsFlow} from "./C2PathDialog";
 import {ResponseDisplayGraph} from "./ResponseDisplayGraph";
 
@@ -109,7 +109,7 @@ const NonInteractiveResponseDisplay = (props) => {
   const search = React.useRef("");
   const [totalCount, setTotalCount] = React.useState(0);
   const [openBackdrop, setOpenBackdrop] = React.useState(true);
-  const initialResponseStreamLimit = useMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 50, output: "number"})
+  const initialResponseStreamLimit = GetMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 50});
   const [fetchMoreResponses] = useLazyQuery(getResponsesLazyQuery, {
     fetchPolicy: "network-only",
     onCompleted: (data) => {
@@ -439,7 +439,6 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
   const [localViewBrowserScript, setViewBrowserScript] = React.useState(true);
   const [browserScriptData, setBrowserScriptData] = React.useState({});
   const [loadingBrowserScript, setLoadingBrowserScript] = React.useState(true);
-  const useNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: "false"});
   const script = React.useRef(undefined);
   const filterOutput = (scriptData) => {
     if(search === ""){
@@ -452,7 +451,6 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
         copied["plaintext"] = "";
       }
     }
-    if(useNewBrowserScriptTable){return copied}
     if(scriptData["table"] !== undefined){
       if(scriptData["table"].length > 0){
         copied["table"] = scriptData.table.map(t => {

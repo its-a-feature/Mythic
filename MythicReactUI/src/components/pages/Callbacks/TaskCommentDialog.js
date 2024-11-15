@@ -1,9 +1,4 @@
 import React, {useState} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
-import MythicTextField from '../../MythicComponents/MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
 import {MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
@@ -56,10 +51,7 @@ export function TaskCommentDialog(props) {
         updateComment({variables: {task_id: props.task_id, comment: newValue}});
         props.onClose();
     }
-    const onChange = (name, value, error) => {
-        setComment(value);
-    }
-  
+
   return (
     <React.Fragment>
         <MythicModifyStringDialog title={`Edit Task Comment`}

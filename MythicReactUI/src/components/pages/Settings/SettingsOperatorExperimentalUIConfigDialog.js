@@ -6,40 +6,34 @@ import DialogContent from '@mui/material/DialogContent';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
-import Switch from '@mui/material/Switch';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
-import {useMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {
+    GetMythicSetting,
+    useSetMythicSetting
+} from "../../MythicComponents/MythicSavedUserSetting";
 import {snackActions} from "../../utilities/Snackbar";
 
 
 export function SettingsOperatorExperimentalUIConfigDialog(props) {
-    const me = props.me;
-    const initialNewBrowserScriptTable = useMythicSetting({setting_name: "experiment-browserscripttable", default_value: "false"});
-    const [newBrowserScriptTables, setNewBrowserScriptTables] = React.useState(false);
-    const initialResponseStreamLimit = useMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 50, output: "number"})
+    const initialResponseStreamLimit = GetMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 50})
     const [newResponseStreamLimit, setNewResponseStreamLimit] = React.useState(initialResponseStreamLimit);
-
-    const onBrowserScriptTablesChanged = (evt) => {
-        setNewBrowserScriptTables(evt.target.checked);
-    }
+    const [updateSetting] = useSetMythicSetting();
     const onNewResponseStreamLimitChange = (name, value, error) => {
         setNewResponseStreamLimit(value);
     }
 
     const onAccept = () => {
-        localStorage.setItem(`${me?.user?.user_id || 0}-experiment-browserscripttable`, newBrowserScriptTables);
         if(newResponseStreamLimit < 0){
-            localStorage.setItem(`${me?.user?.user_id || 0}-experiment-responseStreamLimit`, 0);
+            updateSetting({setting_name: "experiment-responseStreamLimit", value: 0});
         }else{
-            localStorage.setItem(`${me?.user?.user_id || 0}-experiment-responseStreamLimit`, newResponseStreamLimit);
+            updateSetting({setting_name: "experiment-responseStreamLimit", value: newResponseStreamLimit});
         }
         snackActions.success("Updated settings!");
         props.onClose();
     }
     const setDefaults = () => {
-        setNewBrowserScriptTables(false);
         setNewResponseStreamLimit(50);
     }
   
@@ -58,19 +52,6 @@ export function SettingsOperatorExperimentalUIConfigDialog(props) {
         <TableContainer className="mythicElement">
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
-                <TableRow hover>
-                  <TableCell>Use new BrowserScript Table Renders</TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={newBrowserScriptTables}
-                      disabled
-                      onChange={onBrowserScriptTablesChanged}
-                      color="info"
-                      inputProps={{ 'aria-label': 'info checkbox' }}
-                      name="new-browserscripttables"
-                    />
-                  </TableCell>
-                </TableRow>
                   <TableRow hover>
                       <TableCell>{"Determine how many responses to fetch per task before paginating (0 is never paginate)"}</TableCell>
                       <TableCell>
