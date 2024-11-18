@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc24] - 2024-11-18
+
+### Changed
+
+- Fixed a bug with onStart messages getting the wrong value for temporary APITokens
+- Increased the timeouts for gRPC messages from 1s to 10s
+
 ## [3.3.1-rc23] - 2024-11-14
 
 ### Changed

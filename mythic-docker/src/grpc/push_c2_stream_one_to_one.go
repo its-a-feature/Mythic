@@ -55,7 +55,8 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 		if err == io.EOF {
 			logging.LogError(err, "Client closed before ever sending anything, err is EOF")
 			return nil // the client closed before ever sending anything
-		} else if err != nil {
+		}
+		if err != nil {
 			logging.LogError(err, "Client ran into an error before sending anything")
 			return err
 		}
@@ -172,7 +173,8 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 					logging.LogDebug("Client closed before ever sending anything, err is EOF")
 					failedReadFromAgent <- true // the client closed before ever sending anything
 					return
-				} else if err != nil {
+				}
+				if err != nil {
 					logging.LogError(err, "Client ran into an error before sending anything")
 					failedReadFromAgent <- true
 					return

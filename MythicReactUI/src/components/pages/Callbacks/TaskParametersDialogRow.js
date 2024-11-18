@@ -617,6 +617,7 @@ export function TaskParametersDialogRow(props){
                                             <MythicTextField required={props.required} fullWidth={true} placeholder={""} value={a} multiline={true} autoFocus={props.autoFocus || i > 0}
                                                 onChange={(n,v,e) => onChangeArrayText(v, e, i)} display="inline-block" maxRows={5}
                                                 validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
+                                                             marginBottom={"0px"}
                                             />
                                         </MythicStyledTableCell>
                                     </TableRow>
@@ -663,6 +664,7 @@ export function TaskParametersDialogRow(props){
                                                 <MythicTextField required={props.required} fullWidth={true} placeholder={""} value={a[1]} multiline={true} autoFocus={props.autoFocus || i > 0}
                                                                  onChange={(n,v,e) => onChangeTypedArrayText(v, e, i)} display="inline-block" maxRows={5}
                                                                  validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
+                                                                 marginBottom={"0px"}
                                                 />
                                             </div>
 
@@ -684,6 +686,7 @@ export function TaskParametersDialogRow(props){
                     <MythicTextField required={props.required} placeholder={props.default_value} value={value} multiline={true} maxRows={5}
                         onChange={onChangeText} display="inline-block" onEnter={props.onSubmit} autoFocus={props.autoFocus}
                         validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
+                                     marginBottom={"0px"}
                     />
                 )
             case "Number":
@@ -691,6 +694,7 @@ export function TaskParametersDialogRow(props){
                     <MythicTextField required={props.required} placeholder={props.default_value} value={value} multiline={false} type="number"
                         onChange={onChangeNumber} display="inline-block" onEnter={props.onSubmit} autoFocus={props.autoFocus}
                         validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
+                                     marginBottom={"0px"}
                     />
                 )
             case "Boolean":

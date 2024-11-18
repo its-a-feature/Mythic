@@ -51,46 +51,47 @@ func (r *rabbitMQConnection) SendTrRPCCustomMessageToMythicC2(toMythicC2Format T
 		}
 	}
 	grpcSendMsg.CryptoKeys = adjustedKeys
-	if sndMsgChan, rcvMsgChan, err := grpc.TranslationContainerServer.GetCustomToMythicChannels(toMythicC2Format.TranslationContainerName); err != nil {
+	sndMsgChan, rcvMsgChan, err := grpc.TranslationContainerServer.GetCustomToMythicChannels(toMythicC2Format.TranslationContainerName)
+	if err != nil {
 		logging.LogError(err, "Failed to get channels for grpc to CustomC2 to MythicC2")
 		trCustomMessageToMythicC2Format.Success = false
 		trCustomMessageToMythicC2Format.Error = err.Error()
 		return &trCustomMessageToMythicC2Format, err
-	} else {
-		select {
-		case sndMsgChan <- grpcSendMsg:
-		case <-time.After(grpc.TranslationContainerServer.GetTimeout()):
-			return nil, errors.New(fmt.Sprintf("timeout trying to send to translation container: %s", toMythicC2Format.TranslationContainerName))
-		}
+	}
+	select {
+	case sndMsgChan <- grpcSendMsg:
+	case <-time.After(grpc.TranslationContainerServer.GetTimeout()):
+		return nil, errors.New(fmt.Sprintf("timeout trying to send to translation container: %s", toMythicC2Format.TranslationContainerName))
+	}
 
-		select {
-		case response, ok := <-rcvMsgChan:
-			if !ok {
-				logging.LogError(nil, "Failed to receive from translation container")
-				return nil, errors.New(fmt.Sprintf("failed to receive from translation container: %s", toMythicC2Format.TranslationContainerName))
-			} else {
-				if response.GetSuccess() {
-					responseMap := map[string]interface{}{}
-					if err := json.Unmarshal(response.Message, &responseMap); err != nil {
-						logging.LogError(err, "Failed to convert mythic message to json bytes ")
-						trCustomMessageToMythicC2Format.Success = false
-						trCustomMessageToMythicC2Format.Error = err.Error()
-					} else {
-						trCustomMessageToMythicC2Format.Message = responseMap
-						trCustomMessageToMythicC2Format.Success = response.GetSuccess()
-						trCustomMessageToMythicC2Format.Error = response.GetError()
-					}
+	select {
+	case response, ok := <-rcvMsgChan:
+		if !ok {
+			logging.LogError(nil, "Failed to receive from translation container")
+			return nil, errors.New(fmt.Sprintf("failed to receive from translation container: %s", toMythicC2Format.TranslationContainerName))
+		} else {
+			if response.GetSuccess() {
+				responseMap := map[string]interface{}{}
+				if err := json.Unmarshal(response.Message, &responseMap); err != nil {
+					logging.LogError(err, "Failed to convert mythic message to json bytes ")
+					trCustomMessageToMythicC2Format.Success = false
+					trCustomMessageToMythicC2Format.Error = err.Error()
 				} else {
+					trCustomMessageToMythicC2Format.Message = responseMap
 					trCustomMessageToMythicC2Format.Success = response.GetSuccess()
 					trCustomMessageToMythicC2Format.Error = response.GetError()
 				}
-				return &trCustomMessageToMythicC2Format, err
+			} else {
+				trCustomMessageToMythicC2Format.Success = response.GetSuccess()
+				trCustomMessageToMythicC2Format.Error = response.GetError()
 			}
-		case <-time.After(grpc.TranslationContainerServer.GetTimeout()):
-			logging.LogError(err, "timeout hit waiting to receive a message from the translation container")
-			return nil, errors.New(fmt.Sprintf("timeout hit waiting to receive message from the translation container: %s", toMythicC2Format.TranslationContainerName))
+			return &trCustomMessageToMythicC2Format, err
 		}
+	case <-time.After(grpc.TranslationContainerServer.GetTimeout()):
+		logging.LogError(err, "timeout hit waiting to receive a message from the translation container")
+		return nil, errors.New(fmt.Sprintf("timeout hit waiting to receive message from the translation container: %s", toMythicC2Format.TranslationContainerName))
 	}
+
 	/*
 		exclusiveQueue := true
 		if opsecBytes, err := json.Marshal(toMythicC2Format); err != nil {

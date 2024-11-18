@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	connectionTimeoutSeconds  = 3
-	channelSendTimeoutSeconds = 1
+	connectionTimeoutSeconds  = 10
+	channelSendTimeoutSeconds = 10
 )
 
 type translationContainerServer struct {

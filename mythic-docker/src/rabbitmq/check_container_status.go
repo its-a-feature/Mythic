@@ -108,7 +108,7 @@ type rabbitmqAPIQuery struct {
 
 func createGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 	operations := []databaseStructs.Operation{}
-	err := database.DB.Select(&operations, `SELECT id FROM operation`)
+	err := database.DB.Select(&operations, `SELECT id FROM operation WHERE deleted=false and completed=true`)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch operations")
 		return
@@ -186,7 +186,7 @@ func createGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 			logging.LogError(err, "Failed to update apitoken with value")
 			continue
 		}
-		onStartMessage.APIToken = apiToken.TokenType
+		onStartMessage.APIToken = apiToken.TokenValue
 		go updateAPITokenAfter5Minutes(apiToken.ID)
 		if atLeastOneSuccessfulSend {
 			go sendOnContainerStartMessageAfterShortDelay(onStartMessage)

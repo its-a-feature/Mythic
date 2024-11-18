@@ -427,7 +427,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                         <MythicStyledTableCell>
                                             <MythicTextField required={required} fullWidth={true} placeholder={""} value={a} multiline={true}
                                                 onChange={(n,v,e) => onChangeArrayText(v, e, i)} display="inline-block" autoFocus={a === ""}
-                                                validate={testParameterValues} errorText={"Must match: " + verifier_regex}
+                                                validate={testParameterValues} errorText={"Must match: " + verifier_regex} marginBottom={"0px"}
                                             />
                                         </MythicStyledTableCell>
                                     </TableRow>
@@ -524,6 +524,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                     <MythicTextField required={required} value={valueNum} type={"number"}
                         onChange={onChangeNumber} display="inline-block" name={name} showLabel={false}
                         validate={testParameterValues} errorText={"Must match: " + verifier_regex}
+                                     marginBottom={"0px"}
                     />
                 );
             case "Boolean":
