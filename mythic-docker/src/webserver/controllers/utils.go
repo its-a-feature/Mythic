@@ -195,12 +195,53 @@ Target Host:   %s`,
 						newTagMap["c2_profile"].(string) == oldTagMap["c2_profile"].(string) &&
 						(newTagMap["host_url"].(string) == "" ||
 							newTagMap["host_url"].(string) == oldTagMap["host_url"].(string)) {
+						c2HostFileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCHostFile(rabbitmq.C2HostFileMessage{
+							Name:     newTagMap["c2_profile"].(string),
+							FileUUID: newTagMap["agent_file_id"].(string),
+							HostURL:  newTagMap["host_url"].(string),
+							Remove:   remove,
+						})
+						if err != nil {
+							logging.LogError(err, "failed to send message to container to stop hosting it")
+							go rabbitmq.SendAllOperationsMessage(fmt.Sprintf(
+								"%s failed to stop hosting file:\n%s", newTagMap["c2_profile"].(string),
+								err.Error()), operationID, "", database.MESSAGE_LEVEL_WARNING)
+							continue
+						}
+						if !c2HostFileResponse.Success {
+							logging.LogError(err, "c2 profile failed to stop hosting file")
+							go rabbitmq.SendAllOperationsMessage(fmt.Sprintf(
+								"%s failed to stop hosting file:\n%s", newTagMap["c2_profile"].(string),
+								c2HostFileResponse.Error), operationID, "", database.MESSAGE_LEVEL_WARNING)
+							continue
+						}
 						delete(updateTagData, key)
 					}
 				}
 			}
 		} else {
 			for key, val := range tagData {
+				newTagMap := val.(map[string]interface{})
+				c2HostFileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCHostFile(rabbitmq.C2HostFileMessage{
+					Name:     newTagMap["c2_profile"].(string),
+					FileUUID: newTagMap["agent_file_id"].(string),
+					HostURL:  newTagMap["host_url"].(string),
+					Remove:   remove,
+				})
+				if err != nil {
+					logging.LogError(err, "failed to send host file message to c2 profile")
+					go rabbitmq.SendAllOperationsMessage(fmt.Sprintf(
+						"%s failed to start hosting file:\n%s", newTagMap["c2_profile"].(string),
+						err.Error()), operationID, "", database.MESSAGE_LEVEL_WARNING)
+					continue
+				}
+				if !c2HostFileResponse.Success {
+					logging.LogError(err, "c2 profile failed to start hosting file")
+					go rabbitmq.SendAllOperationsMessage(fmt.Sprintf(
+						"%s failed to start hosting file:\n%s", newTagMap["c2_profile"].(string),
+						c2HostFileResponse.Error), operationID, "", database.MESSAGE_LEVEL_WARNING)
+					continue
+				}
 				updateTagData[key] = val
 			}
 		}

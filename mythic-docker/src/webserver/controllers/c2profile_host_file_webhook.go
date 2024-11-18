@@ -7,7 +7,6 @@ import (
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
-	"github.com/its-a-feature/Mythic/rabbitmq"
 )
 
 type C2HostFileMessageInput struct {
@@ -81,27 +80,6 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 		c.JSON(http.StatusOK, C2HostFileMessageResponse{
 			Status: "error",
 			Error:  "File is deleted, can't be hosted",
-		})
-		return
-	}
-	c2HostFileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCHostFile(rabbitmq.C2HostFileMessage{
-		Name:     c2Profile.Name,
-		FileUUID: input.Input.FileUUID,
-		HostURL:  input.Input.HostURL,
-		Remove:   input.Input.Remove,
-	})
-	if err != nil {
-		logging.LogError(err, "Failed to send RPC call to c2 profile in C2ProfileHostFileWebhook", "c2_profile", c2Profile.Name)
-		c.JSON(http.StatusOK, C2HostFileMessageResponse{
-			Status: "error",
-			Error:  "Failed to send RPC message to c2 profile",
-		})
-		return
-	}
-	if !c2HostFileResponse.Success {
-		c.JSON(http.StatusOK, C2HostFileMessageResponse{
-			Status: "error",
-			Error:  c2HostFileResponse.Error,
 		})
 		return
 	}

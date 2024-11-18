@@ -108,7 +108,7 @@ type rabbitmqAPIQuery struct {
 
 func createGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 	operations := []databaseStructs.Operation{}
-	err := database.DB.Select(&operations, `SELECT id FROM operation WHERE deleted=false and completed=true`)
+	err := database.DB.Select(&operations, `SELECT id FROM operation WHERE deleted=false and complete=false`)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch operations")
 		return

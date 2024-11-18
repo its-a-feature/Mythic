@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc25] - 2024-11-18
+
+### Changed
+
+- Updated how file hosting works for C2 profiles 
+  - When syncing to Mythic, C2 profiles get updated file hosting based on existing FileHosted tags in Mythic
+  - When stopping file hosting, Mythic ensures that the C2 profile successfully processed the request before updating the corresponding Tag
+  
 ## [3.3.1-rc24] - 2024-11-18
 
 ### Changed
