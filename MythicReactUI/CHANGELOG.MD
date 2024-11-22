@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.59] - 2024-11-20
+
+### Changed
+
+- No longer need to refresh the page on updating your settings
+- Added "payloads" search page
+- Added commonFontFamily dropdown choice for people that want some common options when changing their preferences
+
 ## [0.2.58] - 2024-11-18
 
 ### Changed

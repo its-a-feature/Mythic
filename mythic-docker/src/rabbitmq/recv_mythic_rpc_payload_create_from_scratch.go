@@ -54,7 +54,7 @@ func MythicRPCPayloadCreateFromScratch(input MythicRPCPayloadCreateFromScratchMe
 		response.Error = err.Error()
 		return response
 	}
-	_, err = database.DB.Exec(`UPDATE payload SET auto_generated=true WHERE id=$1`, newID)
+	_, err = database.DB.Exec(`UPDATE payload SET auto_generated=true, task_id=$2 WHERE id=$1`, newID, input.TaskID)
 	if err != nil {
 		logging.LogError(err, "failed to update payload auto_generated status")
 		response.Error = err.Error()

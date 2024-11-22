@@ -13,7 +13,7 @@ import {SearchTabArtifactsLabel, SearchTabArtifactsPanel} from './SearchTabArtif
 import {SearchTabSocksLabel, SearchTabSocksPanel} from './SearchTabProxies';
 import {SearchTabProcessesLabel, SearchTabProcessPanel} from "./SearchTabProcesses";
 import {SearchTabTagsLabel, SearchTabTagsPanel} from "./SearchTabTags";
-import {SearchTabInteractiveTasksLabel, SearchTabInteractiveTasksPanel} from "./SearchTabInteractiveTasks";
+import {SearchTabPayloadsLabel, SearchTabPayloadsPanel} from "./SearchTabPayloads";
 
 const PREFIX = 'Search';
 
@@ -34,9 +34,9 @@ const Root = styled('div')((
 export function Search(props){
 
   const navigate = useNavigate();
-  const tabTypes = ["callbacks", "tasks", "files", "credentials", "keylogs", "artifacts", "tokens", "socks", "processes", "tags"];
+  const tabTypes = ["callbacks", "tasks", "payloads", "files", "credentials", "keylogs", "artifacts", "tokens", "socks", "processes", "tags"];
   var params = new URLSearchParams(window.location.search);
-  var valueString = params.get("tab");
+  var valueString = params.get("tab") ? params.get("tab") : tabTypes[0];
   var valueIndex = tabTypes.findIndex(t => t === valueString);
   var value = valueIndex === -1 ? 0 : valueIndex;
 
@@ -54,6 +54,8 @@ export function Search(props){
     switch(valueString){
       case "tasks":
         return <SearchTabTasksPanel key={"taskspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+      case "payloads":
+        return <SearchTabPayloadsPanel key={"payloadspanel"} index={value} value={value} me={props.me} changeSearchParam={changeSearchParam} />
       case "callbacks":
         return <SearchTabCallbacksPanel key={"callbackspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
       case "files":
@@ -93,6 +95,8 @@ export function Search(props){
                   switch (tab){
                     case "tasks":
                       return <SearchTabTasksLabel key={"taskstab"} me={props.me} />;
+                    case "payloads":
+                      return <SearchTabPayloadsLabel key={"payloadstab"} me={props.me} />;
                     case "files":
                       return <SearchTabFilesLabel key={"filestab"} me={props.me}/>;
                     case "credentials":

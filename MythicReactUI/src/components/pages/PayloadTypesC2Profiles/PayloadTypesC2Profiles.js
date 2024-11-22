@@ -11,7 +11,7 @@ import {useTheme} from '@mui/material/styles';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
-import { Backdrop, IconButton } from '@mui/material';
+import { IconButton } from '@mui/material';
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {PayloadTypeRow} from "./PayloadTypeCard";
 import {C2ProfilesRow} from "./C2ProfilesCard";
@@ -145,12 +145,12 @@ export function PayloadTypesC2Profiles({me}){
                     Payload / C2 Services
                 </Typography>
                 {showDeleted ? (
-                    <MythicStyledTooltip title={"Hide Deleted Services"} style={{float: "right"}}>
+                    <MythicStyledTooltip title={"Hide Deleted Services"} tooltipStyle={{float: "right"}}>
                         <IconButton size="small" style={{float: "right", marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
                     </MythicStyledTooltip>
 
                 ) : (
-                    <MythicStyledTooltip title={"Show Deleted Services"} style={{float: "right"}}>
+                    <MythicStyledTooltip title={"Show Deleted Services"} tooltipStyle={{float: "right"}}>
                         <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                     </MythicStyledTooltip>
                 )}

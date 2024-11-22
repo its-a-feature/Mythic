@@ -133,6 +133,6 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 	checkContainerStatusAddConsumingContainerChannel <- consumingContainer
 	// update eventgroup consumingcontainer mappings
 	eventing.UpdateEventGroupConsumingContainersMappingByConsumingContainer(consumingContainer)
-	go createGraphQLSpectatorAPITokenAndSendOnStartMessage(consumingContainer.Name)
+	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(consumingContainer.Name)
 	return nil
 }

@@ -204,19 +204,20 @@ type PTTTaskOPSECPreTaskMessageResponse struct {
 //	this can start creating subtasks
 type PtTaskFunctionCreateTasking func(PTTaskMessageAllData) PTTaskCreateTaskingMessageResponse
 type PTTaskCreateTaskingMessageResponse struct {
-	TaskID                 int     `json:"task_id"`
-	Success                bool    `json:"success"`
-	Error                  string  `json:"error"`
-	CommandName            *string `json:"command_name,omitempty"`
-	TaskStatus             *string `json:"task_status,omitempty"`
-	DisplayParams          *string `json:"display_params,omitempty"`
-	Stdout                 *string `json:"stdout,omitempty"`
-	Stderr                 *string `json:"stderr,omitempty"`
-	Completed              *bool   `json:"completed,omitempty"`
-	TokenID                *int    `json:"token_id,omitempty"`
-	CompletionFunctionName *string `json:"completion_function_name,omitempty"`
-	Params                 *string `json:"params,omitempty"`
-	ParameterGroupName     *string `json:"parameter_group_name"`
+	TaskID                           int     `json:"task_id"`
+	Success                          bool    `json:"success"`
+	Error                            string  `json:"error"`
+	CommandName                      *string `json:"command_name,omitempty"`
+	TaskStatus                       *string `json:"task_status,omitempty"`
+	DisplayParams                    *string `json:"display_params,omitempty"`
+	Stdout                           *string `json:"stdout,omitempty"`
+	Stderr                           *string `json:"stderr,omitempty"`
+	Completed                        *bool   `json:"completed,omitempty"`
+	TokenID                          *int    `json:"token_id,omitempty"`
+	CompletionFunctionName           *string `json:"completion_function_name,omitempty"`
+	Params                           *string `json:"params,omitempty"`
+	ParameterGroupName               *string `json:"parameter_group_name"`
+	ReprocessAtNewCommandPayloadType *string `json:"reprocess_at_new_command_payload_type,omitempty"`
 }
 
 // Tasking step 3:

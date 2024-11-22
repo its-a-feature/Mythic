@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc26]
+
+### Changed
+
+- Updated the automated payload creation process to associate a task_id with the payload
+- Execute a container's OnStart method after a file has been removed/edited/created via the UI
+- Added new parameter to the create_go_tasking response, ReprocessAtNewCommandPayloadType
+  - this allows you to set the response.CommandName to some other command and response.ReprocessAtNewCommandPayloadType to the same or different payload type
+  - execution will then pass to that payload type's create_go_tasking for the new `CommandName` .
+  - This allows execution chains to happen for processing
+- Added two more parameters to the MythicRPCCallbackAddCommand and MythicRPCCallbackRemoveCommand functions
+  - AgentCallbackID - allows you to add to callback based on AgentCallbackID (UUID) instead of by TaskID
+  - PayloadType - allows you to specify the payload type associated with the commands if they different than the payload type for the callback itself
+    - This is helpful for command augment containers that want to register additional augment commands
+- Using the UI to add/remove/update files in a container will re-rigger the container's onStart function
+  - This allows containers to reprocess data as needed if it changes on disk
+
 ## [3.3.1-rc25] - 2024-11-18
 
 ### Changed

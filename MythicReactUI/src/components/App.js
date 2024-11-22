@@ -26,7 +26,7 @@ import { Reporting } from './pages/Reporting/Reporting';
 import { MitreAttack } from './pages/MITRE_ATTACK/MitreAttack';
 import {Tags} from './pages/Tags/Tags';
 import { Tooltip } from 'react-tooltip';
-import {useQuery, useLazyQuery, gql } from '@apollo/client';
+import {useLazyQuery, gql } from '@apollo/client';
 //background-color: #282c34;
 import { Route, Routes } from 'react-router-dom';
 import { useInterval } from './utilities/Time';
@@ -125,7 +125,7 @@ export function App(props) {
                     fontFamily: preferences?.fontFamily
                 },
             })),
-        [themeMode, loadingPreference]
+        [themeMode, loadingPreference, preferences.topColor, preferences.fontSize, preferences.fontFamily]
     );
     const mountedRef = React.useRef(true);
     const [openRefreshDialog, setOpenRefreshDialog] = React.useState(false);

@@ -11,8 +11,10 @@ import (
 )
 
 type MythicRPCCallbackAddCommandMessage struct {
-	TaskID   int      `json:"task_id"`  // required
-	Commands []string `json:"commands"` // required
+	TaskID          int      `json:"task_id"`
+	AgentCallbackID string   `json:"agent_callback_id"`
+	Commands        []string `json:"commands"` // required
+	PayloadType     string   `json:"payload_type"`
 }
 type MythicRPCCallbackAddCommandMessageResponse struct {
 	Success bool   `json:"success"`
@@ -33,29 +35,64 @@ func MythicRPCCallbackAddCommand(input MythicRPCCallbackAddCommandMessage) Mythi
 	response := MythicRPCCallbackAddCommandMessageResponse{
 		Success: false,
 	}
+	CallbackID := 0
+	PayloadTypeID := 0
+	OperatorID := 0
 	task := databaseStructs.Task{}
-	if err := database.DB.Get(&task, `SELECT
-		task.operator_id,
-		callback.id "callback.id",
-		payload.payload_type_id "callback.payload.payload_type_id"
-		FROM task
-		JOIN callback on task.callback_id = callback.id
-		JOIN payload on callback.registered_payload_id = payload.id
-		WHERE task.id=$1`, input.TaskID); err != nil {
-		logging.LogError(err, "Failed to find task in MythicRPCCallbackAddCommand")
-		response.Error = err.Error()
-		return response
-	} else {
-		if err := CallbackAddCommand(task.Callback.ID, task.Callback.Payload.PayloadTypeID, task.OperatorID, input.Commands); err != nil {
-			logging.LogError(err, "Failed to add commands to callback")
+	callback := databaseStructs.Callback{}
+	if input.TaskID > 0 {
+		err := database.DB.Get(&task, `SELECT
+				task.operator_id,
+				callback.id "callback.id",
+				payload.payload_type_id "callback.payload.payload_type_id"
+				FROM task
+				JOIN callback on task.callback_id = callback.id
+				JOIN payload on callback.registered_payload_id = payload.id
+				WHERE task.id=$1`, input.TaskID)
+		if err != nil {
+			logging.LogError(err, "Failed to find task in MythicRPCCallbackAddCommand")
 			response.Error = err.Error()
 			return response
-		} else {
-			response.Success = true
+		}
+		CallbackID = task.Callback.ID
+		PayloadTypeID = task.Callback.Payload.PayloadTypeID
+		OperatorID = task.OperatorID
+	} else if input.AgentCallbackID != "" {
+		err := database.DB.Get(&callback, `SELECT
+    		callback.id, callback.operator_id,
+    		payload.payload_type_id "callback.payload.payload_type_id"
+    		FROM callback
+			JOIN payload on callback.registered_payload_id = payload.id
+			WHERE callback.agent_callback_id = $1`, input.AgentCallbackID)
+		if err != nil {
+			logging.LogError(err, "Failed to find task in MythicRPCCallbackAddCommand")
+			response.Error = err.Error()
+			return response
+		}
+		CallbackID = callback.ID
+		PayloadTypeID = callback.Payload.PayloadTypeID
+		OperatorID = callback.OperatorID
+	}
+	if input.PayloadType != "" {
+		err := database.DB.Get(&PayloadTypeID, `SELECT id FROM payloadtype WHERE "name"=$1`, input.PayloadType)
+		if err != nil {
+			logging.LogError(err, "Failed to find payload type in MythicRPCCallbackAddCommand")
+			response.Error = err.Error()
 			return response
 		}
 	}
-
+	if CallbackID == 0 {
+		response.Error = "No callback supplied"
+		return response
+	}
+	err := CallbackAddCommand(CallbackID, PayloadTypeID, OperatorID, input.Commands)
+	if err != nil {
+		logging.LogError(err, "Failed to add commands to callback")
+		response.Error = err.Error()
+		return response
+	}
+	response.Success = true
+	return response
 }
 func CallbackAddCommand(callbackID int, payloadtypeID int, operatorID int, commands []string) error {
 	for _, command := range commands {

@@ -11,7 +11,7 @@ import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import Typography from '@mui/material/Typography';
 import {HexColorInput, HexColorPicker} from 'react-colorful';
-import {SetMythicSetting, GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Input from '@mui/material/Input';
@@ -23,6 +23,11 @@ const interactTypeOptions = [
     {value: "interactSplit", display: "Split View"},
     {value: "interactConsole", display: "Console Like"}
 ];
+const commonFontFamilies = [
+    "Verdana",
+    "-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\"",
+    "Monaco"
+]
 export function SettingsOperatorUIConfigDialog(props) {
     const initialLocalStorageInteractType = GetMythicSetting({setting_name: 'interactType', default_value: operatorSettingDefaults.interactType});
     const [interactType, setInteractType] = React.useState(initialLocalStorageInteractType);
@@ -106,8 +111,12 @@ export function SettingsOperatorUIConfigDialog(props) {
               interactType,
               useDisplayParamsForCLIHistory,
       }});
-        window.location.reload();
       props.onClose();
+    }
+    const changeCommonFontFamilies = (event) => {
+        if(event.target.value !== " "){
+            setFontFamily(event.target.value);
+        }
     }
     const setDefaults = () => {
       setFontSize(operatorSettingDefaults.fontSize);
@@ -139,6 +148,16 @@ export function SettingsOperatorUIConfigDialog(props) {
                   <MythicStyledTableCell>Font Family</MythicStyledTableCell>
                   <MythicStyledTableCell>
                     <MythicTextField value={fontFamily} onChange={onChangeFontFamily} showLabel={false} multiline maxRows={5} />
+                      <Select
+                          value={" "}
+                          onChange={changeCommonFontFamilies}
+                          input={<Input style={{width: "100%"}}/>}
+                      >
+                          <MenuItem value={" "}>Select a common font family</MenuItem>
+                          {commonFontFamilies.map( (opt) => (
+                              <MenuItem value={opt} key={opt}>{opt}</MenuItem>
+                          ) )}
+                      </Select>
                   </MythicStyledTableCell>
                 </TableRow>
                 <TableRow hover>

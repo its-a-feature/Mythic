@@ -26,7 +26,7 @@ import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog
 import ip6 from 'ip6';
 import {CallbacksContext, OnOpenTabContext, OnOpenTabsContext} from "./CallbacksTop";
 import {useTheme} from '@mui/material/styles';
-import {GetMythicSetting, SetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {DetailedCallbackTable} from "./DetailedCallbackTable";
 import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
 import ClickAwayListener from '@mui/material/ClickAwayListener';

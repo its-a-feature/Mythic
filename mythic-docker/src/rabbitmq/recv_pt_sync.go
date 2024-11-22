@@ -399,7 +399,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "debug", "info")
 	go database.ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
 	checkContainerStatusAddPtChannel <- payloadtype
-	go createGraphQLSpectatorAPITokenAndSendOnStartMessage(payloadtype.Name)
+	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(payloadtype.Name)
 	return nil
 
 }

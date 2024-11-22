@@ -100,7 +100,7 @@ func MythicRPCPayloadCreateFromUUID(input MythicRPCPayloadCreateFromUUIDMessage)
 		}); err != nil {
 			response.Error = err.Error()
 			return response
-		} else if _, err := database.DB.Exec(`UPDATE payload SET auto_generated=true WHERE id=$1`, newID); err != nil {
+		} else if _, err := database.DB.Exec(`UPDATE payload SET auto_generated=true, task_id=$2 WHERE id=$1`, newID, input.TaskID); err != nil {
 			logging.LogError(err, "failed to update payload auto_generated status")
 			response.Error = err.Error()
 			return response

@@ -106,7 +106,7 @@ type rabbitmqAPIQuery struct {
 	TotalCount    int                      `json:"total_count" mapstructure:"total_count"`
 }
 
-func createGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
+func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 	operations := []databaseStructs.Operation{}
 	err := database.DB.Select(&operations, `SELECT id FROM operation WHERE deleted=false and complete=false`)
 	if err != nil {
@@ -294,7 +294,7 @@ func checkContainerStatus() {
 						go updateDownContainerBuildingPayloads(container)
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
-						go createGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
 					logging.LogError(nil, "Failed to get payload type from map for updating running status")
@@ -326,7 +326,7 @@ func checkContainerStatus() {
 							0, fmt.Sprintf("%s_container_down", container), "warning")
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
-						go createGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
 					logging.LogError(nil, "Failed to get c2 profile from map for updating running status")
@@ -357,7 +357,7 @@ func checkContainerStatus() {
 							0, fmt.Sprintf("%s_container_down", container), "warning")
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
-						go createGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
 					logging.LogError(nil, "Failed to get translation container from map for updating running status")
@@ -389,7 +389,7 @@ func checkContainerStatus() {
 							0, fmt.Sprintf("%s_container_down", container), "warning")
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
-						go createGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
 					logging.LogError(nil, "Failed to get consuming container from map for updating running status")

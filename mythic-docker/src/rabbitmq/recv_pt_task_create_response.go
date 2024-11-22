@@ -125,6 +125,9 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				task.Status = PT_TASK_FUNCTION_STATUS_PREPROCESSING_ERROR
 			}
 		}
+		if payloadMsg.ReprocessAtNewCommandPayloadType != nil && *payloadMsg.ReprocessAtNewCommandPayloadType != "" {
+			task.Status = PT_TASK_FUNCTION_STATUS_PREPROCESSING
+		}
 	}
 	updateColumns = append(updateColumns, "status=:status")
 	updateString := fmt.Sprintf(`UPDATE task SET %s WHERE id=:id`, strings.Join(updateColumns, ","))
@@ -135,8 +138,21 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		return
 	}
 	if payloadMsg.Success {
-		if task.Status == PT_TASK_FUNCTION_STATUS_OPSEC_POST {
+		if task.Status == PT_TASK_FUNCTION_STATUS_OPSEC_POST || task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
 			allTaskData := GetTaskConfigurationForContainer(task.ID)
+			if payloadMsg.ReprocessAtNewCommandPayloadType != nil && *payloadMsg.ReprocessAtNewCommandPayloadType != "" {
+				allTaskData.CommandPayloadType = *payloadMsg.ReprocessAtNewCommandPayloadType
+				if payloadMsg.CommandName != nil && *payloadMsg.CommandName != "" {
+					allTaskData.Task.CommandName = *payloadMsg.CommandName
+				}
+				logging.LogInfo("sending task back to create tasking", "payload type", allTaskData.CommandPayloadType,
+					"command name", allTaskData.Task.CommandName)
+				err = RabbitMQConnection.SendPtTaskCreate(allTaskData)
+				if err != nil {
+					logging.LogError(err, "In processPtTaskCreateMessages, but failed to SendPtTaskCreate ")
+				}
+				return
+			}
 			err = RabbitMQConnection.SendPtTaskOPSECPost(allTaskData)
 			if err != nil {
 				logging.LogError(err, "In processPtTaskCreateMessages, but failed to SendPtTaskOPSECPost ")

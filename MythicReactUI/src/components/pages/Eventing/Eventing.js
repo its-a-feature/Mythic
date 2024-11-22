@@ -257,12 +257,12 @@ export function Eventing({me}){
                                 lineHeight: "30px"}} component="div">
                                 Registered Event Groups
                                 {showDeleted ? (
-                                    <MythicStyledTooltip title={"Hide Deleted Services"} style={{float: "right"}}>
+                                    <MythicStyledTooltip title={"Hide Deleted Services"} tooltipStyle={{float: "right"}}>
                                         <IconButton size="small" style={{float: "right", }} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
                                     </MythicStyledTooltip>
 
                                 ) : (
-                                    <MythicStyledTooltip title={"Show Deleted Services"} style={{float: "right"}}>
+                                    <MythicStyledTooltip title={"Show Deleted Services"} tooltipStyle={{float: "right"}}>
                                         <IconButton size="small" style={{float: "right", }} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                                     </MythicStyledTooltip>
                                 )}

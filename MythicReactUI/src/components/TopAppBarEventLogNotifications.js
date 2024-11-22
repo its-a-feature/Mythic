@@ -42,7 +42,8 @@ export function TopAppBarEventLogNotifications(props) {
                                color="error" max={99}
                                sx={{marginTop: "3px"}}
                         >
-                            <NotificationsActiveTwoToneIcon fontSize={"large"}  />
+                            <NotificationsActiveTwoToneIcon fontSize={"large"}
+                            style={{marginTop: "-3px"}}/>
                         </Badge>
                     )}
                 </IconButton>

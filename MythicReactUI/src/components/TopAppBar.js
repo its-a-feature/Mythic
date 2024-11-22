@@ -401,7 +401,7 @@ export function TopAppBar(props) {
 function TopBarShortcuts({}){
   return (
       <>
-        <MythicStyledTooltip title="C2 Profiles and Payload Types" arrow >
+        <MythicStyledTooltip title="C2 Profiles and Payload Types" >
           <IconButton component={Link} to='/new/payloadtypes'
                       color="inherit"
                       size="large" disableFocusRipple={true}

@@ -59,7 +59,7 @@ export function SettingsOperatorDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">
             {props.title}
-            <MythicStyledTooltip style={{float: "right", display: "inline-block"}}
+            <MythicStyledTooltip tooltipStyle={{float: "right", display: "inline-block"}}
                                  title={"Generate invite link for somebody to create their own username/password. One-time use link only"}>
                 <Button onClick={createInviteLink} variant={"contained"}>
                     Generate Invite Link

@@ -17,7 +17,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import {TaskDisplayInteractiveSearch} from "./SearchTabInteractiveTasks";
 
-const fetchLimit = 20;
+const fetchLimit = 50;
 const responseSearch = gql`
 ${taskingDataFragment}
 query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {

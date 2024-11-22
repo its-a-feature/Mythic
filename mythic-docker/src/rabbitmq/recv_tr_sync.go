@@ -85,7 +85,7 @@ func trSync(in TrSyncMessage) error {
 		return err
 	} else {
 		checkContainerStatusAddTrChannel <- translationDatabase
-		go createGraphQLSpectatorAPITokenAndSendOnStartMessage(translationDatabase.Name)
+		go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(translationDatabase.Name)
 		return nil
 	}
 }

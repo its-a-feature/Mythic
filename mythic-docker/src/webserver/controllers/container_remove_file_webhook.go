@@ -52,6 +52,7 @@ func ContainerRemoveFileWebhook(c *gin.Context) {
 		})
 		return
 	}
+	go rabbitmq.CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(input.Input.ContainerName)
 	c.JSON(http.StatusOK, RemoveContainerFileResponse{Status: "success"})
 	return
 }

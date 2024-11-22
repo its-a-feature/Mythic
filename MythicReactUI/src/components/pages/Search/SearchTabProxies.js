@@ -48,7 +48,7 @@ subscription portsSub{
 export function SearchTabSocksLabel(props){
     return (
         <MythicSearchTabLabel label={"PROXIES"} iconComponent={
-            <FontAwesomeIcon icon={faSocks} size="lg" style={{marginTop: "5px"}}/>} {...props}/>
+            <FontAwesomeIcon icon={faSocks} size="lg" style={{marginTop: "4px", marginBottom: "5px"}}/>} {...props}/>
     )
 }
 
@@ -84,12 +84,12 @@ export const SearchTabSocksPanel = (props) =>{
         <MythicTabPanel {...props} >
             <div>
                 {showDeleted ? (
-                    <MythicStyledTooltip title={"Hide Stopped Proxies"} style={{float: "right"}}>
+                    <MythicStyledTooltip title={"Hide Stopped Proxies"} tooltipStyle={{float: "right"}}>
                         <IconButton size="small" style={{float: "right", marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
                     </MythicStyledTooltip>
 
                 ) : (
-                    <MythicStyledTooltip title={"Show Stopped Proxies"} style={{float: "right"}}>
+                    <MythicStyledTooltip title={"Show Stopped Proxies"} tooltipStyle={{float: "right"}}>
                         <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                     </MythicStyledTooltip>
                 )}

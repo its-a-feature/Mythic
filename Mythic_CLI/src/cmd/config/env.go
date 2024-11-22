@@ -461,9 +461,6 @@ Assuming you have mythic_react_use_volume set to false, then when you disable de
 
 	mythicEnv.SetDefault("webhook_default_custom_channel", "")
 	mythicEnvInfo["webhook_default_custom_channel"] = `This is the default channel to use for new custom messages with the specified webhook url`
-
-	//mythicEnv.SetDefault("installed_service_docker_networking", "host")
-	//mythicEnvInfo["installed_service_docker_networking"] = "Configure how installed services are configured within docker compose. The default, 'host', means that the containers share networking with the host and don't need to explicitly expose any ports. This means you can dynamically change a C2 Profile's bound port in the UI and have that port bound on the host. The alternative, 'bridge', means that you need to explicitly expose ports for installed service containers for them to be bound on the host. If you want to expose ports 80 and 443 via the http profile for example, then you'd set HTTP_DYNAMIC_PORTS=80,443 and you can set HTTP_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY=true to have these two ports bound to localhost instead of 0.0.0.0. The default in this case is 0.0.0.0."
 }
 func parseMythicEnvironmentVariables() {
 	setMythicConfigDefaultValues()

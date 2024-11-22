@@ -173,7 +173,7 @@ func c2Sync(in C2SyncMessage) error {
 	go autoStartC2Profile(c2Profile)
 	reSyncPayloadTypes()
 	checkContainerStatusAddC2Channel <- c2Profile
-	go createGraphQLSpectatorAPITokenAndSendOnStartMessage(c2Profile.Name)
+	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(c2Profile.Name)
 	return nil
 }
 
