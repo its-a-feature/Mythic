@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc27] - 2024-11-26
+
+### Changed
+
+- Added more functionality to invite links
+  - you can now specify a specific operation and role to assign the new operator to
+  - you can now specify (and change) the maximum number of usages that the invite link has
+- Updated mythic-cli to properly pass in the environment's mythic_server_allow_invite_links setting
+
 ## [3.3.1-rc26]
 
 ### Changed

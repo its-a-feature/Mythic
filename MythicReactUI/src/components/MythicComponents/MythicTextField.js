@@ -45,6 +45,7 @@ class MythicTextField extends React.Component {
         inline: PropTypes.bool,
         marginBottom: PropTypes.string,
         value: PropTypes.any,
+        disabled: PropTypes.bool,
     }
     onChange = evt => {
         const name = this.props.name;

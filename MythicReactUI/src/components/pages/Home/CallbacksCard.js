@@ -1,6 +1,6 @@
 import React from 'react';
 import Paper from '@mui/material/Paper';
-import { useQuery, gql} from '@apollo/client';
+import { useLazyQuery, gql} from '@apollo/client';
 import { PieChart, pieArcLabelClasses } from '@mui/x-charts/PieChart';
 import {useTheme} from '@mui/material/styles';
 import { useDrawingArea } from '@mui/x-charts/hooks';
@@ -20,7 +20,9 @@ import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {useNavigate} from 'react-router-dom';
 import { BarChart } from '@mui/x-charts/BarChart';
 import {getStringSize} from "../Callbacks/ResponseDisplayTable";
-import {toLocalTime} from "../../utilities/Time";
+import {useInterval} from "../../utilities/Time";
+import {isJWTValid, JWTTimeLeft} from "../../../index";
+import {FailedRefresh} from "../../../cache";
 
 const GetCallbacks = gql`
 query GetCallbacks {
@@ -146,6 +148,7 @@ const errorColors = [
 ]
 export function CallbacksCard({me}) {
     const theme = useTheme();
+    const mountedRef = React.useRef(true);
     const navigate = useNavigate();
     const [active, setActive] = React.useState({"active": 0, "recent": 0, "total": 0});
     const [tags, setTags] = React.useState([]);
@@ -198,7 +201,7 @@ export function CallbacksCard({me}) {
         }
 
     }
-    useQuery(GetCallbacks, {fetchPolicy: "network-only",
+    const [fetchData] = useLazyQuery(GetCallbacks, {fetchPolicy: "network-only",
         onCompleted: (data) => {
             let callbackData = {};
             let recent = 0;
@@ -598,6 +601,13 @@ export function CallbacksCard({me}) {
 
         }
     });
+    React.useEffect( () => {
+        fetchData();
+    }, []);
+    useInterval( () => {
+        // interval should run every 1 minutes (60000 milliseconds) to check JWT status
+        fetchData();
+    }, 60000, mountedRef, mountedRef);
     return (
         <>
             <div style={{display: "flex"}}>

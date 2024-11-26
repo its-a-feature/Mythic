@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/new/static/css/main.602591e6.css",
-    "main.js": "/new/static/js/main.ff573285.js",
+    "main.js": "/new/static/js/main.feed34b4.js",
     "static/media/mythic-red.png": "/new/static/media/mythic-red.203468a4e5240d239aa0.png",
     "static/media/mythic_red_small.svg": "/new/static/media/mythic_red_small.793b41cc7135cdede246661ec232976b.svg",
     "index.html": "/new/index.html",
     "main.602591e6.css.map": "/new/static/css/main.602591e6.css.map",
-    "main.ff573285.js.map": "/new/static/js/main.ff573285.js.map"
+    "main.feed34b4.js.map": "/new/static/js/main.feed34b4.js.map"
   },
   "entrypoints": [
     "static/css/main.602591e6.css",
-    "static/js/main.ff573285.js"
+    "static/js/main.feed34b4.js"
   ]
 }

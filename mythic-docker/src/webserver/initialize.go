@@ -313,12 +313,13 @@ func setRoutes(r *gin.Engine) {
 				operationAdminsOnly.POST("update_operator_status_webhook", webcontroller.UpdateOperatorStatusWebhook)
 				operationAdminsOnly.POST("delete_disabled_command_profile_webhook", webcontroller.DeleteDisabledCommandProfileWebhook)
 				operationAdminsOnly.POST("delete_disabled_command_profile_entry_webhook", webcontroller.DeleteDisabledCommandProfileEntryWebhook)
-				// global settings
+				// global settings, only admin
 				operationAdminsOnly.POST("update_global_settings_webhook", webcontroller.UpdateGlobalSettingsWebhook)
-				// generating invite links
+				// generating invite links, further limited to just admins
 				operationAdminsOnly.POST("create_invite_link_webhook", webcontroller.CreateInviteLink)
 				operationAdminsOnly.POST("get_invite_link_webhook", webcontroller.GetOutstandingInviteLinks)
 				operationAdminsOnly.POST("delete_invite_link_webhook", webcontroller.DeleteInviteLink)
+				operationAdminsOnly.POST("update_invite_link_webhook", webcontroller.UpdateInviteLink)
 			}
 		}
 	}

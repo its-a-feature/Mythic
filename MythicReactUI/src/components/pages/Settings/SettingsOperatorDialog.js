@@ -6,19 +6,9 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {useMutation, gql} from '@apollo/client';
-import {snackActions} from "../../utilities/Snackbar";
-import {copyStringToClipboard} from "../../utilities/Clipboard";
+import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {CreateInviteLinksDialog} from "./InviteLinksDialog";
 
-const operatorCreateInviteLink = gql`
-mutation operatorCreateInviteLink {
-  createInviteLink {
-    status
-    error
-    link
-  }
-}
-`;
 
 
 export function SettingsOperatorDialog(props) {
@@ -26,19 +16,7 @@ export function SettingsOperatorDialog(props) {
     const [passwordOld, setPasswordOld] = React.useState("");
     const [passwordNew, setPasswordNew] = React.useState("");
     const [email, setEmail] = React.useState(props.email ? props.email : "");
-    const [createInviteLink] = useMutation(operatorCreateInviteLink, {
-        onCompleted: (data) => {
-            if(data.createInviteLink.status === "error"){
-                snackActions.error(data.createInviteLink.error);
-                return
-            }
-            copyStringToClipboard(data.createInviteLink.link);
-            snackActions.success("Created new invite link and copied to clipboard");
-        },
-        onError: (data) => {
-            console.log(data);
-        }
-    })
+    const [openInviteLinkDialog, setOpenInviteLinkDialog] = React.useState(false);
     const onUsernameChange = (name, value, error) => {
         setUsername(value);
     }
@@ -54,18 +32,26 @@ export function SettingsOperatorDialog(props) {
     const onAccept = () =>{
         props.onAccept(props.id, username, passwordOld, passwordNew, email);
     }
-  
+    const createInviteLink = () => {
+        setOpenInviteLinkDialog(true);
+    }
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">
             {props.title}
             <MythicStyledTooltip tooltipStyle={{float: "right", display: "inline-block"}}
-                                 title={"Generate invite link for somebody to create their own username/password. One-time use link only"}>
+                                 title={"Generate invite link for somebody to create their own username/password"}>
                 <Button onClick={createInviteLink} variant={"contained"}>
                     Generate Invite Link
                 </Button>
             </MythicStyledTooltip>
-
+            {openInviteLinkDialog &&
+                <MythicDialog open={openInviteLinkDialog}
+                              fullWidth={true}
+                              onClose={()=>{setOpenInviteLinkDialog(false);}}
+                              innerDialog={<CreateInviteLinksDialog onClose={()=>{setOpenInviteLinkDialog(false);}} create={true}  {...props}/>}
+                />
+            }
         </DialogTitle>
 
         <DialogContent dividers={true}>
