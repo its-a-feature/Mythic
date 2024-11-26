@@ -113,7 +113,13 @@ type Mutation {
 }
 
 type Mutation {
-  createInviteLink: createInviteLinkOutput
+  createInviteLink(
+    operation_id: Int
+    operation_role: String
+    total: Int
+    name: String
+    short_code: String
+  ): createInviteLinkOutput
 }
 
 type Mutation {
@@ -454,6 +460,13 @@ type Mutation {
   updateGlobalSettings(
     settings: jsonb!
   ): updateGlobalSettingsOutput
+}
+
+type Mutation {
+  updateInviteLink(
+    code: String!
+    total: Int!
+  ): updateInviteLinkOutput
 }
 
 type Mutation {
@@ -1106,6 +1119,11 @@ type getOperatorPreferencesOutput {
 }
 
 type updateOperatorPreferencesOutput {
+  status: String!
+  error: String
+}
+
+type updateInviteLinkOutput {
   status: String!
   error: String
 }

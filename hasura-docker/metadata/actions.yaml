@@ -684,6 +684,13 @@ actions:
       forward_client_headers: true
     permissions:
       - role: mythic_admin
+  - name: updateInviteLink
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_invite_link_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: mythic_admin
   - name: updateOperation
     definition:
       kind: synchronous
@@ -866,4 +873,5 @@ custom_types:
     - name: eventingTestFileOutput
     - name: getOperatorPreferencesOutput
     - name: updateOperatorPreferencesOutput
+    - name: updateInviteLinkOutput
   scalars: []
