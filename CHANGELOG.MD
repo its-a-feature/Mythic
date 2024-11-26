@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc28] - 2024-11-26
+
+### Changed
+- Updated the command_augment injection process to use suggested_commands as well as builtin commands
+  - one of these two attributes needs to be set to true on the command augment's command for it to be automatically injected into new callbacks
+  - this is in conjunction with matching OS requirements and matching the command augment's supported payload types (if specified)
+  
 ## [3.3.1-rc27] - 2024-11-26
 
 ### Changed

@@ -402,7 +402,7 @@ func addCommandAugmentsToCallback(callbackID int, payloadOS string, payloadType 
 			if builtinInterface, ok := attributes["builtin"]; ok {
 				builtin = builtinInterface.(bool)
 			}
-			if suggestedInterface, ok := attributes["suggested"]; ok {
+			if suggestedInterface, ok := attributes["suggested_command"]; ok {
 				suggested = suggestedInterface.(bool)
 			}
 			// only add augment commands where the command is builtin or suggested
