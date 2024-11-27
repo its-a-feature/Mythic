@@ -51,7 +51,7 @@ export function C2ProfileOutputDialog(props) {
         <div style={{height: "calc(80vh)", overflowY: "auto"}}>
             <ResponseDisplayPlaintext
                 initial_mode={"json"}
-                render_colors={true}
+                render_colors={false}
                 wrap_text={false}
                 plaintext={outputData}
                 expand={true}/>

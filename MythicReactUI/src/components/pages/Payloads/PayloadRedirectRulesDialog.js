@@ -1,17 +1,11 @@
 import React, {useState} from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
 import { snackActions } from '../../utilities/Snackbar';
-import AceEditor from 'react-ace';
-import 'ace-builds/src-noconflict/mode-json';
-import 'ace-builds/src-noconflict/theme-monokai';
-import 'ace-builds/src-noconflict/theme-xcode';
-import "ace-builds/src-noconflict/ext-searchbox";
-import {useTheme} from '@mui/material/styles';
+import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 
 const generateRedirectRulesMutation = gql`
 query generateRedirectRulesMutation($uuid: String!) {
@@ -25,7 +19,6 @@ query generateRedirectRulesMutation($uuid: String!) {
 
 export function PayloadRedirectRulesDialog(props) {
     const [message, setMessage] = useState("");
-    const theme = useTheme();
     const { loading, error } = useQuery(generateRedirectRulesMutation, {
         variables: {uuid: props.uuid},
         onCompleted: data => {
@@ -50,30 +43,21 @@ export function PayloadRedirectRulesDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Payload Redirect Rules Check</DialogTitle>
-        <DialogContent dividers={true}>
-        <AceEditor 
-              mode="text"
-              theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
-              fontSize={14}
-              showGutter={true}
-              height={"100px"}
-              highlightActiveLine={true}
-              value={message}
-              width={"100%"}
-              minLines={2}
-              maxLines={50}
-              setOptions={{
-                showLineNumbers: true,
-                tabSize: 4,
-                useWorker: false
-              }}/>
-        </DialogContent>
+        <div style={{height: "calc(80vh)", overflowY: "auto"}}>
+            <ResponseDisplayPlaintext
+                initial_mode={"apache_conf"}
+                render_colors={false}
+                wrap_text={true}
+                plaintext={message}
+                expand={true}
+            />
+        </div>
         <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
-            Close
-          </Button>
+            <Button variant="contained" onClick={props.onClose} color="primary">
+                Close
+            </Button>
         </DialogActions>
-  </React.Fragment>
+    </React.Fragment>
   );
 }
 

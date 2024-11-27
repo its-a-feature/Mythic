@@ -1,13 +1,9 @@
 import React, {useState} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
-import MythicTextField from '../../MythicComponents/MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
 import { snackActions } from '../../utilities/Snackbar';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
+import {MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
 
 const updateDescriptionMutation = gql`
 mutation updateDescription ($file_id: Int!, $filename: bytea!) {
@@ -52,28 +48,18 @@ export function PayloadFilenameDialog(props) {
      console.error(error);
      return <div>Error!</div>;
     }
-    const onCommitSubmit = () => {
-        updateDescription({variables: {file_id: fileId, filename: description}});
+    const onCommitSubmit = (newDescription) => {
+        updateDescription({variables: {file_id: fileId, filename: newDescription}});
         props.onClose();
     }
-    const onChange = (name, value, error) => {
-        setDescription(value);
-    }
-  
+
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Edit Payload Filename</DialogTitle>
-        <DialogContent dividers={true}>
-            <MythicTextField autoFocus onChange={onChange} value={description} onEnter={onCommitSubmit}/>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
-            Close
-          </Button>
-          <Button variant="contained" onClick={onCommitSubmit} color="success">
-            Submit
-          </Button>
-        </DialogActions>
+        <MythicModifyStringDialog title={"Edit Payload Filename"}
+                                  maxRows={2}
+                                  onClose={props.onClose}
+                                  value={description}
+                                  onSubmit={onCommitSubmit} />
   </React.Fragment>
   );
 }

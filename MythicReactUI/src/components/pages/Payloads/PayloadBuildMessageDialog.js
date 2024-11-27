@@ -1,16 +1,10 @@
 import React, {useState, useEffect} from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
-import AceEditor from 'react-ace';
-import 'ace-builds/src-noconflict/mode-json';
-import 'ace-builds/src-noconflict/theme-monokai';
-import 'ace-builds/src-noconflict/theme-xcode';
-import "ace-builds/src-noconflict/ext-searchbox";
-import {useTheme} from '@mui/material/styles';
+import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 
 const getDescriptionQuery = gql`
 query getDescriptionQuery ($payload_id: Int!) {
@@ -24,9 +18,8 @@ query getDescriptionQuery ($payload_id: Int!) {
 `;
 
 export function PayloadBuildMessageDialog(props) {
-    const [payloadData, setPayloadData] = useState({});
+    const [payloadData, setPayloadData] = useState({"error": "", "message": ""});
     const [viewError, setViewError] = useState(false);
-    const theme = useTheme();
     const { loading, error } = useQuery(getDescriptionQuery, {
         variables: {payload_id: props.payload_id},
         onCompleted: data => {
@@ -51,32 +44,23 @@ export function PayloadBuildMessageDialog(props) {
     }
     
   return (
-    <React.Fragment>
-        <DialogTitle id="form-dialog-title">Payload Build Messages</DialogTitle>
-        <DialogContent dividers={true}>
-          <AceEditor 
-              mode="text"
-              theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
-              fontSize={14}
-              showGutter={true}
-              height={"100px"}
-              highlightActiveLine={true}
-              value={viewError ? payloadData["error"] : payloadData["message"]}
-              width={"100%"}
-              minLines={2}
-              maxLines={50}
-              setOptions={{
-                showLineNumbers: true,
-                tabSize: 4,
-                useWorker: false
-              }}/>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
-            Close
-          </Button>
-        </DialogActions>
-  </React.Fragment>
+      <React.Fragment>
+          <DialogTitle id="form-dialog-title">Payload Build Messages</DialogTitle>
+          <div style={{height: "calc(80vh)", overflowY: "auto"}}>
+              <ResponseDisplayPlaintext
+                  initial_mode={"html"}
+                  render_colors={false}
+                  wrap_text={true}
+                  plaintext={viewError ? payloadData["error"] : payloadData["message"]}
+                  expand={true}
+              />
+          </div>
+          <DialogActions>
+              <Button variant="contained" onClick={props.onClose} color="primary">
+                  Close
+              </Button>
+          </DialogActions>
+      </React.Fragment>
   );
 }
 
