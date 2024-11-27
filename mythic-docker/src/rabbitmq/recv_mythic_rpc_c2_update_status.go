@@ -7,6 +7,7 @@ import (
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"strings"
 )
 
 type MythicRPCC2UpdateStatusMessage struct {
@@ -41,8 +42,13 @@ func MythicRPCC2UpdateStatus(input MythicRPCC2UpdateStatusMessage) MythicRPCC2Up
 		response.Success = true
 	}
 	if input.Error != "" {
-		go SendAllOperationsMessage(fmt.Sprintf("Error from C2 Profile %s:%s\n", input.C2Profile, input.Error),
-			0, fmt.Sprintf("%s_error", input.C2Profile), database.MESSAGE_LEVEL_WARNING)
+		if strings.HasPrefix(input.Error, "Server already") {
+			go SendAllOperationsMessage(fmt.Sprintf("Update from C2 Profile %s:\n%s\n", input.C2Profile, input.Error),
+				0, fmt.Sprintf("%s_error", input.C2Profile), database.MESSAGE_LEVEL_DEBUG)
+		} else {
+			go SendAllOperationsMessage(fmt.Sprintf("Error from C2 Profile %s:\n%s\n", input.C2Profile, input.Error),
+				0, fmt.Sprintf("%s_error", input.C2Profile), database.MESSAGE_LEVEL_WARNING)
+		}
 	}
 	return response
 }
