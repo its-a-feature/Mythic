@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 0.3.7 - 
+
+### Changed
+
+- Updated the default value for an installed service's *_use_volume setting to be `false` instead of `true`
+  - too many people were having issues with lingering volumes, so it's better to have people explicitly set this if they need it
+
 ## 0.3.6 - 2024-11-25
 
 ### Changed

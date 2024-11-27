@@ -41,7 +41,7 @@ func InstallFolder(installPath string, overWrite bool, keepVolume bool, installU
 	for key, val := range latestVersion {
 		config.SetNewConfigStrings(fmt.Sprintf("%s_remote_image", key), val)
 		if !config.GetMythicEnv().InConfig(fmt.Sprintf("%s_use_volume", key)) {
-			config.SetNewConfigStrings(fmt.Sprintf("%s_use_volume", key), "true")
+			config.SetNewConfigStrings(fmt.Sprintf("%s_use_volume", key), "false")
 		}
 		if !config.GetMythicEnv().InConfig(fmt.Sprintf("%s_use_build_context", key)) {
 			config.SetNewConfigStrings(fmt.Sprintf("%s_use_build_context", key), "false")
