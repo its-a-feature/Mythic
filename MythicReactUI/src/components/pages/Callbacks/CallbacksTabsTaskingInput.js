@@ -1585,7 +1585,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     ,
                     startAdornment: <React.Fragment>
                         {tokenOptions.current.length > 0 ? (
-                            <CallbacksTabsTaskingInputTokenSelect options={tokenOptions} changeSelectedToken={props.changeSelectedToken}/>
+                            <CallbacksTabsTaskingInputTokenSelect options={tokenOptions.current} changeSelectedToken={props.changeSelectedToken}/>
                         ) : null}
                         
                     </React.Fragment>
