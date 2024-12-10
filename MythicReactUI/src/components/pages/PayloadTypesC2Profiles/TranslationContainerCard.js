@@ -90,7 +90,7 @@ export function TranslationContainerRow({service, showDeleted}) {
                 <Typography variant="body1" component="p">
                     <b>Supported Agents:</b> {service.payloadtypes.filter(pt => !pt.deleted).map( (pt) => pt.name).join(", ")}
                 </Typography>
-                <Typography variant="body2" component="p">
+                <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
                     <b>Description: </b>{service.description}
                 </Typography>
             </MythicTableCell>

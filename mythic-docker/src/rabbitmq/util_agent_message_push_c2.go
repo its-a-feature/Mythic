@@ -25,7 +25,7 @@ func processAgentMessageFromPushC2() {
 				select {
 				case agentMessage := <-newConnection.PushC2MessagesToMythic:
 					//logging.LogDebug("about to recursively process agent message")
-					messageResponse := recursiveProcessAgentMessage(AgentMessageRawInput{
+					messageResponse := recursiveProcessAgentMessage(&AgentMessageRawInput{
 						C2Profile:         agentMessage.C2Profile,
 						RemoteIP:          agentMessage.RemoteIP,
 						RawMessage:        agentMessage.RawMessage,

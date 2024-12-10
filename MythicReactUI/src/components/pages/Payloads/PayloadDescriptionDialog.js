@@ -47,7 +47,11 @@ export function PayloadDescriptionDialog(props) {
     });
     const [updateDescription] = useMutation(updateDescriptionMutation, {
         onCompleted: (data) => {
-            snackActions.success("Updated Payload Description")
+            snackActions.success("Updated Payload Description");
+            props.onClose();
+        },
+        onError: (data) => {
+            console.log(data);
         }
     });
     const [updateCallbackDescriptions] = useMutation(updateCallbackDescriptionsMutation, {
@@ -86,7 +90,6 @@ export function PayloadDescriptionDialog(props) {
     const updatePayloadDescription = () => {
         setOpenUpdateAll(false);
         updateDescription({variables: {payload_id: props.payload_id, description: description.current}});
-        props.onClose();
     }
     const onCommitSubmit = (updatedMessage) => {
         description.current = updatedMessage;
@@ -103,7 +106,8 @@ export function PayloadDescriptionDialog(props) {
         <MythicModifyStringDialog title={"Edit Payload Description"}
                                   maxRows={5}
                                   onClose={props.onClose}
-                                  value={description.current}
+                                  value={oldDescription}
+                                  dontCloseOnSubmit={true}
                                   onSubmit={onCommitSubmit} />
         {openUpdateAll &&
             <MythicConfirmDialog title={"Update Associated Callback's Descriptions?"}

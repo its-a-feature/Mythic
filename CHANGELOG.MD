@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc29] - 2024-12-10
+
+### Changed
+
+- Updated the processing for agent messages to minimize memory bloat
+  - Updated file download process to cache filemeta information and open file descriptors to minimize disk/database access
+  - Updated agent response processing to cache task data for one update instead of per-response
+- Updated MythicRPCResponseCreate to also touch the timestamp of the corresponding task to update the UI streaming
+
 ## [3.3.1-rc28] - 2024-11-26
 
 ### Changed

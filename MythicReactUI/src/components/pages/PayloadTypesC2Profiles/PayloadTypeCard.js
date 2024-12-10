@@ -102,8 +102,8 @@ export function PayloadTypeRow({service, showDeleted}){
                             <b>Wrapped Payload Types:</b> {wrappedPayloads}
                         </Typography>
                     )}
-                    <Typography variant="body2" component="p">
-                        <b>Description:</b><br/>{service.note}
+                    <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
+                        <b>Description: </b>{service.note}
                     </Typography>
                 </MythicTableCell>
                 <MythicTableCell>

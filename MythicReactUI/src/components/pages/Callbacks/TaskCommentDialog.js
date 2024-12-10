@@ -38,6 +38,7 @@ export function TaskCommentDialog(props) {
     const [updateComment] = useMutation(updateCommentMutation, {
         update: (cache, {data}) => {
             //console.log(data);
+            props.onClose();
         }
     });
     if (loading) {
@@ -49,7 +50,6 @@ export function TaskCommentDialog(props) {
     }
     const onCommitSubmit = (newValue) => {
         updateComment({variables: {task_id: props.task_id, comment: newValue}});
-        props.onClose();
     }
 
   return (
@@ -57,6 +57,7 @@ export function TaskCommentDialog(props) {
         <MythicModifyStringDialog title={`Edit Task Comment`}
                                   onClose={props.onClose}
                                   value={comment}
+                                  dontCloseOnSubmit={true}
                                   onSubmit={onCommitSubmit} />
   </React.Fragment>
   );

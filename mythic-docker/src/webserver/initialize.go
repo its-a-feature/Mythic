@@ -30,6 +30,7 @@ func Initialize() *gin.Engine {
 	r.Use(InitializeGinLogger())
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	r.Use(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
+		logging.LogError(nil, "http error", "error", recovered)
 		if err, ok := recovered.(string); ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error: %s", err)})
 		}

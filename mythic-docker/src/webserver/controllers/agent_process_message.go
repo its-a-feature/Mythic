@@ -97,7 +97,8 @@ func AgentMessageWebhook(c *gin.Context) {
 		c.Status(http.StatusNotFound)
 		return
 	}
-	response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
+	//logging.LogInfo("got post agent message", "size", len(agentMessage))
+	response, err := rabbitmq.ProcessAgentMessage(&rabbitmq.AgentMessageRawInput{
 		C2Profile:         c2Header,
 		Base64Message:     &agentMessage,
 		RemoteIP:          requestIp,
@@ -114,7 +115,6 @@ func AgentMessageWebhook(c *gin.Context) {
 	}
 	c.Data(http.StatusOK, "application/octet-stream", response)
 	return
-
 }
 
 func AgentMessageGetWebhook(c *gin.Context) {
@@ -153,7 +153,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 					return
 				}
 			}
-			if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
+			if response, err := rabbitmq.ProcessAgentMessage(&rabbitmq.AgentMessageRawInput{
 				C2Profile:         c2Header,
 				RawMessage:        &base64Bytes,
 				RemoteIP:          requestIp,
@@ -183,7 +183,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 			c.Status(http.StatusNotFound)
 			return
 		} else {
-			if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
+			if response, err := rabbitmq.ProcessAgentMessage(&rabbitmq.AgentMessageRawInput{
 				C2Profile:         c2Header,
 				RawMessage:        &base64Bytes,
 				RemoteIP:          requestIp,
@@ -202,29 +202,32 @@ func AgentMessageGetWebhook(c *gin.Context) {
 			}
 		}
 	}
-	if agentMessage, err := io.ReadAll(c.Request.Body); err != nil {
-		if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
-			C2Profile:         c2Header,
-			Base64Message:     &agentMessage,
-			RemoteIP:          requestIp,
-			Base64Response:    true,
-			UpdateCheckinTime: true,
-		}); err != nil {
-			errorMessage := "Error! Failed to find message in body of get request. Check the following details for more information about the request:\nConnection to: "
-			errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\nUser-Agent: %s\n%v\n", requestUrl, c.Request.Method, requestIp, requestUserAgent, err)
-			go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_bad_message", database.MESSAGE_LEVEL_WARNING)
-			logging.LogError(err, "Failed to process agent message in body of get request", "errorMsg", errorMessage)
-			c.Status(http.StatusNotFound)
-			return
-		} else {
-			c.Data(http.StatusOK, "application/octet-stream", response)
-			return
-		}
+	agentMessage, err := io.ReadAll(c.Request.Body)
+	c.Request.Body.Close()
+	if err != nil {
+		errorMessage := "Error! Failed to find query param, cookie, or message body. Check the following details for more information about the request:\nConnection to: "
+		errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\nUser-Agent: %s\n", requestUrl, c.Request.Method, requestIp, requestUserAgent)
+		go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_message", database.MESSAGE_LEVEL_WARNING)
+		logging.LogError(nil, "Failed to process agent message", "errorMsg", errorMessage)
+		c.Status(http.StatusNotFound)
+		return
 	}
-	errorMessage := "Error! Failed to find query param, cookie, or message body. Check the following details for more information about the request:\nConnection to: "
-	errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\nUser-Agent: %s\n", requestUrl, c.Request.Method, requestIp, requestUserAgent)
-	go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_missing_message", database.MESSAGE_LEVEL_WARNING)
-	logging.LogError(nil, "Failed to process agent message", "errorMsg", errorMessage)
-	c.Status(http.StatusNotFound)
-	return
+	if response, err := rabbitmq.ProcessAgentMessage(&rabbitmq.AgentMessageRawInput{
+		C2Profile:         c2Header,
+		Base64Message:     &agentMessage,
+		RemoteIP:          requestIp,
+		Base64Response:    true,
+		UpdateCheckinTime: true,
+	}); err != nil {
+		errorMessage := "Error! Failed to find message in body of get request. Check the following details for more information about the request:\nConnection to: "
+		errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\nUser-Agent: %s\n%v\n", requestUrl, c.Request.Method, requestIp, requestUserAgent, err)
+		go rabbitmq.SendAllOperationsMessage(errorMessage, 0, "agent_message_bad_message", database.MESSAGE_LEVEL_WARNING)
+		logging.LogError(err, "Failed to process agent message in body of get request", "errorMsg", errorMessage)
+		c.Status(http.StatusNotFound)
+		return
+	} else {
+		c.Data(http.StatusOK, "application/octet-stream", response)
+		return
+	}
+
 }

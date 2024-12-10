@@ -19,9 +19,9 @@ import {snackActions} from "../../utilities/Snackbar";
 export function SettingsOperatorExperimentalUIConfigDialog(props) {
     const initialResponseStreamLimit = GetMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 50})
     const [newResponseStreamLimit, setNewResponseStreamLimit] = React.useState(initialResponseStreamLimit);
-    const [updateSetting] = useSetMythicSetting();
+    const [updateSetting, _] = useSetMythicSetting();
     const onNewResponseStreamLimitChange = (name, value, error) => {
-        setNewResponseStreamLimit(value);
+        setNewResponseStreamLimit(parseInt(value));
     }
 
     const onAccept = () => {

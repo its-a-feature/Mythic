@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
@@ -10,7 +9,12 @@ import (
 	"github.com/its-a-feature/Mythic/webserver"
 )
 
+//import _ "net/http/pprof"
+
 func main() {
+	//go func() {
+	//	fmt.Println(http.ListenAndServe("localhost:6060", nil))
+	//}()
 	// initialize configuration based on .env and environment variables
 	fmt.Print("Step 1/6 - Initializing utilities\n")
 	utils.Initialize()

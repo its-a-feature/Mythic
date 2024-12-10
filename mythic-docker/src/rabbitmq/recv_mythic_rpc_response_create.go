@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -42,21 +43,25 @@ func MythicRPCResponseCreate(input MythicRPCResponseCreateMessage) MythicRPCResp
 		response.Error = "Response must have actual bytes"
 		return response
 	}
-	if err := database.DB.Get(&databaseResponse.OperationID, `SELECT operation_id FROM task 
-		WHERE id=$1`, input.TaskID); err != nil {
+	err := database.DB.Get(&databaseResponse.OperationID, `SELECT operation_id FROM task 
+		WHERE id=$1`, input.TaskID)
+	if err != nil {
 		logging.LogError(err, "failed to fetch task from database")
 		response.Error = err.Error()
 		return response
-	} else if _, err := database.DB.NamedExec(`INSERT INTO response 
+	}
+	_, err = database.DB.NamedExec(`INSERT INTO response 
 	(task_id, response, operation_id)
-	VALUES (:task_id, :response, :operation_id)`, databaseResponse); err != nil {
+	VALUES (:task_id, :response, :operation_id)`, databaseResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to create response for task", "response", input.Response)
 		response.Error = err.Error()
 		return response
-	} else {
-		response.Success = true
-		return response
 	}
+	_, _ = database.DB.Exec(`UPDATE task SET timestamp=$2 WHERE id=$1`, input.TaskID, time.Now().UTC())
+	response.Success = true
+	return response
+
 }
 func processMythicRPCPayloadResponseCreate(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCResponseCreateMessage{}

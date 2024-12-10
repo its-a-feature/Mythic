@@ -262,7 +262,16 @@ func (d *DockerComposeManager) CheckRequiredManagerVersion() bool {
 		return false
 	}
 	if semver.Compare("v"+outputString, "v20.10.22") >= 0 {
-		return true
+		composeCheckString, err := d.runDocker([]string{"compose", "version"})
+		if err != nil {
+			log.Printf("[-] Failed to get docker compose: %v\n", err)
+			return false
+		}
+		if strings.Contains(composeCheckString, "Docker Compose version v") {
+			return true
+		}
+		log.Printf("[-] Unable to find compose plugin. Please install the docker compose plugin.\n")
+		return false
 	}
 	log.Printf("[-] Docker version is too old, %s, for Mythic. Please update\n", outputString)
 	return false

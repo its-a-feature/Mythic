@@ -39,6 +39,7 @@ export const getIconName = (iconName) => {
     case "diskimage":
       return faBoxOpen;
     case "executable":
+    case "cog":
       return faCog;
     case "word":
       return faFileWord;

@@ -39,6 +39,7 @@ export function PayloadFilenameDialog(props) {
     const [updateDescription] = useMutation(updateDescriptionMutation, {
         onCompleted: (data) => {
           snackActions.success("Updated filename");
+          props.onClose();
         }
     });
     if (loading) {
@@ -50,7 +51,7 @@ export function PayloadFilenameDialog(props) {
     }
     const onCommitSubmit = (newDescription) => {
         updateDescription({variables: {file_id: fileId, filename: newDescription}});
-        props.onClose();
+
     }
 
   return (
@@ -59,6 +60,7 @@ export function PayloadFilenameDialog(props) {
                                   maxRows={2}
                                   onClose={props.onClose}
                                   value={description}
+                                  dontCloseOnSubmit={true}
                                   onSubmit={onCommitSubmit} />
   </React.Fragment>
   );

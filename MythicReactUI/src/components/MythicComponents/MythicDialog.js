@@ -62,6 +62,9 @@ export function MythicModifyStringDialog(props) {
   const theme = useTheme();
     const onCommitSubmit = () => {
         props.onSubmit(comment);
+        if(props.dontCloseOnSubmit){
+            return;
+        }
         props.onClose();
     }
     const onChange = (value) => {

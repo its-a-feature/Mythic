@@ -179,7 +179,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                     <Typography variant="body1" component="p">
                         <b>Supported Agents:</b> {service.payloadtypec2profiles.filter( (pt) => !pt.payloadtype.deleted ).map(c => c.payloadtype.name).join(", ")}
                     </Typography>
-                    <Typography variant="body2" component="p">
+                    <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
                         <b>Description: </b>{service.description}
                     </Typography>
                 </MythicTableCell>

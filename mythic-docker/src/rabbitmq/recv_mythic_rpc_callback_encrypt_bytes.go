@@ -51,7 +51,7 @@ func CallbackEncryptMessage(input MythicRPCCallbackEncryptBytesMessage) ([]byte,
 	}
 	if cachedInfo.MythicEncrypts {
 		// Mythic does encryption, so handle it
-		cipherText, err := cachedInfo.IterateAndAct(input.Message, "encrypt")
+		cipherText, err := cachedInfo.IterateAndAct(&input.Message, "encrypt")
 		if err != nil {
 			return nil, err
 		}
@@ -61,12 +61,12 @@ func CallbackEncryptMessage(input MythicRPCCallbackEncryptBytesMessage) ([]byte,
 			if err != nil {
 				return nil, err
 			}
-			cipherText = append(uuidBytes, cipherText...)
+			*cipherText = append(uuidBytes, *cipherText...)
 		}
 		if input.Base64ReturnMessage {
-			return []byte(base64.StdEncoding.EncodeToString(cipherText)), nil
+			return []byte(base64.StdEncoding.EncodeToString(*cipherText)), nil
 		}
-		return cipherText, nil
+		return *cipherText, nil
 	} else if cachedInfo.TranslationContainerID > 0 {
 		// Mythic doesn't encrypt, and there's a translation container associated
 		encKey := make([]byte, 0)

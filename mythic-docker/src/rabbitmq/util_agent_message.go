@@ -123,7 +123,7 @@ func (cache *cachedUUIDInfo) getAllKeys() []mythicCrypto.CryptoKeys {
 		return nil
 	}
 }
-func (cache *cachedUUIDInfo) IterateAndAct(agentMessage []byte, action string) ([]byte, error) {
+func (cache *cachedUUIDInfo) IterateAndAct(agentMessage *[]byte, action string) (*[]byte, error) {
 	keyOptions := cache.getAllKeys()
 	var err error
 	err = nil
@@ -153,7 +153,8 @@ func (cache *cachedUUIDInfo) IterateAndAct(agentMessage []byte, action string) (
 				}
 				//logging.LogDebug("Encrypting message", "key", hex.EncodeToString(*keyToUse))
 
-				if modified, err := mythicCrypto.EncryptAES256HMAC(*keyToUse, agentMessage); err == nil {
+				modified, err = mythicCrypto.EncryptAES256HMAC(*keyToUse, agentMessage)
+				if err == nil {
 					// we successfully encrypted, so return
 					cache.SuccessfulDecKeyOpt = keyToUse
 					cache.SuccessfulEncKeyOpt = keyToUse
@@ -248,12 +249,12 @@ type recursiveProcessAgentMessageResponse struct {
 	AgentUUIDSize       int
 }
 
-func unmarshalMessageForAgentFormat(uuidInfo *cachedUUIDInfo, messageBytes []byte, output *map[string]interface{}) error {
+func unmarshalMessageForAgentFormat(uuidInfo *cachedUUIDInfo, messageBytes *[]byte, output *map[string]interface{}) error {
 	switch uuidInfo.PayloadTypeMessageFormat {
 	case "json":
-		return json.Unmarshal(messageBytes, output)
+		return json.Unmarshal(*messageBytes, output)
 	case "xml":
-		return xml.Unmarshal(messageBytes, output)
+		return xml.Unmarshal(*messageBytes, output)
 	}
 	return errors.New("unknown message format for agent")
 }
@@ -268,7 +269,7 @@ func marshalMessageForAgentFormat(uuidInfo *cachedUUIDInfo, agentMessage map[str
 	return nil, errors.New("unknown message format for agent")
 }
 
-func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recursiveProcessAgentMessageResponse {
+func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recursiveProcessAgentMessageResponse {
 	instanceResponse := recursiveProcessAgentMessageResponse{TrackingID: agentMessageInput.TrackingID}
 	var messageUUID uuid.UUID
 	var err error
@@ -370,7 +371,8 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 		instanceResponse.Err = errors.New(errorMessage)
 		return instanceResponse
 	}
-	decryptedMessage, err := DecryptMessage(uuidInfo, base64DecodedMessage[agentUUIDLength:totalBase64Bytes])
+	decryptBytes := base64DecodedMessage[agentUUIDLength:totalBase64Bytes]
+	decryptedMessage, err := DecryptMessage(uuidInfo, &decryptBytes)
 	if err != nil {
 		logging.LogError(err, "Failed to decrypt message and process as JSON")
 		errorMessage := fmt.Sprintf("Failed to decrypt message due to: %s\n", err.Error())
@@ -380,6 +382,8 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 		instanceResponse.Err = err
 		return instanceResponse
 	}
+	// try to force the garbage collection on the base64 decoded message
+	base64DecodedMessage = make([]byte, 0)
 	if _, ok := decryptedMessage["action"]; !ok {
 		errorMessage := fmt.Sprintf("Missing action in message:\n%s\n", decryptedMessage)
 		errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
@@ -520,7 +524,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 				}
 				currentDelegateMessageBytes := []byte(delegate.Message)
 				currentDelegateMessage.Base64Message = &currentDelegateMessageBytes
-				if delegateResponse := recursiveProcessAgentMessage(currentDelegateMessage); delegateResponse.Err != nil {
+				if delegateResponse := recursiveProcessAgentMessage(&currentDelegateMessage); delegateResponse.Err != nil {
 					logging.LogError(delegateResponse.Err, "Failed to process delegate message")
 				} else {
 					newResponse := delegateMessageResponse{
@@ -638,7 +642,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 	return instanceResponse
 }
 
-func ProcessAgentMessage(agentMessageInput AgentMessageRawInput) ([]byte, error) {
+func ProcessAgentMessage(agentMessageInput *AgentMessageRawInput) ([]byte, error) {
 	response := recursiveProcessAgentMessage(agentMessageInput)
 	return response.Message, response.Err
 }
@@ -847,7 +851,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 	return &newCache, nil
 }
 
-func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage []byte) (map[string]interface{}, error) {
+func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage *[]byte) (map[string]interface{}, error) {
 	var jsonAgentMessage map[string]interface{}
 	if uuidInfo.MythicEncrypts {
 		if uuidInfo.TranslationContainerName == "" {
@@ -872,7 +876,7 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage []byte) (map[string]i
 			} else if convertedResponse, err := RabbitMQConnection.SendTrRPCCustomMessageToMythicC2(TrCustomMessageToMythicC2FormatMessage{
 				TranslationContainerName: uuidInfo.TranslationContainerName,
 				C2Name:                   uuidInfo.C2ProfileName,
-				Message:                  decrypted,
+				Message:                  *decrypted,
 				UUID:                     uuidInfo.UUID,
 				MythicEncrypts:           uuidInfo.MythicEncrypts,
 				CryptoKeys:               uuidInfo.getAllKeys(),
@@ -907,7 +911,7 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage []byte) (map[string]i
 			if convertedResponse, err := RabbitMQConnection.SendTrRPCCustomMessageToMythicC2(TrCustomMessageToMythicC2FormatMessage{
 				TranslationContainerName: uuidInfo.TranslationContainerName,
 				C2Name:                   uuidInfo.C2ProfileName,
-				Message:                  agentMessage,
+				Message:                  *agentMessage,
 				UUID:                     uuidInfo.UUID,
 				MythicEncrypts:           uuidInfo.MythicEncrypts,
 				CryptoKeys:               uuidInfo.getAllKeys(),
@@ -939,7 +943,7 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 				logging.LogError(err, "Failed to marshal the final agent message before encrypting")
 				return nil, err
 			}
-			encryptedBytes, err := uuidInfo.IterateAndAct(jsonBytes, "encrypt")
+			encryptedBytes, err := uuidInfo.IterateAndAct(&jsonBytes, "encrypt")
 			if err != nil {
 				logging.LogError(err, "Failed to encrypt bytes")
 				return nil, err
@@ -949,7 +953,7 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 				logging.LogError(err, "Failed to get UUID for final message")
 				return nil, err
 			}
-			finalBytes := append(uuidBytes, encryptedBytes...)
+			finalBytes := append(uuidBytes, *encryptedBytes...)
 			if shouldBase64Encode {
 				return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
 			}
@@ -977,7 +981,7 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
 			return nil, errors.New(convertedResponse.Error)
 		}
-		encryptedBytes, err := uuidInfo.IterateAndAct(convertedResponse.Message, "encrypt")
+		encryptedBytes, err := uuidInfo.IterateAndAct(&convertedResponse.Message, "encrypt")
 		if err != nil {
 			logging.LogError(err, "Failed to encrypt bytes")
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to encrypt bytes:\n%s", err.Error()), uuidInfo.OperationID,
@@ -991,7 +995,7 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
 			return nil, err
 		}
-		finalBytes := append(uuidBytes, encryptedBytes...)
+		finalBytes := append(uuidBytes, *encryptedBytes...)
 		if shouldBase64Encode {
 			return []byte(base64.StdEncoding.EncodeToString(finalBytes)), nil
 		}

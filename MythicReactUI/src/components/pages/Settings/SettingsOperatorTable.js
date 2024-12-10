@@ -56,7 +56,7 @@ export function SettingsOperatorTable(props){
         props.onNewBot(username);
         setOpenNewBotDialog(false);
     }
-    const userData = props.operators.filter(o => o.id === (props.me?.user?.id || 0))
+    const userData = props.operators.filter(o => o.id === props.me?.user?.id)
     const userIsAdmin = userData.length > 0 ? userData[0].admin : false;
     const [showDeleted, setShowDeleted] = React.useState(false);
     const [openGlobalSettingsDialog, setOpenGlobalSettingsDialog] = React.useState(false);

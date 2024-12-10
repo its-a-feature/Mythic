@@ -172,7 +172,7 @@ const NonInteractiveResponseDisplay = (props) => {
     setOpenBackdrop(true);
     onSubmitPageChange(1);
   }, [props.task.id]);
-  const subscriptionDataCallback = React.useCallback( ({data}) => {
+  const subscriptionDataCallback =  ({data}) => {
     //console.log("fetchLimit", fetchLimit, "totalCount", totalCount);
     if(props.task.id !== taskID.current){
       console.log("props.task.id !== taskID.current", props.task.id, taskID.current)
@@ -191,10 +191,12 @@ const NonInteractiveResponseDisplay = (props) => {
       setTotalCount(responseArray.length);
       setOpenBackdrop(false);
     } else {
-      if(totalCount >= initialResponseStreamLimit && initialResponseStreamLimit > 0){
+
+      if(rawResponses.length >= initialResponseStreamLimit && initialResponseStreamLimit > 0 && !props.selectAllOutput){
         // we won't display it
         console.log("got more than we can see currently", totalCount);
         setOpenBackdrop(false);
+        setTotalCount(totalCount + data.data.response_stream.length);
         return;
       }
       // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
@@ -208,8 +210,9 @@ const NonInteractiveResponseDisplay = (props) => {
       }, rawResponses);
       // sort them to make sure we're still in order
       newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
+      setTotalCount(totalCount + data.data.response_stream.length);
       // newerResponses is everything we've seen plus everything new
-      if(initialResponseStreamLimit > 0){
+      if(initialResponseStreamLimit > 0 && !props.selectAllOutput){
         // take just the responses that make up our stream limit
         const finalRawResponses = newerResponses.slice(0, initialResponseStreamLimit);
         const outputResponses = finalRawResponses.reduce( (prev, cur) => {
@@ -228,7 +231,7 @@ const NonInteractiveResponseDisplay = (props) => {
       }
       setOpenBackdrop(false);
     }
-  }, [output, rawResponses, totalCount, props.task.id]);
+  };
   useSubscription(subResponsesStream, {
     variables: {task_id: props.task.id},
     fetchPolicy: "network_only",

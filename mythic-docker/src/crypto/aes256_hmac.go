@@ -26,26 +26,30 @@ var (
 )
 
 // many crypto pieces pulled from https://gist.github.com/huyinghuan/7bf174017bf54efb91ece04a48589b22
-func EncryptAES256HMAC(key []byte, message []byte) ([]byte, error) {
+func EncryptAES256HMAC(key []byte, message *[]byte) (*[]byte, error) {
 	if len(key) == 0 {
 		// if there's no key, just return the message
 		return message, nil
 	}
 
 	//logging.LogTrace("EncryptAES256HMAC", "dataToEncrypt", message, "key", hex.EncodeString(key))
-	if cipherText, err := EncryptAES256(key, message); err != nil {
+	cipherText, err := EncryptAES256(key, message)
+	if err != nil {
 		return nil, err
-	} else {
-		//logging.LogTrace("EncryptAES256HMAC", "encrypted", cipherText)
-		mac := hmac.New(sha256.New, key)
-		mac.Write(cipherText)
-		newMac := mac.Sum(nil)
-		//logging.LogTrace("EncryptAES256HMAC", "hmac", newMac)
-		return append(cipherText, newMac...), nil
 	}
+	//logging.LogTrace("EncryptAES256HMAC", "encrypted", cipherText)
+	mac := hmac.New(sha256.New, key)
+	_, err = mac.Write(*cipherText)
+	if err != nil {
+		return nil, err
+	}
+	newMac := mac.Sum(nil)
+	//logging.LogTrace("EncryptAES256HMAC", "hmac", newMac)
+	newData := append(*cipherText, newMac...)
+	return &newData, nil
 }
 
-func EncryptAES256(key []byte, message []byte) ([]byte, error) {
+func EncryptAES256(key []byte, message *[]byte) (*[]byte, error) {
 	if len(key) == 0 {
 		return message, nil
 	}
@@ -56,43 +60,43 @@ func EncryptAES256(key []byte, message []byte) ([]byte, error) {
 	}
 
 	iv := make([]byte, aes.BlockSize)
-	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
+	_, err = io.ReadFull(rand.Reader, iv)
+	if err != nil {
 		logging.LogError(err, "Failed to generate IV for aes encryption")
 		return nil, err
 	}
 	cbc := cipher.NewCBCEncrypter(block, iv)
-	if message, err = pkcs7Pad(message, aes.BlockSize); err != nil {
+	messagePad, err := pkcs7Pad(*message, aes.BlockSize)
+	if err != nil {
 		logging.LogError(err, "Failed to pad message for aes block size when encrypting")
 		return nil, err
-	} else {
-		cbc.CryptBlocks(message, message)
-		encryptedByptes := append(iv, message...) // IV + Ciphertext
-		return encryptedByptes, nil
 	}
-
+	cbc.CryptBlocks(messagePad, messagePad)
+	encryptedByptes := append(iv, messagePad...) // IV + Ciphertext
+	return &encryptedByptes, nil
 }
 
-func DecryptAES256HMAC(key []byte, message []byte) ([]byte, error) {
+func DecryptAES256HMAC(key []byte, message *[]byte) (*[]byte, error) {
 	if len(key) == 0 {
 		return message, nil
 	}
-	messageLen := len(message)
+	messageLen := len(*message)
 	if messageLen < aes.BlockSize+32 {
 		err := errors.New("Message improperly formatted - not long enough")
 		logging.LogError(err, "Failed to decrypt message")
 		return nil, err
 	}
-	iv := message[:aes.BlockSize]             // gets IV, bytes 0 - 16
-	cipherHMAC := message[(messageLen - 32):] // gets the hmac, the last 32 bytes of the array
-	cipherText := message[aes.BlockSize:(messageLen - 32)]
-	cipherTextAndIV := message[:(messageLen - 32)]
+	iv := (*message)[:aes.BlockSize]             // gets IV, bytes 0 - 16
+	cipherHMAC := (*message)[(messageLen - 32):] // gets the hmac, the last 32 bytes of the array
+	cipherText := (*message)[aes.BlockSize:(messageLen - 32)]
+	cipherTextAndIV := (*message)[:(messageLen - 32)]
 	//logging.LogTrace("DecryptAES256HMAC", "dataToDecrypt", hex.EncodeToString(cipherText), "cipherHMAC", hex.EncodeToString(cipherHMAC), "key", hex.EncodeToString(key))
 	if len(cipherText) < aes.BlockSize {
 		logging.LogError(nil, "Message too short for aes block size")
 		return nil, errors.New("Message too short for aes block size")
 	} else if validHMAC(cipherTextAndIV, cipherHMAC, key) {
 		//logging.LogTrace("DecryptAES256HMAC", "dataToDecrypt", hex.EncodeToString(cipherText), "cipherHMAC", hex.EncodeToString(cipherHMAC), "key", hex.EncodeToString(key))
-		return DecryptAES256(key, iv, cipherText)
+		return DecryptAES256(key, iv, &cipherText)
 	} else {
 		err := errors.New("Failed to validate HMAC")
 		logging.LogError(err, "Failed to decrypt message")
@@ -108,25 +112,25 @@ func validHMAC(cipherText []byte, cipherHMAC []byte, key []byte) bool {
 	return hmac.Equal(cipherHMAC, expectedMAC)
 }
 
-func DecryptAES256(key []byte, iv []byte, message []byte) ([]byte, error) {
+func DecryptAES256(key []byte, iv []byte, message *[]byte) (*[]byte, error) {
 	if len(key) == 0 {
 		return message, nil
 	}
 	if block, err := aes.NewCipher(key); err != nil {
 		logging.LogError(err, "Failed to use aes key for decryption")
 		return nil, err
-	} else if len(message)%aes.BlockSize != 0 {
+	} else if len(*message)%aes.BlockSize != 0 {
 		logging.LogError(nil, "ciphertext not a muiltiple of the block size")
 		return nil, errors.New("Ciphertext is not a multiple of aes block size")
 	} else {
 		mode := cipher.NewCBCDecrypter(block, iv)
-		mode.CryptBlocks(message, message)
-		data, err := pkcs7Unpad(message, aes.BlockSize)
+		mode.CryptBlocks(*message, *message)
+		data, err := pkcs7Unpad(*message, aes.BlockSize)
 		if err != nil {
 			logging.LogError(err, "ciphertext padding isn't pkcs7")
 			return nil, err
 		} else {
-			return data, nil
+			return &data, nil
 		}
 	}
 

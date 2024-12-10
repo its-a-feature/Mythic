@@ -206,12 +206,12 @@ type agentMessagePostResponseInteractive struct {
 
 // writeDownloadChunkToDiskChan is a blocking call intentionally
 type writeDownloadChunkToDisk struct {
-	ChunkData       []byte
+	ChunkData       *[]byte
 	ChunkNum        int
 	LocalMythicPath string
 	KnownChunkSize  int
 	FileMetaID      int
-	ChunksWritten   chan int
+	ChunksWritten   chan writeDownloadChunkToDiskResponse
 }
 
 var writeDownloadChunkToDiskChan = make(chan writeDownloadChunkToDisk)
@@ -302,6 +302,8 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 	*/
 	agentMessage := agentMessagePostResponseMessage{}
 	err := mapstructure.Decode(incoming, &agentMessage)
+	cachedTaskData := make(map[string]databaseStructs.Task)
+	cachedFileData := make(map[string]databaseStructs.Filemeta)
 	if err != nil {
 		logging.LogError(err, "Failed to decode agent message into struct, ignoring and continuing on")
 		delete(*incoming, "responses")
@@ -318,15 +320,18 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 	}
 	responses := []map[string]interface{}{}
 	// iterate over the agent messages
-	for _, agentResponse := range agentMessage.Responses {
+	for i, _ := range agentMessage.Responses {
 		mythicResponse := map[string]interface{}{
-			"task_id": agentResponse.TaskID,
+			"task_id": agentMessage.Responses[i].TaskID,
 			"status":  "success",
 		}
 		//logging.LogDebug("Got response data from agent", "response data", agentResponse, "extra keys", agentResponse.Other)
 		// every response should be tied to some task
-		currentTask := databaseStructs.Task{AgentTaskID: agentResponse.TaskID}
-		err = database.DB.Get(&currentTask, `SELECT
+		currentTask := databaseStructs.Task{AgentTaskID: agentMessage.Responses[i].TaskID}
+		if _, ok := cachedTaskData[currentTask.AgentTaskID]; ok {
+			currentTask = cachedTaskData[currentTask.AgentTaskID]
+		} else {
+			err = database.DB.Get(&currentTask, `SELECT
 			task.id, task.status, task.completed, task.status_timestamp_processed, task.operator_id, task.operation_id,
 			task.eventstepinstance_id, task.apitokens_id,
 			callback.host "callback.host",
@@ -340,29 +345,51 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			JOIN callback ON task.callback_id = callback.id
 			JOIN payload ON callback.registered_payload_id = payload.id
 			WHERE task.agent_task_id=$1`, currentTask.AgentTaskID)
-		if err != nil {
-			logging.LogError(err, "Failed to find task", "task id", currentTask.AgentTaskID)
-			mythicResponse["status"] = "error"
-			mythicResponse["error"] = "Failed to find task"
-			responses = append(responses, mythicResponse)
-			continue
+			if err != nil {
+				logging.LogError(err, "Failed to find task", "task id", currentTask.AgentTaskID)
+				mythicResponse["status"] = "error"
+				mythicResponse["error"] = "Failed to find task"
+				responses = append(responses, mythicResponse)
+				continue
+			}
 		}
+
 		// always process here
-		if agentResponse.Download != nil {
-			if newFileID, err := handleAgentMessagePostResponseDownload(currentTask, agentResponse); err != nil {
+		if agentMessage.Responses[i].Download != nil {
+			fileMeta := databaseStructs.Filemeta{}
+			if agentMessage.Responses[i].Download.FileID != nil && *agentMessage.Responses[i].Download.FileID != "" {
+				if _, ok := cachedFileData[*agentMessage.Responses[i].Download.FileID]; ok {
+					fileMeta = cachedFileData[*agentMessage.Responses[i].Download.FileID]
+				} else {
+					fileMeta = databaseStructs.Filemeta{AgentFileID: *agentMessage.Responses[i].Download.FileID}
+					err = database.DB.Get(&fileMeta, `SELECT 
+					id, "path", total_chunks, chunks_received, host, is_screenshot, full_remote_path, complete, md5, sha1, filename, chunk_size, operation_id
+					FROM filemeta
+					WHERE agent_file_id=$1`, *agentMessage.Responses[i].Download.FileID)
+					if err != nil {
+						logging.LogError(err, "Failed to find fileID in agent download request", "fileid", *agentMessage.Responses[i].Download.FileID)
+						continue
+					}
+					fileMeta.Task = &databaseStructs.Task{}
+					fileMeta.Task.OperatorID = currentTask.OperatorID
+				}
+			}
+			newFileID, err := handleAgentMessagePostResponseDownload(&currentTask, &agentMessage.Responses[i], &fileMeta)
+			if err != nil {
 				mythicResponse["status"] = "error"
 				mythicResponse["error"] = err.Error()
 			} else {
 				mythicResponse["file_id"] = newFileID
+				cachedFileData[newFileID] = fileMeta
 			}
-			if agentResponse.Download.ChunkNum != nil {
-				mythicResponse["chunk_num"] = *agentResponse.Download.ChunkNum
+			if agentMessage.Responses[i].Download.ChunkNum != nil {
+				mythicResponse["chunk_num"] = *agentMessage.Responses[i].Download.ChunkNum
 			}
-
 		}
+
 		// always process here
-		if agentResponse.Upload != nil {
-			if uploadResponse, err := handleAgentMessagePostResponseUpload(currentTask, agentResponse); err != nil {
+		if agentMessage.Responses[i].Upload != nil {
+			if uploadResponse, err := handleAgentMessagePostResponseUpload(currentTask, agentMessage.Responses[i]); err != nil {
 				mythicResponse["status"] = "error"
 				mythicResponse["error"] = err.Error()
 				logging.LogError(err, "Failed to handle agent upload")
@@ -380,90 +407,90 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			currentTask.StatusTimestampProcessed.Valid = true
 		}
 		// this section can happen async, but in order
-		updatedToCompleted := false
-		if agentResponse.Completed != nil {
-			if *agentResponse.Completed {
-				if !currentTask.Completed {
-					updatedToCompleted = true
-				}
-				currentTask.Completed = *agentResponse.Completed
+		if agentMessage.Responses[i].Completed != nil {
+			if *agentMessage.Responses[i].Completed {
+				currentTask.Completed = *agentMessage.Responses[i].Completed
 			}
 		}
-		if agentResponse.Status != nil && *agentResponse.Status != "" {
+		if agentMessage.Responses[i].Status != nil && *agentMessage.Responses[i].Status != "" {
 			if currentTask.Status != PT_TASK_FUNCTION_STATUS_COMPLETED {
-				currentTask.Status = *agentResponse.Status
+				currentTask.Status = *agentMessage.Responses[i].Status
 			}
-		} else if agentResponse.Completed != nil && *agentResponse.Completed {
+		} else if agentMessage.Responses[i].Completed != nil && *agentMessage.Responses[i].Completed {
 			currentTask.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
 		} else if currentTask.Status == PT_TASK_FUNCTION_STATUS_PROCESSING {
 			currentTask.Status = PT_TASK_FUNCTION_STATUS_PROCESSED
 		}
-		if agentResponse.UserOutput != nil {
+		if agentMessage.Responses[i].UserOutput != nil {
 			// do it in the background - the agent doesn't need the result of this directly
 			//handleAgentMessagePostResponseUserOutput(currentTask, agentResponse, true)
 			asyncAgentMessagePostResponseChannel <- agentAgentMessagePostResponseChannelMessage{
 				Task:        currentTask,
-				Response:    *agentResponse.UserOutput,
-				SequenceNum: agentResponse.SequenceNumber,
+				Response:    *agentMessage.Responses[i].UserOutput,
+				SequenceNum: agentMessage.Responses[i].SequenceNumber,
 			}
 		}
-		if agentResponse.FileBrowser != nil {
+		if agentMessage.Responses[i].FileBrowser != nil {
 			// do it in the background - the agent doesn't need the result of this directly
-			go HandleAgentMessagePostResponseFileBrowser(currentTask, agentResponse.FileBrowser, 0)
+			go HandleAgentMessagePostResponseFileBrowser(currentTask, agentMessage.Responses[i].FileBrowser, 0)
 		}
-		if agentResponse.Processes != nil {
-			go HandleAgentMessagePostResponseProcesses(currentTask, agentResponse.Processes, 0)
+		if agentMessage.Responses[i].Processes != nil {
+			go HandleAgentMessagePostResponseProcesses(currentTask, agentMessage.Responses[i].Processes, 0)
 		}
-		if agentResponse.RemovedFiles != nil {
-			go handleAgentMessagePostResponseRemovedFiles(currentTask, agentResponse.RemovedFiles)
+		if agentMessage.Responses[i].RemovedFiles != nil {
+			go handleAgentMessagePostResponseRemovedFiles(currentTask, agentMessage.Responses[i].RemovedFiles)
 		}
-		if agentResponse.Credentials != nil {
-			go handleAgentMessagePostResponseCredentials(currentTask, agentResponse.Credentials)
+		if agentMessage.Responses[i].Credentials != nil {
+			go handleAgentMessagePostResponseCredentials(currentTask, agentMessage.Responses[i].Credentials)
 		}
-		if agentResponse.Artifacts != nil {
-			go handleAgentMessagePostResponseArtifacts(currentTask, agentResponse.Artifacts)
+		if agentMessage.Responses[i].Artifacts != nil {
+			go handleAgentMessagePostResponseArtifacts(currentTask, agentMessage.Responses[i].Artifacts)
 		}
-		if agentResponse.Keylogs != nil {
-			go handleAgentMessagePostResponseKeylogs(currentTask, agentResponse.Keylogs)
+		if agentMessage.Responses[i].Keylogs != nil {
+			go handleAgentMessagePostResponseKeylogs(currentTask, agentMessage.Responses[i].Keylogs)
 		}
-		if agentResponse.Tokens != nil && agentResponse.CallbackTokens != nil {
+		if agentMessage.Responses[i].Tokens != nil && agentMessage.Responses[i].CallbackTokens != nil {
 			// need to make sure we process tokens _then_ process callback tokens
-			go handleAgentMessagePostResponseCallbackTokensAndTokens(currentTask, agentResponse.Tokens, agentResponse.CallbackTokens)
+			go handleAgentMessagePostResponseCallbackTokensAndTokens(currentTask, agentMessage.Responses[i].Tokens, agentMessage.Responses[i].CallbackTokens)
 		} else {
-			if agentResponse.Tokens != nil {
-				go handleAgentMessagePostResponseTokens(currentTask, agentResponse.Tokens)
+			if agentMessage.Responses[i].Tokens != nil {
+				go handleAgentMessagePostResponseTokens(currentTask, agentMessage.Responses[i].Tokens)
 			}
-			if agentResponse.CallbackTokens != nil {
-				go handleAgentMessagePostResponseCallbackTokens(currentTask, agentResponse.CallbackTokens)
+			if agentMessage.Responses[i].CallbackTokens != nil {
+				go handleAgentMessagePostResponseCallbackTokens(currentTask, agentMessage.Responses[i].CallbackTokens)
 			}
 		}
-		if agentResponse.ProcessResponse != nil {
-			go handleAgentMessagePostResponseProcessResponse(currentTask, agentResponse.ProcessResponse)
+		if agentMessage.Responses[i].ProcessResponse != nil {
+			go handleAgentMessagePostResponseProcessResponse(currentTask, agentMessage.Responses[i].ProcessResponse)
 		}
-		if agentResponse.Commands != nil {
-			go handleAgentMessagePostResponseCommands(currentTask, agentResponse.Commands)
+		if agentMessage.Responses[i].Commands != nil {
+			go handleAgentMessagePostResponseCommands(currentTask, agentMessage.Responses[i].Commands)
 		}
-		if agentResponse.Edges != nil {
-			go handleAgentMessagePostResponseEdges(uUIDInfo, agentResponse.Edges)
+		if agentMessage.Responses[i].Edges != nil {
+			go handleAgentMessagePostResponseEdges(uUIDInfo, agentMessage.Responses[i].Edges)
 		}
-		if agentResponse.Alerts != nil {
-			go handleAgentMessagePostResponseAlerts(currentTask.OperationID, uUIDInfo.CallbackID, uUIDInfo.CallbackDisplayID, agentResponse.Alerts)
+		if agentMessage.Responses[i].Alerts != nil {
+			go handleAgentMessagePostResponseAlerts(currentTask.OperationID, uUIDInfo.CallbackID, uUIDInfo.CallbackDisplayID, agentMessage.Responses[i].Alerts)
 		}
 		// this section always happens
-		reflectBackOtherKeys(&mythicResponse, &agentResponse.Other)
+		reflectBackOtherKeys(&mythicResponse, &agentMessage.Responses[i].Other)
+		responses = append(responses, mythicResponse)
+		cachedTaskData[currentTask.AgentTaskID] = currentTask
+	}
+	response := map[string]interface{}{}
+	response["responses"] = responses
+	reflectBackOtherKeys(&response, &agentMessage.Other)
+	// remove responses so that we don't accidentally process it twice
+	delete(*incoming, "responses")
+	for _, currentTask := range cachedTaskData {
 		// always updating at least the timestamp for the last thing that happened
 		_, err = database.DB.NamedExec(`UPDATE task SET
 				status=:status, completed=:completed, status_timestamp_processed=:status_timestamp_processed, "timestamp"=:timestamp
 				WHERE id=:id`, currentTask)
 		if err != nil {
 			logging.LogError(err, "Failed to update task from agent response")
-			mythicResponse["status"] = "error"
-			mythicResponse["error"] = "Failed to update task"
-			responses = append(responses, mythicResponse)
-			continue
 		}
-		responses = append(responses, mythicResponse)
-		if currentTask.Completed && updatedToCompleted {
+		if currentTask.Completed {
 			// use updatedToCompleted to try to make sure we only do this once per task
 			go CheckAndProcessTaskCompletionHandlers(currentTask.ID)
 			go emitTaskLog(currentTask.ID)
@@ -479,15 +506,60 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			}(currentTask)
 		}
 	}
-	response := map[string]interface{}{}
-	response["responses"] = responses
-	reflectBackOtherKeys(&response, &agentMessage.Other)
-	// remove responses so that we don't accidentally process it twice
-	delete(*incoming, "responses")
+	for _, fileMeta := range cachedFileData {
+		fileDisk, err := os.Stat(fileMeta.Path)
+		if err != nil {
+			logging.LogError(err, "Failed to write file to disk")
+		} else {
+			fileMeta.Size = fileDisk.Size()
+			if fileMeta.Size >= POSTGRES_MAX_INT {
+				fileMeta.Size = POSTGRES_MAX_INT - 1
+			}
+		}
+		if fileMeta.ChunksReceived >= fileMeta.TotalChunks {
+			fileMeta.Complete = true
+			// also calculate new md5 and sha1 sums
+			sha1Hash := sha1.New()
+			md5Hash := md5.New()
+			if file, err := os.Open(fileMeta.Path); err != nil {
+				logging.LogError(err, "Failed to open file to calculate md5 and sha1 sums")
+			} else if _, err = io.Copy(sha1Hash, file); err != nil {
+				logging.LogError(err, "Failed to copy file contents for sha1 hash")
+			} else if _, err = file.Seek(0, 0); err != nil {
+				logging.LogError(err, "Failed to move file pointer back to beginning")
+			} else if _, err = io.Copy(md5Hash, file); err != nil {
+				logging.LogError(err, "Failed to copy file contents for md5 hash")
+			} else {
+				fileMeta.Sha1 = hex.EncodeToString(sha1Hash.Sum(nil))
+				fileMeta.Md5 = hex.EncodeToString(md5Hash.Sum(nil))
+			}
+		}
+		_, err = database.DB.NamedExec(`UPDATE filemeta SET
+			host=:host, is_screenshot=:is_screenshot, 
+			full_remote_path=:full_remote_path, complete=:complete, md5=:md5, sha1=:sha1,
+			filename=:filename, total_chunks=:total_chunks, chunk_size=:chunk_size, size=:size
+			WHERE id=:id`, fileMeta)
+		if err != nil {
+			logging.LogError(err, "Failed to update filemeta based on agent file download")
+		}
+		if fileMeta.Complete {
+			go func(file databaseStructs.Filemeta) {
+				trigger := eventing.TriggerFileDownload
+				if file.IsScreenshot {
+					trigger = eventing.TriggerScreenshot
+				}
+				EventingChannel <- EventNotification{
+					Trigger:     trigger,
+					OperationID: file.OperationID,
+					OperatorID:  file.Task.OperatorID,
+					FileMetaID:  file.ID,
+				}
+			}(fileMeta)
+		}
+	}
 	return response, nil
 
 }
-
 func handleAgentMessagePostResponseUserOutput(task databaseStructs.Task, agentResponse agentMessagePostResponse, emitNotification bool) int {
 	responseOutput := databaseStructs.Response{
 		Timestamp:   time.Now().UTC(),
@@ -899,75 +971,105 @@ func handleAgentMessagePostResponseCommands(task databaseStructs.Task, commands 
 		}
 	}
 }
+
+type chunkWriterData struct {
+	FileMetaID int
+	Chunks     int
+}
+type writeDownloadChunkToDiskResponse struct {
+	Success        bool
+	ChunksReceived int
+}
+
 func listenForWriteDownloadChunkToLocalDisk() {
-	statement, err := database.DB.PrepareNamed(`UPDATE filemeta 
-		SET chunks_received = chunks_received + 1 
-		WHERE id=:id RETURNING chunks_received`)
+	updateChunksStatement, err := database.DB.Prepare(`UPDATE filemeta SET chunks_received=$2 WHERE id=$1`)
+	openFiles := make(map[string]*os.File)
+	newChunks := make(map[string]*chunkWriterData)
 	if err != nil {
 		logging.LogFatalError(err, "Failed to create named statement for writing file chunks to disk")
 	}
 	for {
 		select {
 		case agentResponse := <-writeDownloadChunkToDiskChan:
-			f, err := os.OpenFile(agentResponse.LocalMythicPath, os.O_RDWR|os.O_CREATE, 0644)
-			if err != nil {
-				logging.LogError(err, "Failed to open file to add agent data")
-				agentResponse.ChunksWritten <- 0
-				continue
+			var f *os.File
+			if _, ok := openFiles[agentResponse.LocalMythicPath]; ok {
+				f = openFiles[agentResponse.LocalMythicPath]
+			} else {
+				f, err = os.OpenFile(agentResponse.LocalMythicPath, os.O_RDWR|os.O_CREATE, 0644)
+				if err != nil {
+					logging.LogError(err, "Failed to open file to add agent data")
+					agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
+					continue
+				}
+				openFiles[agentResponse.LocalMythicPath] = f
+				chunksReceived := 0
+				err = database.DB.Get(&chunksReceived, `SELECT chunks_received FROM filemeta WHERE id=$1`,
+					agentResponse.FileMetaID)
+				if err != nil {
+					logging.LogError(err, "Failed to update chunks_received count")
+					continue
+				}
+				newChunks[agentResponse.LocalMythicPath] = &chunkWriterData{
+					FileMetaID: agentResponse.FileMetaID,
+					Chunks:     chunksReceived,
+				}
 			}
 			if agentResponse.KnownChunkSize > 0 {
 				//logging.LogDebug("1. downloading with known chunk size", "chunk_num", agentResponse.ChunkNum, "chunk size", agentResponse.KnownChunkSize)
 				_, err = f.Seek(int64((agentResponse.ChunkNum-1)*(agentResponse.KnownChunkSize)), io.SeekStart)
 				if err != nil {
 					logging.LogError(err, "Failed to seek to next chunk in file")
-					f.Sync()
-					f.Close()
-					agentResponse.ChunksWritten <- 0
+					//f.Sync()
+					//f.Close()
+					agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
 					continue
 				}
 				//logging.LogDebug("1.1. downloading chunk", "offset from beginning", newOffset)
 			} else {
 				//logging.LogDebug("1. downloading with unknown chunk size chunk", "chunk_num", agentResponse.ChunkNum, "chunk size", len(agentResponse.ChunkData))
-				_, err = f.Seek(int64((agentResponse.ChunkNum-1)*(len(agentResponse.ChunkData))), io.SeekStart)
+				_, err = f.Seek(int64((agentResponse.ChunkNum-1)*(len(*agentResponse.ChunkData))), io.SeekStart)
 				if err != nil {
 					logging.LogError(err, "Failed to seek to next chunk in file")
-					f.Sync()
-					f.Close()
-					agentResponse.ChunksWritten <- 0
+					agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
 					continue
 				}
 				//logging.LogDebug("1.1. downloading chunk", "offset from beginning", newOffset)
 			}
-			totalWritten, err := f.Write(agentResponse.ChunkData)
+			totalWritten, err := f.Write(*agentResponse.ChunkData)
 			if err != nil {
 				logging.LogError(err, "Failed to write bytes to file in agent download")
-				f.Sync()
-				f.Close()
-				agentResponse.ChunksWritten <- 0
+				//f.Sync()
+				//f.Close()
+				agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
 				continue
 			}
 			//logging.LogDebug("wrote bytes", "byte sample", string(agentResponse.ChunkData[:10]), "total bytes", len(agentResponse.ChunkData))
-			//offset, err := f.Seek(0, io.SeekCurrent)
 			//logging.LogDebug("2. finished writing chunk", "next offset should be", offset)
-			if totalWritten != len(agentResponse.ChunkData) {
+			if totalWritten != len(*agentResponse.ChunkData) {
 				logging.LogError(nil, "Didn't write all of the bytes to disk")
-				f.Sync()
-				f.Close()
-				agentResponse.ChunksWritten <- 0
+				agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
 				continue
 			}
-			f.Sync()
-			f.Close()
-			chunksReceived := 0
-			err = statement.Get(&chunksReceived, map[string]interface{}{"id": agentResponse.FileMetaID})
-			if err != nil {
-				logging.LogError(err, "Failed to update chunks_received count")
+			newChunks[agentResponse.LocalMythicPath].Chunks += 1
+			agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{
+				Success:        true,
+				ChunksReceived: newChunks[agentResponse.LocalMythicPath].Chunks,
 			}
-			agentResponse.ChunksWritten <- chunksReceived
+		case <-time.After(2 * time.Second):
+			for key, f := range openFiles {
+				f.Sync()
+				f.Close()
+				delete(openFiles, key)
+				_, err = updateChunksStatement.Exec(newChunks[key].FileMetaID, newChunks[key].Chunks)
+				if err != nil {
+					logging.LogError(err, "failed to update chunk count for file")
+				}
+				delete(newChunks, key)
+			}
 		}
 	}
 }
-func handleAgentMessageWriteDownloadChunkToLocalDisk(task databaseStructs.Task, fileMeta databaseStructs.Filemeta, agentResponse agentMessagePostResponse) (string, error) {
+func handleAgentMessageWriteDownloadChunkToLocalDisk(task *databaseStructs.Task, fileMeta *databaseStructs.Filemeta, agentResponse *agentMessagePostResponse) (string, error) {
 	if !fileMeta.Complete {
 		if agentResponse.Download.ChunkData != nil && len(*agentResponse.Download.ChunkData) > 0 {
 			knownChunkSize := 0
@@ -978,7 +1080,13 @@ func handleAgentMessageWriteDownloadChunkToLocalDisk(task databaseStructs.Task, 
 					knownChunkSize = *agentResponse.Download.ChunkSize
 				}
 			}
-			chunksWritten := make(chan int, 1)
+			// check about updating total chunk count in case the agent didn't know it ahead of time
+			if agentResponse.Download.TotalChunks != nil && *agentResponse.Download.TotalChunks > 0 {
+				if *agentResponse.Download.TotalChunks > fileMeta.TotalChunks {
+					fileMeta.TotalChunks = *agentResponse.Download.TotalChunks
+				}
+			}
+			chunksWrittenChannel := make(chan writeDownloadChunkToDiskResponse, 1)
 			base64DecodedFileData, err := base64.StdEncoding.DecodeString(*agentResponse.Download.ChunkData)
 			//base64DecodedFileData := make([]byte, base64.StdEncoding.DecodedLen(len(*agentResponse.Download.ChunkData)))
 			//totalBase64Bytes, err := base64.StdEncoding.Decode(base64DecodedFileData, []byte(*agentResponse.Download.ChunkData))
@@ -988,25 +1096,17 @@ func handleAgentMessageWriteDownloadChunkToLocalDisk(task databaseStructs.Task, 
 			}
 			//logging.LogDebug("0. about to have mythic write to disk", "chunk num", *agentResponse.Download.ChunkNum, "byte sample", string(base64DecodedFileData[:10]))
 			writeDownloadChunkToDiskChan <- writeDownloadChunkToDisk{
-				ChunkData:       base64DecodedFileData,
+				ChunkData:       &base64DecodedFileData,
 				ChunkNum:        *agentResponse.Download.ChunkNum,
 				LocalMythicPath: fileMeta.Path,
 				KnownChunkSize:  knownChunkSize,
-				ChunksWritten:   chunksWritten,
+				ChunksWritten:   chunksWrittenChannel,
 				FileMetaID:      fileMeta.ID,
 			}
-			latestChunkWritten := <-chunksWritten
-			if latestChunkWritten > 0 {
-				fileMeta.ChunksReceived = latestChunkWritten
-			}
-			fileDisk, err := os.Stat(fileMeta.Path)
-			if err != nil {
-				logging.LogError(err, "Failed to write file to disk")
-			} else {
-				fileMeta.Size = fileDisk.Size()
-				if fileMeta.Size >= POSTGRES_MAX_INT {
-					fileMeta.Size = POSTGRES_MAX_INT - 1
-				}
+			writeDownloadChunkToDiskResp := <-chunksWrittenChannel
+			if writeDownloadChunkToDiskResp.Success {
+				//fileMeta.ChunksReceived = latestChunkWritten
+				fileMeta.ChunksReceived = writeDownloadChunkToDiskResp.ChunksReceived
 			}
 			// we don't know the chunk size ahead of time and one was reported back as part of the file write
 			//logging.LogDebug("3. finished writing", "chunk num", *agentResponse.Download.ChunkNum)
@@ -1018,68 +1118,9 @@ func handleAgentMessageWriteDownloadChunkToLocalDisk(task databaseStructs.Task, 
 
 		}
 	}
-	// check about updating total chunk count in case the agent didn't know it ahead of time
-	if agentResponse.Download.TotalChunks != nil && *agentResponse.Download.TotalChunks > 0 {
-		if *agentResponse.Download.TotalChunks > fileMeta.TotalChunks {
-			fileMeta.TotalChunks = *agentResponse.Download.TotalChunks
-		}
-	}
-	if fileMeta.ChunksReceived >= fileMeta.TotalChunks {
-		fileMeta.Complete = true
-		// also calculate new md5 and sha1 sums
-		sha1Hash := sha1.New()
-		md5Hash := md5.New()
-		if file, err := os.Open(fileMeta.Path); err != nil {
-			logging.LogError(err, "Failed to open file to calculate md5 and sha1 sums")
-			return "", err
-		} else if _, err := io.Copy(sha1Hash, file); err != nil {
-			logging.LogError(err, "Failed to copy file contents for sha1 hash")
-			return "", err
-		} else if _, err := file.Seek(0, 0); err != nil {
-			logging.LogError(err, "Failed to move file pointer back to beginning")
-		} else if _, err := io.Copy(md5Hash, file); err != nil {
-			logging.LogError(err, "Failed to copy file contents for md5 hash")
-			return "", err
-		} else {
-			fileMeta.Sha1 = hex.EncodeToString(sha1Hash.Sum(nil))
-			fileMeta.Md5 = hex.EncodeToString(md5Hash.Sum(nil))
-		}
-		fileDisk, err := os.Stat(fileMeta.Path)
-		if err != nil {
-			logging.LogError(err, "Failed to write file to disk")
-		} else {
-			fileMeta.Size = fileDisk.Size()
-			if fileMeta.Size >= POSTGRES_MAX_INT {
-				fileMeta.Size = POSTGRES_MAX_INT - 1
-			}
-		}
-	}
-	if _, err := database.DB.NamedExec(`UPDATE filemeta SET
-			host=:host, is_screenshot=:is_screenshot, 
-			full_remote_path=:full_remote_path, complete=:complete, md5=:md5, sha1=:sha1,
-			filename=:filename, total_chunks=:total_chunks, chunk_size=:chunk_size, size=:size
-			WHERE id=:id`, fileMeta); err != nil {
-		logging.LogError(err, "Failed to update filemeta based on agent file download")
-		return "", err
-	} else {
-		if fileMeta.Complete {
-			go func(file databaseStructs.Filemeta) {
-				trigger := eventing.TriggerFileDownload
-				if file.IsScreenshot {
-					trigger = eventing.TriggerScreenshot
-				}
-				EventingChannel <- EventNotification{
-					Trigger:     trigger,
-					OperationID: task.OperationID,
-					OperatorID:  task.OperatorID,
-					FileMetaID:  file.ID,
-				}
-			}(fileMeta)
-		}
-		return fileMeta.AgentFileID, nil
-	}
+	return fileMeta.AgentFileID, nil
 }
-func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResponse agentMessagePostResponse) (string, error) {
+func handleAgentMessagePostResponseDownload(task *databaseStructs.Task, agentResponse *agentMessagePostResponse, fileMeta *databaseStructs.Filemeta) (string, error) {
 	// might need to return a file_id if we're initially registering a file for transfer from agent to Mythic
 	// two stages:
 	/*
@@ -1088,39 +1129,31 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 	*/
 	// likely looking at step 2
 	if agentResponse.Download.FileID != nil && *agentResponse.Download.FileID != "" {
-		fileMeta := databaseStructs.Filemeta{AgentFileID: *agentResponse.Download.FileID}
-		if err := database.DB.Get(&fileMeta, `SELECT 
-			id, "path", total_chunks, chunks_received, host, is_screenshot, full_remote_path, complete, md5, sha1, filename, chunk_size, operation_id
-			FROM filemeta
-			WHERE agent_file_id=$1`, *agentResponse.Download.FileID); err != nil {
-			logging.LogError(err, "Failed to find fileID in agent download request", "fileid", *agentResponse.Download.FileID)
-			return "", err
-		} else {
-			if agentResponse.Download.Host != nil && *agentResponse.Download.Host != "" {
-				fileMeta.Host = strings.ToUpper(*agentResponse.Download.Host)
-			}
-			if agentResponse.Download.FullPath != nil && *agentResponse.Download.FullPath != "" {
-				fileMeta.FullRemotePath = []byte(*agentResponse.Download.FullPath)
-				if pathPieces, err := utils.SplitFilePathGetHost(*agentResponse.Download.FullPath, "", []string{}); err != nil {
-					logging.LogError(err, "Failed to split full path into pieces")
-					fileMeta.Filename = []byte(filepath.Base(*agentResponse.Download.FullPath))
-				} else {
-					fileMeta.Filename = []byte(pathPieces.PathPieces[len(pathPieces.PathPieces)-1])
-				}
-
-			} else if agentResponse.Download.FileName != nil && *agentResponse.Download.FileName != "" {
-				fileMeta.Filename = []byte(*agentResponse.Download.FileName)
-			}
-			if agentResponse.Download.IsScreenshot != nil && *agentResponse.Download.IsScreenshot {
-				fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
-			}
-			return handleAgentMessageWriteDownloadChunkToLocalDisk(task, fileMeta, agentResponse)
+		if agentResponse.Download.Host != nil && *agentResponse.Download.Host != "" {
+			fileMeta.Host = strings.ToUpper(*agentResponse.Download.Host)
 		}
+		if agentResponse.Download.FullPath != nil && *agentResponse.Download.FullPath != "" {
+			fileMeta.FullRemotePath = []byte(*agentResponse.Download.FullPath)
+			if pathPieces, err := utils.SplitFilePathGetHost(*agentResponse.Download.FullPath, "", []string{}); err != nil {
+				logging.LogError(err, "Failed to split full path into pieces")
+				fileMeta.Filename = []byte(filepath.Base(*agentResponse.Download.FullPath))
+			} else {
+				fileMeta.Filename = []byte(pathPieces.PathPieces[len(pathPieces.PathPieces)-1])
+			}
+
+		} else if agentResponse.Download.FileName != nil && *agentResponse.Download.FileName != "" {
+			fileMeta.Filename = []byte(*agentResponse.Download.FileName)
+		}
+		if agentResponse.Download.IsScreenshot != nil && *agentResponse.Download.IsScreenshot {
+			fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
+		}
+		return handleAgentMessageWriteDownloadChunkToLocalDisk(task, fileMeta, agentResponse)
+
 	} else if agentResponse.Download.TotalChunks != nil {
 		// new to make a new file_id and register it for the agent to use for downloading a file
 		// likely looking at step 1
 		var err error
-		fileMeta := databaseStructs.Filemeta{
+		*fileMeta = databaseStructs.Filemeta{
 			TotalChunks:         *agentResponse.Download.TotalChunks,
 			IsDownloadFromAgent: true,
 			ChunksReceived:      0,
@@ -1175,11 +1208,13 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 		} else {
 			go EmitFileLog(fileMeta.ID)
 			if !fileMeta.IsScreenshot {
-				go addFileMetaToMythicTree(task, fileMeta)
+				go addFileMetaToMythicTree(*task, *fileMeta)
 			}
 			// handle the case where the agent sends a chunk along with the registration information
-			return handleAgentMessageWriteDownloadChunkToLocalDisk(task, fileMeta, agentResponse)
-			//return fileMeta.AgentFileID, nil
+			if agentResponse.Download.ChunkData != nil && len(*agentResponse.Download.ChunkData) > 0 {
+				return handleAgentMessageWriteDownloadChunkToLocalDisk(task, fileMeta, agentResponse)
+			}
+			return fileMeta.AgentFileID, nil
 		}
 	} else {
 		errorString := "download request without total_chunks or file_id"

@@ -106,11 +106,11 @@ func CallbackDecryptMessage(input MythicRPCCallbackDecryptBytesMessage) ([]byte,
 	if cachedInfo.MythicEncrypts {
 		// Mythic does encryption, so handle it
 		//logging.LogInfo("Decrypt message", "mythic encrypts", true)
-		decrypted, err := cachedInfo.IterateAndAct(agentMessage, "decrypt")
+		decrypted, err := cachedInfo.IterateAndAct(&agentMessage, "decrypt")
 		if err != nil {
 			return nil, err
 		}
-		return decrypted, nil
+		return *decrypted, nil
 	} else if cachedInfo.TranslationContainerID > 0 {
 		//logging.LogInfo("Decrypt message", "translation container", payloadtype.TranslationContainerID.Int64)
 		// Mythic doesn't encrypt, and there's a translation container associated

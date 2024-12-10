@@ -1333,7 +1333,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         let cmdGroupName = ["Default"];
         let parsedWithPositionalParameters = {};
         let params = splitMessage.slice(1).join(" ");
-        if(unmodifiedHistoryValue.includes("modal") || unmodifiedHistoryValue.includes("browserscript")){
+        let failed_json_parse = true;
+        if(unmodifiedHistoryValue === "modal" || unmodifiedHistoryValue.includes("browserscript")){
             // these are the two kinds that'll introduce dictionary values as original_params
             try{
                 parsedWithPositionalParameters = JSON.parse(params);
@@ -1344,12 +1345,13 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     snackActions.warning("Two or more of the specified parameters can't be used together", snackMessageStyles);
                     return;
                 }
+                failed_json_parse = false;
 
             }catch(error){
-                snackActions.warning("Failed to parse modified JSON value", snackMessageStyles);
-                return;
+                failed_json_parse = true;
             }
-        }else{
+        }
+        if(failed_json_parse){
             let parsed = parseCommandLine(params, cmd);
             //console.log("result of parseCommandLine", parsed, !parsed)
             if(parsed === undefined){

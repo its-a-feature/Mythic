@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.63] - 2024-12-10
+
+### Changed
+
+- Updated UI to better handle pagination and streaming task responses
+- Updated UI to fix bug with submitting payload description update
+- Updated UI to fix bug with editing prior modal tasking via command line
+
 ## [0.2.62] - 2024-12-04
 
 ### Changed

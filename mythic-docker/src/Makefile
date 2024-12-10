@@ -1,5 +1,5 @@
 BINARY_NAME?=mythic_server
-JWT_SECRET?=
+JWT_SECRET?="2Zd2rGaAhTnuGVEsq9LeYVFXns5PN1"
 POSTGRES_HOST?="127.0.0.1"
 POSTGRES_PASSWORD?="0zoHFSTbiT7AzJvnbvQ5Lt65YkIsuT"
 DEBUG_LEVEL?="debug"
@@ -13,6 +13,7 @@ MYTHIC_ADMIN_USERNAME?="mythic_admin"
 MYTHIC_ADMIN_PASSWORD?="mythic_password"
 MYTHIC_DEFAULT_OPERATION?="Operation Chimera"
 MYTHIC_DEBUG_AGENT_MESSAGE?=false
+MYTHIC_DOCKER_NETWORKING?="host"
 
 export
 
@@ -39,6 +40,7 @@ MYTHIC_DEFAULT_OPERATION=${MYTHIC_DEFAULT_OPERATION} \
 MYTHIC_SERVER_BIND_LOCALHOST_ONLY=${MYTHIC_SERVER_BIND_LOCALHOST_ONLY} \
 MYTHIC_SERVER_DYNAMIC_PORTS=${MYTHIC_SERVER_DYNAMIC_PORTS} \
 MYTHIC_SERVER_GRPC_PORT=${MYTHIC_SERVER_GRPC_PORT} \
+MYTHIC_DOCKER_NETWORKING=${MYTHIC_DOCKER_NETWORKING} \
 ./${BINARY_NAME}
 
 run_local_build:
@@ -61,7 +63,7 @@ build_protobuf: build_protobuf_go
 build_and_build_protobuf: build_protobuf build
 build_final: build copy_to_final
 build_and_run: build_and_build_protobuf run_local_build
-local_testing: build run_custom_values
+run_custom: build run_custom_values
 
 clean:
 	go clean
