@@ -896,7 +896,7 @@ export function TaskParametersDialog(props) {
             }
         }
         setBackdropOpen(false);
-        props.onSubmit(props.command.cmd, JSON.stringify(collapsedParameters), newFileUUIDs, selectedParameterGroup, props.command?.payload_type?.name);
+        props.onSubmit(commandInfo.cmd, JSON.stringify(collapsedParameters), newFileUUIDs, selectedParameterGroup, commandInfo?.payloadtype?.name);
         
     }
     const onAgentConnectAddNewPayloadOnHost = (host, payload) => {
