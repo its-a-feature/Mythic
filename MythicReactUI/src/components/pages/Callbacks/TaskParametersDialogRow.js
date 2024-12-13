@@ -194,7 +194,7 @@ export function TaskParametersDialogRow(props){
     })
     useEffect( () => {
         if(props.dynamic_query_function !== ""){
-            if(ChoiceOptions.length === 0 && !usingDynamicParamChoices.current){
+            if(!usingDynamicParamChoices.current){
                 setBackdropOpen(true);
                 snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
                 getDynamicParams({variables:{
@@ -237,11 +237,15 @@ export function TaskParametersDialogRow(props){
                    setTypedArrayValue(props.value);
                    setValue(props.value);
                }
-               setChoiceOptions(props.choices);
+               if(props.dynamic_query_function === ""){
+                   setChoiceOptions(props.choices);
+               }
            } else if (currentParameterGroup.current !== props.parameterGroupName){
                setTypedArrayValue(props.value);
                setValue(props.value);
-               setChoiceOptions(props.choices);
+               if(props.dynamic_query_function === ""){
+                   setChoiceOptions(props.choices);
+               }
            }
        }else if(props.type === "ChooseMultiple" && props.dynamic_query_function === ""){
            //console.log("ChooseMultiple", props.value, value);

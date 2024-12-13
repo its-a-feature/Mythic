@@ -62,7 +62,7 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
     FROM loadedcommands 
     JOIN command ON loadedcommands.command_id = command.id
     JOIN payloadtype ON command.payload_type_id = payloadtype.id
-    WHERE callback_id = $1 AND command.cmd=$2`, input.Input.Callback, input.Input.Command)
+    WHERE callback_id = $1 AND command.cmd=$2 AND payloadtype.name=$3`, input.Input.Callback, input.Input.Command, input.Input.PayloadType)
 	if err != nil {
 		logging.LogError(err, "Failed to get command from loaded commands")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
@@ -75,7 +75,6 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 		Command:            input.Input.Command,
 		CommandPayloadType: loadedCommand.Command.Payloadtype.Name,
 		ParameterName:      input.Input.ParameterName,
-		PayloadType:        input.Input.PayloadType,
 		Callback:           input.Input.Callback,
 		Secrets:            user.Secrets.StructValue(),
 	})

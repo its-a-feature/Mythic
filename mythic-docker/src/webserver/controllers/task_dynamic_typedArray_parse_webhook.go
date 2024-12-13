@@ -45,7 +45,7 @@ func PayloadTypeDynamicTypedArrayParseWebhook(c *gin.Context) {
     FROM loadedcommands 
     JOIN command ON loadedcommands.command_id = command.id
     JOIN payloadtype ON command.payload_type_id = payloadtype.id
-    WHERE callback_id = $1 AND command.cmd=$2`, input.Input.Callback, input.Input.Command)
+    WHERE callback_id = $1 AND command.cmd=$2 AND payloadtype.name=$3`, input.Input.Callback, input.Input.Command, input.Input.PayloadType)
 	if err != nil {
 		logging.LogError(err, "Failed to get command from loaded commands")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
@@ -57,8 +57,8 @@ func PayloadTypeDynamicTypedArrayParseWebhook(c *gin.Context) {
 	if payloadtypeDynamicQueryResponse, err := rabbitmq.RabbitMQConnection.SendPtRPCTypedArrayParse(rabbitmq.PTRPCTypedArrayParseMessage{
 		Command:            input.Input.Command,
 		ParameterName:      input.Input.ParameterName,
-		CommandPayloadType: loadedCommand.Command.Payloadtype.Name,
-		PayloadType:        input.Input.PayloadType,
+		CommandPayloadType: input.Input.PayloadType,
+		PayloadType:        loadedCommand.Command.Payloadtype.Name,
 		Callback:           input.Input.Callback,
 		InputArray:         input.Input.InputArray,
 	}); err != nil {

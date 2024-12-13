@@ -44,9 +44,11 @@ func (r *rabbitMQConnection) SendPtRPCDynamicQueryFunction(dynamicQuery PTRPCDyn
     	callback.agent_callback_id,
     	callback.display_id,
     	payload.os "payload.os",
-    	payload.uuid "payload.uuid"
+    	payload.uuid "payload.uuid",
+    	payloadtype.name "payload.payloadtype.name"
 	FROM callback
 	JOIN payload on callback.registered_payload_id = payload.id
+	JOIN payloadtype on payload.payload_type_id = payloadtype.id
 	WHERE callback.id=$1
     `, dynamicQuery.Callback)
 	if err != nil {
@@ -54,6 +56,7 @@ func (r *rabbitMQConnection) SendPtRPCDynamicQueryFunction(dynamicQuery PTRPCDyn
 	}
 	dynamicQuery.PayloadUUID = callback.Payload.UuID
 	dynamicQuery.PayloadOS = callback.Payload.Os
+	dynamicQuery.PayloadType = callback.Payload.Payloadtype.Name
 	dynamicQuery.AgentCallbackID = callback.AgentCallbackID
 	dynamicQuery.CallbackDisplayID = callback.DisplayID
 	configBytes, err := json.Marshal(dynamicQuery)
