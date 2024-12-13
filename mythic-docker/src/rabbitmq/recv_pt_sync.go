@@ -26,6 +26,7 @@ type PayloadTypeSyncMessage struct {
 	PayloadType      PayloadType `json:"payload_type"`
 	CommandList      []Command   `json:"commands"`
 	ContainerVersion string      `json:"container_version"`
+	ForcedSync       bool        `json:"forced_resync"`
 }
 type BuildParameterType = string
 
@@ -399,9 +400,10 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "debug", "info")
 	go database.ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
 	checkContainerStatusAddPtChannel <- payloadtype
-	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(payloadtype.Name)
+	if !in.ForcedSync {
+		go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(payloadtype.Name)
+	}
 	return nil
-
 }
 
 func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype databaseStructs.Payloadtype) error {
