@@ -15,6 +15,7 @@ type MythicRPCCallbackRemoveCommandMessage struct {
 	AgentCallbackID string   `json:"agent_callback_id"`
 	Commands        []string `json:"commands"` // required
 	PayloadType     string   `json:"payload_type"`
+	CallbackIDs     []int    `json:"callback_ids"`
 }
 type MythicRPCCallbackRemoveCommandMessageResponse struct {
 	Success bool   `json:"success"`
@@ -26,7 +27,7 @@ func init() {
 		Exchange:   MYTHIC_EXCHANGE,
 		Queue:      MYTHIC_RPC_CALLBACK_REMOVE_COMMAND,
 		RoutingKey: MYTHIC_RPC_CALLBACK_REMOVE_COMMAND,
-		Handler:    processMythicRPCCallbackAddCommand,
+		Handler:    processMythicRPCCallbackRemoveCommand,
 	})
 }
 
@@ -83,6 +84,18 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage)
 	}
 	if CallbackID == 0 {
 		response.Error = "No callback supplied"
+		return response
+	}
+	if len(input.CallbackIDs) > 0 {
+		for _, c := range input.CallbackIDs {
+			err := CallbackRemoveCommand(c, PayloadTypeID, OperatorID, input.Commands)
+			if err != nil {
+				logging.LogError(err, "Failed to remove commands to callback")
+				response.Error = err.Error()
+				return response
+			}
+		}
+		response.Success = true
 		return response
 	}
 	err := CallbackRemoveCommand(CallbackID, PayloadTypeID, OperatorID, input.Commands)

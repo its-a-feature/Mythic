@@ -15,6 +15,7 @@ type MythicRPCCallbackAddCommandMessage struct {
 	AgentCallbackID string   `json:"agent_callback_id"`
 	Commands        []string `json:"commands"` // required
 	PayloadType     string   `json:"payload_type"`
+	CallbackIDs     []int    `json:"callback_ids"`
 }
 type MythicRPCCallbackAddCommandMessageResponse struct {
 	Success bool   `json:"success"`
@@ -83,6 +84,18 @@ func MythicRPCCallbackAddCommand(input MythicRPCCallbackAddCommandMessage) Mythi
 	}
 	if CallbackID == 0 {
 		response.Error = "No callback supplied"
+		return response
+	}
+	if len(input.CallbackIDs) > 0 {
+		for _, c := range input.CallbackIDs {
+			err := CallbackAddCommand(c, PayloadTypeID, OperatorID, input.Commands)
+			if err != nil {
+				logging.LogError(err, "Failed to add commands to callback")
+				response.Error = err.Error()
+				return response
+			}
+		}
+		response.Success = true
 		return response
 	}
 	err := CallbackAddCommand(CallbackID, PayloadTypeID, OperatorID, input.Commands)

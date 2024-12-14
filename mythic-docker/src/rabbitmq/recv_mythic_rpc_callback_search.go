@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"github.com/mitchellh/mapstructure"
+	"slices"
 	"strings"
 	"time"
 
@@ -13,23 +14,24 @@ import (
 )
 
 type MythicRPCCallbackSearchMessage struct {
-	AgentCallbackUUID            string  `json:"agent_callback_id"`
-	AgentCallbackID              int     `json:"callback_id"`
-	SearchCallbackID             *int    `json:"search_callback_id"`
-	SearchCallbackDisplayID      *int    `json:"search_callback_display_id"`
-	SearchCallbackUUID           *string `json:"search_callback_uuid"`
-	SearchCallbackUser           *string `json:"user,omitempty"`
-	SearchCallbackHost           *string `json:"host,omitempty"`
-	SearchCallbackPID            *int    `json:"pid,omitempty"`
-	SearchCallbackExtraInfo      *string `json:"extra_info,omitempty"`
-	SearchCallbackSleepInfo      *string `json:"sleep_info,omitempty"`
-	SearchCallbackIP             *string `json:"ip,omitempty"`
-	SearchCallbackExternalIP     *string `json:"external_ip,omitempty"`
-	SearchCallbackIntegrityLevel *int    `json:"integrity_level,omitempty"`
-	SearchCallbackOs             *string `json:"os,omitempty"`
-	SearchCallbackDomain         *string `json:"domain,omitempty"`
-	SearchCallbackArchitecture   *string `json:"architecture,omitempty"`
-	SearchCallbackDescription    *string `json:"description,omitempty"`
+	AgentCallbackUUID            string    `json:"agent_callback_id"`
+	AgentCallbackID              int       `json:"callback_id"`
+	SearchCallbackID             *int      `json:"search_callback_id"`
+	SearchCallbackDisplayID      *int      `json:"search_callback_display_id"`
+	SearchCallbackUUID           *string   `json:"search_callback_uuid"`
+	SearchCallbackUser           *string   `json:"user,omitempty"`
+	SearchCallbackHost           *string   `json:"host,omitempty"`
+	SearchCallbackPID            *int      `json:"pid,omitempty"`
+	SearchCallbackExtraInfo      *string   `json:"extra_info,omitempty"`
+	SearchCallbackSleepInfo      *string   `json:"sleep_info,omitempty"`
+	SearchCallbackIP             *string   `json:"ip,omitempty"`
+	SearchCallbackExternalIP     *string   `json:"external_ip,omitempty"`
+	SearchCallbackIntegrityLevel *int      `json:"integrity_level,omitempty"`
+	SearchCallbackOs             *string   `json:"os,omitempty"`
+	SearchCallbackDomain         *string   `json:"domain,omitempty"`
+	SearchCallbackArchitecture   *string   `json:"architecture,omitempty"`
+	SearchCallbackDescription    *string   `json:"description,omitempty"`
+	SearchCallbackPayloadTypes   *[]string `json:"payload_types,omitempty"`
 }
 type MythicRPCCallbackSearchMessageResult struct {
 	ID                    int       `mapstructure:"id" json:"id"`
@@ -46,7 +48,9 @@ type MythicRPCCallbackSearchMessageResult struct {
 	Description           string    `mapstructure:"description" json:"description"`
 	OperatorID            int       `mapstructure:"operator_id" json:"operator_id"`
 	Active                bool      `mapstructure:"active" json:"active"`
+	Dead                  bool      `mapstructure:"dead" json:"dead"`
 	RegisteredPayloadUUID string    `mapstructure:"registered_payload_uuid" json:"registered_payload_uuid"`
+	PayloadType           string    `mapstructure:"payloadtype" json:"payloadtype"`
 	IntegrityLevel        int       `mapstructure:"integrity_level" json:"integrity_level"`
 	Locked                bool      `mapstructure:"locked" json:"locked"`
 	LockedOperatorID      int       `mapstructure:"locked_operator_id" json:"locked_operator_id"`
@@ -106,9 +110,11 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 	}
 	searchString := `SELECT 
     		callback.*,
-    		payload.uuid "payload.uuid"
+    		payload.uuid "payload.uuid",
+    		payloadtype.name "payload.payloadtype.name"
 			FROM callback 
 			JOIN payload on callback.registered_payload_id = payload.id
+			JOIN payloadtype on payload.payload_type_id = payloadtype.id
 			WHERE callback.operation_id=:operation_id `
 	// if we're not actually searching for another callback, just set ours
 	if input.SearchCallbackDisplayID != nil || input.SearchCallbackID != nil || input.SearchCallbackUUID != nil {
@@ -175,17 +181,27 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 	}
 	for rows.Next() {
 		result := MythicRPCCallbackSearchMessageResult{}
-		if err = rows.StructScan(&searchResults); err != nil {
+		err = rows.StructScan(&searchResults)
+		if err != nil {
 			logging.LogError(err, "Failed to get row from callbacks for search")
-		} else if err = mapstructure.Decode(searchResults, &result); err != nil {
+			continue
+		}
+		err = mapstructure.Decode(searchResults, &result)
+		if err != nil {
 			logging.LogError(err, "Failed to map callback search results into array")
 			response.Error = err.Error()
 			return response
-		} else {
-			result.RegisteredPayloadUUID = searchResults.Payload.UuID
-			result.LockedOperatorID = int(searchResults.LockedOperatorID.Int64)
-			response.Results = append(response.Results, result)
 		}
+		if input.SearchCallbackPayloadTypes != nil && len(*input.SearchCallbackPayloadTypes) > 0 {
+			if !slices.Contains(*input.SearchCallbackPayloadTypes, searchResults.Payload.Payloadtype.Name) {
+				continue
+			}
+		}
+		result.RegisteredPayloadUUID = searchResults.Payload.UuID
+		result.LockedOperatorID = int(searchResults.LockedOperatorID.Int64)
+		result.PayloadType = searchResults.Payload.Payloadtype.Name
+		response.Results = append(response.Results, result)
+
 	}
 	response.Success = true
 	return response
