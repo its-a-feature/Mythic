@@ -105,7 +105,7 @@ export const ResponseDisplay = (props) =>{
 const NonInteractiveResponseDisplay = (props) => {
   const [output, setOutput] = React.useState("");
   const [rawResponses, setRawResponses] = React.useState([]);
-  const taskID = React.useRef(props.task.id);
+  const [taskID, setTaskID] = React.useState(props.task.id);
   const search = React.useRef("");
   const [totalCount, setTotalCount] = React.useState(0);
   const [openBackdrop, setOpenBackdrop] = React.useState(true);
@@ -113,7 +113,6 @@ const NonInteractiveResponseDisplay = (props) => {
   const [fetchMoreResponses] = useLazyQuery(getResponsesLazyQuery, {
     fetchPolicy: "network-only",
     onCompleted: (data) => {
-      //console.log("fetchMoreResponses called", data)
       // set raw responses to be what we just manually fetched
       const responseArray = data.response.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
       setRawResponses(responseArray);
@@ -123,7 +122,6 @@ const NonInteractiveResponseDisplay = (props) => {
       }, b64DecodeUnicode(""));
       setOutput(responses);
       // update maxID
-
       if(!props.selectAllOutput){
         setTotalCount(data.response_aggregate.aggregate.count);
       }
@@ -170,27 +168,13 @@ const NonInteractiveResponseDisplay = (props) => {
   }, [props.selectAllOutput]);
   React.useEffect( () => {
     setOpenBackdrop(true);
+    setOutput("");
+    setRawResponses([]);
+    setTotalCount(0);
     onSubmitPageChange(1);
   }, [props.task.id]);
   const subscriptionDataCallback =  ({data}) => {
     //console.log("fetchLimit", fetchLimit, "totalCount", totalCount);
-    if(props.task.id !== taskID.current){
-      console.log("props.task.id !== taskID.current", props.task.id, taskID.current)
-      taskID.current = props.task.id;
-      // this is the latest batch of responses
-
-      // base64 decode all of the response data
-      const responseArray = data.data.response_stream.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
-      // set the aggregated output
-      const responses = responseArray.reduce( (prev, cur) => {
-        return prev + cur.response;
-      }, b64DecodeUnicode(""));
-      setOutput(responses);
-
-      setRawResponses(responseArray);
-      setTotalCount(responseArray.length);
-      setOpenBackdrop(false);
-    } else {
 
       if(rawResponses.length >= initialResponseStreamLimit && initialResponseStreamLimit > 0 && !props.selectAllOutput){
         // we won't display it
@@ -200,17 +184,19 @@ const NonInteractiveResponseDisplay = (props) => {
         return;
       }
       // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
+      let newTotal = totalCount;
       const newerResponses = data.data.response_stream.reduce( (prev, cur) => {
         let prevIndex = prev.findIndex( (v,i,a) => v.id === cur.id);
         if(prevIndex >= 0){
           prev[prevIndex] = {...cur, response: b64DecodeUnicode(cur.response)};
           return prev;
         }
+        newTotal += 1;
         return [...prev, {...cur, response: b64DecodeUnicode(cur.response)}]
       }, rawResponses);
       // sort them to make sure we're still in order
       newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
-      setTotalCount(totalCount + data.data.response_stream.length);
+      setTotalCount(newTotal);
       // newerResponses is everything we've seen plus everything new
       if(initialResponseStreamLimit > 0 && !props.selectAllOutput){
         // take just the responses that make up our stream limit
@@ -230,7 +216,7 @@ const NonInteractiveResponseDisplay = (props) => {
         setOutput(outputResponses);
       }
       setOpenBackdrop(false);
-    }
+
   };
   useSubscription(subResponsesStream, {
     variables: {task_id: props.task.id},

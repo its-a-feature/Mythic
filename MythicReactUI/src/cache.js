@@ -27,20 +27,33 @@ export const mePreferences = makeVar(operatorSettingDefaults);
 export const successfulLogin = (data) => {
     localStorage.setItem("access_token", data.access_token);
     localStorage.setItem("refresh_token", data.refresh_token);
-    localStorage.setItem("user", JSON.stringify(data.user));
+
+
+    let now = new Date();
+    let serverNow = new Date(data.user.current_utc_time);
+    const difference = (serverNow - now) / 1000;
+    let me = {...data.user};
+    me.server_skew = difference;
     meState({
         loggedIn: true,
-        ...data
+        ...me,
+        server_skew: difference
     });
+    localStorage.setItem("user", JSON.stringify(me));
     restartWebsockets();
 }
 export const successfulRefresh = (data) => {
     localStorage.setItem("access_token", data.access_token);
     localStorage.setItem("refresh_token", data.refresh_token);
+    let now = new Date();
+    let serverNow = new Date(data.user.current_utc_time);
+    const difference = (serverNow - now) / 1000;
+    let me = {...meState()};
+    me.server_skew = difference;
     meState({
         loggedIn: true,
         access_token: localStorage.getItem("access_token"),
-        ...meState()
+        ...me
     });
 }
 export const FailedRefresh = () =>{

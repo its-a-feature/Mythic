@@ -63,7 +63,7 @@ export function EventFeedNotifications(props) {
             console.error(error);
             snackActions.error("Mythic encountered an error getting operational event stream", {autoHideDuration: 2000});
         }
-    }, [loading, data, error, me.user]);
+    }, [loading, data, error, me.user?.id]);
     return null;
 }
 

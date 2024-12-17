@@ -100,14 +100,15 @@ export const CallbacksTableStringCell = React.memo(({rowData, cellData}) => {
         <div>{cellData}</div>
     )
 }, areEqual)
-export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData}) => {
+export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData, me}) => {
     const adjustOutput = (newTime) => {
         if(newTime === "a few seconds"){
             moment.relativeTimeThreshold('s', 60);
             moment.relativeTimeThreshold('ss', 0);
-            return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").fromNow(true)
+            return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").subtract(me?.user?.server_skew || 0, 'second').fromNow(true)
         }
-        return newTime;
+        return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").subtract(me?.user?.server_skew || 0, 'second').fromNow(true);
+        //return newTime;
     }
     const theme = useTheme();
     if(rowData?.payload?.payloadtype?.agent_type !== "agent"){

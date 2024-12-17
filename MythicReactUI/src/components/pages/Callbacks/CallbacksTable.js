@@ -706,7 +706,7 @@ function CallbacksTablePreMemo(props){
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.pid}
                                                              rowData={{...row, selected: row.id === clickedCallbackID}} />;
                         case "Last Checkin":
-                            return <CallbacksTableLastCheckinCell key={`callback${row.id}_${c.name}`}
+                            return <CallbacksTableLastCheckinCell key={`callback${row.id}_${c.name}`} me={props.me}
                                                                   rowData={{...row, selected: row.id === clickedCallbackID}}
                                                                   cellData={row.last_checkin} />;
                         case "Description":
