@@ -368,39 +368,52 @@ func (d *DockerComposeManager) StopServices(services []string, deleteImages bool
 	if err != nil {
 		log.Fatalf("Failed to get container list: %v", err)
 	}
-	for _, service := range services {
-		found := false
-		for _, dockerContainer := range allContainers {
-			if dockerContainer.Labels["name"] == strings.ToLower(service) {
-				found = true
-				if deleteImages {
-					log.Printf("[*] Removing container: %s...\n", service)
-					err = cli.ContainerRemove(context.Background(),
-						dockerContainer.ID,
-						container.RemoveOptions{Force: true, RemoveVolumes: !keepVolume})
-					if err != nil {
-						log.Printf("[-] Failed to remove container: %v\n", err)
-						return err
+	wg := sync.WaitGroup{}
+	errChan := make(chan error, len(services))
+	for _, svc := range services {
+		wg.Add(1)
+		go func(service string) {
+			defer wg.Done()
+			found := false
+			for _, dockerContainer := range allContainers {
+				if dockerContainer.Labels["name"] == strings.ToLower(service) {
+					found = true
+					if deleteImages {
+						log.Printf("[*] Removing container: %s...\n", service)
+						err = cli.ContainerRemove(context.Background(),
+							dockerContainer.ID,
+							container.RemoveOptions{Force: true, RemoveVolumes: !keepVolume})
+						if err != nil {
+							log.Printf("[-] Failed to remove container: %v\n", err)
+						} else {
+							log.Printf("[+] Removed container: %s\n", service)
+						}
+						errChan <- err
 					} else {
-						log.Printf("[+] Removed container: %s\n", service)
+						err = cli.ContainerStop(context.Background(), dockerContainer.ID, container.StopOptions{})
+						if err != nil {
+							log.Printf("[-] Failed to stop container: %v\n", err)
+						} else {
+							log.Printf("[+] Stopped container: %s\n", service)
+						}
+						errChan <- err
 					}
-				} else {
-					err = cli.ContainerStop(context.Background(), dockerContainer.ID, container.StopOptions{})
-					if err != nil {
-						log.Printf("[-] Failed to stop container: %v\n", err)
-						return err
-					} else {
-						log.Printf("[+] Stopped container: %s\n", service)
-					}
+					break
 				}
-
 			}
-		}
-		if !found {
-			log.Printf("[*] Container not running: %s\n", service)
+			if !found {
+				log.Printf("[*] Container not running: %s\n", service)
+			}
+		}(svc)
+	}
+	err = nil
+	for _, _ = range services {
+		err2 := <-errChan
+		if err2 != nil {
+			err = err2
 		}
 	}
-	return nil
+	return err
 }
 
 // RemoveServices removes certain container entries from the docker-compose
