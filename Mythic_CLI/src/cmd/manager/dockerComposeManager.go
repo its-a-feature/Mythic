@@ -404,6 +404,7 @@ func (d *DockerComposeManager) StopServices(services []string, deleteImages bool
 			if !found {
 				log.Printf("[*] Container not running: %s\n", service)
 			}
+			errChan <- nil
 		}(svc)
 	}
 	err = nil
