@@ -36,6 +36,7 @@ export const successfulLogin = (data) => {
     me.server_skew = difference;
     meState({
         loggedIn: true,
+        ...data,
         ...me,
         server_skew: difference
     });

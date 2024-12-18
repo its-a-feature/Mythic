@@ -267,7 +267,7 @@ func (d *DockerComposeManager) CheckRequiredManagerVersion() bool {
 			log.Printf("[-] Failed to get docker compose: %v\n", err)
 			return false
 		}
-		if strings.Contains(composeCheckString, "Docker Compose version v") {
+		if strings.Contains(composeCheckString, "Docker Compose version ") {
 			return true
 		}
 		log.Printf("[-] Unable to find compose plugin. Please install the docker compose plugin.\n")

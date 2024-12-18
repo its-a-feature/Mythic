@@ -80,7 +80,6 @@ export function LoginForm(props){
                 //console.log(data)
                 if("access_token" in data){
                     successfulLogin(data);
-                    restartWebsockets();
                 }else{
                     snackActions.warning("Invalid Username or Password");
                     console.log("Error", data);
@@ -184,12 +183,10 @@ export function LoginForm(props){
     };
     return (
         <div style={{justifyContent: "center", display: "flex"}}>
-        { 
-            me.loggedIn ?
-                (
-                    <Navigate replace to={redirectPath}/>
-                )
-               : (
+        {
+            me.loggedIn && (<Navigate replace to={redirectPath}/>)
+        }
+
                     <div style={{backgroundColor: "transparent"}}>
                         <CardContent >
                             <img src={logo} height="400px" alt="Mythic logo"/>
@@ -256,8 +253,7 @@ export function LoginForm(props){
                             }
                         </CardContent>
                     </div>
-                )
-        }
+
         </div>
     )
 }

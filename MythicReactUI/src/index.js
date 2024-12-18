@@ -14,7 +14,7 @@ import {snackActions} from './components/utilities/Snackbar';
 import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 
-export const mythicUIVersion = "0.2.66";
+export const mythicUIVersion = "0.2.67";
 
 let fetchingNewToken = false;
 
@@ -328,6 +328,7 @@ export function restartWebsockets () {
 if(localStorage.getItem("access_token") !== null){
   if(isJWTValid(localStorage.getItem("access_token"))){
       if(localStorage.getItem("user") !== null){
+          console.log("loading meState from localStorage")
           meState({
               loggedIn: true,
               access_token: localStorage.getItem("access_token"),
