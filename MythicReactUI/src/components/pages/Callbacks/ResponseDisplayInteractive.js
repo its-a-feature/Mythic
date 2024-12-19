@@ -44,8 +44,9 @@ const getTaskingStatus = (task) => {
         return <CheckCircleOutlineIcon color={"success"} fontSize={"1rem"} style={{marginRight: "2px"}} />
     } else if(task.status === "submitted"){
         return  <CircularProgress size={"1rem"} />
-    } else if(task.status.toLowerCase.includes("error")){
-
+    } else {
+        console.log(task.status);
+        return null
     }
 }
 const getClassnames = (entry) => {
