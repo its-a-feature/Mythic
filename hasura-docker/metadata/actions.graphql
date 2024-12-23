@@ -554,6 +554,8 @@ input updateCallbackInput {
   integrity_level: Int
   domain: String
   dead: Boolean
+  color: String
+  trigger_on_checkin_after_time: Int
 }
 
 input DictionaryEntry {

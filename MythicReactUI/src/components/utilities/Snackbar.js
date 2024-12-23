@@ -8,6 +8,7 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import SnoozeIcon from '@mui/icons-material/Snooze';
 import {Dropdown, DropdownMenuItem} from "../MythicComponents/MythicNestedMenus";
+import {getSkewedNow} from "./Time";
 
 export const CloseButton = ({ closeToast }) => {
   const dropdownAnchorRef = React.useRef(null);
@@ -15,28 +16,16 @@ export const CloseButton = ({ closeToast }) => {
   const dndWithTime = (doNotDisturbMinutes) => {
     localStorage.setItem("dnd", JSON.stringify({
       "doNotDisturb": true,
-      "doNotDisturbTimeStart": new Date(),
+      "doNotDisturbTimeStart": getSkewedNow(),
       "doNotDisturbMinutes": doNotDisturbMinutes
     }))
     snackActions.clearAll()
   }
   const dropDownOptions = [
     {
-      name: <div><AlarmIcon /> 1min</div>,
-      click: () => {
-        dndWithTime(1);
-      }
-    },
-    {
       name: <div><AlarmIcon /> 5min</div>,
       click: () => {
         dndWithTime(5);
-      }
-    },
-    {
-      name: <div><AlarmIcon /> 10min</div>,
-      click: () => {
-        dndWithTime(10);
       }
     },
     {
@@ -46,9 +35,21 @@ export const CloseButton = ({ closeToast }) => {
       }
     },
     {
-      name: <div><SnoozeIcon /> 1 year</div>,
+      name: <div><AlarmIcon /> 1hr</div>,
       click: () => {
-        dndWithTime(60 * 24 * 365);
+        dndWithTime(60);
+      }
+    },
+    {
+      name: <div><AlarmIcon /> 4hr</div>,
+      click: () => {
+        dndWithTime(60 * 4);
+      }
+    },
+    {
+      name: <div><SnoozeIcon /> 24hr</div>,
+      click: () => {
+        dndWithTime(60 * 24);
       }
     },
   ]

@@ -13,6 +13,7 @@ import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import {taskingDataFragment, createTaskingMutation} from "./CallbackMutations";
 import { validate as uuidValidate } from 'uuid';
+import {getSkewedNow} from "../../utilities/Time";
 
 
 export function CallbacksTabsTaskingLabel(props){
@@ -81,14 +82,14 @@ query getBatchTasking($callback_id: Int!, $offset: Int!, $fetchLimit: Int!){
     }
 }
 `;
-export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, parentMountedRef, me}) =>{
+export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, parentMountedRef, me, collapseTaskRequest}) =>{
     const [taskLimit, setTaskLimit] = React.useState(20);
     const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
     const [taskingData, setTaskingData] = React.useState({task: []});
     const taskingDataRef = React.useRef({task: []});
-    const [fromNow, setFromNow] = React.useState((new Date()).toISOString());
+    const [fromNow, setFromNow] = React.useState(getSkewedNow().toISOString());
     const [selectedToken, setSelectedToken] = React.useState({});
     const [filterOptions, setFilterOptions] = React.useState({
         "operatorsList": [],
@@ -370,7 +371,12 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             setSelectedToken(token);
         }
     }
-
+    const [collapseAllRequest, setCollapseAllRequest] = React.useState(0);
+    React.useEffect( () => {
+        if(collapseTaskRequest[index] !== undefined){
+            setCollapseAllRequest(collapseAllRequest + 1);
+        }
+    }, [collapseTaskRequest]);
     return (
         <MythicTabPanel index={index} value={value} >
             {!fetched && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
@@ -388,6 +394,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                     taskingData.task.map((task) => (
                         <TaskDisplay key={"taskinteractdisplay" + task.id} me={me} task={task}
                                      command_id={task.command == null ? 0 : task.command.id}
+                                     collapseAllRequest={collapseAllRequest}
                                      filterOptions={filterOptions} newlyIssuedTasks={newlyIssuedTasks.current}/>
                     ))
                 }

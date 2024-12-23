@@ -6,6 +6,7 @@ import {CallbacksTabsTaskingPanel} from '../Callbacks/CallbacksTabsTasking';
 import { snackActions } from '../../utilities/Snackbar';
 import Split from 'react-split';
 import {Query_Callbacks_And_Edges, SUB_Edges, CallbackGraphEdgesContext} from "../Callbacks/CallbacksTop";
+import {getSkewedNow} from "../../utilities/Time";
 
 const SUB_Callbacks = gql`
 subscription CallbacksSubscription ($callback_display_id: Int!){
@@ -63,7 +64,7 @@ subscription CallbacksSubscription ($callback_display_id: Int!){
 
 
 export function ExpandedCallback(props){
-    const fromNow = React.useRef(new Date());
+    const fromNow = React.useRef(getSkewedNow());
     const {callbackDisplayId} = useParams();
     const [callback, setCallbacks] = React.useState({"payload": {"payloadtype": {"name": ""}}, "callbacktokens": []});
     const [tabInfo, setTabInfo] = React.useState({displayID: parseInt(callbackDisplayId)});

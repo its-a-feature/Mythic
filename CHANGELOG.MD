@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc34] - 2024-12-23
+
+### Changed
+
+- Added the option to tag callbacks with specific colors via the UI
+- Added another database field for future use to allow triggering on delayed callback checkins
+- Added another database field for future use to track specific versions of payloadtypes installed
+
 ## [3.3.1-rc33] - 2024-12-17
 
 ### Changed

@@ -59,8 +59,8 @@ mutation lockCallack($callback_display_id: Int!){
 }
 `;
 export const updateDescriptionCallbackMutation = gql`
-mutation updateDescriptionCallack($callback_display_id: Int!, $description: String!){
-  updateCallback(input: {callback_display_id: $callback_display_id, description: $description}) {
+mutation updateDescriptionCallback($callback_display_id: Int!, $description: String!, $color: String!){
+  updateCallback(input: {callback_display_id: $callback_display_id, description: $description, color: $color}) {
     status
     error
   }

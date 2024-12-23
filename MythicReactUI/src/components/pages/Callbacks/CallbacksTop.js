@@ -2,6 +2,7 @@ import React, {createContext} from 'react';
 import {useSubscription, gql, useQuery } from '@apollo/client';
 import {CallbacksTable} from './CallbacksTable';
 import {CallbacksGraph} from './CallbacksGraph';
+import {getSkewedNow} from "../../utilities/Time";
 export const CallbackGraphEdgesContext = createContext([]);
 export const OnOpenTabContext = createContext( () => {});
 export const OnOpenTabsContext = createContext( () => {});
@@ -14,6 +15,7 @@ callback_stream(batch_size: 1000, cursor: {initial_value: {timestamp: $fromNow}}
     architecture
     active
     dead
+    color
     display_id
     description
     domain
@@ -57,6 +59,7 @@ callback(where: {active: {_eq: true}}) {
     architecture
     active
     dead
+    color
     display_id
     description
     domain
@@ -161,6 +164,7 @@ callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $
     destination {
       active
       id
+      color
       display_id
       operation_id
       user
@@ -186,6 +190,7 @@ callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $
     source {
       active
       id
+      color
       display_id
       operation_id
       user
@@ -220,7 +225,7 @@ export function CallbacksTop(props){
     const me = props.me;
     const callbacks = React.useRef([]);
     const callbackEdges = React.useRef([]);
-    const fromNow = React.useRef(new Date());
+    const fromNow = React.useRef(getSkewedNow());
     const mountedRef = React.useRef(true);
     const [loading, setLoading] = React.useState(true);
     useSubscription(SUB_Callbacks, {
@@ -308,6 +313,7 @@ export function CallbacksTop(props){
               payloadDescription: callbacks.current[i]["payload"]["description"],
               callbackDescription: callbacks.current[i]["description"],
               host: callbacks.current[i]["host"],
+              color: callbacks.current[i]["color"],
               os: callbacks.current[i]["payload"]["os"]};
           props.onOpenTab(tabData);
         }
@@ -329,6 +335,7 @@ export function CallbacksTop(props){
                         payloadDescription: callbacks.current[i]["payload"]["description"],
                         callbackDescription: callbacks.current[i]["description"],
                         host: callbacks.current[i]["host"],
+                        color: callbacks.current[i]["color"],
                         os: callbacks.current[i]["payload"]["os"]};
                     newTabData.push(tabData);
                 }

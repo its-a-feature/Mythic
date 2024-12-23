@@ -49,7 +49,7 @@ export function MythicDialog(props) {
         style={props.style}
         aria-labelledby="scroll-dialog-title"
         aria-describedby="scroll-dialog-description"
-        onClick={dialogOnClick}
+        onMouseDown={dialogOnClick}
         onContextMenu={dialogOnContextMenu}
       >
         {props.innerDialog}

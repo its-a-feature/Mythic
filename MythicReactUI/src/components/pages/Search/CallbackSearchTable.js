@@ -91,7 +91,7 @@ function CallbackSearchTableRow(props){
     }
     return (
         <React.Fragment>
-            <TableRow hover>
+            <TableRow hover style={{backgroundColor: props.color}}>
                 <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={props.active ? "Hide" : "Restore" }/>
                 
                 <MythicStyledTableCell>{!props.active ? (

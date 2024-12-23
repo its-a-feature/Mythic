@@ -10,7 +10,7 @@ import {snackActions} from '../../utilities/Snackbar';
 import {MythicSnackDownload} from '../../MythicComponents/MythicSnackDownload';
 import {useTheme} from '@mui/material/styles';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
-import { toLocalTime } from '../../utilities/Time';
+import {getSkewedNow, toLocalTime} from '../../utilities/Time';
 import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -850,7 +850,7 @@ function FileMetaScreenshotTableRow(props){
     const [openDelete, setOpenDelete] = React.useState(false);
     const [openDetails, setOpenDetails] = React.useState(false);
     const me = props.me;
-    const now = (new Date()).toISOString();
+    const now = (getSkewedNow()).toISOString();
     const theme = useTheme();
     const [openScreenshot, setOpenScreenshot] = React.useState(false);
     const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);

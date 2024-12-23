@@ -36,9 +36,11 @@ export const successfulLogin = (data) => {
     me.server_skew = difference;
     meState({
         loggedIn: true,
-        ...data,
-        ...me,
-        server_skew: difference
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        user: {
+            ...me
+        }
     });
     localStorage.setItem("user", JSON.stringify(me));
     restartWebsockets();
@@ -49,13 +51,17 @@ export const successfulRefresh = (data) => {
     let now = new Date();
     let serverNow = new Date(data.user.current_utc_time);
     const difference = (serverNow - now) / 1000;
-    let me = {...meState()};
+    let me = {...meState().user};
     me.server_skew = difference;
     meState({
         loggedIn: true,
-        access_token: localStorage.getItem("access_token"),
-        ...me
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        user: {
+            ...me
+        }
     });
+    localStorage.setItem("user", JSON.stringify(me));
 }
 export const FailedRefresh = () =>{
     console.log("failed refresh");

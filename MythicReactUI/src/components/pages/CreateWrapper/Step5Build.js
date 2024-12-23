@@ -6,6 +6,7 @@ import {PayloadSubscriptionNotification} from '../CreatePayload/PayloadSubscript
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {snackActions} from '../../utilities/Snackbar';
 import {UploadTaskFile} from "../../MythicComponents/MythicFileUpload";
+import {getSkewedNow} from "../../utilities/Time";
 
  const create_payload = gql`
  mutation createPayloadMutation($payload: String!) {
@@ -19,7 +20,7 @@ import {UploadTaskFile} from "../../MythicComponents/MythicFileUpload";
 
 
 export function Step5Build(props){
-    const [fromNow, setFromNow] = React.useState( (new Date().toISOString()));
+    const [fromNow, setFromNow] = React.useState( (getSkewedNow().toISOString()));
     const [filename, setFilename] = React.useState("");
     const [description, setDescription] = React.useState("");
     const [startSubscription, setStartSubscription] = React.useState(false);

@@ -19,6 +19,7 @@ const callbackFragment = gql`
 fragment callbackSearchData on callback{
     user
     host
+    color
     description
     domain
     id

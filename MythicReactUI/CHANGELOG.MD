@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.69]
+
+### Changed
+
+- Added the ability to color individual callbacks
+- Added the ability to right-click a tab and collapse all the tasks within it
+- Fixed an annoyance where clicking inside a modal and dragging out would close the modal
+- Updated the UI to calculate server time_skew and update streaming accordingly
+- Fixed an issue with searching tasks by callback ID that wouldn't allow searching of other task options
+- Added a "host" field to callback search
+
 ## [0.2.68] - 2024-12-18
 
 ### Changed

@@ -24,23 +24,25 @@ type UpdateCallbackInput struct {
 }
 
 type UpdateCallback struct {
-	CallbackDisplayID  *int      `json:"callback_display_id,omitempty"`
-	CallbackDisplayIDs *[]int    `json:"callback_display_ids,omitempty"`
-	Active             *bool     `json:"active,omitempty"`
-	Locked             *bool     `json:"locked,omitempty"`
-	Description        *string   `json:"description,omitempty"`
-	IPs                *[]string `json:"ips,omitempty"`
-	Host               *string   `json:"host,omitempty"`
-	User               *string   `json:"user,omitempty"`
-	OS                 *string   `json:"os,omitempty"`
-	Architecture       *string   `json:"architecture,omitempty"`
-	ExtraInfo          *string   `json:"extra_info,omitempty"`
-	SleepInfo          *string   `json:"sleep_info,omitempty"`
-	PID                *int      `json:"pid,omitempty"`
-	ProcessName        *string   `json:"process_name,omitempty"`
-	IntegrityLevel     *int      `json:"integrity_level,omitempty"`
-	Domain             *string   `json:"domain,omitempty"`
-	Dead               *bool     `json:"dead,omitempty"`
+	CallbackDisplayID         *int      `json:"callback_display_id,omitempty"`
+	CallbackDisplayIDs        *[]int    `json:"callback_display_ids,omitempty"`
+	Active                    *bool     `json:"active,omitempty"`
+	Locked                    *bool     `json:"locked,omitempty"`
+	Description               *string   `json:"description,omitempty"`
+	IPs                       *[]string `json:"ips,omitempty"`
+	Host                      *string   `json:"host,omitempty"`
+	User                      *string   `json:"user,omitempty"`
+	OS                        *string   `json:"os,omitempty"`
+	Architecture              *string   `json:"architecture,omitempty"`
+	ExtraInfo                 *string   `json:"extra_info,omitempty"`
+	SleepInfo                 *string   `json:"sleep_info,omitempty"`
+	PID                       *int      `json:"pid,omitempty"`
+	ProcessName               *string   `json:"process_name,omitempty"`
+	IntegrityLevel            *int      `json:"integrity_level,omitempty"`
+	Domain                    *string   `json:"domain,omitempty"`
+	Dead                      *bool     `json:"dead,omitempty"`
+	Color                     *string   `json:"color,omitempty"`
+	TriggerOnCheckinAfterTime *int      `json:"trigger_on_checkin_after_time,omitempty"`
 }
 
 type UpdateCallbackResponse struct {
@@ -166,10 +168,13 @@ func UpdateCallbackWebhook(c *gin.Context) {
 		if input.Input.Input.Dead != nil {
 			callback.Dead = *input.Input.Input.Dead
 		}
+		if input.Input.Input.Color != nil {
+			callback.Color = *input.Input.Input.Color
+		}
 		_, err = database.DB.NamedExec(`UPDATE callback SET 
 				host=:host, "user"=:user, os=:os, architecture=:architecture, extra_info=:extra_info,
 				sleep_info=:sleep_info, pid=:pid, process_name=:process_name, integrity_level=:integrity_level,
-				"domain"=:domain, dead=:dead WHERE id=:id`, callback)
+				"domain"=:domain, dead=:dead, color=:color WHERE id=:id`, callback)
 		if err != nil {
 			logging.LogError(err, "failed to update callback information")
 			c.JSON(http.StatusOK, UpdateCallbackResponse{

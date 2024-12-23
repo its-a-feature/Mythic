@@ -13,6 +13,7 @@ import {MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import {taskingDataFragment, createTaskingMutation} from "./CallbackMutations";
 import { validate as uuidValidate } from 'uuid';
+import {getSkewedNow} from "../../utilities/Time";
 
 
 export function CallbacksTabsTaskingConsoleLabel(props){
@@ -88,7 +89,7 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
     const [commandInfo, setCommandInfo] = React.useState({});
     const [taskingData, setTaskingData] = React.useState({task: []});
     const taskingDataRef = React.useRef({task: []});
-    const [fromNow, setFromNow] = React.useState((new Date()).toISOString());
+    const [fromNow, setFromNow] = React.useState(getSkewedNow().toISOString());
     const [selectedToken, setSelectedToken] = React.useState({});
     const [filterOptions, setFilterOptions] = React.useState({
         "operatorsList": [],

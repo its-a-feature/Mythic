@@ -29,6 +29,7 @@ import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
 import {SetMythicSetting, useGetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";
 import {loadedCommandsQuery} from "./CallbacksTabsProcessBrowser";
+import {getSkewedNow} from "../../utilities/Time";
 
 const fileDataFragment = gql`
     fragment fileObjData on mythictree {
@@ -196,7 +197,7 @@ export function CallbacksTabsFileBrowserLabel(props) {
     );
 }
 export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => {
-    const fromNow = React.useRef((new Date()));
+    const fromNow = React.useRef(getSkewedNow());
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const treeRootDataRef = React.useRef({}); // hold all of the actual data
     // hold the simple adjacency matrix for parent/child relationships

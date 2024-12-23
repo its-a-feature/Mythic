@@ -17,6 +17,7 @@ import {TaskDisplayContainerFlat} from "./TaskDisplayContainer";
 import {DrawTaskElementsFlowWithProvider} from "./C2PathDialog";
 import {useTheme} from '@mui/material/styles';
 import { validate as uuidValidate } from 'uuid';
+import {getSkewedNow} from "../../utilities/Time";
 
 
 export function CallbacksTabsTaskingSplitLabel(props){
@@ -90,7 +91,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     const [commandInfo, setCommandInfo] = React.useState({});
     const [taskingData, setTaskingData] = React.useState({task: []});
     const taskingDataRef = React.useRef({task: []});
-    const [fromNow, setFromNow] = React.useState((new Date()).toISOString());
+    const [fromNow, setFromNow] = React.useState(getSkewedNow().toISOString());
     const [selectedToken, setSelectedToken] = React.useState({});
     const [filterOptions, setFilterOptions] = React.useState({
         "operatorsList": [],

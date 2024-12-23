@@ -49,6 +49,7 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import {TaskFromUIButton} from "./TaskFromUIButton";
 import {CallbacksTabsOpenMultipleDialog} from "./CallbacksTabsOpenMultipleDialog";
 import {operatorSettingDefaults} from "../../../cache";
+import {CallbacksTableEditDescriptionColorDialog} from "./CallbacksTableEditDescriptionColorDialog";
 
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
@@ -123,31 +124,34 @@ function CallbacksTablePreMemo(props){
             snackActions.warning(data);
         }
     });
-    const updateDescriptionRef = React.useRef({payload_description: "", callback_display_id: 0, description: ""});
-    const updateDescription = ({payload_description, callback_display_id, description}) => {
+    const updateDescriptionRef = React.useRef({payload_description: "", callback_display_id: 0, description: "", color: ""});
+    const updateDescription = ({payload_description, callback_display_id, description, color}) => {
         updateDescriptionRef.current = {
             payload_description: payload_description,
             callback_display_id: callback_display_id,
-            description: description
+            description: description,
+            color: color,
         };
         setOpenEditDescriptionDialog(true);
     }
-    const editDescriptionSubmit = (description) => {
+    const editDescriptionSubmit = (description, color) => {
         setOpenEditDescriptionDialog(false);
         if(description === ""){
             updateDescriptionSubmit({
                 description: updateDescriptionRef.current.payload_description,
+                color: color,
                 callback_display_id: updateDescriptionRef.current.callback_display_id
             });
         } else {
             updateDescriptionSubmit({
                 description: description,
+                color: color,
                 callback_display_id: updateDescriptionRef.current.callback_display_id
             });
         }
     }
-    const updateDescriptionSubmit = React.useCallback( ({callback_display_id, description}) => {
-        updateDescriptionMutation({variables: {callback_display_id: callback_display_id, description}})
+    const updateDescriptionSubmit = React.useCallback( ({callback_display_id, description, color}) => {
+        updateDescriptionMutation({variables: {callback_display_id: callback_display_id, description, color}})
     }, []);
     const [openCallbackDropdown, setOpenCallbackDropdown] = React.useState(false);
     const callbackDropdownRef = React.useRef({options: [], callback: {}});
@@ -296,15 +300,17 @@ function CallbacksTablePreMemo(props){
                         tabType: tabType,
                         tabID: rowDataStatic.id + tabType,
                         callbackID: rowDataStatic.id,
+                        color: rowDataStatic.color,
                         displayID: rowDataStatic.display_id});
                 }, type: "item"
             },
             {
-                name: "Edit Description", icon: <EditIcon style={{paddingRight: "5px"}} />, click:({event}) => {
+                name: "Edit Description and Color", icon: <EditIcon style={{paddingRight: "5px"}} />, click:({event}) => {
                     event.stopPropagation();
                     updateDescription({payload_description: rowDataStatic.payload.description,
                         callback_display_id: rowDataStatic.display_id,
                         description: rowDataStatic.description,
+                        color: rowDataStatic.color
                     });
                 }, type: "item"
             },
@@ -351,6 +357,7 @@ function CallbacksTablePreMemo(props){
                                 tabType: tabType,
                                 tabID: rowDataStatic.id + tabType,
                                 callbackID: rowDataStatic.id,
+                                color: rowDataStatic.color,
                                 displayID: rowDataStatic.display_id});
                         }
                     },
@@ -363,6 +370,7 @@ function CallbacksTablePreMemo(props){
                                 tabType: tabType,
                                 tabID: rowDataStatic.id + tabType,
                                 callbackID: rowDataStatic.id,
+                                color: rowDataStatic.color,
                                 displayID: rowDataStatic.display_id});
                         }
                     },
@@ -396,6 +404,7 @@ function CallbacksTablePreMemo(props){
                                 tabType: tabType,
                                 tabID: rowDataStatic.id + tabType,
                                 callbackID: rowDataStatic.id,
+                                color: rowDataStatic.color,
                                 displayID: rowDataStatic.display_id});
                         }
                     },
@@ -407,6 +416,7 @@ function CallbacksTablePreMemo(props){
                                 tabType: tabType,
                                 tabID: rowDataStatic.id + tabType,
                                 callbackID: rowDataStatic.id,
+                                color: rowDataStatic.color,
                                 displayID: rowDataStatic.display_id});
                         }
                     },
@@ -418,6 +428,7 @@ function CallbacksTablePreMemo(props){
                                 tabType: tabType,
                                 tabID: rowDataStatic.id + tabType,
                                 callbackID: rowDataStatic.id,
+                                color: rowDataStatic.color,
                                 displayID: rowDataStatic.display_id});
                         }
                     },
@@ -576,6 +587,7 @@ function CallbacksTablePreMemo(props){
             tabType: tabType,
             tabID: rowDataStatic.id + tabType,
             callbackID: rowDataStatic.id,
+            color: rowDataStatic.color,
             displayID: rowDataStatic.display_id});
     }, []);
     const contextMenuOptions = [
@@ -666,7 +678,10 @@ function CallbacksTablePreMemo(props){
                     switch(c.name){
                         case "Interact":
                             return <CallbacksTableIDCell
-                                rowData={{...row, selected: row.id === clickedCallbackID}}
+                                rowData={{...row,
+                                    selected: row.id === clickedCallbackID,
+                                    rowStyle: {backgroundColor: `${row.color}`},
+                                }}
                                 key={`callback${row.id}_${c.name}`}
                                 callbackDropdown={callbackDropdown}
                             />;
@@ -674,59 +689,104 @@ function CallbacksTablePreMemo(props){
                             return <CallbacksTableStringCell
                                 key={`callback${row.id}_${c.name}`}
                                 cellData={row.mythictree_groups.join(", ")}
-                                rowData={{...row, selected: row.id === clickedCallbackID}}
+                                rowData={{...row,
+                                    selected: row.id === clickedCallbackID,
+                                    rowStyle: {backgroundColor: `${row.color}`},
+                                }}
                             />;
                         case "IP":
                             return <CallbacksTableIPCell
                                 key={`callback${row.id}_${c.name}`}
                                 cellData={row.ip}
-                                rowData={{...row, selected: row.id === clickedCallbackID}}
+                                rowData={{...row,
+                                    selected: row.id === clickedCallbackID,
+                                    rowStyle: {backgroundColor: `${row.color}`},
+                                }}
                                 callback_id={row.id} />;
                         case "External IP":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.external_ip}
-                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
+                                                             rowData={{...row,
+                                                                 selected: row.id === clickedCallbackID,
+                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                             }} />;
                         case "Host":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.host}
-                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
+                                                             rowData={{...row,
+                                                                 selected: row.id === clickedCallbackID,
+                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                             }} />;
                         case "User":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.user}
-                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
+                                                             rowData={{...row,
+                                                                 selected: row.id === clickedCallbackID,
+                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                             }} />;
                         case "Domain":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.domain}
-                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
+                                                             rowData={{...row,
+                                                                 selected: row.id === clickedCallbackID,
+                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                             }} />;
                         case "OS":
                             return <CallbacksTableOSCell key={`callback${row.id}_${c.name}`}
-                                                         rowData={{...row, selected: row.id === clickedCallbackID}}
+                                                         rowData={{...row,
+                                                             selected: row.id === clickedCallbackID,
+                                                             rowStyle: {backgroundColor: `${row.color}`},
+                                                         }}
                                                          cellData={row.os} />;
                         case "Arch":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`}
-                                                             rowData={{...row, selected: row.id === clickedCallbackID}}
+                                                             rowData={{...row,
+                                                                 selected: row.id === clickedCallbackID,
+                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                             }}
                                                              cellData={row.architecture} />;
                         case "PID":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.pid}
-                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
+                                                             rowData={{...row,
+                                                                 selected: row.id === clickedCallbackID,
+                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                             }} />;
                         case "Last Checkin":
                             return <CallbacksTableLastCheckinCell key={`callback${row.id}_${c.name}`} me={props.me}
-                                                                  rowData={{...row, selected: row.id === clickedCallbackID}}
+                                                                  rowData={{...row,
+                                                                      selected: row.id === clickedCallbackID,
+                                                                      rowStyle: {backgroundColor: `${row.color}`},
+                                                                  }}
                                                                   cellData={row.last_checkin} />;
                         case "Description":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.description}
-                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
+                                                             rowData={{...row,
+                                                                 selected: row.id === clickedCallbackID,
+                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                             }} />;
                         case "Sleep":
                             return <CallbacksTableSleepCell key={`callback${row.id}_${c.name}`}
-                                                            rowData={{...row, selected: row.id === clickedCallbackID}}
+                                                            rowData={{...row,
+                                                                selected: row.id === clickedCallbackID,
+                                                                rowStyle: {backgroundColor: `${row.color}`},
+                                                            }}
                                                             cellData={row.sleep_info} updateSleepInfo={updateSleepInfo} />;
                         case "Agent":
                             return <CallbacksTablePayloadTypeCell key={`callback${row.id}_${c.name}`}
-                                                                  rowData={{...row, selected: row.id === clickedCallbackID}}
+                                                                  rowData={{...row,
+                                                                      selected: row.id === clickedCallbackID,
+                                                                      rowStyle: {backgroundColor: `${row.color}`},
+                                                                  }}
                                                                   cellData={row.payload.payloadtype.name}/>;
                         case "C2":
                             return <CallbacksTableC2Cell key={`callback${row.id}_c2`}
-                                                         rowData={{...row, selected: row.id === clickedCallbackID}} />
+                                                         rowData={{...row,
+                                                             selected: row.id === clickedCallbackID,
+                                                             rowStyle: {backgroundColor: `${row.color}`},
+                                                         }} />
                         case "Process Name":
                             return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`}
                                                              cellData={row.process_short_name}
-                                                             rowData={{...row, selected: row.id === clickedCallbackID}} />;
+                                                             rowData={{...row,
+                                                                 selected: row.id === clickedCallbackID,
+                                                                 rowStyle: {backgroundColor: `${row.color}`},
+                                                             }} />;
                     }
                 })];
             }
@@ -748,6 +808,7 @@ function CallbacksTablePreMemo(props){
                 tabType: openMultipleTabsDialog.tabType,
                 tabID: tabsToOpen[i].id + openMultipleTabsDialog.tabType,
                 callbackID: tabsToOpen[i].id,
+                color: tabsToOpen[i].color,
                 displayID: tabsToOpen[i].display_id});
         }
         onOpenTabs({tabs: newTabs});
@@ -796,13 +857,14 @@ function CallbacksTablePreMemo(props){
             {openEditDescriptionDialog &&
                 <MythicDialog
                     fullWidth={true}
-                    maxWidth={"lg"}
+                    maxWidth={"md"}
                     open={openEditDescriptionDialog}
                     onClose={() => {setOpenEditDescriptionDialog(false);}}
                     innerDialog={
-                        <MythicModifyStringDialog title={`Edit Callback ${updateDescriptionRef.current.callback_display_id} Description`}
+                        <CallbacksTableEditDescriptionColorDialog title={`Edit Callback ${updateDescriptionRef.current.callback_display_id} Description and Color`}
                                                   onClose={() => {setOpenEditDescriptionDialog(false);}}
-                                                  value={updateDescriptionRef.current.description}
+                                                  description={updateDescriptionRef.current.description}
+                                                  color={updateDescriptionRef.current.color}
                                                   onSubmit={editDescriptionSubmit}
                         />
                     }

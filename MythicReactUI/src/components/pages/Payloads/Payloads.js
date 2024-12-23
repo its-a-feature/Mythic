@@ -2,6 +2,7 @@ import React from 'react';
 import { PayloadsTable } from './PayloadsTable';
 import {useMutation, gql, useSubscription, useQuery, useLazyQuery} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
+import {getSkewedNow} from "../../utilities/Time";
 
 export const payloadFragment = gql`
 fragment payloadData on payload {
@@ -108,7 +109,7 @@ mutation RestorePayloadToUndeleted($id: Int!){
 `;
 
 export function Payloads(props){
-    const [fromNow, setFromNow] = React.useState((new Date()).toISOString());
+    const [fromNow, setFromNow] = React.useState((getSkewedNow()).toISOString());
     const [payloads, setPayloads] = React.useState([]);
     const [pageData, setPageData] = React.useState({
       "totalCount": 0,

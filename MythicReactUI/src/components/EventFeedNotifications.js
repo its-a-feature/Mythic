@@ -1,6 +1,7 @@
 import React, {useEffect} from 'react';
 import {gql, useSubscription} from '@apollo/client';
 import {snackActions} from './utilities/Snackbar';
+import {getSkewedNow} from "./utilities/Time";
 
 //fromNow must be in ISO format for hasura/postgres stuff
 //new Date().toISOString() will do it
@@ -24,7 +25,7 @@ export function EventFeedNotifications(props) {
     const me = props.me;
     //const fromNow = React.useRef(  );
     const { loading, error, data } = useSubscription(subscribe_payloads, {
-        variables: {fromNow: (new Date()).toISOString()},
+        variables: {fromNow: (getSkewedNow()).toISOString()},
         fetchPolicy: "no-cache",
         shouldResubscribe: true,
         onError: (errorData) => {

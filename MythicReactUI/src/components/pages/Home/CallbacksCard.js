@@ -20,9 +20,7 @@ import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {useNavigate} from 'react-router-dom';
 import { BarChart } from '@mui/x-charts/BarChart';
 import {getStringSize} from "../Callbacks/ResponseDisplayTable";
-import {useInterval} from "../../utilities/Time";
-import {isJWTValid, JWTTimeLeft} from "../../../index";
-import {FailedRefresh} from "../../../cache";
+import {getSkewedNow, useInterval} from "../../utilities/Time";
 
 const GetCallbacks = gql`
 query GetCallbacks {
@@ -205,7 +203,7 @@ export function CallbacksCard({me}) {
         onCompleted: (data) => {
             let callbackData = {};
             let recent = 0;
-            let now = new Date();
+            let now = getSkewedNow();
             // proces active status
             const newActive = data.callback.reduce( (prev, cur) => {
                 if(!callbackData[cur.id]){

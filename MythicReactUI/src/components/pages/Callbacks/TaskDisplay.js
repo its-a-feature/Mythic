@@ -3,7 +3,7 @@ import { styled } from '@mui/material/styles';
 import {IconButton, Link} from '@mui/material';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import { toLocalTime } from '../../utilities/Time';
+import {getSkewedNow, toLocalTime} from '../../utilities/Time';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -150,10 +150,10 @@ export const StyledAccordionSummary = styled(AccordionSummary)((
 }));
 
 
-function TaskDisplayPreMemo({task, me, filterOptions, newlyIssuedTasks}){
+function TaskDisplayPreMemo({task, me, filterOptions, newlyIssuedTasks, collapseAllRequest}){
   return (
       <TaskRow me={me} task={task} newlyIssuedTasks={newlyIssuedTasks} filterOptions={filterOptions}
-               indentLevel={0} />
+               indentLevel={0} collapseAllRequest={collapseAllRequest} />
   );
 }
 export const TaskDisplay = React.memo(TaskDisplayPreMemo);
@@ -351,7 +351,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
       </ColoredTaskDisplay>
   )
 }
-const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}) => {
+const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collapseAllRequest}) => {
 	const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [taskingData, setTaskingData] = React.useState([]);
     const [shouldDisplay, setShouldDisplay] = React.useState(true);
@@ -459,6 +459,11 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}) => {
       }
       setDisplayChildren(!displayChildren);
     }, [displayChildren]);
+    useEffect( () => {
+      if(collapseAllRequest > 0){
+        setDropdownOpen(false);
+      }
+    }, [collapseAllRequest]);
     /*
     useEffect( () => {
       if(!isFetchingSubtasks && task.tasks.length > 0){
@@ -742,7 +747,7 @@ const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}
 }
 
 const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks, displayChildren, toggleDisplayChildren}) => {
-  const [fromNow, setFromNow] = React.useState(new Date());
+  const [fromNow, setFromNow] = React.useState(getSkewedNow());
   const theme = useTheme();
   const prevResponseMaxId = useRef(0);
   useEffect( () => {

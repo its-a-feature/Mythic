@@ -37,7 +37,7 @@ import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
 import EditIcon from '@mui/icons-material/Edit';
 import { Typography } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import BarChartIcon from '@mui/icons-material/BarChart';
+import KeyboardIcon from '@mui/icons-material/Keyboard';
 import HeadsetTwoToneIcon from '@mui/icons-material/HeadsetTwoTone';
 import CodeIcon from '@mui/icons-material/Code';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -62,6 +62,9 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import {TopAppBarEventingNotifications} from "./TopAppBarEventingNotifications";
 import {useQuery, gql} from '@apollo/client';
 import VerifiedTwoToneIcon from '@mui/icons-material/VerifiedTwoTone';
+import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 
 
 const PREFIX = 'TopAppBar';
@@ -273,7 +276,7 @@ export function TopAppBar(props) {
             
             <ListItem button component={Link} to='/new' key={"home"} onClick={handleDrawerClose}>
               <ListItemIcon ><SpaceDashboardTwoToneIcon fontSize={"large"} className="mythicElement" /></ListItemIcon>
-              <ListItemText primary={"Dashboard"} />
+              <ListItemText primary={"Dashboard / Home"} />
             </ListItem>
         </List>
             <List
@@ -304,14 +307,14 @@ export function TopAppBar(props) {
                 </List>
               </Collapse>
               <ListItem button onClick={handleToggleCreate}>
-                <ListItemIcon><PostAddIcon /></ListItemIcon>
+                <ListItemIcon><PostAddIcon fontSize={"large"} /></ListItemIcon>
                 <ListItemText>Create</ListItemText>
                 {openCreate ? <ExpandLess /> : <ExpandMore />}
               </ListItem>
               <Collapse in={openCreate} unmountOnExit>
                   <List component="div" disablePadding style={{border: 0}}>
                     <ListItem button className={classes.nested} component={Link} to='/new/createpayload' key={"createpayload"} onClick={handleDrawerClose} state={{from: 'TopAppBar'}}>
-                      <ListItemIcon><PostAddIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                      <ListItemIcon><FontAwesomeIcon size={"2x"} icon={faBiohazard} /></ListItemIcon>
                       <ListItemText primary={"Create Payload"} />
                     </ListItem>
                     <ListItem button className={classes.nested} component={Link} to='/new/createwrapper' key={"createwrapper"} onClick={handleDrawerClose}>
@@ -348,40 +351,81 @@ export function TopAppBar(props) {
                 Operational Views
               </ListSubheader>
             }>
+              <ListItem button className={classes.listSubHeader} component={Link} to='/new/payloads' key={"payloads"} onClick={handleDrawerClose}>
+                <ListItemIcon><FontAwesomeIcon icon={faBiohazard} size="2x"/></ListItemIcon>
+                <ListItemText primary={"Payloads"} />
+              </ListItem>
               <ListItem button onClick={handleToggleData}>
-                <ListItemIcon><BarChartIcon fontSize={"large"} /></ListItemIcon>
-                <ListItemText>Operational Data</ListItemText>
+                <ListItemIcon><SearchIcon fontSize={"large"} /></ListItemIcon>
+                <ListItemText>Search</ListItemText>
                 {openData ? <ExpandLess /> : <ExpandMore />}
               </ListItem>
               <Collapse in={openData} unmountOnExit>
                 <List component="div" disablePadding style={{border: 0}}>
-                    <ListItem button className={classes.nested} component={Link} to='/new/payloads' key={"payloads"} onClick={handleDrawerClose}>
-                      <ListItemIcon><FontAwesomeIcon icon={faBiohazard} size="2x"/></ListItemIcon>
-                      <ListItemText primary={"Payloads"} />
+                    <ListItem button className={classes.nested} component={Link} to='/new/search?tab=callbacks&searchField=Host&search=' onClick={handleDrawerClose}>
+                      <ListItemIcon><PhoneCallbackIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                      <ListItemText primary={"Callbacks"} />
                     </ListItem>
-                    <ListItem button className={classes.nested} component={Link} to='/new/search?tab=callbacks&searchField=Host&search=' key={"search"} onClick={handleDrawerClose}>
-                      <ListItemIcon><SearchIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                      <ListItemText primary={"Search"} />
-                    </ListItem>
-                  <ListItem button className={classes.nested} component={Link} to='/new/mitre' onClick={handleDrawerClose}>
-                    <ListItemIcon><TableChartTwoToneIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                    <ListItemText primary={"ATT&CK"} />
+                  <ListItem button className={classes.nested} component={Link} to='/new/search?tab=tasks&searchField=Command+and+Parameters&search=&taskStatus=' onClick={handleDrawerClose}>
+                    <ListItemIcon><AssignmentIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                    <ListItemText primary={"Tasks"} />
                   </ListItem>
-                  <ListItem button className={classes.nested} component={Link} to='/new/reporting' onClick={handleDrawerClose}>
-                    <ListItemIcon><FontAwesomeIcon size={"2x"} icon={faFlagCheckered} /></ListItemIcon>
-                    <ListItemText primary={"Reporting"} />
+                  <ListItem button className={classes.nested} component={Link} to='/new/search?tab=payloads&searchField=Filename&search=&taskStatus=&c2=All+C2&payloadtype=All+Payload+Types'  onClick={handleDrawerClose}>
+                    <ListItemIcon><FontAwesomeIcon size={"2x"} icon={faBiohazard} /></ListItemIcon>
+                    <ListItemText primary={"Payloads"} />
                   </ListItem>
-                  <ListItem button className={classes.nested} component={Link} to='/new/tagtypes' onClick={handleDrawerClose}>
+                  <ListItem button className={classes.nested} component={Link} to='/new/search?searchField=Filename&tab=files&location=Downloads&host=&search='  onClick={handleDrawerClose}>
+                    <ListItemIcon><AttachmentIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                    <ListItemText primary={"Files"} />
+                  </ListItem>
+                  <ListItem button className={classes.nested} component={Link} to='/new/search?t?searchField=Account&tab=credentials&search=' onClick={handleDrawerClose}>
+                    <ListItemIcon><VpnKeyIcon fontSize={"large"} className="mythicElement" /></ListItemIcon>
+                    <ListItemText primary={"Credentials"} />
+                  </ListItem>
+                  <ListItem button className={classes.nested} component={Link} to='/new/search?tab=keylogs&searchField=Host&search='onClick={handleDrawerClose}>
+                    <ListItemIcon><KeyboardIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                    <ListItemText primary={"Keylogs"} />
+                  </ListItem>
+                  <ListItem button className={classes.nested} component={Link} to='/new/search?tab=artifacts&searchField=Host&search=' onClick={handleDrawerClose}>
+                    <ListItemIcon><FingerprintIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                    <ListItemText primary={"Artifacts"} />
+                  </ListItem>
+                  <ListItem button className={classes.nested} component={Link} to='/new/search?tab=tokens&searchField=Host&search='  onClick={handleDrawerClose}>
+                    <ListItemIcon><ConfirmationNumberIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                    <ListItemText primary={"Tokens"} />
+                  </ListItem>
+                  <ListItem button className={classes.nested} component={Link} to='/new/search?tab=socks' onClick={handleDrawerClose}>
+                    <ListItemIcon><FontAwesomeIcon size={"2x"} icon={faSocks} /></ListItemIcon>
+                    <ListItemText primary={"Proxies"} />
+                  </ListItem>
+                  <ListItem button className={classes.nested} component={Link} to='/new/search?tab=processes&searchField=Name&search=&host='  onClick={handleDrawerClose}>
+                    <ListItemIcon><AccountTreeIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                    <ListItemText primary={"Processes"} />
+                  </ListItem>
+                  <ListItem button className={classes.nested} component={Link} to='/new/search?tab=tags&searchField=TagType&search=&host='  onClick={handleDrawerClose}>
                     <ListItemIcon><LocalOfferTwoToneIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                     <ListItemText primary={"Tags"} />
                   </ListItem>
-                  <ListItem button className={classes.nested} component={Link} to='/new/eventing' onClick={handleDrawerClose}>
-                    <ListItemIcon><PlayCircleFilledTwoToneIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                    <ListItemText primary={"Eventing"} />
-                  </ListItem>
                 </List>
+
               </Collapse>
-                <ListItem button component={Link} to='/new/callbacks' key={"callbacks"} onClick={handleDrawerClose}>
+              <ListItem button className={classes.listSubHeader} component={Link} to='/new/mitre' onClick={handleDrawerClose}>
+                <ListItemIcon><TableChartTwoToneIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"ATT&CK"} />
+              </ListItem>
+              <ListItem button className={classes.listSubHeader} component={Link} to='/new/reporting' onClick={handleDrawerClose}>
+                <ListItemIcon><FontAwesomeIcon size={"2x"} icon={faFlagCheckered} /></ListItemIcon>
+                <ListItemText primary={"Reporting"} />
+              </ListItem>
+              <ListItem button className={classes.listSubHeader} component={Link} to='/new/tagtypes' onClick={handleDrawerClose}>
+                <ListItemIcon><LocalOfferTwoToneIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"Tags"} />
+              </ListItem>
+              <ListItem button className={classes.listSubHeader} component={Link} to='/new/eventing' onClick={handleDrawerClose}>
+                <ListItemIcon><PlayCircleFilledTwoToneIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"Eventing"} />
+              </ListItem>
+                <ListItem className={classes.listSubHeader} button component={Link} to='/new/callbacks' key={"callbacks"} onClick={handleDrawerClose}>
                   <ListItemIcon><PhoneCallbackIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                   <ListItemText primary={"Active Callbacks"} />
                 </ListItem>

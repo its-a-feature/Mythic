@@ -8,7 +8,6 @@ import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Paper from '@mui/material/Paper';
-import {useTheme} from '@mui/material/styles';
 
 export function MythicTabPanel(props) {
     const { children, value, index, maxHeight, tabInfo, getCallbackData, queryParams, changeSearchParam, ...other } =
@@ -120,7 +119,6 @@ export function MythicTabLabel(props) {
         e.stopPropagation();
         onCloseTab({ tabID: tabInfo.tabID, index: index });
     };
-    const theme = useTheme();
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const dropdownAnchorRef = React.useRef(null);
     const handleContextClick = (event) => {
@@ -185,7 +183,7 @@ export function MythicTabLabel(props) {
             
             {...a11yProps(index)}
             {...other}
-            style={{padding: "0px 5px 0px 5px", borderRadius: "4px", margin: 0}}
+            style={{padding: "0px 5px 0px 5px", borderRadius: "4px", margin: 0, backgroundColor: selectedIndex === index ? tabInfo.color : ""}}
         />
     );
 }

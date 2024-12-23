@@ -3,12 +3,13 @@ import {Button} from '@mui/material';
 import {ResponseDisplayScreenshotModal} from './ResponseDisplayScreenshotModal';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {getSkewedNow} from "../../utilities/Time";
 
 
 export const ResponseDisplayScreenshot = (props) =>{
   const [openScreenshot, setOpenScreenshot] = React.useState(false);
 
-  const now = (new Date()).toUTCString();
+  const now = (getSkewedNow()).toUTCString();
   const clickOpenScreenshot = () => {
     setOpenScreenshot(true);
   }

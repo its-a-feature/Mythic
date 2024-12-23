@@ -113,6 +113,12 @@ export function Callbacks({me}) {
     }, [openTabs])
     const onOpenTab = React.useRef( (tabData) => {
         let found = false;
+        openTabRef.current = openTabRef.current.map( (tab) => {
+            if(tab.tabID === tabData.tabID){
+                return {...tabData};
+            }
+            return {...tab};
+        })
         openTabRef.current.forEach((tab) => {
             if (tab.tabID === tabData.tabID) found = true;
         });
@@ -121,6 +127,8 @@ export function Callbacks({me}) {
             const tabs = [...openTabRef.current, { ...tabData }];
             localStorage.setItem('openTabs', JSON.stringify(tabs));
             setOpenTabs(tabs);
+        } else {
+            setOpenTabs([...openTabRef.current]);
         }
         localStorage.setItem('clickedTab', tabData.tabID);
         setClickedTabId(tabData.tabID);

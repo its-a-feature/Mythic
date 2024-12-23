@@ -1,5 +1,5 @@
 import {useEffect, useRef } from 'react';
-
+import {meState} from "../../cache";
 export function toLocalTime(date, view_utc) {
     try {
         if(date === null){
@@ -71,4 +71,8 @@ export function useInterval(callback, delay, mountedRef, parentMountedRef) {
     let id = setInterval(tick, delay);
     return () => clearInterval(id);
   }, [delay, mountedRef, parentMountedRef]);
+}
+export function getSkewedNow() {
+    let now = new Date();
+    return new Date(now.getTime() + (meState()?.user?.server_skew || 0) * 6000)
 }

@@ -43,7 +43,23 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, s
             }
         }
     }, [clickedTabId, openTabs]);
-    
+    const [collapseTaskRequest, setCollapseTaskRequest] = React.useState({})
+
+    const modifiedInteractContextMenuOptions = [...contextMenuOptions,
+        {
+            name: 'Collapse All Tasks',
+            click: ({event, index}) => {
+                setCollapseTaskRequest((prevState) => {
+                    if(prevState[index] !== undefined){
+                        prevState[index] += 1;
+                        return {...prevState};
+                    } else {
+                        return { [index]: 0};
+                    }
+                });
+
+            }
+        },]
     return (
         <div style={{width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1, height: "100%" }}>
             <AppBar color='default' position='static' className={"no-box-shadow"}>
@@ -69,7 +85,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, s
                                         me={me}
                                         selectedIndex={value}
                                         onDragTab={onDragTab}
-                                        contextMenuOptions={contextMenuOptions}
+                                        contextMenuOptions={modifiedInteractContextMenuOptions}
                                     />
                                 );
                             case 'interactSplit':
@@ -152,6 +168,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, clickedTabId, s
                                 value={value}
                                 index={index}
                                 me={me}
+                                collapseTaskRequest={collapseTaskRequest}
                                 parentMountedRef={mountedRef}
                             />
                         );
