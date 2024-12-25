@@ -105,14 +105,20 @@ export const ResponseDisplay = (props) =>{
 const NonInteractiveResponseDisplay = (props) => {
   const [output, setOutput] = React.useState("");
   const [rawResponses, setRawResponses] = React.useState([]);
-  const [taskID, setTaskID] = React.useState(props.task.id);
+  const seenResponseIDs = React.useRef([]);
   const search = React.useRef("");
   const [totalCount, setTotalCount] = React.useState(0);
   const [openBackdrop, setOpenBackdrop] = React.useState(true);
+  const togglingAllOutputToPaginated = React.useRef(false);
   const initialResponseStreamLimit = GetMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 50});
   const [fetchMoreResponses] = useLazyQuery(getResponsesLazyQuery, {
     fetchPolicy: "network-only",
     onCompleted: (data) => {
+      data.response.forEach( (r) => {
+        if(!seenResponseIDs.current.includes(r.id)){
+          seenResponseIDs.current.push(r.id);
+        }
+      })
       // set raw responses to be what we just manually fetched
       const responseArray = data.response.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
       setRawResponses(responseArray);
@@ -144,6 +150,7 @@ const NonInteractiveResponseDisplay = (props) => {
 
       setTotalCount(1);
       setOpenBackdrop(false);
+      togglingAllOutputToPaginated.current = true;
     },
     onError: (data) => {
 
@@ -159,39 +166,49 @@ const NonInteractiveResponseDisplay = (props) => {
         }else{
           fetchAllResponses({variables: {task_id: props.task.id, search: "%" + search.current + "%"}})
         }
-      }else{
+      }else if(togglingAllOutputToPaginated.current){
         // going from select all output to not select all output
         // don't fetch this on first load
         onSubmitPageChange(1);
+        togglingAllOutputToPaginated.current = false;
       }
     //}
-  }, [props.selectAllOutput]);
+  }, [props.selectAllOutput, togglingAllOutputToPaginated.current]);
   React.useEffect( () => {
     setOpenBackdrop(true);
     setOutput("");
     setRawResponses([]);
     setTotalCount(0);
-    onSubmitPageChange(1);
+    //onSubmitPageChange(1);
   }, [props.task.id]);
   const subscriptionDataCallback =  ({data}) => {
     //console.log("fetchLimit", fetchLimit, "totalCount", totalCount);
-
       if(rawResponses.length >= initialResponseStreamLimit && initialResponseStreamLimit > 0 && !props.selectAllOutput){
         // we won't display it
         console.log("got more than we can see currently", totalCount);
         setOpenBackdrop(false);
-        setTotalCount(totalCount + data.data.response_stream.length);
+        let newTotal = totalCount;
+        data.data.response_stream.forEach( (r) => {
+          if(!seenResponseIDs.current.includes(r.id)){
+            newTotal += 1;
+            seenResponseIDs.current.push(r.id);
+          }
+        })
+        setTotalCount(newTotal);
         return;
       }
       // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
       let newTotal = totalCount;
       const newerResponses = data.data.response_stream.reduce( (prev, cur) => {
+        if(!seenResponseIDs.current.includes(cur.id)){
+          newTotal += 1;
+          seenResponseIDs.current.push(cur.id);
+        }
         let prevIndex = prev.findIndex( (v,i,a) => v.id === cur.id);
         if(prevIndex >= 0){
           prev[prevIndex] = {...cur, response: b64DecodeUnicode(cur.response)};
           return prev;
         }
-        newTotal += 1;
         return [...prev, {...cur, response: b64DecodeUnicode(cur.response)}]
       }, rawResponses);
       // sort them to make sure we're still in order

@@ -184,7 +184,7 @@ export function App(props) {
             <ThemeProvider theme={theme}>
                 <GlobalStyles theme={theme} />
                 <CssBaseline />
-                <Tooltip id={"my-tooltip"} style={{zIndex: 100000}}/>
+                <Tooltip id={"my-tooltip"} style={{zIndex: 100000, wordBreak: "break-word", width: "80%"}}/>
                 <ToastContainer limit={2} autoClose={3000}
                                 theme={themeMode}
                                 style={{maxWidth: "100%", minWidth: "40%", width: "40%", marginTop: "20px", display: "flex", flexWrap: "wrap",

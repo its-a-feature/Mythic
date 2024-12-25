@@ -269,88 +269,27 @@ export function TopAppBar(props) {
             Home
           </ListSubheader>
         }>
-            <div style={{marginLeft: "15px"}}>
+            <Typography style={{marginLeft: "15px", fontSize: 12}}>
             <b>Mythic Version:</b> v{serverVersion}<br/>
             <b>UI Version:</b> v{mythicUIVersion}<br/>
-            </div>
+            </Typography>
             
             <ListItem button component={Link} to='/new' key={"home"} onClick={handleDrawerClose}>
               <ListItemIcon ><SpaceDashboardTwoToneIcon fontSize={"large"} className="mythicElement" /></ListItemIcon>
               <ListItemText primary={"Dashboard / Home"} />
             </ListItem>
         </List>
-            <List
-            subheader={
-              <ListSubheader className={classes.listSubHeader} component="div" id="nested-list-subheader">
-                Global Configurations
-              </ListSubheader>
-            }>
-              <ListItem button onClick={handleToggleGlobal}>
-                <ListItemIcon><LayersTwoToneIcon fontSize={"large"} /></ListItemIcon>
-                <ListItemText>Services</ListItemText>
-                {openGlobal ? <ExpandLess /> : <ExpandMore />}
-              </ListItem>
-              <Collapse in={openGlobal} unmountOnExit >
-                <List component="div" disablePadding style={{border: 0}}>
-                  <ListItem button className={classes.nested} target="_blank" component={Link} to='/jupyter' key={"jupyter"} onClick={handleDrawerClose}>
-                    <ListItemIcon><CodeIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                    <ListItemText primary={"Jupyter Notebooks"} />
-                  </ListItem>
-                  <ListItem button className={classes.nested} target="_blank" component={Link} to='/console' key={"console"} onClick={handleDrawerClose}>
-                    <ListItemIcon><StorageIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                    <ListItemText primary={"GraphQL Console"} />
-                  </ListItem>
-                  <ListItem button className={classes.nested} component={Link} to='/new/consuming_services' key={"consuming"} onClick={handleDrawerClose}>
-                    <ListItemIcon><PublicIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                    <ListItemText primary={"Consuming Services"} />
-                  </ListItem>
-                </List>
-              </Collapse>
-              <ListItem button onClick={handleToggleCreate}>
-                <ListItemIcon><PostAddIcon fontSize={"large"} /></ListItemIcon>
-                <ListItemText>Create</ListItemText>
-                {openCreate ? <ExpandLess /> : <ExpandMore />}
-              </ListItem>
-              <Collapse in={openCreate} unmountOnExit>
-                  <List component="div" disablePadding style={{border: 0}}>
-                    <ListItem button className={classes.nested} component={Link} to='/new/createpayload' key={"createpayload"} onClick={handleDrawerClose} state={{from: 'TopAppBar'}}>
-                      <ListItemIcon><FontAwesomeIcon size={"2x"} icon={faBiohazard} /></ListItemIcon>
-                      <ListItemText primary={"Create Payload"} />
-                    </ListItem>
-                    <ListItem button className={classes.nested} component={Link} to='/new/createwrapper' key={"createwrapper"} onClick={handleDrawerClose}>
-                      <ListItemIcon><PostAddIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                      <ListItemText primary={"Create Wrapper"} />
-                    </ListItem>
-                  </List>
-                </Collapse>
-              <ListItem button onClick={handleToggleOperations}>
-                <ListItemIcon><SupervisorAccountIcon fontSize={"large"} /></ListItemIcon>
-                <ListItemText>Operation Config</ListItemText>
-                {openOperations ? <ExpandLess /> : <ExpandMore />}
-              </ListItem>
-              <Collapse in={openOperations} unmountOnExit>
-                <List component="div" disablePadding style={{border: 0}}>
-                  <ListItem button className={classes.nested} component={Link} to='/new/payloadtypes' key={"payloadtypes"} onClick={handleDrawerClose}>
-                    <ListItemIcon><HeadsetTwoToneIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                    <ListItemText primary={"Agents & C2"} />
-                  </ListItem>
-                    <ListItem button className={classes.nested} component={Link} to='/new/operations' key={"modifyoperations"} onClick={handleDrawerClose}>
-                      <ListItemIcon><EditIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                      <ListItemText primary={"Modify Operations"} />
-                    </ListItem>
-                    <ListItem button className={classes.nested} component={Link} to='/new/browserscripts' key={"browserscripts"} onClick={handleDrawerClose}>
-                      <ListItemIcon><CodeIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                      <ListItemText primary={"BrowserScripts"} />
-                    </ListItem>
-                </List>
-              </Collapse>
-            </List>
+
             <List
             subheader={
               <ListSubheader className={classes.listSubHeader} component="div" id="nested-list-subheader">
                 Operational Views
               </ListSubheader>
             }>
+              <ListItem className={classes.listSubHeader} button component={Link} to='/new/callbacks' key={"callbacks"} onClick={handleDrawerClose}>
+                <ListItemIcon><PhoneCallbackIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"Active Callbacks"} />
+              </ListItem>
               <ListItem button className={classes.listSubHeader} component={Link} to='/new/payloads' key={"payloads"} onClick={handleDrawerClose}>
                 <ListItemIcon><FontAwesomeIcon icon={faBiohazard} size="2x"/></ListItemIcon>
                 <ListItemText primary={"Payloads"} />
@@ -425,11 +364,74 @@ export function TopAppBar(props) {
                 <ListItemIcon><PlayCircleFilledTwoToneIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
                 <ListItemText primary={"Eventing"} />
               </ListItem>
-                <ListItem className={classes.listSubHeader} button component={Link} to='/new/callbacks' key={"callbacks"} onClick={handleDrawerClose}>
-                  <ListItemIcon><PhoneCallbackIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
-                  <ListItemText primary={"Active Callbacks"} />
-                </ListItem>
+
             </List>
+        <List
+            subheader={
+              <ListSubheader className={classes.listSubHeader} component="div" id="nested-list-subheader">
+                Global Configurations
+              </ListSubheader>
+            }>
+          <ListItem button onClick={handleToggleGlobal}>
+            <ListItemIcon><LayersTwoToneIcon fontSize={"large"} /></ListItemIcon>
+            <ListItemText>Services</ListItemText>
+            {openGlobal ? <ExpandLess /> : <ExpandMore />}
+          </ListItem>
+          <Collapse in={openGlobal} unmountOnExit >
+            <List component="div" disablePadding style={{border: 0}}>
+              <ListItem button className={classes.nested} target="_blank" component={Link} to='/jupyter' key={"jupyter"} onClick={handleDrawerClose}>
+                <ListItemIcon><CodeIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"Jupyter Notebooks"} />
+              </ListItem>
+              <ListItem button className={classes.nested} target="_blank" component={Link} to='/console' key={"console"} onClick={handleDrawerClose}>
+                <ListItemIcon><StorageIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"GraphQL Console"} />
+              </ListItem>
+              <ListItem button className={classes.nested} component={Link} to='/new/consuming_services' key={"consuming"} onClick={handleDrawerClose}>
+                <ListItemIcon><PublicIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"Consuming Services"} />
+              </ListItem>
+            </List>
+          </Collapse>
+          <ListItem button onClick={handleToggleCreate}>
+            <ListItemIcon><PostAddIcon fontSize={"large"} /></ListItemIcon>
+            <ListItemText>Create</ListItemText>
+            {openCreate ? <ExpandLess /> : <ExpandMore />}
+          </ListItem>
+          <Collapse in={openCreate} unmountOnExit>
+            <List component="div" disablePadding style={{border: 0}}>
+              <ListItem button className={classes.nested} component={Link} to='/new/createpayload' key={"createpayload"} onClick={handleDrawerClose} state={{from: 'TopAppBar'}}>
+                <ListItemIcon><FontAwesomeIcon size={"2x"} icon={faBiohazard} /></ListItemIcon>
+                <ListItemText primary={"Create Payload"} />
+              </ListItem>
+              <ListItem button className={classes.nested} component={Link} to='/new/createwrapper' key={"createwrapper"} onClick={handleDrawerClose}>
+                <ListItemIcon><PostAddIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"Create Wrapper"} />
+              </ListItem>
+            </List>
+          </Collapse>
+          <ListItem button onClick={handleToggleOperations}>
+            <ListItemIcon><SupervisorAccountIcon fontSize={"large"} /></ListItemIcon>
+            <ListItemText>Operation Config</ListItemText>
+            {openOperations ? <ExpandLess /> : <ExpandMore />}
+          </ListItem>
+          <Collapse in={openOperations} unmountOnExit>
+            <List component="div" disablePadding style={{border: 0}}>
+              <ListItem button className={classes.nested} component={Link} to='/new/payloadtypes' key={"payloadtypes"} onClick={handleDrawerClose}>
+                <ListItemIcon><HeadsetTwoToneIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"Agents & C2"} />
+              </ListItem>
+              <ListItem button className={classes.nested} component={Link} to='/new/operations' key={"modifyoperations"} onClick={handleDrawerClose}>
+                <ListItemIcon><EditIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"Modify Operations"} />
+              </ListItem>
+              <ListItem button className={classes.nested} component={Link} to='/new/browserscripts' key={"browserscripts"} onClick={handleDrawerClose}>
+                <ListItemIcon><CodeIcon fontSize={"large"} className="mythicElement"/></ListItemIcon>
+                <ListItemText primary={"BrowserScripts"} />
+              </ListItem>
+            </List>
+          </Collapse>
+        </List>
         <Divider />
       </StyledDrawer>
       {me?.user?.current_operation_banner_text !== "" &&

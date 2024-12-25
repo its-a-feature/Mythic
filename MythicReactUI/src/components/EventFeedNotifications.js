@@ -23,9 +23,10 @@ const subscribe_payloads = gql`
 
 export function EventFeedNotifications(props) {
     const me = props.me;
+    const [fromNow, setFromNow] = React.useState(getSkewedNow().toISOString());
     //const fromNow = React.useRef(  );
     const { loading, error, data } = useSubscription(subscribe_payloads, {
-        variables: {fromNow: (getSkewedNow()).toISOString()},
+        variables: {fromNow: fromNow },
         fetchPolicy: "no-cache",
         shouldResubscribe: true,
         onError: (errorData) => {
