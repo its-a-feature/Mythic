@@ -181,6 +181,10 @@ const NonInteractiveResponseDisplay = (props) => {
     setTotalCount(0);
     //onSubmitPageChange(1);
   }, [props.task.id]);
+  setTimeout(() => {
+    // close the backdrop after 2 seconds in case there's no data to fetch
+    setOpenBackdrop(false);
+  }, 1000);
   const subscriptionDataCallback =  ({data}) => {
     //console.log("fetchLimit", fetchLimit, "totalCount", totalCount);
       if(rawResponses.length >= initialResponseStreamLimit && initialResponseStreamLimit > 0 && !props.selectAllOutput){

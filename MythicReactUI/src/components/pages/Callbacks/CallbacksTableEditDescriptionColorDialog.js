@@ -64,7 +64,7 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
                 Clear
             </Button>
             <Box sx={{width: "100%", height: 25, backgroundColor: color}} >
-                <Typography style={{color: "white", display: "inline-block"}}>DarkMode Text With Color Background</Typography>
+                <Typography style={{color: "white", display: "inline-block", marginRight: "10px"}}>DarkMode Text With Color Background</Typography>
                 <Typography style={{color: "black", display: "inline-block"}}>LightMode Text With Color Background</Typography>
             </Box>
         </DialogContent>

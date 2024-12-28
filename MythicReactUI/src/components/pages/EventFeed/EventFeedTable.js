@@ -45,9 +45,9 @@ export function EventFeedTable(props){
         props.onSearch(search)
     }
     return (
-        <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.body, marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}}>
-                <Grid container spacing={1} style={{maxWidth: "100%", marginTop: "1px"}}>
+        <div style={{display: "flex", flexDirection: "column", height: "100%", maxWidth: "100%", overflowX: "hidden"}}>
+            <Paper elevation={5} style={{backgroundColor: theme.body, marginBottom: "5px", marginRight: "5px"}}>
+                <Grid container spacing={1} style={{ marginTop: "1px"}}>
                     <Grid item xs={10}>
                         <MythicTextField placeholder="Search..." value={search}
                                          onChange={handleSearchValueChange} onEnter={submitSearch} InputProps={{
@@ -81,14 +81,11 @@ export function EventFeedTable(props){
                     </Grid>
                 </Grid>
             </Paper>
-            <div style={{display: "flex", flexDirection: "column", width: "100%", overflowY: "auto", flexGrow: 1}}>
-                <span style={{position: "relative", flexGrow: 1, overflowY: "scroll", backgroundColor: theme.body, paddingBottom: "20px"}}>
+            <div style={{display: "flex", flexDirection: "column", overflowY: "auto", flexGrow: 1, overflowX: "Hidden"}}>
                     <EventList 
                         onUpdateResolution={props.onUpdateResolution}
                         onUpdateLevel={props.onUpdateLevel}
                         operationeventlog={props.operationeventlog}/>
-                </span>
-                
             </div>
             <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: "5px", paddingBottom: "10px"}}>
                 <Pagination count={Math.ceil(props.pageData.totalCount / props.pageData.fetchLimit)} variant="outlined" color="primary" boundaryCount={1}

@@ -33,7 +33,7 @@ export function useGetMythicSetting({setting_name, default_value}){
     React.useEffect( () => {
         let newSetting = GetMythicSetting({setting_name, default_value});
         setSetting(newSetting);
-    }, [preferences]);
+    }, [preferences?.[setting_name]]);
 
     return setting;
 }

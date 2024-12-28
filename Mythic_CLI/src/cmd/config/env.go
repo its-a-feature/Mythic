@@ -150,6 +150,9 @@ If this is false, then the local filesystem is mounted inside the container inst
 	mythicEnvInfo["nginx_use_build_context"] = `The Nginx container by default pulls configuration from a pre-compiled Docker image hosted on GitHub's Container Registry (ghcr.io). 
 Setting this to "true" means that the local Mythic/nginx-docker/Dockerfile is used to generate the image used for the mythic_nginx container instead of the hosted image.`
 
+	mythicEnv.SetDefault("nginx_max_body_size", "500M")
+	mythicEnvInfo["nginx_max_body_size"] = `The Nginx container by default limits UI uploads to 500MB, but this can be adjusted with this value. Just make sure to rebuild the container after making a change`
+
 	// mythic react UI configuration ---------------------------------------------
 	mythicEnv.SetDefault("mythic_react_host", "mythic_react")
 	mythicEnvInfo["mythic_react_host"] = `This specifies the ip/hostname for where the React UI container executes. 

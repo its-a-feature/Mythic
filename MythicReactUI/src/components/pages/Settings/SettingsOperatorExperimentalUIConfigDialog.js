@@ -9,6 +9,7 @@ import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
+import Switch from '@mui/material/Switch';
 import {
     GetMythicSetting,
     useSetMythicSetting
@@ -19,9 +20,16 @@ import {snackActions} from "../../utilities/Snackbar";
 export function SettingsOperatorExperimentalUIConfigDialog(props) {
     const initialResponseStreamLimit = GetMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 50})
     const [newResponseStreamLimit, setNewResponseStreamLimit] = React.useState(initialResponseStreamLimit);
+
+    const initialUseNewSidebar = GetMythicSetting({setting_name: "experiment-newSidebar", default_value: false})
+    const [useNewSidebar, setUseNewSidebar] = React.useState(initialUseNewSidebar);
+
     const [updateSetting, _] = useSetMythicSetting();
     const onNewResponseStreamLimitChange = (name, value, error) => {
         setNewResponseStreamLimit(parseInt(value));
+    }
+    const onUseNewSidebarChange = (event) => {
+        setUseNewSidebar(event.target.checked);
     }
 
     const onAccept = () => {
@@ -30,11 +38,13 @@ export function SettingsOperatorExperimentalUIConfigDialog(props) {
         }else{
             updateSetting({setting_name: "experiment-responseStreamLimit", value: newResponseStreamLimit});
         }
+        updateSetting({setting_name: "experiment-newSidebar", value: useNewSidebar});
         snackActions.success("Updated settings!");
         props.onClose();
     }
     const setDefaults = () => {
         setNewResponseStreamLimit(50);
+        setUseNewSidebar(false);
     }
   
   return (
@@ -60,6 +70,17 @@ export function SettingsOperatorExperimentalUIConfigDialog(props) {
                               value={newResponseStreamLimit}
                               onChange={onNewResponseStreamLimitChange}
                               color="primary"
+                          />
+                      </TableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <TableCell>{"Try out Mythic's new vertical navigation bar instead of the top one"}</TableCell>
+                      <TableCell>
+                          <Switch
+                              checked={useNewSidebar}
+                              onChange={onUseNewSidebarChange}
+                              color="info"
+                              inputProps={{ 'aria-label': 'primary checkbox' }}
                           />
                       </TableCell>
                   </TableRow>

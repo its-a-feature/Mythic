@@ -649,6 +649,7 @@ export function CallbacksCard({me}) {
                               innerElement={ <PieCenterLabel>Task Status</PieCenterLabel> }
                               hidden={true}
                               additionalStyles={{
+                                  marginLeft: 0
                               }}
                 />
 
@@ -818,7 +819,7 @@ const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondaryElement
         <Paper elevation={5} style={{
             marginBottom: "5px",
             marginTop: "5px",
-            marginLeft: "5px",
+            marginLeft: "0px",
             width: width,
             height: 202,
             border: "1px solid gray",

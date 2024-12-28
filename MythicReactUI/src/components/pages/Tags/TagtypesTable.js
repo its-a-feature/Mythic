@@ -82,7 +82,7 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
     return (
         <div style={{display: "flex", flexDirection: "column", width: "100%", height: "100%"}}>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
-                marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}} variant={"elevation"}>
+                marginBottom: "5px",  marginRight: "5px"}} variant={"elevation"}>
                 <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Types of Tags
                 </Typography>

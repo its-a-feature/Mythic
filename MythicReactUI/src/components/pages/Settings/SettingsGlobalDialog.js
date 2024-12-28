@@ -99,7 +99,7 @@ export function SettingsGlobalDialog(props) {
                       <Switch
                           checked={debugAgentMessage}
                           onChange={onDebugAgentMessageChange}
-                          color="primary"
+                          color="info"
                           inputProps={{ 'aria-label': 'primary checkbox' }}
                       />
                   </TableCell>
@@ -110,7 +110,7 @@ export function SettingsGlobalDialog(props) {
                       <Switch
                           checked={allowInviteLinks}
                           onChange={onInviteLinkChange}
-                          color="primary"
+                          color="info"
                           inputProps={{ 'aria-label': 'primary checkbox' }}
                       />
                   </TableCell>

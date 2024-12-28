@@ -1115,7 +1115,8 @@ func handleAgentMessageWriteDownloadChunkToLocalDisk(task *databaseStructs.Task,
 			} else {
 				fileMeta.ChunkSize = len(base64DecodedFileData)
 			}
-
+		} else if agentResponse.Download.ChunkNum != nil && *agentResponse.Download.ChunkNum > 0 {
+			return fileMeta.AgentFileID, errors.New("missing chunk data for chunk")
 		}
 	}
 	return fileMeta.AgentFileID, nil

@@ -50,4 +50,26 @@ export function TopAppBarEventLogNotifications(props) {
             </MythicStyledTooltip>
     );
 }
+export function TopAppBarVerticalEventLogNotifications(props) {
+    const { loading, error, data } = useSubscription(SUB_Event_Logs, {
+        onError: data => {
+            snackActions.error("Mythic encountered an error getting event log messages: " + data.toString());
+            console.error(data);
+        }
+    });
+
+    return (
+            error ? (
+                <Badge color="secondary" badgeContent={0}>
+                    <NotificationsActiveTwoToneIcon style={{color: "white"}} fontSize={"medium"}  />
+                </Badge>
+            ) : (
+                <Badge badgeContent={data?.operation_stream[0]?.alert_count || 0}
+                       color="error" max={99}
+                >
+                    <NotificationsActiveTwoToneIcon style={{color: "white"}} fontSize={"medium"}/>
+                </Badge>
+            )
+    );
+}
 

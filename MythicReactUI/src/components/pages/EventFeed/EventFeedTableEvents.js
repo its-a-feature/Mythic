@@ -23,7 +23,6 @@ const StyledListItem = styled(ListItem)((
 ) => ({
     [`& .${classes.root}`]: {
       width: '100%',
-      maxWidth: '36ch',
     },
 
     [`& .${classes.inline}`]: {
@@ -66,7 +65,7 @@ export function EventFeedTableEvents(props){
     const me = useReactiveVar(meState);
 
     return (
-        <StyledListItem alignItems="flex-start" style={{...props.style, margin: 0, width: "100%", padding: "0 0 0 10px"}}>
+        <StyledListItem alignItems="flex-start" style={{...props.style, margin: 0, padding: "0 0 0 10px"}}>
             <ListItemText disableTypography style={{margin: "0 0 0 0", flexGrow: 1, overflowX: 'auto'}}
                 primary={
                     <React.Fragment>
@@ -92,7 +91,7 @@ export function EventFeedTableEvents(props){
                 secondary={
                 <div style={{display: "flex", overflowX: "auto"}}>
                     <GetPreAdornment message={props} />
-                    <pre style={{  margin: "0 0 0 0px"}}>
+                    <pre style={{  margin: "0 0 0 0px", overflowX: "auto", maxWidth: "90%", wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
                         {props.message}
                     </pre>
                 </div>

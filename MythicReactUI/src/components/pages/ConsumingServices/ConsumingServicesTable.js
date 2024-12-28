@@ -162,7 +162,6 @@ export function ConsumingServicesTable({services}) {
                 backgroundColor: theme.pageHeader.main,
                 color: theme.pageHeaderText.main,
                 marginBottom: "5px",
-                marginLeft: "5px",
                 marginRight: "5px"
             }} variant={"elevation"}>
                 <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>

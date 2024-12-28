@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.71] - 2024-12-28
+
+### Changed
+
+- Fixed an issue where color wasn't being updated with callback table's dropdown arrow only context menu
+- Added an experimental UI option to use a side navigation bar instead of a top one
+  - The side navbar allows you to edit/reorder your shortcuts
+- Fixed an issue where tasks with no output would have a spinning circle forever
+
 ## [0.2.70] - 2024-12-25
 
 ### Changed

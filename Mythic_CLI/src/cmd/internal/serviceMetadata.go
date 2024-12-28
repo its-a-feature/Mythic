@@ -289,6 +289,7 @@ func AddMythicService(service string, removeVolume bool) {
 			fmt.Sprintf("NGINX_USE_SSL=%s", nginxUseSSL),
 			fmt.Sprintf("NGINX_USE_IPV4=%s", nginxUseIPV4),
 			fmt.Sprintf("NGINX_USE_IPV6=%s", nginxUseIPV6),
+			"NGINX_MAX_BODY_SIZE=${NGINX_MAX_BODY_SIZE}",
 		}
 		if _, ok := pStruct["environment"]; ok {
 			environment = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), environment)

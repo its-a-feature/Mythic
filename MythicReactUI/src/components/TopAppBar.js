@@ -434,12 +434,6 @@ export function TopAppBar(props) {
         </List>
         <Divider />
       </StyledDrawer>
-      {me?.user?.current_operation_banner_text !== "" &&
-        <Typography style={{backgroundColor: me?.user?.current_operation_banner_color,
-          width: "100%", textAlign: "center", fontWeight: "600", color: "white", borderRadius: "4px", border: "1px solid grey"}} >
-          {me?.user?.current_operation_banner_text}
-        </Typography>
-      }
     </>
   );
 }

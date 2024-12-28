@@ -55,6 +55,9 @@ export const CallbacksTableIDCell = React.memo(({rowData, metaDialog, updateDesc
         if(rowData.id !== rowDataStatic.id){
             update = true;
         }
+        if(rowData.color !== rowDataStatic.color){
+            update = true;
+        }
         if(update){
             setRowDataStatic(rowData);
         }

@@ -14,7 +14,7 @@ import { Callbacks } from './pages/Callbacks/Callbacks';
 import { Search } from './pages/Search/Search';
 import { ConsumingServices } from './pages/ConsumingServices/ConsumingServices';
 import React, {createContext} from 'react';
-import { TopAppBar } from './TopAppBar';
+import { Typography } from '@mui/material';
 import { useReactiveVar } from '@apollo/client';
 import { useDarkMode } from './utilities/useDarkMode';
 import { SingleTaskView } from './pages/SingleTaskView/SingleTaskView';
@@ -38,6 +38,8 @@ import "react-toastify/dist/ReactToastify.css";
 import {Eventing} from "./pages/Eventing/Eventing";
 import {InviteForm} from "./pages/Login/InviteForm";
 import {snackActions} from "./utilities/Snackbar";
+import {TopAppBarVertical} from "./TopAppBarVertical";
+import {TopAppBar} from "./TopAppBar";
 
 export const userSettingsQuery = gql`
 query getUserSettings {
@@ -184,55 +186,117 @@ export function App(props) {
             <ThemeProvider theme={theme}>
                 <GlobalStyles theme={theme} />
                 <CssBaseline />
-                <Tooltip id={"my-tooltip"} style={{zIndex: 100000, wordBreak: "break-word", width: "80%"}}/>
+                <Tooltip id={"my-tooltip"} style={{zIndex: 100000, wordBreak: "break-word", maxWidth: "80%"}}/>
                 <ToastContainer limit={2} autoClose={3000}
                                 theme={themeMode}
                                 style={{maxWidth: "100%", minWidth: "40%", width: "40%", marginTop: "20px", display: "flex", flexWrap: "wrap",
                                 wordBreak: "break-all", flexDirection: "column", justifyContent: "center"}}
                                 pauseOnFocusLoss={false} />
-                    <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ minHeight: '50px', flexGrow: 0 }}>
-                            {me.loggedIn && me.user !== undefined && me.user !== null ? (
-                                <TopAppBar me={me} theme={themeMode} toggleTheme={themeToggler} />
-                            ) : null}
-                        </div>
-                        {openRefreshDialog && 
-                            <MythicDialog fullWidth={true} maxWidth="sm" open={openRefreshDialog} 
-                                onClose={()=>{setOpenRefreshDialog(false);}} 
-                                innerDialog={<RefreshTokenDialog 
-                                    onClose={()=>{setOpenRefreshDialog(false);}} />}
+                    <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'row', maxWidth: "100%", width:"100%" }}>
+
+                        {openRefreshDialog &&
+                            <MythicDialog fullWidth={true} maxWidth="sm" open={openRefreshDialog}
+                                          onClose={()=>{setOpenRefreshDialog(false);}}
+                                          innerDialog={<RefreshTokenDialog
+                                              onClose={()=>{setOpenRefreshDialog(false);}} />}
                             />
                         }
-                        <div style={{ margin: '0px 2px 0px 5px', flexGrow: 1, flexDirection: 'column', height: "calc(100% - 5rem)",  }}>
-                            <Routes>
-                                <Route path='/new/login' element={<LoginForm me={me}/>}/>
-                                <Route path='/new/invite' element={<InviteForm me={me}/>}/>
-                                <Route path='/' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/settings' element={<LoggedInRoute me={me}><Settings me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/payloadtypes' element={<LoggedInRoute me={me}><PayloadTypesC2Profiles me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/eventfeed' element={<LoggedInRoute me={me}><EventFeed me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/createpayload' element={<LoggedInRoute me={me}><CreatePayload me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/createwrapper' element={<LoggedInRoute me={me}><CreatePayloadWrapper me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/payloads' element={<LoggedInRoute me={me}><Payloads me={me} /></LoggedInRoute>} />
-                                <Route exact path='/new/c2profiles' element={<LoggedInRoute me={me}><PayloadTypesC2Profiles me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/services/' element={<LoggedInRoute me={me}><PayloadTypesC2Profiles me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/callbacks' element={<LoggedInRoute me={me}><Callbacks me={me}/></LoggedInRoute>} />
-                                <Route path='/new/search' element={<LoggedInRoute  me={me}><Search history={props.history} me={me} /></LoggedInRoute>} />
-                                <Route exact path='/new/browserscripts' element={<LoggedInRoute me={me}><BrowserScripts me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/task/:taskId' element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/tasks/by_range' element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/operations' element={<LoggedInRoute me={me}><Operations me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/callbacks/:callbackDisplayId' element={<LoggedInRoute me={me}><ExpandedCallback me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/reporting' element={<LoggedInRoute me={me}><Reporting me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/mitre' element={<LoggedInRoute me={me}><MitreAttack me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/tagtypes' element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/consuming_services' element={<LoggedInRoute me={me}><ConsumingServices me={me}/></LoggedInRoute>} />
-                                <Route exact path='/new/eventing' element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>} />
-                            </Routes>
+                        {me.loggedIn && me.user !== undefined && me.user !== null && preferences?.["experiment-newSidebar"] ? (
+                            <TopAppBarVertical me={me} theme={themeMode} toggleTheme={themeToggler} />
+                        ) : null}
+                        <div style={{
+                            maxHeight: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            width: "100%"
+                        }}>
+                            {me.loggedIn && !preferences?.["experiment-newSidebar"] &&
+                                <div style={{minHeight: '50px', flexGrow: 0}}>
+                                    {me.loggedIn && me.user !== undefined && me.user !== null ? (
+                                        <TopAppBar me={me} theme={themeMode} toggleTheme={themeToggler}/>
+                                    ) : null}
+                                </div>
+                            }
+                            {me?.user?.current_operation_banner_text !== "" &&
+                                <Typography style={{
+                                    backgroundColor: me?.user?.current_operation_banner_color,
+                                    width: "100%",
+                                    textAlign: "center",
+                                    fontWeight: "600",
+                                    color: "white",
+                                    borderRadius: "4px",
+                                    border: "1px solid grey"
+                                }}>
+                                    {me?.user?.current_operation_banner_text}
+                                </Typography>
+                            }
+                            <div style={{
+                                margin: '0px 2px 0px 5px',
+                                flexGrow: 1,
+                                flexDirection: 'column',
+                                height: "calc(100% - 5rem)",
+                            }}>
+                                <Routes>
+                                    <Route path='/new/login' element={<LoginForm me={me}/>}/>
+                                    <Route path='/new/invite' element={<InviteForm me={me}/>}/>
+                                    <Route path='/' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new'
+                                           element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/settings'
+                                           element={<LoggedInRoute me={me}><Settings me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/payloadtypes'
+                                           element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/eventfeed'
+                                           element={<LoggedInRoute me={me}><EventFeed me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/createpayload'
+                                           element={<LoggedInRoute me={me}><CreatePayload me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/createwrapper'
+                                           element={<LoggedInRoute me={me}><CreatePayloadWrapper
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/payloads'
+                                           element={<LoggedInRoute me={me}><Payloads me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/c2profiles'
+                                           element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/services/'
+                                           element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/callbacks'
+                                           element={<LoggedInRoute me={me}><Callbacks me={me}/></LoggedInRoute>}/>
+                                    <Route path='/new/search'
+                                           element={<LoggedInRoute me={me}><Search history={props.history}
+                                                                                   me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/browserscripts'
+                                           element={<LoggedInRoute me={me}><BrowserScripts me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/task/:taskId'
+                                           element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/tasks/by_range'
+                                           element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/operations'
+                                           element={<LoggedInRoute me={me}><Operations me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/callbacks/:callbackDisplayId'
+                                           element={<LoggedInRoute me={me}><ExpandedCallback
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/reporting'
+                                           element={<LoggedInRoute me={me}><Reporting me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/mitre'
+                                           element={<LoggedInRoute me={me}><MitreAttack me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/tagtypes'
+                                           element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/consuming_services'
+                                           element={<LoggedInRoute me={me}><ConsumingServices
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/eventing'
+                                           element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>}/>
+                                </Routes>
+                            </div>
                         </div>
+
+
                     </div>
-                
+
             </ThemeProvider>
         </StyledEngineProvider>
     );

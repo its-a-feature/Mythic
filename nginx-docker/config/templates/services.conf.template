@@ -3,7 +3,7 @@ server {
     ${NGINX_USE_IPV6} listen      ${NGINX_BIND_IPV6}:${NGINX_PORT} ${NGINX_USE_SSL};
     ssl_certificate      /etc/ssl/private/mythic-cert.crt;
     ssl_certificate_key  /etc/ssl/private/mythic-ssl.key;
-    client_max_body_size 500M; # allows file uploads up to 500 megabytes
+    client_max_body_size ${NGINX_MAX_BODY_SIZE}; # allows file uploads up to 500 megabytes
     ssl_session_timeout 1d;
     absolute_redirect off;
     # proxy connections to the new mythic_server
