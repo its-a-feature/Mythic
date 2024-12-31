@@ -46,6 +46,7 @@ import IosShareIcon from '@mui/icons-material/IosShare';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 const rebuildPayloadMutation = gql`
 mutation triggerRebuildMutation($uuid: String!) {
@@ -220,7 +221,9 @@ export function PayloadsTableRow(props){
                   
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Button ref={dropdownAnchorRef} size="small" onClick={()=>{setOpenUpdateDialog(true);}} color="primary" variant="contained">Actions</Button>
+                    <Button ref={dropdownAnchorRef} size="small" onClick={()=>{setOpenUpdateDialog(true);}} color="primary" variant="contained">
+                        Actions <ArrowDropDownIcon />
+                    </Button>
                 <Popper open={openUpdate} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
                   {({ TransitionProps, placement }) => (
                     <Grow

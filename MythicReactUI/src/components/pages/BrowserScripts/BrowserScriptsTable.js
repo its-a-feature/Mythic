@@ -9,7 +9,7 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import { BrowserScriptsTableRow } from './BrowserScriptsTableRow';
 import {useTheme} from '@mui/material/styles';
-import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Button from '@mui/material/Button';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {EditScriptDialog} from './EditScriptDialog';
@@ -22,10 +22,13 @@ export function BrowserScriptsTable(props){
         <React.Fragment>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
                 marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}} variant={"elevation"}>
-                <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Browser Scripts
                 </Typography>
-                <Button size="small" onClick={() => setOpenNewScriptDialog(true)} style={{float: "right", marginTop: "10px", marginRight: "30px"}} startIcon={<AddCircleOutlineOutlinedIcon/>} color="primary" variant="contained">New Script</Button>
+                <Button size="small" onClick={() => setOpenNewScriptDialog(true)} style={{float: "right", marginRight: "30px", color: "white"}}
+                        startIcon={<AddCircleIcon color={"success"} style={{backgroundColor: "white", borderRadius: "10px"}}/>} >
+                    New Script
+                </Button>
                 {openNewScriptDialog ? (   
                     <MythicDialog fullWidth={true} maxWidth="xl" open={openNewScriptDialog}
                         onClose={()=>{setOpenNewScriptDialog(false);}} 

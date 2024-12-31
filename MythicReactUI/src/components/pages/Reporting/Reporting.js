@@ -11,7 +11,7 @@ export function Reporting() {
   <div style={{height: "100%", display: "flex", flexDirection: "column"}}>
     <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
       marginBottom: "5px",marginRight: "5px"}} variant={"elevation"}>
-      <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+      <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
           Mythic Report Generation
       </Typography>
     </Paper> 

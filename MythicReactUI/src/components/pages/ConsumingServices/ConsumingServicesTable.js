@@ -164,17 +164,17 @@ export function ConsumingServicesTable({services}) {
                 marginBottom: "5px",
                 marginRight: "5px"
             }} variant={"elevation"}>
-                <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Containers Consuming Events
                 </Typography>
                 {showDeleted ? (
-                    <MythicStyledTooltip title={"Hide Deleted Services"} style={{float: "right"}}>
-                        <IconButton size="small" style={{float: "right", marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
+                    <MythicStyledTooltip title={"Hide Deleted Services"} tooltipStyle={{float: "right"}}>
+                        <IconButton size="small" variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
                     </MythicStyledTooltip>
 
                 ) : (
-                    <MythicStyledTooltip title={"Show Deleted Services"} style={{float: "right"}}>
-                        <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
+                    <MythicStyledTooltip title={"Show Deleted Services"} tooltipStyle={{float: "right"}}>
+                        <IconButton size="small" variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                     </MythicStyledTooltip>
                 )}
             </Paper>

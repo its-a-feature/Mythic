@@ -29,8 +29,6 @@ export const Dropdown = React.forwardRef(
         if (ref) {
             anchorRef = ref;
         }
-        console.log(anchorReference, absoluteY, absoluteX)
-        console.log(anchorReference === "anchorEl" ? undefined : {top: absoluteY, left: absoluteX})
         const handleClose = (event) => {
             event.stopPropagation();
 

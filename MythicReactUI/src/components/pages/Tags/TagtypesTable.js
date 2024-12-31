@@ -16,7 +16,7 @@ import {gql, useMutation, useLazyQuery} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import AddIcon from '@mui/icons-material/Add';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import {downloadFileFromMemory} from '../../utilities/Clipboard';
 
 const importTagtypesMutation = gql`
@@ -70,7 +70,6 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
     }
     const [exportTagtypes] = useLazyQuery(exportTagtypesQuery, {
         onCompleted: data => {
-            console.log(data);
             // remove __typename entry from each tagtype field
             let finalData = data.tagtype.map( c => {return {...c, __typename: undefined}})
             downloadFileFromMemory(JSON.stringify(finalData, null, 2), "tagtypes.json");
@@ -83,21 +82,20 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
         <div style={{display: "flex", flexDirection: "column", width: "100%", height: "100%"}}>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
                 marginBottom: "5px",  marginRight: "5px"}} variant={"elevation"}>
-                <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Types of Tags
                 </Typography>
-                <Button variant="contained" component="label" size={"small"}
-                        style={{float:"right", marginTop: "5px", marginRight: "5px"}} color="success">
-                    <FileUploadIcon /> {"Import"}
+                <Button component="label" size={"small"}
+                        style={{float:"right", marginRight: "5px", color: "white"}} >
+                    <FileUploadIcon  /> {"Import"}
                     <input onChange={onFileChange} value={fileValue.current} type="file" hidden /> 
                 </Button>
-                <Button style={{float: "right", marginTop: "5px", marginRight: "5px"}} size={"small"}
-                        color="success" variant='contained'
+                <Button style={{float: "right", marginRight: "5px", color: "white"}} size={"small"}
                     onClick={() => exportTagtypes({variables: {operation_id: me?.user?.current_operation_id || 0}})}>
                     <FileDownloadIcon />Export</Button>
-                <Button onClick={()=>setOpenNewDialog(true)} style={{float: "right", marginTop: "5px", marginRight: "5px"}}
-                        color="success" variant='contained' size={"small"}>
-                    <AddIcon />New</Button>
+                <Button onClick={()=>setOpenNewDialog(true)} style={{float: "right", marginRight: "5px", color: "white"}}
+                         size={"small"}>
+                    <AddCircleIcon color={"success"} style={{backgroundColor: "white", borderRadius: "10px", marginRight: "3px"}} />New</Button>
                 {openNewDialog &&
                     <MythicDialog fullWidth={true} maxWidth="sm" open={openNewDialog} 
                         onClose={()=>{setOpenNewDialog(false);}} 

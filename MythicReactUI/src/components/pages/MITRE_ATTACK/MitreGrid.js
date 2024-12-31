@@ -26,7 +26,7 @@ export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFilt
         <div style={{display: "flex", flexDirection: "column", width: "100%", height: "100%"}}>
             <Paper elevation={5}  style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
                 marginBottom: "5px", marginRight: "5px"}} variant={"elevation"}>
-                <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     {"MITRE ATT&CK Mappings"}
                 </Typography>
                 <PoperDropdown onGetCommands={onGetCommands} 
@@ -56,7 +56,6 @@ function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetT
     const [openLicense, setOpenLicense] = React.useState(false);
     const [openFilterTasks, setOpenFilterTasks] = React.useState(false);
     const [openFilterCommands, setOpenFilterCommands] = React.useState(false);
-    const theme = useTheme();
     const dropDownOptions = [
         {
             name: "Fetch All Commands Mapped to MITRE",
@@ -242,8 +241,8 @@ function PoperDropdown({onGetCommands, onGetTasks, onGetCommandsFiltered, onGetT
     }
     return (
         <React.Fragment>
-            <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" style={{marginRight: "10px", marginTop:"10px", float: "right"}} color="primary">
-                <Button size="small" color="primary" aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
+            <ButtonGroup variant="text" ref={dropdownAnchorRef} aria-label="split button" style={{marginRight: "10px", float: "right", color: "white"}} >
+                <Button size="small" style={{color: "white"}} aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                     aria-expanded={dropdownOpen ? 'true' : undefined}
                     aria-haspopup="menu"
                     onClick={() => setDropdownOpen(!dropdownOpen)}>

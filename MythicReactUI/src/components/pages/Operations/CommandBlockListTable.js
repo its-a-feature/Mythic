@@ -8,7 +8,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {useTheme} from '@mui/material/styles';
 import {EditBlockListDialog} from './EditBlockListDialog';
@@ -174,14 +174,14 @@ export function CommandBlockListTable(props){
         <React.Fragment>
         <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
             marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}} variant={"elevation"}>
-            <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+            <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Command Block Lists
             </Typography>
             <Button size="small"
                     onClick={()=>{setOpenNewDialog(true);}}
-                    style={{marginRight: "10px", float: "right", marginTop: "10px"}}
-                    startIcon={<AddCircleOutlineOutlinedIcon color="success"/>}
-                    variant="contained">New Block List</Button>
+                    style={{marginRight: "10px", float: "right", color: "white"}}
+                    startIcon={<AddCircleIcon color="success" style={{backgroundColor: "white", borderRadius: "10px"}}/>}
+                    >New Block List</Button>
             {openNew &&
                 <MythicDialog open={openNew} fullWidth={true} maxWidth="lg"
                     onClose={()=>{setOpenNewDialog(false);}} 

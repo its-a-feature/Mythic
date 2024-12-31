@@ -28,7 +28,7 @@ export function ExpandedCallbackSideDetails(props){
         <div style={{ width: "100%", height: "100%", overflowY: "scroll" }}>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px"}}
                    variant={"elevation"}>
-                <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Callback {props.callback.display_id}
                 </Typography>
             </Paper>

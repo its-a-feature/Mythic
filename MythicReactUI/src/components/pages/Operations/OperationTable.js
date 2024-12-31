@@ -9,7 +9,7 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { OperationTableRow } from './OperationTableRow';
 import Typography from '@mui/material/Typography';
-import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {useTheme} from '@mui/material/styles';
 import {SettingsOperatorDialog} from '../Settings/SettingsOperatorDialog';
@@ -146,12 +146,12 @@ export function OperationTable(props){
         <React.Fragment>
         <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
             marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}} variant={"elevation"}>
-            <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+            <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Operations
             </Typography>
             {showDeleted ? (
                 <MythicStyledTooltip title={"Hide Deleted Operations"} tooltipStyle={{float: "right"}}>
-                    <IconButton size="small" style={{float: "right", marginTop: "5px", marginRight: "10px"}}
+                    <IconButton size="small" style={{float: "right", marginRight: "10px"}}
                                 variant="contained" onClick={() => setShowDeleted(!showDeleted)}>
                         <VisibilityIcon />
                     </IconButton>
@@ -159,7 +159,7 @@ export function OperationTable(props){
                 
               ) : (
                 <MythicStyledTooltip title={"Show Deleted Operations"} tooltipStyle={{float: "right"}}>
-                  <IconButton size="small" style={{float: "right",  marginTop: "5px", marginRight: "10px"}}
+                  <IconButton size="small" style={{float: "right",  marginRight: "10px"}}
                               variant="contained" onClick={() => setShowDeleted(!showDeleted)} >
                       <VisibilityOffIcon />
                   </IconButton>
@@ -168,12 +168,16 @@ export function OperationTable(props){
             <MythicStyledTooltip title={"Create new operator"} tooltipStyle={{float: "right"}}>
                 <IconButton size="small"
                             onClick={()=>{setOpenNewOperatorDialog(true);}}
-                            style={{marginRight: "10px", float: "right", marginTop: "5px"}}
+                            style={{marginRight: "10px", float: "right"}}
                             variant="contained">
                     <PersonAddIcon />
                 </IconButton>
             </MythicStyledTooltip>
-            <Button size="small" onClick={() => {setOpenNewOperationDialog(true);}} style={{marginRight: "20px", float: "right", marginTop: "10px"}} startIcon={<AddCircleOutlineOutlinedIcon color="success"/>}  variant="contained">New Operation</Button>
+            <Button size="small" onClick={() => {setOpenNewOperationDialog(true);}}
+                    style={{marginRight: "20px", float: "right", color: "white"}}
+                    startIcon={<AddCircleIcon color="success" style={{backgroundColor: "white", borderRadius: "10px"}}/>} >
+                New Operation
+            </Button>
 
             {openNewOperator &&
                 <MythicDialog open={openNewOperator} 

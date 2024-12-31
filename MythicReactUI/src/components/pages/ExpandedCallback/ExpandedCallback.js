@@ -119,7 +119,10 @@ export function ExpandedCallback(props){
                             <ExpandedCallbackSideDetails me={props.me} callback={callback} />
                         </div>
                         <div className="bg-gray-light" style={{display: "inline-flex"}}>
-                            <CallbacksTabsTaskingPanel me={props.me} tabInfo={tabInfo} callbacktokens={callback.callbacktokens}/>
+                            <CallbacksTabsTaskingPanel me={props.me}
+                                                       tabInfo={tabInfo}
+                                                       collapseTaskRequest={() => {}}
+                            />
                         </div>
                     </Split>
                 ) : (

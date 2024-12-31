@@ -65,22 +65,22 @@ export function SettingsOperatorTable(props){
     return (
     <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
         <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginRight: "5px"}} variant={"elevation"}>
-            <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+            <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Settings
             </Typography>
             <MythicStyledTooltip title={"Adjust Global Settings"} tooltipStyle={{float: "right", marginRight: "10px", marginLeft: "5px"}}>
-                <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained"
+                <IconButton size="small" variant="contained"
                             onClick={() => setOpenGlobalSettingsDialog(!openGlobalSettingsDialog)} >
                     <TuneIcon />
                 </IconButton>
             </MythicStyledTooltip>
             {showDeleted ? (
                 <MythicStyledTooltip title={"Hide Deleted Operators"} tooltipStyle={{float: "right"}}>
-                    <IconButton size="small" style={{float: "right", marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
+                    <IconButton size="small"  variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
                 </MythicStyledTooltip>
             ) : (
                 <MythicStyledTooltip title={"Show Deleted Operators"} tooltipStyle={{float: "right"}}>
-                    <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
+                    <IconButton size="small"  variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                 </MythicStyledTooltip>
             )}
             {openGlobalSettingsDialog &&
@@ -91,7 +91,7 @@ export function SettingsOperatorTable(props){
                 />
             }
             <MythicStyledTooltip title={"Search for API Tokens"}  tooltipStyle={{float: "right", marginRight: "5px",}} >
-                <IconButton size={"small"} style={{float: "right",  marginTop: "5px"}} variant="contained"
+                <IconButton size={"small"}  variant="contained"
                 onClick={() => setOpenAPITokenSearch(true)}>
                     <SearchIcon />
                 </IconButton>
@@ -104,18 +104,18 @@ export function SettingsOperatorTable(props){
                 />
             }
             <MythicStyledTooltip title={"Create new Bot account"} tooltipStyle={{float: "right", marginLeft: "5px"}}>
-                <IconButton size={"small"} style={{float: "right",  marginTop: "5px"}}
+                <IconButton size={"small"}
                             onClick={()=>{setOpenNewBotDialog(true);}}  variant="contained">
                     <SmartToyTwoToneIcon />
                 </IconButton>
             </MythicStyledTooltip>
             <MythicStyledTooltip title={"Create new user account"} tooltipStyle={{float: "right", marginLeft: "5px"}}>
-                <IconButton size="small" onClick={()=>{setOpenNewDialog(true);}} style={{float: "right", marginTop: "5px"}} variant="contained">
+                <IconButton size="small" onClick={()=>{setOpenNewDialog(true);}}  variant="contained">
                     <PersonAddIcon/>
                 </IconButton>
             </MythicStyledTooltip>
             <MythicStyledTooltip title={"Manage Invite Links"} tooltipStyle={{float: "right", marginLeft: "5px"}}>
-                <IconButton size={"small"}  onClick={()=>{setOpenInviteLinksDialog(true);}} variant={"contained"} style={{float: "right", marginTop: "5px"}}>
+                <IconButton size={"small"}  onClick={()=>{setOpenInviteLinksDialog(true);}} variant={"contained"} >
                     <ForwardToInboxTwoToneIcon />
                 </IconButton>
             </MythicStyledTooltip>

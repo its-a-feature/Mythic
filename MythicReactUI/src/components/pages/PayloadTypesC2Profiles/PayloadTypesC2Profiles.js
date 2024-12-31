@@ -141,17 +141,17 @@ export function PayloadTypesC2Profiles({me}){
         <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px",
                 marginRight: "5px"}} variant={"elevation"}>
-                <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Payload / C2 Services
                 </Typography>
                 {showDeleted ? (
                     <MythicStyledTooltip title={"Hide Deleted Services"} tooltipStyle={{float: "right"}}>
-                        <IconButton size="small" style={{float: "right", marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
+                        <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
                     </MythicStyledTooltip>
 
                 ) : (
                     <MythicStyledTooltip title={"Show Deleted Services"} tooltipStyle={{float: "right"}}>
-                        <IconButton size="small" style={{float: "right",  marginTop: "5px"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
+                        <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                     </MythicStyledTooltip>
                 )}
             </Paper>
