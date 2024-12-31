@@ -15,7 +15,9 @@ export const Dropdown = React.forwardRef(
             absoluteX,
             absoluteY,
             anchorReference,
-            style
+            style,
+            transformOrigin,
+            anchorOrigin,
         },
         ref
     ) => {
@@ -27,7 +29,8 @@ export const Dropdown = React.forwardRef(
         if (ref) {
             anchorRef = ref;
         }
-
+        console.log(anchorReference, absoluteY, absoluteX)
+        console.log(anchorReference === "anchorEl" ? undefined : {top: absoluteY, left: absoluteX})
         const handleClose = (event) => {
             event.stopPropagation();
 
@@ -49,7 +52,6 @@ export const Dropdown = React.forwardRef(
                     parentMenuOpen: isOpen
                 };
             }
-
             return React.createElement(menuItem.type, {
                 ...props,
                 key: index,
@@ -69,18 +71,18 @@ export const Dropdown = React.forwardRef(
             <>
                 <Menu
                     PaperProps={{ sx: { minWidth: minWidth ?? 0 } }}
-                    style={{zIndex: 100000}}
+                    style={{zIndex: 100000, position: "absolute"}}
                     anchorEl={isOpen}
                     transition={"true"}
                     open={!!externallyOpen}
                     anchorPosition={anchorReference === "anchorEl" ? undefined : {top: absoluteY, left: absoluteX}}
                     anchorReference={ anchorReference ? anchorReference : "anchorEl"}
                     onClose={handleClose}
-                    anchorOrigin={{
+                    anchorOrigin={anchorOrigin ? anchorOrigin : {
                         vertical: 'bottom',
                         horizontal: 'left',
                     }}
-                    transformOrigin={{
+                    transformOrigin={transformOrigin ? transformOrigin : {
                         vertical: 'top',
                         horizontal: 'left',
                     }}

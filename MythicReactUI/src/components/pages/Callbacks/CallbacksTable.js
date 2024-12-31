@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useContext} from 'react';
 import {MythicTransferListDialog} from '../../MythicComponents/MythicTransferList';
-import {MythicDialog, MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
+import {MythicDialog} from '../../MythicComponents/MythicDialog';
 import {
     exportCallbackConfigQuery,
     hideCallbackMutation, lockCallbackMutation, unlockCallbackMutation,

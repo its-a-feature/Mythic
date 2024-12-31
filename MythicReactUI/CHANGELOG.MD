@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.72] - 2024-12-31
+
+### Changed
+
+- Fixed an issue with the new vertical bar shortcut customization
+- Adjusted the design of the vertical bar a bit
+- Added a horizontal bar to the top to help separate pages from URL
+
 ## [0.2.71] - 2024-12-28
 
 ### Changed

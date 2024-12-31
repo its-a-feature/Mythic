@@ -218,15 +218,16 @@ export function App(props) {
                                     ) : null}
                                 </div>
                             }
-                            {me?.user?.current_operation_banner_text !== "" &&
+                            {me.loggedIn && (me?.user?.current_operation_banner_text !== "" ||
+                                    preferences?.["experiment-newSidebar"])
+                                &&
                                 <Typography style={{
                                     backgroundColor: me?.user?.current_operation_banner_color,
                                     width: "100%",
                                     textAlign: "center",
                                     fontWeight: "600",
                                     color: "white",
-                                    borderRadius: "4px",
-                                    border: "1px solid grey"
+                                    border: `1px solid ${preferences?.topColor || "grey"}`
                                 }}>
                                     {me?.user?.current_operation_banner_text}
                                 </Typography>

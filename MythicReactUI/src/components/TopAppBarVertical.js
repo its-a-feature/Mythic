@@ -56,7 +56,6 @@ import {useQuery, gql} from '@apollo/client';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import EditNoteIcon from '@mui/icons-material/EditNote';
 import VerifiedTwoToneIcon from '@mui/icons-material/VerifiedTwoTone';
 import {useGetMythicSetting, useSetMythicSetting} from "./MythicComponents/MythicSavedUserSetting";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
@@ -75,6 +74,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import MythicStyledTableCell from "./MythicComponents/MythicTableCell";
 import {snackActions} from "./utilities/Snackbar";
+import {Dropdown, DropdownMenuItem} from "./MythicComponents/MythicNestedMenus";
+import ClickAwayListener from '@mui/material/ClickAwayListener';
 
 const PREFIX = 'TopAppBarVertical';
 
@@ -97,15 +98,17 @@ const openedMixin = (theme) => ({
     width: drawerWidth,
     overflowX: 'hidden',
     borderRadius: "0 !important",
-    border: "unset !important"
+    border: "0px !important"
 });
 const closedMixin = (theme) => ({
     overflowX: 'hidden',
     width: `calc(${theme.spacing(5)} + 1px)`,
     borderRadius: "0 !important",
+     border: "0px !important",
     [theme.breakpoints.up('sm')]: {
       width: `calc(${theme.spacing(6)} + 1px)`,
       borderRadius: "0 !important",
+      border: "0px !important",
   },
 });
 const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
@@ -114,7 +117,6 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
       flexShrink: 0,
       whiteSpace: 'nowrap',
       boxSizing: 'border-box',
-
       [`& .${classes.nested}`]: {
         paddingLeft: "20px",
       },
@@ -176,6 +178,15 @@ export const StyledListItem = styled(ListItem)(
       color: "white",
     }),
 );
+export const StyledListItemIcon = styled(ListItemIcon)(
+    ({ theme }) => ({
+        paddingTop:0,
+        marginTop: 0,
+        paddingBottom: 0,
+        minWidth: "45px",
+        color: "white",
+    }),
+);
 
 const drawerWidth = 240;
 const GET_SETTINGS = gql`
@@ -188,7 +199,7 @@ query getGlobalSettings {
 const Dashboard = () => {
   return (
       <StyledListItem className={classes.listSubHeader} button component={Link} to='/new' key={"home"} >
-        <ListItemIcon ><SpaceDashboardTwoToneIcon style={{color: "white"}}  fontSize={"medium"} className="mythicElement" /></ListItemIcon>
+        <StyledListItemIcon ><SpaceDashboardTwoToneIcon style={{color: "white"}}  fontSize={"medium"} className="mythicElement" /></StyledListItemIcon>
         <ListItemText primary={"Operation Dashboard"} />
       </StyledListItem>
   )
@@ -196,7 +207,7 @@ const Dashboard = () => {
 const ActiveCallbacks = () => {
   return (
       <StyledListItem className={classes.listSubHeader} button component={Link} to='/new/callbacks' key={"callbacks"} >
-        <ListItemIcon><PhoneCallbackIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><PhoneCallbackIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Active Callbacks"} />
       </StyledListItem>
   )
@@ -204,7 +215,7 @@ const ActiveCallbacks = () => {
 const Payloads = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/payloads' key={"payloads"} >
-        <ListItemIcon><FontAwesomeIcon style={{color: "white"}} icon={faBiohazard} size="lg"/></ListItemIcon>
+        <StyledListItemIcon><FontAwesomeIcon style={{color: "white"}} icon={faBiohazard} size="lg"/></StyledListItemIcon>
         <ListItemText primary={"Payloads"} />
       </StyledListItem>
   )
@@ -212,10 +223,10 @@ const Payloads = () => {
 const SearchCallbacks = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?tab=callbacks&searchField=Host&search=' >
-        <ListItemIcon>
+        <StyledListItemIcon>
             <PhoneCallbackIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/>
             <ManageSearchIcon color={"info"} style={{marginLeft: "-8px", marginTop: "7px", backgroundColor: "white", borderRadius: "5px"}} fontSize={"small"} />
-        </ListItemIcon>
+        </StyledListItemIcon>
         <ListItemText primary={"Search Callbacks"} />
       </StyledListItem>
   )
@@ -223,9 +234,9 @@ const SearchCallbacks = () => {
 const SearchTasks = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?tab=tasks&searchField=Command+and+Parameters&search=&taskStatus=' >
-        <ListItemIcon>
+        <StyledListItemIcon>
             <AssignmentIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/>
-        </ListItemIcon>
+        </StyledListItemIcon>
         <ListItemText primary={"Search Tasks"} />
       </StyledListItem>
   )
@@ -233,10 +244,10 @@ const SearchTasks = () => {
 const SearchPayloads = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?tab=payloads&searchField=Filename&search=&taskStatus=&c2=All+C2&payloadtype=All+Payload+Types'>
-        <ListItemIcon>
+        <StyledListItemIcon>
             <FontAwesomeIcon style={{color: "white"}} size={"lg"} icon={faBiohazard} />
             <ManageSearchIcon color={"info"} style={{marginLeft: "-8px", marginTop: "7px", backgroundColor: "white", borderRadius: "5px"}} fontSize={"small"} />
-        </ListItemIcon>
+        </StyledListItemIcon>
         <ListItemText primary={"Search Payloads"} />
       </StyledListItem>
   )
@@ -244,7 +255,7 @@ const SearchPayloads = () => {
 const SearchFiles = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?searchField=Filename&tab=files&location=Downloads&host=&search=' >
-        <ListItemIcon><AttachmentIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><AttachmentIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Search Files"} />
       </StyledListItem>
   )
@@ -252,7 +263,7 @@ const SearchFiles = () => {
 const SearchScreenshots = () => {
     return (
         <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?searchField=Filename&tab=files&location=Screenshots' >
-            <ListItemIcon><CameraAltTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+            <StyledListItemIcon><CameraAltTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
             <ListItemText primary={"Search Screenshots"} />
         </StyledListItem>
     )
@@ -260,7 +271,7 @@ const SearchScreenshots = () => {
 const SearchCredentials = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?t?searchField=Account&tab=credentials&search='>
-        <ListItemIcon><VpnKeyIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement" /></ListItemIcon>
+        <StyledListItemIcon><VpnKeyIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement" /></StyledListItemIcon>
         <ListItemText primary={"Search Credentials"} />
       </StyledListItem>
   )
@@ -268,7 +279,7 @@ const SearchCredentials = () => {
 const SearchKeylogs = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?tab=keylogs&searchField=Host&search='>
-        <ListItemIcon><KeyboardIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><KeyboardIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Search Keylogs"} />
       </StyledListItem>
   )
@@ -276,7 +287,7 @@ const SearchKeylogs = () => {
 const SearchArtifacts = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?tab=artifacts&searchField=Host&search=' >
-        <ListItemIcon><FingerprintIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><FingerprintIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Search Artifacts"} />
       </StyledListItem>
   )
@@ -284,7 +295,7 @@ const SearchArtifacts = () => {
 const SearchTokens = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?tab=tokens&searchField=Host&search=' >
-        <ListItemIcon><ConfirmationNumberIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><ConfirmationNumberIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Search Tokens"} />
       </StyledListItem>
   )
@@ -292,7 +303,7 @@ const SearchTokens = () => {
 const SearchProxies = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?tab=socks'>
-        <ListItemIcon><FontAwesomeIcon style={{color: "white"}} size={"lg"} icon={faSocks} /></ListItemIcon>
+        <StyledListItemIcon><FontAwesomeIcon style={{color: "white"}} size={"lg"} icon={faSocks} /></StyledListItemIcon>
         <ListItemText primary={"Search Proxies"} />
       </StyledListItem>
   )
@@ -300,7 +311,7 @@ const SearchProxies = () => {
 const SearchProcesses = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?tab=processes&searchField=Name&search=&host=' >
-        <ListItemIcon><AccountTreeIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><AccountTreeIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Search Processes"} />
       </StyledListItem>
   )
@@ -308,10 +319,10 @@ const SearchProcesses = () => {
 const SearchTags = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/search?tab=tags&searchField=TagType&search=&host='>
-        <ListItemIcon>
+        <StyledListItemIcon>
             <LocalOfferTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/>
             <ManageSearchIcon color={"info"} style={{marginLeft: "-8px", marginTop: "7px", backgroundColor: "white", borderRadius: "5px"}} fontSize={"small"} />
-        </ListItemIcon>
+        </StyledListItemIcon>
         <ListItemText primary={"Search Tags"} />
       </StyledListItem>
   )
@@ -319,7 +330,7 @@ const SearchTags = () => {
 const Mitre = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/mitre' >
-        <ListItemIcon><TableChartTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><TableChartTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"MITRE ATT&CK"} />
       </StyledListItem>
   )
@@ -327,7 +338,7 @@ const Mitre = () => {
 const Reporting = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/reporting' >
-        <ListItemIcon><SportsScoreIcon style={{color: "white"}} size={"medium"} /></ListItemIcon>
+        <StyledListItemIcon><SportsScoreIcon style={{color: "white"}} size={"medium"} /></StyledListItemIcon>
         <ListItemText primary={"Reporting"} />
       </StyledListItem>
   )
@@ -335,7 +346,7 @@ const Reporting = () => {
 const Tags = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/tagtypes' >
-        <ListItemIcon><LocalOfferTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><LocalOfferTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Tags"} />
       </StyledListItem>
   )
@@ -343,7 +354,7 @@ const Tags = () => {
 const Eventing = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/eventing' >
-        <ListItemIcon><PlayCircleFilledTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><PlayCircleFilledTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Eventing"} />
       </StyledListItem>
   )
@@ -351,7 +362,7 @@ const Eventing = () => {
 const JupyterNotebook = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} target="_blank" component={Link} to='/jupyter' key={"jupyter"} >
-        <ListItemIcon><img src={JupyterLogo} height={"25px"} width={"25px"} /></ListItemIcon>
+        <StyledListItemIcon><img src={JupyterLogo} height={"25px"} width={"25px"} /></StyledListItemIcon>
         <ListItemText primary={"Jupyter Notebooks"} />
       </StyledListItem>
   )
@@ -359,7 +370,7 @@ const JupyterNotebook = () => {
 const GraphQL = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} target="_blank" component={Link} to='/console' key={"console"} >
-        <ListItemIcon><img src={GraphQLLogo} height={"25px"} width={"25px"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><img src={GraphQLLogo} height={"25px"} width={"25px"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"GraphQL Console"} />
       </StyledListItem>
   )
@@ -367,7 +378,7 @@ const GraphQL = () => {
 const ConsumingServices = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/consuming_services' key={"consuming"} >
-        <ListItemIcon><PublicIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><PublicIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Consuming Services"} />
       </StyledListItem>
   )
@@ -375,10 +386,10 @@ const ConsumingServices = () => {
 const CreatePayload = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/createpayload' key={"createpayload"}  state={{from: 'TopAppBar'}}>
-        <ListItemIcon>
+        <StyledListItemIcon>
             <FontAwesomeIcon style={{color: "white"}} size={"lg"} icon={faBiohazard} />
             <AddCircleIcon color={"success"} style={{marginLeft: "-8px", marginTop: "7px", backgroundColor: "white", borderRadius: "10px"}} fontSize={"small"} />
-        </ListItemIcon>
+        </StyledListItemIcon>
         <ListItemText primary={"Create Payload"} />
       </StyledListItem>
   )
@@ -386,10 +397,10 @@ const CreatePayload = () => {
 const CreateWrapper = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/createwrapper' key={"createwrapper"} >
-        <ListItemIcon>
+        <StyledListItemIcon>
             <PostAddIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/>
             <AddCircleIcon color={"success"} style={{marginLeft: "-8px", marginTop: "7px", backgroundColor: "white", borderRadius: "10px"}} fontSize={"small"} />
-        </ListItemIcon>
+        </StyledListItemIcon>
         <ListItemText primary={"Create Wrapper"} />
       </StyledListItem>
   )
@@ -397,7 +408,7 @@ const CreateWrapper = () => {
 const PayloadTypesAndC2 = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/payloadtypes' key={"payloadtypes"}>
-        <ListItemIcon><HeadsetTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><HeadsetTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Payload Types & C2"} />
       </StyledListItem>
   )
@@ -405,7 +416,7 @@ const PayloadTypesAndC2 = () => {
 const Operations = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/operations' key={"modifyoperations"}>
-        <ListItemIcon><EditIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><EditIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"Modify Operations"} />
       </StyledListItem>
   )
@@ -413,7 +424,7 @@ const Operations = () => {
 const BrowserScripts = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/browserscripts' key={"browserscripts"} >
-        <ListItemIcon><CodeOffIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></ListItemIcon>
+        <StyledListItemIcon><CodeOffIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/></StyledListItemIcon>
         <ListItemText primary={"BrowserScripts"} />
       </StyledListItem>
   )
@@ -439,7 +450,7 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
     }
     const onChangeShortcutValue = (event, i) => {
         if(event.target.value !== " "){
-            let newShortcuts = [...sideShortcuts];
+            let newShortcuts = [...currentShortcuts];
             newShortcuts[i] = event.target.value;
             setCurrentShortcuts(newShortcuts);
         }
@@ -473,11 +484,16 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
                             <TableRow hover key={c + i} >
                                 <MythicStyledTableCell style={{width: "2rem"}}>
                                     <MythicStyledTooltip title={"Insert Above"}>
-                                        <IconButton onClick={() => addShortcut(i )}>
-                                            <ArrowUpwardIcon />
-                                            <AddCircleIcon color={"success"} style={{marginLeft: "-8px", marginTop: "7px", backgroundColor: "white", borderRadius: "10px"}} fontSize={"small"} />
+                                        <IconButton onClick={() => addShortcut(i )} style={{padding: 0}} disableFocusRipple={true}>
+                                            <ArrowUpwardIcon fontSize={"medium"}/>
+                                            <AddCircleIcon color={"success"} style={{marginLeft: "-10px", marginTop: "20px"}} fontSize={"small"} />
                                         </IconButton>
                                     </MythicStyledTooltip>
+                                </MythicStyledTableCell>
+                                <MythicStyledTableCell style={{width: "2rem"}}>
+                                    <IconButton onClick={() => removeShortcut(i)}>
+                                        <DeleteIcon color={"error"} />
+                                    </IconButton>
                                 </MythicStyledTableCell>
                                 <MythicStyledTableCell style={{}}>
                                     <Select
@@ -490,14 +506,11 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
                                         ) )}
                                     </Select>
                                 </MythicStyledTableCell>
-                                <MythicStyledTableCell style={{width: "3rem"}}>
-                                    <IconButton onClick={() => removeShortcut(i)}>
-                                        <DeleteIcon color={"error"} />
-                                    </IconButton>
-                                </MythicStyledTableCell>
+
                             </TableRow>
                         ))}
                         <TableRow hover>
+                            <MythicStyledTableCell></MythicStyledTableCell>
                             <MythicStyledTableCell></MythicStyledTableCell>
                             <MythicStyledTableCell >
                                 <Button color={"success"} onClick={() => addShortcut(currentShortcuts.length)} >
@@ -507,7 +520,6 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
                                     Reset To Defaults
                                 </Button>
                             </MythicStyledTableCell>
-                            <MythicStyledTableCell> </MythicStyledTableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
@@ -620,7 +632,7 @@ export function TopAppBarVertical(props) {
     <>
       {me?.user?.current_operation_id ? (<EventFeedNotifications me={me} />) : null }
       <Drawer anchor="left" variant="permanent" open={isOpen} onClose={handleDrawerClose} >
-        <List style={{paddingTop: 0, marginTop: 0, height: "100%", display: "flex", flexDirection: "column", backgroundColor: theme.topAppBarColor}}>
+        <List style={{paddingTop: 0, marginTop: 0, height: "100%", display: "flex", flexDirection: "column", backgroundColor: theme.topAppBarColor, border: "unset !important"}}>
           <ListItem className={classes.listSubHeader} style={{marginTop:0, paddingTop: 0, paddingLeft: "2px", paddingBottom: 0}}>
             <ListItemIcon ><img src={ReactLogo} width={"40px"} height={"35px"}/></ListItemIcon>
             <ListItemText primary={
@@ -641,13 +653,14 @@ export function TopAppBarVertical(props) {
             } />
           </ListItem>
           <StyledListItem className={classes.listSubHeader} button style={{height: "20px"}} >
-            <ListItemIcon ><MenuIcon style={{color: "white"}} onClick={toggleDrawerOpen} fontSize={"medium"} className="mythicElement" /></ListItemIcon>
+            <StyledListItemIcon ><MenuIcon style={{color: "white"}} onClick={toggleDrawerOpen} fontSize={"medium"} className="mythicElement" /></StyledListItemIcon>
             <ListItemText primary={
               <>
                 <MythicStyledTooltip title={"Edit Shortcuts"} tooltipStyle={{float: isOpen ? 'right' : '', margin: 0, padding: 0}}>
-                    <IconButton onClick={() => setOpenEditDialog(true)} >
-                        <EditNoteIcon style={{color: "white"}} fontSize={"medium"}/>
-                    </IconButton>
+                    <Button onClick={() => setOpenEditDialog(true)} style={{color: "white"}}>
+                        <EditIcon style={{color: "white"}} fontSize={"medium"}/> Edit
+                    </Button>
+
                 </MythicStyledTooltip>
               </>
             } />
@@ -686,9 +699,9 @@ export function TopAppBarVertical(props) {
             {getShortcuts({shortcuts: sideShortcuts})}
           <Divider style={{borderColor: "white"}} />
             <StyledListItem button className={classes.listSubHeader} onClick={handleToggleExtra}>
-                <ListItemIcon>
+                <StyledListItemIcon>
                     <MoreHorizIcon style={{color: "white"}} fontSize={"medium"} />
-                </ListItemIcon>
+                </StyledListItemIcon>
                 <ListItemText>Extra Shortcuts</ListItemText>
                 {openExtra ? <ExpandLess /> : <ExpandMore />}
             </StyledListItem>
@@ -699,64 +712,163 @@ export function TopAppBarVertical(props) {
             </Collapse>
             <Divider style={{borderColor: "white"}} />
           <div style={{ flexGrow: 1}}></div>
-          <TopBarRightShortcutsVertical me={me} toggleTheme={props.toggleTheme} serverName={serverName} />
+          <TopBarRightShortcutsVertical me={me} isOpen={isOpen} serverName={serverName} />
         </List>
       </Drawer>
     </>
   );
 }
 
-function TopBarRightShortcutsVertical({me, toggleTheme, serverName}){
-  const theme = useTheme();
+function TopBarRightShortcutsVertical({me, isOpen, serverName}){
   const documentationRef = React.useRef(null);
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const [documentationAnchorEl, setDocumentationAnchorEl] = React.useState(null);
+  const [documentationOpen, setDocumentationOpen] = React.useState(false);
+  const settingsRef = React.useRef(null);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [openFeedbackForm, setOpenFeedbackForm] = React.useState(false);
   const handleLogout = () => {
     menuOpen(false);
     FailedRefresh();
   }
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
+  const handleSettingsMenu = (event) => {
+      settingsRef.current = {
+          currentTarget: event.currentTarget,
+          absoluteX: event.clientX,
+          absoluteY: event.clientY,
+      };
+      setSettingsOpen(true);
   };
-  const handleClose = (evt) => {
-    setAnchorEl(null);
+  const handleSettingsClose = (evt) => {
+      setSettingsOpen(false);
   };
   const handleDocumentationMenu = (event) => {
-    setDocumentationAnchorEl(event.currentTarget);
+      documentationRef.current = {
+          currentTarget: event.currentTarget,
+          absoluteX: event.clientX,
+          absoluteY: event.clientY,
+      };
+      setDocumentationOpen(true);
   };
   const handleDocumentationClose = (evt) => {
-    setDocumentationAnchorEl(null);
+      setDocumentationOpen(false);
   };
+  const documentationOptions = [
+      {
+          name: "Agent Documentation",
+          to: "/docs/agents",
+      },
+      {
+          name: "Wrapper Documentation",
+          to: "/docs/wrappers"
+      },
+      {
+          name: "C2 Profile Documentation",
+          to: "/docs/c2-profiles"
+      },
+      {
+          name: "Mythic Documentation",
+          to:  "https://docs.mythic-c2.net"
+      }
+  ]
+  const settingsOptions = [
+      {
+          name: (
+              <>
+                  <Typography paragraph={true} variant={"caption"} style={{marginBottom: "0"}}>Server Name:</Typography>
+                  <Typography paragraph={true} variant={"body1"} style={{marginBottom: "0", fontWeight: 600}}>{serverName}</Typography>
+              </>),
+          disabled: true,
+          click: handleSettingsClose
+      },
+      {
+          name: (
+              <>
+                  <Typography paragraph={true} variant="caption" style={{marginBottom: "0"}}>Signed in as:</Typography>
+                  <Typography paragraph={true} variant="body1"  style={{marginBottom: "0", fontWeight: 600}}> {me?.user?.username || "" } </Typography>
+              </>
+          ),
+          to: "/new/settings",
+          component: Link,
+          click: handleSettingsClose
+      },
+      {
+          name: "Logout",
+          click: handleLogout,
+          to: "",
+      }
+  ]
     return (
         <>
-          <Menu
-              id="menu-appbar"
-              anchorEl={anchorEl}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'center',
-              }}
-              open={Boolean(anchorEl)}
-              onClose={handleClose}
-
-          >
-            <MenuItem disabled divider={true} style={{display: "block"}}>
-              <Typography paragraph={true} variant={"caption"} style={{marginBottom: "0"}}>Server Name:</Typography>
-              <Typography paragraph={true} variant={"body1"} style={{marginBottom: "0", fontWeight: 600}}>{serverName}</Typography>
-            </MenuItem>
-            <MenuItem divider={true} style={{display: "block"}} component={Link} to="/new/settings" onClick={handleClose} name="settings">
-              <Typography paragraph={true} variant="caption" style={{marginBottom: "0"}}>Signed in as:</Typography>
-              <Typography paragraph={true} variant="body1"  style={{marginBottom: "0", fontWeight: 600}}> {me?.user?.username || "" } </Typography>
-            </MenuItem>
-            <MenuItem onClick={handleLogout}>Logout</MenuItem>
-          </Menu>
+            {documentationOpen &&
+                <ClickAwayListener onClickAway={handleDocumentationClose} mouseEvent={"onMouseDown"}>
+                    <Dropdown
+                        isOpen={documentationRef.current.currentTarget}
+                        onOpen={setDocumentationOpen}
+                        externallyOpen={documentationOpen}
+                        absoluteY={documentationRef.current.absoluteY}
+                        absoluteX={documentationRef.current.absoluteX}
+                        anchorReference={"anchorPosition"}
+                        transformOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left',
+                        }}
+                        anchorOrigin={{
+                            vertical: 'top',
+                            horizontal: 'left',
+                        }}
+                        menu={
+                            documentationOptions.map(option => (
+                                <DropdownMenuItem
+                                    key={option.name}
+                                    disabled={option.disabled}
+                                    onClick={handleDocumentationClose}
+                                    component={Link}
+                                    target={"_blank"}
+                                    to={option.to}
+                                >
+                                    {option.name}
+                                </DropdownMenuItem>
+                            ))
+                        }
+                    />
+                </ClickAwayListener>
+            }
+            {settingsOpen &&
+                <ClickAwayListener onClickAway={handleSettingsClose} mouseEvent={"onMouseDown"}>
+                    <Dropdown
+                        isOpen={settingsRef.current}
+                        onOpen={setSettingsOpen}
+                        externallyOpen={settingsOpen}
+                        absoluteY={settingsRef.current.absoluteY}
+                        absoluteX={settingsRef.current.absoluteX}
+                        anchorReference={"anchorPosition"}
+                        transformOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left',
+                        }}
+                        anchorOrigin={{
+                            vertical: 'top',
+                            horizontal: 'left',
+                        }}
+                        menu={
+                            settingsOptions.map(option => (
+                                <DropdownMenuItem
+                                    key={option.name}
+                                    disabled={option.disabled}
+                                    onClick={option.click}
+                                    component={option.component}
+                                    style={{display: "block"}}
+                                    to={option.to}
+                                    divider={true}
+                                >
+                                    {option.name}
+                                </DropdownMenuItem>
+                            ))
+                        }
+                    />
+                </ClickAwayListener>
+            }
           <StyledListItem button className={classes.listSubHeader} onClick={() => setOpenFeedbackForm(true)} >
-            <ListItemIcon> <ThumbDownTwoTone style={{color: "white"}} fontSize={"medium"} className="mythicElement" /> </ListItemIcon>
+            <StyledListItemIcon> <ThumbDownTwoTone style={{color: "white"}} fontSize={"medium"} className="mythicElement" /> </StyledListItemIcon>
             <ListItemText primary={"Send Feedback"} />
           </StyledListItem>
             {openFeedbackForm &&
@@ -767,44 +879,26 @@ function TopBarRightShortcutsVertical({me, toggleTheme, serverName}){
                                   onClose={()=>{setOpenFeedbackForm(false);}} />}
                 />
             }
-          <StyledListItem button className={classes.listSubHeader} onClick={handleDocumentationMenu} ref={documentationRef} >
-            <ListItemIcon>
+          <StyledListItem button className={classes.listSubHeader} onClick={handleDocumentationMenu} >
+            <StyledListItemIcon>
                   <HelpTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement"/>
-                  <KeyboardArrowDownIcon style={{color: "white"}} />
-            </ListItemIcon>
+                  <KeyboardArrowDownIcon style={{color: "white", display: isOpen ? "" : "none"}} />
+            </StyledListItemIcon>
             <ListItemText primary={"Help"} />
           </StyledListItem>
-            <Menu
-                id="menu-appbar"
-                anchorEl={documentationAnchorEl}
-                anchorOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'center',
-                }}
-                open={Boolean(documentationAnchorEl)}
-                onClose={handleDocumentationClose}
-            >
-              <MenuItem component={Link} target="_blank" to="/docs/agents" onClick={handleDocumentationClose}>Agent Documentation</MenuItem>
-              <MenuItem component={Link} target="_blank" to="/docs/wrappers" onClick={handleDocumentationClose}>Wrapper Documentation</MenuItem>
-              <MenuItem component={Link} target="_blank" to="/docs/c2-profiles" onClick={handleDocumentationClose}>C2 Profile Documentation</MenuItem>
-              <MenuItem component={Link} to={{pathname: "https://docs.mythic-c2.net"}} target="_blank" onClick={handleDocumentationClose}>Mythic Documentation</MenuItem>
-            </Menu>
+
           <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/EventFeed' >
-            <ListItemIcon>
+            <StyledListItemIcon>
               <TopAppBarVerticalEventLogNotifications />
-            </ListItemIcon>
+            </StyledListItemIcon>
             <ListItemText primary={"Event Feed"} />
           </StyledListItem>
 
-          <StyledListItem button className={classes.listSubHeader} onClick={handleMenu} >
-            <ListItemIcon>
+          <StyledListItem button className={classes.listSubHeader} onClick={handleSettingsMenu} >
+            <StyledListItemIcon>
                   <ManageAccountsTwoToneIcon style={{color: "white"}} fontSize={"medium"} className="mythicElement" />
-                  <KeyboardArrowDownIcon style={{color: "white"}} />
-            </ListItemIcon>
+                <KeyboardArrowDownIcon style={{color: "white", display: isOpen ? "" : "none"}} />
+            </StyledListItemIcon>
             <ListItemText primary={"Settings"} />
           </StyledListItem>
         </>
