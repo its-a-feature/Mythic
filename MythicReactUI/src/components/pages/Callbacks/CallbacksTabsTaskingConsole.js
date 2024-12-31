@@ -399,7 +399,7 @@ export const CallbacksTabsTaskingConsolePanel = ({tabInfo, index, value, onClose
 
             <CallbacksTabsTaskingInput filterTasks={true} me={me} onSubmitFilter={onSubmitFilter} onSubmitCommandLine={onSubmitCommandLine} changeSelectedToken={changeSelectedToken}
                                        filterOptions={filterOptions} callback_id={tabInfo.callbackID}
-                                       payloadtype_name={tabInfo.payloadtype}
+                                       payloadtype_name={tabInfo.payloadtype} focus={index === value}
                                        callback_os={tabInfo.os} parentMountedRef={mountedRef} />
             {openParametersDialog &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog}

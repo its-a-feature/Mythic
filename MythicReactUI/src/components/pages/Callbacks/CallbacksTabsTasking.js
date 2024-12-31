@@ -406,6 +406,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
                                        onSubmitCommandLine={onSubmitCommandLine}
                                        changeSelectedToken={changeSelectedToken}
                                        filterOptions={filterOptions}
+                                       focus={index === value}
                                        callback_id={tabInfo.callbackID}
                                        payloadtype_name={tabInfo.payloadtype}
                                        callback_os={tabInfo.os} parentMountedRef={mountedRef} />

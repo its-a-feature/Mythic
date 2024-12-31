@@ -113,7 +113,7 @@ function CallbacksTablePreMemo(props){
     const [updateDescriptionMutation] = useMutation(updateDescriptionCallbackMutation, {
         update: (cache, {data}) => {
             if(data.updateCallback.status === "success"){
-                snackActions.success("Updated Callback");
+                //snackActions.success("Updated Callback");
             }else{
                 snackActions.warning(data.updateCallback.error);
             }
@@ -211,7 +211,7 @@ function CallbacksTablePreMemo(props){
     const [hideCallback] = useMutation(hideCallbackMutation, {
         update: (cache, {data}) => {
             if(data.updateCallback.status === "success"){
-                snackActions.success("Hiding callback");
+                //snackActions.success("Hiding callback");
             }else{
                 snackActions.warning(data.updateCallback.error);
             }

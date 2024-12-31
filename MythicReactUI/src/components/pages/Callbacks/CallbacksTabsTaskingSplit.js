@@ -452,7 +452,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                 </div>
             </Split>
             <CallbacksTabsTaskingInput filterTasks={true} me={me} onSubmitFilter={onSubmitFilter}
-                                       payloadtype_name={tabInfo.payloadtype}
+                                       payloadtype_name={tabInfo.payloadtype} focus={index === value}
                                        onSubmitCommandLine={onSubmitCommandLine} changeSelectedToken={changeSelectedToken}
                                        filterOptions={filterOptions} callback_id={tabInfo.callbackID}
                                        callback_os={tabInfo.os} parentMountedRef={mountedRef} />

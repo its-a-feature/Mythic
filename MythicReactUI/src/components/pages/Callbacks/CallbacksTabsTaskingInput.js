@@ -152,6 +152,7 @@ const IsRepeatableCLIParameterType = (parameter_type) => {
 }
 export function CallbacksTabsTaskingInputPreMemo(props){
     const toastId = "tasking-toast-message";
+    const inputRef = React.useRef(null);
     const snackMessageStyles = {position:"bottom-left", autoClose: 1000, style:{marginBottom: "50px"}, toastId: toastId};
     const snackReverseSearchMessageStyles = {position:"bottom-left", autoClose: 1000, style:{marginBottom: "100px"}, toastId: toastId};
     const [commandPayloadType, setCommandPayloadType] = React.useState("");
@@ -1520,6 +1521,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             event.preventDefault();
         }
     }
+    React.useEffect( () => {
+        if(inputRef.current){
+            inputRef.current.focus();
+        }
+    }, [props.focus])
     return (
         <React.Fragment>
             <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
@@ -1538,7 +1544,6 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     fullWidth={true}
                     InputProps={{ type: 'search',
                         startAdornment: <React.Fragment><Typography style={{width: "10%"}}>reverse-i-search:</Typography></React.Fragment>
-                    
                     }}
                 />
             }
@@ -1555,10 +1560,12 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 value={message}
                 autoFocus={true}
                 fullWidth={true}
+                inputRef={inputRef}
                 style={{marginBottom: "0px", marginTop: "0px", paddingTop: "0px"}}
                 InputProps={{
                     type: 'search',
                     spellCheck: false,
+                    autoFocus: true,
                     style: {paddingTop: "0px", paddingBottom: "0px", paddingRight: "5px"},
                     endAdornment:
                     <React.Fragment>
