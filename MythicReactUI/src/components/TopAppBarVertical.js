@@ -739,7 +739,7 @@ export function TopAppBarVertical(props) {
                 </>
             } />
           </ListItem>
-          <StyledListItem className={classes.listSubHeader} button onClick={toggleDrawerOpen} style={{height: "20px"}} >
+          <StyledListItem className={classes.listSubHeader} button onClick={toggleDrawerOpen} style={{height: "30px"}} >
             <StyledListItemIcon ><MenuIcon style={{color: "white"}} onClick={toggleDrawerOpen} fontSize={"medium"} className="mythicElement" /></StyledListItemIcon>
             <ListItemText primary={
               <>

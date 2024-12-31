@@ -708,7 +708,7 @@ const PieChartCard = ({data, width="100%", additionalStyles, innerElement, hidde
         <Paper elevation={5} style={{
             marginBottom: "5px",
             marginTop: "5px",
-            marginLeft: "5px",
+            marginRight: "5px",
             width: width,
             height: "100%",
             border: "1px solid gray",
@@ -770,7 +770,6 @@ const PieMultiChartCard = ({data, width="100%", hidden, title, margin={
         <Paper elevation={5} style={{
             marginBottom: "5px",
             marginTop: "5px",
-            marginLeft: "5px",
             width: width,
             height: "100%",
             border: "1px solid gray",
@@ -1015,8 +1014,6 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
     }
     return (
         <Paper elevation={5} style={{
-            marginBottom: "5px",
-            marginTop: "5px",
             width: "100%",
             height: "100%",
             border: "1px solid gray",
