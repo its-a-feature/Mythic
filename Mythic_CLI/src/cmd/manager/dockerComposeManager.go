@@ -368,15 +368,12 @@ func (d *DockerComposeManager) StopServices(services []string, deleteImages bool
 	if err != nil {
 		log.Fatalf("Failed to get container list: %v", err)
 	}
-	wg := sync.WaitGroup{}
-	errChan := make(chan error, len(services))
+	errChan := make(chan error)
 	for _, svc := range services {
-		wg.Add(1)
 		go func(service string) {
-			defer wg.Done()
 			found := false
 			for _, dockerContainer := range allContainers {
-				if dockerContainer.Labels["name"] == strings.ToLower(service) {
+				if strings.ToLower(dockerContainer.Labels["name"]) == strings.ToLower(service) {
 					found = true
 					if deleteImages {
 						log.Printf("[*] Removing container: %s...\n", service)
@@ -390,6 +387,7 @@ func (d *DockerComposeManager) StopServices(services []string, deleteImages bool
 						}
 						errChan <- err
 					} else {
+						log.Printf("[*] Stopping container: %s...\n", service)
 						err = cli.ContainerStop(context.Background(), dockerContainer.ID, container.StopOptions{})
 						if err != nil {
 							log.Printf("[-] Failed to stop container: %v\n", err)
@@ -403,8 +401,8 @@ func (d *DockerComposeManager) StopServices(services []string, deleteImages bool
 			}
 			if !found {
 				log.Printf("[*] Container not running: %s\n", service)
+				errChan <- nil
 			}
-			errChan <- nil
 		}(svc)
 	}
 	err = nil
@@ -641,7 +639,6 @@ func (d *DockerComposeManager) TestPorts(services []string) {
 				removeServices = append(removeServices, val[1])
 			}
 		}
-
 	}
 }
 

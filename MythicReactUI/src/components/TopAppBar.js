@@ -145,7 +145,6 @@ const StyledDrawer = styled(Drawer)((
   },
 
   [`& .${classes.listSubHeader}`]: {
-    backgroundColor: theme.palette.listSubHeader.default,
     borderTopLeftRadius: "3px",
     borderTopRightRadius: "3px",
   },

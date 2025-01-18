@@ -47,7 +47,7 @@ export function CallbacksTabsTaskingLabel(props){
         },
     ]);
     return (
-        <React.Fragment>
+        <>
             <MythicTabLabel label={description} onDragTab={props.onDragTab} me={props.me} {...props} contextMenuOptions={contextMenuOptions}/>
             {openEditDescriptionDialog &&
                 <MythicDialog fullWidth={true} open={openEditDescriptionDialog}  onClose={() => {setOpenEditDescriptionDialog(false);}}
@@ -56,7 +56,7 @@ export function CallbacksTabsTaskingLabel(props){
                     }
                 />
             }
-        </React.Fragment>  
+        </>
     )
 }
 
@@ -383,7 +383,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             {loadingMore && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
             <div style={{overflowY: "auto", flexGrow: 1, width: "100%"}} id={`taskingPanel${tabInfo.callbackID}`}>
                 {!fetchedAllTasks &&
-                    <MythicStyledTooltip style={{marginLeft: "50%"}} title="Fetch Older Tasks">
+                    <MythicStyledTooltip tooltipStyle={{marginLeft: "50%"}} title="Fetch Older Tasks">
                         <IconButton
                             onClick={loadMoreTasks}
                             variant="contained"

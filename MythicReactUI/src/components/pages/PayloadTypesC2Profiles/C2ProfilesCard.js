@@ -268,7 +268,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                             color={"secondary"}
                             href={"/docs/c2-profiles/" + service.name.toLowerCase()}
                             target="_blank"
-                            size="large">
+                            size="medium">
                             <MenuBookIcon />
                         </IconButton>
                     </MythicStyledTooltip>
@@ -276,7 +276,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                         <IconButton
                             color={"secondary"}
                             onClick={()=>{setOpenBuildingDialog(true);}}
-                            size="large">
+                            size="medium">
                             <BuildIcon />
                         </IconButton>
                     </MythicStyledTooltip>
@@ -284,7 +284,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                         <IconButton
                             onClick={() => {setOpenProfileSavedInstancesDialog(true);}}
                             color={"success"}
-                            size="large">
+                            size="medium">
                             <SaveIcon />
                         </IconButton>
                     </MythicStyledTooltip>
@@ -293,7 +293,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                             color={"secondary"}
                             disabled={!service.container_running}
                             onClick={()=>{setOpenListFilesDialog(true);}}
-                            size="large">
+                            size="medium">
                             <AttachFileIcon />
                         </IconButton>
                     </MythicStyledTooltip>

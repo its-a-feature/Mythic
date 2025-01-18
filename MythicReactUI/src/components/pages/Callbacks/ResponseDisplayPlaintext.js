@@ -44,6 +44,7 @@ export const ResponseDisplayPlaintext = (props) =>{
       if(props.onChangeContent){
           props?.onChangeContent(data);
       }
+      setPlaintextView(data);
   }
   useEffect( () => {
       if(props.plaintext.length > MaxRenderSize){
@@ -51,9 +52,13 @@ export const ResponseDisplayPlaintext = (props) =>{
           setPlaintextView(props.plaintext.substring(0, MaxRenderSize));
       } else {
           try{
-              const newPlaintext = JSON.stringify(JSON.parse(String(props.plaintext)), null, 4);
-              setPlaintextView(newPlaintext);
-              setMode("json");
+              if(props.autoFormat === undefined || props.autoFormat){
+                  const newPlaintext = JSON.stringify(JSON.parse(String(props.plaintext)), null, 4);
+                  setPlaintextView(newPlaintext);
+                  setMode("json");
+              } else {
+                  setPlaintextView(String(props.plaintext));
+              }
           }catch(error){
               setPlaintextView(String(props.plaintext));
           }
@@ -97,6 +102,9 @@ export const ResponseDisplayPlaintext = (props) =>{
     React.useLayoutEffect( () => {
         scrollContent()
     }, []);
+    React.useEffect( () => {
+        setMode(props?.initial_mode || "html");
+    }, [props?.initial_mode]);
   return (
       <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
           {showOptions &&

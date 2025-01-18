@@ -6,6 +6,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
+import {MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
 
 const updateOpsecRequestMutation = gql`
 mutation requestOpsecBypass ($task_id: Int!) {
@@ -83,6 +84,7 @@ export function TaskOpsecDialog(props) {
      console.error(error);
      return <div>Error! {error.message}</div>;
     }
+    const requestAvailable = (opsecData.opsec_pre_blocked === true && !opsecData.opsec_pre_bypassed) || (opsecData.opsec_post_blocked === true && !opsecData.opsec_post_bypassed);
     const onRequestSubmit = () => {
        //console.log(props.task_id);
         updateOpsecRequest({variables: {task_id: props.task_id}});
@@ -91,20 +93,15 @@ export function TaskOpsecDialog(props) {
   
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Request OPSEC Bypass</DialogTitle>
-        <DialogContent dividers={true}>
-            <MythicTextField multiline={true} onChange={()=>{}} value={opsecMessage} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
-            Close
-          </Button>
-          {(opsecData.opsec_pre_blocked === true && !opsecData.opsec_pre_bypassed) || (opsecData.opsec_post_blocked === true && !opsecData.opsec_post_bypassed) ?
-          (
-            <Button onClick={onRequestSubmit} variant="contained" color="warning">Submit Bypass Request</Button>
-          ) : null }
-          
-        </DialogActions>
+            <MythicModifyStringDialog title={`Request OPSEC Bypass`}
+                                      onClose={props.onClose}
+                                      maxRows={40}
+                                      wrap={true}
+                                      value={opsecMessage}
+                                      onSubmit={requestAvailable ? onRequestSubmit : undefined}
+                                      onSubmitText={"Submit Bypass Request"}
+                                      dontCloseOnSubmit={true}
+            />
   </React.Fragment>
   );
 }

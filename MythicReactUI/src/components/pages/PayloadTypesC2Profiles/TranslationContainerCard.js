@@ -105,7 +105,7 @@ export function TranslationContainerRow({service, showDeleted}) {
                         color={"secondary"}
                         href={"/docs/c2-profiles/" + service.name.toLowerCase()}
                         target="_blank"
-                        size="large">
+                        size="medium">
                         <MenuBookIcon />
                     </IconButton>
                 </MythicStyledTooltip>
@@ -114,7 +114,7 @@ export function TranslationContainerRow({service, showDeleted}) {
                         color={"secondary"}
                         disabled={!service.container_running}
                         onClick={()=>{setOpenListFilesDialog(true);}}
-                        size="large">
+                        size="medium">
                         <AttachFileIcon />
                     </IconButton>
                 </MythicStyledTooltip>

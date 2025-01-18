@@ -1,15 +1,12 @@
 import React, {useState} from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
-import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
-import {useTheme} from '@mui/material/styles';
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 import {textExtensionTypesToSyntax} from "../Callbacks/ResponseDisplayMedia";
 

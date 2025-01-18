@@ -117,7 +117,7 @@ export function PayloadTypeRow({service, showDeleted}){
                             color="secondary"
                             href={service.wrapper ? "/docs/wrappers/" + service.name : "/docs/agents/" + service.name}
                             target="_blank"
-                            size="large">
+                            size="medium">
                             <MenuBookIcon />
                         </IconButton>
                     </MythicStyledTooltip>
@@ -125,7 +125,7 @@ export function PayloadTypeRow({service, showDeleted}){
                         <IconButton
                             onClick={()=>{setOpenBuildingDialog(true);}}
                             color="secondary"
-                            size="large">
+                            size="medium">
                             <BuildIcon />
                         </IconButton>
                     </MythicStyledTooltip>
@@ -133,7 +133,7 @@ export function PayloadTypeRow({service, showDeleted}){
                         <IconButton
                             onClick={()=>{setOpenCommandsDialog(true)}}
                             color={"secondary"}
-                            size={"large"}>
+                            size={"medium"}>
                             <SendTwoToneIcon />
                         </IconButton>
                     </MythicStyledTooltip>
@@ -142,7 +142,7 @@ export function PayloadTypeRow({service, showDeleted}){
                             color={"secondary"}
                             disabled={!service.container_running}
                             onClick={()=>{setOpenListFilesDialog(true);}}
-                            size="large">
+                            size="medium">
                             <AttachFileIcon />
                         </IconButton>
                     </MythicStyledTooltip>

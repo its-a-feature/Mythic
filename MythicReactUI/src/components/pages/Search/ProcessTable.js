@@ -39,7 +39,7 @@ export function ProcessTable(props){
         setFiles(updates);
     }
     return (
-        <TableContainer className="mythicElement" >
+        <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}} >
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>

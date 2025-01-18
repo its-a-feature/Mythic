@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-01-17
+
+### Changed
+
+- Updated Task links to be `T-#` to be clearer
+- Updated Callback links to be `C-#` to be clearer
+- Updated tab layout to expand vertically instead of horizontally as the number of open tabs grows
+- Added new context menu item for active callbacks to allow reordering columns (saved to user preferences)
+- Updated vertical navbar shortcut dialog to also allow easier reordering
+- Updated active callbacks tabs to allow easier reordering
+- Added more UI color customization options (including the ability to export / import user preferences)
+- Added a GUI wizard for creating new workflows on the Eventing page
+- Added a new configurable trigger per callback - checkins
+  - You can configure a workflow to kick off if a specific callback hasn't checked in for over X minutes
+- The active callbacks table now shows icons for the above alert configuration and configured socks data
+- Updated the file upload search page to included payloads
+  - this makes it easier to search across all uploaded files for hashes and UUIDs
+- Updated the task's "View All Parameters" button to also show a variety of important timestamps associated with the task
+- Updated the logging level of event notifications related to API usage to the "api" level so they can be filtered out
+- Combined the callback table's reorder and visibility dialogs into one
+- Fixed an issue with the response display that would error out with extra % signs silently and fail to display emoji
+- Callback filters on the active callbacks table now apply to the callbacks graph view as well
+
 ## [0.2.75] - 2024-12-31
 
 ### Changed

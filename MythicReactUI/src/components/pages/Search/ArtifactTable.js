@@ -11,7 +11,6 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import CleanHandsTwoToneIcon from '@mui/icons-material/CleanHandsTwoTone';
 import AddAlertTwoToneIcon from '@mui/icons-material/AddAlertTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {snackActions} from "../../utilities/Snackbar";
 
 const updateNeedsCleanupMutation = gql`
 mutation updateNeedsCleanupStatus($taskartifact_id: Int!, $needs_cleanup: Boolean!){
@@ -69,15 +68,14 @@ export function ArtifactTable(props){
         updateResolved({variables: {taskartifact_id: id, resolved}})
     }
     return (
-        <TableContainer className="mythicElement" style={{}}>
+        <TableContainer className="mythicElement"  style={{height: "100%", overflowY: "auto"}}>
             <Table stickyHeader size="small" style={{}}>
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "4rem"}}>Cleanup</TableCell>
                         <TableCell >Type</TableCell>
                         <TableCell >Command</TableCell>
-                        <TableCell style={{width: "5rem"}}>Task</TableCell>
-                        <TableCell >Callback</TableCell>
+                        <TableCell style={{width: "12rem"}}>Task</TableCell>
                         <TableCell >Operator</TableCell>
                         <TableCell >Host</TableCell>
                         <TableCell >Artifact</TableCell>
@@ -141,16 +139,14 @@ function ArtifactTableRow(props){
                 <MythicStyledTableCell >
                     <Typography variant="body2" >{props.task.command.cmd}</Typography>
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
-                        href={"/new/task/" + props.task.display_id}>
-                            {props.task.display_id}
-                    </Link>
-                </MythicStyledTableCell>
                 <MythicStyledTableCell style={{wordBreak: "break-all"}}>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
-                        href={"/new/callbacks/" + props.task.callback.display_id}>
-                            {props.task.callback.display_id}
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                          href={"/new/callbacks/" + props.task.callback.display_id}>
+                        C-{props.task.callback.display_id}
+                    </Link>{" / "}
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                          href={"/new/task/" + props.task.display_id}>
+                        T-{props.task.display_id}
                     </Link>
                     {props.task?.callback?.mythictree_groups.length > 0 ? (
                         <Typography variant="body2" style={{whiteSpace: "pre"}}>

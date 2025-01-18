@@ -44,47 +44,45 @@ func MythicRPCProxyStart(input MythicRPCProxyStartMessage) MythicRPCProxyStartMe
 		return response
 	}
 	task := databaseStructs.Task{ID: input.TaskID}
-	if err := database.DB.Get(&task, `SELECT id, operation_id, callback_id FROM task WHERE id=$1`, task.ID); err != nil {
+	err := database.DB.Get(&task, `SELECT id, operation_id, callback_id FROM task WHERE id=$1`, task.ID)
+	if err != nil {
 		logging.LogError(err, "Failed to get task from database to start socks")
 		response.Error = err.Error()
 		return response
-	} else {
-		switch input.PortType {
-		case CALLBACK_PORT_TYPE_RPORTFWD:
-		case CALLBACK_PORT_TYPE_SOCKS:
-			fallthrough
-		case CALLBACK_PORT_TYPE_INTERACTIVE:
+	}
+	switch input.PortType {
+	case CALLBACK_PORT_TYPE_RPORTFWD:
+	case CALLBACK_PORT_TYPE_SOCKS:
+		fallthrough
+	case CALLBACK_PORT_TYPE_INTERACTIVE:
+		if input.LocalPort == 0 {
+			input.LocalPort = int(proxyPorts.GetNextAvailableLocalPort())
 			if input.LocalPort == 0 {
-				input.LocalPort = int(proxyPorts.GetNextAvailableLocalPort())
-				if input.LocalPort == 0 {
-					response.Error = "No more ports available through docker, please modify your .env's configuration and restart Mythic"
-					return response
-				}
+				response.Error = "No more ports available through docker, please modify your .env's configuration and restart Mythic"
+				return response
 			}
 		}
-		response.LocalPort = input.LocalPort
-		err := proxyPorts.Add(task.CallbackID,
-			input.PortType,
-			input.LocalPort,
-			input.RemotePort,
-			input.RemoteIP,
-			task.ID,
-			task.OperationID,
-			0,
-			0,
-			0,
-			input.Username,
-			input.Password)
-		if err != nil {
-			logging.LogError(err, "Failed to add new callback port")
-			response.Error = err.Error()
-			return response
-		}
-		response.Success = true
-		return response
-
 	}
-
+	response.LocalPort = input.LocalPort
+	err = proxyPorts.Add(task.CallbackID,
+		input.PortType,
+		input.LocalPort,
+		input.RemotePort,
+		input.RemoteIP,
+		task.ID,
+		task.OperationID,
+		0,
+		0,
+		0,
+		input.Username,
+		input.Password)
+	if err != nil {
+		logging.LogError(err, "Failed to add new callback port")
+		response.Error = err.Error()
+		return response
+	}
+	response.Success = true
+	return response
 }
 func processMythicRPCProxyStart(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCProxyStartMessage{}

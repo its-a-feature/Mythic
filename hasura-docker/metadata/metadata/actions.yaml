@@ -331,6 +331,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: eventingExportWorkflow
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_export_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: eventingTestFile
     definition:
       kind: ""
@@ -460,6 +470,17 @@ actions:
       forward_client_headers: true
     permissions:
       - role: mythic_admin
+  - name: getOperatorPreferences
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_get_preferences_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: getOperatorSecrets
     definition:
       kind: ""
@@ -673,6 +694,13 @@ actions:
       forward_client_headers: true
     permissions:
       - role: mythic_admin
+  - name: updateInviteLink
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_invite_link_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: mythic_admin
   - name: updateOperation
     definition:
       kind: synchronous
@@ -687,6 +715,17 @@ actions:
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_operatoroperation_webhook'
       forward_client_headers: true
     permissions:
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: updateOperatorPreferences
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/operator_update_preferences_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
       - role: operation_admin
       - role: mythic_admin
       - role: developer
@@ -842,4 +881,8 @@ custom_types:
     - name: eventingTriggerRetryFromStepOutput
     - name: testProxyOutput
     - name: eventingTestFileOutput
+    - name: getOperatorPreferencesOutput
+    - name: updateOperatorPreferencesOutput
+    - name: updateInviteLinkOutput
+    - name: eventingExportWorkflowOutput
   scalars: []

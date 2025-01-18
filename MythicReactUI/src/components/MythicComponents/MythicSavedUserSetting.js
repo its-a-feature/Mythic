@@ -1,5 +1,5 @@
 import { useReactiveVar } from '@apollo/client';
-import { mePreferences } from '../../cache';
+import {mePreferences, operatorSettingDefaults} from '../../cache';
 import React from 'react';
 import {useMutation, gql } from '@apollo/client';
 import {snackActions} from "../utilities/Snackbar";
@@ -69,6 +69,10 @@ export function useSetMythicSetting() {
             };
             mePreferences(updatedPreferences);
             updateSetting({variables: {preferences: updatedPreferences}});
+        },
+        () => {
+            mePreferences(operatorSettingDefaults);
+            updateSetting({variables: {preferences: operatorSettingDefaults}});
         }
         ]
 }

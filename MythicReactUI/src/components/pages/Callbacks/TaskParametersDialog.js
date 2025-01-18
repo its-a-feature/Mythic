@@ -124,6 +124,7 @@ query getAllPayloadsQuery($operation_id: Int!){
     filemetum {
         id
         filename_text
+        timestamp
     }
     buildparameterinstances {
       value
@@ -772,11 +773,9 @@ export function TaskParametersDialog(props) {
                             
                         }, []);
                         payloads.sort((a,b) => {
-                            if(a.filemetum.filename_text === b.filemetum.filename_text){
-                                return a.id < b.id ? 1 : -1
-                            }else{
-                                return a.filemetum.filename_text < b.filemetum.filename_text ? 1 : -1
-                            }
+                            let aTimestamp = new Date(a.filemetum.timestamp);
+                            let bTimestamp = new Date(b.filemetum.timestamp);
+                            return aTimestamp < bTimestamp ? 1 : -1;
                         });
                         //now filter the payloads based on supported_agents and supported_agent_build_parameters
                         if(payloads.length > 0){

@@ -75,7 +75,7 @@ export function TokenTable(props){
     }
 
     return (
-        <TableContainer className="mythicElement" >
+        <TableContainer className="mythicElement"  style={{height: "100%", overflowY: "auto"}}>
             <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
@@ -176,14 +176,14 @@ function TokenTableRow(props){
                 <MythicStyledTableCell>
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
                         href={"/new/task/" + props.task.id}>
-                            {props.task.id}
+                            T-{props.task.id}
                     </Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.callbacktokens?.map( (cbt) => (
                     <React.Fragment key={"callbacktoken-" + props.id + "-" + cbt.id}>
                         <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" key={"callbacklink" + cbt.callback_id + "row" + props.id}
                             href={"/new/callbacks/" + cbt.callback_id}>
-                                {cbt.callback_id}
+                                C-{cbt.callback_id}
                         </Link>
                         {" "}
                     </React.Fragment>

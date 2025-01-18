@@ -128,12 +128,12 @@ const fetchLimit = 20;
 const filenameFileMetaUploadSearch = gql`
 ${fileMetaFragment}
 query filenameFileMetaUploadQuery($operation_id: Int!, $filename: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true}, _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true}, _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  _and: [{_or: [{filename_utf8: {_ilike: $filename}}, {full_remote_path_utf8: {_ilike: $filename}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
 }
@@ -193,12 +193,12 @@ query filenameFileMetaEventingWorkflowQuery($filename: String!, $offset: Int!, $
 const hashFileMetaUploadSearch = gql`
 ${fileMetaFragment}
 query hashFileMetaUploadQuery($operation_id: Int!, $hash: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}, {_or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  _and: [{_or: [{md5: {_ilike: $hash}}, {sha1: {_ilike: $hash}}]}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
   }
@@ -346,12 +346,12 @@ query tagFileMetaScreenshotQuery($tag: String!, $host: String!, $offset: Int!, $
 const uuidFileMetaUploadSearch = gql`
 ${fileMetaFragment}
 query uuidFileMetaUploadQuery($operation_id: Int!, $agent_file_id: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
-    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  agent_file_id: {_ilike: $agent_file_id}, _or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+    filemeta_aggregate(distinct_on: id, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  agent_file_id: {_ilike: $agent_file_id}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       aggregate {
         count
       }
     }
-    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  agent_file_id: {_ilike: $agent_file_id}, _or: [{task_id: {_is_null: false}}, {is_payload: {_eq: false}}], operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
+    filemeta(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  agent_file_id: {_ilike: $agent_file_id}, operation_id: {_eq: $operation_id}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}) {
       ...filemetaData
     }
 }
@@ -674,7 +674,8 @@ export const SearchTabFilesPanel = (props) => {
         snackActions.dismiss();
         if (searchField === "Tag") {
             setTotalCount(data?.tag_aggregate?.aggregate?.count || 0);
-            setFileMetaUploadData(data?.tag?.map(t => t.filemetum) || []);
+            const tagData = data?.tag?.map(t => t.filemetum) || [];
+            setFileMetaUploadData( tagData);
         } else {
             setFileMetaUploadData(data.filemeta);
             setTotalCount(data.filemeta_aggregate.aggregate.count);

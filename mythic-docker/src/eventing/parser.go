@@ -19,6 +19,8 @@ var (
 	ActionConditionalCheck  = "conditional_check"
 	ActionInterceptTask     = "task_intercept"
 	ActionInterceptResponse = "response_intercept"
+	ActionCreateAlert       = "alert_create"
+	ActionSendWebhook       = "webhook_send"
 )
 
 // valid actions to do when starting a new step
@@ -30,6 +32,8 @@ var ValidActions = []string{
 	ActionConditionalCheck,
 	ActionInterceptTask,
 	ActionInterceptResponse,
+	ActionCreateAlert,
+	ActionSendWebhook,
 }
 var (
 	TriggerManual                    = "manual"
@@ -57,6 +61,7 @@ var (
 	TriggerTaskInterceptResponse     = "task_intercept_response"
 	TriggerResponseIntercept         = "response_intercept"
 	TriggerResponseInterceptResponse = "response_intercept_response"
+	TriggerCallbackCheckin           = "callback_checkin"
 )
 
 // when to trigger a new workflow
@@ -78,6 +83,7 @@ var ValidTriggers = []string{
 	TriggerCallbackNew,
 	TriggerTaskIntercept,
 	TriggerResponseIntercept,
+	TriggerCallbackCheckin,
 }
 var (
 	RunAsEventGroupCreator = "self"
@@ -147,9 +153,12 @@ func Ingest(fileContents []byte) (databaseStructs.EventGroup, error) {
 	}
 	return databaseEventGroup, nil
 }
-func EnsureTrigger(eventGroup *databaseStructs.EventGroup) error {
+func EnsureTrigger(eventGroup *databaseStructs.EventGroup, alsoCheckSteps bool) error {
 	if !slices.Contains(ValidTriggers, eventGroup.Trigger) {
 		return errors.New(fmt.Sprintf("Invalid trigger: %s", eventGroup.Trigger))
+	}
+	if !alsoCheckSteps {
+		return nil
 	}
 	if eventGroup.Trigger == TriggerTaskIntercept {
 		foundTaskInterceptAction := false
@@ -245,6 +254,8 @@ func EnsureActionDataForAction(eventGroup *databaseStructs.EventGroup) error {
 		case ActionConditionalCheck:
 		case ActionCustomFunction:
 		case ActionCreateCallback:
+		case ActionCreateAlert:
+		case ActionSendWebhook:
 		}
 	}
 	if len(eventGroup.Steps) == 0 {

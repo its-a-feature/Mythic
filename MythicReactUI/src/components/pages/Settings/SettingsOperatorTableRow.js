@@ -248,7 +248,7 @@ export function SettingsOperatorTableRow(props){
                     }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton size="large"
+                    <IconButton size="medium"
                             disabled={!(isMe || props.userIsAdmin)}
                            onClick={()=>{setOpenUpdateDialog(true);}}
                            color="error" ><PasswordIcon /></IconButton>
@@ -275,7 +275,7 @@ export function SettingsOperatorTableRow(props){
                 <MythicStyledTableCell>
                   {((props.id === me.user.id) || (props.userIsAdmin && props.account_type === "bot")) &&
                       <>
-                        <IconButton style={{display: "inline-block"}} size="large"
+                        <IconButton style={{display: "inline-block"}} size="medium"
                                     disabled={props.account_type === "bot"}
                                     onClick={()=>{setOpenUIConfig(true);}}
                                     color="info" variant='contained'>
@@ -287,7 +287,7 @@ export function SettingsOperatorTableRow(props){
                           />
                         }
                           <MythicStyledTooltip title={"Secrets"} >
-                              <IconButton size="large" onClick={()=>{setOpenSecretsConfig(true);}}
+                              <IconButton size="medium" onClick={()=>{setOpenSecretsConfig(true);}}
                                           color="error" variant='contained'>
                                   <VpnKeyIcon />
                               </IconButton>
@@ -298,7 +298,7 @@ export function SettingsOperatorTableRow(props){
                               />
                           }
                         <MythicStyledTooltip title={"Experimental UI Settings"} >
-                            <IconButton size="large" onClick={()=>{setOpenExperimentalUIConfig(true);}}
+                            <IconButton size="medium" onClick={()=>{setOpenExperimentalUIConfig(true);}}
                                         color="warning" variant='contained'
                                         disabled={props.account_type === "bot"}
                             >

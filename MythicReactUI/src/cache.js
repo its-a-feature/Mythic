@@ -7,7 +7,6 @@ export const menuOpen = makeVar(false);
 export const operatorSettingDefaults =  {
     fontSize: 12,
     fontFamily: "Verdana",
-    topColor: "#3c4d67",
     showMedia: true,
     hideUsernames: false,
     showIP: false,
@@ -19,7 +18,80 @@ export const operatorSettingDefaults =  {
     callbacks_table_filters: {},
     autoTaskLsOnEmptyDirectories: false,
     ["experiment-responseStreamLimit"]: 50,
-
+    palette: {
+        primary: {
+            dark: "#465b73",
+            light: "#75859b",
+        },
+        error: {
+            dark: '#da3237',
+            light: '#c42c32'
+        },
+        success: {
+            dark: '#44b636',
+            light: '#0e7004',
+        },
+        secondary: {
+            dark: '#bebebe',
+            light: '#a6a5a5'
+        },
+        info: {
+            dark: '#2574b4',
+            light: '#4990b2'
+        },
+        warning: {
+            dark: "#f57c00",
+            light: "#ffb74d",
+        },
+        background: {
+            dark: '#303030',
+            light: '#f6f6f6'
+        },
+        paper: {
+            dark: '#616161',
+            light: '#ececec'
+        },
+        tableHeader: {
+            dark: '#484848',
+            light: '#c4c4c4'
+        },
+        tableHover: {
+            dark: "#3c3c3c",
+            light: "#e8e8e8",
+        },
+        pageHeader: {
+            dark: '#706c6e',
+            light: '#706c6e'
+        },
+        text: {
+            dark: "#ffffff",
+            light: "#000000",
+        },
+        selectedCallbackColor: {
+            dark: '#26456e',
+            light: '#c6e5f6',
+        },
+        selectedCallbackHierarchyColor: {
+            dark: '#273e5d',
+            light: '#deeff8',
+        },
+        backgroundImage: {
+            dark: null,
+            light: null
+        },
+        navBarIcons: {
+            dark: '#ffffff',
+            light: '#ffffff'
+        },
+        navBarText: {
+            dark: '#ffffff',
+            light: '#ffffff'
+        },
+        navBarColor: {
+            dark: "#3c4d67",
+            light: "#3c4d67",
+        }
+    },
 }
 export const mePreferences = makeVar(operatorSettingDefaults);
 

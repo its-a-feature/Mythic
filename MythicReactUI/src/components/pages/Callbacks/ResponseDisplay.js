@@ -15,7 +15,6 @@ import Pagination from '@mui/material/Pagination';
 import {ResponseDisplayInteractive} from "./ResponseDisplayInteractive";
 import {ResponseDisplayMedia} from "./ResponseDisplayMedia";
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
-import {DrawBrowserScriptElementsFlow} from "./C2PathDialog";
 import {ResponseDisplayGraph} from "./ResponseDisplayGraph";
 
 const subResponsesStream = gql`
@@ -78,7 +77,7 @@ export function b64DecodeUnicode(str) {
         bytes[i] = text.charCodeAt(i);
     }
     const decoder = new TextDecoder(); // default is utf-8
-    return decodeURIComponent(decoder.decode(bytes));
+    return decoder.decode(bytes);
   }catch(error){
     try{
       return decodeURIComponent(window.atob(str));

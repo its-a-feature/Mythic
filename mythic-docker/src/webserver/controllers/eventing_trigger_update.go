@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -15,16 +16,25 @@ type EventingTriggerUpdateInput struct {
 }
 
 type EventingTriggerUpdateMessage struct {
-	EventGroupID int   `json:"eventgroup_id" binding:"required"`
-	Deleted      *bool `json:"deleted,omitempty"`
-	Active       *bool `json:"active,omitempty"`
+	EventGroupID  int     `json:"eventgroup_id" binding:"required"`
+	Deleted       *bool   `json:"deleted,omitempty"`
+	Active        *bool   `json:"active,omitempty"`
+	UpdatedConfig *string `json:"updated_config,omitempty"`
 }
 
 type EventingTriggerUpdateMessageResponse struct {
-	Status  string `json:"status"`
-	Error   string `json:"error"`
-	Active  bool   `json:"active"`
-	Deleted bool   `json:"deleted"`
+	Status      string                 `json:"status"`
+	Error       string                 `json:"error"`
+	Active      bool                   `json:"active"`
+	Deleted     bool                   `json:"deleted"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Author      string                 `json:"author"`
+	Trigger     string                 `json:"trigger"`
+	TriggerData map[string]interface{} `json:"trigger_data"`
+	Keywords    []string               `json:"keywords"`
+	Env         map[string]interface{} `json:"env"`
+	RunAs       string                 `json:"run_as"`
 }
 
 func EventingTriggerUpdateWebhook(c *gin.Context) {
@@ -51,7 +61,7 @@ func EventingTriggerUpdateWebhook(c *gin.Context) {
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	eventGroup := databaseStructs.EventGroup{}
-	err = database.DB.Get(&eventGroup, `SELECT active, deleted, trigger, id, trigger_data, operator_id 
+	err = database.DB.Get(&eventGroup, `SELECT * 
 		FROM eventgroup 
 		WHERE operation_id=$1 AND id=$2`,
 		operatorOperation.CurrentOperation.ID, input.Input.EventGroupID)
@@ -81,7 +91,39 @@ func EventingTriggerUpdateWebhook(c *gin.Context) {
 		}
 		eventGroup.Deleted = *input.Input.Deleted
 	}
-	_, err = database.DB.NamedExec(`UPDATE eventgroup SET active=:active, deleted=:deleted WHERE id=:id`,
+	if input.Input.UpdatedConfig != nil && len(*input.Input.UpdatedConfig) > 0 {
+		newEventData, err := eventing.Ingest([]byte(*input.Input.UpdatedConfig))
+		if err != nil {
+			logging.LogError(err, "failed to parse event group data")
+			c.JSON(http.StatusOK, EventingTriggerCancelMessageResponse{
+				Status: "error",
+				Error:  err.Error(),
+			})
+			return
+		}
+		eventGroup.Name = newEventData.Name
+		eventGroup.Description = newEventData.Description
+		eventGroup.Trigger = newEventData.Trigger
+		err = eventing.EnsureTrigger(&eventGroup, false)
+		if err != nil {
+			logging.LogError(err, "bad trigger for updated eventing")
+			c.JSON(http.StatusOK, EventingTriggerCancelMessageResponse{
+				Status: "error",
+				Error:  fmt.Sprintf("%s is not a valid trigger", eventGroup.Trigger),
+			})
+			return
+		}
+		eventGroup.TriggerData = newEventData.TriggerData
+		eventGroup.Keywords = newEventData.Keywords
+		eventGroup.Environment = newEventData.Environment
+		// for now don't update RunAs changes
+		//eventGroup.RunAs = newEventData.RunAs
+	}
+
+	_, err = database.DB.NamedExec(`UPDATE eventgroup SET 
+                      active=:active, deleted=:deleted, name=:name, description=:description,
+                      trigger=:trigger, trigger_data=:trigger_data, keywords=:keywords,
+                      environment=:environment, run_as=:run_as WHERE id=:id`,
 		eventGroup)
 	if err != nil {
 		logging.LogError(err, "failed to update eventgroup")

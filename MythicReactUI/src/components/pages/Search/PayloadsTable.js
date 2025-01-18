@@ -91,7 +91,7 @@ export function SearchPayloadsTable({payloads, setPayloads, showDeleted, me}){
     }
     return (
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
-                <TableContainer >
+                <TableContainer style={{height: "100%", overflowY: "auto"}}>
                     <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll", tableLayout: "fixed"}}>
                         <TableHead>
                             <TableRow>

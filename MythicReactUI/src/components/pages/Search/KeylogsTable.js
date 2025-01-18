@@ -17,7 +17,7 @@ import {useReactiveVar} from '@apollo/client';
 import {IconButton, Typography} from '@mui/material';
 import { toLocalTime } from '../../utilities/Time';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
-import {b64DecodeUnicode} from "../../utilities/base64";
+import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {MythicTextEditDialog} from "../../MythicComponents/MythicTextEditDialog";
@@ -118,13 +118,12 @@ export function KeylogsTable(props){
     }
     return (
         
-        <TableContainer className="mythicElement" >
+        <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
             <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "8rem"}}>Callback</TableCell>
-                        <TableCell style={{width: "4rem"}}>Task</TableCell>
-                        <TableCell style={{width: "12rem"}}>Timestamp</TableCell>
+                        <TableCell style={{width: "12rem"}}>Task Info</TableCell>
+                        <TableCell style={{width: "15rem"}}>Timestamp</TableCell>
                         <TableCell >User / Host</TableCell>
                         <TableCell >Window</TableCell>
                         <TableCell></TableCell>
@@ -173,15 +172,15 @@ function KeylogTableRow(props){
         <React.Fragment>
             <TableRow hover>
                 <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link>
+                    {" / "}
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link>
+
                     {props.task?.callback?.mythictree_groups.length > 0 ? (
                         <Typography variant="body2" style={{wordBreak: "break-all"}}>
                             <b>Groups: </b>{props?.task?.callback.mythictree_groups.join(", ")}
                         </Typography>
                     ) : null}
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}</Typography>

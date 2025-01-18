@@ -668,17 +668,17 @@ func (p *callbackPortUsage) Start() error {
 			if utils.MythicConfig.ServerDockerNetworking == "host" && utils.MythicConfig.ServerDynamicPortsBindLocalhostOnly {
 				addr = fmt.Sprintf("127.0.0.1:%d", p.LocalPort)
 			}
-			if l, err := net.Listen("tcp", addr); err != nil {
+			l, err := net.Listen("tcp", addr)
+			if err != nil {
 				logging.LogError(err, "Failed to start listening on new port")
 				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 				return err
-			} else {
-				p.listener = &l
-				go p.handleSocksConnections()
-				go p.manageConnections()
-				go SendAllOperationsMessage(fmt.Sprintf("Opened port %d for %s", p.LocalPort, p.PortType),
-					p.OperationID, "", database.MESSAGE_LEVEL_INFO)
 			}
+			p.listener = &l
+			go p.handleSocksConnections()
+			go p.manageConnections()
+			go SendAllOperationsMessage(fmt.Sprintf("Opened port %d for %s", p.LocalPort, p.PortType),
+				p.OperationID, "", database.MESSAGE_LEVEL_INFO)
 		} else {
 			err := errors.New(fmt.Sprintf("Failed to start listening on port %d, it's not exposed through docker", p.LocalPort))
 			logging.LogError(err, "Can't start listening")
@@ -694,17 +694,18 @@ func (p *callbackPortUsage) Start() error {
 			if utils.MythicConfig.ServerDockerNetworking == "host" && utils.MythicConfig.ServerDynamicPortsBindLocalhostOnly {
 				addr = fmt.Sprintf("127.0.0.1:%d", p.LocalPort)
 			}
-			if l, err := net.Listen("tcp", addr); err != nil {
+			l, err := net.Listen("tcp", addr)
+			if err != nil {
 				logging.LogError(err, "Failed to start listening on new port")
 				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
 				return err
-			} else {
-				p.listener = &l
-				go p.handleInteractiveConnections()
-				go p.manageConnections()
-				go SendAllOperationsMessage(fmt.Sprintf("Opened port %d for %s", p.LocalPort, "interactive tasking"),
-					p.OperationID, "", database.MESSAGE_LEVEL_INFO)
 			}
+			p.listener = &l
+			go p.handleInteractiveConnections()
+			go p.manageConnections()
+			go SendAllOperationsMessage(fmt.Sprintf("Opened port %d for %s", p.LocalPort, "interactive tasking"),
+				p.OperationID, "", database.MESSAGE_LEVEL_INFO)
+
 		} else {
 			err := errors.New(fmt.Sprintf("Failed to start listening on port %d, it's not exposed through docker", p.LocalPort))
 			logging.LogError(err, "Can't start listening")

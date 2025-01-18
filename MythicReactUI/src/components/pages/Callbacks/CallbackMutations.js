@@ -16,6 +16,14 @@ mutation hideCallback ($callback_display_id: Int!){
   }
 }
 `;
+export const updateCallbackTriggerMutation = gql`
+mutation updateCallbackTriggerMutation ($callback_display_id: Int!, $trigger_on_checkin_after_time: Int!){
+  updateCallback(input: {callback_display_id: $callback_display_id, trigger_on_checkin_after_time: $trigger_on_checkin_after_time}) {
+    status
+    error
+  }
+}
+`;
 export const toggleHideCallbackMutations = gql`
 mutation hideCallback ($callback_display_id: Int!, $active: Boolean!){
   updateCallback(input: {callback_display_id: $callback_display_id, active: $active}) {

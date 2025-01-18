@@ -64,7 +64,7 @@ export const TaskDisplayInteractiveSearch = ({me, task}) => {
                                       expanded={dropdownOpen}
                     />
                 </StyledAccordionSummary>
-                    <span style={{backgroundColor: theme.palette.textBackgroundColor, position: "relative",
+                    <span style={{backgroundColor: theme.tableHeader, position: "relative",
                         width: "100%", left: "25%"}}>
                         Output is an approximation in time surrounding when the task was issued. Full task:
                         <MythicStyledTooltip title={"View Parent Task in separate page"} >

@@ -10,6 +10,7 @@ type EventGroup struct {
 	OperatorID       int             `db:"operator_id" json:"operator_id" toml:"operator_id" yaml:"operator_id"`
 	OperationID      int             `db:"operation_id" json:"operation_id" toml:"operation_id" yaml:"operation_id"`
 	FileMetaID       int             `db:"filemeta_id" json:"filemeta_id" toml:"filemeta_id" yaml:"filemeta_id"`
+	Filemeta         Filemeta        `db:"filemeta" json:"-" toml:"-" yaml:"-"`
 	Name             string          `db:"name" json:"name" toml:"name" yaml:"name"`
 	Description      string          `db:"description" json:"description" toml:"description" yaml:"description"`
 	Trigger          string          `db:"trigger" json:"trigger" toml:"trigger" yaml:"trigger"`

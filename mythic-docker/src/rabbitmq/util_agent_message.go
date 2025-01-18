@@ -7,6 +7,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/mitchellh/mapstructure"
 	"strings"
 	"sync"
@@ -74,7 +75,8 @@ type cachedUUIDInfo struct {
 	CallbackDisplayID            int `json:"callback_display_id" db:"display_id"`
 	OperationID                  int `json:"operation_id" db:"operation_id"`
 	// Active - tracking if the callback is active or not in a cached way
-	Active bool
+	Active                    bool
+	TriggerOnCheckinAfterTime int `json:"trigger_on_checkin_after_time"`
 	// EdgeId - tracking the edge id for this callback to make sure it's updated as needed
 	EdgeId int
 }
@@ -204,6 +206,17 @@ func MarkCallbackInfoInactive(callbackID int) {
 		if cachedUUIDInfoMap[k].CallbackID == callbackID {
 			cachedUUIDInfoMap[k].Active = false
 			cachedUUIDInfoMap[k].EdgeId = 0
+			return
+		}
+	}
+}
+func UpdateCallbackInfoTriggerOnCheckin(callbackID int, triggerOnCheckinAfterTime int) {
+	cachedUUIDInfoMapMutex.Lock()
+	defer cachedUUIDInfoMapMutex.Unlock()
+	for k, _ := range cachedUUIDInfoMap {
+		if cachedUUIDInfoMap[k].CallbackID == callbackID {
+			cachedUUIDInfoMap[k].TriggerOnCheckinAfterTime = triggerOnCheckinAfterTime
+			return
 		}
 	}
 }
@@ -691,7 +704,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 	payload := databaseStructs.Payload{}
 	stager := databaseStructs.Staginginfo{}
 	if err := database.DB.Get(&callback, `SELECT
-		callback.id, callback.enc_key, callback.dec_key, callback.crypto_type, callback.operation_id, callback.last_checkin, callback.display_id,
+		callback.id, callback.enc_key, callback.dec_key, callback.crypto_type, callback.operation_id, callback.last_checkin, callback.display_id, callback.trigger_on_checkin_after_time, 
 		payload.id "payload.id", 
 		payloadtype.id "payload.payloadtype.id", 
 		payloadtype.name "payload.payloadtype.name", 
@@ -722,6 +735,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		newCache.CallbackDisplayID = callback.DisplayID
 		newCache.LastCheckinTime = callback.LastCheckin
 		newCache.OperationID = callback.OperationID
+		newCache.TriggerOnCheckinAfterTime = callback.TriggerOnCheckinAfterTime
 	} else if err = database.DB.Get(&payload, `SELECT
 		payload.id, payload.operation_id,
 		payload.deleted, payload.description, payload.uuid,
@@ -755,6 +769,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		newCache.CallbackDisplayID = 0
 		newCache.LastCheckinTime = time.Now().UTC()
 		newCache.OperationID = payload.OperationID
+		newCache.TriggerOnCheckinAfterTime = 0
 		// we also need to get the crypto keys from the c2 profile for this payload
 		foundCryptoParam := false
 		cryptoParam := databaseStructs.C2profileparametersinstance{}
@@ -828,6 +843,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		}
 		newCache.CallbackID = 0
 		newCache.CallbackDisplayID = 0
+		newCache.TriggerOnCheckinAfterTime = 0
 		newCache.LastCheckinTime = time.Now().UTC()
 		newCache.OperationID = stager.Payload.OperationID
 	} else {
@@ -1127,6 +1143,7 @@ func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 	callback := databaseStructs.Callback{
 		AgentCallbackID: uuidInfo.UUID,
 		ID:              uuidInfo.CallbackID,
+		OperationID:     uuidInfo.OperationID,
 		LastCheckin:     time.Now().UTC(),
 	}
 	// only bother updating the last checkin time if it's been more than one second
@@ -1173,6 +1190,23 @@ func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 					}
 				}
 
+			}
+			if uuidInfo.TriggerOnCheckinAfterTime > 0 {
+				checkinDifference := int(callback.LastCheckin.Sub(uuidInfo.LastCheckinTime).Minutes())
+				if checkinDifference >= uuidInfo.TriggerOnCheckinAfterTime {
+					// we want to trigger a workflow that the callback is checking in again after sleeping for > some time
+					go func(triggerData databaseStructs.Callback, oldCheckin time.Time, difference int) {
+						EventingChannel <- EventNotification{
+							Trigger:     eventing.TriggerCallbackCheckin,
+							OperationID: triggerData.OperationID,
+							CallbackID:  triggerData.ID,
+							Outputs: map[string]interface{}{
+								"previous_checkin":   oldCheckin,
+								"checkin_difference": difference,
+							},
+						}
+					}(callback, uuidInfo.LastCheckinTime, checkinDifference)
+				}
 			}
 		}
 		uuidInfo.LastCheckinTime = callback.LastCheckin

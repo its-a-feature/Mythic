@@ -322,7 +322,7 @@ function DetailedPayloadInnerTable(props){
     }
     return (
       <React.Fragment>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", }} variant={"elevation"}>
               <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
                   Payload Information
               </Typography>
@@ -596,7 +596,7 @@ function DetailedPayloadInnerTable(props){
                   }
               {data.payload[0].wrapped_payload_id !== null &&
                 <React.Fragment>
-                  <Paper elevation={5} style={{backgroundColor: theme.pageHeaderSecondary.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+                  <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                       <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
                           Wrapped Payload Information
                       </Typography>

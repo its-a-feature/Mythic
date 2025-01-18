@@ -30,19 +30,11 @@ html, body, #root {
     background: transparent;
 }
 .MuiTableCell-head {
-
+    background-color: ${(props) => props.theme.tableHeader} !important;
     font-weight: bold;
 }
 .MuiSelect-select.MuiSelect-select{
     padding-left: 10px
-}
-.ReactVirtualized__Table__row {
-    &:hover,
-    &--hovered {
-        background-color: ${(props) => props.theme.tableHover} !important;
-        color: ${(props) => props.theme.palette.text.primary} !important;
-        
-    }
 }
 .MuiListItem-root {
     &:hover,
@@ -61,13 +53,6 @@ tspan {
   stroke: none;
 }
 
-.ReactVirtualized__Table__headerTruncatedText {
-
-  }
-.ReactVirtualized__Table__headerColumn {
-
-    padding: 0;
-  }
 .MuiTab-root {
     min-height: unset;
     max-width: unset;
@@ -273,6 +258,8 @@ tspan {
 .MuiPaper-root {
     border: 1px solid grey;
     border-radius: 5px;
+    background-color: ${(props) => props.theme.palette.background.paper};
+    background-image: unset;
 }
 .no-box-shadow {
     box-shadow: unset;
@@ -283,13 +270,13 @@ tspan {
     line-height: 30px;
 }
 .MuiList-root {
-    background-color: ${(props) => props.theme.palette.background.default};
+    background-color: ${(props) => props.theme.palette.background.paper};
     border: 1px solid grey;
     border-radius: 3px;
     line-height: 30px;
 }
 .dropdownMenuColored {
-    background-color: ${(props) => props.theme.palette.background.default};
+    background-color: ${(props) => props.theme.palette.background.paper} !important;
     border: 1px solid grey;
     border-radius: 5px;
     //color: white;
@@ -316,14 +303,38 @@ tspan {
 .selectedCallbackHierarchy {
     background-color: ${(props) => props.theme.selectedCallbackHierarchyColor};
 }
-.MuiTabs-root {
-    min-height: unset;
-}
+
 .MuiDataGrid-row.Mui-selected {
     background-color: ${(props) => props.theme.selectedCallbackColor} !important;
 }
 .roundedBottomCorners {
     border-bottom-left-radius: 4px;
     border-bottom-right-radius: 4px;
+}
+.MuiInputLabel-root {
+    color:  ${(props) => props.theme.palette.secondary.main} !important;
+}
+.MuiOutlinedInput-notchedOutline {
+    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+}
+.MuiTableCell-root {
+    padding: 0 16px 0 16px;
+}
+.MuiTabs-root {
+    min-height: 30px;
+}
+.MuiTab-root {
+    min-width: unset !important;
+    max-width: unset;
+    white-space: unset !important;
+}
+.MuiTabs-scrollButtons {
+    width: unset;
+}
+.MuiTabs-flexContainer {
+    flex-wrap: wrap;
+}
+.MuiTabs-scrollButtons.Mui-disabled {
+  opacity: 0.3;
 }
 `

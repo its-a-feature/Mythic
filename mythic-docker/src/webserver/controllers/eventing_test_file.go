@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
@@ -13,10 +14,13 @@ type EventingTestFileWebhookInput struct {
 
 type EventingTestFileInput struct {
 	FileContents string `json:"file_contents" binding:"required"`
+	FormatOutput string `json:"output_format"`
 }
 type EventingTestFileWebhookResponse struct {
-	Status string `json:"status"`
-	Error  string `json:"error"`
+	Status          string                 `json:"status"`
+	Error           string                 `json:"error"`
+	ParsedWorkflow  map[string]interface{} `json:"parsed_workflow"`
+	FormattedOutput string                 `json:"formatted_output"`
 }
 
 func EventingTestFileWebhook(c *gin.Context) {
@@ -49,7 +53,7 @@ func EventingTestFileWebhook(c *gin.Context) {
 		})
 		return
 	}
-	err = eventing.EnsureTrigger(&eventData)
+	err = eventing.EnsureTrigger(&eventData, true)
 	if err != nil {
 		logging.LogError(err, "Failed to ensure triggers are correct")
 		c.JSON(http.StatusOK, EventingTestFileWebhookResponse{
@@ -67,8 +71,40 @@ func EventingTestFileWebhook(c *gin.Context) {
 		})
 		return
 	}
-
+	workflowBytes, err := json.Marshal(eventData)
+	if err != nil {
+		logging.LogError(err, "Failed to marshal workflow to json")
+		c.JSON(http.StatusOK, EventingTestFileWebhookResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+	workflowMap := map[string]interface{}{}
+	err = json.Unmarshal(workflowBytes, &workflowMap)
+	if err != nil {
+		logging.LogError(err, "Failed to unmarshal workflow to map")
+		c.JSON(http.StatusOK, EventingTestFileWebhookResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+	formattedOutput := input.Input.FileContents
+	if input.Input.FormatOutput != "" {
+		formattedOutput, err = getFormattedEventingFile(&eventData, true, input.Input.FormatOutput)
+		if err != nil {
+			logging.LogError(err, "Failed to unmarshal workflow to requested format")
+			c.JSON(http.StatusOK, EventingTestFileWebhookResponse{
+				Status: "error",
+				Error:  err.Error(),
+			})
+			return
+		}
+	}
 	c.JSON(http.StatusOK, EventingTestFileWebhookResponse{
-		Status: "success",
+		Status:          "success",
+		ParsedWorkflow:  workflowMap,
+		FormattedOutput: formattedOutput,
 	})
 }

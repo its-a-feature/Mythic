@@ -371,9 +371,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 return (
                     <React.Fragment>
                         <div style={{width: "100%", display: "flex", alignItems: "center"}}>
-                            <FormControl style={{}}>
+                            <FormControl style={{width: "20%"}}>
                                 <Select
-                                    native
                                     multiple={false}
                                     disabled={chooseOneCustomValue !== ""}
                                     value={value}
@@ -382,7 +381,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                 >
                                     {
                                         chooseOptions.map((opt, i) => (
-                                            <option key={name + i} value={opt}>{opt}</option>
+                                            <MenuItem key={name + i} value={opt}>{opt}</MenuItem>
                                         ))
                                     }
                                 </Select>
@@ -530,9 +529,10 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             case "Boolean":
                 return (
                       <Switch
+                          color={"info"}
                         checked={Boolean(value)}
                         onChange={toggleSwitchValue}
-                        inputProps={{ 'aria-label': 'primary checkbox' }}
+                        inputProps={{ 'aria-label': 'info checkbox' }}
                       />
                 );
            default:
@@ -545,6 +545,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 return (new Date(dateValue)).toISOString().slice(0,10) !== initialValue;
             case "ChooseOne":
                 return value !== initialValue;
+            case "ChooseOneCustom":
+                return value !== initialValue || chooseOneCustomValue !== "";
             case "ChooseMultiple":
                 return initialValue === undefined ? false : multiValue.toString() !== initialValue.toString();
             case "Array":

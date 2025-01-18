@@ -85,7 +85,7 @@ func TokenValid(c *gin.Context) error {
 					int(token.Operator.CurrentOperationID.Int64), "apitoken usage",
 					database.MESSAGE_LEVEL_WARNING)
 			}(databaseApiToken)
-			return err
+			return errors.New("Deactivated APIToken attempted to be used")
 		}
 		if databaseApiToken.Deleted {
 			go func(token databaseStructs.Apitokens) {
@@ -94,7 +94,7 @@ func TokenValid(c *gin.Context) error {
 					int(token.Operator.CurrentOperationID.Int64), token.Name+fmt.Sprintf("%d", token.ID)+token.Operator.Username,
 					database.MESSAGE_LEVEL_WARNING)
 			}(databaseApiToken)
-			return err
+			return errors.New("Deleted APIToken attempted to be used")
 		}
 		source := c.GetHeader("MythicSource")
 		if source == "web" {

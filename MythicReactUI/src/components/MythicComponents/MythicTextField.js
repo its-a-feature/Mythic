@@ -46,6 +46,7 @@ class MythicTextField extends React.Component {
         marginBottom: PropTypes.string,
         value: PropTypes.any,
         disabled: PropTypes.bool,
+        marginTop: PropTypes.string,
     }
     onChange = evt => {
         const name = this.props.name;
@@ -98,7 +99,8 @@ class MythicTextField extends React.Component {
                     helperText={this.checkError() ? this.props.errorText : this.props.helperText}
                     style={{
                         padding:0,
-                        marginBottom: this.props.marginBottom ? this.props.marginBottom : "10px",
+                        marginBottom: this.props.marginBottom ? this.props.marginBottom : "5px",
+                        marginTop: this.props.marginTop ? this.props.marginTop: "0px",
                         display: this.props.inline ? "inline-block": "",
                     }}
                     classes={{

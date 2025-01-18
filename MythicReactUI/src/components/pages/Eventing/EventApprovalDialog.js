@@ -67,9 +67,9 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell>Operator</TableCell>
-                            <TableCell>Approval Status</TableCell>
-                            <TableCell>Last Updated</TableCell>
+                            <TableCell style={{}}>Operator</TableCell>
+                            <TableCell style={{width: "20rem"}}>Approval Status</TableCell>
+                            <TableCell style={{width: "15rem"}}>Last Updated</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -91,10 +91,10 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
 
                                     ) : e.created_at === e.updated_at ? (
                                         <>
-                                            <Button disabled={e.operator.id !== me?.user?.id} style={{marginRight: "10px"}}
+                                            <Button disabled={e.operator.id !== me?.user?.id} style={{marginRight: "20px"}}
                                                     variant={"contained"} color={"success"}
                                                     onClick={() => onApprovalClick({id: e.id, approved: true})}>
-                                                <CheckCircleTwoToneIcon style={{marginRight: "5px"}} /> Approve
+                                                <CheckCircleTwoToneIcon style={{marginRight: "5px"}} /> {"Approve "}
                                             </Button>
                                             <Button disabled={e.operator.id !== me?.user?.id} variant={"contained"}
                                                     color={"warning"}
@@ -104,7 +104,7 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
                                         </>
                                     ) : (
                                         <>
-                                            <Button style={{marginRight: "10px"}} variant={"contained"} color={"success"}
+                                            <Button style={{marginRight: "20px"}} variant={"contained"} color={"success"}
                                                     disabled={e.operator.id !== me?.user?.id}
                                                     onClick={() => onApprovalClick({id: e.id, approved: true})}>
                                                 <CheckCircleTwoToneIcon style={{marginRight: "5px"}} /> Approve

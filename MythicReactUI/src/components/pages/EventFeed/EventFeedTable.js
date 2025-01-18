@@ -31,7 +31,7 @@ export function EventFeedTable(props){
     const [search, setSearch] = React.useState("");
     const [level, setLevel] = React.useState("All Levels");
     const levelOptions = [
-        "All Levels", "warning (unresolved)", "warning (resolved)", "info", "debug"
+        "All Levels", "warning (unresolved)", "warning (resolved)", "info", "debug", "api"
     ];
 
     const handleSearchValueChange = (name, value, error) => {
@@ -47,9 +47,9 @@ export function EventFeedTable(props){
     return (
         <div style={{display: "flex", flexDirection: "column", height: "100%", maxWidth: "100%", overflowX: "hidden"}}>
             <Paper elevation={5} style={{backgroundColor: theme.body, marginBottom: "5px", marginRight: "5px"}}>
-                <Grid container spacing={1} style={{ marginTop: "1px"}}>
-                    <Grid item xs={10}>
-                        <MythicTextField placeholder="Search..." value={search}
+                <Grid container spacing={1} style={{ marginTop: "0px"}}>
+                    <Grid item xs={10} style={{paddingTop: 0}}>
+                        <MythicTextField placeholder="Search..." value={search} marginBottom={"0px"}
                                          onChange={handleSearchValueChange} onEnter={submitSearch} InputProps={{
                             endAdornment:
                                 <React.Fragment>
@@ -66,7 +66,7 @@ export function EventFeedTable(props){
                             style: {padding: 0}
                         }}/>
                     </Grid>
-                    <Grid item xs={2}>
+                    <Grid item xs={2} style={{paddingTop: 0, paddingLeft: 0}}>
                         <Select
                             style={{width: "100%"}}
                             value={level}

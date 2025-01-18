@@ -240,8 +240,26 @@ type Mutation {
 }
 
 type Query {
+  eventingExportWorkflow(
+    eventgroup_id: Int!
+    include_steps: Boolean!
+    output_format: String!
+  ): eventingExportWorkflowOutput
+}
+
+type Mutation {
+  eventingImportContainerWorkflow(
+    contents: String!
+    filename: String!
+    container_name: String!
+    delete_old_version: Boolean
+  ): eventingImportContainerWorkflowOutput
+}
+
+type Query {
   eventingTestFile(
     file_contents: String!
+    output_format: String
   ): eventingTestFileOutput
 }
 
@@ -288,6 +306,7 @@ type Mutation {
     eventgroup_id: Int!
     active: Boolean
     deleted: Boolean
+    updated_config: String
   ): eventingTriggerUpdateOutput
 }
 
@@ -1055,6 +1074,14 @@ type eventingTriggerUpdateOutput {
   error: String
   active: Boolean
   deleted: Boolean
+  name: String
+  description: String
+  author: String
+  trigger: String
+  trigger_data: jsonb
+  keywords: [String]
+  env: jsonb
+  run_as: String
 }
 
 type createInviteLinkOutput {
@@ -1112,6 +1139,8 @@ type testProxyOutput {
 type eventingTestFileOutput {
   status: String!
   error: String
+  parsed_workflow: jsonb
+  formatted_output: String
 }
 
 type getOperatorPreferencesOutput {
@@ -1128,5 +1157,17 @@ type updateOperatorPreferencesOutput {
 type updateInviteLinkOutput {
   status: String!
   error: String
+}
+
+type eventingExportWorkflowOutput {
+  status: String!
+  error: String
+  workflow: String
+}
+
+type eventingImportContainerWorkflowOutput {
+  status: String!
+  error: String
+  eventgroup_id: Int
 }
 

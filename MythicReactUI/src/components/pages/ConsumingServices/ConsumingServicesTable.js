@@ -184,10 +184,8 @@ export function ConsumingServicesTable({services}) {
                         <TableHead>
                             <TableRow>
                                 <TableCell style={{width: "3rem"}}></TableCell>
-                                <TableCell style={{width: "10rem"}}>Name</TableCell>
-                                <TableCell style={{width: "7rem"}}>Category</TableCell>
-                                <TableCell>Description</TableCell>
-                                <TableCell style={{width: "4rem"}}>Manage</TableCell>
+                                <TableCell style={{width: "30%"}}>Name</TableCell>
+                                <TableCell style={{width: "5rem"}}>Manage</TableCell>
                                 <TableCell>Actions</TableCell>
                             </TableRow>
                         </TableHead>
@@ -199,19 +197,28 @@ export function ConsumingServicesTable({services}) {
                                         {w.deleted ? (
                                             <IconButton onClick={() => {
                                                 adjustingDelete(w);
-                                            }} color="success" size="large">
+                                            }} color="success" size="medium">
                                                 <RestoreFromTrashOutlinedIcon/>
                                             </IconButton>
                                         ) : (
                                             <IconButton onClick={() => {
                                                 adjustingDelete(w);
-                                            }} color="error" size="large">
+                                            }} color="error" size="medium">
                                                 <DeleteIcon/>
                                             </IconButton>
                                         )}
                                     </MythicTableCell>
                                     <MythicTableCell>
-                                        {w.name}
+                                        <Typography variant={"h5"}>
+                                            {w.name}
+                                        </Typography>
+                                        <Typography variant={"body"}>
+                                            <b>Type: </b>{w.type}
+                                        </Typography>
+                                        <Typography variant={"body2"}>
+                                            <b>Description: </b>{w.description}
+                                        </Typography>
+
                                         {w.container_running &&
                                             <Typography variant="body2" component="p"
                                                         style={{color: theme.palette.success.main}}>
@@ -225,15 +232,13 @@ export function ConsumingServicesTable({services}) {
                                             </Typography>
                                         }
                                     </MythicTableCell>
-                                    <MythicTableCell>{w.type}</MythicTableCell>
-                                    <MythicTableCell>{w.description}</MythicTableCell>
                                     <MythicTableCell>
                                         <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
                                             <IconButton
                                                 color={"secondary"}
                                                 disabled={!w.container_running}
                                                 onClick={()=>{onOpenListFilesDialog(w.name);}}
-                                                size="large">
+                                                size="medium">
                                                 <AttachFileIcon />
                                             </IconButton>
                                         </MythicStyledTooltip>
@@ -246,7 +251,7 @@ export function ConsumingServicesTable({services}) {
                                                     onClick={() => {
                                                         issueTestWebhook(s)
                                                     }}
-                                                    size="large">
+                                                    size="medium">
                                                     <PublicIcon/>
                                                 </IconButton>
                                             </MythicStyledTooltip>
@@ -261,19 +266,27 @@ export function ConsumingServicesTable({services}) {
                                         {w.deleted ? (
                                             <IconButton onClick={() => {
                                                 adjustingDelete(w);
-                                            }} color="success" size="large">
+                                            }} color="success" size="medium">
                                                 <RestoreFromTrashOutlinedIcon/>
                                             </IconButton>
                                         ) : (
                                             <IconButton onClick={() => {
                                                 adjustingDelete(w);
-                                            }} color="error" size="large">
+                                            }} color="error" size="medium">
                                                 <DeleteIcon/>
                                             </IconButton>
                                         )}
                                     </MythicTableCell>
                                     <MythicTableCell>
-                                        {w.name}
+                                        <Typography variant={"h5"}>
+                                            {w.name}
+                                        </Typography>
+                                        <Typography variant={"body"}>
+                                            <b>Type: </b>{w.type}
+                                        </Typography>
+                                        <Typography variant={"body2"}>
+                                            <b>Description: </b>{w.description}
+                                        </Typography>
                                         {w.container_running &&
                                             <Typography variant="body2" component="p"
                                                         style={{color: theme.palette.success.main}}>
@@ -287,15 +300,13 @@ export function ConsumingServicesTable({services}) {
                                             </Typography>
                                         }
                                     </MythicTableCell>
-                                    <MythicTableCell>{w.type}</MythicTableCell>
-                                    <MythicTableCell>{w.description}</MythicTableCell>
                                     <MythicTableCell>
                                         <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
                                             <IconButton
                                                 color={"secondary"}
                                                 disabled={!w.container_running}
                                                 onClick={()=>{onOpenListFilesDialog(w.name);}}
-                                                size="large">
+                                                size="medium">
                                                 <AttachFileIcon />
                                             </IconButton>
                                         </MythicStyledTooltip>
@@ -308,7 +319,7 @@ export function ConsumingServicesTable({services}) {
                                                     onClick={() => {
                                                         issueTestLog(s)
                                                     }}
-                                                    size="large">
+                                                    size="medium">
                                                     <SyncAltIcon/>
                                                 </IconButton>
                                             </MythicStyledTooltip>
@@ -323,19 +334,27 @@ export function ConsumingServicesTable({services}) {
                                         {w.deleted ? (
                                             <IconButton onClick={() => {
                                                 adjustingDelete(w);
-                                            }} color="success" size="large">
+                                            }} color="success" size="medium">
                                                 <RestoreFromTrashOutlinedIcon/>
                                             </IconButton>
                                         ) : (
                                             <IconButton onClick={() => {
                                                 adjustingDelete(w);
-                                            }} color="error" size="large">
+                                            }} color="error" size="medium">
                                                 <DeleteIcon/>
                                             </IconButton>
                                         )}
                                     </MythicTableCell>
                                     <MythicTableCell>
-                                        {w.name}
+                                        <Typography variant={"h5"}>
+                                            {w.name}
+                                        </Typography>
+                                        <Typography variant={"body"}>
+                                            <b>Type: </b>{w.type}
+                                        </Typography>
+                                        <Typography variant={"body2"}>
+                                            <b>Description: </b>{w.description}
+                                        </Typography>
                                         {w.container_running &&
                                             <Typography variant="body2" component="p"
                                                         style={{color: theme.palette.success.main}}>
@@ -349,15 +368,13 @@ export function ConsumingServicesTable({services}) {
                                             </Typography>
                                         }
                                     </MythicTableCell>
-                                    <MythicTableCell>{w.type}</MythicTableCell>
-                                    <MythicTableCell>{w.description}</MythicTableCell>
                                     <MythicTableCell>
                                         <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
                                             <IconButton
                                                 color={"secondary"}
                                                 disabled={!w.container_running}
                                                 onClick={()=>{onOpenListFilesDialog(w.name);}}
-                                                size="large">
+                                                size="medium">
                                                 <AttachFileIcon />
                                             </IconButton>
                                         </MythicStyledTooltip>
@@ -390,19 +407,27 @@ export function ConsumingServicesTable({services}) {
                                         {w.deleted ? (
                                             <IconButton onClick={() => {
                                                 adjustingDelete(w);
-                                            }} color="success" size="large">
+                                            }} color="success" size="medium">
                                                 <RestoreFromTrashOutlinedIcon/>
                                             </IconButton>
                                         ) : (
                                             <IconButton onClick={() => {
                                                 adjustingDelete(w);
-                                            }} color="error" size="large">
+                                            }} color="error" size="medium">
                                                 <DeleteIcon/>
                                             </IconButton>
                                         )}
                                     </MythicTableCell>
                                     <MythicTableCell>
-                                        {w.name}
+                                        <Typography variant={"h5"}>
+                                            {w.name}
+                                        </Typography>
+                                        <Typography variant={"body"}>
+                                            <b>Type: </b>{w.type}
+                                        </Typography>
+                                        <Typography variant={"body2"}>
+                                            <b>Description: </b>{w.description}
+                                        </Typography>
                                         {w.container_running &&
                                             <Typography variant="body2" component="p"
                                                         style={{color: theme.palette.success.main}}>
@@ -416,15 +441,13 @@ export function ConsumingServicesTable({services}) {
                                             </Typography>
                                         }
                                     </MythicTableCell>
-                                    <MythicTableCell>{w.type}</MythicTableCell>
-                                    <MythicTableCell>{w.description}</MythicTableCell>
                                     <MythicTableCell>
                                         <MythicStyledTooltip title={w.container_running ? "View Files" : "Unable to view files since container is offline"}>
                                             <IconButton
                                                 color={"secondary"}
                                                 disabled={!w.container_running}
                                                 onClick={()=>{onOpenListFilesDialog(w.name);}}
-                                                size="large">
+                                                size="medium">
                                                 <AttachFileIcon />
                                             </IconButton>
                                         </MythicStyledTooltip>

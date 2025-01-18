@@ -29,8 +29,11 @@ import moment from 'moment';
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import TerminalIcon from '@mui/icons-material/Terminal';
 import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
+import NotificationsActiveTwoToneIcon from '@mui/icons-material/NotificationsActiveTwoTone';
+import {faSocks} from '@fortawesome/free-solid-svg-icons';
 
-export const CallbacksTableIDCell = React.memo(({rowData, metaDialog, updateDescription, editMythicTreeGroupsDialog, setOpenHideMultipleDialog, setOpenTaskMultipleDialog, callbackDropdown}) =>{
+export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown}) =>{
+    const theme = useTheme();
     const dropdownAnchorRef = React.useRef(null);
     const onOpenTab = useContext(OnOpenTabContext);
     const interactType = GetMythicSetting({setting_name: "interactType", default_value: "interact"})
@@ -58,10 +61,41 @@ export const CallbacksTableIDCell = React.memo(({rowData, metaDialog, updateDesc
         if(rowData.color !== rowDataStatic.color){
             update = true;
         }
+        if(rowData.trigger_on_checkin_after_time !== rowDataStatic.trigger_on_checkin_after_time){
+            update = true;
+        }
+        if(rowData.callbackports.length !== rowDataStatic.callbackports.length){
+            update = true;
+        }
         if(update){
             setRowDataStatic(rowData);
         }
     }, [rowData]);
+    const proxyMessage = useCallback(() => {
+        let message = [];
+        for(let i = 0; i < rowDataStatic?.callbackports?.length || 0; i++){
+            switch(rowDataStatic.callbackports[i].port_type){
+                case "socks":
+                    if(rowDataStatic.callbackports[i].username === ""){
+                        message.push(`socks: ${rowDataStatic.callbackports[i].local_port}`);
+                    } else {
+                        message.push(`socks: ${rowDataStatic.callbackports[i].local_port}, ${rowDataStatic.callbackports[i].username}:${rowDataStatic.callbackports[i].password}`);
+                    }
+                    break;
+                case "rpfwd":
+                    if(rowDataStatic.callbackports[i].username === ""){
+                        message.push(`rpfwd: ${rowDataStatic.callbackports[i].local_port}->${rowDataStatic.callbackports[i].remote_ip}:${rowDataStatic.callbackports[i].remote_port}`);
+                    } else {
+                        message.push(`pfwd: ${rowDataStatic.callbackports[i].local_port}->${rowDataStatic.callbackports[i].remote_ip}:${rowDataStatic.callbackports[i].remote_port}, ${rowDataStatic.callbackports[i].username}:${rowDataStatic.callbackports[i].password}`);
+                    }
+                    break;
+                case "interactive":
+                    message.push(`interactive: ${rowDataStatic.callbackports[i].local_port}`);
+                    break;
+            }
+        }
+        return message.join("\n");
+    }, [rowDataStatic]);
     const handleDropdownToggle = (event) => {
         event.stopPropagation();
         callbackDropdown({rowDataStatic, event});
@@ -77,23 +111,32 @@ export const CallbacksTableIDCell = React.memo(({rowData, metaDialog, updateDesc
     }
 
     return (
-        <div id={`callbacksTableID${rowDataStatic.id}`}>
-                <IconButton style={{padding: 0, margin: 0}} color={rowDataStatic.integrity_level > 2 ? "error" : ""}
-                    onClick={(evt) => {evt.stopPropagation();localOnOpenTab()}}
-                >
-                    {rowDataStatic.locked ? (<LockIcon  style={{marginRight: "10px"}} />):(defaultInteractIcon)}
-                </IconButton>
-            {rowDataStatic.display_id}
-                <IconButton
-                    style={{margin: 0, padding: 0}}
-                    color={rowDataStatic.integrity_level > 2 ? "error" : ""}
-                    aria-haspopup="menu"
-                    onClick={handleDropdownToggle}
-                    ref={dropdownAnchorRef}
-                >
-                <ArrowDropDownIcon/>
-                </IconButton>
-
+        <div id={`callbacksTableID${rowDataStatic.id}`} style={{display: "inline-flex", alignItems: "flex-start"}}>
+            <IconButton style={{padding: 0, margin: 0}} color={rowDataStatic.integrity_level > 2 ? "error" : ""}
+                onClick={(evt) => {evt.stopPropagation();localOnOpenTab()}}
+            >
+                {rowDataStatic.locked ? (<LockIcon  style={{marginRight: "10px"}} />):(defaultInteractIcon)}
+            </IconButton>
+        {rowDataStatic.display_id}
+            <IconButton
+                style={{margin: 0, padding: 0}}
+                color={rowDataStatic.integrity_level > 2 ? "error" : ""}
+                aria-haspopup="menu"
+                onClick={handleDropdownToggle}
+                ref={dropdownAnchorRef}
+            >
+            <ArrowDropDownIcon/>
+            </IconButton>
+            {rowDataStatic.trigger_on_checkin_after_time > 0 &&
+                <MythicStyledTooltip title={`Alert on callback after no checkin for ${rowDataStatic.trigger_on_checkin_after_time} minutes`}>
+                    <NotificationsActiveTwoToneIcon color={"success"}/>
+                </MythicStyledTooltip>
+            }
+            {rowDataStatic.callbackports.length > 0 &&
+                <MythicStyledTooltip title={proxyMessage()}>
+                    <FontAwesomeIcon icon={faSocks} size="lg" style={{color: theme.palette.success.main}}/>
+                </MythicStyledTooltip>
+            }
     </div>
     )
 },

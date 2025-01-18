@@ -68,6 +68,7 @@ export const Dropdown = React.forwardRef(
         return (
             <>
                 <Menu
+                    elevation={5}
                     PaperProps={{ sx: { minWidth: minWidth ?? 0 } }}
                     style={{zIndex: 100000, position: "absolute"}}
                     anchorEl={isOpen}

@@ -216,7 +216,7 @@ export function FileMetaDownloadTable(props){
                                       sx={{pl: "3px"}}
                                       inputProps={{ 'aria-label': 'controlled',  }} />
                         </TableCell>
-                        <TableCell style={{width: "5rem"}}>Actions</TableCell>
+                        <TableCell style={{width: "4rem"}}>Actions</TableCell>
                         <TableCell >File</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
                         <TableCell style={{width: "7rem"}}>Size</TableCell>
@@ -317,11 +317,11 @@ function FileMetaDownloadTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.deleted || props.size === 0  ? null : (
-                        <>
-                            <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
+                        <div style={{display: "flex", alignItems: "center"}}>
+                            <DeleteIcon color={"error"} fontSize={"medium"} style={{height: "35px", cursor: "pointer"}}
                                         onClick={()=>{setOpenDelete(true);}}/>
                             <MythicStyledTooltip title={"Preview Media"}>
-                                <FontAwesomeIcon icon={faPhotoVideo} style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
+                                <FontAwesomeIcon icon={faPhotoVideo} style={{height: "20px",  position: "relative", cursor: "pointer", display: "inline-block"}}
                                             onClick={onPreviewMedia} />
                             </MythicStyledTooltip>
                             {openPreviewMediaDialog &&
@@ -333,7 +333,7 @@ function FileMetaDownloadTableRow(props){
                                                   onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
                                 />
                             }
-                        </>
+                        </div>
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -383,7 +383,7 @@ function FileMetaDownloadTableRow(props){
                                             <TableRow>
                                                 <MythicStyledTableCell style={{width: "25rem"}}>Identifiers</MythicStyledTableCell>
                                                 <MythicStyledTableCell >Operator</MythicStyledTableCell>
-                                                <MythicStyledTableCell style={{width: "6rem"}}>Task</MythicStyledTableCell>
+                                                <MythicStyledTableCell style={{width: "8rem"}}>Task</MythicStyledTableCell>
                                                 <MythicStyledTableCell>Time</MythicStyledTableCell>
                                                 <MythicStyledTableCell>Command</MythicStyledTableCell>
                                                 <MythicStyledTableCell>Host File</MythicStyledTableCell>
@@ -400,8 +400,8 @@ function FileMetaDownloadTableRow(props){
                                                 <MythicStyledTableCell>
                                                     {props.task === null ? null : (
                                                         <>
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
+                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link><br/>
+                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link>
                                                             <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.comment}</Typography>
                                                         </>
                                                         
@@ -553,7 +553,7 @@ export function FileMetaUploadTable(props){
                                           sx={{pl: "3px"}}
                                           inputProps={{ 'aria-label': 'controlled' }} />
                             </TableCell>
-                            <TableCell style={{width: "5rem"}}>Actions</TableCell>
+                            <TableCell style={{width: "4rem"}}>Actions</TableCell>
                             <TableCell style={{width: "20rem"}}>Source</TableCell>
                             <TableCell style={{width: "20rem"}}>Destination</TableCell>
                             <TableCell style={{width: "15rem"}}>Comment</TableCell>
@@ -653,11 +653,11 @@ function FileMetaUploadTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
-                        <>
-                            <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
+                        <div style={{display: "flex", alignItems: "center"}}>
+                            <DeleteIcon color={"error"} fontSize={"medium"} style={{height: "35px", cursor: "pointer"}}
                                         onClick={()=>{setOpenDelete(true);}}/>
                             <MythicStyledTooltip title={"Preview Media"}>
-                                <FontAwesomeIcon icon={faPhotoVideo} style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
+                                <FontAwesomeIcon icon={faPhotoVideo} style={{height: "20px", position: "relative", cursor: "pointer", display: "inline-block"}}
                                                  onClick={onPreviewMedia} />
                             </MythicStyledTooltip>
                             {openPreviewMediaDialog &&
@@ -669,7 +669,7 @@ function FileMetaUploadTableRow(props){
                                                   onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
                                 />
                             }
-                        </>
+                        </div>
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
@@ -723,7 +723,7 @@ function FileMetaUploadTableRow(props){
                                             <TableRow>
                                                 <TableCell style={{width: "25rem"}}>Identifiers</TableCell>
                                                 <TableCell >Operator</TableCell>
-                                                <TableCell style={{width: "6rem"}}>Task</TableCell>
+                                                <TableCell style={{width: "8rem"}}>Task</TableCell>
                                                 <TableCell>Timestamp</TableCell>
                                                 <TableCell>Command</TableCell>
                                                 <TableCell>Host File</TableCell>
@@ -740,8 +740,8 @@ function FileMetaUploadTableRow(props){
                                                 <MythicStyledTableCell>
                                                     {props.task === null ? null : (
                                                         <>
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
+                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link><br/>
+                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link><br/>
                                                             <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.comment}</Typography>
                                                         </>
                                                     )}
@@ -817,15 +817,15 @@ export function FileMetaScreenshotTable(props){
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "5rem"}}>Delete</TableCell>
+                        <TableCell style={{width: "3rem"}}>Delete</TableCell>
                         <TableCell style={{width: "300px"}}>Thumbnail</TableCell>
                         <TableCell >Filename</TableCell>
-                        <TableCell >Time</TableCell>
+                        <TableCell style={{width: "12rem"}}>Time</TableCell>
                         <TableCell >Host</TableCell>
                         <TableCell >Comment</TableCell>
-                        <TableCell >Size</TableCell>
+                        <TableCell style={{width: "5rem"}}>Size</TableCell>
                         <TableCell>Tags</TableCell>
-                        <TableCell >More</TableCell>
+                        <TableCell style={{width: "3rem"}}>More</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -934,7 +934,7 @@ function FileMetaScreenshotTableRow(props){
                                             <TableRow>
                                                 <TableCell style={{width: "25rem"}}>Identifiers</TableCell>
                                                 <TableCell >Operator</TableCell>
-                                                <TableCell style={{width: "6rem"}}>Task</TableCell>
+                                                <TableCell style={{width: "8rem"}}>Task</TableCell>
                                                 <TableCell>Task Comment</TableCell>
                                                 <TableCell>Command</TableCell>
                                             </TableRow>
@@ -950,8 +950,8 @@ function FileMetaScreenshotTableRow(props){
                                                 <MythicStyledTableCell>
                                                     {props.task === null ? null : (
                                                         <>
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
-                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
+                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link><br/>
+                                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link>
                                                         </>
                                                     )}
                                                     

@@ -15,8 +15,18 @@ import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/Myth
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Input from '@mui/material/Input';
+import IconButton from '@mui/material/IconButton';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
-import {operatorSettingDefaults} from "../../../cache";
+import { operatorSettingDefaults} from "../../../cache";
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {snackActions} from "../../utilities/Snackbar";
+import {userSettingsQuery} from "../../App";
+import {copyStringToClipboard} from "../../utilities/Clipboard";
+import {useLazyQuery } from '@apollo/client';
+import PhoneCallbackIcon from '@mui/icons-material/PhoneCallback';
+import ColorLensIcon from '@mui/icons-material/ColorLens';
 
 const interactTypeOptions = [
     {value: "interact", display: "Accordions"},
@@ -29,6 +39,44 @@ const commonFontFamilies = [
     "Monaco"
 ]
 export function SettingsOperatorUIConfigDialog(props) {
+    const fileInputRef = React.useRef(null);
+    const backgroundFileImageLightRef = React.useRef(null);
+    const backgroundFileImageDarkRef = React.useRef(null);
+    const [getUserPreferences] = useLazyQuery(userSettingsQuery, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            //console.log("got preferences", data.getOperatorPreferences.preferences)
+            if(data.getOperatorPreferences.status === "success"){
+                let settingString = JSON.stringify(data.getOperatorPreferences.preferences, null, 4);
+                copyStringToClipboard(settingString);
+                snackActions.info("Copied settings to clipboard");
+            } else {
+                snackActions.error(`Failed to get user preferences:\n${data.getOperatorPreferences.error}`);
+            }
+        },
+        onError: (error) => {
+            console.log(error);
+            snackActions.error(error.message);
+        }
+    })
+    const [getUserColorPreferences] = useLazyQuery(userSettingsQuery, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            //console.log("got preferences", data.getOperatorPreferences.preferences)
+            if(data.getOperatorPreferences.status === "success"){
+                let settingString = JSON.stringify({palette: data.getOperatorPreferences.preferences?.palette}, null, 4);
+                copyStringToClipboard(settingString);
+                snackActions.info("Copied settings to clipboard");
+            } else {
+                snackActions.error(`Failed to get user preferences:\n${data.getOperatorPreferences.error}`);
+            }
+        },
+        onError: (error) => {
+            console.log(error);
+            snackActions.error(error.message);
+        }
+    })
+
     const initialLocalStorageInteractType = GetMythicSetting({setting_name: 'interactType', default_value: operatorSettingDefaults.interactType});
     const [interactType, setInteractType] = React.useState(initialLocalStorageInteractType);
 
@@ -37,9 +85,6 @@ export function SettingsOperatorUIConfigDialog(props) {
 
     const initialLocalStorageFontFamilyValue = GetMythicSetting({setting_name: "fontFamily", default_value: operatorSettingDefaults.fontFamily});
     const [fontFamily, setFontFamily] = React.useState(initialLocalStorageFontFamilyValue);
-
-    const initialLocalStorageTopColorValue = GetMythicSetting({setting_name: "topColor", default_value: operatorSettingDefaults.topColor});
-    const [topColor, setTopColor] = React.useState(initialLocalStorageTopColorValue);
 
     const initialShowMediaValue = GetMythicSetting({setting_name: "showMedia", default_value: operatorSettingDefaults.showMedia});
     const [showMedia, setShowMedia] = React.useState(initialShowMediaValue);
@@ -59,8 +104,99 @@ export function SettingsOperatorUIConfigDialog(props) {
     const initialUseDisplayParamsForCLIHistory = GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: operatorSettingDefaults.useDisplayParamsForCLIHistory});
     const [useDisplayParamsForCLIHistory, setUseDisplayParamsForCLIHistory] = React.useState(initialUseDisplayParamsForCLIHistory);
 
+    const initialPalette = GetMythicSetting({setting_name: 'palette', default_value: operatorSettingDefaults.palette});
+    const [palette, setPalette] = React.useState({
+        primary: {
+            dark: initialPalette?.primary?.dark || operatorSettingDefaults.palette.primary.dark,
+            light: initialPalette?.primary?.light || operatorSettingDefaults.palette.primary.light,
+        },
+        error: {
+            dark: initialPalette?.error?.dark || operatorSettingDefaults.palette.error.dark,
+            light: initialPalette?.error?.light || operatorSettingDefaults.palette.error.light,
+        },
+        success: {
+            dark: initialPalette?.success?.dark || operatorSettingDefaults.palette.success.dark,
+            light: initialPalette?.success?.light || operatorSettingDefaults.palette.success.light,
+        },
+        info: {
+            dark: initialPalette?.info?.dark || operatorSettingDefaults.palette.info.dark,
+            light: initialPalette?.info?.light || operatorSettingDefaults.palette.info.light,
+        },
+        warning: {
+            dark: initialPalette?.warning?.dark || operatorSettingDefaults.palette.warning.dark,
+            light: initialPalette?.warning?.light || operatorSettingDefaults.palette.warning.light,
+        },
+        secondary: {
+            dark: initialPalette?.secondary?.dark || operatorSettingDefaults.palette.secondary.dark,
+            light: initialPalette?.secondary?.light || operatorSettingDefaults.palette.secondary.light,
+        },
+        background: {
+            dark: initialPalette?.background?.dark || operatorSettingDefaults.palette.background.dark,
+            light: initialPalette?.background?.light || operatorSettingDefaults.palette.background.light,
+        },
+        tableHeader: {
+            dark: initialPalette?.tableHeader?.dark || operatorSettingDefaults.palette.tableHeader.dark,
+            light: initialPalette?.tableHeader?.light || operatorSettingDefaults.palette.tableHeader.light,
+        },
+        tableHover: {
+            dark: initialPalette?.tableHover?.dark || operatorSettingDefaults.palette.tableHover.dark,
+            light: initialPalette?.tableHover?.light || operatorSettingDefaults.palette.tableHover.light,
+        },
+        pageHeader: {
+            dark: initialPalette?.pageHeader?.dark || operatorSettingDefaults.palette.pageHeader.dark,
+            light: initialPalette?.pageHeader?.light || operatorSettingDefaults.palette.pageHeader.light,
+        },
+        text: {
+            dark: initialPalette?.text?.dark || operatorSettingDefaults.palette.text.dark,
+            light: initialPalette?.text?.light || operatorSettingDefaults.palette.text.light,
+        },
+        paper: {
+            dark: initialPalette?.paper?.dark || operatorSettingDefaults.palette.paper.dark,
+            light: initialPalette?.paper?.light || operatorSettingDefaults.palette.paper.light,
+        },
+        selectedCallbackColor: {
+            dark: initialPalette?.selectedCallbackColor?.dark || operatorSettingDefaults.palette.selectedCallbackColor.dark,
+            light: initialPalette?.selectedCallbackColor?.light || operatorSettingDefaults.palette.selectedCallbackColor.light,
+        },
+        selectedCallbackHierarchyColor: {
+            dark: initialPalette?.selectedCallbackHierarchyColor?.dark || operatorSettingDefaults.palette.selectedCallbackHierarchyColor.dark,
+            light: initialPalette?.selectedCallbackHierarchyColor?.light || operatorSettingDefaults.palette.selectedCallbackHierarchyColor.light,
+        },
+        backgroundImage: {
+            dark: initialPalette?.backgroundImage?.dark || operatorSettingDefaults.palette.backgroundImage.dark,
+            light: initialPalette?.backgroundImage?.light || operatorSettingDefaults.palette.backgroundImage.light,
+        },
+        navBarIcons: {
+            dark: initialPalette?.navBarIcons?.dark || operatorSettingDefaults.palette.navBarIcons.dark,
+            light: initialPalette?.navBarIcons?.light || operatorSettingDefaults.palette.navBarIcons.light,
+        },
+        navBarText: {
+            dark: initialPalette?.navBarText?.dark || operatorSettingDefaults.palette.navBarText.dark,
+            light: initialPalette?.navBarText?.light || operatorSettingDefaults.palette.navBarText.light,
+        },
+        navBarColor: {
+            dark: initialPalette?.navBarColor?.dark || operatorSettingDefaults.palette.navBarColor.dark,
+            light: initialPalette?.navBarColor?.light || operatorSettingDefaults.palette.navBarColor.light,
+        }
+    });
+    const paletteOptions = [
+        {name: "primary", display: "Primary"},
+        {name: "error", display: "Error"},
+        {name: "warning", display: "Warning"},
+        {name: "info", display: "Informational"},
+        {name: "success", display: "Success"},
+        {name: "secondary", display: "Secondary"},
+        {name: "background", display: "Background"},
+        {name: "text", display: "Text Color"},
+        {name: "tableHeader", display: "Table Headers"},
+        {name: "tableHover", display: "Table Hover"},
+        {name: "pageHeader", display: "Page Headers"},
+        {name: "paper", display: "Menu and Modals Background"},
+        {name: "selectedCallbackColor", display: "Currently active callback row highlight"},
+        {name: "selectedCallbackHierarchyColor", display: "Current Host highlight in tree views"}
+    ];
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
-    const [_, updateSettings] = useSetMythicSetting();
+    const [_, updateSettings, clearSettings] = useSetMythicSetting();
     const onChangeFontSize = (name, value, error) => {
       setFontSize(value);
     }
@@ -91,6 +227,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onChangeUseDisplayParamsForCLIHistory = (evt) => {
         setUseDisplayParamsForCLIHistory(!useDisplayParamsForCLIHistory);
     }
+    const onChangePaletteColor = (name, mode, value) => {
+        setPalette({...palette, [name]: {...palette[name], [mode]: value}});
+    }
     const onAccept = () => {
       if(resumeNotifications){
           localStorage.setItem("dnd", JSON.stringify({
@@ -106,10 +245,10 @@ export function SettingsOperatorUIConfigDialog(props) {
               showCallbackGroups,
               fontSize,
               fontFamily,
-              topColor,
               showMedia,
               interactType,
               useDisplayParamsForCLIHistory,
+              palette: palette
       }});
       props.onClose();
     }
@@ -121,7 +260,6 @@ export function SettingsOperatorUIConfigDialog(props) {
     const setDefaults = () => {
       setFontSize(operatorSettingDefaults.fontSize);
       setFontFamily(operatorSettingDefaults.fontFamily);
-      setTopColor( operatorSettingDefaults.topColor);
       setHideUsernames(operatorSettingDefaults.hideUsernames);
       setShowIP(operatorSettingDefaults.showIP);
       setShowHostname(operatorSettingDefaults.showHostname);
@@ -130,21 +268,97 @@ export function SettingsOperatorUIConfigDialog(props) {
       setInteractType(operatorSettingDefaults.interactType);
       setUseDisplayParamsForCLIHistory(operatorSettingDefaults.useDisplayParamsForCLIHistory);
       setResumeNotifications(false);
+      setPalette(operatorSettingDefaults.palette);
     }
-  
+    const clearAllUserSettings = () => {
+        clearSettings();
+        props.onClose();
+    }
+    const setColorDefaults = (mode) => {
+        let newPaletteOptions = {...palette};
+        for(const [key, value] of Object.entries(operatorSettingDefaults.palette)){
+            newPaletteOptions[key][mode] = value[mode];
+        }
+        setPalette(newPaletteOptions);
+    }
+    const onFileChange = async (evt) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const contents = e.target.result;
+            try{
+                let jsonData = JSON.parse(String(contents));
+                updateSettings({settings: jsonData});
+                snackActions.info("Updating settings");
+                props.onClose();
+            }catch(error){
+                console.log(error);
+                snackActions.error("Failed to parse file as JSON");
+            }
+        }
+        reader.readAsBinaryString(evt.target.files[0]);
+    }
+    const onFileBackgroundImageChangeLight = async (evt) => {
+        const reader = new FileReader();
+        const filenameExtension = evt.target.files[0].name.split(".")[1];
+        reader.onload = (e) => {
+            const contents = e.target.result;
+            let backgroundImage = `url("data:image/${filenameExtension};base64,${btoa(contents)}`;
+            setPalette({...palette, backgroundImage: {...palette.backgroundImage, light: backgroundImage}});
+        }
+        reader.readAsBinaryString(evt.target.files[0]);
+    }
+    const onFileBackgroundImageChangeDark = async (evt) => {
+        const reader = new FileReader();
+        const filenameExtension = evt.target.files[0].name.split(".")[1];
+        reader.onload = (e) => {
+            const contents = e.target.result;
+            let backgroundImage = `url("data:image/${filenameExtension};base64,${btoa(contents)}`;
+            setPalette({...palette, backgroundImage: {...palette.backgroundImage, dark: backgroundImage}});
+        }
+        reader.readAsBinaryString(evt.target.files[0]);
+    }
+
+    const getCurrentPreferences = () => {
+        getUserPreferences();
+    }
+    const getCurrentColorPreferences = () => {
+        getUserColorPreferences();
+    }
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Configure UI Settings</DialogTitle>
-          <TableContainer className="mythicElement">
+        <DialogTitle id="form-dialog-title">
+            Configure UI Settings
+            <div style={{float: "right", display: "flex", alignItems: "center"}}>
+                <MythicStyledTooltip title={"Export Preferences"} tooltipStyle={{float: "right"}}>
+                    <IconButton onClick={getCurrentPreferences}>
+                        <CloudDownloadIcon />
+                    </IconButton>
+                </MythicStyledTooltip>
+                <MythicStyledTooltip title={"Export Only Color Preferences"} tooltipStyle={{float: "right"}}>
+                    <IconButton  onClick={getCurrentColorPreferences}>
+                        <CloudDownloadIcon fontSize={"medium"} />
+                        <ColorLensIcon color={"success"} fontSize={"small"} style={{marginLeft: "-8px", marginTop: "7px"}} />
+                    </IconButton>
+                </MythicStyledTooltip>
+                <MythicStyledTooltip title={"Import Preferences"} tooltipStyle={{float: "right"}}>
+                    <IconButton  onClick={()=>fileInputRef.current.click()} >
+                        <CloudUploadIcon color={"success"}/>
+                        <input ref={fileInputRef} onChange={onFileChange} type="file" hidden />
+                    </IconButton>
+                </MythicStyledTooltip>
+            </div>
+
+        </DialogTitle>
+        <TableContainer className="mythicElement" style={{paddingLeft: "10px", paddingRight: "10px"}}>
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
-                <TableRow hover>
+                  <TableRow hover>
                   <MythicStyledTableCell style={{width: "30%"}}>Font Size</MythicStyledTableCell>
                   <MythicStyledTableCell>
                     <MythicTextField type="number" value={fontSize} onChange={onChangeFontSize} showLabel={false} />
                   </MythicStyledTableCell>
                 </TableRow>
-                <TableRow hover>
+                  <TableRow hover>
                   <MythicStyledTableCell>Font Family</MythicStyledTableCell>
                   <MythicStyledTableCell>
                     <MythicTextField value={fontFamily} onChange={onChangeFontFamily} showLabel={false} multiline maxRows={5} />
@@ -160,7 +374,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                       </Select>
                   </MythicStyledTableCell>
                 </TableRow>
-                <TableRow hover>
+                  <TableRow hover>
                   <MythicStyledTableCell>Hide Usernames In Tasking</MythicStyledTableCell>
                   <MythicStyledTableCell>
                     <Switch
@@ -220,7 +434,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                           />
                       </MythicStyledTableCell>
                   </TableRow>
-                <TableRow hover>
+                  <TableRow hover>
                       <MythicStyledTableCell>Resume Info/Warning Notifications</MythicStyledTableCell>
                       <MythicStyledTableCell>
                           <Switch
@@ -244,7 +458,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                           />
                       </MythicStyledTableCell>
                   </TableRow>
-                  <TableRow>
+                  <TableRow hover>
                       <MythicStyledTableCell>
                           Choose default type of tasking display
                       </MythicStyledTableCell>
@@ -262,31 +476,156 @@ export function SettingsOperatorUIConfigDialog(props) {
                           </Select>
                       </MythicStyledTableCell>
                   </TableRow>
-                <TableRow hover>
-                  <MythicStyledTableCell>Top App Bar Color</MythicStyledTableCell>
-                  <MythicStyledTableCell>
-                    <HexColorPicker color={topColor} onChange={setTopColor} />
-                    <HexColorInput color={topColor} onChange={setTopColor} />
-                    <Box sx={{width: "100%", height: 25, backgroundColor: topColor}} >
-                        <Typography style={{color: "white"}}>Operation Chimera Sample</Typography>
-                    </Box>
-                  </MythicStyledTableCell>
-                </TableRow>
+                  <TableRow>
+                      <MythicStyledTableCell></MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <Typography variant={"h4"}>
+                              Global Palette Colors
+                          </Typography>
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Navigation Bar Color</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarColor?.dark} onChange={(v) => onChangePaletteColor("navBarColor", "dark", v)}/>
+                                  <HexColorInput color={palette?.navBarColor?.dark} onChange={(v) => onChangePaletteColor("navBarColor", "dark", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.dark, display: "flex", alignItems: "center"}}>
+                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.dark, marginRight: "5px"}}/>
+                                      <Typography style={{color: palette.navBarText.dark, display: "inline-block"}}>Dark Mode Color</Typography>
+                                  </Box>
+                              </div>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarColor?.light} onChange={(v) => onChangePaletteColor("navBarColor", "light", v)}/>
+                                  <HexColorInput color={palette?.navBarColor?.light} onChange={(v) => onChangePaletteColor("navBarColor", "light", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.light, display: "flex", alignItems: "center"}}>
+                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.light, marginRight: "5px"}}/>
+                                      <Typography style={{color: palette.navBarText.light, display: "inline-block"}}>Light Mode Color</Typography>
+                                  </Box>
+                              </div>
+                          </div>
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Navigation Bar Icon Colors</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarIcons?.dark} onChange={(v) => onChangePaletteColor("navBarIcons", "dark", v)}/>
+                                  <HexColorInput color={palette?.navBarIcons?.dark} onChange={(v) => onChangePaletteColor("navBarIcons", "dark", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.dark, display: "flex", alignItems: "center"}}>
+                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.dark, marginRight: "5px"}}/>
+                                      <Typography style={{color: palette.navBarText.dark, display: "inline-block"}}>Dark Mode Color</Typography>
+                                  </Box>
+                              </div>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarIcons?.light} onChange={(v) => onChangePaletteColor("navBarIcons", "light", v)}/>
+                                  <HexColorInput color={palette?.navBarIcons?.light} onChange={(v) => onChangePaletteColor("navBarIcons", "light", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.light, display: "flex", alignItems: "center"}}>
+                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.light, marginRight: "5px"}}/>
+                                      <Typography style={{color: palette.navBarText.light, display: "inline-block"}}>Light Mode Color</Typography>
+                                  </Box>
+                              </div>
+                          </div>
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Navigation Bar Text Color</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarText?.dark} onChange={(v) => onChangePaletteColor("navBarText", "dark", v)}/>
+                                  <HexColorInput color={palette?.navBarText?.dark} onChange={(v) => onChangePaletteColor("navBarText", "dark", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.dark, display: "flex", alignItems: "center"}}>
+                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.dark, marginRight: "5px"}}/>
+                                      <Typography style={{color: palette.navBarText.dark, display: "inline-block"}}>Dark Mode Color</Typography>
+                                  </Box>
+                              </div>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarText?.light} onChange={(v) => onChangePaletteColor("navBarText", "light", v)}/>
+                                  <HexColorInput color={palette?.navBarText?.light} onChange={(v) => onChangePaletteColor("navBarText", "light", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.light, display: "flex", alignItems: "center"}}>
+                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.light, marginRight: "5px"}}/>
+                                      <Typography style={{color: palette.navBarText.light, display: "inline-block"}}>Light Mode Color</Typography>
+                                  </Box>
+                              </div>
+                          </div>
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Background Images</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <div style={{display: "flex", width: "100%", justifyContent: "space-between"}}>
+                              <div style={{width: "100%"}}>
+                                  <Button color={"info"} variant={"contained"} onClick={()=>backgroundFileImageDarkRef.current.click()} >
+                                      Upload Dark
+                                      <input ref={backgroundFileImageDarkRef} onChange={onFileBackgroundImageChangeDark} type="file" hidden />
+                                  </Button>
+                                  <Button color={"warning"} variant={"contained"} onClick={() => onChangePaletteColor("backgroundImage", "dark", null)} >
+                                      Remove Dark
+                                  </Button>
+                                  <div style={{backgroundImage: palette.backgroundImage.dark,  width: "100%", height: "300px", backgroundSize: "contain"}}>
+                                  </div>
+                              </div>
+                              <div style={{width: "100%"}}>
+                                  <Button color={"info"} variant={"contained"} onClick={()=>backgroundFileImageLightRef.current.click()} >
+                                      Upload Light
+                                      <input ref={backgroundFileImageLightRef} onChange={onFileBackgroundImageChangeLight} type="file" hidden />
+                                  </Button>
+                                  <Button color={"warning"} variant={"contained"} onClick={() => onChangePaletteColor("backgroundImage", "light", null)} >
+                                      Remove Light
+                                  </Button>
+                                  <div style={{backgroundImage: palette.backgroundImage.light,  width: "100%", height: "300px", backgroundSize: "contain"}}>
+                                  </div>
+                              </div>
+                          </div>
+
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  {paletteOptions.map(p => (
+                      <TableRow hover key={p.display}>
+                          <MythicStyledTableCell>{p.display}</MythicStyledTableCell>
+                          <MythicStyledTableCell>
+                              <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
+                                  <div style={{display: "inline-block", width: "100%"}}>
+                                      <HexColorPicker style={{width: "100%"}} color={palette?.[p.name]?.dark} onChange={(v) => onChangePaletteColor(p.name, "dark", v)}/>
+                                      <HexColorInput color={palette?.[p.name]?.dark} onChange={(v) => onChangePaletteColor(p.name, "dark", v)}/>
+                                      <Box sx={{width: "100%", height: 25, backgroundColor: palette?.[p.name]?.dark}}>
+                                          <Typography style={{color: "white"}}>Dark Mode Color</Typography>
+                                      </Box>
+                                  </div>
+                                  <div style={{display: "inline-block", width: "100%"}}>
+                                      <HexColorPicker style={{width: "100%"}} color={palette?.[p.name]?.light} onChange={(v) => onChangePaletteColor(p.name, "light", v)}/>
+                                      <HexColorInput color={palette?.[p.name]?.light} onChange={(v) => onChangePaletteColor(p.name, "light", v)}/>
+                                      <Box sx={{width: "100%", height: 25, backgroundColor: palette?.[p.name]?.light}}>
+                                          <Typography style={{color: "black"}}>Light Mode Color</Typography>
+                                      </Box>
+                                  </div>
+                              </div>
+                          </MythicStyledTableCell>
+                      </TableRow>
+                  ))}
               </TableBody>
-            </Table>
+          </Table>
         </TableContainer>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
-            Cancel
-          </Button>
-          <Button onClick={setDefaults} variant="contained" color="info">
-            Reset Defaults
-          </Button>
-          <Button onClick={onAccept} variant="contained" color="success">
-            Update
-          </Button>
+            <Button onClick={props.onClose} variant="contained" color="primary">
+                Cancel
+            </Button>
+            <Button onClick={clearAllUserSettings} variant="contained" color="error">
+                Clear ALL User Settings
+            </Button>
+            <Button onClick={setDefaults} variant="contained" color="warning">
+                Reset ALL
+            </Button>
+            <Button onClick={() => setColorDefaults("dark")} variant={"contained"} color={"info"}>Reset Dark Mode</Button>
+            <Button onClick={() => setColorDefaults("light")} variant={"contained"} color={"info"}>Reset Light Mode</Button>
+            <Button onClick={onAccept} variant="contained" color="success">
+                Update
+            </Button>
         </DialogActions>
-  </React.Fragment>
+    </React.Fragment>
   );
 }
 

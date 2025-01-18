@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { IconButton } from '@mui/material';
 import {snackActions} from './utilities/Snackbar';
 import {MythicStyledTooltip} from "./MythicComponents/MythicStyledTooltip";
+import { useTheme } from '@mui/material/styles';
 
 const SUB_Event_Logs = gql`
 subscription OperationAlertCounts{
@@ -51,6 +52,7 @@ export function TopAppBarEventLogNotifications(props) {
     );
 }
 export function TopAppBarVerticalEventLogNotifications(props) {
+    const theme = useTheme();
     const { loading, error, data } = useSubscription(SUB_Event_Logs, {
         onError: data => {
             snackActions.error("Mythic encountered an error getting event log messages: " + data.toString());
@@ -61,13 +63,13 @@ export function TopAppBarVerticalEventLogNotifications(props) {
     return (
             error ? (
                 <Badge color="secondary" badgeContent={0}>
-                    <NotificationsActiveTwoToneIcon style={{color: "white"}} fontSize={"medium"}  />
+                    <NotificationsActiveTwoToneIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"}  />
                 </Badge>
             ) : (
                 <Badge badgeContent={data?.operation_stream[0]?.alert_count || 0}
                        color="error" max={99}
                 >
-                    <NotificationsActiveTwoToneIcon style={{color: "white"}} fontSize={"medium"}/>
+                    <NotificationsActiveTwoToneIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"}/>
                 </Badge>
             )
     );

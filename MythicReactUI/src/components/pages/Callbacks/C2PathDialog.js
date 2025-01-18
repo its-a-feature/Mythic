@@ -686,7 +686,8 @@ export const DrawC2PathElementsFlowWithProvider = (props) => {
         </ReactFlowProvider>
     )
 }
-export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes}) =>{
+export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, providedNodes, filterOptions}) =>{
+    const theme = useTheme();
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: []});
     const [nodes, setNodes] = React.useState();
     const selectedNodes = React.useRef([]);
@@ -1081,12 +1082,33 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
             }
             return false;
         }
+        const filterRow = (row) => {
+            if(filterOptions === undefined){return false}
+            for(const [key,value] of Object.entries(filterOptions)){
+                if(key === "agent"){
+                    if(!String(row.payload.payloadtype.name).toLowerCase().includes(String(value).toLowerCase())){
+                        return true;
+                    }
+                }else{
+                    if(!String(row[key]).toLowerCase().includes(String(value).toLowerCase())){
+                        return true;
+                    }
+                }
+
+            }
+            return false;
+        }
         const createNewEdges = () => {
             // loop through until all edges have one side marked as "toward_mythic"
-            let edgesToUpdate = edges.length;
+            let tempNewEdges = edges.reduce((prev, cur) => {
+                if(filterRow(cur.source) || filterRow(cur.destination)){
+                    return [...prev];
+                }
+                return [...prev, cur];
+            }, []);
+            let edgesToUpdate = tempNewEdges.length;
             if (edgesToUpdate === 0) {return []}
             let edgesUpdated = 0;
-            let tempNewEdges = [...edges];
             let toMythicIds = new Set();
             let loop_count = 0;
             while(edgesUpdated < edgesToUpdate){
@@ -1144,6 +1166,9 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
         if(extraNodes.current){
             for(let i = 0; i < extraNodes.current.length; i++){
                 if(view_config["include_disconnected"]) {
+                    if(filterRow(extraNodes.current[i])){
+                        continue
+                    }
                     add_node(extraNodes.current[i], view_config);
                 }
             }
@@ -1311,7 +1336,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, theme, contex
             nodes: tempNodes,
             edges: tempEdges
         })
-    }, [edges, view_config, theme]);
+    }, [edges, view_config, theme, filterOptions]);
     React.useEffect( () => {
         (async () => {
             if(graphData.nodes.length > 0){
@@ -1695,7 +1720,7 @@ export const DrawBrowserScriptElementsFlowWithProvider = (props) => {
         </ReactFlowProvider>
     )
 }
-const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes, task}) => {
+export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme, contextMenu, providedNodes, task}) => {
     const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: [], view_config});
     const selectedNodes = React.useRef([]);
     const selectedEdges = React.useRef([]);

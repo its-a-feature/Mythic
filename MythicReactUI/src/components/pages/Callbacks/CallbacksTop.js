@@ -40,6 +40,16 @@ callback_stream(batch_size: 1000, cursor: {initial_value: {timestamp: $fromNow}}
     last_checkin
     current_time
     mythictree_groups
+    trigger_on_checkin_after_time
+    callbackports(where: {deleted: {_eq: false}}) {
+        local_port
+        remote_port
+        remote_ip
+        port_type
+        username
+        password
+        id
+    }
     payload {
       os
       payloadtype {
@@ -84,6 +94,16 @@ callback(where: {active: {_eq: true}}) {
     last_checkin
     current_time
     mythictree_groups
+    trigger_on_checkin_after_time
+    callbackports(where: {deleted: {_eq: false}}) {
+        id
+        local_port
+        remote_port
+        remote_ip
+        port_type
+        username
+        password
+    }
     payload {
       os
       payloadtype {

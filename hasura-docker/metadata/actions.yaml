@@ -331,6 +331,27 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: eventingExportWorkflow
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_export_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: eventingImportContainerWorkflow
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_import_automatic_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: eventingTestFile
     definition:
       kind: ""
@@ -874,4 +895,6 @@ custom_types:
     - name: getOperatorPreferencesOutput
     - name: updateOperatorPreferencesOutput
     - name: updateInviteLinkOutput
+    - name: eventingExportWorkflowOutput
+    - name: eventingImportContainerWorkflowOutput
   scalars: []

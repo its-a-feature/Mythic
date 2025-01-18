@@ -1,17 +1,9 @@
 import React, {useState} from 'react';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql} from '@apollo/client';
 import LinearProgress from '@mui/material/LinearProgress';
-import AceEditor from 'react-ace';
-import 'ace-builds/src-noconflict/mode-json';
-import 'ace-builds/src-noconflict/theme-monokai';
-import 'ace-builds/src-noconflict/theme-xcode';
-import "ace-builds/src-noconflict/ext-searchbox";
-import {useTheme} from '@mui/material/styles';
 import {MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
+import { meState } from '../../../cache';
+import {toLocalTime} from "../../utilities/Time";
 
 const getParametersQuery = gql`
 query getParametersQuery ($task_id: Int!) {
@@ -23,6 +15,10 @@ query getParametersQuery ($task_id: Int!) {
     parameter_group_name
     command_name
     id
+    timestamp
+    status_timestamp_preprocessing
+    status_timestamp_processing
+    status_timestamp_processed
     command {
       cmd
       id
@@ -37,7 +33,6 @@ query getParametersQuery ($task_id: Int!) {
 
 export function TaskViewParametersDialog(props) {
     const [comment, setComment] = useState("");
-    const theme = useTheme();
     const { loading, error } = useQuery(getParametersQuery, {
         variables: {task_id: props.task_id},
         onCompleted: data => {
@@ -53,6 +48,11 @@ export function TaskViewParametersDialog(props) {
               }
               workingComment += "\n\nPayload Type:\n" + data.task_by_pk.command.payloadtype.name;
             }
+            workingComment += "\n\n--------IMPORTANT TIMESTAMPS--------\n\n";
+            workingComment += "Task Submitted by Operator : " + toLocalTime(data.task_by_pk.status_timestamp_preprocessing, meState()?.user?.view_utc_time) + "\n";
+            workingComment += "Task Picked up by Agent    : " + toLocalTime(data.task_by_pk.status_timestamp_processing, meState()?.user?.view_utc_time) + "\n";
+            workingComment += "First message from Task    : " + toLocalTime(data.task_by_pk.status_timestamp_processed, meState()?.user?.view_utc_time) + "\n";
+            workingComment += "Last message from Task     : " + toLocalTime(data.task_by_pk.timestamp, meState()?.user?.view_utc_time) + "\n";
             setComment(workingComment);
         },
         fetchPolicy: "network-only"
@@ -66,7 +66,7 @@ export function TaskViewParametersDialog(props) {
     }
   return (
     <React.Fragment>
-        <MythicModifyStringDialog title={`View Task Parameters`}
+        <MythicModifyStringDialog title={`View Task Parameters And Timestamps`}
                                   onClose={props.onClose}
                                   maxRows={40}
                                   wrap={true}

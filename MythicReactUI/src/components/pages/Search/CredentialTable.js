@@ -162,7 +162,7 @@ export function CredentialTable(props){
     }
 
     return (
-        <TableContainer className="mythicElement" >
+        <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
             <Table stickyHeader size="small" style={{height: "100%", tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
@@ -401,8 +401,8 @@ function CredentialTableRow(props){
                 <MythicStyledTableCell>
                     {props.task !== null ? (
                         <>
-                            Task: <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link><br/>
-                            Callback: <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link><br/>
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>C-{props.task.callback.display_id}</Link>
+                            {" / "}<Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>T-{props.task.display_id}</Link><br/>
                             Host: {props.task.callback.host}<br/>
                             Groups: {props.task.callback.mythictree_groups.join(", ")}
                         </>

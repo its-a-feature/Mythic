@@ -252,7 +252,7 @@ function CommandTransferSelect(props) {
           <CardHeader title={title} />
           <StyledDivider className={classes.divider}/>
         <div style={{display: "flex", flexGrow: 1, overflowY: "auto", width: "100%"}}>
-            <List dense component="div" role="list" style={{padding:0, width: "100%", overflow: "auto"}}>
+            <List dense component="div" role="list" style={{padding:0, width: "100%", overflow: "auto", backgroundColor: "unset"}}>
                 {items.map((valueObj) => {
                     const value = valueObj["cmd"];
                     const labelId = `transfer-list-item-${value}-label`;

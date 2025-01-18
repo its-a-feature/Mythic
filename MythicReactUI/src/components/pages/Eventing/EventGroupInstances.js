@@ -46,21 +46,22 @@ subscription GetEventGroupInstances {
   }
 }
  `;
-export function EventGroupInstances({selectedEventGroup, me, setSelectedInstance, selectedInstanceID}) {
- const [eventgroups, setEventgroups] = React.useState([]);
+export function EventGroupInstances({selectedEventGroup, me, setSelectedInstance, selectedInstanceID, foundQueryInstanceRef}) {
+ const [eventgroupInstances, setEventgroupInstances] = React.useState([]);
  const [selectedEventGroups, setSelectedEventGroups] = React.useState([]);
+ const foundQueryEvent = React.useRef(false);
  React.useEffect(() => {
   if(selectedEventGroup.id === 0){
-   setSelectedEventGroups(eventgroups);
+   setSelectedEventGroups(eventgroupInstances);
    return;
   }
-  const updatedEventGroups = eventgroups.filter(e => e.eventgroup.id === selectedEventGroup.id);
+  const updatedEventGroups = eventgroupInstances.filter(e => e.eventgroup.id === selectedEventGroup.id);
   setSelectedEventGroups(updatedEventGroups);
- }, [selectedEventGroup.id, eventgroups]);
+ }, [selectedEventGroup.id, eventgroupInstances]);
  useQuery(get_eventgroups, {
   fetchPolicy: "no-cache",
   onCompleted: (data) => {
-   setEventgroups((prevState) => {
+   setEventgroupInstances((prevState) => {
     const newEvents = data.eventgroupinstance.reduce( (prev, cur) => {
      let indx = prev.findIndex( ({id}) => id === cur.id);
      if(indx > -1){
@@ -81,7 +82,7 @@ export function EventGroupInstances({selectedEventGroup, me, setSelectedInstance
  useSubscription(sub_eventgroups, {
   fetchPolicy: "no-cache",
   onData: ({data}) => {
-   setEventgroups((prevState) => {
+   setEventgroupInstances((prevState) => {
     const newEvents = data.data.eventgroupinstance_stream.reduce( (prev, cur) => {
      let indx = prev.findIndex( ({id}) => id === cur.id);
      if(indx > -1){
@@ -96,7 +97,23 @@ export function EventGroupInstances({selectedEventGroup, me, setSelectedInstance
    });
   }
  });
-
+ React.useEffect( () => {
+    if( !foundQueryEvent.current ){
+        let queryParams = new URLSearchParams(window.location.search);
+        const eventgroup = queryParams.has("eventgroupinstance") ? queryParams.get("eventgroupinstance") : "0";
+        if(eventgroup !== "0"){
+            let matchedGroup = eventgroupInstances.find( e => `${e.id}` === eventgroup);
+            if(matchedGroup){
+                setSelectedInstance(matchedGroup);
+                foundQueryEvent.current = true;
+                foundQueryInstanceRef.current = matchedGroup.eventgroup.id;
+            }
+        } else {
+           foundQueryEvent.current = true;
+           foundQueryInstanceRef.current = 0;
+        }
+    }
+ }, [eventgroupInstances]);
  return (
        <EventGroupInstancesTableMaterialReactTable
            setSelectedInstance={setSelectedInstance}

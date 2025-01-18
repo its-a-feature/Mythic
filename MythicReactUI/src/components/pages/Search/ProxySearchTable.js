@@ -58,9 +58,9 @@ export function ProxySearchTable(props){
             <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "1rem"}}></TableCell>
+                        <TableCell style={{width: "2rem"}}></TableCell>
                         <TableCell >User@Host</TableCell>
-                        <TableCell style={{width: "9rem"}}>Callback / Task</TableCell>
+                        <TableCell style={{width: "9rem"}}>Task Info</TableCell>
                         <TableCell style={{width: "7rem"}}>Bound Port</TableCell>
                         <TableCell >Remote Connection</TableCell>
                         <TableCell style={{width: "9rem"}}>
@@ -163,12 +163,12 @@ function ProxySearchTableRow(props){
                 <TableCell>
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                         href={"/new/callbacks/" + props.callback.display_id}>
-                            {props.callback.display_id}
+                            C-{props.callback.display_id}
                     </Link>
                     {" / "}
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                           href={"/new/task/" + props.task.display_id}>
-                        {props.task.display_id}
+                        T-{props.task.display_id}
                     </Link>
                 </TableCell>
                 <TableCell>

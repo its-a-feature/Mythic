@@ -1671,8 +1671,10 @@
           - operator_id
           - pid
           - registered_payload_id
+          - trigger_on_checkin_after_time
           - agent_callback_id
           - architecture
+          - color
           - crypto_type
           - description
           - domain
@@ -1715,8 +1717,10 @@
           - operator_id
           - pid
           - registered_payload_id
+          - trigger_on_checkin_after_time
           - agent_callback_id
           - architecture
+          - color
           - crypto_type
           - description
           - domain
@@ -1759,8 +1763,10 @@
           - operator_id
           - pid
           - registered_payload_id
+          - trigger_on_checkin_after_time
           - agent_callback_id
           - architecture
+          - color
           - crypto_type
           - description
           - domain
@@ -1803,8 +1809,10 @@
           - operator_id
           - pid
           - registered_payload_id
+          - trigger_on_checkin_after_time
           - agent_callback_id
           - architecture
+          - color
           - crypto_type
           - description
           - domain
@@ -1847,8 +1855,10 @@
           - operator_id
           - pid
           - registered_payload_id
+          - trigger_on_checkin_after_time
           - agent_callback_id
           - architecture
+          - color
           - crypto_type
           - description
           - domain
@@ -1878,6 +1888,7 @@
       permission:
         columns:
           - architecture
+          - color
           - description
           - domain
           - external_ip
@@ -1889,7 +1900,9 @@
           - os
           - pid
           - process_name
+          - process_short_name
           - sleep_info
+          - trigger_on_checkin_after_time
           - user
         filter:
           operation_id:
@@ -1901,6 +1914,7 @@
       permission:
         columns:
           - architecture
+          - color
           - description
           - domain
           - external_ip
@@ -1912,7 +1926,9 @@
           - os
           - pid
           - process_name
+          - process_short_name
           - sleep_info
+          - trigger_on_checkin_after_time
           - user
         filter:
           operation_id:
@@ -1924,6 +1940,7 @@
       permission:
         columns:
           - architecture
+          - color
           - description
           - domain
           - external_ip
@@ -1935,7 +1952,9 @@
           - os
           - pid
           - process_name
+          - process_short_name
           - sleep_info
+          - trigger_on_checkin_after_time
           - user
         filter:
           operation_id:
@@ -1947,6 +1966,7 @@
       permission:
         columns:
           - architecture
+          - color
           - description
           - domain
           - external_ip
@@ -1958,7 +1978,9 @@
           - os
           - pid
           - process_name
+          - process_short_name
           - sleep_info
+          - trigger_on_checkin_after_time
           - user
         filter:
           operation_id:
@@ -6569,6 +6591,7 @@
           - id
           - message_uuid_length
           - translation_container_id
+          - version
           - command_augment_supported_agents
           - supported_os
           - agent_type
@@ -6591,6 +6614,7 @@
           - id
           - message_uuid_length
           - translation_container_id
+          - version
           - command_augment_supported_agents
           - supported_os
           - agent_type
@@ -6613,6 +6637,7 @@
           - id
           - message_uuid_length
           - translation_container_id
+          - version
           - command_augment_supported_agents
           - supported_os
           - agent_type
@@ -6635,6 +6660,7 @@
           - id
           - message_uuid_length
           - translation_container_id
+          - version
           - command_augment_supported_agents
           - supported_os
           - agent_type
@@ -6657,6 +6683,7 @@
           - id
           - message_uuid_length
           - translation_container_id
+          - version
           - command_augment_supported_agents
           - supported_os
           - agent_type

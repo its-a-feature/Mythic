@@ -28,3 +28,15 @@ type TriggerDataCron struct {
 type EventActionDataConditionalCheck struct {
 	Steps []string `json:"steps" mapstructure:"steps"`
 }
+
+type EventActionDataCreateAlert struct {
+	Alert        string                 `json:"alert" mapstructure:"alert"`
+	Source       string                 `json:"source" mapstructure:"source"`
+	Level        string                 `json:"level" mapstructure:"level"`
+	SendWebhook  bool                   `json:"send_webhook" mapstructure:"send_webhook"`
+	WebhookAlert map[string]interface{} `json:"webhook_alert" mapstructure:"webhook_alert"`
+}
+
+type EventActionDataSendWebhook struct {
+	WebhookData map[string]interface{} `json:"webhook_data" mapstructure:"webhook_data"`
+}

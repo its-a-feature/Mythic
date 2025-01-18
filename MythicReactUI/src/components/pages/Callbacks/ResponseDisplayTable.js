@@ -270,7 +270,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
         return (
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
-                <Button size="small" color="primary"
+                <Button size="small" color="info"
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                         startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor}}/> : null}
                         style={{...actionCellButtonStyle}}
@@ -306,7 +306,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
         return (
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
-                <Button size="small" color="primary"
+                <Button size="small" color="info"
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
                         startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
                         style={{...actionCellButtonStyle}}
@@ -374,7 +374,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
                                                                               table={taskingData?.value || {}} callback_id={callback_id} onClose={finishedViewingData} />}
                   />
               }
-              <Button size="small" color="primary" ref={dropdownAnchorRef}
+              <Button size="small" color="info" ref={dropdownAnchorRef}
                       onClick={() => setOpenDropdownButton(true)} disabled={cellData?.button?.disabled || false}
                       startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
                       style={{...actionCellButtonStyle}}

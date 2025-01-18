@@ -26,7 +26,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
-import {SetMythicSetting, useGetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {useGetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";
 import {loadedCommandsQuery} from "./CallbacksTabsProcessBrowser";
 import {getSkewedNow} from "../../utilities/Time";

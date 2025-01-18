@@ -20,4 +20,5 @@ const (
 	MESSAGE_LEVEL_INFO    MESSAGE_LEVEL = "info"
 	MESSAGE_LEVEL_WARNING               = "warning"
 	MESSAGE_LEVEL_DEBUG                 = "debug"
+	MESSAGE_LEVEL_API                   = "api"
 )

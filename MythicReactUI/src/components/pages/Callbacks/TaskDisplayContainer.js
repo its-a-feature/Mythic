@@ -35,6 +35,7 @@ import html2canvas from 'html2canvas';
 import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
 import CodeOffIcon from '@mui/icons-material/CodeOff';
 import SettingsTwoToneIcon from '@mui/icons-material/SettingsTwoTone';
+import {b64DecodeUnicode} from './ResponseDisplay';
 
 const ReissueTaskMutationGQL = gql`
 mutation reissueTaskMutation($task_id: Int!){
@@ -198,18 +199,6 @@ export const TaskDisplayContainerConsole = ({task, me}) => {
   );
 }
 
-// the base64 decode function to handle unicode was pulled from the following stack overflow post
-// https://stackoverflow.com/a/30106551
-function b64DecodeUnicode(str) {
-  // Going backwards: from bytestream, to percent-encoding, to original string.
-  //console.log("decoding", str);
-  try{
-    return decodeURIComponent(window.atob(str));
-  }catch(error){
-    //console.log("Failed to base64 decode response", error)
-    return atob(str);
-  }
-}
 const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
                                    toggleOpenSearch, taskData, viewAllOutput, me,
                                    responseRef, style, fabStyle, viewBrowserScript}) => {
@@ -421,7 +410,7 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
               icon={<KeyboardIcon/>}
               arrow
               tooltipPlacement={"top"}
-              tooltipTitle={"View All Parameters"}
+              tooltipTitle={"View All Parameters And Timestamps"}
               onClick={()=>{setOpenParametersDialog(true);setOpenSpeedDial(false);}}
           />
           <SpeedDialAction

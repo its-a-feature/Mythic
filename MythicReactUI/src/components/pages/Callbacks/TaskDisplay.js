@@ -53,7 +53,7 @@ export const StyledPaper = styled(Paper)((
     height: "auto",
     width: "99%",
     boxShadow: "unset",
-    backgroundColor: theme.palette.background.taskLabel,
+    backgroundColor: "unset", //theme.palette.background.taskLabel,
   },
 
   [`& .${classes.heading}`]: {
@@ -297,7 +297,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                 }
                   <MythicStyledTooltip title={"View Task in separate page"} >
                     <Link style={{wordBreak: "break-all"}} color={"textPrimary"} underline={"always"} target={"_blank"}
-                          href={"/new/task/" + task.display_id}>{task.display_id}</Link>
+                          href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
                   </MythicStyledTooltip>
 
               </span>
@@ -306,7 +306,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
               {" / "}
               <MythicStyledTooltip title={"View Callback in separate page"}>
                 <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
-                      href={"/new/callbacks/" + task.callback.display_id}>{task.callback.display_id}</Link>
+                      href={"/new/callbacks/" + task.callback.display_id}>C-{task.callback.display_id}</Link>
               </MythicStyledTooltip>
 
               {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}

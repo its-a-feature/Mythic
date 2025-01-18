@@ -18,10 +18,10 @@ import { Typography } from '@mui/material';
 import { useReactiveVar } from '@apollo/client';
 import { useDarkMode } from './utilities/useDarkMode';
 import { SingleTaskView } from './pages/SingleTaskView/SingleTaskView';
-import { createTheme, ThemeProvider, StyledEngineProvider, adaptV4Theme } from '@mui/material/styles';
+import { createTheme, ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import { GlobalStyles } from '../themes/GlobalStyles';
 import CssBaseline from '@mui/material/CssBaseline';
-import {FailedRefresh, mePreferences, meState} from '../cache';
+import {FailedRefresh, mePreferences, meState, operatorSettingDefaults} from '../cache';
 import { Reporting } from './pages/Reporting/Reporting';
 import { MitreAttack } from './pages/MITRE_ATTACK/MitreAttack';
 import {Tags} from './pages/Tags/Tags';
@@ -59,75 +59,84 @@ export function App(props) {
     const [themeMode, themeToggler] = useDarkMode();
     const theme = React.useMemo(
         () =>
-            createTheme(adaptV4Theme({
+            createTheme({
                 transitions: {
                     // So we have `transition: none;` everywhere
                     create: () => 'none',
                 },
                 palette: {
+                    //contrastThreshold: 4.5,
                     primary: {
-                        main: themeMode === "dark" ? "rgb(70,91,115)" : "rgb(117,133,155)",
+                        main: themeMode === "dark" ? preferences?.palette?.primary?.dark || operatorSettingDefaults.palette.primary.dark :
+                            preferences?.palette?.primary?.light || operatorSettingDefaults.palette.primary.light,
                     },
                     error: {
-                        main: themeMode === "dark" ? '#da3237' : '#c42c32',
+                        main: themeMode === "dark" ? preferences?.palette?.error?.dark || operatorSettingDefaults.palette.error.dark :
+                            preferences?.palette?.error?.light || operatorSettingDefaults.palette.error.light,
                     },
                     success: {
-                        main: themeMode === 'dark' ? '#44b636' : '#0e7004',
+                        main: themeMode === 'dark' ? preferences?.palette?.success?.dark || operatorSettingDefaults.palette.success.dark :
+                            preferences?.palette?.success?.light || operatorSettingDefaults.palette.success.light,
                     },
                     secondary: {
-                        main: themeMode === 'dark' ? '#bebebe' : '#a6a5a5',
+                        main: themeMode === 'dark' ? preferences?.palette?.secondary?.dark || operatorSettingDefaults.palette.secondary.dark :
+                            preferences?.palette?.secondary?.light || operatorSettingDefaults.palette.secondary.light,
                     },
                     info: {
-                        main: themeMode === 'dark' ? '#2574b4' : '#4990b2',
+                        main: themeMode === 'dark' ? preferences?.palette?.info?.dark || operatorSettingDefaults.palette.info.dark :
+                            preferences?.palette?.info?.light || operatorSettingDefaults.palette.info.light,
+                    },
+                    warning: {
+                        main: themeMode === 'dark' ? preferences?.palette?.warning?.dark || operatorSettingDefaults.palette.warning.dark :
+                            preferences?.palette?.warning?.light || operatorSettingDefaults.palette.warning.light,
                     },
                     mode: themeMode,
                     background: {
-                        contrast: themeMode === 'dark' ? '#e1e0e0' : 'rgb(44, 52, 60)',
-                        default: themeMode === "dark" ? 'rgb(48, 48, 48)' : '#f6f6f6',
-                        paper: themeMode === "dark" ? 'rgb(37,36,36)' : '#ececec',
-                        taskLabel: themeMode === "dark" ? 'rgb(20, 20, 20)' : '#f5f5f5',
-                    },
-                    listSubHeader: {
-                      default: themeMode === "dark" ? 'rgb(50, 50, 50)' : 'rgb(240, 240, 240)',
+                        contrast: themeMode === 'dark' ? preferences?.palette?.background?.light || operatorSettingDefaults.palette.background.light :
+                            preferences?.palette?.background?.dark || operatorSettingDefaults.palette.background.dark,
+                        default: themeMode === "dark" ? preferences?.palette?.background?.dark || operatorSettingDefaults.palette.background.dark :
+                            preferences?.palette?.background?.light || operatorSettingDefaults.palette.background.light,
+                        paper: themeMode === "dark" ?  preferences?.palette?.paper?.dark || operatorSettingDefaults.palette.paper.dark :
+                            preferences?.palette?.paper?.light || operatorSettingDefaults.palette.paper.light,
+                        image: themeMode === "dark" ?  preferences?.palette?.backgroundImage?.dark || operatorSettingDefaults.palette.backgroundImage.dark :
+                            preferences?.palette?.backgroundImage?.light || operatorSettingDefaults.palette.backgroundImage.light,
                     },
                     text: {
+                        primary: themeMode === 'dark' ? preferences?.palette?.text?.dark || operatorSettingDefaults.palette.text.dark :
+                            preferences?.palette?.text?.light || operatorSettingDefaults.palette.text.light,
                         contrast: themeMode === 'dark' ? '#000' : '#fff',
                     },
-                    textBackgroundColor: themeMode === 'dark' ? '#272c2f' : '#e9eaea',
-                    textBackgroundColorPrimary: themeMode === 'dark' ? '#436b9f' : '#aadcf5',
-                    textBackgroundColorSuccess: themeMode === 'dark' ? '#09a21a' : '#70e373',
-                    textBackgroundColorError: themeMode === 'dark' ? '#9f1616' : '#f19da3',
-                    graphGroup: themeMode === 'dark' ? '#394c5d' : '#d3d7e8',
                     graphGroupRGBA: themeMode === 'dark' ? 'rgba(57, 76, 93, 0.5)' : 'rgba(211, 215, 232, 0.5)',
                     speedDialAction: themeMode === 'dark' ? '#495054' : '#ffffff',
                 },
-                pageHeaderTextColor: "#ffffff",
                 folderColor: '#f1d592',
-                tableHeader: themeMode === 'dark' ? '#484848' : '#c4c4c4',
-                successOnMain: '#1ae302',
-                errorOnMain: '#ff656b',
-                infoOnMain: '#67ceff',
-                selectedCallbackColor: themeMode === 'dark' ? '#26456e' : '#c6e5f6',
-                selectedCallbackHierarchyColor:  themeMode === 'dark' ? '#273e5d' : '#deeff8',
-                materialReactTableHeader: themeMode === 'dark' ? '#484848' : '#d5d5d5',
-                tableBorder: themeMode === 'dark' ? 'rgba(81,81,81,1)' : 'rgba(224,224,224,1)',
-                tableHover: themeMode === 'dark' ? 'rgba(60,60,60)' : 'rgb(232,232,232)',
+                tableHeader: themeMode === 'dark' ? preferences?.palette?.tableHeader?.dark || operatorSettingDefaults.palette.tableHeader.dark :
+                    preferences?.palette?.tableHeader?.light || operatorSettingDefaults.palette.tableHeader.light,
+                selectedCallbackColor: themeMode === 'dark' ? preferences?.palette?.selectedCallbackColor?.dark || operatorSettingDefaults.palette.selectedCallbackColor.dark :
+                    preferences?.palette?.selectedCallbackColor?.light || operatorSettingDefaults.palette.selectedCallbackColor.light,
+                selectedCallbackHierarchyColor:  themeMode === 'dark' ? preferences?.palette?.selectedCallbackHierarchyColor?.dark || operatorSettingDefaults.palette.selectedCallbackHierarchyColor.dark :
+                    preferences?.palette?.selectedCallbackHierarchyColor?.light || operatorSettingDefaults.palette.selectedCallbackHierarchyColor.light,
+                tableHover: themeMode === 'dark' ? preferences?.palette?.tableHover?.dark || operatorSettingDefaults.palette.tableHover.dark :
+                    preferences?.palette?.tableHover?.light || operatorSettingDefaults.palette.tableHover.light,
+                navBarTextIconColor: themeMode === 'dark' ? preferences?.palette?.navBarIcons?.dark || operatorSettingDefaults.palette.navBarIcons.dark :
+                    preferences?.palette?.navBarIcons?.light || operatorSettingDefaults.palette.navBarIcons.light,
+                navBarTextColor: themeMode === 'dark' ? preferences?.palette?.navBarText?.dark || operatorSettingDefaults.palette.navBarText.dark :
+                    preferences?.palette?.navBarText?.light || operatorSettingDefaults.palette.navBarText.light,
                 pageHeader: {
-                    main: '#706c6e',
-                },
-                pageHeaderSecondary: {
-                    main: '#444343',
+                    main: themeMode === 'dark' ? preferences?.palette?.pageHeader?.dark || operatorSettingDefaults.palette.pageHeader.dark :
+                        preferences?.palette?.pageHeader?.light || operatorSettingDefaults.palette.pageHeader.light,
                 },
                 pageHeaderText: {
                     main: 'white',
                 },
-                topAppBarColor: preferences?.topColor,
+                topAppBarColor: themeMode === 'dark' ? preferences?.palette?.navBarColor?.dark || operatorSettingDefaults.palette.navBarColor.dark :
+                    preferences?.palette?.navBarColor?.light || operatorSettingDefaults.palette.navBarColor.light,
                 typography: {
                     fontSize: preferences?.fontSize,
                     fontFamily: preferences?.fontFamily
                 },
-            })),
-        [themeMode, loadingPreference, preferences.topColor, preferences.fontSize, preferences.fontFamily]
+            }),
+        [themeMode, loadingPreference, preferences.fontSize, preferences.fontFamily, preferences.palette]
     );
     const mountedRef = React.useRef(true);
     const [openRefreshDialog, setOpenRefreshDialog] = React.useState(false);
@@ -186,13 +195,15 @@ export function App(props) {
             <ThemeProvider theme={theme}>
                 <GlobalStyles theme={theme} />
                 <CssBaseline />
-                <Tooltip id={"my-tooltip"} style={{zIndex: 100000, wordBreak: "break-word", maxWidth: "80%"}}/>
+                <Tooltip id={"my-tooltip"} style={{zIndex: 100000, wordBreak: "break-word", maxWidth: "80%", whiteSpace: "pre-wrap"}}/>
                 <ToastContainer limit={2} autoClose={3000}
                                 theme={themeMode}
                                 style={{maxWidth: "100%", minWidth: "40%", width: "40%", marginTop: "20px", display: "flex", flexWrap: "wrap",
                                 wordBreak: "break-all", flexDirection: "column", justifyContent: "center"}}
                                 pauseOnFocusLoss={false} />
-                    <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'row', maxWidth: "100%", width:"100%" }}>
+                    <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'row', maxWidth: "100%", width:"100%",
+                        backgroundImage: theme.palette.background.image !== null ? theme.palette.background.image : "",
+                        backgroundSize: "contain"}}>
 
                         {openRefreshDialog &&
                             <MythicDialog fullWidth={true} maxWidth="sm" open={openRefreshDialog}
@@ -227,16 +238,17 @@ export function App(props) {
                                     textAlign: "center",
                                     fontWeight: "600",
                                     color: "white",
-                                    border: `1px solid ${preferences?.topColor || "grey"}`
+                                    border: `1px solid ${theme.topAppBarColor || "grey"}`
                                 }}>
                                     {me?.user?.current_operation_banner_text}
                                 </Typography>
                             }
                             <div style={{
-                                margin: '0px 2px 0px 5px',
+                                margin: '0px 0px 0px 0px',
                                 flexGrow: 1,
+                                overflowY: "hidden",
                                 flexDirection: 'column',
-                                height: "calc(100% - 5rem)",
+                                height: "100%",
                             }}>
                                 <Routes>
                                     <Route path='/new/login' element={<LoginForm me={me}/>}/>

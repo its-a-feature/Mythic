@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc36] - 2025-01-18
+
+### Changed
+
+- Added a new Eventing Trigger - callback_checkin that is based on a callback's new trigger_on_checkin_after_time attribute
+- Added supporting functions for new GUI Eventing creation wizard
+- Added new Eventing action - alert_create
+- Added new Eventing action - webhook_send
+- Added new EventLog level, 'api', that's used for information about scripting/eventing API usage
+- Added new API function, eventingImportContainerWorkflow, to the GraphQL API that can be used by containers to import workflows in their onStart functionality
+- Added ability to update certain pieces of an Eventing workflow after it's been registered
+
 ## [3.3.1-rc35] - 2024-12-28
 
 ### Changed

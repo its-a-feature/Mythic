@@ -113,7 +113,13 @@ type Mutation {
 }
 
 type Mutation {
-  createInviteLink: createInviteLinkOutput
+  createInviteLink(
+    operation_id: Int
+    operation_role: String
+    total: Int
+    name: String
+    short_code: String
+  ): createInviteLinkOutput
 }
 
 type Mutation {
@@ -234,8 +240,17 @@ type Mutation {
 }
 
 type Query {
+  eventingExportWorkflow(
+    eventgroup_id: Int!
+    include_steps: Boolean!
+    output_format: String!
+  ): eventingExportWorkflowOutput
+}
+
+type Query {
   eventingTestFile(
     file_contents: String!
+    output_format: String
   ): eventingTestFileOutput
 }
 
@@ -282,6 +297,7 @@ type Mutation {
     eventgroup_id: Int!
     active: Boolean
     deleted: Boolean
+    updated_config: String
   ): eventingTriggerUpdateOutput
 }
 
@@ -315,6 +331,10 @@ type Query {
 
 type Query {
   getInviteLinks: getInviteLinksOutput
+}
+
+type Query {
+  getOperatorPreferences: getOperatorPreferencesOutput
 }
 
 type Query {
@@ -453,6 +473,13 @@ type Mutation {
 }
 
 type Mutation {
+  updateInviteLink(
+    code: String!
+    total: Int!
+  ): updateInviteLinkOutput
+}
+
+type Mutation {
   updateOperation(
     operation_id: Int!
     name: String
@@ -475,6 +502,12 @@ type Mutation {
     view_mode_spectators: [Int]
     disabled_command_map: [disabledCommand]
   ): updateOperatorOperationOutput
+}
+
+type Mutation {
+  updateOperatorPreferences(
+    preferences: jsonb!
+  ): updateOperatorPreferencesOutput
 }
 
 type Mutation {
@@ -531,6 +564,8 @@ input updateCallbackInput {
   integrity_level: Int
   domain: String
   dead: Boolean
+  color: String
+  trigger_on_checkin_after_time: Int
 }
 
 input DictionaryEntry {
@@ -1030,6 +1065,14 @@ type eventingTriggerUpdateOutput {
   error: String
   active: Boolean
   deleted: Boolean
+  name: String
+  description: String
+  author: String
+  trigger: String
+  trigger_data: jsonb
+  keywords: [String]
+  env: jsonb
+  run_as: String
 }
 
 type createInviteLinkOutput {
@@ -1087,5 +1130,29 @@ type testProxyOutput {
 type eventingTestFileOutput {
   status: String!
   error: String
+  parsed_workflow: jsonb
+  formatted_output: String
+}
+
+type getOperatorPreferencesOutput {
+  status: String!
+  error: String
+  preferences: jsonb
+}
+
+type updateOperatorPreferencesOutput {
+  status: String!
+  error: String
+}
+
+type updateInviteLinkOutput {
+  status: String!
+  error: String
+}
+
+type eventingExportWorkflowOutput {
+  status: String!
+  error: String
+  workflow: String
 }
 

@@ -120,9 +120,9 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
                 }
             </Paper>
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
-                <TableContainer >
+                <TableContainer>
                     <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll", tableLayout: "fixed"}}>
-                        <TableHead>
+                        <TableHead >
                             <TableRow>
                                 <TableCell style={{width: "2rem"}}></TableCell>
                                 <TableCell style={{width: "6rem"}}></TableCell>

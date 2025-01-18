@@ -11,7 +11,7 @@ import {GetMythicSetting, useSetMythicSetting} from "../MythicSavedUserSetting";
 
 const HeaderCellContext = createContext({});
 
-const MIN_COLUMN_WIDTH = 50;
+const MIN_COLUMN_WIDTH = 20;
 const MIN_FLEX_COLUMN_WIDTH = 150;
 
 
@@ -177,14 +177,14 @@ const ResizableGridWrapper = ({
             return
         }
         const longestElementInColumn = Math.max(...items.map((itemRow) => {
-            if(!columns[columnIndex].key){
+            if(columns[columnIndex].key === undefined){
                 if(columns[columnIndex].plaintext){
                     columns[columnIndex].key = columns[columnIndex].plaintext;
                 } else {
                     return 30;
                 }
             }
-            if(columns[columnIndex].key){
+            if(columns[columnIndex].key !== undefined){
                 if(columns[columnIndex].key.includes("time")){
                     return 30;
                 }
@@ -205,6 +205,10 @@ const ResizableGridWrapper = ({
                 }catch(error){
                     //console.log(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key])
                 }
+                if(typeof itemRow[columnIndex]?.props?.cellData === 'string' ){
+                    return itemRow[columnIndex]?.props?.cellData.length;
+                }
+
                 let data = itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key];
                 if(columns[columnIndex].inMetadata){
                     return itemRow[columnIndex]?.props?.cellData.length;
@@ -214,8 +218,10 @@ const ResizableGridWrapper = ({
                 }
                 if(data.plaintext){
                     return String(data.plaintext)?.length;
+                } else if(data?.button?.name) {
+                    return String(data?.button?.name)?.length ;
                 } else {
-                    return String(data)?.length ;
+                    return MIN_COLUMN_WIDTH;
                 }
                 //return String(itemRow[columnIndex]?.props?.rowData?.[columns[columnIndex].key]).length || -1;
             } else if(typeof(itemRow[columnIndex]?.props?.cellData) === "string") {

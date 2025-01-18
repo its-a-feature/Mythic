@@ -42,6 +42,8 @@ import {EventTriggerKeywordDialog} from "./EventTriggerKeywordDialog";
 import LayersTwoToneIcon from '@mui/icons-material/LayersTwoTone';
 import {EventGroupConsumingContainersDialog} from "./EventGroupConsumingContainersDialog";
 import CalendarMonthTwoToneIcon from '@mui/icons-material/CalendarMonthTwoTone';
+import {EventGroupTableEditDialog} from "./EventEditEventGroupDialog";
+import EditIcon from '@mui/icons-material/Edit';
 
 const updateDeleteStatusMutation = gql(`
 mutation updateDeleteStatusMutation($eventgroup_id: Int!, $deleted: Boolean!) {
@@ -73,9 +75,9 @@ export function EventGroupTable({selectedEventGroup, me}) {
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
     const [openActiveDialog, setOpenActiveDialog] = React.useState(false);
     const [openApprovalDialog, setOpenApprovalDialog] = React.useState(false);
+    const [openEditDialog, setOpenEditDialog] = React.useState(false);
     const [updateDeleteMutation] = useMutation(updateDeleteStatusMutation, {
      onCompleted: (data) => {
-        snackActions.success("Updated event group deleted status");
      },
      onError: (data) => {
         console.log(data);
@@ -83,7 +85,6 @@ export function EventGroupTable({selectedEventGroup, me}) {
  })
     const [updateActiveMutation] = useMutation(updateActiveStatusMutation, {
         onCompleted: (data) => {
-            snackActions.success("Updated event group active status");
         },
         onError: (data) => {
             console.log(data);
@@ -106,6 +107,7 @@ export function EventGroupTable({selectedEventGroup, me}) {
     const [openTriggerKeyword, setOpenTriggerKeyword] = React.useState(false);
     const [consumingContainersErrors, setConsumingContainersErrors] = React.useState(0);
     const [openConsumingContainerDialog, setOpenConsumingContainerDialog] = React.useState(false);
+    const foundQueryInstanceRef = React.useRef(0);
     React.useEffect( () => {
         if(selectedEventGroup?.id > 0){
             let consumingContainersErrors = 0;
@@ -126,7 +128,9 @@ export function EventGroupTable({selectedEventGroup, me}) {
             setConsumingContainersErrors(0);
             setOpenConsumingContainerDialog(false);
         }
-        setSelectedInstanceID(0);
+        if(foundQueryInstanceRef.current === 0 || foundQueryInstanceRef.current !== selectedEventGroup.id){
+            setSelectedInstanceID(0);
+        }
     }, [selectedEventGroup])
      const onAcceptActive = () => {
          updateActiveMutation({variables: {eventgroup_id: selectedEventGroup.id, active: !selectedEventGroup.active}});
@@ -210,20 +214,18 @@ export function EventGroupTable({selectedEventGroup, me}) {
                  <Table>
                      <TableHead>
                          <TableRow>
-                             <TableCell>Author</TableCell>
-                             <TableCell style={{width: "12rem"}}>Created At</TableCell>
-                             <TableCell>Trigger</TableCell>
+                             <TableCell>Created</TableCell>
+                             <TableCell style={{width: "10rem"}}>Trigger</TableCell>
                              <TableCell>Keywords</TableCell>
-                             <TableCell style={{width: "3rem"}}>Context</TableCell>
-                             <TableCell style={{width: "2rem"}}>Env</TableCell>
-                             <TableCell>Run As</TableCell>
-                             <TableCell style={{width: "12rem"}}>Actions</TableCell>
+                             <TableCell style={{width: "4rem"}}>Context</TableCell>
+                             <TableCell style={{width: "3rem"}}>Env</TableCell>
+                             <TableCell style={{width: "10rem"}}>Run As</TableCell>
+                             <TableCell style={{width: "15rem"}}>Actions</TableCell>
                          </TableRow>
                      </TableHead>
                      <TableBody>
                          <TableRow>
-                             <MythicTableCell>{selectedEventGroup?.operator?.username}</MythicTableCell>
-                             <MythicTableCell>{toLocalTime(selectedEventGroup?.created_at, me?.user?.view_utc_time)}</MythicTableCell>
+                             <MythicTableCell>{selectedEventGroup?.operator?.username} @ {toLocalTime(selectedEventGroup?.created_at, me?.user?.view_utc_time)}</MythicTableCell>
                              <MythicTableCell>{selectedEventGroup.trigger}
                                  {selectedEventGroup.trigger === "cron" &&
                                      <div style={{display: "flex", flexDirection: "row", alignItems: "center"}}>
@@ -281,6 +283,11 @@ export function EventGroupTable({selectedEventGroup, me}) {
 
                              </MythicTableCell>
                              <MythicTableCell>
+                                 <MythicStyledTooltip title={"Edit Workflow Metadata (not steps)"}>
+                                     <IconButton onClick={() => {setOpenEditDialog(true)}}>
+                                         <EditIcon color={"info"}/>
+                                     </IconButton>
+                                 </MythicStyledTooltip>
                                  {selectedEventGroup.trigger === "manual" &&
                                      <MythicStyledTooltip title={"Trigger manually now"}>
                                          <IconButton onClick={onTriggerManual}>
@@ -343,6 +350,7 @@ export function EventGroupTable({selectedEventGroup, me}) {
          <RenderSteps selectedInstanceID={selectedInstanceID} selectedEventGroup={selectedEventGroup} />
          <EventGroupInstances setSelectedInstance={setSelectedInstanceID}
                               selectedInstanceID={selectedInstanceID}
+                              foundQueryInstanceRef={foundQueryInstanceRef}
                               selectedEventGroup={selectedEventGroup} me={me}/>
          {openEventStepRender &&
              <MythicDialog fullWidth={true} maxWidth="xl" open={openEventStepRender}
@@ -431,6 +439,16 @@ export function EventGroupTable({selectedEventGroup, me}) {
                            innerDialog={<EventGroupConsumingContainersDialog onClose={() => {
                                setOpenConsumingContainerDialog(false);
                            }} selectedEventGroup={selectedEventGroup} />}
+             />
+         }
+         {openEditDialog &&
+             <MythicDialog fullWidth={true} maxWidth="lg" open={openEditDialog}
+                           onClose={() => {
+                               setOpenEditDialog(false);
+                           }}
+                           innerDialog={<EventGroupTableEditDialog onClose={() => {
+                               setOpenEditDialog(false);
+                           }} me={me} selectedEventGroup={selectedEventGroup} />}
              />
          }
      </div>

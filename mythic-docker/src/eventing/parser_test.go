@@ -201,7 +201,7 @@ func TestValidTrigger(t *testing.T) {
 				t.Errorf("ingest() error = %v", err)
 				return
 			}
-			err = EnsureTrigger(&got)
+			err = EnsureTrigger(&got, true)
 			//t.Logf("parsed results: %v", got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ensureTrigger() error = %v, wantErr %v", err, tt.wantErr)

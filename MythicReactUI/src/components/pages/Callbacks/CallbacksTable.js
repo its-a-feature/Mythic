@@ -3,7 +3,7 @@ import {MythicTransferListDialog} from '../../MythicComponents/MythicTransferLis
 import {MythicDialog} from '../../MythicComponents/MythicDialog';
 import {
     exportCallbackConfigQuery,
-    hideCallbackMutation, lockCallbackMutation, unlockCallbackMutation,
+    hideCallbackMutation, lockCallbackMutation, unlockCallbackMutation, updateCallbackTriggerMutation,
     updateDescriptionCallbackMutation,
     updateSleepInfoCallbackMutation
 } from './CallbackMutations';
@@ -50,6 +50,10 @@ import {TaskFromUIButton} from "./TaskFromUIButton";
 import {CallbacksTabsOpenMultipleDialog} from "./CallbacksTabsOpenMultipleDialog";
 import {operatorSettingDefaults} from "../../../cache";
 import {CallbacksTableEditDescriptionColorDialog} from "./CallbacksTableEditDescriptionColorDialog";
+import NotificationsActiveTwoToneIcon from '@mui/icons-material/NotificationsActiveTwoTone';
+import NotificationsOffTwoToneIcon from '@mui/icons-material/NotificationsOffTwoTone';
+import {CallbacksTableEditTriggerOnCheckinDialog} from "./CallbacksTableEditTriggerOnCheckinDialog";
+import {CallbacksTableColumnsReorderDialog} from "./CallbacksTableColumnsReorderDialog";
 
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
@@ -89,13 +93,33 @@ export const ipCompare = (a, b) => {
         return 0;
     }
 }
-
+const callbackTableInitialColumns = [
+    {key: "id", type: 'number', name: "Interact", width: 150, disableDoubleClick: true},
+    {key: "mythictree_groups", type: 'array', name: "Groups", width: 150},
+    {key: "ip", type: 'ip', name: "IP", width: 150},
+    {key: "external_ip",type: 'string', name: "External IP", width: 150},
+    {key: "host", type: 'string', name: "Host", fillWidth: true},
+    {key: "user", type: 'string', name: "User", fillWidth: true},
+    {key: "domain", type: 'string', name: "Domain", fillWidth: true},
+    {key: "os", type: 'string', name: "OS", width: 45, disableDoubleClick: true, disableSort: true},
+    {key: "architecture", type: 'string', name: "Arch", width: 75},
+    {key: "pid", type: 'number', name: "PID", width: 75},
+    {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true, disableDoubleClick: true},
+    {key: "description", type: 'string', name: "Description", width: 400},
+    {key: "sleep", type: 'string', name: "Sleep", width: 60, disableFilterMenu: true, disableSort: true, disableDoubleClick: true},
+    {key: "agent", type: 'agent', name: "Agent", width: 150},
+    {key: "c2", type: 'string', name: "C2", width: 45, disableSort: true, disableFilterMenu: true, disableDoubleClick: true},
+    {key: "process_short_name", type: 'string', name: "Process Name", fillWidth: true},
+];
 function CallbacksTablePreMemo(props){
     const callbacks = useContext(CallbacksContext);
     const onOpenTab = useContext(OnOpenTabContext);
     const onOpenTabs = useContext(OnOpenTabsContext);
     const interactType = GetMythicSetting({setting_name: "interactType", default_value: "interact", output: "string"});
     const theme = useTheme();
+    const [loadingSettings, setLoadingSettings] = React.useState(true);
+    const [columnOrder, setColumnOrder] = React.useState(callbackTableInitialColumns);
+    const [openReorderDialog, setOpenReorderDialog] = React.useState(false);
     const [openMultipleTabsDialog, setOpenMultipleTabsDialog] = React.useState({open: false, tabType: "interact"});
     const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
     const openMetaDialogRef = React.useRef(0);
@@ -172,8 +196,8 @@ function CallbacksTablePreMemo(props){
     };
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
-    const [openAdjustColumnsDialog, setOpenAdjustColumnsDialog] = React.useState(false);
     const [openHideMultipleDialog, setOpenHideMultipleDialog] = React.useState(false);
+    const [openTriggerDialog, setOpenTriggerDialog] = React.useState({open: false, trigger_on_checkin_after_time: 0, display_id: 0});
     const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState({open: false, data: {}});
     const [filterOptions, setFilterOptions] = React.useState({});
     const [selectedColumn, setSelectedColumn] = React.useState({});
@@ -249,6 +273,20 @@ function CallbacksTablePreMemo(props){
             snackActions.warning(data);
         }
     });
+    const [updateTrigger] = useMutation(updateCallbackTriggerMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Updated Trigger Threshold");
+            }else{
+                snackActions.warning(data.updateCallback.error);
+            }
+
+        },
+        onError: data => {
+            console.log(data);
+            snackActions.warning(data);
+        }
+    })
     const [exportConfig] = useLazyQuery(exportCallbackConfigQuery, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
@@ -279,6 +317,10 @@ function CallbacksTablePreMemo(props){
     const taskingData = React.useRef({"parameters": "", "ui_feature": "callback_table:exit"});
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
     const [updateSetting] = useSetMythicSetting();
+    const onUpdateTrigger = (newTriggerValue) => {
+        updateTrigger({variables: {callback_display_id: openTriggerDialog.display_id, trigger_on_checkin_after_time: newTriggerValue}})
+        setOpenTriggerDialog({...openTriggerDialog, open: false});
+    }
     const onRowContextClick = ({rowDataStatic}) => {
         // based on row, return updated options array?
         let defaultInteractIcon = <KeyboardIcon style={{paddingRight: "5px"}}/>;
@@ -289,8 +331,10 @@ function CallbacksTablePreMemo(props){
         }
         return  [
             {
-                name: "Callback: " + rowDataStatic.display_id, icon: null, click: ({event}) => {},
-                type: "item", disabled: true
+                name: "Callback: " + rowDataStatic.display_id,
+                icon: null, click: ({event}) => {},
+                type: "item",
+                disabled: true
             },
             {
                 name: "Interact", icon: defaultInteractIcon, click: ({event}) => {
@@ -321,7 +365,7 @@ function CallbacksTablePreMemo(props){
                 }, type: "item"
             },
             {
-                name: "Exit Callback", icon: <FontAwesomeIcon icon={faSkullCrossbones} style={{color: theme.errorOnMain, cursor: "pointer", marginRight: "10px"}} />,
+                name: "Exit Callback", icon: <FontAwesomeIcon icon={faSkullCrossbones} style={{color: theme.palette.error.main, cursor: "pointer", marginRight: "8px"}} />,
                 click: ({event}) => {
                     taskingData.current = {
                         "parameters": "",
@@ -335,7 +379,8 @@ function CallbacksTablePreMemo(props){
                 }, type: "item"
             },
             {
-                name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback', icon: rowDataStatic.locked ? (<LockIcon color={"error"} style={{paddingRight: "5px"}}/>) : (<LockOpenIcon color={"success"} style={{paddingRight: "5px"}} />),
+                name: rowDataStatic.locked ? 'Unlock (Locked by ' + rowDataStatic.locked_operator.username + ')' : 'Lock Callback',
+                icon: rowDataStatic.locked ? (<LockIcon color={"error"} style={{paddingRight: "5px"}}/>) : (<LockOpenIcon color={"success"} style={{paddingRight: "5px"}} />),
                 click: ({event}) => {
                     event.stopPropagation();
                     if(rowDataStatic.locked){
@@ -344,6 +389,15 @@ function CallbacksTablePreMemo(props){
                         lockCallback({variables: {callback_display_id: rowDataStatic.display_id}})
                     }
                 }, type: "item"
+            },
+            {
+                name: rowDataStatic.trigger_on_checkin_after_time > 0 ? "Adjust Alert Trigger" : "Add New Alert Trigger",
+                type: "item",
+                icon: rowDataStatic.trigger_on_checkin_after_time > 0 ? (<NotificationsOffTwoToneIcon color={"warning"} style={{paddingRight: "5px"}} />) : (<NotificationsActiveTwoToneIcon color={"success"} style={{paddingRight: "5px"}}/>),
+                click: ({event}) => {
+                    event.stopPropagation();
+                    setOpenTriggerDialog({open: true, trigger_on_checkin_after_time: rowDataStatic.trigger_on_checkin_after_time, display_id: rowDataStatic.display_id})
+                }
             },
             {
                 name: "Browsers", icon: null, click: () => {}, type: "menu",
@@ -501,10 +555,6 @@ function CallbacksTablePreMemo(props){
         callbackDropdownRef.current.dropdownAnchorRef = event.currentTarget;
         setOpenCallbackDropdown(true);
     }
-    const onSubmitAdjustColumns = ({left, right}) => {
-      setColumnVisibility({visible: right, hidden: left});
-      updateSetting({setting_name: "callbacks_table_columns", value: right});
-    }
     React.useEffect( () => {
       // on startup, want to see if `callbacks_table_columns` exists in storage and load it if possible
       try {
@@ -529,28 +579,31 @@ function CallbacksTablePreMemo(props){
         }
       }catch(error){
         console.log("Failed to load callbacks_table_filter_options", error);
-    }
+      }
+        try {
+            const storageColumnOrder = GetMythicSetting({setting_name: "callbacks_table_column_order", default_value: callbackTableInitialColumns.map(c => c.name)});
+            if(storageColumnOrder !== null){
+                let newOrder = [];
+                for(let i = 0; i < storageColumnOrder.length; i++){
+                    for(let j = 0; j < columnOrder.length; j++){
+                        if(columnOrder[j].name === storageColumnOrder[i]){
+                            newOrder.push(columnOrder[j]);
+                            break;
+                        }
+                    }
+                }
+                if(newOrder.length === callbackTableInitialColumns.length){
+                    setColumnOrder(newOrder);
+                }
+            }
+        }catch(error){
+            console.log("Failed to load callbacks_table_filter_options", error);
+        }
+        setLoadingSettings(false);
     }, [])
     const columns = useMemo( 
-      () => 
-        [
-          {key: "id", type: 'number', name: "Interact", width: 120, disableDoubleClick: true},
-          {key: "mythictree_groups", type: 'array', name: "Groups"},
-          {key: "ip", type: 'ip', name: "IP", width: 150},
-          {key: "external_ip",type: 'string', name: "External IP", width: 150},
-          {key: "host", type: 'string', name: "Host", fillWidth: true},
-          {key: "user", type: 'string', name: "User", fillWidth: true},
-          {key: "domain", type: 'string', name: "Domain", fillWidth: true},
-          {key: "os", type: 'string', name: "OS", width: 45, disableDoubleClick: true, disableSort: true},
-          {key: "architecture", type: 'string', name: "Arch", width: 75},
-          {key: "pid", type: 'number', name: "PID", width: 75},
-          {key: "last_checkin", type: 'timestamp', name: "Last Checkin", width: 150, disableFilterMenu: true, disableDoubleClick: true},
-          {key: "description", type: 'string', name: "Description", width: 400},
-          {key: "sleep", type: 'string', name: "Sleep", width: 60, disableFilterMenu: true, disableSort: true, disableDoubleClick: true},
-          {key: "agent", type: 'agent', name: "Agent", width: 150},
-          {key: "c2", type: 'string', name: "C2", width: 45, disableSort: true, disableFilterMenu: true, disableDoubleClick: true},
-          {key: "process_short_name", type: 'string', name: "Process Name", fillWidth: true},
-        ].reduce( (prev, cur) => {
+      () =>
+          columnOrder.reduce( (prev, cur) => {
           if(columnVisibility.visible.includes(cur.name) || cur.name === "Interact"){
             if(filterOptions[cur.key] && String(filterOptions[cur.key]).length > 0){
                 return [...prev, {...cur, filtered: true}];
@@ -561,7 +614,7 @@ function CallbacksTablePreMemo(props){
               return [...prev];
           }
         }, [])
-      , [filterOptions, columnVisibility]
+      , [filterOptions, columnVisibility, columnOrder]
     );
     const onClickHeader = (e, columnIndex) => {
       const column = columns[columnIndex];
@@ -605,15 +658,11 @@ function CallbacksTablePreMemo(props){
             }
         },
         {
-            name: "Show/Hide Columns",
+            name: "Reorder Columns and Adjust Visibility",
             click: ({event, columnIndex}) => {
                 event.preventDefault();
                 event.stopPropagation();
-                if(columns[columnIndex].disableFilterMenu){
-                    snackActions.warning("Can't filter that column");
-                    return;
-                }
-                setOpenAdjustColumnsDialog(true);
+                setOpenReorderDialog(true);
             }
         }
     ];
@@ -814,7 +863,7 @@ function CallbacksTablePreMemo(props){
         onOpenTabs({tabs: newTabs});
         setOpenMultipleTabsDialog({open: false, tabType: "interact"});
     }
-    if(props.loading){
+    if(props.loading || loadingSettings){
       return (
           <div style={{width: '100%', height: '100%', position: "relative",}}>
               <div style={{overflowY: "hidden", flexGrow: 1}}>
@@ -828,6 +877,25 @@ function CallbacksTablePreMemo(props){
               </div>
           </div>
       )
+    }
+    const onSubmitColumnReorder = (newOrder) => {
+        let newVisible = [];
+        let newHidden = [];
+        for(let i = 0; i < newOrder.length; i++){
+            if(newOrder[i].visible){
+                newVisible.push(newOrder[i].name);
+            } else {
+                newHidden.push(newOrder[i].name);
+            }
+        }
+        updateSetting({setting_name: "callbacks_table_column_order", value: newOrder.map(c => c.name)});
+        setColumnOrder(newOrder);
+        setColumnVisibility({visible: newVisible, hidden: newHidden});
+        updateSetting({setting_name: "callbacks_table_columns", value: newVisible});
+        setOpenReorderDialog(false);
+    }
+    const onResetColumnReorder = () => {
+        onSubmitColumnReorder(callbackTableInitialColumns);
     }
     return (
         <div style={{width: '100%', height: '100%', position: "relative",}}>
@@ -940,16 +1008,6 @@ function CallbacksTablePreMemo(props){
                     />
                 </ClickAwayListener>
             }
-
-            {openAdjustColumnsDialog &&
-              <MythicDialog fullWidth={true} maxWidth="md" open={openAdjustColumnsDialog} 
-                onClose={()=>{setOpenAdjustColumnsDialog(false);}} 
-                innerDialog={
-                  <MythicTransferListDialog onClose={()=>{setOpenAdjustColumnsDialog(false);}} 
-                    onSubmit={onSubmitAdjustColumns} right={columnVisibility.visible} rightTitle="Show these columns"
-                    leftTitle={"Hidden Columns"} left={columnVisibility.hidden} dialogTitle={"Edit which columns are shown"}/>}
-              />
-          }
             {openHideMultipleDialog &&
                 <MythicDialog
                     fullWidth={true}
@@ -959,6 +1017,33 @@ function CallbacksTablePreMemo(props){
                     innerDialog={
                         <CallbacksTabsHideMultipleDialog onClose={() => {setOpenHideMultipleDialog(false);}} />
                     }
+                />
+            }
+            {openTriggerDialog.open &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="md"
+                    open={openTriggerDialog.open}
+                    onClose={() => {setOpenTriggerDialog({...openTriggerDialog, open: false});}}
+                    innerDialog={
+                        <CallbacksTableEditTriggerOnCheckinDialog
+                            onSubmit={onUpdateTrigger}
+                            trigger_on_checkin_after_time={openTriggerDialog.trigger_on_checkin_after_time}
+                            onClose={() => {setOpenTriggerDialog({...openTriggerDialog, open: false});}} />
+                    }
+                />
+            }
+            {openReorderDialog &&
+                <MythicDialog fullWidth={true} maxWidth="sm" open={openReorderDialog}
+                              onClose={()=>{setOpenReorderDialog(false);}}
+                              innerDialog={
+                                  <CallbacksTableColumnsReorderDialog
+                                      onClose={()=>{setOpenReorderDialog(false);}}
+                                      visible={columnVisibility.visible}
+                                      hidden={columnVisibility.hidden}
+                                      onReset={onResetColumnReorder}
+                                      onSubmit={onSubmitColumnReorder} initialItems={columnOrder}
+                                  />}
                 />
             }
             {openMultipleTabsDialog.open &&

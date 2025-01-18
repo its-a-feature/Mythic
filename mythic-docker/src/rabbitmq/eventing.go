@@ -328,6 +328,8 @@ func listenForEvents() {
 			processEventFinishAndNextStepStart(event)
 		case eventing.TriggerConditionalCheckResponse:
 			processEventFinishAndNextStepStart(event)
+		case eventing.TriggerCallbackCheckin:
+			go findEventGroupsToStart(event)
 		default:
 			logging.LogDebug("untracked trigger event", "trigger", event.Trigger)
 		}
@@ -429,6 +431,8 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 						continue
 					}
 				}
+			case eventing.TriggerCallbackCheckin:
+				fallthrough
 			case eventing.TriggerCallbackNew:
 				triggerDataNewCallback := TriggerDataFilterPayloadTypes{}
 				triggerData := possibleEventGroups[i].TriggerData.StructValue()
@@ -547,6 +551,8 @@ func getStepInstanceOutputs(eventNotification EventNotification, eventStepInstan
 	case eventing.ActionConditionalCheck:
 	case eventing.ActionInterceptTask:
 	case eventing.ActionInterceptResponse:
+	case eventing.ActionSendWebhook:
+	case eventing.ActionCreateAlert:
 	default:
 		logging.LogError(nil, "unknown action", "action", eventStepInstance.EventStep.Action)
 	}
@@ -1002,6 +1008,10 @@ func startEventStepInstance(eventStepInstanceID int) error {
 		return startEventStepInstanceActionCreateCallback(eventStepInstance, actionDataMap)
 	case eventing.ActionCreateTask:
 		return startEventStepInstanceActionCreateTask(eventStepInstance, actionDataMap)
+	case eventing.ActionCreateAlert:
+		return startEventStepInstanceActionCreateAlert(eventStepInstance, actionDataMap)
+	case eventing.ActionSendWebhook:
+		return startEventStepInstanceActionSendWebhook(eventStepInstance, actionDataMap)
 	case eventing.ActionCustomFunction:
 		return startEventStepInstanceActionCustomFunction(eventStepInstance, inputs, actionDataMap, groupEnv)
 	case eventing.ActionConditionalCheck:
@@ -1061,6 +1071,10 @@ func startEventStepInstanceActionCreateCallback(eventStepInstance databaseStruct
 		logging.LogError(nil, callbackCreateResponse.Error)
 		return errors.New(callbackCreateResponse.Error)
 	}
+	processEventFinishAndNextStepStart(EventNotification{
+		EventStepInstanceID: eventStepInstance.ID,
+		ActionSuccess:       true,
+	})
 	return nil
 }
 func startEventStepInstanceActionCreateTask(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
@@ -1100,6 +1114,76 @@ func startEventStepInstanceActionCreateTask(eventStepInstance databaseStructs.Ev
 	if creationResponse.Status != "success" {
 		return errors.New(creationResponse.Error)
 	}
+	return nil
+}
+func startEventStepInstanceActionCreateAlert(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
+	eventData := EventActionDataCreateAlert{}
+	err := mapstructure.Decode(actionDataMap, &eventData)
+	if err != nil {
+		logging.LogError(err, "failed to decode action data")
+		return err
+	}
+	go SendAllOperationsMessage(eventData.Alert, eventStepInstance.OperationID, eventData.Source, eventData.Level)
+	if eventData.SendWebhook {
+		databaseOperation := databaseStructs.Operation{ID: eventStepInstance.OperationID}
+		err = database.DB.Get(&databaseOperation, `SELECT "name", "webhook", "channel" FROM operation WHERE id=$1`, databaseOperation.ID)
+		if err != nil {
+			logging.LogError(err, "failed to get operation information")
+			return err
+		}
+		if err = RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
+			OperationID:      eventStepInstance.OperationID,
+			OperationName:    databaseOperation.Name,
+			OperationWebhook: databaseOperation.Webhook,
+			OperationChannel: databaseOperation.Channel,
+			OperatorUsername: "",
+			Action:           WEBHOOK_TYPE_CUSTOM,
+			Data: map[string]interface{}{
+				"alert":         eventData.Alert,
+				"webhook_alert": eventData.WebhookAlert,
+				"source":        eventData.Source,
+			},
+		}); err != nil {
+			logging.LogError(err, "Failed to send webhook")
+			return err
+		}
+	}
+	processEventFinishAndNextStepStart(EventNotification{
+		EventStepInstanceID: eventStepInstance.ID,
+		ActionSuccess:       true,
+	})
+	return nil
+}
+func startEventStepInstanceActionSendWebhook(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
+	eventData := EventActionDataSendWebhook{}
+	err := mapstructure.Decode(actionDataMap, &eventData)
+	if err != nil {
+		logging.LogError(err, "failed to decode action data")
+		return err
+	}
+	databaseOperation := databaseStructs.Operation{ID: eventStepInstance.OperationID}
+	err = database.DB.Get(&databaseOperation, `SELECT "name", "webhook", "channel" FROM operation WHERE id=$1`, databaseOperation.ID)
+	if err != nil {
+		logging.LogError(err, "failed to get operation information")
+		return err
+	}
+	if err = RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
+		OperationID:      eventStepInstance.OperationID,
+		OperationName:    databaseOperation.Name,
+		OperationWebhook: databaseOperation.Webhook,
+		OperationChannel: databaseOperation.Channel,
+		OperatorUsername: "",
+		Action:           WEBHOOK_TYPE_CUSTOM,
+		Data:             eventData.WebhookData,
+	}); err != nil {
+		logging.LogError(err, "Failed to send webhook")
+		return err
+	}
+
+	processEventFinishAndNextStepStart(EventNotification{
+		EventStepInstanceID: eventStepInstance.ID,
+		ActionSuccess:       true,
+	})
 	return nil
 }
 func startEventStepInstanceActionCustomFunction(eventStepInstance databaseStructs.EventStepInstance, inputs map[string]interface{},

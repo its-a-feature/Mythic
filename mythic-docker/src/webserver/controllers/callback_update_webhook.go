@@ -135,6 +135,16 @@ func UpdateCallbackWebhook(c *gin.Context) {
 				return
 			}
 		}
+		if input.Input.Input.TriggerOnCheckinAfterTime != nil {
+			if err = updateCallbackTriggerOnCheckinAfterTime(callback, *input.Input.Input.TriggerOnCheckinAfterTime); err != nil {
+				logging.LogError(err, "failed to update callback TriggerOnCheckinAfterTime")
+				c.JSON(http.StatusOK, UpdateCallbackResponse{
+					Status: "error",
+					Error:  err.Error(),
+				})
+				return
+			}
+		}
 		if input.Input.Input.Host != nil {
 			callback.Host = *input.Input.Input.Host
 		}
@@ -336,5 +346,21 @@ func updateCallbackIPs(callback databaseStructs.Callback, newIPs []string) error
 		logging.LogError(err, "Failed to update callback ip string")
 		return err
 	}
+	return nil
+}
+
+func updateCallbackTriggerOnCheckinAfterTime(callback databaseStructs.Callback, triggerOnCheckinAfterTime int) error {
+	newTriggerTime := 0
+	if triggerOnCheckinAfterTime > 0 {
+		newTriggerTime = triggerOnCheckinAfterTime
+	}
+	callback.TriggerOnCheckinAfterTime = newTriggerTime
+	_, err := database.DB.NamedExec(`UPDATE callback SET 
+				trigger_on_checkin_after_time=:trigger_on_checkin_after_time 
+                WHERE id=:id`, callback)
+	if err != nil {
+		return err
+	}
+	rabbitmq.UpdateCallbackInfoTriggerOnCheckin(callback.ID, newTriggerTime)
 	return nil
 }

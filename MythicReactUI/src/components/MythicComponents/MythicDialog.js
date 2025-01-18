@@ -87,6 +87,7 @@ export function MythicModifyStringDialog(props) {
                 theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
                 width="100%"
                 height="100%"
+                showPrintMargin={false}
                 wrapEnabled={props.wrap ? props.wrap : false}
                 minLines={props.maxRows ? props.maxRows : 10}
                 maxLines={props.maxRows ? props.maxRows : 10}
@@ -104,7 +105,7 @@ export function MythicModifyStringDialog(props) {
           </Button>
             {props.onSubmit &&
                 <Button onClick={onCommitSubmit} variant="contained" color="success">
-                    Submit
+                    {props.onSubmitText ? props.onSubmitText : "Submit"}
                 </Button>
             }
         </DialogActions>
@@ -181,7 +182,7 @@ export function MythicViewJSONAsTableDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title" style={{wordBreak: "break-all", maxWidth: "100%"}}>{props.title}</DialogTitle>
 
-          <TableContainer  className="mythicElement">
+          <TableContainer  className="mythicElement" style={{paddingLeft: "10px"}}>
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                   <TableHead>
                       <TableRow>

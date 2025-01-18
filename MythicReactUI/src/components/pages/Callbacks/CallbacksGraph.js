@@ -1,4 +1,4 @@
-import React, {useRef, useEffect, useState, useMemo, useContext} from 'react';
+import React, {useEffect, useState, useMemo, useContext} from 'react';
 import {DrawC2PathElementsFlowWithProvider} from './C2PathDialog';
 import {Button} from '@mui/material';
 import ButtonGroup from '@mui/material/ButtonGroup';
@@ -21,6 +21,8 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import {CallbackGraphEdgesContext, CallbacksContext, OnOpenTabContext} from './CallbacksTop';
 import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
+import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {operatorSettingDefaults} from "../../../cache";
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 1;
@@ -134,7 +136,7 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
                 </Button>
             </ButtonGroup>
             {showConfiguration &&
-                <FormControl sx={{ width: 200,  marginTop: "10px", backgroundColor: theme.palette.background.default}} >
+                <FormControl sx={{ width: 200,  backgroundColor: theme.palette.background.paper}} >
                     <InputLabel id="demo-chip-label">Group Callbacks By</InputLabel>
                     <Select
                         labelId="demo-chip-label"
@@ -155,7 +157,7 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
                 </FormControl>
             }
             {showConfiguration &&
-                <FormControl sx={{minWidth: 300, marginTop: "10px",backgroundColor: theme.palette.background.default}}>
+                <FormControl sx={{minWidth: 300, backgroundColor: theme.palette.background.paper}}>
                     <InputLabel id="demo-multiple-chip-label">Display Properties per Callback</InputLabel>
                     <Select
                         labelId="demo-multiple-chip-label"
@@ -201,10 +203,11 @@ const GraphViewOptions = ({viewConfig, setViewConfig}) => {
     )
 }
 export function CallbacksGraph({onOpenTab}){
-    const theme = useTheme();
     const callbacks = useContext(CallbacksContext);
     const callbackgraphedges = useContext(CallbackGraphEdgesContext);
     //used for creating a task to do a link command
+    const [loadingSettings, setLoadingSettings] = React.useState(true);
+    const [filterOptions, setFilterOptions] = React.useState({});
     const [linkCommands, setLinkCommands] = React.useState([]);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [openSelectLinkCommandDialog, setOpenSelectLinkCommandDialog] = React.useState(false);
@@ -363,14 +366,40 @@ export function CallbacksGraph({onOpenTab}){
                 }
             },
         ]}, [getLinkCommands, hideCallback, viewConfig, onOpenTab]);
-
+    React.useEffect( () => {
+        try {
+            const storageItemOptions = GetMythicSetting({setting_name: "callbacks_table_filter_options", default_value: operatorSettingDefaults.callbacks_table_filters});
+            if(storageItemOptions !== null){
+                setFilterOptions(storageItemOptions);
+            }
+        }catch(error){
+            console.log("Failed to load callbacks_table_filter_options", error);
+        }
+        setLoadingSettings(false);
+    }, []);
+    if(loadingSettings){
+        return (<div style={{width: '100%', height: '100%', position: "relative",}}>
+            <div style={{overflowY: "hidden", flexGrow: 1}}>
+                <div style={{
+                    position: "absolute",
+                    left: "35%",
+                    top: "40%"
+                }}>
+                    {"Loading Callbacks and Connections..."}
+                </div>
+            </div>
+        </div>)
+    }
     return (
         <div style={{maxWidth: "100%", "overflow": "hidden", height: "100%"}}>
 
             {manuallyRemoveEdgeDialogOpen &&
                 <MythicDialog fullWidth={true} maxWidth="sm" open={manuallyRemoveEdgeDialogOpen}
-                    onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}} 
-                    innerDialog={<MythicSelectFromListDialog onClose={()=>{setManuallyRemoveEdgeDialogOpen(false);}} identifier="id" display="display"
+                              onClose={() => {
+                                  setManuallyRemoveEdgeDialogOpen(false);
+                              }}
+                              innerDialog={<MythicSelectFromListDialog onClose={() => {
+                                  setManuallyRemoveEdgeDialogOpen(false);}} identifier="id" display="display"
                                         onSubmit={onSubmitManuallyRemoveEdge} options={edgeOptions} title={"Manually Remove Edge"} action={"remove"} />}
                 />
             }
@@ -395,8 +424,9 @@ export function CallbacksGraph({onOpenTab}){
                                         action={"select"} display={"display"} identifier={"display"}/>}
                 />
             }
-            <DrawC2PathElementsFlowWithProvider providedNodes={callbacks} edges={callbackgraphedges} view_config={viewConfig} theme={theme}
-                panel={<GraphViewOptions setViewConfig={setViewConfig} viewConfig={viewConfig} />} contextMenu={contextMenu}/>
+            <DrawC2PathElementsFlowWithProvider providedNodes={callbacks} edges={callbackgraphedges} view_config={viewConfig}
+                                                    filterOptions={filterOptions}
+                                                    panel={<GraphViewOptions setViewConfig={setViewConfig} viewConfig={viewConfig} />} contextMenu={contextMenu}/>
         </div>
     );
 }

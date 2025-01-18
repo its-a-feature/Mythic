@@ -15,7 +15,7 @@ export function MythicTextEditDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
-        <DialogContent dividers={true}>
+        <DialogContent dividers={true} style={{padding: 0}}>
             <AceEditor 
               mode="json"
               theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
@@ -24,6 +24,8 @@ export function MythicTextEditDialog(props) {
               showGutter={true}
               highlightActiveLine={true}
               value={props.value}
+              showPrintMargin={false}
+              wrapEnabled={true}
               focus={true}
               width={"100%"}
               setOptions={{

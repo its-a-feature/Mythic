@@ -266,23 +266,30 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                                 {
                                     selectedInstanceID === 0 ?
                                         (
-                                            <IconButton onClick={() => {setSelectedInstance(row.id);}} >
-                                                <CastConnectedTwoToneIcon  />
-                                            </IconButton>
-
+                                            <MythicStyledTooltip title={"View Graph Above"} >
+                                                <IconButton onClick={() => {setSelectedInstance(row.id);}} >
+                                                    <CastConnectedTwoToneIcon  />
+                                                </IconButton>
+                                            </MythicStyledTooltip>
                                         ) :
                                         (
-                                            <IconButton  onClick={() => {setSelectedInstance(0);}} >
-                                                <CancelTwoToneIcon  />
-                                            </IconButton>
+                                            <MythicStyledTooltip title={"Stop viewing graph"} >
+                                                <IconButton  onClick={() => {setSelectedInstance(0);}} >
+                                                    <CancelTwoToneIcon  />
+                                                </IconButton>
+                                            </MythicStyledTooltip>
                                         )
                                 }
-                                <IconButton  onClick={() => {openViewInstanceLargeDialog(row)}}>
-                                    <OpenInNewTwoToneIcon  />
-                                </IconButton>
-                                <IconButton  onClick={() => onSaveToClipboard(row)}>
-                                    <IosShareIcon />
-                                </IconButton>
+                                <MythicStyledTooltip title={"Open Graph in Modal"}>
+                                    <IconButton  onClick={() => {openViewInstanceLargeDialog(row)}}>
+                                        <OpenInNewTwoToneIcon  />
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                                <MythicStyledTooltip title={"Copy shareable link to workflow"}>
+                                    <IconButton  onClick={() => onSaveToClipboard(row)}>
+                                        <IosShareIcon />
+                                    </IconButton>
+                                </MythicStyledTooltip>
                             </div>
                         )
                     case "Event Group":

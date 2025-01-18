@@ -8,7 +8,7 @@ import Select from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
 import Switch from '@mui/material/Switch';
 import Input from '@mui/material/Input';
-import {Button, IconButton} from '@mui/material';
+import {Button, IconButton, MenuItem} from '@mui/material';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import TableHead from '@mui/material/TableHead';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
@@ -549,7 +549,6 @@ export function TaskParametersDialogRow(props){
                         <div style={{width: "100%", display: "flex", alignItems: "center"}}>
                             <FormControl style={{}}>
                                 <Select
-                                    native
                                     autoFocus={props.autoFocus}
                                     multiple={false}
                                     value={value}
@@ -559,7 +558,7 @@ export function TaskParametersDialogRow(props){
                                 >
                                     {
                                         ChoiceOptions.map((opt, i) => (
-                                            <option key={props.name + i} value={opt}>{opt}</option>
+                                            <MenuItem key={props.name + i} value={opt}>{opt}</MenuItem>
                                         ))
                                     }
                                 </Select>
@@ -703,7 +702,7 @@ export function TaskParametersDialogRow(props){
                 )
             case "Boolean":
                 return (
-                    <Switch checked={boolValue} onChange={onSwitchChange} />
+                    <Switch checked={boolValue} onChange={onSwitchChange} color={"info"} />
                 )
             case "File":
                 return (

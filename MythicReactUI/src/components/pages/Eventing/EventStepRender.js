@@ -1,5 +1,5 @@
 import React, {useCallback} from 'react';
-import {gql, useQuery, useSubscription, useMutation} from '@apollo/client';
+import {gql, useQuery, useSubscription, useMutation, useLazyQuery} from '@apollo/client';
 import Typography from '@mui/material/Typography';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -35,7 +35,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {b64DecodeUnicode} from "../../utilities/base64";
+import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
 import {APITokenRow} from "../Settings/SettingsOperatorAPITokenRow";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {DetailedPayloadTable} from "../Payloads/DetailedPayloadTable";
@@ -212,6 +212,10 @@ query getEventStepInstanceDetails($eventgroupinstance_id: Int!){
     }
     callback(where: {eventstepinstance: {eventgroupinstance_id: {_eq: $eventgroupinstance_id}}}) {
       display_id
+      user
+      host
+      pid
+      process_name
       id
     }
     filemeta(where: {eventstepinstance: {eventgroupinstance_id: {_eq: $eventgroupinstance_id}}}) {
@@ -284,17 +288,29 @@ export const GetStatusSymbol = ({data}) => {
     let style = {marginRight: "5px"};
     switch (data?.status || "") {
         case "success":
-            return <CheckCircleOutlineIcon color={"success"} style={{...style}}/>
+            return (<MythicStyledTooltip title={"Completed Successfully"}>
+                        <CheckCircleOutlineIcon color={"success"} style={{...style}}/>
+                    </MythicStyledTooltip>)
         case "running":
-            return <TimelapseIcon color={"info"} style={{...style}}/>
+            return (<MythicStyledTooltip title={"Running..."}>
+                        <TimelapseIcon color={"info"} style={{...style}}/>
+                    </MythicStyledTooltip>)
         case "error":
-            return <HighlightOffIcon color={"error"} style={{...style}}/>
+            return (<MythicStyledTooltip title={"Errored"}>
+                        <HighlightOffIcon color={"error"} style={{...style}}/>
+                    </MythicStyledTooltip>)
         case "cancelled":
-            return <HideSourceIcon color={"warning"} style={{...style}}/>
+            return (<MythicStyledTooltip title={"Canceled"}>
+                        <HideSourceIcon color={"warning"} style={{...style}}/>
+                    </MythicStyledTooltip>)
         case "skipped":
-            return <HideSourceIcon color={"info"} style={{...style}}/>
+            return (<MythicStyledTooltip title={"Skipped"}>
+                        <HideSourceIcon color={"info"} style={{...style}}/>
+                    </MythicStyledTooltip>)
         default:
-            return <PanoramaFishEyeIcon style={{...style}}/>
+            return (<MythicStyledTooltip title={"Waiting..."}>
+                        <PanoramaFishEyeIcon style={{...style}}/>
+                    </MythicStyledTooltip>)
     }
 }
 const GetTimeDuration = ({data, customStyle}) => {
@@ -384,7 +400,7 @@ export const EventStepRenderFlowWithProvider = (props) => {
     )
 }
 
-function EventStepRender({selectedEventGroup}) {
+function EventStepRender({selectedEventGroup, useSuppliedData}) {
     const theme = useTheme();
     const [steps, setSteps] = React.useState([]);
     const [nodes, setNodes] = React.useState([]);
@@ -403,7 +419,7 @@ function EventStepRender({selectedEventGroup}) {
         []
     );
     const viewportRef = React.useRef(null);
-    useQuery(getEventSteps, {
+    const [getEventStepsQuery] = useLazyQuery(getEventSteps, {
         variables: {eventgroup_id: selectedEventGroup.id},
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
@@ -413,6 +429,13 @@ function EventStepRender({selectedEventGroup}) {
 
         }
     });
+    React.useEffect( () => {
+        if(useSuppliedData){
+            setSteps(selectedEventGroup.steps);
+        } else {
+            getEventStepsQuery();
+        }
+    }, [])
     const contextMenu = React.useMemo(() => {return [
         {
             title: 'View Details',
@@ -454,7 +477,7 @@ function EventStepRender({selectedEventGroup}) {
         }, {});
         const tempNodes = steps.map(node => {
             return {
-                id: `${node.id}`,
+                id: useSuppliedData ? `${node.id}-${node.order}-${node.name}` : `${node.id}`,
                 position: {x: 0, y: 0},
                 type: "eventNode",
                 maxNameLength: maxNameLength[node.order],
@@ -463,7 +486,8 @@ function EventStepRender({selectedEventGroup}) {
                 extent: "parent",
                 data: {
                     label: node.name,
-                    ...node
+                    ...node,
+                    id: useSuppliedData ? `${node.id}-${node.order}-${node.name}` : `${node.id}`,
                 }
             }
         });
@@ -499,7 +523,7 @@ function EventStepRender({selectedEventGroup}) {
             }
         }
         for (let i = 0; i < tempNodes.length; i++) {
-            for (let j = 0; j < tempNodes[i].data.depends_on.length; j++) {
+            for (let j = 0; j < (tempNodes[i].data.depends_on?.length || 0); j++) {
                 let source = tempNodes[i].data;
                 let destination = {};
                 for (let k = 0; k < tempNodes.length; k++) {
@@ -593,9 +617,11 @@ function EventStepRender({selectedEventGroup}) {
                 onPaneClick={onPaneClick}
                 onNodeContextMenu={onNodeContextMenu}
             >
-                <Typography component={"h1"} style={{marginLeft: "10px"}}>
-                    EventGroup: {selectedEventGroup.id}
-                </Typography>
+                {selectedEventGroup.id > 0 &&
+                    <Typography component={"h1"} style={{marginLeft: "10px"}}>
+                        EventGroup: {selectedEventGroup.id}
+                    </Typography>
+                }
                 <Controls showInteractive={false}>
                 </Controls>
             </ReactFlow>
@@ -924,7 +950,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
     )
 }
 
-export function EventStepRenderDialog({selectedEventGroup, onClose}) {
+export function EventStepRenderDialog({selectedEventGroup, onClose, useSuppliedData}) {
     const theme = useTheme();
     return (
         <>
@@ -940,7 +966,7 @@ export function EventStepRenderDialog({selectedEventGroup, onClose}) {
                 </Typography>
             </DialogTitle>
             <DialogContent dividers={true} style={{height: "calc(75vh)"}}>
-                <EventStepRenderFlowWithProvider selectedEventGroup={selectedEventGroup}/>
+                <EventStepRenderFlowWithProvider selectedEventGroup={selectedEventGroup} useSuppliedData={useSuppliedData}/>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} variant="contained" color="primary">
@@ -948,7 +974,6 @@ export function EventStepRenderDialog({selectedEventGroup, onClose}) {
                 </Button>
             </DialogActions>
         </>
-
     )
 }
 export function EventStepInstanceRenderDialog({selectedEventGroup, selectedEventGroupInstance, onClose}) {
@@ -1369,12 +1394,15 @@ function EventGroupInstanceDetailDialog({selectedEventGroupInstance, onClose}) {
                         </Paper>
                         <Table>
                             <TableBody>
-                                {data.data.callback.map(trackedData => (
+                                {data.callback.map(trackedData => (
                                     <TableRow key={"callbacks" + trackedData.id} hover >
                                         <MythicStyledTableCell>
-                                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                                            Callback ID: <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                                                   href={"/new/callbacks/" + trackedData.display_id}>{trackedData.display_id}</Link>
                                         </MythicStyledTableCell>
+                                        <MythicTableCell>
+                                            {trackedData.user} @ {trackedData.host} ( {trackedData.pid} )
+                                        </MythicTableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

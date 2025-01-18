@@ -11,6 +11,7 @@ import Split from 'react-split';
 import PhoneForwardedIcon from '@mui/icons-material/PhoneForwarded';
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {ImportCallbackConfigDialog} from "./ImportCallbackConfigDialog";
+import {reorder} from "../../MythicComponents/MythicDraggableList";
 
 const PREFIX = 'Callbacks';
 
@@ -233,6 +234,14 @@ export function Callbacks({me}) {
             }
         },
     ];
+    const onDragEnd = ({ destination, source }) => {
+        // dropped outside the list
+        console.log("called onDragEnd");
+        if (!destination) return;
+        const newItems = reorder(openTabs, source.index, destination.index);
+        setOpenTabs(newItems);
+        localStorage.setItem('openTabs', JSON.stringify(newItems));
+    };
     return (
         <>
             <SpeedDialWrapper setTopDisplay={setTopDisplay} />
@@ -259,6 +268,7 @@ export function Callbacks({me}) {
                         openTabs={openTabs}
                         onDragTab={onDragTab}
                         me={me}
+                        onDragEnd={onDragEnd}
                         contextMenuOptions={contextMenuOptions}
                     />
                 </div>

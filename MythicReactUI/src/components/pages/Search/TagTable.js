@@ -28,13 +28,13 @@ export function TagTable(props){
         setTags(newTags);
     }
     return (
-        <TableContainer className="mythicElement" >
+        <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}} >
             <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "4rem"}}>Delete</TableCell>
                         <TableCell style={{width: "20%"}}>TagType</TableCell>
-                        <TableCell style={{width: "20%"}}>Source</TableCell>
+                        <TableCell style={{width: "8rem"}}>Source</TableCell>
                         <TableCell>Tagged Element Information</TableCell>
                     </TableRow>
                 </TableHead>

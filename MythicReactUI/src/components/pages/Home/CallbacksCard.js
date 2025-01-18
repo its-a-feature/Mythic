@@ -1,5 +1,4 @@
 import React from 'react';
-import Paper from '@mui/material/Paper';
 import { useLazyQuery, gql} from '@apollo/client';
 import { PieChart, pieArcLabelClasses } from '@mui/x-charts/PieChart';
 import {useTheme} from '@mui/material/styles';
@@ -703,9 +702,8 @@ const PieChartCard = ({data, width="100%", additionalStyles, innerElement, hidde
     top: 10,
     bottom: 10,
 }, colors=cheerfulFiestaPalette, onClick}) => {
-    const theme = useTheme();
     return (
-        <Paper elevation={5} style={{
+        <div style={{
             marginBottom: "5px",
             marginTop: "5px",
             marginRight: "5px",
@@ -713,7 +711,7 @@ const PieChartCard = ({data, width="100%", additionalStyles, innerElement, hidde
             height: "100%",
             border: "1px solid gray",
             overflow: "hidden",
-        }} variant={"elevation"}>
+        }} >
             <PieChart
                 series={[
                     {
@@ -757,7 +755,7 @@ const PieChartCard = ({data, width="100%", additionalStyles, innerElement, hidde
             >
                 {innerElement}
             </PieChart>
-        </Paper>
+        </div>
     )
 }
 const PieMultiChartCard = ({data, width="100%", hidden, title, margin={
@@ -767,14 +765,15 @@ const PieMultiChartCard = ({data, width="100%", hidden, title, margin={
     bottom: 10,
 }, colors=cheerfulFiestaPalette, onClick}) => {
     return (
-        <Paper elevation={5} style={{
+        <div style={{
             marginBottom: "5px",
             marginTop: "5px",
+            marginLeft: "5px",
             width: width,
             height: "100%",
             border: "1px solid gray",
             overflow: "hidden",
-        }} variant={"elevation"}>
+        }}>
             <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0, position: "absolute"}}>
                 {title}
             </h3>
@@ -810,12 +809,12 @@ const PieMultiChartCard = ({data, width="100%", hidden, title, margin={
                 onClick={onClick}
             >
             </PieChart>
-        </Paper>
+        </div>
     )
 }
 const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondaryElement, width="100%"}) => {
     return (
-        <Paper elevation={5} style={{
+        <div style={{
             marginBottom: "5px",
             marginTop: "5px",
             marginLeft: "0px",
@@ -823,7 +822,7 @@ const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondaryElement
             height: 202,
             border: "1px solid gray",
             overflow: "hidden",
-        }} variant={"elevation"}>
+        }}>
             <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
                 {mainTitle}
             </h3>
@@ -832,13 +831,13 @@ const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondaryElement
                 {secondTitle}
             </h3>
             {secondaryElement}
-        </Paper>
+        </div>
     )
 }
 const TableDataCard = ({data, title, leftColumnTitle, rightColumnTitle, leftKey, rightKey, width="100%", onRowClick}) => {
     const theme = useTheme();
     return (
-        <Paper elevation={5} style={{
+        <div style={{
             marginBottom: "5px",
             marginTop: "5px",
             marginLeft: "5px",
@@ -847,7 +846,7 @@ const TableDataCard = ({data, title, leftColumnTitle, rightColumnTitle, leftKey,
             border: "1px solid gray",
             display: "flex",
             flexDirection: "column",
-        }} variant={"elevation"}>
+        }} >
             <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
                 {title}
             </h3>
@@ -870,7 +869,7 @@ const TableDataCard = ({data, title, leftColumnTitle, rightColumnTitle, leftKey,
                 </TableBody>
             </Table>
             </div>
-        </Paper>
+        </div>
     )
 }
 const LineTimeChartCard = ({data, additionalStyles}) => {
@@ -903,14 +902,14 @@ const LineTimeChartCard = ({data, additionalStyles}) => {
         }
     };
     return (
-        <Paper elevation={5} style={{
+        <div style={{
             marginBottom: "5px",
             marginTop: "10px",
             width: "100%",
             height: "100%",
             border: "1px solid gray",
             overflow: "hidden",
-        }} variant={"elevation"}>
+        }} >
             <Typography variant={"h3"} style={{margin: 0, padding: 0, position: "relative", left: "30%"}}>
                 Tasks Issued per Day
             </Typography>
@@ -963,7 +962,7 @@ const LineTimeChartCard = ({data, additionalStyles}) => {
                 max={range[1]}
                 sx={{ mt: 2, width: "80%", left: "10%" }}
             />
-        </Paper>
+        </div>
 
     )
 }
@@ -1013,12 +1012,12 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
         }
     }
     return (
-        <Paper elevation={5} style={{
+        <div style={{
             width: "100%",
             height: "100%",
             border: "1px solid gray",
             overflow: "hidden",
-        }} variant={"elevation"}>
+        }} >
             <Typography variant={"h3"} style={{margin: 0, padding: 0, position: "relative", left: "30%"}}>
                 Activity per Day {view_utc_time ? "( UTC )" : "( " + Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone + " )"}
             </Typography>
@@ -1072,7 +1071,7 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
                 max={range[1]}
                 sx={{ mt: 2, width: "80%", left: "10%" }}
             />
-        </Paper>
+        </div>
 
     )
 }
@@ -1082,7 +1081,7 @@ const StackedBarChartCard = ({data, labels, title, width="100%", hidden, colors=
     bottom: 10,
 }}) => {
     return (
-        <Paper elevation={5} style={{
+        <div style={{
             marginBottom: "5px",
             marginTop: "5px",
             marginLeft: "5px",
@@ -1090,7 +1089,7 @@ const StackedBarChartCard = ({data, labels, title, width="100%", hidden, colors=
             height: "100%",
             border: "1px solid gray",
             overflow: "hidden",
-        }} variant={"elevation"}>
+        }} >
             <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0, position: "absolute"}}>
                 {title}
             </h3>
@@ -1124,6 +1123,6 @@ const StackedBarChartCard = ({data, labels, title, width="100%", hidden, colors=
                     },
                 }}
             />
-        </Paper>
+        </div>
     )
 }
