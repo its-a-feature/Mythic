@@ -201,7 +201,7 @@ export function Callbacks({me}) {
                     newOpenTabList.push(openTabs[targetTabIndex]);
                     newOpenTabList.push(openTabs[i]);
                 }
-                
+
                 setClickedTabId(openTabs[targetTabIndex].tabID)
             } else {
                 newOpenTabList.push(openTabs[i]);
@@ -236,7 +236,6 @@ export function Callbacks({me}) {
     ];
     const onDragEnd = ({ destination, source }) => {
         // dropped outside the list
-        console.log("called onDragEnd");
         if (!destination) return;
         const newItems = reorder(openTabs, source.index, destination.index);
         setOpenTabs(newItems);

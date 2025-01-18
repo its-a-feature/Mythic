@@ -17,6 +17,9 @@ import {deleteTagMutation} from '../../MythicComponents/MythicTag';
 import {useMutation} from '@apollo/client';
 import {snackActions} from "../../utilities/Snackbar";
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {HostFileDialog} from "../Payloads/HostFileDialog";
+import PublicIcon from '@mui/icons-material/Public';
 
 export function TagTable(props){
     const [tags, setTags] = React.useState([]);
@@ -93,7 +96,7 @@ function TagTableRow(props){
 }
 function TagTableRowElement(props){
     const [viewPermissionsDialogOpen, setViewPermissionsDialogOpen] = React.useState(false);
-
+    const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const getElement = () => {
         if(props.task) {
             return (
@@ -248,7 +251,24 @@ function TagTableRowElement(props){
                                     {b64DecodeUnicode(props.filemetum.full_remote_path_text)}
                                 </TableCell>
                             </TableRow>
+                            <TableRow hover>
+                                <TableCell>File Hosting</TableCell>
+                                <TableCell>
+                                    <MythicStyledTooltip title={"Host Payload Through C2"} >
+                                        <PublicIcon color={"info"} style={{marginLeft: "20px", cursor: "pointer"}} onClick={()=>{setOpenHostDialog(true);}}  />
+                                    </MythicStyledTooltip>
+                                </TableCell>
+                            </TableRow>
                         </TableBody>
+
+                        {openHostDialog &&
+                            <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
+                                          onClose={()=>{setOpenHostDialog(false);}}
+                                          innerDialog={<HostFileDialog file_uuid={props.filemetum.agent_file_id}
+                                                                       file_name={props.filemetum.full_remote_path_text === "" ? b64DecodeUnicode(props.filemetum.filename_text) : b64DecodeUnicode(props.filemetum.full_remote_path_text)}
+                                                                       onClose={()=>{setOpenHostDialog(false);}} />}
+                            />
+                        }
                     </Table>
                 </TableContainer>
             )
