@@ -5,6 +5,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 const DraggableHandles = React.forwardRef(({ height, rowHeight, width, minColumnWidth, columnWidths, onStop }, ref) => {
     const [isDragging, setIsDragging] = useState(-1);
+    const nodeRef = React.useRef(null);
     return (
         <div
             ref={ref}
@@ -40,7 +41,7 @@ const DraggableHandles = React.forwardRef(({ height, rowHeight, width, minColumn
                             onStop(data.x, i);
                         }}>
                             <MoreVertIcon
-                                ref={ref}
+                                ref={nodeRef}
                                 className={isDragging === i ? classes.draggableHandlesClickAreaSelected : classes.draggableHandlesClickArea}
                                 style={{
                                     left: leftOffset + columnWidths[i] - 1 - 7,
