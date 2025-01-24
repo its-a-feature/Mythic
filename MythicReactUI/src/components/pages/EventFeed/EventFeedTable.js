@@ -29,7 +29,7 @@ const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
 export function EventFeedTable(props){
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
-    const [level, setLevel] = React.useState("All Levels");
+    const [level, setLevel] = React.useState("info");
     const levelOptions = [
         "All Levels", "warning (unresolved)", "warning (resolved)", "info", "debug", "api"
     ];

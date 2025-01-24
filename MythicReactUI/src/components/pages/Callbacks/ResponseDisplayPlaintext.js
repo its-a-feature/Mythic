@@ -182,6 +182,7 @@ export const ResponseDisplayPlaintext = (props) =>{
                       height={props.expand ? "100%": undefined}
                       maxLines={props.expand ? undefined : 20}
                       width={"100%"}
+                      //style={{backgroundColor: "transparent"}}
                       //autoScrollEditorIntoView={true}
                       wrapEnabled={wrapText}
                       minLines={1}

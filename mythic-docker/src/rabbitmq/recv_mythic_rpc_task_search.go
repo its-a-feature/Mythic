@@ -91,11 +91,11 @@ func MythicRPCTaskSearch(input MythicRPCTaskSearchMessage) MythicRPCTaskSearchMe
 	}
 	if input.SearchParams != nil {
 		if !setAnySearchValues {
-			searchString += `WHERE task.original_params ILIKE %:params% `
+			searchString += `WHERE task.original_params ILIKE :params `
 		} else {
-			searchString += `AND task.original_params ILIKE %:params% `
+			searchString += `AND task.original_params ILIKE :params `
 		}
-		paramDict["params"] = *input.SearchParams
+		paramDict["params"] = "%" + *input.SearchParams + "%"
 		setAnySearchValues = true
 	}
 	if input.SearchTaskID != nil {

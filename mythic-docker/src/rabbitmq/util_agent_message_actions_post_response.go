@@ -1324,6 +1324,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 		newFileMeta := fileMeta
 		newFileMeta.TaskID.Int64 = int64(task.ID)
 		newFileMeta.TaskID.Valid = true
+		newFileMeta.Comment = fmt.Sprintf("Newly tracked copy of file: %s", fileMeta.AgentFileID)
 		newFileMeta.AgentFileID = uuid.NewString()
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
 			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,comment,operator_id,

@@ -37,7 +37,7 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
 		return
 	}
-	err = database.DB.Get(&task, `SELECT status, operation_id, eventstepinstance_id FROM task WHERE id=$1`, task.ID)
+	err = database.DB.Get(&task, `SELECT * FROM task WHERE id=$1`, task.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to find task from create_tasking")
 		go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_WARNING)
@@ -67,11 +67,11 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		updateColumns = append(updateColumns, "display_params=:display_params")
 	}
 	if payloadMsg.Stdout != nil {
-		task.Stdout = *payloadMsg.Stdout
+		task.Stdout += *payloadMsg.Stdout
 		updateColumns = append(updateColumns, "stdout=:stdout")
 	}
 	if payloadMsg.Stderr != nil {
-		task.Stderr = *payloadMsg.Stderr
+		task.Stderr += *payloadMsg.Stderr
 		updateColumns = append(updateColumns, "stderr=:stderr")
 	}
 	if payloadMsg.Completed != nil {

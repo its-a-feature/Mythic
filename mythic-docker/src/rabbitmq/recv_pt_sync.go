@@ -384,7 +384,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		}
 		if err := database.DB.Get(&translationContainer, `SELECT id FROM translationcontainer WHERE "name"=$1`, translationContainer.Name); err != nil {
 			logging.LogError(err, "Failed to find corresponding translation container for payload type")
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to find translation container, %s, for %s", translationContainer.Name, payloadtype.Name), 0, "", "warning")
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to find translation container, %s, for %s", translationContainer.Name, payloadtype.Name), 0, "", database.MESSAGE_LEVEL_WARNING)
 		} else if _, err = database.DB.Exec(`UPDATE payloadtype SET translation_container_id=$1 WHERE id=$2`, translationContainer.ID, payloadtype.ID); err != nil {
 			logging.LogError(err, "Failed to associate translation container with payload type")
 		} else {
@@ -397,11 +397,14 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		// translation container information potentially changed, invalidate all the caches and re-do them with the updates
 		InvalidateAllCachedUUIDInfo()
 	}
-	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "debug", "info")
+	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG)
 	go database.ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
 	checkContainerStatusAddPtChannel <- payloadtype
 	if !in.ForcedSync {
 		go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(payloadtype.Name)
+		if in.PayloadType.AgentType == "command_augment" {
+			go updateAllCallbacksWithCommandAugments(in.PayloadType.Name)
+		}
 	}
 	return nil
 }
@@ -1230,7 +1233,7 @@ func updatePayloadTypeCommandMitreAttack(in PayloadTypeSyncMessage, syncCommand 
 				logging.LogError(err, "Failed to find ATT&CK TNum", "t_num", newMitreAttack)
 				SendAllOperationsMessage(
 					fmt.Sprintf("%s:%s - Failed to find ATT&CK TNum: %s", in.PayloadType.Name, syncCommand.Name, newMitreAttack),
-					0, "", "warning")
+					0, "", database.MESSAGE_LEVEL_WARNING)
 			} else {
 				if _, err := database.DB.NamedExec(`INSERT INTO
 					attackcommand (attack_id, command_id)
@@ -1276,6 +1279,22 @@ func updatePayloadBuildSteps(in PayloadTypeSyncMessage, payloadtype databaseStru
 	}
 }
 
+func updateAllCallbacksWithCommandAugments(payloadTypeName string) {
+	callbacks := []databaseStructs.Callback{}
+	err := database.DB.Select(&callbacks, `SELECT
+    	callback.id, callback.operator_id,
+    	payload.os "payload.os"
+    	FROM callback
+    	JOIN payload on callback.registered_payload_id = payload.id`)
+	if err != nil {
+		logging.LogError(err, "failed to get callbacks for updating with newly synced command augmentation container")
+		return
+	}
+	for _, callback := range callbacks {
+		addCommandAugmentsToCallback(callback.ID, callback.Payload.Os, payloadTypeName, callback.OperatorID)
+	}
+
+}
 func reSyncPayloadTypes() {
 	payloadTypes := []databaseStructs.Payloadtype{}
 	if err := database.DB.Select(&payloadTypes, `SELECT

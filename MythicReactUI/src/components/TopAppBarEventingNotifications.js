@@ -36,7 +36,6 @@ export function TopAppBarEventingNotifications(props) {
         setTotalRunning(newRunningCounts);
       },
     onError: data => {
-        snackActions.error("Mythic encountered an error getting eventing counts: " + data.toString());
         console.error(data);
     }
   });
@@ -50,7 +49,7 @@ export function TopAppBarEventingNotifications(props) {
                     disableRipple={true}
                     to='/new/Eventing'>
                     {error ? (
-                        <Badge color="secondary" badgeContent={0}>
+                        <Badge color="secondary" badgeContent={"X"}>
                             <PlayCircleFilledTwoToneIcon fontSize={"large"}  />
                         </Badge>
                     ) : (

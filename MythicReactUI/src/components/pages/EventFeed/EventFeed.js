@@ -96,7 +96,7 @@ export function EventFeed(props){
   const [operationeventlog, setOperationEventLog] = React.useState([]);
   const [fromNow, setFromNow] = React.useState((new Date()).toISOString());
   const [search, setSearch] = React.useState("");
-  const [level, setLevel] = React.useState("All Levels");
+  const [level, setLevel] = React.useState("info");
   useSubscription(SUB_Event_Feed, {
     variables: {fromNow}, fetchPolicy: "no-cache",
     onData: ({data}) => {

@@ -15,7 +15,7 @@ import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 
-export const mythicUIVersion = "0.3.1";
+export const mythicUIVersion = "0.3.2";
 
 let fetchingNewToken = false;
 
@@ -36,9 +36,8 @@ let cache = new InMemoryCache({
 
 let retryLink = new RetryLink({
   delay: {
-    initial: 20,
-    max: 300,
-    jitter: true
+    initial: 2,
+    max: 10
   },
   attempts: {
     max: 2,
@@ -121,7 +120,7 @@ const authLink = setContext( async (_, {headers}) => {
       //console.log(decoded_token);
       // JWT lifetime is 4 hours. If there's 2hrs or less left of the JWT, update it
       let diff = (decoded_token.exp * 1000) - getSkewedNow();
-      let twoHours = 7200000; // 2 hours in miliseconds, this is half the JWT lifetime
+      let twoHours = 30 * 60000; // 30min in milliseconds
       // we want to make sure we try to get a new access_token while the current one is still active or it'll fail
       if(!isJWTValid()){
           console.log("token is no longer valid, try to get a new token");
@@ -210,9 +209,9 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
       console.log(networkError.extensions, networkError.message);
       
       if(networkError.extensions === undefined){
-        snackActions.error("Failed to connect to Mythic, please refresh");
-        FailedRefresh();
-        window.location = "/new/login";
+        meState({...meState(), badConnection: true});
+        //FailedRefresh();
+        //window.location = "/new/login";
         return;
       }
       switch (networkError.extensions.code) {
@@ -295,7 +294,17 @@ const websocketAddress = () =>{
 }
 const wsClient = createClient({
     url: websocketAddress(),
-    reconnectionAttempts: 10,
+    reconnectionAttempts: 3,
+    on: {
+      error: (err) => {
+          console.log("in on.error", err);
+          meState({...meState(), badConnection: true});
+      },
+      connected: (socket) => {
+          console.log("in on.connected", socket);
+          meState({...meState(), badConnection: false});
+      }
+    },
     connectionParams: () => {
         return {
             Authorization: `Bearer ${localStorage.getItem('access_token')}`,

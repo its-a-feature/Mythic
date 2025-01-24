@@ -167,9 +167,9 @@ tspan {
         linear-gradient(90deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-x,
         linear-gradient(90deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-x,
         linear-gradient(0deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-y,
-        linear-gradient(0deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-y;
-    background-size: 8px 3px, 8px 3px, 3px 8px, 3px 8px;
-    background-position: 0 0, 0 100%, 0 0, 100% 0; // top bottom left right
+        linear-gradient(0deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-y  !important;
+    background-size: 8px 3px, 8px 3px, 3px 8px, 3px 8px  !important;
+    background-position: 0 0, 0 100%, 0 0, 100% 0  !important; // top bottom left right
 }
 
 *::-webkit-scrollbar {
@@ -336,5 +336,11 @@ tspan {
 }
 .MuiTabs-scrollButtons.Mui-disabled {
   opacity: 0.3;
+}
+.ace_editor{
+    //background: transparent;
+}
+.ace_gutter {
+    //background: transparent !important;
 }
 `

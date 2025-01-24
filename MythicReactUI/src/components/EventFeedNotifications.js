@@ -30,7 +30,7 @@ export function EventFeedNotifications(props) {
         fetchPolicy: "no-cache",
         shouldResubscribe: true,
         onError: (errorData) => {
-            snackActions.warning("Failed to get event notifications");
+           console.log(errorData);
         }
     });
 
@@ -63,7 +63,6 @@ export function EventFeedNotifications(props) {
             }
         }else if(error){
             console.error(error);
-            snackActions.error("Mythic encountered an error getting operational event stream", {autoHideDuration: 2000});
         }
     }, [loading, data, error, me.user?.id]);
     return null;

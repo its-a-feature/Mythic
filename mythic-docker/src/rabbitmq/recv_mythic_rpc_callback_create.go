@@ -308,7 +308,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 	}
 	addCommandAugmentsToCallback(callback.ID, payload.Os, payload.Payloadtype.Name, callback.OperatorID)
 	operationsMsg := fmt.Sprintf("New Callback (%d) %s@%s with pid %d", callback.DisplayID, callback.User, callback.Host, callback.PID)
-	go SendAllOperationsMessage(operationsMsg, callback.OperationID, "", "info")
+	go SendAllOperationsMessage(operationsMsg, callback.OperationID, "", database.MESSAGE_LEVEL_INFO)
 	// prep data to send for log messages and webhook messages
 	webhookData := NewCallbackWebhookData{
 		User:           callback.User,
@@ -410,7 +410,8 @@ func addCommandAugmentsToCallback(callbackID int, payloadOS string, payloadType 
 			if builtin || suggested {
 				_, err = database.DB.Exec(`INSERT INTO loadedcommands  
                                (command_id, callback_id, operator_id, version)
-                               VALUES ($1, $2, $3, $4)`,
+                               VALUES ($1, $2, $3, $4)
+                               ON CONFLICT DO NOTHING`,
 					commandAugmentCommands[j].ID, callbackID, operatorID, commandAugmentCommands[j].Version)
 				if err != nil {
 					logging.LogError(err, "failed to add loaded command to callback")

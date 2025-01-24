@@ -674,7 +674,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 
 		}
 		return cachedUUIDInfoMap[messageUUID+c2profile], nil
-	} else if _, ok := cachedUUIDInfoMap[messageUUID]; ok {
+	} else if _, ok = cachedUUIDInfoMap[messageUUID]; ok {
 		// we found an instance of the cache info with payload encryption data
 		if cachedUUIDInfoMap[messageUUID].UUIDType == "callback" {
 			if updateCheckinTime {

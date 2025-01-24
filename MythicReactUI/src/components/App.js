@@ -243,6 +243,19 @@ export function App(props) {
                                     {me?.user?.current_operation_banner_text}
                                 </Typography>
                             }
+                            {me.loggedIn && me?.badConnection
+                                &&
+                                <Typography style={{
+                                    backgroundColor: theme.palette.error.main,
+                                    width: "100%",
+                                    textAlign: "center",
+                                    fontWeight: "600",
+                                    color: "white",
+                                    border: `1px solid ${theme.topAppBarColor || "grey"}`
+                                }}>
+                                    {"Can't connect to Mythic. Please check connection and refresh"}
+                                </Typography>
+                            }
                             <div style={{
                                 margin: '0px 0px 0px 0px',
                                 flexGrow: 1,

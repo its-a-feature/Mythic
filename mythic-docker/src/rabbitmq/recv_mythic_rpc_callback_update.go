@@ -13,26 +13,28 @@ import (
 )
 
 type MythicRPCCallbackUpdateMessage struct {
-	AgentCallbackUUID *string   `json:"agent_callback_id"` // required
-	CallbackID        *int      `json:"callback_id"`
-	TaskID            *int      `json:"task_id"`
-	EncryptionKey     *[]byte   `json:"encryption_key,omitempty"`
-	DecryptionKey     *[]byte   `json:"decryption_key,omitempty"`
-	CryptoType        *string   `json:"crypto_type,omitempty"`
-	User              *string   `json:"user,omitempty"`
-	Host              *string   `json:"host,omitempty"`
-	PID               *int      `json:"pid,omitempty"`
-	ExtraInfo         *string   `json:"extra_info,omitempty"`
-	SleepInfo         *string   `json:"sleep_info,omitempty"`
-	Ip                *string   `json:"ip,omitempty"`
-	IPs               *[]string `json:"ips,omitempty"`
-	ExternalIP        *string   `json:"external_ip,omitempty"`
-	IntegrityLevel    *int      `json:"integrity_level,omitempty"`
-	Os                *string   `json:"os,omitempty"`
-	Domain            *string   `json:"domain,omitempty"`
-	Architecture      *string   `json:"architecture,omitempty"`
-	Description       *string   `json:"description,omitempty"`
-	ProcessName       *string   `json:"process_name,omitempty"`
+	AgentCallbackUUID                 *string   `json:"agent_callback_id"` // required
+	CallbackID                        *int      `json:"callback_id"`
+	TaskID                            *int      `json:"task_id"`
+	EncryptionKey                     *[]byte   `json:"encryption_key,omitempty"`
+	DecryptionKey                     *[]byte   `json:"decryption_key,omitempty"`
+	CryptoType                        *string   `json:"crypto_type,omitempty"`
+	User                              *string   `json:"user,omitempty"`
+	Host                              *string   `json:"host,omitempty"`
+	PID                               *int      `json:"pid,omitempty"`
+	ExtraInfo                         *string   `json:"extra_info,omitempty"`
+	SleepInfo                         *string   `json:"sleep_info,omitempty"`
+	Ip                                *string   `json:"ip,omitempty"`
+	IPs                               *[]string `json:"ips,omitempty"`
+	ExternalIP                        *string   `json:"external_ip,omitempty"`
+	IntegrityLevel                    *int      `json:"integrity_level,omitempty"`
+	Os                                *string   `json:"os,omitempty"`
+	Domain                            *string   `json:"domain,omitempty"`
+	Architecture                      *string   `json:"architecture,omitempty"`
+	Description                       *string   `json:"description,omitempty"`
+	ProcessName                       *string   `json:"process_name,omitempty"`
+	UpdateLastCheckinTime             *bool     `json:"update_last_checkin_time,omitempty"`
+	UpdateLastCheckinTimeViaC2Profile *string   `json:"update_last_checkin_time_via_c2_profile,omitempty"`
 }
 type MythicRPCCallbackUpdateMessageResponse struct {
 	Success bool   `json:"success"`
@@ -161,10 +163,23 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 		logging.LogError(err, "Failed to update callback information")
 		response.Error = err.Error()
 		return response
-	} else {
-		response.Success = true
-		return response
 	}
+	if input.UpdateLastCheckinTime != nil && *input.UpdateLastCheckinTime {
+		if input.UpdateLastCheckinTimeViaC2Profile == nil {
+			response.Success = false
+			response.Error = "When asking to update the last checkin time, you must also supply the UpdateLastCheckinTimeViaC2Profile parameter with the name of the c2 profile that callback is using"
+			return response
+		}
+		_, err := LookupEncryptionData(*input.UpdateLastCheckinTimeViaC2Profile, callback.AgentCallbackID, true)
+		if err != nil {
+			response.Success = false
+			response.Error = err.Error()
+			return response
+		}
+	}
+	response.Success = true
+	return response
+
 }
 func processMythicRPCCallbackUpdate(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCCallbackUpdateMessage{}

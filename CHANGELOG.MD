@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc37] - 2025-01-24
+
+### Changed
+
+- Updated the comment added to files automatically tracked due to a secondary task fetching them
+- Updating the onStart code to not delay and automatically fire for containers
+- Updated the MythicRPCTaskSearch and MythicRPCFileSearch commands due to broken logic
+- Added fields for the MythicRPCCallbackUpdate to indicate if the last_checkin time should be updated
+  - This requires also specifying which c2 profile the callback is using
+  - UpdateLastCheckinTime and UpdateLastCheckinTimeViaC2Profile
+- Updated the CommandAugment container sync code to automatically add commands to existing callbacks, not just new ones
+- Updated container sync messages to the "debug" level instead of "info" level
+- Updated the task's creation completion handler to append new stdout output instead of overwriting
+
 ## [3.3.1-rc36] - 2025-01-18
 
 ### Changed

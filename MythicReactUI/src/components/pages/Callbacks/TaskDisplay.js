@@ -840,7 +840,6 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
     }
 
   }
-
   const onClickEntry = (e) => {
     if(showOnSelectTask){
       onSelectTask(e);

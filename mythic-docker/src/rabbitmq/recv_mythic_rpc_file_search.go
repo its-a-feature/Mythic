@@ -107,53 +107,32 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 		callbackId = 0
 	}
 	files := []databaseStructs.Filemeta{}
-	if input.Comment != "" {
-		if input.Comment == "*" {
-			input.Comment = "%_%"
-		} else {
-			input.Comment = "%" + input.Comment + "%"
-		}
-		searchString := `SELECT 
+	comment := "%_%"
+	filename := "%_%"
+	if input.Comment != "" && input.Comment != "*" {
+		comment = "%" + input.Comment + "%"
+	}
+	if input.Filename != "" && input.Filename != "*" {
+		filename = "%" + input.Filename + "%"
+	}
+	searchString := `SELECT 
     		filemeta.*
 			FROM filemeta 
-			WHERE filemeta.comment LIKE $1 AND is_payload=$2 AND is_download_from_agent=$3 AND is_screenshot=$4 AND deleted=false and filemeta.operation_id=$5
+			WHERE filemeta.comment LIKE $1 AND filemeta.filename LIKE $2 AND is_payload=$3 AND is_download_from_agent=$4 AND is_screenshot=$5 AND deleted=false and filemeta.operation_id=$6
 			ORDER BY id DESC`
-		searchParameters := []interface{}{
-			input.Filename, input.IsPayload, input.IsDownloadFromAgent, input.IsScreenshot, operationId,
-		}
-		if input.MaxResults > 0 {
-			searchString += ` LIMIT $6`
-			searchParameters = append(searchParameters, input.MaxResults)
-		}
-		if err := database.DB.Select(&files, searchString, searchParameters...); err != nil {
-			response.Error = err.Error()
-			logging.LogError(err, "Failed to get files by comment in MythicRPCFileSearch")
-			return response
-		}
-	} else {
-		if input.Filename == "" {
-			input.Filename = "%_%"
-		} else {
-			input.Filename = "%" + input.Filename + "%"
-		}
-		searchString := `SELECT 
-			*
-			FROM filemeta 
-			WHERE filename LIKE $1 AND is_payload=$2 AND is_download_from_agent=$3 AND is_screenshot=$4 AND deleted=false AND operation_id=$5
-			ORDER BY id DESC `
-		searchParameters := []interface{}{
-			input.Filename, input.IsPayload, input.IsDownloadFromAgent, input.IsScreenshot, operationId,
-		}
-		if input.MaxResults > 0 && !input.LimitByCallback {
-			searchString += ` LIMIT $6`
-			searchParameters = append(searchParameters, input.MaxResults)
-		}
-		if err := database.DB.Select(&files, searchString, searchParameters...); err != nil {
-			response.Error = err.Error()
-			logging.LogError(err, "Failed to get files by filename in MythicRPCFileSearch")
-			return response
-		}
+	searchParameters := []interface{}{
+		comment, filename, input.IsPayload, input.IsDownloadFromAgent, input.IsScreenshot, operationId,
 	}
+	if input.MaxResults > 0 && !input.LimitByCallback {
+		searchString += ` LIMIT $7`
+		searchParameters = append(searchParameters, input.MaxResults)
+	}
+	if err := database.DB.Select(&files, searchString, searchParameters...); err != nil {
+		response.Error = err.Error()
+		logging.LogError(err, "Failed to get files by comment in MythicRPCFileSearch")
+		return response
+	}
+
 	finalFiles := []FileData{}
 	totalFound := 0
 	//logging.LogInfo("found results", "length", len(files), "callbackid", input.CallbackID)

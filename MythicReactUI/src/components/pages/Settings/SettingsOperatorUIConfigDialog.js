@@ -179,22 +179,23 @@ export function SettingsOperatorUIConfigDialog(props) {
             light: initialPalette?.navBarColor?.light || operatorSettingDefaults.palette.navBarColor.light,
         }
     });
-    const paletteOptions = [
+    const paletteOptionsSolidColor = [
         {name: "primary", display: "Primary"},
         {name: "error", display: "Error"},
         {name: "warning", display: "Warning"},
         {name: "info", display: "Informational"},
         {name: "success", display: "Success"},
         {name: "secondary", display: "Secondary"},
-        {name: "background", display: "Background"},
-        {name: "text", display: "Text Color"},
+        {name: "pageHeader", display: "Page Headers"}
+    ];
+    const paletteOptionsTextColor = [
         {name: "tableHeader", display: "Table Headers"},
         {name: "tableHover", display: "Table Hover"},
-        {name: "pageHeader", display: "Page Headers"},
-        {name: "paper", display: "Menu and Modals Background"},
         {name: "selectedCallbackColor", display: "Currently active callback row highlight"},
-        {name: "selectedCallbackHierarchyColor", display: "Current Host highlight in tree views"}
-    ];
+        {name: "selectedCallbackHierarchyColor", display: "Current Host highlight in tree views"},
+        {name: "paper", display: "Menu and Modals Background"},
+        {name: "background", display: "Background"}
+    ]
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
     const [_, updateSettings, clearSettings] = useSetMythicSetting();
     const onChangeFontSize = (name, value, error) => {
@@ -583,7 +584,7 @@ export function SettingsOperatorUIConfigDialog(props) {
 
                       </MythicStyledTableCell>
                   </TableRow>
-                  {paletteOptions.map(p => (
+                  {paletteOptionsSolidColor.map(p => (
                       <TableRow hover key={p.display}>
                           <MythicStyledTableCell>{p.display}</MythicStyledTableCell>
                           <MythicStyledTableCell>
@@ -606,6 +607,50 @@ export function SettingsOperatorUIConfigDialog(props) {
                           </MythicStyledTableCell>
                       </TableRow>
                   ))}
+                  {paletteOptionsTextColor.map(p => (
+                      <TableRow hover key={p.display}>
+                          <MythicStyledTableCell>{p.display}</MythicStyledTableCell>
+                          <MythicStyledTableCell>
+                              <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
+                                  <div style={{display: "inline-block", width: "100%"}}>
+                                      <HexColorPicker style={{width: "100%"}} color={palette?.[p.name]?.dark} onChange={(v) => onChangePaletteColor(p.name, "dark", v)}/>
+                                      <HexColorInput color={palette?.[p.name]?.dark} onChange={(v) => onChangePaletteColor(p.name, "dark", v)}/>
+                                      <Box sx={{width: "100%", height: 25, backgroundColor: palette?.[p.name]?.dark}}>
+                                          <Typography style={{color: palette.text.dark}}>Dark Mode Color</Typography>
+                                      </Box>
+                                  </div>
+                                  <div style={{display: "inline-block", width: "100%"}}>
+                                      <HexColorPicker style={{width: "100%"}} color={palette?.[p.name]?.light} onChange={(v) => onChangePaletteColor(p.name, "light", v)}/>
+                                      <HexColorInput color={palette?.[p.name]?.light} onChange={(v) => onChangePaletteColor(p.name, "light", v)}/>
+                                      <Box sx={{width: "100%", height: 25, backgroundColor: palette?.[p.name]?.light}}>
+                                          <Typography style={{color: palette.text.light}}>Light Mode Color</Typography>
+                                      </Box>
+                                  </div>
+                              </div>
+                          </MythicStyledTableCell>
+                      </TableRow>
+                  ))}
+                  <TableRow hover>
+                      <MythicStyledTableCell>Text Color</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.text?.dark} onChange={(v) => onChangePaletteColor("text", "dark", v)}/>
+                                  <HexColorInput color={palette?.text?.dark} onChange={(v) => onChangePaletteColor("text", "dark", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.background?.dark, display: "flex", alignItems: "center"}}>
+                                      <Typography style={{color: palette.text.dark, display: "inline-block"}}>Dark Mode Color</Typography>
+                                  </Box>
+                              </div>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.text?.light} onChange={(v) => onChangePaletteColor("text", "light", v)}/>
+                                  <HexColorInput color={palette?.text?.light} onChange={(v) => onChangePaletteColor("text", "light", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.background?.light, display: "flex", alignItems: "center"}}>
+                                      <Typography style={{color: palette.text.light, display: "inline-block"}}>Light Mode Color</Typography>
+                                  </Box>
+                              </div>
+                          </div>
+                      </MythicStyledTableCell>
+                  </TableRow>
               </TableBody>
           </Table>
         </TableContainer>

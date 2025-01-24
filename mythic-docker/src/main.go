@@ -7,14 +7,17 @@ import (
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"github.com/its-a-feature/Mythic/utils"
 	"github.com/its-a-feature/Mythic/webserver"
+	"net/http"
 )
 
-//import _ "net/http/pprof"
+import _ "net/http/pprof"
 
 func main() {
-	//go func() {
-	//	fmt.Println(http.ListenAndServe("localhost:6060", nil))
-	//}()
+	// for profiling go code, use parca
+	go func() {
+		fmt.Println(http.ListenAndServe("localhost:6060", nil))
+		// docker run --name parca --rm -p 7070:7070 -v "${PWD}/parca.yaml:/parca.yaml" --net host ghcr.io/parca-dev/parca:v0.22.0 /parca --config-path="/parca.yaml"
+	}()
 	// initialize configuration based on .env and environment variables
 	fmt.Print("Step 1/6 - Initializing utilities\n")
 	utils.Initialize()

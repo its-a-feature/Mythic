@@ -113,7 +113,6 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 		logging.LogError(err, "Failed to fetch operations")
 		return
 	}
-	atLeastOneSuccessfulSend := false
 	for _, operation := range operations {
 		apiToken := databaseStructs.Apitokens{
 			TokenValue: "",
@@ -188,25 +187,10 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 		}
 		onStartMessage.APIToken = apiToken.TokenValue
 		go updateAPITokenAfter5Minutes(apiToken.ID)
-		if atLeastOneSuccessfulSend {
-			go sendOnContainerStartMessageAfterShortDelay(onStartMessage)
-		} else {
-			err = RabbitMQConnection.SendContainerOnStart(onStartMessage)
-			if err != nil {
-				logging.LogError(err, "Failed to send container on start")
-			} else {
-				atLeastOneSuccessfulSend = true
-			}
+		err = RabbitMQConnection.SendContainerOnStart(onStartMessage)
+		if err != nil {
+			logging.LogError(err, "Failed to send container on start")
 		}
-
-	}
-}
-func sendOnContainerStartMessageAfterShortDelay(onStartMessage ContainerOnStartMessage) {
-	// delete API Token after 5 min
-	<-time.After(20 * time.Second)
-	err := RabbitMQConnection.SendContainerOnStart(onStartMessage)
-	if err != nil {
-		logging.LogError(err, "Failed to send container on start")
 	}
 }
 func updateAPITokenAfter5Minutes(apitoken_id int) {
