@@ -39,9 +39,8 @@ html, body, #root {
 .MuiListItem-root {
     &:hover,
     &--hovered {
-        background-color: ${(props) => props.theme.tableHover} !important;
+        background-color: ${(props) => props.theme.tableHover + "CC"} !important;
         color: ${(props) => props.theme.palette.text.primary} !important;
-        
     }
 }
 .menuEntry {
@@ -167,7 +166,8 @@ tspan {
         linear-gradient(90deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-x,
         linear-gradient(90deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-x,
         linear-gradient(0deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-y,
-        linear-gradient(0deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-y  !important;
+        linear-gradient(0deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-y,
+          ${(props) => props.theme.palette.background.default + "CC"} !important;
     background-size: 8px 3px, 8px 3px, 3px 8px, 3px 8px  !important;
     background-position: 0 0, 0 100%, 0 0, 100% 0  !important; // top bottom left right
 }
@@ -208,7 +208,7 @@ tspan {
     }
 }
 .MythicResizableGrid-hoveredRow {
-    background-color: ${(props) => props.theme.tableHover};
+    background-color: ${(props) => props.theme.tableHover + "CC"};
 }
 .MythicResizableGrid-cell {
     display: flex;
@@ -298,10 +298,10 @@ tspan {
     min-height: 2rem;
 }
 .selectedCallback {
-    background-color: ${(props) => props.theme.selectedCallbackColor};
+    background-color: ${(props) => props.theme.selectedCallbackColor + "CC"};
 }
 .selectedCallbackHierarchy {
-    background-color: ${(props) => props.theme.selectedCallbackHierarchyColor};
+    background-color: ${(props) => props.theme.selectedCallbackHierarchyColor + "CC"};
 }
 
 .MuiDataGrid-row.Mui-selected {
@@ -338,7 +338,7 @@ tspan {
   opacity: 0.3;
 }
 .ace_editor{
-    //background: transparent;
+    background-color: ${(props) => props.theme.palette.background.default + "80"};
 }
 .ace_gutter {
     //background: transparent !important;

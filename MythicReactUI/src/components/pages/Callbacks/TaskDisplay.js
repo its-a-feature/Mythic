@@ -53,7 +53,7 @@ export const StyledPaper = styled(Paper)((
     height: "auto",
     width: "99%",
     boxShadow: "unset",
-    backgroundColor: "unset", //theme.palette.background.taskLabel,
+    backgroundColor: theme.palette.background.default + "CC",
   },
 
   [`& .${classes.heading}`]: {
