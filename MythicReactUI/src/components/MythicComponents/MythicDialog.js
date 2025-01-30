@@ -127,7 +127,7 @@ export function MythicViewJSONAsTableDialog(props) {
           permissionDict = JSON.parse(props.value);
         } 
         
-        if(permissionDict.constructor === Object){
+        if(!Array.isArray(permissionDict) && typeof permissionDict !== 'string'){
           for(let key in permissionDict){
             if(permissionDict[key] && permissionDict[key].constructor === Object){
               // potentially have a nested dictionary here or array to become a dictionary, mark it

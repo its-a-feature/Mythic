@@ -389,7 +389,7 @@ func addCommandAugmentsToCallback(callbackID int, payloadOS string, payloadType 
 			continue
 		}
 		commandAugmentCommands := []databaseStructs.Command{}
-		err = database.DB.Select(&commandAugmentCommands, `SELECT id, version, attributes FROM command WHERE payload_type_id=$1`,
+		err = database.DB.Select(&commandAugmentCommands, `SELECT id, version, attributes FROM command WHERE payload_type_id=$1 AND deleted=false`,
 			commandAugmentPayloadTypes[i].ID)
 		if err != nil {
 			logging.LogError(err, "failed to get command augment commands")

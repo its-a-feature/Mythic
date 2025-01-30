@@ -554,8 +554,8 @@ export function FileMetaUploadTable(props){
                                           inputProps={{ 'aria-label': 'controlled' }} />
                             </TableCell>
                             <TableCell style={{width: "4rem"}}>Actions</TableCell>
-                            <TableCell style={{width: "20rem"}}>Source</TableCell>
-                            <TableCell style={{width: "20rem"}}>Destination</TableCell>
+                            <TableCell style={{}}>Source</TableCell>
+                            <TableCell style={{}}>Destination</TableCell>
                             <TableCell style={{width: "15rem"}}>Comment</TableCell>
                             <TableCell style={{width: "7rem"}}>Size</TableCell>
                             <TableCell style={{width: "15rem"}}>Tags</TableCell>

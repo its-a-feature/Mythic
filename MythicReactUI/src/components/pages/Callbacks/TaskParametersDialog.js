@@ -558,7 +558,7 @@ export function TaskParametersDialog(props) {
                             }
                         }
                         if(parsedParameterName){
-                            return [...prev, {...cmd, choices: choices, value: props.command.parsedParameters[parsedParameterName]}];
+                            return [...prev, {...cmd, choices: choices, value: props.command.parsedParameters[parsedParameterName], default_value: defaultV}];
                         }else{
                             return [...prev, {...cmd, choices: choices, default_value: defaultV, value: defaultV}];
                         }

@@ -1,9 +1,7 @@
 package rabbitmq
 
 import (
-	"database/sql"
 	"encoding/json"
-
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -38,12 +36,10 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage)
 	}
 	CallbackID := 0
 	PayloadTypeID := 0
-	OperatorID := 0
 	task := databaseStructs.Task{}
 	callback := databaseStructs.Callback{}
 	if input.TaskID > 0 {
 		err := database.DB.Get(&task, `SELECT
-				task.operator_id,
 				callback.id "callback.id",
 				payload.payload_type_id "callback.payload.payload_type_id"
 				FROM task
@@ -57,10 +53,9 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage)
 		}
 		CallbackID = task.Callback.ID
 		PayloadTypeID = task.Callback.Payload.PayloadTypeID
-		OperatorID = task.OperatorID
 	} else if input.AgentCallbackID != "" {
 		err := database.DB.Get(&callback, `SELECT
-    		callback.id, callback.operator_id,
+    		callback.id, 
     		payload.payload_type_id "callback.payload.payload_type_id"
     		FROM callback
 			JOIN payload on callback.registered_payload_id = payload.id
@@ -72,7 +67,6 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage)
 		}
 		CallbackID = callback.ID
 		PayloadTypeID = callback.Payload.PayloadTypeID
-		OperatorID = callback.OperatorID
 	}
 	if input.PayloadType != "" {
 		err := database.DB.Get(&PayloadTypeID, `SELECT id FROM payloadtype WHERE "name"=$1`, input.PayloadType)
@@ -82,13 +76,22 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage)
 			return response
 		}
 	}
-	if CallbackID == 0 {
-		response.Error = "No callback supplied"
-		return response
+	commandIDs := make([]int, len(input.Commands))
+	for i, command := range input.Commands {
+		err := database.DB.Get(&commandIDs[i], `SELECT
+		id
+		FROM command
+		WHERE command.cmd=$1 AND command.payload_type_id=$2`,
+			command, PayloadTypeID)
+		if err != nil {
+			logging.LogError(err, "Failed to find command to load")
+			response.Error = err.Error()
+			return response
+		}
 	}
 	if len(input.CallbackIDs) > 0 {
 		for _, c := range input.CallbackIDs {
-			err := CallbackRemoveCommand(c, PayloadTypeID, OperatorID, input.Commands)
+			err := CallbackRemoveCommand(c, commandIDs)
 			if err != nil {
 				logging.LogError(err, "Failed to remove commands to callback")
 				response.Error = err.Error()
@@ -98,7 +101,11 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage)
 		response.Success = true
 		return response
 	}
-	err := CallbackRemoveCommand(CallbackID, PayloadTypeID, OperatorID, input.Commands)
+	if CallbackID == 0 {
+		response.Error = "No callback supplied"
+		return response
+	}
+	err := CallbackRemoveCommand(CallbackID, commandIDs)
 	if err != nil {
 		logging.LogError(err, "Failed to remove commands to callback")
 		response.Error = err.Error()
@@ -107,33 +114,13 @@ func MythicRPCCallbackRemoveCommand(input MythicRPCCallbackRemoveCommandMessage)
 	response.Success = true
 	return response
 }
-func CallbackRemoveCommand(callbackID int, payloadtypeID int, operatorID int, commands []string) error {
+func CallbackRemoveCommand(callbackID int, commands []int) error {
 	for _, command := range commands {
-		// first check if the command is already loaded
-		databaseCommand := databaseStructs.Command{}
-		loadedCommand := databaseStructs.Loadedcommands{}
-		if err := database.DB.Get(&databaseCommand, `SELECT
-		id, "version"
-		FROM command
-		WHERE command.cmd=$1 AND command.payload_type_id=$2`,
-			command, payloadtypeID); err != nil {
-			logging.LogError(err, "Failed to find command to load")
-			return err
-		} else if err := database.DB.Get(&loadedCommand, `SELECT id
-		FROM loadedcommands
-		WHERE command_id=$1 AND callback_id=$2`,
-			databaseCommand.ID, callbackID); err == nil {
-			// the command is loaded, so remove it
-			if _, err := database.DB.NamedExec(`DELETE FROM loadedcommands WHERE id=:id`, loadedCommand); err != nil {
-				logging.LogError(err, "Failed to remove command from callback")
-				return err
-			}
-		} else if err == sql.ErrNoRows {
-			// this never existed, so move on
-			continue
-		} else {
+		_, err := database.DB.Exec(`DELETE FROM loadedcommands WHERE command_id=$1 AND callback_id=$2`,
+			command, callbackID)
+		if err != nil {
 			// we got some other sort of error
-			logging.LogError(err, "Failed to query database for loaded command")
+			logging.LogError(err, "Failed to delete loaded command")
 			return err
 		}
 	}

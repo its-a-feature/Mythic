@@ -155,11 +155,7 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM:
 		switch v := defaultValue.(type) {
 		case string:
-			if len(choices) == 0 {
-				return "", nil
-			} else {
-				return v, nil
-			}
+			return v, nil
 		case nil:
 			if len(choices) > 0 {
 				return choices[0], nil

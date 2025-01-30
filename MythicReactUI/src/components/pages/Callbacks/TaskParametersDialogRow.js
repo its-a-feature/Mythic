@@ -112,14 +112,32 @@ export function TaskParametersDialogRow(props){
                     usingDynamicParamChoices.current = true;
                     if(props.type === "ChooseOne"){
                         if(data.dynamic_query_function.choices.length > 0){
-                            if(data.dynamic_query_function.choices.includes(props.value) && props.value !== ""){
+                            if(props.value !== ""){
                                 setValue(props.value);
                                 props.onChange(props.name, props.value, false);
+                            } else if(data.dynamic_query_function.choices.includes(props.default_value)) {
+                                setValue(props.default_value);
+                                props.onChange(props.name, props.default_value, false);
                             } else {
                                 setValue(data.dynamic_query_function.choices[0]);
                                 props.onChange(props.name, data.dynamic_query_function.choices[0], false);
                             }
                         }
+                    } else if(props.type === "ChooseOneCustom"){
+                        let newStandardValue = props.default_value;
+                        if(data.dynamic_query_function.choices.includes(props.default_value) && props.value !== "") {
+                            setValue(props.default_value);
+                            //props.onChange(props.name, props.default_value, false);
+                        } else {
+                            setValue(data.dynamic_query_function.choices[0]);
+                            newStandardValue = data.dynamic_query_function.choices[0];
+                            //props.onChange(props.name, data.dynamic_query_function.choices[0], false);
+                        }
+                        if(!data.dynamic_query_function.choices.includes(props.value) && props.value !== "" ){
+                            setChooseOneCustomValue(props.value);
+                            newStandardValue = props.value;
+                        }
+                        props.onChange(props.name, newStandardValue, false);
                     }
                 }catch(error){
                     setBackdropOpen(false);
@@ -547,7 +565,7 @@ export function TaskParametersDialogRow(props){
                             <CircularProgress color="inherit" />
                         </Backdrop>
                         <div style={{width: "100%", display: "flex", alignItems: "center"}}>
-                            <FormControl style={{}}>
+                            <FormControl style={{width: "50%"}}>
                                 <Select
                                     autoFocus={props.autoFocus}
                                     multiple={false}
@@ -566,7 +584,7 @@ export function TaskParametersDialogRow(props){
                             OR
                             <MythicTextField required={props.required} placeholder={"Custom Value"} value={chooseOneCustomValue} multiline={true} maxRows={5}
                                              onChange={onChangeTextChooseOneCustom} display="inline-block" onEnter={props.onSubmit} autoFocus={props.autoFocus}
-                                             name={props.name}
+                                             name={props.name} marginTop={"5px"}
                             />
                         </div>
 

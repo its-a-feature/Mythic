@@ -51,6 +51,7 @@ const getFileDownloadHistory = gql`
                 timestamp
                 filename_text
                 host
+                deleted
                 full_remote_path_text
                 task {
                     id
@@ -874,7 +875,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                               onClose={(e)=>{setOpenPreviewMediaDialog(false);}}
                               innerDialog={<PreviewFileMediaDialog
                                   agent_file_id={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.agent_file_id}
-                                  filename={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.filename_text}
+                                  filename={b64DecodeUnicode(treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.filename_text)}
                                   onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
                 />
             }

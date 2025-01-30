@@ -554,7 +554,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                 // what the user typed isn't an exact match, so find things that start with what they're trying to type
                                 paramOptions = cmd.commandparameters.reduce( (prev, cur) => {
                                     if(cmdGroupNames.includes(cur.parameter_group_name) && 
-                                        cur.cli_name.toLowerCase().startsWith(lastFlag.slice(1).toLocaleLowerCase()) &&
+                                        cur.cli_name.toLowerCase().includes(lastFlag.slice(1).toLocaleLowerCase()) &&
                                         IsCLIPossibleParameterType(cur.parameter_type) &&
                                         (!(cur.cli_name in parsed) || (IsRepeatableCLIParameterType(cur.parameter_type)) ) ){
                                         return [...prev, cur.cli_name];
@@ -637,10 +637,20 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }else{
                 // somebody hit tab with either a blank message or a partial word
                 if(tabOptions.current.length === 0){
-                    let opts = loadedOptions.current.filter( l => l.cmd.toLowerCase().startsWith(message.toLocaleLowerCase()) && (l.attributes.supported_os.length === 0 || l.attributes.supported_os.includes(props.callback_os)));
-                    tabOptions.current = opts;
+                    let opts = loadedOptions.current.filter( l => l.cmd.toLowerCase().includes(message.toLocaleLowerCase()) && (l.attributes.supported_os.length === 0 || l.attributes.supported_os.includes(props.callback_os)));
                     tabOptionsType.current = "param_name";
                     tabOptionsIndex.current = 0;
+                    let startsWithOpts = opts.filter(s => s.cmd.startsWith(message.toLocaleLowerCase()));
+                    let includesOpts = opts.filter(s => {
+                        for(let i = 0; i < startsWithOpts.length; i++){
+                            if(startsWithOpts[i].cmd === s.cmd){
+                                return false;
+                            }
+                        }
+                        return true;
+                    })
+                    opts = [...startsWithOpts, ...includesOpts];
+                    tabOptions.current = opts;
                     if(opts.length > 0){
                         setMessage(opts[0].cmd);
                         setCommandPayloadType(opts[0]?.payloadtype?.name || "");

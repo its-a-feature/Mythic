@@ -716,7 +716,8 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
                         display: "flex",
                         flexDirection: "row",
                         alignItems: "center",
-                        marginTop: "8px"
+                        marginTop: "8px",
+                        width: "100%"
                     }} >
                         <IconButton onClick={() => removeLocalInput(i)}>
                             <DeleteIcon color={"error"} style={{marginRight: "5px"}}/>
@@ -724,7 +725,6 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
                         <MythicTextField name={"Input Name"} placeholder={"Input Name"}
                                          onChange={(name, value, error) => onChangeLocalInputName(i, value)}
                                          value={localInputs[i].name}
-                                         width={50}
                                          marginBottom={"0px"}/>
                         <FormControl sx={{display: "inline-block", width: "15rem",}}>
                             <TextField
@@ -843,7 +843,8 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
                         display: "flex",
                         flexDirection: "row",
                         alignItems: "center",
-                        marginTop: "8px"
+                        marginTop: "8px",
+                        width: "100%"
                     }}>
                         <IconButton onClick={() => removeLocalOutput(i)}>
                             <DeleteIcon color={"error"} style={{marginRight: "5px"}}/>
@@ -851,7 +852,6 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
                         <MythicTextField name={"Output Name"} placeholder={"Output Name"}
                                          onChange={(name, value, error) => onChangeLocalOutputName(i, value)}
                                          value={localOutputs[i].name}
-                                         width={50}
                                          marginBottom={"0px"}/>
                         {outputOptionsData[selectedAction].output_fields.length > 0 &&
                             <>

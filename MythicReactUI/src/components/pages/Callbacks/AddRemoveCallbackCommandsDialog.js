@@ -45,21 +45,46 @@ query GetCallbackDetails($callback_id: Int!) {
   }
 }
 `;
-
+const CustomListElement = React.memo(({valueObj, handleToggle}) => {
+    return (
+        <ListItem style={{padding: 0}} key={valueObj.display_value} role="listitem" button
+                  onClick={() => handleToggle(valueObj)}>
+            <ListItemIcon>
+                <Checkbox
+                    checked={valueObj.checked}
+                    disableRipple
+                    inputProps={{'aria-labelledby': valueObj.label}}
+                />
+            </ListItemIcon>
+            <ListItemText id={valueObj.label} primary={valueObj.display_value}/>
+        </ListItem>
+    )
+});
+const CustomList = ({title, items, handleToggle}) => {
+    const renderedList = React.useMemo( () => {
+        return items.map((valueObj) => (
+                <CustomListElement key={valueObj.display_value} valueObj={valueObj} handleToggle={handleToggle} />
+            ))
+    }, [items, handleToggle]);
+    return (
+        <>
+            <CardHeader className={classes.cardHeader} title={title}/>
+            <StyledDivider classes={{root: classes.divider}}/>
+            <CardContent style={{flexGrow: 1, overflowY: "auto", padding: 0}}>
+                <List dense component="div" role="list" style={{padding: 0, width: "100%"}}>
+                    {renderedList}
+                </List>
+            </CardContent>
+        </>
+        )
+};
 export function AddRemoveCallbackCommandsDialog(props) {
-
-    const [checked, setChecked] = React.useState([]);
     const [left, setLeft] = React.useState([]);
-    const [originalLeft, setOriginalLeft] = React.useState([]);
     const [originalRight, setOriginalRight] = React.useState([]);
     const [right, setRight] = React.useState([]);
-    const [leftTitle, setLeftTitle] = React.useState("Commands Not Included");
-    const [rightTitle, setRightTitle] = React.useState("Commands Included");
-    const leftChecked = intersection(checked, left);
-    const rightChecked = intersection(checked, right);
-    const compareElements = (a, b) => {
-        return a.cmd === b.cmd && a.payloadtype.name === b.payloadtype.name;
-    }
+    const leftTitle = "Commands Not Included";
+    const rightTitle = "Commands Included";
+
     useQuery(getCommandsQuery, {variables: {callback_id: props.callback_id},
       fetchPolicy: "no-cache",
       onCompleted: (data) => {
@@ -67,10 +92,9 @@ export function AddRemoveCallbackCommandsDialog(props) {
             return {...c, payloadtype: {name: data.callback_by_pk.payload.payloadtype.name}}
         })
         originalLeftFromQuery = [...originalLeftFromQuery, ...data.command];
-        setOriginalLeft(originalLeftFromQuery);
         setOriginalRight(data.callback_by_pk.loadedcommands);
 
-        const leftData = originalLeftFromQuery.reduce( (prev, cur) => {
+        let leftData = originalLeftFromQuery.reduce( (prev, cur) => {
           if( data.callback_by_pk.loadedcommands.filter(c => c.command.cmd === cur.cmd && c.command.payloadtype.name === cur.payloadtype.name).length === 0){
             return [...prev, cur];
           } else {
@@ -79,35 +103,46 @@ export function AddRemoveCallbackCommandsDialog(props) {
         }, []);
 
         leftData.sort( (a,b) => a.cmd < b.cmd ? -1 : 1);
+        leftData = leftData.map( c => {return {...c,
+            checked: false,
+            display_value: c.cmd + " (" + c?.payloadtype?.name + ")",
+            label: `transfer-list-item-${c.cmd + " (" + c?.payloadtype?.name + ")"}-label`
+        }});
         setLeft(leftData);
-        const rightData = data.callback_by_pk.loadedcommands.map( c => c.command);
+        let rightData = data.callback_by_pk.loadedcommands.map( c => c.command);
         rightData.sort( (a,b) => a.cmd < b.cmd ? -1 : 1);
+          rightData = rightData.map( c => {return {...c,
+          checked: false,
+          display_value: c.cmd + " (" + c?.payloadtype?.name + ")",
+          label: `transfer-list-item-${c.cmd + " (" + c?.payloadtype?.name + ")"}-label`
+      }});
         setRight(rightData);
       },
       onError: (data) => {
 
       }
     })
-    function not(a, b) {
-      return a.filter((value) => b.indexOf(value) === -1);
-    }
-    
-    function intersection(a, b) {
-      return a.filter((value) => b.indexOf(value) !== -1);
-    }
-    const handleToggle = (value) => () => {
-      let currentIndex = -1;
-        currentIndex = checked.indexOf(value);
-      
-      const newChecked = [...checked];
 
-      if (currentIndex === -1) {
-        newChecked.push(value);
-      } else {
-        newChecked.splice(currentIndex, 1);
+    const handleToggle = (value) => {
+      let found = false;
+      const newLeft = left.map( c => {
+          if(c.display_value === value.display_value){
+              c.checked = !c.checked;
+              found = true;
+          }
+          return c;
+      });
+      if(found){
+          setLeft(newLeft);
+          return
       }
-
-      setChecked(newChecked);
+      const newRight = right.map( c => {
+        if(c.display_value === value.display_value){
+            c.checked = !c.checked;
+        }
+        return c;
+      });
+      setRight(newRight);
     };
 
     const handleAllRight = () => {
@@ -116,49 +151,26 @@ export function AddRemoveCallbackCommandsDialog(props) {
     };
 
     const handleCheckedRight = () => {
-      setRight(right.concat(leftChecked));
-      setLeft(not(left, leftChecked));
-      setChecked(not(checked, leftChecked));
+        let leftChecked = left.filter(c => c.checked);
+        leftChecked = leftChecked.map(c => {return {...c, checked: false}})
+        let leftNotChecked = left.filter(c => !c.checked);
+        setRight(right.concat(leftChecked));
+        setLeft(leftNotChecked);
     };
 
     const handleCheckedLeft = () => {
-      setLeft(left.concat(rightChecked));
-      setRight(not(right, rightChecked));
-      setChecked(not(checked, rightChecked));
+        let rightChecked = right.filter(c => c.checked);
+        rightChecked = rightChecked.map(c => {return {...c, checked: false}})
+        let rightNotChecked = right.filter(c => !c.checked);
+        setLeft(left.concat(rightChecked));
+        setRight(rightNotChecked);
     };
 
     const handleAllLeft = () => {
       setLeft(left.concat(right));
       setRight([]);
     };
-    const customList = (title, items) => (
-      <>
-          <CardHeader className={classes.cardHeader} title={title} />
-          <StyledDivider classes={{root: classes.divider}}/>
-          <CardContent style={{flexGrow: 1, overflowY: "auto", padding: 0}}>
-            <List dense component="div" role="list" style={{padding:0, width: "100%"}}>
-              {items.map((valueObj) => {
-                const value = valueObj.cmd + " (" + valueObj?.payloadtype?.name + ")";
-                const labelId = `transfer-list-item-${value}-label`;
-                return (
-                  <ListItem style={{padding:0}} key={value} role="listitem" button onClick={handleToggle(valueObj)}>
-                    <ListItemIcon>
-                      <Checkbox
-                        checked={checked.findIndex( (element) => element.cmd + " (" + element?.payloadtype?.name + ")" === value) !== -1}
-                        tabIndex={-1}
-                        disableRipple
-                        inputProps={{ 'aria-labelledby': labelId }}
-                      />
-                    </ListItemIcon>
-                    <ListItemText id={labelId} primary={value} />
-                  </ListItem>
-                );
-              })}
-              <ListItem />
-            </List>
-          </CardContent>
-        </>
-    );
+
     const setFinalTags = () => {
       // things to add are in the `right` now but weren't for `originalRight`
       const commandsToAdd = right.filter( (command) => {
@@ -177,9 +189,9 @@ export function AddRemoveCallbackCommandsDialog(props) {
           This will add or remove commands associated with this callback from Mythic's perspective. 
           This does NOT add or remove commands within the payload itself that's beaconing out to Mythic.
           <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>
-          <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
-            {customList(leftTitle, left)}
-          </div>
+            <div  style={{paddingLeft: 0, flexGrow: 1,  marginLeft: 0, marginRight: "10px", position: "relative",  overflowY: "auto", display: "flex", flexDirection: "column" }}>
+              <CustomList title={leftTitle} items={left} handleToggle={handleToggle}/>
+            </div>
             <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
               <StyledButton
                 variant="contained"
@@ -196,7 +208,6 @@ export function AddRemoveCallbackCommandsDialog(props) {
                 size="small"
                 className={classes.button}
                 onClick={handleCheckedRight}
-                disabled={leftChecked.length === 0}
                 aria-label="move selected right"
               >
                 &gt;
@@ -206,7 +217,6 @@ export function AddRemoveCallbackCommandsDialog(props) {
                 size="small"
                 className={classes.button}
                 onClick={handleCheckedLeft}
-                disabled={rightChecked.length === 0}
                 aria-label="move selected left"
               >
                 &lt;
@@ -223,8 +233,8 @@ export function AddRemoveCallbackCommandsDialog(props) {
               </StyledButton>
  
           </div>
-          <div  style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>
-            {customList(rightTitle, right)}
+            <div style={{marginLeft: "10px", position: "relative", flexGrow: 1, display: "flex", flexDirection: "column" }}>
+              <CustomList title={rightTitle} items={right} handleToggle={handleToggle} />
             </div>
         </div>
         </DialogContent>

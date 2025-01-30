@@ -272,7 +272,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
                 <Button size="small" color="info"
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
-                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor}}/> : null}
+                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  cellData?.button?.startIconColor}}/> : null}
                         style={{...actionCellButtonStyle}}
                 >{cellData?.button?.name}</Button>
               </MythicStyledTooltip>
@@ -291,7 +291,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
                 <Button size="small" color="info"
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
-                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor}}/> : null}
+                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  cellData?.button?.startIconColor}}/> : null}
                         style={{...actionCellButtonStyle}}
                 >{cellData?.button?.name}</Button>
               </MythicStyledTooltip>
@@ -308,7 +308,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
                 <Button size="small" color="info"
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
-                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
+                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  cellData?.button?.startIconColor  || ""}}/> : null}
                         style={{...actionCellButtonStyle}}
                 >{cellData?.button?.name}</Button>
               </MythicStyledTooltip>
@@ -326,7 +326,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "Submit Task"}>
                 <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false}  color="warning"
-                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
+                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" : cellData?.button?.startIconColor  || ""}}/> : null}
                         style={{...actionCellButtonStyle}}
                 >{cellData?.button?.name ? cellData?.button?.name : cellData?.button?.startIcon ? null : "Submit Task"}</Button>
               </MythicStyledTooltip>
@@ -376,7 +376,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
               }
               <Button size="small" color="info" ref={dropdownAnchorRef}
                       onClick={() => setOpenDropdownButton(true)} disabled={cellData?.button?.disabled || false}
-                      startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.startIconColor  || ""}}/> : null}
+                      startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  cellData?.button?.startIconColor  || ""}}/> : null}
                       style={{...actionCellButtonStyle}}
               >{cellData?.button?.name || " "}</Button>
               <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>

@@ -1,7 +1,9 @@
 package webcontroller
 
 import (
+	"database/sql"
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"os"
 
@@ -70,6 +72,14 @@ func PreviewFileWebhook(c *gin.Context) {
 	WHERE
 	filemeta.agent_file_id=$1 AND filemeta.operation_id=$2 AND deleted=false
 	`, input.Input.FileId, user.CurrentOperationID.Int64)
+	if errors.Is(err, sql.ErrNoRows) {
+		logging.LogError(err, "Failed to get file data from database", "agent_file_id", input.Input.FileId, "operation", user.CurrentOperationID.Int64)
+		c.JSON(http.StatusOK, PreviewFileResponse{
+			Status: "error",
+			Error:  "File is deleted",
+		})
+		return
+	}
 	if err != nil {
 		logging.LogError(err, "Failed to get file data from database")
 		c.JSON(http.StatusOK, PreviewFileResponse{

@@ -36,7 +36,7 @@ export const operatorSettingDefaults =  {
             light: '#a6a5a5'
         },
         info: {
-            dark: '#2574b4',
+            dark: '#2184d3',
             light: '#4990b2'
         },
         warning: {
@@ -48,7 +48,7 @@ export const operatorSettingDefaults =  {
             light: '#f6f6f6'
         },
         paper: {
-            dark: '#616161',
+            dark: '#424242',
             light: '#ececec'
         },
         tableHeader: {

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc38] - 2025-01-30
+
+### Changed
+
+- Updated callback creation for command augmentation payload types to not include deleted commands
+- Updated callback command remove RPC to be more performant across large numbers of callbacks
+- Fixed an issue with parameter type ChooseOneCustom that wouldn't save default values
+- Updated file preview to give more meaningful error message if the file has been deleted from disk
+
 ## [3.3.1-rc37] - 2025-01-24
 
 ### Changed

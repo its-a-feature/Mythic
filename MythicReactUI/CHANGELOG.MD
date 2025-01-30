@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] - 2025-01-27
+
+### Changed
+
+- Updated the tab completion for command names and parameters to be a case-sensitive "includes" rather than a "startsWith"
+- Fixed bug in file browser streaming that would sometimes return file history data out of order
+- Fixed a bug in the file search page that would cause horizontal scrolling for uploads
+- Fixed a bug where default values for ChooseOneCustom fields wasn't populating
+- Fixed a bug where pre-supplied values for ChooseOneCustom fields in modals weren't populating
+- Updated some of the default dark colors
+- Fixed a bug on the new eventing wizard that would cause scrolling
+- 
+
 ## [0.3.3] - 2025-01-24
 
 ### Changed

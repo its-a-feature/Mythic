@@ -329,7 +329,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                             return {...f, filename_text: b64DecodeUnicode(f.filename_text)};
                         })
                         existingData.filemeta = [...existingData.filemeta, ...newfileData]
-
+                        existingData.filemeta.sort((a,b) => a.id > b.id ? 1 : -1);
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]] = {...existingData};
                         if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === data.data.mythictree_stream[i]["host"] &&
                             selectedFolderData.full_path_text === data.data.mythictree_stream[i]["full_path_text"]){
@@ -455,6 +455,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                             return {...f, filename_text: b64DecodeUnicode(f.filename_text)};
                         })
                         existingData.filemeta = [...existingData.filemeta, ...newfileData]
+                        existingData.filemeta.sort((a,b) => a.id > b.id ? 1 : -1);
                         treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]] = {...existingData};
                         if(selectedFolderData.group === currentGroups[j] && selectedFolderData.host === mythictree[i]["host"] &&
                             selectedFolderData.full_path_text === mythictree[i]["full_path_text"]){

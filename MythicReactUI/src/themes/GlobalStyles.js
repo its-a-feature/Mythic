@@ -171,7 +171,6 @@ tspan {
     background-size: 8px 3px, 8px 3px, 3px 8px, 3px 8px  !important;
     background-position: 0 0, 0 100%, 0 0, 100% 0  !important; // top bottom left right
 }
-
 *::-webkit-scrollbar {
   width: 0.4em;
   height: 0.4em;
@@ -315,6 +314,21 @@ tspan {
     color:  ${(props) => props.theme.palette.secondary.main} !important;
 }
 .MuiOutlinedInput-notchedOutline {
+    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+}
+.MuiInput-underline {
+    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+}
+.MuiSelect-outlined {
+    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+}
+.Mui-focused {
+    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+}
+.MuiInputBase-input {
+    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+}
+.MuiInput-root::after {
     border-color: ${(props) => props.theme.palette.secondary.main} !important;
 }
 .MuiTableCell-root {
