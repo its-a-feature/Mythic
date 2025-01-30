@@ -403,7 +403,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	if !in.ForcedSync {
 		go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(payloadtype.Name)
 		if in.PayloadType.AgentType == "command_augment" {
-			go updateAllCallbacksWithCommandAugments(in.PayloadType.Name)
+			go updateAllCallbacksWithCommandAugments()
 		}
 	}
 	return nil
@@ -1279,19 +1279,21 @@ func updatePayloadBuildSteps(in PayloadTypeSyncMessage, payloadtype databaseStru
 	}
 }
 
-func updateAllCallbacksWithCommandAugments(payloadTypeName string) {
+func updateAllCallbacksWithCommandAugments() {
 	callbacks := []databaseStructs.Callback{}
 	err := database.DB.Select(&callbacks, `SELECT
     	callback.id, callback.operator_id,
-    	payload.os "payload.os"
+    	payload.os "payload.os",
+    	payloadtype.Name "payload.payloadtype.name"
     	FROM callback
-    	JOIN payload on callback.registered_payload_id = payload.id`)
+    	JOIN payload on callback.registered_payload_id = payload.id
+    	JOIN payloadtype ON payload.payload_type_id = payloadtype.id`)
 	if err != nil {
 		logging.LogError(err, "failed to get callbacks for updating with newly synced command augmentation container")
 		return
 	}
 	for _, callback := range callbacks {
-		addCommandAugmentsToCallback(callback.ID, callback.Payload.Os, payloadTypeName, callback.OperatorID)
+		addCommandAugmentsToCallback(callback.ID, callback.Payload.Os, callback.Payload.Payloadtype.Name, callback.OperatorID)
 	}
 
 }
