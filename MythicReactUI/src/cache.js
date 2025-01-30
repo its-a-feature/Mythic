@@ -4,6 +4,7 @@ import {snackActions} from "./components/utilities/Snackbar";
 
 export const meState = makeVar({loggedIn:false, user: null, access_token: null, refresh_token: null});
 export const menuOpen = makeVar(false);
+export const alertCount = makeVar(0);
 export const operatorSettingDefaults =  {
     fontSize: 12,
     fontFamily: "Verdana",

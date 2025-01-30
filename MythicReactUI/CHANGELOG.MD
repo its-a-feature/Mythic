@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] - 2025-01-30
+
+### Changed
+
+- Fixed a bug in the split tasking view where task updates would reset browserscript view preferences
+- Added new browserscript table button color options for info, warning, error, secondary, primary, and success
+- Added new browserscript table button icons for check, add, x, refresh
+- Updated the eventlog page to default to "warning (unresolved)" if there are tracked unresolved issues
+  - otherwise, the default is "info"
+  
 ## [0.3.4] - 2025-01-27
 
 ### Changed

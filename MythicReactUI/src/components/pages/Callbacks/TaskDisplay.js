@@ -803,7 +803,7 @@ const TaskLabel = ({task, dropdownOpen, toggleTaskDropdown, me, newlyIssuedTasks
                             expanded={dropdownOpen}
           />
         </StyledAccordionSummary>
-        <TaskDisplayContainer me={me} task={task} />
+        <TaskDisplayContainer key={task.id} me={me} task={task} />
       </Accordion>
   </StyledPaper>
   );

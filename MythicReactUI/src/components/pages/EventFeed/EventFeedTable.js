@@ -13,6 +13,7 @@ import HealingIcon from '@mui/icons-material/Healing';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Grid from '@mui/material/Grid';
+import {alertCount} from "../../../cache";
 
 const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
    return (
@@ -44,6 +45,12 @@ export function EventFeedTable(props){
     const submitSearch = (event) => {
         props.onSearch(search)
     }
+    React.useEffect( () => {
+        if( alertCount() > 0){
+            setLevel("warning (unresolved)");
+            props.onLevelChange("warning (unresolved)");
+        }
+    }, []);
     return (
         <div style={{display: "flex", flexDirection: "column", height: "100%", maxWidth: "100%", overflowX: "hidden"}}>
             <Paper elevation={5} style={{backgroundColor: theme.body, marginBottom: "5px", marginRight: "5px"}}>

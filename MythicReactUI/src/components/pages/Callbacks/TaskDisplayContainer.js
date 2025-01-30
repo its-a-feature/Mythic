@@ -69,7 +69,7 @@ export const TaskDisplayContainer = ({task, me}) => {
     const responseRef = React.useRef(null);
     useEffect( () => {
         setCommandID(task.command === null ? 0 : task.command.id);
-    }, [task.command]);
+    }, [task.command?.id]);
     const toggleViewBrowserScript = React.useCallback( () => {
       setViewBrowserScript(!viewBrowserScript);
     }, [viewBrowserScript]);
@@ -119,7 +119,7 @@ export const TaskDisplayContainerFlat = ({task, me}) => {
     setSearchOutput(false);
     setSelectAllOutput(false);
     setViewBrowserScript(true);
-  }, [task.command, task.id]);
+  }, [task.command?.id, task.id]);
   const toggleViewBrowserScript = React.useCallback( () => {
     setViewBrowserScript(!viewBrowserScript);
   }, [viewBrowserScript]);
@@ -164,7 +164,7 @@ export const TaskDisplayContainerConsole = ({task, me}) => {
   const responseRef = React.useRef(null);
   useEffect( () => {
     setCommandID(task.command === null ? 0 : task.command.id);
-  }, [task.command]);
+  }, [task.command?.id]);
   const toggleViewBrowserScript = React.useCallback( () => {
     setViewBrowserScript(!viewBrowserScript);
   }, [viewBrowserScript]);

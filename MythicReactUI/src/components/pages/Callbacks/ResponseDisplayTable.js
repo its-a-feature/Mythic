@@ -15,7 +15,9 @@ import {snackActions} from '../../utilities/Snackbar';
 import {MythicStyledTooltip} from '../../MythicComponents/MythicStyledTooltip';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
-import {faList, faTrashAlt, faSkullCrossbones, faCamera, faSyringe, faFolder, faFolderOpen, faFileArchive, faCog, faFileWord, faFileExcel, faFilePowerpoint, faFilePdf, faDatabase, faKey, faFileCode, faDownload, faUpload, faFileImage, faCopy, faBoxOpen, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import {faList, faTrashAlt, faSkullCrossbones, faCamera, faSyringe, faFolder, faFolderOpen, faFileArchive, faCog,
+  faFileWord, faFileExcel, faFilePowerpoint, faFilePdf, faDatabase, faKey, faFileCode, faDownload, faUpload,
+  faFileImage, faCopy, faBoxOpen, faFileAlt, faCirclePlus, faCheck, faSquareXmark, faRotate } from '@fortawesome/free-solid-svg-icons';
 import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
 
 const onCopyToClipboard = (data) => {
@@ -28,6 +30,14 @@ const onCopyToClipboard = (data) => {
 }
 export const getIconName = (iconName) => {
   switch(iconName.toLowerCase()){
+    case "add":
+      return faCirclePlus;
+    case "x":
+      return faSquareXmark;
+    case "check":
+      return faCheck;
+    case "refresh":
+      return faRotate;
     case "openfolder":
     case "folder":
       return faFolderOpen;
@@ -77,6 +87,24 @@ export const getIconName = (iconName) => {
       return faCamera;
     default:
       return faFileAlt;
+  }
+}
+export const getIconColor = (theme, color) => {
+  switch(color){
+    case "info":
+      return theme.palette.info.main;
+    case "warning":
+      return theme.palette.warning.main;
+    case "primary":
+      return theme.palette.primary.main;
+    case "error":
+      return theme.palette.error.main;
+    case "success":
+      return theme.palette.success.main;
+    case "secondary":
+      return theme.palette.success.main;
+    default:
+      return color;
   }
 }
 const doubleClickRow = () => {
@@ -214,6 +242,7 @@ const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
   );
 }
 const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
+  const theme = useTheme();
   const [openButton, setOpenButton] = React.useState(false);
   const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
   const [openDictionaryButton, setOpenDictionaryButton] = React.useState(false);
@@ -272,7 +301,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
                 <Button size="small" color="info"
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
-                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  cellData?.button?.startIconColor}}/> : null}
+                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor)}}/> : null}
                         style={{...actionCellButtonStyle}}
                 >{cellData?.button?.name}</Button>
               </MythicStyledTooltip>
@@ -291,7 +320,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
                 <Button size="small" color="info"
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
-                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  cellData?.button?.startIconColor}}/> : null}
+                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor)}}/> : null}
                         style={{...actionCellButtonStyle}}
                 >{cellData?.button?.name}</Button>
               </MythicStyledTooltip>
@@ -308,7 +337,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
               <MythicStyledTooltip title={cellData?.button?.hoverText || "View Data"} >
                 <Button size="small" color="info"
                         onClick={() => setOpenButton(true)} disabled={cellData?.button?.disabled || false}
-                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  cellData?.button?.startIconColor  || ""}}/> : null}
+                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : null}
                         style={{...actionCellButtonStyle}}
                 >{cellData?.button?.name}</Button>
               </MythicStyledTooltip>
@@ -326,7 +355,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "Submit Task"}>
                 <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false}  color="warning"
-                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" : cellData?.button?.startIconColor  || ""}}/> : null}
+                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" : getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : null}
                         style={{...actionCellButtonStyle}}
                 >{cellData?.button?.name ? cellData?.button?.name : cellData?.button?.startIcon ? null : "Submit Task"}</Button>
               </MythicStyledTooltip>
@@ -376,7 +405,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
               }
               <Button size="small" color="info" ref={dropdownAnchorRef}
                       onClick={() => setOpenDropdownButton(true)} disabled={cellData?.button?.disabled || false}
-                      startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  cellData?.button?.startIconColor  || ""}}/> : null}
+                      startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : null}
                       style={{...actionCellButtonStyle}}
               >{cellData?.button?.name || " "}</Button>
               <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
@@ -392,7 +421,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
                               onClick={(event) => handleMenuItemClick(event, index)}
                           >
                             <MythicStyledTooltip title={option?.hoverText || (option.type === "task" ? "Task an Agent" : "Display Data")}>
-                              {option?.startIcon ? <FontAwesomeIcon icon={getIconName(option?.startIcon)} style={{color: option?.startIconColor  || "", marginRight: "5px"}}/> : null}
+                              {option?.startIcon ? <FontAwesomeIcon icon={getIconName(option?.startIcon)} style={{color: getIconColor(theme, cellData?.button?.startIconColor || ""), marginRight: "5px"}}/> : null}
                               {option.name}
                             </MythicStyledTooltip>
                           </DropdownMenuItem>

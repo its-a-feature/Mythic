@@ -2,6 +2,7 @@ import React, {useCallback} from 'react';
 import { gql, useMutation, useLazyQuery, useSubscription } from '@apollo/client';
 import {EventFeedTable} from './EventFeedTable';
 import {snackActions} from '../../utilities/Snackbar';
+import {alertCount} from "../../../cache";
 
 const GET_Event_Feed = gql`
 query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $level: String!, $resolved: Boolean!) {
@@ -88,7 +89,7 @@ mutation UpdateLevelOperationEventLog($id: Int!) {
     }
   }
    `;
-export function EventFeed(props){
+export function EventFeed({}){
   const [pageData, setPageData] = React.useState({
     "totalCount": 0,
     "fetchLimit": 100
@@ -214,20 +215,23 @@ export function EventFeed(props){
   const onUpdateLevel = useCallback( ({id}) => {
     updateLevel({variables: {id}})
   }, []);
-  const onChangePage = (event, value) => {
+  const onChangePage = (event, value, newLevel) => {
     snackActions.info("Fetching page...");
     let localSearch = "%_%";
     if(search !== ""){
       localSearch = "%" + search + "%";
     }
     let localLevel = level;
+    if(newLevel){
+      localLevel = newLevel;
+    }
     let localResolved = undefined;
-    if(level === "All Levels"){
+    if(localLevel === "All Levels"){
       localLevel = "%_%";
-    } else if(level === "warning (unresolved)"){
+    } else if(localLevel === "warning (unresolved)"){
       localResolved = false;
       localLevel = "warning";
-    } else if(level === "warning (resolved)"){
+    } else if(localLevel === "warning (resolved)"){
       localResolved = true;
       localLevel = "warning";
     }
@@ -248,9 +252,13 @@ export function EventFeed(props){
 
   }
   React.useEffect( () => {
-    getMoreTaskingNoResolved({variables: {offset: 0,
-        limit: pageData.fetchLimit, search: "%_%", level: "%_%"
-      }})
+    if( alertCount() > 0){
+    } else {
+      getMoreTaskingNoResolved({variables: {offset: 0,
+          limit: pageData.fetchLimit, search: "%_%", level: "%_%"
+        }});
+    }
+
   }, [])
   const resolveViewableErrors = useCallback( () => {
     snackActions.info("Resolving Errors...");
@@ -269,13 +277,12 @@ export function EventFeed(props){
   }, []);
   const onSearchChange = (searchQuery) => {
     setSearch(searchQuery);
+    onChangePage(null, 1);
   }
   const onLevelChange = (levelValue) => {
     setLevel(levelValue);
+    onChangePage(null, 1, levelValue);
   }
-  React.useEffect( () => {
-    onChangePage(null, 1);
-  }, [search, level]);
   return (
       <EventFeedTable operationeventlog={operationeventlog}
                       onUpdateResolution={onUpdateResolution}

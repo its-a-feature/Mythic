@@ -469,7 +469,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     </MythicTabPanel>
     );
 }
-const CallbacksTabsTaskingSplitTable = ({selectedTask, me, changeSelectedTask, onSelectTask}) => {
+const CallbacksTabsTaskingSplitTable = ({selectedTask, me, onSelectTask}) => {
     const [edges, setEdges] = React.useState([]);
     const theme = useTheme();
     useEffect(() => {
@@ -497,7 +497,7 @@ const CallbacksTabsTaskingSplitTable = ({selectedTask, me, changeSelectedTask, o
 
                 <div className="bg-gray-light" style={{display: "inline-flex", height: "100%", width: "100%", flexDirection: "column"}}>
                     {selectedTask.id > 0 &&
-                        <TaskDisplayContainerFlat me={me} task={selectedTask} />
+                        <TaskDisplayContainerFlat key={selectedTask.id} me={me} task={selectedTask} />
                     }
                 </div>
             </Split>
