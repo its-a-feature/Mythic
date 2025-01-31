@@ -1,7 +1,7 @@
 import React from 'react';
 import { styled } from '@mui/material/styles';
-import PropTypes from 'prop-types';
 import {TextField} from '@mui/material';
+import {useDebounce} from "../utilities/useDebounce";
 const PREFIX = 'MythicTextField';
 
 const classes = {
@@ -27,87 +27,98 @@ const Root = styled('div')({
 
 const ValidationTextField = TextField;
 
-class MythicTextField extends React.Component {
-    
-    static propTypes = {
-        placeholder: PropTypes.string,
-        name: PropTypes.string,
-        validate: PropTypes.func,
-        width: PropTypes.number,
-        onChange: PropTypes.func.isRequired,
-        requiredValue: PropTypes.bool,
-        type: PropTypes.string,
-        onEnter: PropTypes.func,
-        autoFocus: PropTypes.bool,
-        autoComplete: PropTypes.bool,
-        showLabel: PropTypes.bool,
-        variant: PropTypes.string,
-        inline: PropTypes.bool,
-        marginBottom: PropTypes.string,
-        value: PropTypes.any,
-        disabled: PropTypes.bool,
-        marginTop: PropTypes.string,
+const MythicTextField = ({
+                             placeholder,
+                             name,
+                             validate,
+                             width,
+                             onChange,
+                             requiredValue,
+                             type = "text",
+                             onEnter,
+                             autoFocus,
+                             autoComplete,
+                             showLabel,
+                             variant = "outlined",
+                             inline,
+                             marginBottom = "5px",
+                             value,
+                             disabled = false,
+                             marginTop = "0px",
+                             InputProps = {},
+                             inputLabelProps  = {},
+                             multiline = false,
+                             maxRows = 10,
+                             errorText = "",
+                             helperText = "",
+                         }) => {
+    const [localValue, setLocalValue] = React.useState({value: value, event: null});
+    const debouncedLocalInput = useDebounce(localValue, 500);
+    React.useEffect( () => {
+        const error = validate ? validate(debouncedLocalInput.value) : false;
+        onChange(name, debouncedLocalInput.value, error, debouncedLocalInput.event);
+    }, [debouncedLocalInput]);
+    React.useEffect( () => {
+        setLocalValue({...localValue, value: value});
+    }, [value]);
+    const handleChange = (evt) => {
+        const newValue = evt.target.value;
+        // Update local state immediately for responsive UI
+        setLocalValue({value: newValue, event: evt});
+    };
+    const checkError = () => {
+        return validate ? validate(localValue.value) : false
     }
-    onChange = evt => {
-        const name = this.props.name;
-        const value = evt.target.value;
-        const error = this.props.validate ? this.props.validate(value) : false;
-        this.props.onChange(name, value, error, evt);
-    }
-    checkError = () => {
-        return this.props.validate ? this.props.validate(this.props.value) : false
-    }
-    onKeyPress = (event) => {
+    const onKeyPress = (event) => {
       if(event.key === "Enter") {
           if(event.shiftKey){
-              this.onChange(event);
+              handleChange(event);
               return;
           }
-          if (this.props.onEnter !== undefined) {
+          if (onEnter !== undefined) {
               event.stopPropagation();
               event.preventDefault();
-              this.props.onEnter(event);
+              onEnter(event);
           }
       }else{
-        this.onChange(event);
+          handleChange(event);
       }
     }
-    render(){
-        return (
-            <Root style={{width:  this.props.width ? this.props.width + "rem" : "100%", display: this.props.inline ? "inline-block": "",}}>
-                <ValidationTextField
-                    fullWidth={true}
-                    placeholder={this.props.placeholder}
-                    value={this.props.value}
-                    onChange={this.onChange}
-                    color={"secondary"}
-                    onKeyDown={this.onKeyPress}
-                    label={this.props.showLabel === undefined ? this.props.name : this.props.showLabel ? this.props.name : undefined}
-                    autoFocus={this.props.autoFocus}
-                    variant={this.props.variant === undefined ? "outlined" : this.props.variant}
-                    data-lpignore={true}
-                    autoComplete={this.props.autoComplete === undefined ? "new-password" : (this.props.autoComplete ? "on" : "new-password")}
-                    disabled={this.props.disabled === undefined ? false : this.props.disabled}
-                    required={this.props.requiredValue ? this.props.requiredValue : false}
-                    InputLabelProps={this.props.inputLabelProps}
-                    multiline={this.props.multiline ? this.props.multiline : false}
-                    maxRows={this.props.maxRows}
-                    error={this.checkError()}
-                    type={this.props.type === undefined ? "text" : this.props.type}
-                    onWheel={ event => event.target.blur() }
-                    InputProps={{...this?.props?.InputProps, spellCheck: false}}
-                    helperText={this.checkError() ? this.props.errorText : this.props.helperText}
-                    style={{
-                        padding:0,
-                        marginBottom: this.props.marginBottom ? this.props.marginBottom : "5px",
-                        marginTop: this.props.marginTop ? this.props.marginTop: "0px",
-                        display: this.props.inline ? "inline-block": "",
-                    }}
-                    classes={{
-                        root: classes.root
-                    }} />
-            </Root>
-        );
-    }
+
+    return (
+        <Root style={{width:  width ? width + "rem" : "100%", display: inline ? "inline-block": "",}}>
+            <ValidationTextField
+                fullWidth={true}
+                placeholder={placeholder}
+                value={localValue.value}
+                onChange={handleChange}
+                color={"secondary"}
+                onKeyDown={onKeyPress}
+                label={showLabel === undefined ? name : showLabel ? name : undefined}
+                autoFocus={autoFocus}
+                variant={variant === undefined ? "outlined" : variant}
+                data-lpignore={true}
+                autoComplete={autoComplete === undefined ? "new-password" : (autoComplete ? "on" : "new-password")}
+                disabled={disabled === undefined ? false : disabled}
+                required={requiredValue ? requiredValue : false}
+                InputLabelProps={inputLabelProps}
+                multiline={multiline ? multiline : false}
+                maxRows={maxRows}
+                error={checkError()}
+                type={type === undefined ? "text" : type}
+                onWheel={ event => event.target.blur() }
+                InputProps={{...InputProps, spellCheck: false}}
+                helperText={checkError() ? errorText : helperText}
+                style={{
+                    padding:0,
+                    marginBottom: marginBottom ? marginBottom : "5px",
+                    marginTop: marginTop ? marginTop: "0px",
+                    display: inline ? "inline-block": "",
+                }}
+                classes={{
+                    root: classes.root
+                }} />
+        </Root>
+    );
 }
 export default MythicTextField;

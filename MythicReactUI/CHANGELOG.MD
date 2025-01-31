@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.6] - 2025-01-31
+
+### Changed
+
+- Added a generic debounce to all MythicText fields to help when there's a lot of input fields in tasking
+
 ## [0.3.5] - 2025-01-30
 
 ### Changed
