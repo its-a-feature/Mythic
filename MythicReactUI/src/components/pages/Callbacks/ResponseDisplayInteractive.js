@@ -464,6 +464,9 @@ const InteractiveTaskingBar = ({
         setTaskOptions(newTaskOptions);
     }, [taskData]);
     const onInputChange = (name, value, error, event) => {
+        if(event === null || event === undefined){
+            return;
+        }
         if(event.key === "ArrowUp"){
             event.preventDefault();
             event.stopPropagation();
