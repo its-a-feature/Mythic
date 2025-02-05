@@ -464,41 +464,43 @@ const InteractiveTaskingBar = ({
         setTaskOptions(newTaskOptions);
     }, [taskData]);
     const onInputChange = (name, value, error, event) => {
-        if(event === null || event === undefined){
-            return;
-        }
-        if(event.key === "ArrowUp"){
-            event.preventDefault();
-            event.stopPropagation();
-            if(taskOptions.length === 0){
-                snackActions.warning("No previous tasks")
-                return;
-            }
-            let newIndex = (taskOptionsIndex + 1);
-            if(newIndex > taskOptions.length -1){
-                newIndex = taskOptions.length -1;
-            }
-            setTaskOptionsIndex(newIndex);
-            setInputText(taskOptions[newIndex].display_params.trim());
-        }else if(event.key === "ArrowDown"){
-            event.preventDefault();
-            event.stopPropagation();
-            if(taskData.length === 0){
-                snackActions.warning("No next tasks")
-                return;
-            }
-            let newIndex = (taskOptionsIndex -1);
-            if(newIndex < 0){
-                setTaskOptionsIndex(-1);
-                setInputText("");
-            } else {
+        if(event !== null && event !== undefined){
+            if(event.key === "ArrowUp"){
+                event.preventDefault();
+                event.stopPropagation();
+                if(taskOptions.length === 0){
+                    snackActions.warning("No previous tasks")
+                    return;
+                }
+                let newIndex = (taskOptionsIndex + 1);
+                if(newIndex > taskOptions.length -1){
+                    newIndex = taskOptions.length -1;
+                }
                 setTaskOptionsIndex(newIndex);
                 setInputText(taskOptions[newIndex].display_params.trim());
-            }
+            }else if(event.key === "ArrowDown"){
+                event.preventDefault();
+                event.stopPropagation();
+                if(taskData.length === 0){
+                    snackActions.warning("No next tasks")
+                    return;
+                }
+                let newIndex = (taskOptionsIndex -1);
+                if(newIndex < 0){
+                    setTaskOptionsIndex(-1);
+                    setInputText("");
+                } else {
+                    setTaskOptionsIndex(newIndex);
+                    setInputText(taskOptions[newIndex].display_params.trim());
+                }
 
-        }else{
+            }else{
+                setInputText(value);
+            }
+        } else {
             setInputText(value);
         }
+
 
     }
     const submitTask = (event) => {
@@ -510,6 +512,9 @@ const InteractiveTaskingBar = ({
         }
         if(event.metaKey || event.ctrlKey){
             setInputText(inputText + selectedEnterOption.value);
+            return;
+        }
+        if(inputText === ""){
             return;
         }
         if(selectedControlOption.value > 0){
@@ -588,6 +593,7 @@ const InteractiveTaskingBar = ({
 
             <MythicTextField autoFocus={true} maxRows={5} multiline={true} onChange={onInputChange} onEnter={submitTask}
                              value={inputText} variant={"standard"} placeholder={">_ type here..."} inline={true}
+                             debounceDelay={50}
                              marginBottom={"0px"} InputProps={{style: { width: "100%"}}}/>
             <FormControl style={{width: "6rem"}} >
                 <Select

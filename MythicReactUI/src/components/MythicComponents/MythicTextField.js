@@ -51,15 +51,16 @@ const MythicTextField = ({
                              maxRows = 10,
                              errorText = "",
                              helperText = "",
+                            debounceDelay = 200,
                          }) => {
     const [localValue, setLocalValue] = React.useState({value: value, event: null});
-    const debouncedLocalInput = useDebounce(localValue, 500);
+    const debouncedLocalInput = useDebounce(localValue, debounceDelay);
     React.useEffect( () => {
         const error = validate ? validate(debouncedLocalInput.value) : false;
         onChange(name, debouncedLocalInput.value, error, debouncedLocalInput.event);
     }, [debouncedLocalInput]);
     React.useEffect( () => {
-        setLocalValue({...localValue, value: value});
+        setLocalValue({value: value, event: null});
     }, [value]);
     const handleChange = (evt) => {
         const newValue = evt.target.value;
