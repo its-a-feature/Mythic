@@ -66,7 +66,7 @@ func ValidateLogin(username string, password string, scriptingVersion string, fr
 			}
 		}
 		updateUserLoginStatus(user)
-		return "", "", 0, errors.New("Failed login")
+		return "", "", 0, errors.New(fmt.Sprintf("user %s supplied bad password", user.Username))
 	}
 	// successfully logged in
 	user.LastLogin = sql.NullTime{Valid: true, Time: time.Now().UTC()}

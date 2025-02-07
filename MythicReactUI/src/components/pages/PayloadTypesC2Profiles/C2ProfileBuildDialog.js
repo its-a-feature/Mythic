@@ -77,7 +77,7 @@ export function C2ProfileBuildDialog(props) {
         }
         });
     if (loading) {
-     return <LinearProgress />;;
+     return <LinearProgress />;
     }
     if (error) {
      console.error(error);
@@ -111,7 +111,7 @@ export function C2ProfileBuildDialog(props) {
                               <React.Fragment>
                                 <b>Parameter Options: </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.choices}</pre><br/>
                               </React.Fragment>
-                            ) : (null)}
+                            ) : null}
                             <b>Required? </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.required ? "Yes": "No"}</pre><br/>
                             <b>Verifier Regex: </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.verifier_regex}</pre><br/>
                             <b>Randomized: </b><pre style={{display: "inline-block", whiteSpace: "pre-wrap", margin: 0}}>{param.randomize ? "Yes": "No"}</pre><br/>

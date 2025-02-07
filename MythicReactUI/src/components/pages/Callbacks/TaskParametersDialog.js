@@ -605,11 +605,7 @@ export function TaskParametersDialog(props) {
                             }
                             
                         }, []).sort((a,b) => {
-                            if(a.filemetum.filename_text === b.filemetum.filename_text){
-                                return a.id < b.id ? 1 : -1
-                            }else{
-                                return a.filemetum.filename_text < b.filemetum.filename_text ? 1 : -1
-                            }
+                            return a.id < b.id ? 1 : -1;
                         });
 
                         const callbacksOrganized = loadedAllPayloadsOnHostsLoading.callback.reduce( (prevn, entry) => {

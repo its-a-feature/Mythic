@@ -39,9 +39,14 @@ export function PayloadTypeBuildDialog(props) {
     const { loading, error } = useQuery(GET_Payload_Details, {
         variables: {payload_name: props.payload_name},
         onCompleted: data => {
-            console.log(data);
             const buildParams = data.payloadtype[0].buildparameters.map((param) => {
               let choices = getDefaultChoices(param);
+              if(!param.parameter_type.includes("Choose") && !param.parameter_type.includes("Array")){
+                  choices = [];
+              }
+              if(param.parameter_type.includes("File")){
+                  choices = [];
+              }
               if(choices.length > 0){
                 if(param.parameter_type === "Dictionary"){
                   choices = choices.reduce( (prev, cur) => {
@@ -56,7 +61,7 @@ export function PayloadTypeBuildDialog(props) {
                 choices = "";
               }
               let default_value = getDefaultValueForType(param);
-              if(param.parameter_type === "Array" || param.parameter_type === "ChooseMultiple"){
+              if(param.parameter_type === "Array" || param.parameter_type === "ChooseMultiple" || param.parameter_type === "FileMultiple"){
                 default_value = default_value.join(", ")
               } else if(param.parameter_type === "Boolean"){
                 default_value = default_value ? "True" : "False"
@@ -70,14 +75,17 @@ export function PayloadTypeBuildDialog(props) {
                   }
                 }, {});
                 default_value = JSON.stringify(defaultChoices, null, 2);
+              } else if(param.parameter_type === "File"){
+                  default_value = "";
               }
               return {...param, choices: choices, default_value: default_value}
             });
             setBuildParams(buildParams);
+            console.log(buildParams);
         }
         });
     if (loading) {
-     return <LinearProgress />;;
+     return <LinearProgress />;
     }
     if (error) {
      console.error(error);

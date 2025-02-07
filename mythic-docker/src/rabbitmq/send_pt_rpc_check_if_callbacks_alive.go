@@ -42,7 +42,8 @@ func checkIfActiveCallbacksAreAliveForever() {
 		err := database.DB.Select(&activeCallbacks, `SELECT
     	callback.id, callback.display_id, callback.agent_callback_id, 
     	callback.init_callback, callback.last_checkin, callback.sleep_info,
-    	payloadtype.name "payload.payloadtype.name"
+    	payloadtype.name "payload.payloadtype.name",
+    	payloadtype.container_running "payload.payloadtype.container_running"
     	FROM callback
     	JOIN payload ON callback.registered_payload_id = payload.id
 		JOIN payloadtype ON payload.payload_type_id = payloadtype.id
@@ -56,8 +57,11 @@ func checkIfActiveCallbacksAreAliveForever() {
 		}
 		// process active callbacks
 		queryMap := make(map[string][]databaseStructs.Callback)
-		// group all callbacks by payload type name
+		// group all callbacks by payload type name that have payload types that are online
 		for _, callback := range activeCallbacks {
+			if !callback.Payload.Payloadtype.ContainerRunning {
+				continue
+			}
 			if _, ok := queryMap[callback.Payload.Payloadtype.Name]; !ok {
 				queryMap[callback.Payload.Payloadtype.Name] = make([]databaseStructs.Callback, 0)
 			}

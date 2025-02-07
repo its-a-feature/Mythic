@@ -15,7 +15,7 @@ import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 
-export const mythicUIVersion = "0.3.8";
+export const mythicUIVersion = "0.3.9";
 
 let fetchingNewToken = false;
 
@@ -297,11 +297,11 @@ const wsClient = createClient({
     reconnectionAttempts: 3,
     on: {
       error: (err) => {
-          console.log("in on.error", err);
+          //console.log("in on.error", err);
           meState({...meState(), badConnection: true});
       },
       connected: (socket) => {
-          console.log("in on.connected", socket);
+          //console.log("in on.connected", socket);
           meState({...meState(), badConnection: false});
       }
     },

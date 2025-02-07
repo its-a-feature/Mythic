@@ -104,9 +104,10 @@ export const successfulLogin = (data) => {
 
     let now = new Date();
     let serverNow = new Date(data.user.current_utc_time);
-    const difference = (serverNow - now) / 1000;
+    const difference = (serverNow.getTime() - now.getTime()) / 1000;
     let me = {...data.user};
     me.server_skew = difference;
+    me.login_time = now;
     meState({
         loggedIn: true,
         access_token: data.access_token,
@@ -123,9 +124,10 @@ export const successfulRefresh = (data) => {
     localStorage.setItem("refresh_token", data.refresh_token);
     let now = new Date();
     let serverNow = new Date(data.user.current_utc_time);
-    const difference = (serverNow - now) / 1000;
+    const difference = (serverNow.getTime() - now.getTime()) / 1000;
     let me = {...meState().user};
     me.server_skew = difference;
+    me.login_time = now;
     meState({
         loggedIn: true,
         access_token: data.access_token,
