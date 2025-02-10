@@ -165,7 +165,6 @@ func (r *rabbitMQConnection) GetConnection() (*amqp.Connection, error) {
 				Dial: func(network, addr string) (net.Conn, error) {
 					return net.DialTimeout(network, addr, 10*time.Second)
 				},
-				Heartbeat: 10 * time.Second, // Add heartbeat
 			},
 		)
 		if err != nil {
@@ -488,8 +487,8 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 		}
 		q, err := ch.QueueDeclare(
 			queue,          // name, queue
-			true,           // durable
-			false,          // delete when unused
+			false,          // durable
+			true,           // delete when unused
 			exclusiveQueue, // exclusive
 			false,          // no-wait
 			nil,
