@@ -83,7 +83,7 @@ func (d *DockerComposeManager) IsServiceRunning(service string) bool {
 	}
 	if len(containers) > 0 {
 		for _, c := range containers {
-			if c.Labels["name"] == strings.ToLower(service) {
+			if c.Labels["name"] == strings.ToLower(service) && c.State == "running" {
 				return true
 			}
 		}
