@@ -209,7 +209,8 @@ export function TaskParametersDialogRow(props){
             snackActions.error("Failed to create credential");
             console.log(data);
         }
-    })
+    });
+    const [treatNewlinesAsNewEntries, setTreatNewlinesAsNewEntries] = React.useState(false);
     useEffect( () => {
         if(props.dynamic_query_function !== ""){
             if(!usingDynamicParamChoices.current){
@@ -503,12 +504,19 @@ export function TaskParametersDialogRow(props){
         setArrayValue(removed);
         props.onChange(props.name, removed, false);
     }
+    const toggleTreatNewlinesAsNewEntries = () => {
+        setTreatNewlinesAsNewEntries(!treatNewlinesAsNewEntries);
+    }
     const onChangeArrayText = (value, error, index) => {
         let values = [...arrayValue];
         if(value.includes("\n")){
-            let new_values = value.split("\n");
-            values = [...values, ...new_values.slice(1)];
-            values[index] = new_values[0];
+            if(treatNewlinesAsNewEntries){
+                let new_values = value.split("\n");
+                values = [...values, ...new_values.slice(1)];
+                values[index] = new_values[0];
+            } else {
+                values[index] = value;
+            }
         }else{
             values[index] = value;
         }
@@ -537,9 +545,13 @@ export function TaskParametersDialogRow(props){
     const onChangeTypedArrayText = (value, error, index) => {
         let values = [...typedArrayValue];
         if(value.includes("\n")){
-            let new_values = value.split("\n");
-            values = [...values, [props.default_value, ...new_values.slice(1)]];
-            values[index][1] = new_values[0];
+            if(treatNewlinesAsNewEntries){
+                let new_values = value.split("\n");
+                values = [...values, [props.default_value, ...new_values.slice(1)]];
+                values[index][1] = new_values[0];
+            } else {
+                values[index][1] = value;
+            }
         }else{
             values[index][1] = value;
         }
@@ -625,6 +637,16 @@ export function TaskParametersDialogRow(props){
                     <TableContainer >
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
+                                <TableRow>
+                                    <MythicStyledTableCell>Treat new lines as new entries</MythicStyledTableCell>
+                                    <MythicStyledTableCell>
+                                        <Switch checked={treatNewlinesAsNewEntries} onChange={toggleTreatNewlinesAsNewEntries} color={"info"} />
+                                    </MythicStyledTableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                        <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
+                            <TableBody>
                                 {arrayValue.map( (a, i) => (
                                     <TableRow key={'array' + props.name + i} >
                                         <MythicStyledTableCell style={{width: "2rem"}}>
@@ -658,6 +680,16 @@ export function TaskParametersDialogRow(props){
             case "TypedArray":
                 return (
                     <TableContainer >
+                        <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
+                            <TableBody>
+                                <TableRow>
+                                    <MythicStyledTableCell>Treat new lines as new entries</MythicStyledTableCell>
+                                    <MythicStyledTableCell>
+                                        <Switch checked={treatNewlinesAsNewEntries} onChange={toggleTreatNewlinesAsNewEntries} color={"info"} />
+                                    </MythicStyledTableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {typedArrayValue.map( (a, i) => (

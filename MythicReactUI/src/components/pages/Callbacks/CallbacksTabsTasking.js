@@ -89,7 +89,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
     const [commandInfo, setCommandInfo] = React.useState({});
     const [taskingData, setTaskingData] = React.useState({task: []});
     const taskingDataRef = React.useRef({task: []});
-    const [fromNow, setFromNow] = React.useState(getSkewedNow());
+    const [fromNow, setFromNow] = React.useState(getSkewedNow().toISOString());
     const [selectedToken, setSelectedToken] = React.useState({});
     const [filterOptions, setFilterOptions] = React.useState({
         "operatorsList": [],
