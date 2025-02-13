@@ -134,6 +134,10 @@ The following people have contributed a lot to the project. As you see their han
 - [@Airzero24](https://twitter.com/airzero24)
 - [@SpecterOps](https://twitter.com/specterops)
 
+## Sponsors
+
+- [w33ts](https://github.com/w33ts) / [@w33t_io](https://twitter.com/w33t_io)
+
 ## Liability
 
 This is an open source project meant to be used with authorization to assess the security posture and for research purposes.
