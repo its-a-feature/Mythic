@@ -551,7 +551,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				EventingChannel <- EventNotification{
 					Trigger:     trigger,
 					OperationID: file.OperationID,
-					OperatorID:  file.Task.OperatorID,
+					OperatorID:  file.OperatorID,
 					FileMetaID:  file.ID,
 				}
 			}(fileMeta)
