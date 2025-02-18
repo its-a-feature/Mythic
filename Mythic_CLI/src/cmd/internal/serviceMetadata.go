@@ -800,6 +800,12 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 	existingConfig["extra_hosts"] = []string{
 		"mythic_server:127.0.0.1",
 		"mythic_rabbitmq:127.0.0.1",
+		"mythic_nginx:127.0.0.1",
+		"mythic_react:127.0.0.1",
+		"mythic_documentation:127.0.0.1",
+		"mythic_graphql:127.0.0.1",
+		"mythic_jupyter:127.0.0.1",
+		"mythic_postgres:127.0.0.1",
 	}
 	/*
 		pStruct := map[string]interface{}{
