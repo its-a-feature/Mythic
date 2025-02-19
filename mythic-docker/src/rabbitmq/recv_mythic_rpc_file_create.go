@@ -123,7 +123,7 @@ func MythicRPCFileCreate(input MythicRPCFileCreateMessage) MythicRPCFileCreateMe
 		payload := databaseStructs.Payload{}
 		err = database.DB.Get(&payload, `SELECT
 		payload.operator_id, 
-		payload.operation_id,
+		payload.operation_id
 		FROM
 		payload
 		WHERE
