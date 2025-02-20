@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.11] - 2025-02-20
+
+### Changed
+
+- Updated the background coloring for images to make it a bit easier to see text on harsh background
+- Updated default font family
+- Updated command and parameter search to include original and updated command names for aliases
+
 ## [0.3.10] - 2025-02-13
 
 ### Changed

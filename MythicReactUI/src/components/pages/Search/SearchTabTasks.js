@@ -73,12 +73,12 @@ query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: 
 const commandAndParameterSearch = gql`
 ${taskingDataFragment}
 query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, _or: [{original_params: {_ilike: $search}}, {command_name: {_ilike: $search}}]}) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, _or: [{original_params: {_ilike: $search}}, {command: {cmd: {_ilike: $search}}}, {command_name: {_ilike: $search}}]}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, _or: [{original_params: {_ilike: $search}}, {command_name: {_ilike: $search}}]}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, _or: [{original_params: {_ilike: $search}}, {command: {cmd: {_ilike: $search}}}, {command_name: {_ilike: $search}}]}) {
       ...taskData
     }
   }

@@ -224,7 +224,7 @@ export function TopAppBar(props) {
                 {me?.user?.current_operation_id === 0 ? (
                     <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "#f84d4d",
                       fontWeight: "bold",}} to="/new/operations">
-                      {"CLICK HERE TO SET OPERATION!"}
+                      {"NO OPERATION!"}
                     </Link>
                 ) : (
                     <>

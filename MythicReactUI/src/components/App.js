@@ -190,6 +190,11 @@ export function App(props) {
             </StyledEngineProvider>
         )
     }
+    const background = theme.palette.background.image !== null ? {
+        background: "linear-gradient(" + theme.palette.background.default + "99" + "," + theme.palette.background.default + "99" + ")," + theme.palette.background.image,
+    } : {
+        backgroundColor: theme.palette.background.default
+    };
     return (
         <StyledEngineProvider injectFirst>
             <ThemeProvider theme={theme}>
@@ -202,8 +207,7 @@ export function App(props) {
                                 wordBreak: "break-all", flexDirection: "column", justifyContent: "center"}}
                                 pauseOnFocusLoss={false} />
                     <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'row', maxWidth: "100%", width:"100%",
-                        backgroundImage: theme.palette.background.image !== null ? theme.palette.background.image : "",
-                        backgroundSize: "contain"}}>
+                        ...background}}>
 
                         {openRefreshDialog &&
                             <MythicDialog fullWidth={true} maxWidth="sm" open={openRefreshDialog}

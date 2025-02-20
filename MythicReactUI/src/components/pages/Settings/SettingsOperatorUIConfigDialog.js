@@ -34,7 +34,7 @@ const interactTypeOptions = [
     {value: "interactConsole", display: "Console Like"}
 ];
 const commonFontFamilies = [
-    "Verdana",
+    operatorSettingDefaults.fontFamily,
     "-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\"",
     "Monaco"
 ]

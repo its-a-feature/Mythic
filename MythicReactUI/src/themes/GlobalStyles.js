@@ -1,4 +1,5 @@
 import { createGlobalStyle} from "styled-components"
+// hex transparencies https://gist.github.com/lopspower/03fb1cc0ac9f32ef38f4
 export const GlobalStyles = createGlobalStyle`
 body {
     margin: 0
@@ -197,7 +198,7 @@ tspan {
     box-sizing: border-box;
     justify-content: space-between;
     user-select: none;
-    background-color: ${(props) => props.theme.tableHeader};
+    background-color: ${(props) => props.theme.tableHeader} !important;
     &:first-child-of-type {
         border-left: 1px solid ${(props) => props.theme.tableHover};
     }

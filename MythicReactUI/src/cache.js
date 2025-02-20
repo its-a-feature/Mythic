@@ -7,7 +7,7 @@ export const menuOpen = makeVar(false);
 export const alertCount = makeVar(0);
 export const operatorSettingDefaults =  {
     fontSize: 12,
-    fontFamily: "Verdana",
+    fontFamily: "Verdana, Arial, sans-serif",
     showMedia: true,
     hideUsernames: false,
     showIP: false,
