@@ -391,12 +391,12 @@ function AgentNode({data}) {
         <div style={{padding: 0, margin: 0, ...additionalStyles}}>
             {
                 [...Array(data.sourceCount)].map((e, i) => (
-                    <Handle type={"source"} id={`${i+1}`} key={`${i+1}`} style={data.sourceCount > 1 ? getOffset(i) : {}} position={sourcePosition} />
+                    <Handle type={"source"} id={`${i+1}`} key={`${i+1}`} style={data.sourceCount > 1 ? getOffset(i) : {}} isConnectable={false} position={sourcePosition} />
                 ))
 
             }
             <img alt={data.img} style={{margin: "auto"}} src={data.img}  className={"circleImageNode"} />
-            <Handle type={"target"} position={targetPosition} />
+            <Handle type={"target"} position={targetPosition} isConnectable={false}/>
             <Typography style={{textAlign: "center", margin: 0, padding: 0}} >{data.label}</Typography>
         </div>
     )
@@ -406,13 +406,13 @@ function TaskNode({data}) {
     const targetPosition = getTargetPosition(data["elk.direction"]);
     return (
         <div >
-            <Handle type={"source"} position={sourcePosition} />
+            <Handle type={"source"} position={sourcePosition} isConnectable={false} />
             {data.id > 0 &&
                 <TaskLabelFlat task={data} showOnSelectTask={!data.selected} onSelectTask={() => {data.onSelectTask(data)}}
                                graphView={true}
                 />
             }
-            <Handle type={"target"} position={targetPosition} />
+            <Handle type={"target"} position={targetPosition} isConnectable={false} />
         </div>
     )
 }
@@ -426,12 +426,12 @@ function BrowserscriptNode({data}) {
     } : {};
     return (
         <div style={{padding: 0, margin: 0, display: "flex", flexDirection: "column", ...additionalStyles}}>
-            <Handle type={"source"} position={sourcePosition} />
+            <Handle type={"source"} position={sourcePosition} isConnectable={false} />
             {data.img}
             <div style={{top: 0, right: 0, height: "50%", width: "50%", position: "absolute"}}>
                 {data.overlay_img}
             </div>
-            <Handle type={"target"} position={targetPosition} />
+            <Handle type={"target"} position={targetPosition} isConnectable={false} />
             <Typography style={{textAlign: "center", margin: 0, padding: 0}} >{data.data.label}</Typography>
         </div>
     )
@@ -441,11 +441,11 @@ export function GroupNode({data}) {
     const targetPosition = getTargetPosition(data["elk.direction"]);
     return (
         <>
-            <Handle hidden type={"source"} position={sourcePosition} />
+            <Handle hidden type={"source"} position={sourcePosition} isConnectable={false} />
             <div className={"groupNode"} style={{width: data.width, height: data.height, margin: "auto"}}>
                 <Typography style={{textAlign: "center", margin: 0, padding: 0}} >{data.label}</Typography>
             </div>
-            <Handle type={"target"} hidden position={targetPosition} />
+            <Handle type={"target"} hidden position={targetPosition} isConnectable={false} />
         </>
 
 

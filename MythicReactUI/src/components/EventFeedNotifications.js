@@ -22,49 +22,44 @@ const subscribe_payloads = gql`
   `;
 
 export function EventFeedNotifications(props) {
-    const me = props.me;
     const [fromNow, setFromNow] = React.useState(getSkewedNow().toISOString());
     //const fromNow = React.useRef(  );
-    const { loading, error, data } = useSubscription(subscribe_payloads, {
+    useSubscription(subscribe_payloads, {
         variables: {fromNow: fromNow },
         fetchPolicy: "no-cache",
         shouldResubscribe: true,
         onError: (errorData) => {
            console.log(errorData);
+        },
+        onData: ({data}) => {
+            if (data.data.operationeventlog_stream.length > 0){
+                if(data.data.operationeventlog_stream[0].level === "api" || data.data.operationeventlog_stream[0].level === "debug" ){
+                    return;
+                }
+                if(data.data.operationeventlog_stream[0].resolved){
+                    return;
+                }
+                if(data.data.operationeventlog_stream[0].operator){
+                    const message = data.data.operationeventlog_stream[0].operator.username + ":\n" + data.data.operationeventlog_stream[0].message;
+                    if (data.data.operationeventlog_stream[0].level === "warning") {
+                        snackActions.warning(message, { autoClose: 2000});
+                    } else {
+                        snackActions.info(message, { autoClose: 2000});
+                    }
+
+                }else {
+                    if (data.data.operationeventlog_stream[0].level === "warning") {
+                        snackActions.warning(data.data.operationeventlog_stream[0].message, {autoClose: 3000});
+                    } else {
+                        snackActions.info(
+                            <div style={{width: "100%"}}>{data.data.operationeventlog_stream[0].message}</div>,
+                            {autoClose: 3000});
+                    }
+
+                }
+                }
         }
     });
-
-    useEffect( () => {
-        //console.log(data, loading, error, fromNow.current);
-        if(!loading && !error && data && data.operationeventlog_stream.length > 0){
-            if(data.operationeventlog_stream[0].level === "api" || data.operationeventlog_stream[0].level === "debug" ){
-                return;
-            }
-            if(data.operationeventlog_stream[0].resolved){
-                return;
-            }
-            if(data.operationeventlog_stream[0].operator){
-                const message = data.operationeventlog_stream[0].operator.username + ":\n" + data.operationeventlog_stream[0].message;
-                if (data.operationeventlog_stream[0].level === "warning") {
-                    snackActions.warning(message, { autoClose: 2000});
-                } else {
-                    snackActions.info(message, { autoClose: 2000});
-                }
-
-            }else {
-                if (data.operationeventlog_stream[0].level === "warning") {
-                    snackActions.warning(data.operationeventlog_stream[0].message, {autoClose: 3000});
-                } else {
-                    snackActions.info(
-                        <div style={{width: "100%"}}>{data.operationeventlog_stream[0].message}</div>,
-                    {autoClose: 3000});
-                }
-
-            }
-        }else if(error){
-            console.error(error);
-        }
-    }, [loading, data, error, me.user?.id]);
-    return null;
+    return null
 }
 

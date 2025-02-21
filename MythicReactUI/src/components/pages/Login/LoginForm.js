@@ -193,9 +193,9 @@ export function LoginForm(props){
                             {requestField.length === 0 &&
                                 <>
                                     <MythicTextField name='username' value={username} onChange={onUsernameChange}
-                                                     width={31}/>
+                                                     width={31} debounceDelay={0}/>
                                     <MythicTextField name='password' type="password" onEnter={submit} value={password}
-                                                     onChange={onPasswordChange} width={31}/>
+                                                     onChange={onPasswordChange} width={31} debounceDelay={0}/>
                                     <Button type="submit" color="primary" onClick={submit} variant="contained"
                                             style={{}}>Login</Button>
                                 </>
@@ -205,7 +205,7 @@ export function LoginForm(props){
                                     {requestField.map(r => (
                                         <MythicTextField key={r.name} name={r.name} value={r.value} onChange={onUpdateText}
                                                          type={r.name === "password" ? "password" : ""}
-                                                         width={31}/>
+                                                         width={31} debounceDelay={0}/>
                                     ))}
                                     <Button type="submit" color="primary" onClick={submitNonIDP} variant="contained"
                                             style={{}}>Login via {selectedAuthOptionRef.current.idp}</Button>

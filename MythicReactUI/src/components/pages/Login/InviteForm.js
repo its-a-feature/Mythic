@@ -78,14 +78,14 @@ export function InviteForm(props){
                             <CardContent>
                                 <img src={logo} height="400px" alt="Mythic logo"/>
                                 <form onSubmit={submit}>
-                                    <MythicTextField name='code' value={inviteCode}
+                                    <MythicTextField name='code' value={inviteCode} debounceDelay={0}
                                                      onChange={onChangeText} width={31}/>
                                     <MythicTextField name='username' value={username} onChange={onChangeText}
-                                                     width={31}/>
+                                                     width={31} debounceDelay={0}/>
                                     <MythicTextField name='password' type="password" onEnter={submit} value={password}
-                                                     onChange={onChangeText} width={31}/>
+                                                     onChange={onChangeText} width={31} debounceDelay={0}/>
                                     <MythicTextField name='email' value={email} onChange={onChangeText}
-                                                     width={31}/>
+                                                     width={31} debounceDelay={0}/>
                                     <Button type="submit" color="primary" onClick={submit} variant="contained"
                                             style={{}}>Register</Button>
                                 </form>

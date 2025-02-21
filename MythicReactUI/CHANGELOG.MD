@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.13] - 2025-02-21
+
+### Changed
+
+- Updated the debounce delay on logon to be 0 to prevent failed logons
+- Updated graph edges to not be connectable
+- Fixed an issue with event notifications not showing up
+
 ## [0.3.12] - 2025-02-21
 
 ### Changed
