@@ -20,21 +20,25 @@ type PTRPCReSyncMessageResponse struct {
 func (r *rabbitMQConnection) SendPTRPCReSync(resync PTRPCReSyncMessage) (*PTRPCReSyncMessageResponse, error) {
 	resyncResponse := PTRPCReSyncMessageResponse{}
 	exclusiveQueue := true
-	if configBytes, err := json.Marshal(resync); err != nil {
+	configBytes, err := json.Marshal(resync)
+	if err != nil {
 		logging.LogError(err, "Failed to convert message to JSON", "configCheck", resync)
 		return nil, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetPTRPCReSyncRoutingKey(resync.Name),
 		configBytes,
 		exclusiveQueue,
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err
-	} else if err := json.Unmarshal(response, &resyncResponse); err != nil {
+	}
+	err = json.Unmarshal(response, &resyncResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to parse config check response back to struct", "response", response)
 		return nil, err
-	} else {
-		return &resyncResponse, nil
 	}
+	return &resyncResponse, nil
 }

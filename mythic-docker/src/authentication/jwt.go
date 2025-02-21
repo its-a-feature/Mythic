@@ -236,11 +236,12 @@ func ExtractAPIToken(c *gin.Context) (string, error) {
 		}
 		token = c.Request.Header.Get("apitoken")
 		if len(token) == 0 {
-			logging.LogError(nil, "[-] No 'apitoken` or 'Authorization: Bearer' token values supplied")
+			if !strings.HasPrefix(c.Request.URL.Path, "/direct/") {
+				logging.LogError(nil, "[-] No 'apitoken` or 'Authorization: Bearer' token values supplied")
+			}
 			return "", ErrMissingJWTToken
 		}
 	}
-
 	//logging.LogTrace("got apitoken header", "apitoken", token)
 	return token, nil
 }

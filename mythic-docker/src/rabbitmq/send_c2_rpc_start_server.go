@@ -80,21 +80,26 @@ func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
 func (r *rabbitMQConnection) SendC2RPCStartServer(startServer C2StartServerMessage) (*C2StartServerMessageResponse, error) {
 	c2StartServerResponse := C2StartServerMessageResponse{}
 	exclusiveQueue := true
-	if opsecBytes, err := json.Marshal(startServer); err != nil {
+	opsecBytes, err := json.Marshal(startServer)
+	if err != nil {
 		logging.LogError(err, "Failed to convert startServer to JSON", "startServer", startServer)
 		return &c2StartServerResponse, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	logging.LogDebug("Sending start server request", "startServer", startServer)
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCStartServerRoutingKey(startServer.Name),
 		opsecBytes,
 		exclusiveQueue,
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return &c2StartServerResponse, err
-	} else if err := json.Unmarshal(response, &c2StartServerResponse); err != nil {
+	}
+	err = json.Unmarshal(response, &c2StartServerResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to parse start server response back to struct", "response", response)
 		return &c2StartServerResponse, err
-	} else {
-		return &c2StartServerResponse, nil
 	}
+	return &c2StartServerResponse, nil
 }

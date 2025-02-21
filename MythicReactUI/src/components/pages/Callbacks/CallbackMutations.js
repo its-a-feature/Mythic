@@ -131,6 +131,8 @@ export const taskingDataFragment = gql`
         status
         timestamp
         status_timestamp_submitted
+        status_timestamp_processing
+        status_timestamp_preprocessing
         command {
           cmd
           supported_ui_features

@@ -24,21 +24,26 @@ type C2OPSECMessageResponse struct {
 func (r *rabbitMQConnection) SendC2RPCOpsecCheck(opsecCheck C2OPSECMessage) (*C2OPSECMessageResponse, error) {
 	opsecCheckResponse := C2OPSECMessageResponse{}
 	exclusiveQueue := true
-	if opsecBytes, err := json.Marshal(opsecCheck); err != nil {
+	opsecBytes, err := json.Marshal(opsecCheck)
+	if err != nil {
 		logging.LogError(err, "Failed to convert opsecCheck to JSON", "opseccheck", opsecCheck)
 		return nil, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	logging.LogDebug("Sending opsecCheck to RabbitMQ", "opsecCheck", opsecCheck)
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCOpsecChecksRoutingKey(opsecCheck.Name),
 		opsecBytes,
 		exclusiveQueue,
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err
-	} else if err := json.Unmarshal(response, &opsecCheckResponse); err != nil {
+	}
+	err = json.Unmarshal(response, &opsecCheckResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to parse opsec check response back to struct", "response", response)
 		return nil, err
-	} else {
-		return &opsecCheckResponse, nil
 	}
+	return &opsecCheckResponse, nil
 }

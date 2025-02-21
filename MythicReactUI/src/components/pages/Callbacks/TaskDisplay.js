@@ -19,6 +19,7 @@ import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
 import CropRotateTwoToneIcon from '@mui/icons-material/CropRotateTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {operatorSettingDefaults} from "../../../cache";
 
 
 const PREFIX = 'TaskDisplay';
@@ -233,11 +234,13 @@ const GetOperatorDisplay = ({initialHideUsernameValue, task}) => {
 export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded }) => {
   const [displayComment, setDisplayComment] = React.useState(false);
   const [alertBadges, setAlertBadges] = React.useState(0);
-  const initialHideUsernameValue = GetMythicSetting({setting_name: "hideUsernames", default_value: false});
-  const initialShowIPValue = GetMythicSetting({setting_name: "showIP", default_value: false});
+  const initialHideUsernameValue = GetMythicSetting({setting_name: "hideUsernames", default_value: operatorSettingDefaults.hideUsernames});
+  const initialShowIPValue = GetMythicSetting({setting_name: "showIP", default_value: operatorSettingDefaults.showIP});
   const ipValue = JSON.parse(task.callback.ip)[0];
-  const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: false});
-  const initialShowCallbackGroupsValue = GetMythicSetting({setting_name: "showCallbackGroups", default_value: false});
+  const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: operatorSettingDefaults.showHostname});
+  const initialShowCallbackGroupsValue = GetMythicSetting({setting_name: "showCallbackGroups", default_value: operatorSettingDefaults.showCallbackGroups});
+  const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
+  const displayTimestamp = task[initialTaskTimestampDisplayField] ? task[initialTaskTimestampDisplayField] : task.timestamp;
   const toggleDisplayComment = (evt) => {
     evt.stopPropagation();
     setDisplayComment(!displayComment);
@@ -264,7 +267,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
           ) : null}
           <div style={{lineHeight: 0}}>
             <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
-              [{toLocalTime(task.timestamp, me?.user?.view_utc_time || false)}]
+              [{toLocalTime(displayTimestamp, me?.user?.view_utc_time || false)}]
               {" / "}
               <span style={{}}>
                   {task.has_intercepted_response &&

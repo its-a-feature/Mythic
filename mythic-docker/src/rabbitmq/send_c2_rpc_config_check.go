@@ -21,21 +21,26 @@ type C2ConfigCheckMessageResponse struct {
 func (r *rabbitMQConnection) SendC2RPCConfigCheck(configCheck C2ConfigCheckMessage) (*C2ConfigCheckMessageResponse, error) {
 	configCheckResponse := C2ConfigCheckMessageResponse{}
 	exclusiveQueue := true
-	if configBytes, err := json.Marshal(configCheck); err != nil {
+	configBytes, err := json.Marshal(configCheck)
+	if err != nil {
 		logging.LogError(err, "Failed to convert configCheck to JSON", "configCheck", configCheck)
 		return nil, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	logging.LogDebug("Sending configCheck to RabbitMQ", "configCheck", configCheck)
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCConfigChecksRoutingKey(configCheck.Name),
 		configBytes,
 		exclusiveQueue,
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err
-	} else if err := json.Unmarshal(response, &configCheckResponse); err != nil {
+	}
+	err = json.Unmarshal(response, &configCheckResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to parse config check response back to struct", "response", response)
 		return nil, err
-	} else {
-		return &configCheckResponse, nil
 	}
+	return &configCheckResponse, nil
 }

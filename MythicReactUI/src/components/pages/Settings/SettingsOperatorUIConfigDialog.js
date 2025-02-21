@@ -17,7 +17,7 @@ import Select from '@mui/material/Select';
 import Input from '@mui/material/Input';
 import IconButton from '@mui/material/IconButton';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
-import { operatorSettingDefaults} from "../../../cache";
+import {operatorSettingDefaults, taskTimestampDisplayFieldOptions} from "../../../cache";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
@@ -103,6 +103,9 @@ export function SettingsOperatorUIConfigDialog(props) {
 
     const initialUseDisplayParamsForCLIHistory = GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: operatorSettingDefaults.useDisplayParamsForCLIHistory});
     const [useDisplayParamsForCLIHistory, setUseDisplayParamsForCLIHistory] = React.useState(initialUseDisplayParamsForCLIHistory);
+
+    const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
+    const [taskTimestampDisplayField, setTaskTimestampDisplayField] = React.useState(initialTaskTimestampDisplayField);
 
     const initialPalette = GetMythicSetting({setting_name: 'palette', default_value: operatorSettingDefaults.palette});
     const [palette, setPalette] = React.useState({
@@ -225,6 +228,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onChangeInteractType = (evt) => {
         setInteractType(evt.target.value);
     }
+    const onChangeTaskTimestampDisplayField = (evt) => {
+        setTaskTimestampDisplayField(evt.target.value);
+    }
     const onChangeUseDisplayParamsForCLIHistory = (evt) => {
         setUseDisplayParamsForCLIHistory(!useDisplayParamsForCLIHistory);
     }
@@ -249,6 +255,7 @@ export function SettingsOperatorUIConfigDialog(props) {
               showMedia,
               interactType,
               useDisplayParamsForCLIHistory,
+              taskTimestampDisplayField,
               palette: palette
       }});
       props.onClose();
@@ -270,6 +277,7 @@ export function SettingsOperatorUIConfigDialog(props) {
       setUseDisplayParamsForCLIHistory(operatorSettingDefaults.useDisplayParamsForCLIHistory);
       setResumeNotifications(false);
       setPalette(operatorSettingDefaults.palette);
+      setTaskTimestampDisplayField(operatorSettingDefaults.taskTimestampDisplayField);
     }
     const clearAllUserSettings = () => {
         clearSettings();
@@ -473,6 +481,24 @@ export function SettingsOperatorUIConfigDialog(props) {
                           >
                               {interactTypeOptions.map( (opt) => (
                                   <MenuItem value={opt.value} key={opt.value}>{opt.display}</MenuItem>
+                              ) )}
+                          </Select>
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>
+                          Choose Which Timestamp to display for Tasks
+                      </MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <Select
+                              labelId="demo-dialog-select-label"
+                              id="demo-dialog-select"
+                              value={taskTimestampDisplayField}
+                              onChange={onChangeTaskTimestampDisplayField}
+                              input={<Input style={{width: "100%"}}/>}
+                          >
+                              {taskTimestampDisplayFieldOptions.map( (opt) => (
+                                  <MenuItem value={opt.name} key={opt.name}>{opt.display}</MenuItem>
                               ) )}
                           </Select>
                       </MythicStyledTableCell>

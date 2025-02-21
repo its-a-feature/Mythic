@@ -15,7 +15,7 @@ import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 
-export const mythicUIVersion = "0.3.11";
+export const mythicUIVersion = "0.3.12";
 
 let fetchingNewToken = false;
 

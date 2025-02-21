@@ -5,6 +5,20 @@ import {snackActions} from "./components/utilities/Snackbar";
 export const meState = makeVar({loggedIn:false, user: null, access_token: null, refresh_token: null});
 export const menuOpen = makeVar(false);
 export const alertCount = makeVar(0);
+export const taskTimestampDisplayFieldOptions = [
+    {
+        name: "timestamp",
+        display: "Latest Timestamp for anything task related"
+    },
+    {
+        name: "status_timestamp_preprocessing",
+        display: "When Operator Submitted Task"
+    },
+    {
+        name: "status_timestamp_processing",
+        display: "When Agent Picked up Task",
+    }
+]
 export const operatorSettingDefaults =  {
     fontSize: 12,
     fontFamily: "Verdana, Arial, sans-serif",
@@ -15,6 +29,7 @@ export const operatorSettingDefaults =  {
     showCallbackGroups: false,
     useDisplayParamsForCLIHistory: true,
     interactType: "interact",
+    taskTimestampDisplayField: "timestamp",
     callbacks_table_columns: ["Interact", "Host", "Domain", "User", "Description", "Last Checkin", "Agent",  "IP", "PID"],
     callbacks_table_filters: {},
     autoTaskLsOnEmptyDirectories: false,

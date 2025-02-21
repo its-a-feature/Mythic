@@ -53,7 +53,7 @@ func processTrSyncMessages(msg amqp.Delivery) interface{} {
 			go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", trSyncMsg.Name, trSyncMsg.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG)
 			go database.ResolveAllOperationsMessage(getDownContainerMessage(trSyncMsg.Name), 0)
 			logging.LogDebug("Successfully synced", "service", trSyncMsg.Name)
-			reSyncPayloadTypes()
+			go reSyncPayloadTypes()
 		}
 	}
 	return response
