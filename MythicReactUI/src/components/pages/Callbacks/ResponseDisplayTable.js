@@ -633,12 +633,15 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   }, [table.rows])
   const sortColumn = table.headers.findIndex((column) => column.plaintext === sortData.sortKey);
   const tableStyle = React.useMemo( () => {
-    return expand ? {flexGrow: 1, width: "99%", position: "relative"} : {height: dataHeight, position: "relative"}
+    return expand ? {flexGrow: 1,
+          minHeight: gridData.length > 0 ? Math.min(maxHeight, dataHeight) : 0,
+          width: "99%", position: "relative"} :
+        {height: dataHeight, position: "relative"}
   }, [expand, dataHeight]);
   return (
         <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", width: "100%"}}>
             {table?.title ? (
-                <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+                <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px"}} variant={"elevation"}>
                   <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     {table.title}
                   </Typography>

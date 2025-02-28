@@ -44,6 +44,8 @@ type agentMessagePostResponse struct {
 	Completed       *bool                                     `json:"completed,omitempty" mapstructure:"completed,omitempty" xml:"completed,omitempty"`
 	UserOutput      *string                                   `json:"user_output,omitempty" mapstructure:"user_output,omitempty" xml:"user_output,omitempty"`
 	Status          *string                                   `json:"status,omitempty" mapstructure:"status,omitempty" xml:"status,omitempty"`
+	Stdout          *string                                   `json:"stdout,omitempty" mapstructure:"stdout,omitempty" xml:"stdout,omitempty"`
+	Stderr          *string                                   `json:"stderr,omitempty" mapstructure:"stderr,omitempty" xml:"stderr,omitempty"`
 	FileBrowser     *agentMessagePostResponseFileBrowser      `json:"file_browser,omitempty" mapstructure:"file_browser,omitempty" xml:"file_browser,omitempty"`
 	RemovedFiles    *[]agentMessagePostResponseRemovedFiles   `json:"removed_files,omitempty" mapstructure:"removed_files,omitempty" xml:"removed_files,omitempty"`
 	Credentials     *[]agentMessagePostResponseCredentials    `json:"credentials,omitempty" mapstructure:"credentials,omitempty" xml:"credentials,omitempty"`
@@ -333,6 +335,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		} else {
 			err = database.DB.Get(&currentTask, `SELECT
 			task.id, task.status, task.completed, task.status_timestamp_processed, task.operator_id, task.operation_id,
+			task.stdout, task.stderr,
 			task.eventstepinstance_id, task.apitokens_id,
 			callback.host "callback.host",
 			callback.user "callback.user",
@@ -430,6 +433,12 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				SequenceNum: agentMessage.Responses[i].SequenceNumber,
 			}
 		}
+		if agentMessage.Responses[i].Stdout != nil {
+			currentTask.Stdout += *agentMessage.Responses[i].Stdout
+		}
+		if agentMessage.Responses[i].Stderr != nil {
+			currentTask.Stderr = *agentMessage.Responses[i].Stderr
+		}
 		if agentMessage.Responses[i].FileBrowser != nil {
 			// do it in the background - the agent doesn't need the result of this directly
 			go HandleAgentMessagePostResponseFileBrowser(currentTask, agentMessage.Responses[i].FileBrowser, 0)
@@ -485,7 +494,8 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 	for _, currentTask := range cachedTaskData {
 		// always updating at least the timestamp for the last thing that happened
 		_, err = database.DB.NamedExec(`UPDATE task SET
-				status=:status, completed=:completed, status_timestamp_processed=:status_timestamp_processed, "timestamp"=:timestamp
+				status=:status, completed=:completed, status_timestamp_processed=:status_timestamp_processed, "timestamp"=:timestamp,
+				stdout=:stdout, stderr=:stderr
 				WHERE id=:id`, currentTask)
 		if err != nil {
 			logging.LogError(err, "Failed to update task from agent response")

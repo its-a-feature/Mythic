@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc47] - 2025-02-26
+
+### Changed
+
+- Updated task output to support `stdout` and `stderr` fields in addition to `user_output`
+
 ## [3.3.1-rc46] - 2025-02-21
 
 ### Changed

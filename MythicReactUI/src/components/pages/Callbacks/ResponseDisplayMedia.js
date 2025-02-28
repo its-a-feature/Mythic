@@ -379,7 +379,7 @@ const DisplayText = ({agent_file_id, expand, filename, preview, fileMetaData}) =
     const [previewFileString] = useMutation(previewFileQuery, {
         onCompleted: (data) => {
             if(data.previewFile.status === "success"){
-                setContent(atob(data.previewFile.contents));
+                setContent(b64DecodeUnicode(data.previewFile.contents));
                 if(data.previewFile.size > 512000){
                     setLimitedPreviewWarning(true);
                 }
