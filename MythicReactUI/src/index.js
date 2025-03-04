@@ -15,7 +15,7 @@ import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 
-export const mythicUIVersion = "0.3.14";
+export const mythicUIVersion = "0.3.15";
 
 let fetchingNewToken = false;
 
@@ -174,6 +174,8 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
               snackActions.error(err.message);
               break;
           case 'access-denied':
+              snackActions.error(err.message);
+              break;
             //fallsthrough
           case 'start-failed':
             // when AuthenticationError thrown in resolver

@@ -28,6 +28,7 @@ var updateCmd = &cobra.Command{
 }
 var agents []string
 var allAgents bool
+var installAgentUpdates bool
 
 func init() {
 	rootCmd.AddCommand(updateCmd)
@@ -51,6 +52,13 @@ func init() {
 		"a",
 		false,
 		`Check for potential updates for all installed services instead of Mythic`,
+	)
+	updateCmd.Flags().BoolVarP(
+		&installAgentUpdates,
+		"install-agent-updates",
+		"i",
+		false,
+		`Force install updates for installed services if they exist`,
 	)
 }
 
@@ -281,6 +289,7 @@ func checkConfigJsonVersion(body []byte, agentName string) (updateVersion string
 	return "", nil
 }
 func checkAgentVersions(agents []string, allAgents bool) error {
+	agentUpdateMessages := ""
 	localAgents := agents
 	if len(localAgents) == 0 || allAgents {
 		dockerComposeContainers, err := manager.GetManager().GetAllInstalled3rdPartyServiceNames()
@@ -293,6 +302,7 @@ func checkAgentVersions(agents []string, allAgents bool) error {
 		installLocation := config.GetMythicEnv().GetString(fmt.Sprintf("%s_install_location", agent))
 		if installLocation == "" {
 			log.Printf("[-] No tracked install location for %s, install again to start tracking location\n", agent)
+			agentUpdateMessages += fmt.Sprintf("[-] No tracked install location for %s, install again to start tracking location\n", agent)
 			continue
 		}
 		if strings.HasPrefix(installLocation, "http") {
@@ -300,47 +310,91 @@ func checkAgentVersions(agents []string, allAgents bool) error {
 			targetInfoPieces := strings.Split(installLocation, ";")
 			if len(targetInfoPieces) != 2 {
 				log.Printf("[!] Invalid install location for agent %s: %s\n", agent, installLocation)
+				agentUpdateMessages += fmt.Sprintf("[!] Invalid install location for agent %s: %s\n", agent, installLocation)
 				continue
 			}
 			workingPath, err := internal.GitClone(targetInfoPieces[0], targetInfoPieces[1])
 			if err != nil {
 				log.Printf("[!] Failed to clone working path for %s: %v\n", agent, err)
+				agentUpdateMessages += fmt.Sprintf("[!] Failed to clone working path for %s: %v\n", agent, err)
 				continue
 			}
 			configDataBytes, err := os.ReadFile(filepath.Join(workingPath, "config.json"))
 			internal.RemoveGitClone()
 			if err != nil {
 				log.Printf("[!] Failed to read config.json for %s: %v\n", agent, err)
+				agentUpdateMessages += fmt.Sprintf("[!] Failed to read config.json for %s: %v\n", agent, err)
 				continue
 			}
 			needsUpdate, err := checkConfigJsonVersion(configDataBytes, agent)
 			if err != nil {
 				log.Printf("[!] Failed to parse config.json for %s: %v\n", agent, err)
+				agentUpdateMessages += fmt.Sprintf("[!] Failed to parse config.json for %s: %v\n", agent, err)
 				continue
 			}
 			if needsUpdate != "" {
 				log.Printf("[+] %s has an update available! %s\n", agent, needsUpdate)
+				agentUpdateMessages += fmt.Sprintf("[+] %s has an update available! %s\n", agent, needsUpdate)
+				if installAgentUpdates {
+					localKeepVolume := keepVolume
+					if !keepVolume {
+						localKeepVolume = !config.GetMythicEnv().GetBool("REBUILD_ON_START")
+					}
+					err = internal.InstallService(targetInfoPieces[0], targetInfoPieces[1], true, localKeepVolume)
+					if err != nil {
+						log.Printf("[!] Failed to install updated %s: %v\n", agent, err)
+						agentUpdateMessages += fmt.Sprintf("[!] Failed to install updated %s: %v\n", agent, err)
+					} else {
+						log.Printf("[+] Successfully installed updated %s\n", agent)
+						agentUpdateMessages += fmt.Sprintf("[+] Successfully installed updated %s\n", agent)
+					}
+				}
 			} else {
-				log.Printf("[*] %s is up to date!\n", agent)
+				log.Printf("[*] %s is up to date! Version: %s\n", agent, config.GetMythicEnv().GetString(fmt.Sprintf("%s_remote_image", agent)))
+				agentUpdateMessages += fmt.Sprintf("[*] %s is up to date! Version: %s\n", agent, config.GetMythicEnv().GetString(fmt.Sprintf("%s_remote_image", agent)))
 			}
 		} else {
 			// checking a folder on disk
 			configDataBytes, err := os.ReadFile(filepath.Join(installLocation, "config.json"))
 			if err != nil {
 				log.Printf("[!] Failed to read config.json for %s: %v\n", agent, err)
+				agentUpdateMessages += fmt.Sprintf("[!] Failed to read config.json for %s: %v\n", agent, err)
 				continue
 			}
 			needsUpdate, err := checkConfigJsonVersion(configDataBytes, agent)
 			if err != nil {
 				log.Printf("[!] Failed to parse config.json for %s: %v\n", agent, err)
+				agentUpdateMessages += fmt.Sprintf("[!] Failed to parse config.json for %s: %v\n", agent, err)
 				continue
 			}
 			if needsUpdate != "" {
 				log.Printf("[+] %s has an update available! %s\n", agent, needsUpdate)
+				agentUpdateMessages += fmt.Sprintf("[+] %s has an update available! %s\n", agent, needsUpdate)
+				if installAgentUpdates {
+					localKeepVolume := keepVolume
+					if !keepVolume {
+						localKeepVolume = !config.GetMythicEnv().GetBool("REBUILD_ON_START")
+					}
+					err = internal.InstallFolder(installLocation, true, localKeepVolume, "")
+					if err != nil {
+						log.Printf("[!] Failed to parse config.json for %s: %v\n", agent, err)
+						agentUpdateMessages += fmt.Sprintf("[!] Failed to parse config.json for %s: %v\n", agent, err)
+						continue
+					} else {
+						log.Printf("[+] Successfully installed updated %s\n", agent)
+						agentUpdateMessages += fmt.Sprintf("[+] Successfully installed updated %s\n", agent)
+					}
+				}
 			} else {
 				log.Printf("[*] %s is up to date!\n", agent)
+				agentUpdateMessages += fmt.Sprintf("[*] %s is up to date!\n", agent)
 			}
 		}
 	}
+	if installAgentUpdates {
+		agentUpdateMessages = fmt.Sprintf("----------------\n[*] Update Summary\n----------------\n") + agentUpdateMessages
+		fmt.Print(agentUpdateMessages)
+	}
+
 	return nil
 }

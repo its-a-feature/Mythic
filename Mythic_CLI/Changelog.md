@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 0.3.14 - 2025-03-04
+
+### Changed
+
+- Added a `-i` flag for `update -s [service]` and `update -a` to auto install updates for installed services
+- Updated the "port in use" check when starting Mythic to prevent port forwards for all services except the UI
+- Added a `rabbitmq reset` command to delete the rabbitmq-docker/storage folder or volume
+
 ## 0.3.13 - 2025-02-18
 
 ### Changed

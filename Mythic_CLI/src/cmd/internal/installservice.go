@@ -329,7 +329,8 @@ func InstallFolder(installPath string, overWrite bool, keepVolume bool, installU
 	if manager.GetManager().IsServiceRunning("mythic_documentation") {
 		log.Printf("[*] Restarting mythic_documentation container to pull in changes\n")
 		ServiceStop([]string{"mythic_documentation"}, true)
-		ServiceStart([]string{"mythic_documentation"}, true)
+		manager.GetManager().BuildServices([]string{"mythic_documentation"}, true)
+		//ServiceStart([]string{"mythic_documentation"}, true)
 	}
 	return nil
 }

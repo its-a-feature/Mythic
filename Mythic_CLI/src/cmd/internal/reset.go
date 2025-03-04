@@ -10,8 +10,8 @@ func DatabaseReset(force bool) {
 	if force {
 		log.Printf("[*] Stopping Mythic\n")
 		manager.GetManager().StopServices([]string{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"), false)
-		manager.GetManager().ResetDatabase(config.GetMythicEnv().GetBool("postgres_use_volume"))
 		log.Printf("[*] Removing database files\n")
+		manager.GetManager().ResetDatabase(config.GetMythicEnv().GetBool("postgres_use_volume"))
 		return
 	}
 	confirm := config.AskConfirm("Are you sure you want to reset the database? ")
@@ -20,9 +20,23 @@ func DatabaseReset(force bool) {
 		if confirm {
 			log.Printf("[*] Stopping Mythic\n")
 			manager.GetManager().StopServices([]string{}, config.GetMythicEnv().GetBool("REBUILD_ON_START"), false)
-			manager.GetManager().ResetDatabase(config.GetMythicEnv().GetBool("postgres_use_volume"))
 			log.Printf("[*] Removing database files\n")
+			manager.GetManager().ResetDatabase(config.GetMythicEnv().GetBool("postgres_use_volume"))
 		}
+	}
+}
+func RabbitmqReset(force bool) {
+	if force {
+		manager.GetManager().StopServices([]string{"mythic_rabbitmq"}, config.GetMythicEnv().GetBool("REBUILD_ON_START"), false)
+		log.Printf("[*] Removing rabbitmq storage files\n")
+		manager.GetManager().ResetRabbitmq(config.GetMythicEnv().GetBool("rabbitmq_use_volume"))
+		return
+	}
+	confirm := config.AskConfirm("Are you sure you want to reset the rabbitmq storage? ")
+	if confirm {
+		manager.GetManager().StopServices([]string{"mythic_rabbitmq"}, config.GetMythicEnv().GetBool("REBUILD_ON_START"), false)
+		log.Printf("[*] Removing rabbitmq storage files\n")
+		manager.GetManager().ResetRabbitmq(config.GetMythicEnv().GetBool("rabbitmq_use_volume"))
 	}
 }
 

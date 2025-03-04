@@ -576,7 +576,20 @@ func (d *DockerComposeManager) GetLogs(service string, logCount int, follow bool
 		log.Println("[-] No containers running")
 	}
 }
+func checkPortRedirection(address string) (bool, string, error) {
+	dialer := net.Dialer{Timeout: 1 * time.Second}
+	conn, err := dialer.Dial("tcp", address)
+	if err != nil {
+		return false, "", err
+	}
+	defer conn.Close()
 
+	resolvedAddress := conn.RemoteAddr().String()
+	if resolvedAddress != address {
+		return true, resolvedAddress, nil
+	}
+	return true, "", nil
+}
 func (d *DockerComposeManager) TestPorts(services []string) {
 	// go through the different services in mythicEnv and check to make sure their ports aren't already used by trying to open them
 	//MYTHIC_SERVER_HOST:MYTHIC_SERVER_PORT
@@ -634,6 +647,18 @@ func (d *DockerComposeManager) TestPorts(services []string) {
 				err = p.Close()
 				if err != nil {
 					log.Printf("[-] Failed to close connection: %v\n", err)
+				}
+				isOpen, redirectedAddress, err := checkPortRedirection(":" + strconv.Itoa(mythicEnv.GetInt(val[0])))
+				if err != nil {
+					continue
+				}
+				// allow port forwards for the Mythic UI but nothing else
+				if isOpen && val[1] != "mythic_nginx" {
+					if redirectedAddress != "" {
+						log.Fatalf("Port %s is in use and redirected to %s\n", ":"+strconv.Itoa(mythicEnv.GetInt(val[0])), redirectedAddress)
+					} else {
+						log.Fatalf("Port %s is in use by something else\n", ":"+strconv.Itoa(mythicEnv.GetInt(val[0])))
+					}
 				}
 			} else {
 				removeServices = append(removeServices, val[1])
@@ -904,6 +929,23 @@ func (d *DockerComposeManager) ResetDatabase(useVolume bool) {
 		err := d.RemoveVolume("mythic_postgres_volume")
 		if err != nil {
 			log.Printf("[-] Failed to remove database:\n%v\n", err)
+		}
+	}
+}
+func (d *DockerComposeManager) ResetRabbitmq(useVolume bool) {
+	if !useVolume {
+		workingPath := utils.GetCwdFromExe()
+		err := os.RemoveAll(filepath.Join(workingPath, "rabbitmq-docker", "storage"))
+		if err != nil {
+			log.Fatalf("[-] Failed to remove rabbitmq storage files\n%v\n", err)
+		} else {
+			log.Printf("[+] Successfully reset rabbitmq storage files\n")
+		}
+	} else {
+		_ = d.RemoveContainers([]string{"mythic_rabbitmq"}, false)
+		err := d.RemoveVolume("mythic_rabbitmq_volume")
+		if err != nil {
+			log.Printf("[-] Failed to remove rabbitmq storage volume:\n%v\n", err)
 		}
 	}
 }

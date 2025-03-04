@@ -72,6 +72,19 @@ export function LoginForm(props){
             body: JSON.stringify({username, password})
         };
         fetch('/auth', requestOptions).then((response) => {
+            if(response.status === 403){
+                snackActions.warning("Invalid username or password");
+                return;
+            }else if(response.status === 404){
+                snackActions.warning("Failed to find login endpoint");
+                return;
+            }else if(response.status === 502){
+                snackActions.warning("Failed to contact mythic server due to gateway. Please refresh");
+                return;
+            }else if(response.status === 400){
+                snackActions.warning("Bad format, can't process request");
+                return;
+            }
             if(response.status !== 200){
                 snackActions.warning("HTTP " + response.status + " Error: Check Mythic logs");
                 return;
