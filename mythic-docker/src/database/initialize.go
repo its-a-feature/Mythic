@@ -13,7 +13,7 @@ import (
 )
 
 var DB *sqlx.DB
-var currentMigrationVersion int64 = 3003005
+var currentMigrationVersion int64 = 3003006
 
 // initial structs made with './tables-to-go -u mythic_user -p [password here] -h [ip here] -v -d mythic_db -of output -pn database_structs'
 // package pulled from https://github.com/fraenky8/tables-to-go

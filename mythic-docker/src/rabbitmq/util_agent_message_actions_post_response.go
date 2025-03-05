@@ -522,8 +522,8 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			logging.LogError(err, "Failed to write file to disk")
 		} else {
 			fileMeta.Size = fileDisk.Size()
-			if fileMeta.Size >= POSTGRES_MAX_INT {
-				fileMeta.Size = POSTGRES_MAX_INT - 1
+			if fileMeta.Size >= POSTGRES_MAX_BIGINT {
+				fileMeta.Size = POSTGRES_MAX_BIGINT - 1
 			}
 		}
 		if fileMeta.ChunksReceived >= fileMeta.TotalChunks {
@@ -998,6 +998,8 @@ func listenForWriteDownloadChunkToLocalDisk() {
 	if err != nil {
 		logging.LogFatalError(err, "Failed to create named statement for writing file chunks to disk")
 	}
+	syncChunksTimerDuration := 5 * time.Second
+	syncChunksTimer := time.NewTimer(syncChunksTimerDuration)
 	for {
 		select {
 		case agentResponse := <-writeDownloadChunkToDiskChan:
@@ -1065,7 +1067,7 @@ func listenForWriteDownloadChunkToLocalDisk() {
 				Success:        true,
 				ChunksReceived: newChunks[agentResponse.LocalMythicPath].Chunks,
 			}
-		case <-time.After(2 * time.Second):
+		case <-time.After(1 * time.Second):
 			for key, f := range openFiles {
 				f.Sync()
 				f.Close()
@@ -1076,6 +1078,14 @@ func listenForWriteDownloadChunkToLocalDisk() {
 				}
 				delete(newChunks, key)
 			}
+		case <-syncChunksTimer.C:
+			for key, _ := range openFiles {
+				_, err = updateChunksStatement.Exec(newChunks[key].FileMetaID, newChunks[key].Chunks)
+				if err != nil {
+					logging.LogError(err, "failed to update chunk count for file")
+				}
+			}
+			syncChunksTimer.Reset(syncChunksTimerDuration)
 		}
 	}
 }
