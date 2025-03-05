@@ -152,12 +152,12 @@ type PT_TASK_FUNCTION_STATUS = string
 
 const (
 	PT_TASK_FUNCTION_STATUS_OPSEC_PRE                        PT_TASK_FUNCTION_STATUS = "OPSEC Pre Check Running..."
-	PT_TASK_FUNCTION_STATUS_OPSEC_PRE_ERROR                                          = "Error: processing arguments - click cog to check stderr"
+	PT_TASK_FUNCTION_STATUS_OPSEC_PRE_ERROR                                          = "Error: processing arguments"
 	PT_TASK_FUNCTION_STATUS_OPSEC_PRE_BLOCKED                                        = "OPSEC Pre Blocked"
-	PT_TASK_FUNCTION_STATUS_PREPROCESSING                                            = "creating task..."
-	PT_TASK_FUNCTION_STATUS_PREPROCESSING_ERROR                                      = "Error: creating task - click cog to check stderr"
+	PT_TASK_FUNCTION_STATUS_PREPROCESSING                                            = "preparing task for agent..."
+	PT_TASK_FUNCTION_STATUS_PREPROCESSING_ERROR                                      = "Error: creating task "
 	PT_TASK_FUNCTION_STATUS_OPSEC_POST                                               = "OPSEC Post Check Running..."
-	PT_TASK_FUNCTION_STATUS_OPSEC_POST_ERROR                                         = "Error: opsec check - click cog to check stderr"
+	PT_TASK_FUNCTION_STATUS_OPSEC_POST_ERROR                                         = "Error: opsec check failed to run"
 	PT_TASK_FUNCTION_STATUS_OPSEC_POST_BLOCKED                                       = "OPSEC Post Blocked"
 	PT_TASK_FUNCTION_STATUS_SUBMITTED                                                = "submitted"
 	PT_TASK_FUNCTION_STATUS_PROCESSING                                               = "agent processing"
@@ -169,7 +169,7 @@ const (
 	PT_TASK_FUNCTION_STATUS_GROUP_COMPLETED_FUNCTION                                 = "Group Completion Function Running..."
 	PT_TASK_FUNCTION_STATUS_GROUP_COMPLETED_FUNCTION_ERROR                           = "Error: group completion function - click cog to check stderr"
 	PT_TASK_FUNCTION_STATUS_COMPLETED                                                = "success"
-	PT_TASK_FUNCTION_STATUS_PROCESSED                                                = "processed, waiting for more messages..."
+	PT_TASK_FUNCTION_STATUS_PROCESSED                                                = "processed, agent sending responses..."
 	PT_TASK_FUNCTION_STATUS_INTERCEPTED                                              = "intercepted for custom checks"
 	PT_TASK_FUNCTION_STATUS_INTERCEPTED_ERROR                                        = "Error: Task Interception Failed"
 )

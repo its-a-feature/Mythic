@@ -516,7 +516,12 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 			TaskDisplayID: task.DisplayID,
 		}
 	}
-	return submitTaskToContainer(task.ID)
+	go submitTaskToContainer(task.ID)
+	return CreateTaskResponse{
+		Status:        "success",
+		TaskID:        task.ID,
+		TaskDisplayID: task.DisplayID,
+	}
 }
 
 func associateUploadedFilesWithTask(task *databaseStructs.Task, files []string) {
@@ -804,24 +809,15 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 
 }
 
-func submitTaskToContainer(taskID int) CreateTaskResponse {
-	output := CreateTaskResponse{
-		Status: "error",
-		Error:  "not implemented",
-	}
+func submitTaskToContainer(taskID int) {
 	taskMessage := GetTaskConfigurationForContainer(taskID)
-	if err := RabbitMQConnection.SendPtTaskOPSECPre(taskMessage); err != nil {
+	err := RabbitMQConnection.SendPtTaskOPSECPre(taskMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to send task to payload type")
-		output.Error = err.Error()
 		if _, err := database.DB.Exec(`UPDATE task SET status=$1 WHERE id=$2`,
 			TASK_STATUS_CONTAINER_DOWN, taskID); err != nil {
 			logging.LogError(err, "Failed to update task status")
 		}
-	} else {
-		output.Status = "success"
-		output.Error = ""
-		output.TaskID = taskID
-		output.TaskDisplayID = taskMessage.Task.DisplayID
 	}
-	return output
+	return
 }
