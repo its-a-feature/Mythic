@@ -115,11 +115,9 @@ export const mePreferences = makeVar(operatorSettingDefaults);
 export const successfulLogin = (data) => {
     localStorage.setItem("access_token", data.access_token);
     localStorage.setItem("refresh_token", data.refresh_token);
-
-
     let now = new Date();
     let serverNow = new Date(data.user.current_utc_time);
-    const difference = (serverNow.getTime() - now.getTime()) / 1000;
+    const difference = (serverNow.getTime() - now.getTime());
     let me = {...data.user};
     me.server_skew = difference;
     me.login_time = now;
@@ -139,7 +137,7 @@ export const successfulRefresh = (data) => {
     localStorage.setItem("refresh_token", data.refresh_token);
     let now = new Date();
     let serverNow = new Date(data.user.current_utc_time);
-    const difference = (serverNow.getTime() - now.getTime()) / 1000;
+    const difference = (serverNow.getTime() - now.getTime()) ;
     let me = {...meState().user};
     me.server_skew = difference;
     me.login_time = now;
@@ -153,7 +151,7 @@ export const successfulRefresh = (data) => {
     });
     localStorage.setItem("user", JSON.stringify(me));
 }
-export const FailedRefresh = () =>{
+export const FailedRefresh = (restart_websockets) =>{
     console.log("failed refresh");
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
@@ -172,6 +170,9 @@ export const FailedRefresh = () =>{
     });
     mePreferences(operatorSettingDefaults);
     snackActions.clearAll();
-    restartWebsockets();
+    if(restart_websockets){
+        restartWebsockets();
+    }
+
 }
 

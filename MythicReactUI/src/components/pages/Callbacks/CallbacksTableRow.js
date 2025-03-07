@@ -151,9 +151,9 @@ export const CallbacksTableLastCheckinCell = React.memo( ({rowData, cellData, me
         if(newTime === "a few seconds"){
             moment.relativeTimeThreshold('s', 60);
             moment.relativeTimeThreshold('ss', 0);
-            return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").subtract(me?.user?.server_skew || 0, 'second').fromNow(true)
+            return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").subtract(me?.user?.server_skew || 0, 'millisecond').fromNow(true)
         }
-        return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").subtract(me?.user?.server_skew || 0, 'second').fromNow(true);
+        return moment(rowData.last_checkin + "Z", "YYYY-MM-DDTHH:mm:ss.SSSSSSZ").subtract(me?.user?.server_skew || 0, 'millisecond').fromNow(true);
         //return newTime;
     }
     const theme = useTheme();

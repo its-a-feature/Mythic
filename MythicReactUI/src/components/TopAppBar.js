@@ -547,7 +547,7 @@ function TopBarRightShortcuts({me, toggleTheme, serverName}){
   const [openFeedbackForm, setOpenFeedbackForm] = React.useState(false);
   const handleLogout = () => {
     menuOpen(false);
-    FailedRefresh();
+    FailedRefresh(true);
   }
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);

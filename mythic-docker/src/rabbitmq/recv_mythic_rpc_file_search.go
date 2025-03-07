@@ -107,8 +107,8 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 		callbackId = 0
 	}
 	files := []databaseStructs.Filemeta{}
-	comment := "%_%"
-	filename := "%_%"
+	comment := "%%"
+	filename := "%%"
 	if input.Comment != "" && input.Comment != "*" {
 		comment = "%" + input.Comment + "%"
 	}

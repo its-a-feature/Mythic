@@ -15,7 +15,7 @@ import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 
-export const mythicUIVersion = "0.3.15";
+export const mythicUIVersion = "0.3.16";
 
 let fetchingNewToken = false;
 
@@ -347,12 +347,11 @@ if(localStorage.getItem("access_token") !== null){
               refresh_token: localStorage.getItem("refresh_token"),
               user: JSON.parse(localStorage.getItem("user"))
           })
+      } else {
+          FailedRefresh();
       }
   }else{
-      //leave meState as a blank value to force new login
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("user");
+      FailedRefresh();
   }
 }
 const container = document.getElementById('root');

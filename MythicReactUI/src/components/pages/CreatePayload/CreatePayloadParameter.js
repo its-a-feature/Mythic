@@ -400,12 +400,11 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         <Select
                             value={multiValue}
                             multiple={true}
-                            native
                             onChange={onChangeMultValue}
                         >
                         {
                             chooseOptions.map((opt, i) => (
-                                <option key={"buildparamopt" + i} value={opt}>{opt}</option>
+                                <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
                             ))
                         }
                         </Select>
@@ -455,7 +454,6 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                             <div style={{display: "inline-flex", alignItems: "center", width: "100%"}}>
                                                 <FormControl style={{width: "30%"}}>
                                                     <Select
-
                                                         value={a[0]}
                                                         onChange={(e) => onChangeTypedArrayChoice(e, i)}
                                                         input={<Input />}

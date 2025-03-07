@@ -834,7 +834,7 @@ function TopBarRightShortcutsVertical({me, isOpen, serverName}){
   const [openFeedbackForm, setOpenFeedbackForm] = React.useState(false);
   const handleLogout = () => {
     menuOpen(false);
-    FailedRefresh();
+    FailedRefresh(true);
   }
   const handleSettingsMenu = (event) => {
       settingsRef.current = {

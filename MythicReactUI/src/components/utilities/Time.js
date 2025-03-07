@@ -74,5 +74,6 @@ export function useInterval(callback, delay, mountedRef, parentMountedRef) {
 }
 export function getSkewedNow() {
     let now = new Date();
-    return new Date(now.getTime() + (meState()?.user?.server_skew || 0) * 6000)
+    // meState()?.user?.server_skew is the number of millisecond difference
+    return new Date(now.getTime() + (meState()?.user?.server_skew || 0))
 }

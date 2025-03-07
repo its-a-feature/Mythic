@@ -332,6 +332,9 @@ export function TaskParametersDialogRow(props){
                 props.onChange(props.name, {...props.choices[props.choices.length-1]}, false);
                 updateToLatestCredential.current = false;
                }
+               if(value === ""){
+                   setValue(0);
+               }
            }
            if(props.dynamic_query_function === null && value===""){
                 setChoiceOptions([...props.choices]);
@@ -588,7 +591,11 @@ export function TaskParametersDialogRow(props){
                                 >
                                     {
                                         ChoiceOptions.map((opt, i) => (
-                                            <MenuItem key={props.name + i} value={opt}>{opt}</MenuItem>
+                                            <MenuItem key={props.name + i} value={opt}>
+                                                <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
+                                                {opt}
+                                                </Typography>
+                                            </MenuItem>
                                         ))
                                     }
                                 </Select>
@@ -614,7 +621,6 @@ export function TaskParametersDialogRow(props){
                                 <InputLabel>{"No Options Available"}</InputLabel>
                             }
                             <Select
-                            native
                             disabled={ChoiceOptions.length === 0}
                             autoFocus={props.autoFocus}
                             multiple={props.type === "ChooseMultiple"}
@@ -624,7 +630,11 @@ export function TaskParametersDialogRow(props){
                             >
                             {
                                 ChoiceOptions.map((opt, i) => (
-                                    <option key={props.name + i} value={opt}>{opt}</option>
+                                    <MenuItem key={props.name + i} value={opt}>
+                                        <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
+                                        {opt}
+                                        </Typography>
+                                    </MenuItem>
                                 ))
                             }
                             </Select>
@@ -785,7 +795,6 @@ export function TaskParametersDialogRow(props){
                 return (
                     <FormControl style={{width: "100%"}}>
                         <Select
-                          native
                           value={value}
                           autoFocus={props.autoFocus}
                           onChange={(evt) => {onChangeLinkInfo(evt.target.value)}}
@@ -793,7 +802,11 @@ export function TaskParametersDialogRow(props){
                         >
                         {
                             props.choices.map((opt, i) => (
-                                <option key={props.name + i} value={i}>{opt.display}</option>
+                                <MenuItem key={props.name + i} value={i}>
+                                    <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
+                                    {opt.display}
+                                    </Typography>
+                                </MenuItem>
                             ))
                         }
                         </Select>
@@ -803,16 +816,18 @@ export function TaskParametersDialogRow(props){
                 return (
                     <FormControl style={{width: "100%"}}>
                         <Select
-                          native
                           value={value}
-
                           autoFocus={props.autoFocus}
                           onChange={onChangeValue}
                           input={<Input  />}
                         >
                         {
                             props.choices.map((opt, i) => (
-                                <option key={props.name + i} value={opt.uuid}>{opt.display}</option>
+                                <MenuItem key={props.name + i} value={opt.uuid}>
+                                    <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
+                                    {opt.display}
+                                    </Typography>
+                                </MenuItem>
                             ))
                         }
                         </Select>
@@ -837,16 +852,19 @@ export function TaskParametersDialogRow(props){
                                         <MythicStyledTableCell>
                                             <FormControl style={{width: "100%"}}>
                                                 <Select
-                                                  native
                                                   value={agentConnectNewPayload}
                                                   onChange={onChangeAgentConnectNewPayload}
                                                   input={<Input />}
                                                 >
                                                 {props.payload_choices ? (
                                                     props.payload_choices.map((opt, i) => (
-                                                        <option key={props.name + "newpayload" + i} value={i}>{opt.display}</option>
+                                                        <MenuItem key={props.name + "newpayload" + i} value={i}>
+                                                            <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
+                                                            {opt.display}
+                                                            </Typography>
+                                                        </MenuItem>
                                                     ))
-                                                ) : ( <option key={props.name + "nooptionnewpayload"} value="-1">No Payloads</option> )}
+                                                ) : ( <MenuItem key={props.name + "nooptionnewpayload"} value="-1">No Payloads</MenuItem> )}
                                                 </Select>
                                             </FormControl>
                                         </MythicStyledTableCell>
@@ -871,14 +889,13 @@ export function TaskParametersDialogRow(props){
                                         <MythicStyledTableCell>
                                             <FormControl style={{width: "100%"}}>
                                                 <Select
-                                                native
                                                 value={agentConnectHost}
                                                 onChange={onChangeAgentConnectHost}
                                                 input={<Input />}
                                                 >
                                                 {
                                                     agentConnectHostOptions.map((opt, i) => (
-                                                        <option key={props.name + "connecthost" + i} value={i}>{opt.host}</option>
+                                                        <MenuItem key={props.name + "connecthost" + i} value={i}>{opt.host}</MenuItem>
                                                     ))
                                                 }
                                                 </Select>
@@ -890,14 +907,17 @@ export function TaskParametersDialogRow(props){
                                         <MythicStyledTableCell>
                                             <FormControl style={{width: "100%"}}>
                                                 <Select
-                                                native
                                                 value={agentConnectPayload}
                                                 onChange={onChangeAgentConnectPayload}
                                                 input={<Input />}
                                                 >
                                                 {
                                                     agentConnectPayloadOptions.map((opt, i) => (
-                                                        <option key={props.name + "connectagent" + i} value={i}>{opt.display}</option>
+                                                        <MenuItem key={props.name + "connectagent" + i} value={i}>
+                                                            <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
+                                                            {opt.display}
+                                                            </Typography>
+                                                        </MenuItem>
                                                     ))
                                                 }
                                                 </Select>
@@ -927,14 +947,13 @@ export function TaskParametersDialogRow(props){
                                         <MythicStyledTableCell>
                                             <FormControl style={{width: "100%"}}>
                                                     <Select
-                                                    native
                                                     value={agentConnectC2Profile}
                                                     onChange={onChangeAgentConnectC2Profile}
                                                     input={<Input />}
                                                     >
                                                     {
                                                         agentConnectC2ProfileOptions.map((opt, i) => (
-                                                            <option key={props.name + "connectprofile" + i} value={i}>{opt.name}</option>
+                                                            <MenuItem key={props.name + "connectprofile" + i} value={i}>{opt.name}</MenuItem>
                                                         ))
                                                     }
                                                     </Select>
@@ -973,7 +992,6 @@ export function TaskParametersDialogRow(props){
                         />
                         <FormControl style={{width: "100%"}}>
                             <Select
-                                native
                                 value={value}
                                 autoFocus={props.autoFocus}
                                 onChange={onChangeCredentialJSONValue}
@@ -981,9 +999,14 @@ export function TaskParametersDialogRow(props){
                             >
                             {
                                 ChoiceOptions.map((opt, i) => (
-                                    <option key={props.name + i} value={i}>
-                                        {opt.account + "@" + opt.realm + " - " + opt.credential_text.substring(0, 10) + " - " + opt.comment}
-                                    </option>
+                                    <MenuItem key={props.name + i} value={i}>
+                                        <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
+                                            {opt.account + (opt.realm === "" ? "" : "@" + opt.realm) + " - " +
+                                                (opt.credential_text.length > 40 ? opt.credential_text.substring(0, 40) + "..." : opt.credential_text) +
+                                                (opt.comment.length > 0 ? "\n" + opt.comment : "")}
+                                        </Typography>
+
+                                    </MenuItem>
                                 ))
                             }
                             </Select>
