@@ -14,8 +14,6 @@ import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip'
 import {taskingDataFragment, createTaskingMutation} from './CallbackMutations.js';
 import Split from 'react-split';
 import {TaskDisplayContainerFlat} from "./TaskDisplayContainer";
-import {DrawTaskElementsFlowWithProvider} from "./C2PathDialog";
-import {useTheme} from '@mui/material/styles';
 import { validate as uuidValidate } from 'uuid';
 import {getSkewedNow} from "../../utilities/Time";
 
@@ -469,44 +467,12 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     </MythicTabPanel>
     );
 }
-const CallbacksTabsTaskingSplitTable = ({selectedTask, me, onSelectTask}) => {
-    const [edges, setEdges] = React.useState([]);
-    const theme = useTheme();
-    useEffect(() => {
-        let initialEdge = {
-            source: {...selectedTask, selected: true, onSelectTask },
-            destination: {...selectedTask, selectedTask: true, onSelectTask},
-        }
-        const newEdges = selectedTask?.tasks?.reduce( (prev, cur) => {
-            let nextEdge = {
-                source: {...selectedTask, selected: false, onSelectTask},
-                destination: {...cur, selected: false, onSelectTask},
-            }
-            return [...prev, nextEdge];
-        }, [initialEdge]) || [initialEdge];
-        setEdges(newEdges);
-    }, [selectedTask]);
+const CallbacksTabsTaskingSplitTable = ({selectedTask, me}) => {
     return (
-            <Split direction="vertical" style={{width: "100%", height: "100%", overflowY: "auto", display: "flex", flexDirection: "column"}} minSize={[0,0]} sizes={[0, 100]} >
-                <div className="bg-gray-base" style={{display: "inline-flex", height: "100%", width: "100%"}}>
-                    {
-                        selectedTask.id > 0 &&
-                        <DrawTaskElementsFlowWithProvider theme={theme} edges={edges} view_config={{group_by: "name", rankDir: "LR",}} />
-                    }
-                </div>
-
-                <div className="bg-gray-light" style={{display: "inline-flex", height: "100%", width: "100%", flexDirection: "column"}}>
+            <div  style={{width: "100%", height: "100%", overflowY: "auto", display: "flex", flexDirection: "column"}} >
                     {selectedTask.id > 0 &&
                         <TaskDisplayContainerFlat key={selectedTask.id} me={me} task={selectedTask} />
                     }
-                </div>
-            </Split>
+            </div>
     )
 }
-/*
-{selectedTask.id > 0 &&
-                <TaskDisplayFlat key={"taskinteractdisplaytable" + selectedTask.id} me={me} task={selectedTask}
-                                 command_id={selectedTask.command == null ? 0 : selectedTask.command.id}
-                                 filterOptions={filterOptions} showOnSelectTask={false} onSelectTask={onSelectTask}/>
-            }
- */

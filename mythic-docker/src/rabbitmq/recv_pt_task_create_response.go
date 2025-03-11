@@ -116,9 +116,9 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		task.StatusTimestampProcessed.Time = task.Timestamp
 		updateColumns = append(updateColumns, "status_timestamp_processed=:status_timestamp_processed")
 	} else {
-		if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING && payloadMsg.Success {
+		if payloadMsg.Success {
 			task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST
-		} else if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING && !payloadMsg.Success {
+		} else {
 			if payloadMsg.TaskStatus != nil {
 				task.Status = *payloadMsg.TaskStatus
 			} else {

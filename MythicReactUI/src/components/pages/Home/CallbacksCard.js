@@ -147,6 +147,7 @@ export function CallbacksCard({me}) {
     const theme = useTheme();
     const mountedRef = React.useRef(true);
     const navigate = useNavigate();
+    const [loading, setLoading] = React.useState(true);
     const [active, setActive] = React.useState({"active": 0, "recent": 0, "total": 0});
     const [tags, setTags] = React.useState([]);
     const [tasksPerDay, setTasksPerDay] = React.useState({x: [], y: []});
@@ -198,401 +199,404 @@ export function CallbacksCard({me}) {
         }
 
     }
-    const [fetchData] = useLazyQuery(GetCallbacks, {fetchPolicy: "network-only",
-        onCompleted: (data) => {
-            let callbackData = {};
-            let recent = 0;
-            let now = getSkewedNow();
-            // proces active status
-            const newActive = data.callback.reduce( (prev, cur) => {
-                if(!callbackData[cur.id]){
-                    callbackData[cur.id] = {...cur,
-                        init_callback: new Date(cur.init_callback + (me?.user?.view_utc_time ? "" : "Z") ),
-                        last_checkin: new Date(cur.last_checkin + (me?.user?.view_utc_time ? "" : "Z")),
-                        init_callback_day: new Date(cur.init_callback + (me?.user?.view_utc_time ? "" : "Z")),
-                        last_checkin_day: new Date(cur.last_checkin + (me?.user?.view_utc_time ? "" : "Z"))}
-                }
-                if(now - callbackData[cur.id].last_checkin <= ONE_HOUR){
-                    recent += 1;
-                }
-                if(cur.active){
-                    return prev + 1;
-                }
-                return prev;
-            }, 0);
-            setActive({"active": newActive, "recent": recent, "total": data.callback.length});
-            // process tag data
-            const tagData = data.tagtype.map( t => {
-                return {
-                    id: t.name,
-                    label: t.name,
-                    value: t.tags_aggregate.aggregate.count
-                }
-            }).sort( (a,b) => b.value - a.value).slice(0, 10);
-            setTags(tagData);
-            // process command options
-            const commandOptions = data.task.reduce( (prev, cur) => {
-                if(cur.is_interactive_task){return prev}
+    async function processData({data})  {
+        let callbackData = {};
+        let recent = 0;
+        let now = getSkewedNow();
+        // proces active status
+        const newActive = data.callback.reduce( (prev, cur) => {
+            if(!callbackData[cur.id]){
+                callbackData[cur.id] = {...cur,
+                    init_callback: new Date(cur.init_callback + (me?.user?.view_utc_time ? "" : "Z") ),
+                    last_checkin: new Date(cur.last_checkin + (me?.user?.view_utc_time ? "" : "Z")),
+                    init_callback_day: new Date(cur.init_callback + (me?.user?.view_utc_time ? "" : "Z")),
+                    last_checkin_day: new Date(cur.last_checkin + (me?.user?.view_utc_time ? "" : "Z"))}
+            }
+            if(now - callbackData[cur.id].last_checkin <= ONE_HOUR){
+                recent += 1;
+            }
+            if(cur.active){
+                return prev + 1;
+            }
+            return prev;
+        }, 0);
+        setActive({"active": newActive, "recent": recent, "total": data.callback.length});
+        // process tag data
+        const tagData = data.tagtype.map( t => {
+            return {
+                id: t.name,
+                label: t.name,
+                value: t.tags_aggregate.aggregate.count
+            }
+        }).sort( (a,b) => b.value - a.value).slice(0, 10);
+        setTags(tagData);
+        // process command options
+        const commandOptions = data.task.reduce( (prev, cur) => {
+            if(cur.is_interactive_task){return prev}
+            if(prev[cur.command_name]){
+                prev[cur.command_name] = prev[cur.command_name] + 1;
+            } else {
+                prev[cur.command_name] = 1;
+            }
+            return prev;
+        }, {});
+        const commandErrorOptions = data.task.reduce( (prev, cur) => {
+            if(cur.is_interactive_task){return prev}
+            if(cur.status.toLowerCase().includes("error")){
                 if(prev[cur.command_name]){
                     prev[cur.command_name] = prev[cur.command_name] + 1;
                 } else {
                     prev[cur.command_name] = 1;
                 }
-                return prev;
-            }, {});
-            const commandErrorOptions = data.task.reduce( (prev, cur) => {
-                if(cur.is_interactive_task){return prev}
-                if(cur.status.toLowerCase().includes("error")){
-                    if(prev[cur.command_name]){
-                        prev[cur.command_name] = prev[cur.command_name] + 1;
-                    } else {
-                        prev[cur.command_name] = 1;
-                    }
-                }
-                return prev;
-            }, {});
-            let commandArrayOptions = [];
-            let commandErrorArrayOptions = [];
-            for (const [key, value] of Object.entries(commandOptions)) {
-                commandArrayOptions.push({
-                    id: key,
-                    label: key,
-                    value: value
-                })
             }
-            for (const [key, value] of Object.entries(commandErrorOptions)) {
-                commandErrorArrayOptions.push({
-                    id: key,
-                    label: key + " - not successful",
-                    value: value
-                })
-            }
-            commandArrayOptions = commandArrayOptions.sort((a, b) => b.value - a.value).slice(0, 10);
-            commandErrorArrayOptions = commandErrorArrayOptions.sort((a, b) => b.value - a.value).slice(0, 10).map( (c, i) => {
-                return {
-                    ...c,
-                    color: errorColors[i]
-                }
+            return prev;
+        }, {});
+        let commandArrayOptions = [];
+        let commandErrorArrayOptions = [];
+        for (const [key, value] of Object.entries(commandOptions)) {
+            commandArrayOptions.push({
+                id: key,
+                label: key,
+                value: value
             })
-            setCommands([
-                {
-                    data: commandErrorArrayOptions,
-                    highlightScope: { faded: 'global', highlighted: 'item' },
-                    faded: {  color: 'gray' },
-                    paddingAngle: 1,
-                    cornerRadius: 4,
-                    innerRadius: 30,
-                    outerRadius: 60,
-                },
-                {
-                    data: commandArrayOptions,
-                    highlightScope: { faded: 'global', highlighted: 'item' },
-                    faded: {  color: 'gray' },
-                    paddingAngle: 1,
-                    cornerRadius: 4,
-                    outerRadius: 85,
-                    innerRadius: 70
-                }
-            ]);
-            // process c2 profile options
-            const c2profileOptions = data.callbackgraphedge.reduce( (prev, cur) => {
-                if(prev[cur.c2profile.name]){
-                    prev[cur.c2profile.name].count += 1;
-                } else {
-                    prev[cur.c2profile.name] = {count: 1, is_p2p: cur.c2profile.is_p2p, dead: 0};
-                }
-                if(cur.end_timestamp){
-                    prev[cur.c2profile.name].dead += 1;
-                }
-                return prev;
-            }, {});
-            let c2profileAliveOptions = [];
-            let c2ProfileDeadOptions = [];
-            let c2profileLabels = Object.keys(c2profileOptions).sort();
-            for (let i = 0; i < c2profileLabels.length; i++) {
-                c2profileAliveOptions.push(c2profileOptions[c2profileLabels[i]].count - c2profileOptions[c2profileLabels[i]].dead);
-                c2ProfileDeadOptions.push(c2profileOptions[c2profileLabels[i]].dead);
+        }
+        for (const [key, value] of Object.entries(commandErrorOptions)) {
+            commandErrorArrayOptions.push({
+                id: key,
+                label: key + " - not successful",
+                value: value
+            })
+        }
+        commandArrayOptions = commandArrayOptions.sort((a, b) => b.value - a.value).slice(0, 10);
+        commandErrorArrayOptions = commandErrorArrayOptions.sort((a, b) => b.value - a.value).slice(0, 10).map( (c, i) => {
+            return {
+                ...c,
+                color: errorColors[i]
             }
-            // bar char will freak out if series has data but labels is empty
-            if(c2profileLabels.length > 0){
-                setC2Profiles({series:
-                        [
-                            {
-                                data: c2ProfileDeadOptions,
-                                highlightScope: { faded: 'global', highlighted: 'item' },
-                                label: "dead",
-                                //stack: "stackme",
-                                color: 'rgba(129,129,129,0.3)',
-                            },
-                            {
-                                data: c2profileAliveOptions,
-                                highlightScope: { faded: 'global', highlighted: 'item' },
-                                label: "alive",
-                                //stack: "stackme",
-                            },
-                        ],
-                    labels: c2profileLabels});
+        })
+        setCommands([
+            {
+                data: commandErrorArrayOptions,
+                highlightScope: { faded: 'global', highlighted: 'item' },
+                faded: {  color: 'gray' },
+                paddingAngle: 1,
+                cornerRadius: 4,
+                innerRadius: 30,
+                outerRadius: 60,
+            },
+            {
+                data: commandArrayOptions,
+                highlightScope: { faded: 'global', highlighted: 'item' },
+                faded: {  color: 'gray' },
+                paddingAngle: 1,
+                cornerRadius: 4,
+                outerRadius: 85,
+                innerRadius: 70
             }
-            // process artifact types
-            const artifactOptions = data.taskartifact.reduce( (prev, cur) => {
-                if(prev[cur.base_artifact]){
-                    prev[cur.base_artifact] = prev[cur.base_artifact] + 1;
-                }else{
-                    prev[cur.base_artifact] = 1;
-                }
-                return prev;
-            }, {});
-            let artifactArrayOptions = [];
-            for (const [key, value] of Object.entries(artifactOptions)) {
-                artifactArrayOptions.push({
-                    id: key,
-                    label: key,
-                    value: value
-                })
+        ]);
+        // process c2 profile options
+        const c2profileOptions = data.callbackgraphedge.reduce( (prev, cur) => {
+            if(prev[cur.c2profile.name]){
+                prev[cur.c2profile.name].count += 1;
+            } else {
+                prev[cur.c2profile.name] = {count: 1, is_p2p: cur.c2profile.is_p2p, dead: 0};
             }
-            artifactArrayOptions = artifactArrayOptions.sort( (a, b) => b.value - a.value).slice(0, 10);
-            setTaskArtifacts(artifactArrayOptions);
-            // process tasks by operators
-            let operatorTaskCounts = {};
-            let taskedUserCounts = {};
-            let taskedHostCounts = {};
-            let taskedSuccessRateCounts = {};
-            const allOperators = data.task.reduce( (prev, cur) => {
-                // get tasked success rates
-                let normalizedStatus = getTaskStatusNormalized(cur.status);
-                if(taskedSuccessRateCounts[normalizedStatus]){
-                    taskedSuccessRateCounts[normalizedStatus] += 1;
-                } else {
-                    taskedSuccessRateCounts[normalizedStatus] = 1;
-                }
-                // get counts per operator
-                if(operatorTaskCounts[cur.operator.username]){
-                    operatorTaskCounts[cur.operator.username] += 1;
-                } else {
-                    operatorTaskCounts[cur.operator.username] = 1;
-                }
-                // get counts per tasked user
-                for(let i = 0; i < callbackData[cur.callback_id].mythictree_groups.length; i++){
-                    let curGroup = callbackData[cur.callback_id].mythictree_groups[i];
-                    let currentTaskedUser = callbackData[cur.callback_id].user;
-                    if(callbackData[cur.callback_id].integrity_level > 2){
-                        currentTaskedUser = "*" + currentTaskedUser;
-                    }
-                    if( taskedUserCounts[ "[" + curGroup + "] " + currentTaskedUser] ){
-                        taskedUserCounts[ "[" + curGroup + "] " + currentTaskedUser] += 1;
-                    } else {
-                        taskedUserCounts[ "[" + curGroup + "] " + currentTaskedUser] = 1;
-                    }
-
-                    // get counts per tasked host
-                    let currentHost = callbackData[cur.callback_id].host;
-                    if(taskedHostCounts[ "[" + curGroup + "] " + currentHost ]){
-                        taskedHostCounts[ "[" + curGroup + "] " + currentHost ] += 1;
-                    } else {
-                        taskedHostCounts[ "[" + curGroup + "] " + currentHost ] = 1;
-                    }
-                }
-                if(callbackData[cur.callback_id].mythictree_groups.length === 0){
-                    let currentTaskedUser = callbackData[cur.callback_id].user;
-                    if(callbackData[cur.callback_id].integrity_level > 2){
-                        currentTaskedUser = "*" + currentTaskedUser;
-                    }
-                    if( taskedUserCounts[ currentTaskedUser] ){
-                        taskedUserCounts[ currentTaskedUser] += 1;
-                    } else {
-                        taskedUserCounts[ currentTaskedUser] = 1;
-                    }
-
-                    // get counts per tasked host
-                    let currentHost = callbackData[cur.callback_id].host;
-                    if(taskedHostCounts[ currentHost ]){
-                        taskedHostCounts[ currentHost ] += 1;
-                    } else {
-                        taskedHostCounts[  currentHost ] = 1;
-                    }
-                }
-                // get operator activity counts
-                if(prev.includes(cur.operator.username)){
-                    return prev;
-                }
-                return [...prev, cur.operator.username];
-            }, []);
-            const taskDayOptions = data.task.reduce( (prev, cur) => {
-                let curDate = new Date(cur.status_timestamp_preprocessing + (me?.user?.view_utc_time ? "" : "Z"));
-                if(me?.user?.view_utc_time){
-                    curDate = curDate.toDateString();
-                    //curDate = curDate.toISOString().substr(0, 10) + "T00:00";
-                } else {
-                    curDate = curDate.toLocaleDateString();
-                }
-                if(prev[curDate]){
-                    prev[curDate][cur.operator.username] = prev[curDate][cur.operator.username] + 1;
-                }else{
-                    prev[curDate] = {
-                    };
-                    for(let i = 0; i < allOperators.length; i++){
-                        if(allOperators[i] === cur.operator.username){
-                            prev[curDate][allOperators[i]] = 1;
-                        } else {
-                            prev[curDate][allOperators[i]] = 0;
-                        }
-                    }
-                }
-                return prev;
-            }, {});
-            let taskDayArrayOperatorOptions = [];
-            let taskDayArrayOptions = [];
-            let activeCallbacksByDayOptions = [];
-            for(let i = 0; i < allOperators.length; i++){
-                let currentOperatorData = [];
-                for (const [key, value] of Object.entries(taskDayOptions)) {
-                    if(i === 0){
-                        let taskingDate = new Date(key );
-                        if(me?.user?.view_utc_time){
-                            taskDayArrayOptions.push(taskingDate);
-                        } else {
-                            taskingDate.setTime(taskingDate.getTime() + (taskingDate.getTimezoneOffset() * 60 * 1000));
-                            taskDayArrayOptions.push(taskingDate);
-                        }
-
-                        // sub process active callbacks on this day
-                        let callbacksActiveOnThisDay = 0;
-                        for(const [callbackID, callbackValues] of Object.entries(callbackData)){
-                            if(callbackValues.init_callback_day <= taskingDate &&
-                                callbackValues.last_checkin_day >= taskingDate){
-                                callbacksActiveOnThisDay += 1;
-                            }
-                        }
-                        activeCallbacksByDayOptions.push(callbacksActiveOnThisDay);
-                    }
-                    if(value[allOperators[i]] === 0){
-                        currentOperatorData.push(0);
-                    }else{
-                        currentOperatorData.push(value[allOperators[i]]);
-                    }
-
-                }
-                if(i === 0){
-                    taskDayArrayOperatorOptions.push({
-                        data: activeCallbacksByDayOptions,
-                        label: "Active Callbacks",
-                        area: false,
-                        highlightScope: {
-                            highlighted: "series",
-                            faded: "global",
+            if(cur.end_timestamp){
+                prev[cur.c2profile.name].dead += 1;
+            }
+            return prev;
+        }, {});
+        let c2profileAliveOptions = [];
+        let c2ProfileDeadOptions = [];
+        let c2profileLabels = Object.keys(c2profileOptions).sort();
+        for (let i = 0; i < c2profileLabels.length; i++) {
+            c2profileAliveOptions.push(c2profileOptions[c2profileLabels[i]].count - c2profileOptions[c2profileLabels[i]].dead);
+            c2ProfileDeadOptions.push(c2profileOptions[c2profileLabels[i]].dead);
+        }
+        // bar char will freak out if series has data but labels is empty
+        if(c2profileLabels.length > 0){
+            setC2Profiles({series:
+                    [
+                        {
+                            data: c2ProfileDeadOptions,
+                            highlightScope: { faded: 'global', highlighted: 'item' },
+                            label: "dead",
+                            //stack: "stackme",
+                            color: 'rgba(129,129,129,0.3)',
                         },
-                        color: '#44b636',
-                        yAxisKey: "callbackAxis",
-                    })
+                        {
+                            data: c2profileAliveOptions,
+                            highlightScope: { faded: 'global', highlighted: 'item' },
+                            label: "alive",
+                            //stack: "stackme",
+                        },
+                    ],
+                labels: c2profileLabels});
+        }
+        // process artifact types
+        const artifactOptions = data.taskartifact.reduce( (prev, cur) => {
+            if(prev[cur.base_artifact]){
+                prev[cur.base_artifact] = prev[cur.base_artifact] + 1;
+            }else{
+                prev[cur.base_artifact] = 1;
+            }
+            return prev;
+        }, {});
+        let artifactArrayOptions = [];
+        for (const [key, value] of Object.entries(artifactOptions)) {
+            artifactArrayOptions.push({
+                id: key,
+                label: key,
+                value: value
+            })
+        }
+        artifactArrayOptions = artifactArrayOptions.sort( (a, b) => b.value - a.value).slice(0, 10);
+        setTaskArtifacts(artifactArrayOptions);
+        // process tasks by operators
+        let operatorTaskCounts = {};
+        let taskedUserCounts = {};
+        let taskedHostCounts = {};
+        let taskedSuccessRateCounts = {};
+        const allOperators = data.task.reduce( (prev, cur) => {
+            // get tasked success rates
+            let normalizedStatus = getTaskStatusNormalized(cur.status);
+            if(taskedSuccessRateCounts[normalizedStatus]){
+                taskedSuccessRateCounts[normalizedStatus] += 1;
+            } else {
+                taskedSuccessRateCounts[normalizedStatus] = 1;
+            }
+            // get counts per operator
+            if(operatorTaskCounts[cur.operator.username]){
+                operatorTaskCounts[cur.operator.username] += 1;
+            } else {
+                operatorTaskCounts[cur.operator.username] = 1;
+            }
+            // get counts per tasked user
+            for(let i = 0; i < callbackData[cur.callback_id].mythictree_groups.length; i++){
+                let curGroup = callbackData[cur.callback_id].mythictree_groups[i];
+                let currentTaskedUser = callbackData[cur.callback_id].user;
+                if(callbackData[cur.callback_id].integrity_level > 2){
+                    currentTaskedUser = "*" + currentTaskedUser;
                 }
+                if( taskedUserCounts[ "[" + curGroup + "] " + currentTaskedUser] ){
+                    taskedUserCounts[ "[" + curGroup + "] " + currentTaskedUser] += 1;
+                } else {
+                    taskedUserCounts[ "[" + curGroup + "] " + currentTaskedUser] = 1;
+                }
+
+                // get counts per tasked host
+                let currentHost = callbackData[cur.callback_id].host;
+                if(taskedHostCounts[ "[" + curGroup + "] " + currentHost ]){
+                    taskedHostCounts[ "[" + curGroup + "] " + currentHost ] += 1;
+                } else {
+                    taskedHostCounts[ "[" + curGroup + "] " + currentHost ] = 1;
+                }
+            }
+            if(callbackData[cur.callback_id].mythictree_groups.length === 0){
+                let currentTaskedUser = callbackData[cur.callback_id].user;
+                if(callbackData[cur.callback_id].integrity_level > 2){
+                    currentTaskedUser = "*" + currentTaskedUser;
+                }
+                if( taskedUserCounts[ currentTaskedUser] ){
+                    taskedUserCounts[ currentTaskedUser] += 1;
+                } else {
+                    taskedUserCounts[ currentTaskedUser] = 1;
+                }
+
+                // get counts per tasked host
+                let currentHost = callbackData[cur.callback_id].host;
+                if(taskedHostCounts[ currentHost ]){
+                    taskedHostCounts[ currentHost ] += 1;
+                } else {
+                    taskedHostCounts[  currentHost ] = 1;
+                }
+            }
+            // get operator activity counts
+            if(prev.includes(cur.operator.username)){
+                return prev;
+            }
+            return [...prev, cur.operator.username];
+        }, []);
+        const taskDayOptions = data.task.reduce( (prev, cur) => {
+            let curDate = new Date(cur.status_timestamp_preprocessing + (me?.user?.view_utc_time ? "" : "Z"));
+            if(me?.user?.view_utc_time){
+                curDate = curDate.toDateString();
+                //curDate = curDate.toISOString().substr(0, 10) + "T00:00";
+            } else {
+                curDate = curDate.toLocaleDateString();
+            }
+            if(prev[curDate]){
+                prev[curDate][cur.operator.username] = prev[curDate][cur.operator.username] + 1;
+            }else{
+                prev[curDate] = {
+                };
+                for(let i = 0; i < allOperators.length; i++){
+                    if(allOperators[i] === cur.operator.username){
+                        prev[curDate][allOperators[i]] = 1;
+                    } else {
+                        prev[curDate][allOperators[i]] = 0;
+                    }
+                }
+            }
+            return prev;
+        }, {});
+        let taskDayArrayOperatorOptions = [];
+        let taskDayArrayOptions = [];
+        let activeCallbacksByDayOptions = [];
+        for(let i = 0; i < allOperators.length; i++){
+            let currentOperatorData = [];
+            for (const [key, value] of Object.entries(taskDayOptions)) {
+                if(i === 0){
+                    let taskingDate = new Date(key );
+                    if(me?.user?.view_utc_time){
+                        taskDayArrayOptions.push(taskingDate);
+                    } else {
+                        taskingDate.setTime(taskingDate.getTime() + (taskingDate.getTimezoneOffset() * 60 * 1000));
+                        taskDayArrayOptions.push(taskingDate);
+                    }
+
+                    // sub process active callbacks on this day
+                    let callbacksActiveOnThisDay = 0;
+                    for(const [callbackID, callbackValues] of Object.entries(callbackData)){
+                        if(callbackValues.init_callback_day <= taskingDate &&
+                            callbackValues.last_checkin_day >= taskingDate){
+                            callbacksActiveOnThisDay += 1;
+                        }
+                    }
+                    activeCallbacksByDayOptions.push(callbacksActiveOnThisDay);
+                }
+                if(value[allOperators[i]] === 0){
+                    currentOperatorData.push(0);
+                }else{
+                    currentOperatorData.push(value[allOperators[i]]);
+                }
+
+            }
+            if(i === 0){
                 taskDayArrayOperatorOptions.push({
-                    data: currentOperatorData,
-                    label: allOperators[i],
+                    data: activeCallbacksByDayOptions,
+                    label: "Active Callbacks",
                     area: false,
                     highlightScope: {
                         highlighted: "series",
                         faded: "global",
                     },
-                    yAxisKey: "taskAxis"
+                    color: '#44b636',
+                    yAxisKey: "callbackAxis",
                 })
             }
-            setTasksPerDay({x: taskDayArrayOptions, y: taskDayArrayOperatorOptions});
-            // process operator task rates
-            let operatorOptions = [];
-            for (const [key, value] of Object.entries(operatorTaskCounts)) {
-                operatorOptions.push({
-                    id: key,
-                    label: key,
-                    value: value
-                })
-            }
-            operatorOptions = operatorOptions.sort( (a, b) => b.value - a.value).slice(0, 10);
-            setOperators(operatorOptions);
-            // process most tasked user
-            let taskedUserOptions = [];
-            for (const [key, value] of Object.entries(taskedUserCounts)) {
-                taskedUserOptions.push({
-                    id: key,
-                    label: key,
-                    value: value
-                })
-            }
-            taskedUserOptions = taskedUserOptions.sort( (a, b) => b.value - a.value).slice(0, 10);
-            setTaskedUser(taskedUserOptions);
-            // process most tasked hosts
-            let taskedHostOptions = [];
-            for (const [key, value] of Object.entries(taskedHostCounts)) {
-                taskedHostOptions.push({
-                    id: key,
-                    label: key,
-                    value: value
-                })
-            }
-            taskedHostOptions = taskedHostOptions.sort( (a, b) => b.value - a.value).slice(0, 10);
-            setTaskedHosts(taskedHostOptions);
-            // process task success rates
-            let taskedSuccessRateOptions = [];
-            for (const [key, value] of Object.entries(taskedSuccessRateCounts)) {
-                taskedSuccessRateOptions.push({
-                    id: key,
-                    label: key,
-                    value: value,
-                    color: getNormalizedTaskStatusColor(theme, key)
-                })
-            }
-            taskedSuccessRateOptions = taskedSuccessRateOptions.sort( (a, b) => b.value - a.value).slice(0, 10);
-            setTaskSuccessRate(taskedSuccessRateOptions);
-            // process callback port types
-            const callbackPortOptions = data.callbackport.reduce( (prev, cur) => {
-                if(!prev[cur.port_type]){
-                    prev[cur.port_type] = {"total": 0, "sent": 0, "received": 0};
-                }
-                prev[cur.port_type]["total"] += 1;
-                prev[cur.port_type]["sent"] += cur.bytes_sent;
-                prev[cur.port_type]["received"] += cur.bytes_received;
-                return prev;
-            }, {});
-            let callbackPortArrayOptions = [];
-            let callbackPortActiveArrayOptions = [];
-            for (const [key, value] of Object.entries(callbackPortOptions)) {
-                callbackPortArrayOptions.push({
-                    id: key + " total",
-                    label: key + " total",
-                    value: value.total
-                })
-                callbackPortActiveArrayOptions.push({
-                    id: key + " sent",
-                    label: key + " Tx: " + getStringSize({cellData: {"plaintext": String(value.sent)}}),
-                    value: value.sent,
-                    //color: theme.palette.success.main,
-                })
-                callbackPortActiveArrayOptions.push({
-                    id: key + " received",
-                    label: key + " Rx: " + getStringSize({cellData: {"plaintext": String(value.received)}}),
-                    value: value.received,
-                    //color: 'rgba(164,164,164,0.07)',
-                })
-            }
-            setCallbackPorts([
-                {
-                    data: callbackPortActiveArrayOptions,
-                    highlightScope: { faded: 'global', highlighted: 'item' },
-                    faded: {  color: 'gray' },
-                    paddingAngle: 1,
-                    cornerRadius: 4,
-                    innerRadius: 30,
-                    outerRadius: 60,
+            taskDayArrayOperatorOptions.push({
+                data: currentOperatorData,
+                label: allOperators[i],
+                area: false,
+                highlightScope: {
+                    highlighted: "series",
+                    faded: "global",
                 },
-                {
-                    data: callbackPortArrayOptions,
-                    highlightScope: { faded: 'global', highlighted: 'item' },
-                    faded: { color: 'gray' },
-                    paddingAngle: 1,
-                    cornerRadius: 4,
-                    outerRadius: 85,
-                    innerRadius: 70
-                },
-            ]);
+                yAxisKey: "taskAxis"
+            })
+        }
+        setTasksPerDay({x: taskDayArrayOptions, y: taskDayArrayOperatorOptions});
+        // process operator task rates
+        let operatorOptions = [];
+        for (const [key, value] of Object.entries(operatorTaskCounts)) {
+            operatorOptions.push({
+                id: key,
+                label: key,
+                value: value
+            })
+        }
+        operatorOptions = operatorOptions.sort( (a, b) => b.value - a.value).slice(0, 10);
+        setOperators(operatorOptions);
+        // process most tasked user
+        let taskedUserOptions = [];
+        for (const [key, value] of Object.entries(taskedUserCounts)) {
+            taskedUserOptions.push({
+                id: key,
+                label: key,
+                value: value
+            })
+        }
+        taskedUserOptions = taskedUserOptions.sort( (a, b) => b.value - a.value).slice(0, 10);
+        setTaskedUser(taskedUserOptions);
+        // process most tasked hosts
+        let taskedHostOptions = [];
+        for (const [key, value] of Object.entries(taskedHostCounts)) {
+            taskedHostOptions.push({
+                id: key,
+                label: key,
+                value: value
+            })
+        }
+        taskedHostOptions = taskedHostOptions.sort( (a, b) => b.value - a.value).slice(0, 10);
+        setTaskedHosts(taskedHostOptions);
+        // process task success rates
+        let taskedSuccessRateOptions = [];
+        for (const [key, value] of Object.entries(taskedSuccessRateCounts)) {
+            taskedSuccessRateOptions.push({
+                id: key,
+                label: key,
+                value: value,
+                color: getNormalizedTaskStatusColor(theme, key)
+            })
+        }
+        taskedSuccessRateOptions = taskedSuccessRateOptions.sort( (a, b) => b.value - a.value).slice(0, 10);
+        setTaskSuccessRate(taskedSuccessRateOptions);
+        // process callback port types
+        const callbackPortOptions = data.callbackport.reduce( (prev, cur) => {
+            if(!prev[cur.port_type]){
+                prev[cur.port_type] = {"total": 0, "sent": 0, "received": 0};
+            }
+            prev[cur.port_type]["total"] += 1;
+            prev[cur.port_type]["sent"] += cur.bytes_sent;
+            prev[cur.port_type]["received"] += cur.bytes_received;
+            return prev;
+        }, {});
+        let callbackPortArrayOptions = [];
+        let callbackPortActiveArrayOptions = [];
+        for (const [key, value] of Object.entries(callbackPortOptions)) {
+            callbackPortArrayOptions.push({
+                id: key + " total",
+                label: key + " total",
+                value: value.total
+            })
+            callbackPortActiveArrayOptions.push({
+                id: key + " sent",
+                label: key + " Tx: " + getStringSize({cellData: {"plaintext": String(value.sent)}}),
+                value: value.sent,
+                //color: theme.palette.success.main,
+            })
+            callbackPortActiveArrayOptions.push({
+                id: key + " received",
+                label: key + " Rx: " + getStringSize({cellData: {"plaintext": String(value.received)}}),
+                value: value.received,
+                //color: 'rgba(164,164,164,0.07)',
+            })
+        }
+        setCallbackPorts([
+            {
+                data: callbackPortActiveArrayOptions,
+                highlightScope: { faded: 'global', highlighted: 'item' },
+                faded: {  color: 'gray' },
+                paddingAngle: 1,
+                cornerRadius: 4,
+                innerRadius: 30,
+                outerRadius: 60,
+            },
+            {
+                data: callbackPortArrayOptions,
+                highlightScope: { faded: 'global', highlighted: 'item' },
+                faded: { color: 'gray' },
+                paddingAngle: 1,
+                cornerRadius: 4,
+                outerRadius: 85,
+                innerRadius: 70
+            },
+        ]);
+    }
+    const [fetchData] = useLazyQuery(GetCallbacks, {fetchPolicy: "network-only",
+        onCompleted: (data) => {
+            processData({data}).then(r => setLoading(false));
         },
         onError: (data) => {
 
@@ -603,27 +607,47 @@ export function CallbacksCard({me}) {
     }, []);
     useInterval( () => {
         // interval should run every 1 minutes (60000 milliseconds) to check JWT status
+        setLoading(true);
         fetchData();
     }, 60000, mountedRef, mountedRef);
     return (
         <>
+            {loading &&
+                <div style={{overflowY: "hidden", display: "flex", zIndex: "5", position: "absolute", height: "100%", width: "100%", backgroundColor: "rgba(37,37,37,0.35)"}}>
+                    <div style={{
+                        position: "absolute",
+                        left: "45%",
+                        top: "40%",
+                        borderRadius: "4px",
+                        border: "1px solid black",
+                        padding: "5px",
+                        backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                    }}>
+                        {"Analyzing Operation..."}
+                    </div>
+                </div>
+            }
             <div style={{display: "flex"}}>
                 <CallbackDataCard data={active} mainTitle={"Active Callbacks"} secondTitle={"Recent Checkins <1hr"}
-                    mainElement={
-                        <>
-                            <Typography variant={"h1"} style={{marginLeft: "5px", fontWeight: "bold", display: "inline-block"}}>
-                                {active.active}
-                            </Typography>
-                            <Typography variant={"h5"} style={{display: "inline-block"}}>
-                            / {active.total}
-                            </Typography>
-                        </>
-                    }
-                  secondaryElement={
-                      <Typography variant={"h2"} style={{marginLeft: "5px", fontWeight: "bold"}}>
-                          {active.recent}
-                      </Typography>
-                  }
+                                  mainElement={
+                                      <>
+                                          <Typography variant={"h1"} style={{
+                                              marginLeft: "5px",
+                                              fontWeight: "bold",
+                                              display: "inline-block"
+                                          }}>
+                                          {active.active}
+                                          </Typography>
+                                          <Typography variant={"h5"} style={{display: "inline-block"}}>
+                                              / {active.total}
+                                          </Typography>
+                                      </>
+                                  }
+                                  secondaryElement={
+                                      <Typography variant={"h2"} style={{marginLeft: "5px", fontWeight: "bold"}}>
+                                          {active.recent}
+                                      </Typography>
+                                  }
                 />
                 <StackedBarChartCard data={c2profiles.series} labels={c2profiles.labels}
                                      title={"Top C2 Profile Connections"} hidden={false}

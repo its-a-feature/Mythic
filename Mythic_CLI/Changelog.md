@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 0.3.15 - 2025-03-11
+
+### Changed
+
+- Added a flag for `rabbitmq reset` to start/stop the container after resetting the storage
+
 ## 0.3.14 - 2025-03-04
 
 ### Changed

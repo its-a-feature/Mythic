@@ -13,6 +13,8 @@ var rabbitmqResetCmd = &cobra.Command{
 	Run:   rabbitmqReset,
 }
 
+var startAgain bool
+
 func init() {
 	rabbitmqCmd.AddCommand(rabbitmqResetCmd)
 	rabbitmqResetCmd.Flags().BoolVarP(
@@ -22,8 +24,15 @@ func init() {
 		false,
 		`Force deleting the rabbitmq storage and don't prompt for confirmation`,
 	)
+	rabbitmqResetCmd.Flags().BoolVarP(
+		&startAgain,
+		"start-again",
+		"s",
+		true,
+		`Start the container again after making changes`,
+	)
 }
 
 func rabbitmqReset(cmd *cobra.Command, args []string) {
-	internal.RabbitmqReset(force)
+	internal.RabbitmqReset(force, startAgain)
 }

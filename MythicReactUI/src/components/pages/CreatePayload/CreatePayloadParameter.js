@@ -332,7 +332,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         { fileMultValue.length > 0 &&
                             fileMultValue?.map((f, i) => (
                                 <div key={i}>
-                                    {typeof f === "string" && <MythicFileContext agent_file_id={f} />}
+                                    {typeof f === "string" && <MythicFileContext agent_file_id={f}
+                                                                                 extraStyles={{bottom: "-10px", position: "relative", marginLeft: "5px", marginRight: "5px"}} />}
                                     {typeof f !== "string" && (f.name)}
                                 </div>
                             ))
@@ -347,7 +348,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             <input onChange={onFileChange} type="file" hidden />
                         </Button>
                         {fileValue.legacy &&
-                            <MythicFileContext agent_file_id={fileValue.name} />
+                            <MythicFileContext agent_file_id={fileValue.name}
+                                               extraStyles={{bottom: "-10px", position: "relative", marginLeft: "5px", marginRight: "5px"}} />
                         }
                     </>
 

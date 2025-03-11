@@ -121,18 +121,20 @@ const ResponseDisplayTableStringCellCopy = ({cellData}) => {
   )
 }
 const ResponseDisplayTableFontAwesomeStartIcon = ({cellData}) => {
+  const theme = useTheme();
   return (
       cellData?.startIcon &&
       <MythicStyledTooltip title={cellData?.startIconHoverText || ""} >
-        <FontAwesomeIcon icon={getIconName(cellData?.startIcon)} style={{marginRight: "5px", color: cellData?.startIconColor  || ""}}/>
+        <FontAwesomeIcon icon={getIconName(cellData?.startIcon)} style={{marginRight: "5px", color: getIconColor(theme, cellData?.startIconColor  || "")}}/>
       </MythicStyledTooltip>
   )
 }
 const ResponseDisplayTableFontAwesomeEndIcon = ({cellData}) => {
+  const theme = useTheme();
   return (
       cellData?.endIcon &&
       <MythicStyledTooltip title={cellData?.endIconHoverText || ""}>
-        <FontAwesomeIcon icon={getIconName(cellData?.endIcon)} style={{color: cellData?.endIconColor  || ""}}/>
+        <FontAwesomeIcon icon={getIconName(cellData?.endIcon)} style={{color: getIconColor(theme, cellData?.endIconColor  || "")}}/>
       </MythicStyledTooltip>
   )
 }
@@ -235,7 +237,7 @@ const ResponseDisplayTableSizeCell = ({cellData, rowData}) => {
 const actionCellButtonStyle = {paddingTop: 0, paddingBottom: 0};
 const ResponseDisplayTableActionCell = ({cellData, callback_id, rowData}) => {
   return (
-    <div style={{...(rowData?.rowStyle || null), ...(cellData?.cellStyle || null), height: "100%"}}>
+    <div style={{ height: "100%"}}>
       {cellData?.plaintext && cellData.plaintext}
       {cellData?.button && <ResponseDisplayTableActionCellButton cellData={cellData} callback_id={callback_id} />}
     </div>
@@ -434,7 +436,24 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
     }
 }
 
-
+const createRowCells = ({row, rowIndex, headers, callback_id}) => {
+  return headers.map((header, colIndex) => {
+    const cellData = row[header.plaintext];
+    const key = `${rowIndex}-${colIndex}-${header.plaintext}`;
+    switch(header.type){
+      case "string":
+        return <ResponseDisplayTableStringCell key={key} cellData={cellData} rowData={row}/>
+      case "size":
+        return <ResponseDisplayTableSizeCell key={key} cellData={cellData} rowData={row}/>
+      case "button":
+        return <ResponseDisplayTableActionCell callback_id={callback_id} key={key} cellData={cellData} rowData={row}/>
+      case "number":
+        return <ResponseDisplayTableNumberCell callback_id={callback_id} key={key} cellData={cellData} rowData={row} />
+      default:
+        return <ResponseDisplayTableStringCell key={key} cellData={cellData} rowData={row}/>
+    }
+  })
+}
 export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const theme = useTheme();
   const rowHeight = 20;
@@ -528,40 +547,10 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   };
   const gridData = React.useMemo(
     () => {
-        return sortedData.map((row) => {
-          let rowData = [];
-          for(let i = 0; i < table.headers.length; i++){
-            switch(table.headers[i].type){
-              case "string":
-                rowData.push(
-                  <ResponseDisplayTableStringCell cellData={row[table.headers[i]['plaintext']]} rowData={row}/>
-                )
-                break;
-              case "size":
-                rowData.push(
-                  <ResponseDisplayTableSizeCell cellData={row[table.headers[i]['plaintext']]} rowData={row}/>
-                )
-                break;
-              case "button":
-                rowData.push(
-                  <ResponseDisplayTableActionCell callback_id={callback_id} cellData={row[table.headers[i]['plaintext']]} rowData={row}/>
-                )
-                break;
-              case "number":
-                rowData.push(
-                  <ResponseDisplayTableNumberCell callback_id={callback_id} cellData={row[table.headers[i]["plaintext"]]} rowData={row} />
-                )
-                break;
-              default:
-                rowData.push(
-                  <ResponseDisplayTableStringCell cellData={row[table.headers[i]['plaintext']]} rowData={row}/>
-                )
-                break;
-            }
-          }
-          return [...rowData];
+        return sortedData.map((row, rowIndex) => {
+          return createRowCells({row, headers: table.headers, callback_id, rowIndex});
         });
-    }, [sortedData]
+    }, [sortedData, table?.headers, callback_id]
   );
   const filterOutButtonsFromRowData = (data) => {
     let rowData = {};
@@ -629,24 +618,23 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   useEffect( () => {
     setAllData([...table.rows]);
     setDataHeight(Math.min(maxHeight, (table.rows.length * rowHeight) + headerHeight));
-    
   }, [table.rows])
   const sortColumn = table.headers.findIndex((column) => column.plaintext === sortData.sortKey);
   const tableStyle = React.useMemo( () => {
     return expand ? {flexGrow: 1,
-          minHeight: gridData.length > 0 ? Math.min(maxHeight, dataHeight) : 0,
+          minHeight: gridData.length > 0 ? Math.min(maxHeight, dataHeight) : headerHeight,
           width: "99%", position: "relative"} :
         {height: dataHeight, position: "relative"}
-  }, [expand, dataHeight]);
+  }, [expand, dataHeight, gridData]);
   return (
         <div style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", width: "100%"}}>
-            {table?.title ? (
-                <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px"}} variant={"elevation"}>
-                  <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+            {table?.title && (
+                <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
+                  <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     {table.title}
                   </Typography>
                 </Paper>
-            ) : null}
+            )}
 
           <div style={tableStyle}>
             <MythicResizableGrid

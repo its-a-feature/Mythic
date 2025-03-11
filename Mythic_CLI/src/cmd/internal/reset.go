@@ -25,11 +25,14 @@ func DatabaseReset(force bool) {
 		}
 	}
 }
-func RabbitmqReset(force bool) {
+func RabbitmqReset(force bool, startAgain bool) {
 	if force {
 		manager.GetManager().StopServices([]string{"mythic_rabbitmq"}, config.GetMythicEnv().GetBool("REBUILD_ON_START"), false)
 		log.Printf("[*] Removing rabbitmq storage files\n")
 		manager.GetManager().ResetRabbitmq(config.GetMythicEnv().GetBool("rabbitmq_use_volume"))
+		if startAgain {
+			manager.GetManager().StartServices([]string{"mythic_rabbitmq"}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
+		}
 		return
 	}
 	confirm := config.AskConfirm("Are you sure you want to reset the rabbitmq storage? ")
@@ -37,6 +40,9 @@ func RabbitmqReset(force bool) {
 		manager.GetManager().StopServices([]string{"mythic_rabbitmq"}, config.GetMythicEnv().GetBool("REBUILD_ON_START"), false)
 		log.Printf("[*] Removing rabbitmq storage files\n")
 		manager.GetManager().ResetRabbitmq(config.GetMythicEnv().GetBool("rabbitmq_use_volume"))
+		if startAgain {
+			manager.GetManager().StartServices([]string{"mythic_rabbitmq"}, config.GetMythicEnv().GetBool("REBUILD_ON_START"))
+		}
 	}
 }
 

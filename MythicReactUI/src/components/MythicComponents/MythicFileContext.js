@@ -17,7 +17,7 @@ query getFileInformation($file_id: String!){
 }
 `;
 
-export const MythicFileContext = ({agent_file_id, display_link, filename}) => {
+export const MythicFileContext = ({agent_file_id, display_link, filename, extraStyles}) => {
     const [fileData, setFileData] = React.useState({
         agent_file_id: agent_file_id,
         display_link: display_link,
@@ -53,8 +53,9 @@ export const MythicFileContext = ({agent_file_id, display_link, filename}) => {
     }, [filename]);
     return (
         <>
-            <MythicStyledTooltip title={"Preview Media"}>
-                <FontAwesomeIcon icon={faPhotoVideo} style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
+            <MythicStyledTooltip title={"Preview Media"} tooltipStyle={extraStyles ? extraStyles : {}}>
+                <FontAwesomeIcon icon={faPhotoVideo}
+                                 style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
                                  onClick={onPreviewMedia} />
             </MythicStyledTooltip>
             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + fileData.agent_file_id}>

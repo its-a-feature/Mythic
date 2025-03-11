@@ -212,12 +212,12 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 	defer ch.Close()
 	confirmChannel := ch.NotifyPublish(make(chan amqp.Confirmation, 1))
 	notifyReturnChannel := ch.NotifyReturn(make(chan amqp.Return, 1))
+	msg := amqp.Publishing{
+		ContentType:   "application/json",
+		CorrelationId: correlationId,
+		Body:          body,
+	}
 	for attempt := 0; attempt < 3; attempt++ {
-		msg := amqp.Publishing{
-			ContentType:   "application/json",
-			CorrelationId: correlationId,
-			Body:          body,
-		}
 		err = ch.Publish(
 			exchange, // exchange
 			queue,    // routing key
@@ -301,13 +301,13 @@ func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body 
 	defer ch.Close()
 	confirmChannel := ch.NotifyPublish(make(chan amqp.Confirmation, 1))
 	notifyReturnChannel := ch.NotifyReturn(make(chan amqp.Return, 1))
+	msg := amqp.Publishing{
+		ContentType:   "application/json",
+		CorrelationId: uuid.NewString(),
+		Body:          body,
+		ReplyTo:       "amq.rabbitmq.reply-to",
+	}
 	for attempt := 0; attempt < 3; attempt++ {
-		msg := amqp.Publishing{
-			ContentType:   "application/json",
-			CorrelationId: uuid.NewString(),
-			Body:          body,
-			ReplyTo:       "amq.rabbitmq.reply-to",
-		}
 		err = ch.Publish(
 			exchange, // exchange
 			queue,    // routing key
@@ -316,7 +316,7 @@ func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body 
 			msg,      // publishing
 		)
 		if err != nil {
-			logging.LogError(err, "there was an error publishing a message", "queue", queue)
+			logging.LogError(err, "there was an error publishing an rpc message", "queue", queue)
 			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
@@ -474,7 +474,7 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 		}
 		q, err := ch.QueueDeclare(
 			queue,          // name, queue
-			false,          // durable
+			true,           // durable
 			true,           // delete when unused
 			exclusiveQueue, // exclusive
 			false,          // no-wait
@@ -499,47 +499,57 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 			time.Sleep(RETRY_CONNECT_DELAY)
 			continue
 		}
-		msgs, err := ch.Consume(
-			q.Name,         // queue name
-			"",             // consumer
-			false,          // auto-ack
-			exclusiveQueue, // exclusive
-			false,          // no local
-			false,          // no wait
-			nil,            // args
-		)
-		if err != nil {
-			logging.LogError(err, "Failed to start consuming messages on queue", "queue", q.Name)
-			ch.Close()
-			time.Sleep(RETRY_CONNECT_DELAY)
-			continue
-		}
+
 		forever := make(chan bool)
 		go func() {
-			for d := range msgs {
-				responseMsg := handler(d)
-				responseMsgJson, err := json.Marshal(responseMsg)
-				if err != nil {
-					logging.LogError(err, "Failed to generate JSON for getFile response")
-					continue
+			for {
+				if ch.IsClosed() {
+					break
 				}
-				err = ch.Publish(
-					"",        // exchange
-					d.ReplyTo, //routing key
-					true,      // mandatory
-					false,     // immediate
-					amqp.Publishing{
-						ContentType:   "application/json",
-						Body:          responseMsgJson,
-						CorrelationId: d.CorrelationId,
-					})
+				msgs, err := ch.Consume(
+					q.Name,         // queue name
+					"",             // consumer
+					false,          // auto-ack
+					exclusiveQueue, // exclusive
+					false,          // no local
+					false,          // no wait
+					nil,            // args
+				)
 				if err != nil {
-					logging.LogError(err, "Failed to send message")
-					continue
+					logging.LogError(err, "Failed to start consuming messages on queue", "queue", q.Name)
+					ch.Close()
+					time.Sleep(RETRY_CONNECT_DELAY)
+					break
 				}
-				err = ch.Ack(d.DeliveryTag, false)
-				if err != nil {
-					logging.LogError(err, "Failed to Ack message")
+				for d := range msgs {
+					if ch.IsClosed() {
+						forever <- true
+						return
+					}
+					responseMsg := handler(d)
+					responseMsgJson, err := json.Marshal(responseMsg)
+					if err != nil {
+						logging.LogError(err, "Failed to generate JSON for getFile response")
+						continue
+					}
+					err = ch.Publish(
+						"",        // exchange
+						d.ReplyTo, //routing key
+						true,      // mandatory
+						false,     // immediate
+						amqp.Publishing{
+							ContentType:   "application/json",
+							Body:          responseMsgJson,
+							CorrelationId: d.CorrelationId,
+						})
+					if err != nil {
+						logging.LogError(err, "Failed to send message")
+						continue
+					}
+					err = ch.Ack(d.DeliveryTag, false)
+					if err != nil {
+						logging.LogError(err, "Failed to Ack message")
+					}
 				}
 			}
 			forever <- true
