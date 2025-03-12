@@ -811,11 +811,7 @@ export function TopAppBarVertical(props) {
                 <ListItemText>Extra Shortcuts</ListItemText>
                 {openExtra ? <ExpandLess /> : <ExpandMore />}
             </StyledListItem>
-            <Collapse in={openExtra} unmountOnExit style={{overflowY: "auto", overflowX: "hidden"}}>
-                <List component="div" disablePadding style={{border: 0, backgroundColor: theme.topAppBarColor}}>
-                    {getExtraShortcuts()}
-                </List>
-            </Collapse>
+            {openExtra &&  getExtraShortcuts()}
             <Divider style={{borderColor: "white"}} />
           <div className={classes.listSubHeader} style={{ flexGrow: 1}}></div>
           <TopBarRightShortcutsVertical me={me} isOpen={isOpen} serverName={serverName} />
