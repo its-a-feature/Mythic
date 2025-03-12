@@ -9,7 +9,7 @@ const (
 	CHECK_CONTAINER_STATUS_DELAY           = 10 * time.Second
 	TIME_FORMAT_STRING_YYYY_MM_DD          = "2006-01-02"
 	TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS = "2006-01-02 15:04:05 Z07"
-	RPC_TIMEOUT                            = 20 * time.Second
+	RPC_TIMEOUT                            = 5 * time.Second
 	TASK_STATUS_CONTAINER_DOWN             = "Error: Container Down"
 )
 

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc52] - 
+
+### Changed
+
+- Updated processing of `clear` and `help` in event logs to properly send the data through
+- Updated RPC timeout for RabbitMQ to 5s with 3 retries
+- Updated RabbitMQ retry loop to include redeclaring channels to help avoid rabbitmq locks
+
 ## [3.3.1-rc51] - 2025-03-11
 
 ### Changed
