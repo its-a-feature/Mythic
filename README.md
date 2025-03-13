@@ -1,8 +1,8 @@
 <p align="center">
 <a href="https://github.com/its-a-feature/Mythic/pulse">
-        <img src="https://img.shields.io/github/commit-activity/m/its-a-feature/Mythic/v3.0.0" 
+        <img src="https://img.shields.io/github/commit-activity/m/its-a-feature/Mythic/master" 
           alt="Activity"/></a>
-<img src="https://img.shields.io/badge/version-3.0.0-blue" alt="version 3.0.0"/>
+<img src="https://img.shields.io/badge/version-3.3.1rc53-blue" alt="version 3.3.1-rc53"/>
 <img src="https://img.shields.io/github/commits-since/its-a-feature/Mythic/latest?include_prereleases&color=orange" 
   alt="commits since last release"/>
 <a href="https://twitter.com/its_a_feature_">
