@@ -197,19 +197,22 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 	for attempt := 0; attempt < 3; attempt++ {
 		conn, err := r.GetConnection()
 		if err != nil {
-			logging.LogError(err, "Failed to get rabbitmq connection")
-			return err
+			logging.LogError(err, "Failed to get rabbitmq connection", "queue", queue)
+			time.Sleep(RPC_TIMEOUT)
+			continue
 		}
 		ch, err := conn.Channel()
 		if err != nil {
-			logging.LogError(err, "Failed to open rabbitmq channel")
-			return err
+			logging.LogError(err, "Failed to open rabbitmq channel", "queue", queue)
+			time.Sleep(RPC_TIMEOUT)
+			continue
 		}
 		err = ch.Confirm(false)
 		if err != nil {
-			logging.LogError(err, "Channel could not be put into confirm mode")
+			logging.LogError(err, "Channel could not be put into confirm mode", "queue", queue)
 			ch.Close()
-			return err
+			time.Sleep(RPC_TIMEOUT)
+			continue
 		}
 		confirmChannel := ch.NotifyPublish(make(chan amqp.Confirmation, 1))
 		notifyReturnChannel := ch.NotifyReturn(make(chan amqp.Return, 1))
@@ -373,14 +376,14 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 	for {
 		conn, err := r.GetConnection()
 		if err != nil {
-			logging.LogError(err, "Failed to connect to rabbitmq", "retry_wait_time", RETRY_CONNECT_DELAY)
-			time.Sleep(RETRY_CONNECT_DELAY)
+			logging.LogError(err, "Failed to connect to rabbitmq", "retry_wait_time", RPC_TIMEOUT)
+			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
 		ch, err := conn.Channel()
 		if err != nil {
-			logging.LogError(err, "Failed to open rabbitmq channel", "retry_wait_time", RETRY_CONNECT_DELAY)
-			time.Sleep(RETRY_CONNECT_DELAY)
+			logging.LogError(err, "Failed to open rabbitmq channel", "retry_wait_time", RPC_TIMEOUT)
+			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
 		err = ch.ExchangeDeclare(
@@ -394,7 +397,8 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 		)
 		if err != nil {
 			logging.LogError(err, "Failed to declare exchange", "exchange", exchange, "exchange_type", "direct", "retry_wait_time", RETRY_CONNECT_DELAY)
-			time.Sleep(RETRY_CONNECT_DELAY)
+			ch.Close()
+			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
 		q, err := ch.QueueDeclare(
@@ -406,9 +410,9 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 			nil,            // arguments
 		)
 		if err != nil {
-			logging.LogError(err, "Failed to declare queue", "retry_wait_time", RETRY_CONNECT_DELAY)
+			logging.LogError(err, "Failed to declare queue", "retry_wait_time", RPC_TIMEOUT, "queue", queue)
 			ch.Close()
-			time.Sleep(RETRY_CONNECT_DELAY)
+			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
 		err = ch.QueueBind(
@@ -419,15 +423,15 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 			nil,        // arguments
 		)
 		if err != nil {
-			logging.LogError(err, "Failed to bind to queue to receive messages", "retry_wait_time", RETRY_CONNECT_DELAY)
+			logging.LogError(err, "Failed to bind to queue to receive messages", "retry_wait_time", RPC_TIMEOUT, "queue", queue)
 			ch.Close()
-			time.Sleep(RETRY_CONNECT_DELAY)
+			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
 		msgs, err := ch.Consume(
 			q.Name, // queue name
 			"",     // consumer
-			false,  // auto-ack
+			true,   // auto-ack
 			false,  // exclusive
 			false,  // no local
 			false,  // no wait
@@ -443,10 +447,6 @@ func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, qu
 		go func() {
 			for d := range msgs {
 				//logging.LogDebug("got direct message", "queue", q.Name, "msg", d.Body)
-				err = ch.Ack(d.DeliveryTag, false)
-				if err != nil {
-					logging.LogError(err, "Failed to Ack message")
-				}
 				go handler(d)
 			}
 			forever <- true
@@ -461,14 +461,14 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 	for {
 		conn, err := r.GetConnection()
 		if err != nil {
-			logging.LogError(err, "Failed to connect to rabbitmq", "retry_wait_time", RETRY_CONNECT_DELAY)
-			time.Sleep(RETRY_CONNECT_DELAY)
+			logging.LogError(err, "Failed to connect to rabbitmq", "retry_wait_time", RPC_TIMEOUT, "queue", queue)
+			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
 		ch, err := conn.Channel()
 		if err != nil {
-			logging.LogError(err, "Failed to open rabbitmq channel", "retry_wait_time", RETRY_CONNECT_DELAY)
-			time.Sleep(RETRY_CONNECT_DELAY)
+			logging.LogError(err, "Failed to open rabbitmq channel", "retry_wait_time", RPC_TIMEOUT, "queue", queue)
+			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
 		err = ch.ExchangeDeclare(
@@ -481,9 +481,9 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 			nil,      // arguments
 		)
 		if err != nil {
-			logging.LogError(err, "Failed to declare exchange", "exchange", exchange, "exchange_type", "direct", "retry_wait_time", RETRY_CONNECT_DELAY)
+			logging.LogError(err, "Failed to declare exchange", "exchange", exchange, "exchange_type", "direct", "retry_wait_time", RPC_TIMEOUT, "queue", queue)
 			ch.Close()
-			time.Sleep(RETRY_CONNECT_DELAY)
+			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
 		q, err := ch.QueueDeclare(
@@ -495,9 +495,9 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 			nil,            // arguments
 		)
 		if err != nil {
-			logging.LogError(err, "Failed to declare queue", "retry_wait_time", RETRY_CONNECT_DELAY)
+			logging.LogError(err, "Failed to declare queue", "retry_wait_time", RPC_TIMEOUT, "queue", queue)
 			ch.Close()
-			time.Sleep(RETRY_CONNECT_DELAY)
+			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
 		err = ch.QueueBind(
@@ -508,9 +508,9 @@ func (r *rabbitMQConnection) ReceiveFromRPCQueue(exchange string, queue string, 
 			nil,        // arguments
 		)
 		if err != nil {
-			logging.LogError(err, "Failed to bind to queue to receive messages", "retry_wait_time", RETRY_CONNECT_DELAY)
+			logging.LogError(err, "Failed to bind to queue to receive messages", "retry_wait_time", RPC_TIMEOUT, "queue", queue)
 			ch.Close()
-			time.Sleep(RETRY_CONNECT_DELAY)
+			time.Sleep(RPC_TIMEOUT)
 			continue
 		}
 
