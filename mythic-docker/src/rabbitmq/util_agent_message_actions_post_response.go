@@ -281,14 +281,16 @@ func listenForAsyncAgentMessagePostResponseContent() {
 			UserOutput:     &output,
 			SequenceNumber: msg.SequenceNum,
 		}, false)
-		// we have an interception possibility, so send that off for processing
-		EventingChannel <- EventNotification{
-			Trigger:               eventing.TriggerResponseIntercept,
-			OperationID:           msg.Task.OperationID,
-			EventGroupID:          eventGroup.ID,
-			ResponseID:            responseID,
-			TaskID:                msg.Task.ID,
-			ResponseInterceptData: msg.Response,
+		if responseID > 0 {
+			// we have an interception possibility, so send that off for processing
+			EventingChannel <- EventNotification{
+				Trigger:               eventing.TriggerResponseIntercept,
+				OperationID:           msg.Task.OperationID,
+				EventGroupID:          eventGroup.ID,
+				ResponseID:            responseID,
+				TaskID:                msg.Task.ID,
+				ResponseInterceptData: msg.Response,
+			}
 		}
 	}
 }
@@ -424,7 +426,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		} else if currentTask.Status == PT_TASK_FUNCTION_STATUS_PROCESSING {
 			currentTask.Status = PT_TASK_FUNCTION_STATUS_PROCESSED
 		}
-		if agentMessage.Responses[i].UserOutput != nil {
+		if agentMessage.Responses[i].UserOutput != nil && *agentMessage.Responses[i].UserOutput != "" {
 			// do it in the background - the agent doesn't need the result of this directly
 			//handleAgentMessagePostResponseUserOutput(currentTask, agentResponse, true)
 			asyncAgentMessagePostResponseChannel <- agentAgentMessagePostResponseChannelMessage{
