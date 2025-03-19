@@ -1541,7 +1541,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 	if fileBrowser.Host != "" {
 		pathData.Host = strings.ToUpper(fileBrowser.Host)
 	}
-	go resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
+	resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
 	// now that the parents and all ancestors are resolved, process the current path and all children
 	realParentPath := strings.Join(pathData.PathPieces, pathData.PathSeparator)
 	// check for the instance of // as a leading path
@@ -1590,73 +1590,40 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 	if fileBrowser.UpdateDeleted != nil && *fileBrowser.UpdateDeleted {
 		// we need to iterate over the children for this entry and potentially remove any that the database know of but that aren't in our `files` list
 		var existingTreeEntries []databaseStructs.MythicTree
-		if err = database.DB.Select(&existingTreeEntries, `SELECT 
+		err = database.DB.Select(&existingTreeEntries, `SELECT 
     			id, "name", success, full_path, parent_path, operation_id, host, tree_type
 				FROM mythictree WHERE
-				parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4 AND callback_id=$5`,
-			fullPath, task.OperationID, pathData.Host, databaseStructs.TREE_TYPE_FILE, task.Callback.ID); err != nil {
+				parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4`,
+			fullPath, task.OperationID, pathData.Host, databaseStructs.TREE_TYPE_FILE)
+		if err != nil {
 			logging.LogError(err, "Failed to fetch existing children")
 			return err
-		} else {
-			var namesToDeleteAndUpdate []string // will get existing database IDs for things that aren't in the files list
-			for _, existingEntry := range existingTreeEntries {
-				if fileBrowser.Files != nil {
-					existingEntryStillExists := false
-					for _, newEntry := range *fileBrowser.Files {
-						if bytes.Equal([]byte(newEntry.Name), existingEntry.Name) {
-							namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, newEntry.Name)
-							existingEntryStillExists = true
-							// update the entry in the database
-							newTreeChild := databaseStructs.MythicTree{
-								Host:            pathData.Host,
-								TaskID:          task.ID,
-								OperationID:     task.OperationID,
-								Name:            []byte(newEntry.Name),
-								ParentPath:      existingEntry.ParentPath,
-								FullPath:        existingEntry.FullPath,
-								TreeType:        databaseStructs.TREE_TYPE_FILE,
-								CanHaveChildren: !newEntry.IsFile,
-								Deleted:         false,
-								Success:         existingEntry.Success,
-								ID:              existingEntry.ID,
-								Os:              newTree.Os,
-							}
-							fileMetaData = addChildFilePermissions(&newEntry)
-							newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
-							newTreeChild.CallbackID.Valid = true
-							newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
-							if apitokensId > 0 {
-								newTree.APITokensID.Valid = true
-								newTree.APITokensID.Int64 = int64(apitokensId)
-							}
-							updateTreeNode(newTreeChild)
-						}
-					}
-					if !existingEntryStillExists {
-						namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.Name))
-						existingEntry.Deleted = true
-						deleteTreeNode(existingEntry, true)
-					}
-				}
-
-			}
-			// now all existing ones have been updated or deleted, so it's time to add new ones
+		}
+		var namesToDeleteAndUpdate []string // will get existing database IDs for things that aren't in the files list
+		for _, existingEntry := range existingTreeEntries {
 			if fileBrowser.Files != nil {
+				existingEntryStillExists := false
+				//logging.LogInfo("checking for file existing", "name", existingEntry.Name)
 				for _, newEntry := range *fileBrowser.Files {
-					if !utils.SliceContains(namesToDeleteAndUpdate, newEntry.Name) {
-						// this isn't marked as updated or deleted, so let's create it
+					if bytes.Equal([]byte(newEntry.Name), existingEntry.Name) {
+						//logging.LogInfo("[+] found a match in existing data and new data", "name", newEntry.Name, "id", existingEntry.ID)
+						namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, newEntry.Name)
+						existingEntryStillExists = true
+						// update the entry in the database
 						newTreeChild := databaseStructs.MythicTree{
 							Host:            pathData.Host,
 							TaskID:          task.ID,
 							OperationID:     task.OperationID,
 							Name:            []byte(newEntry.Name),
-							ParentPath:      fullPath,
+							ParentPath:      existingEntry.ParentPath,
+							FullPath:        existingEntry.FullPath,
 							TreeType:        databaseStructs.TREE_TYPE_FILE,
 							CanHaveChildren: !newEntry.IsFile,
 							Deleted:         false,
+							Success:         existingEntry.Success,
+							ID:              existingEntry.ID,
 							Os:              newTree.Os,
 						}
-						newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
 						fileMetaData = addChildFilePermissions(&newEntry)
 						newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
 						newTreeChild.CallbackID.Valid = true
@@ -1665,11 +1632,46 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 							newTree.APITokensID.Valid = true
 							newTree.APITokensID.Int64 = int64(apitokensId)
 						}
-						createTreeNode(&newTreeChild)
+						updateTreeNode(newTreeChild)
 					}
+				}
+				if !existingEntryStillExists {
+					//logging.LogError(nil, "failed to find match, marking as deleted", "name", existingEntry.Name)
+					namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.Name))
+					existingEntry.Deleted = true
+					deleteTreeNode(existingEntry, true)
 				}
 			}
 
+		}
+		// now all existing ones have been updated or deleted, so it's time to add new ones
+		if fileBrowser.Files != nil {
+			for _, newEntry := range *fileBrowser.Files {
+				if !utils.SliceContains(namesToDeleteAndUpdate, newEntry.Name) {
+					// this isn't marked as updated or deleted, so let's create it
+					newTreeChild := databaseStructs.MythicTree{
+						Host:            pathData.Host,
+						TaskID:          task.ID,
+						OperationID:     task.OperationID,
+						Name:            []byte(newEntry.Name),
+						ParentPath:      fullPath,
+						TreeType:        databaseStructs.TREE_TYPE_FILE,
+						CanHaveChildren: !newEntry.IsFile,
+						Deleted:         false,
+						Os:              newTree.Os,
+					}
+					newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
+					fileMetaData = addChildFilePermissions(&newEntry)
+					newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+					newTreeChild.CallbackID.Valid = true
+					newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
+					if apitokensId > 0 {
+						newTree.APITokensID.Valid = true
+						newTree.APITokensID.Int64 = int64(apitokensId)
+					}
+					createTreeNode(&newTreeChild)
+				}
+			}
 		}
 	} else if fileBrowser.Files != nil {
 		// we're not automatically updating deleted children, so just iterate over the files and insert/update them
@@ -2054,18 +2056,22 @@ func getParentPathFullPathName(pathData utils.AnalyzedPath, endIndex int, treeTy
 	}
 }
 func updateTreeNode(treeNode databaseStructs.MythicTree) {
+	//logging.LogInfo("[*] Updating entry", "id", treeNode.ID, "deleted", treeNode.Deleted)
 	if _, err := database.DB.NamedExec(`UPDATE mythictree SET
         success=:success, deleted=:deleted, metadata=mythictree.metadata || :metadata, task_id=:task_id
 		WHERE id=:id
 `, treeNode); err != nil {
 		logging.LogError(err, "Failed to update tree node")
 	}
-	if treeNode.Success.Valid {
-		_, err := database.DB.NamedExec(`UPDATE mythictree SET success=:success WHERE id=:id`, treeNode)
-		if err != nil {
-			logging.LogError(err, "failed to update success status on tree node")
+	/*
+		if treeNode.Success.Valid {
+			_, err := database.DB.NamedExec(`UPDATE mythictree SET success=:success WHERE id=:id`, treeNode)
+			if err != nil {
+				logging.LogError(err, "failed to update success status on tree node")
+			}
 		}
-	}
+
+	*/
 }
 func deleteTreeNode(treeNode databaseStructs.MythicTree, cascade bool) {
 	if cascade {

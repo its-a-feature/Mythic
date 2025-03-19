@@ -315,6 +315,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                     } else {
                         // we need to merge data in because we already have some info
                         let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
+                        if(existingData.task_id < data.data.mythictree_stream[i].task_id){
+                            existingData.deleted = data.data.mythictree_stream[i].deleted;
+                        }
                         if( (existingData.success === null || !existingData.success) && data.data.mythictree_stream[i].success !== null){
                             existingData.success = data.data.mythictree_stream[i].success;
                             existingData.task_id = data.data.mythictree_stream[i].task_id;
@@ -441,6 +444,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                     } else {
                         // we need to merge data in because we already have some info
                         let existingData = treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]];
+                        if(existingData.task_id < mythictree[i].task_id){
+                            existingData.deleted = mythictree[i].deleted;
+                        }
                         if( (existingData.success === null || !existingData.success) && mythictree[i].success !== null){
                             existingData.success = mythictree[i].success;
                             existingData.task_id = mythictree[i].task_id;
