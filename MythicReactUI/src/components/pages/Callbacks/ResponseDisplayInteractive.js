@@ -643,16 +643,7 @@ const InteractivePaginationBar = ({totalCount, currentPage, onSubmitPageChange, 
     };
     const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
     if(pageCount < 2){
-        if(expand){
-            return (
-                <div style={{height: "50px"}}>
-
-                </div>
-            )
-        } else {
-            return null
-        }
-
+        return null;
     }
     return (
         <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center"}} >

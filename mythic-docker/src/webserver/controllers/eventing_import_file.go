@@ -148,6 +148,8 @@ func EventingImportWebhook(c *gin.Context) {
 		return
 	}
 	eventData.FileMetaID = fileData.ID
+	eventData.Active = true
+	eventData.Deleted = false
 	err = eventing.SaveEventGroup(&eventData, operatorOperation)
 	if err != nil {
 		logging.LogError(err, "Failed to save event group and event steps to database")
@@ -361,6 +363,8 @@ func EventingImportAutomaticWebhook(c *gin.Context) {
 		return
 	}
 	eventData.FileMetaID = fileData.ID
+	eventData.Active = false
+	eventData.Deleted = false
 	err = eventing.SaveEventGroup(&eventData, operatorOperation)
 	if err != nil {
 		logging.LogError(err, "Failed to save event group and event steps to database")
@@ -370,19 +374,22 @@ func EventingImportAutomaticWebhook(c *gin.Context) {
 		})
 		return
 	}
-	if eventData.Trigger == eventing.TriggerCron {
-		triggerData := eventData.TriggerData.StructValue()
-		if _, ok = triggerData["cron"]; ok {
-			cronData := triggerData["cron"].(string)
-			rabbitmq.CronChannel <- rabbitmq.CronNotification{
-				Action:       rabbitmq.CronActionNewEventGroup,
-				EventGroupID: eventData.ID,
-				CronSchedule: cronData,
-				OperationID:  operatorOperation.CurrentOperation.ID,
-				OperatorID:   eventData.OperatorID,
+	/*
+		if eventData.Trigger == eventing.TriggerCron {
+			triggerData := eventData.TriggerData.StructValue()
+			if _, ok = triggerData["cron"]; ok {
+				cronData := triggerData["cron"].(string)
+				rabbitmq.CronChannel <- rabbitmq.CronNotification{
+					Action:       rabbitmq.CronActionNewEventGroup,
+					EventGroupID: eventData.ID,
+					CronSchedule: cronData,
+					OperationID:  operatorOperation.CurrentOperation.ID,
+					OperatorID:   eventData.OperatorID,
+				}
 			}
 		}
-	}
+
+	*/
 	c.JSON(http.StatusOK, EventingImportWebhookResponse{
 		Status:       "success",
 		EventGroupID: eventData.ID,

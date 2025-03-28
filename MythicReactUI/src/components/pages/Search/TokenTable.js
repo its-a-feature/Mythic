@@ -150,28 +150,34 @@ function TokenTableRow(props){
                     </MythicStyledTooltip>
                 )} </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.user}</Typography>
                     <IconButton onClick={() => setEditUserDialog(true)} size="small"><EditIcon /></IconButton>
-                        <MythicDialog fullWidth={true} maxWidth="md" open={editUserDialog} 
+                    <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.user}</Typography>
+
+                    {editUserDialog &&  <MythicDialog fullWidth={true} maxWidth="md" open={editUserDialog}
                             onClose={()=>{setEditUserDialog(false);}} 
                             innerDialog={<TokenUserDialog token_id={props.id} onClose={()=>{setEditUserDialog(false);}} onUpdateUser={props.onUpdateUser}/> }
                         />
+                    }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
+                    <MythicStyledTooltip title="View Token Information">
+                        <IconButton size="small" color="primary" onClick={()=>{setViewTokenDialog(true);}}><ConfirmationNumberIcon/></IconButton>
+                    </MythicStyledTooltip>
                     <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.token_id}</Typography>
-                    <MythicStyledTooltip title="View Token Information"><IconButton size="small" color="primary" onClick={()=>{setViewTokenDialog(true);}}><ConfirmationNumberIcon/></IconButton></MythicStyledTooltip>
-                    <MythicDialog fullWidth={true} maxWidth="md" open={viewTokenDialog} 
+                    {viewTokenDialog && <MythicDialog fullWidth={true} maxWidth="md" open={viewTokenDialog}
                         onClose={()=>{setViewTokenDialog(false);}} 
                         innerDialog={<TaskTokenDialog token_id={props.id} onClose={()=>{setViewTokenDialog(false);}} />}
-                    />
+                    />}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.description}</Typography>
                     <IconButton onClick={() => setEditDescriptionDialog(true)} size="small"><EditIcon /></IconButton>
-                        <MythicDialog fullWidth={true} maxWidth="md" open={editDescriptionDialog} 
+                    <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.description}</Typography>
+
+                    {editDescriptionDialog && <MythicDialog fullWidth={true} maxWidth="md" open={editDescriptionDialog}
                             onClose={()=>{setEditDescriptionDialog(false);}}  
                             innerDialog={<TokenDescriptionDialog token_id={props.id} onClose={()=>{setEditDescriptionDialog(false);}} onUpdateDescription={props.onUpdateDescription}/> }
                         />
+                    }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 

@@ -109,7 +109,7 @@ func MythicRPCPayloadSearch(input MythicRPCPayloadSearchMessage) MythicRPCPayloa
 					// only care about checking if it's the right type
 					// now we need to try to find the matching build parameter to see if the value matches
 					for key, val := range buildRequirement.BuildParameterValues {
-						logging.LogInfo("searching build param values", "search key", key, "search val", val)
+						//logging.LogInfo("searching build param values", "search key", key, "search val", val)
 						buildParamInstance := databaseStructs.Buildparameterinstance{}
 						if err := database.DB.Get(&buildParamInstance, `
 								SELECT value,

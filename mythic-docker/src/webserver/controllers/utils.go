@@ -8,6 +8,7 @@ import (
 	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"time"
@@ -88,7 +89,7 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 	}
 	tag := databaseStructs.Tag{
 		Operation: operationID,
-		TagType:   tagtype.ID,
+		TagTypeID: tagtype.ID,
 		Source:    "mythic",
 	}
 	tag.FileMeta.Valid = true
@@ -118,6 +119,13 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 			logging.LogError(err, "failed to insert tag")
 			return
 		}
+		go func() {
+			rabbitmq.EventingChannel <- rabbitmq.EventNotification{
+				Trigger:     eventing.TriggerTagCreate,
+				TagID:       tag.ID,
+				OperationID: tag.Operation,
+			}
+		}()
 	} else if err != nil {
 		logging.LogError(err, "failed to search for tags")
 		return

@@ -225,6 +225,11 @@ const (
 	// MYTHIC_RPC_PROXY_START proxy operations
 	MYTHIC_RPC_PROXY_START = "mythic_rpc_proxy_start"
 	MYTHIC_RPC_PROXY_STOP  = "mythic_rpc_proxy_stop"
+	// MYTHIC_RPC_TAG
+	MYTHIC_RPC_TAG_SEARCH = "mythic_rpc_tag_search"
+	MYTHIC_RPC_TAG_CREATE = "mythic_rpc_tag_create"
+	// MYTHIC_RPC_TAGTYPE
+	MYTHIC_RPC_TAGTYPE_GET_OR_CREATE = "mythic_rpc_tag_type_get_or_create"
 	// C2
 	MYTHIC_RPC_C2_UPDATE_STATUS = "mythic_rpc_c2_update_status"
 	//

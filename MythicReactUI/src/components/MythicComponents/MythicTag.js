@@ -32,8 +32,10 @@ const createNewTagMutationTemplate = ({target_object}) => {
   // target_object_id should be something like "89"
   return gql`
   mutation createNewTag($url: String!, $data: jsonb!, $source: String!, $${target_object}: Int!, $tagtype_id: Int!){
-    insert_tag_one(object: {url: $url, data: $data, source: $source, ${target_object}: $${target_object}, tagtype_id: $tagtype_id}){
+    createTag(url: $url, data: $data, source: $source, ${target_object}: $${target_object}, tagtype_id: $tagtype_id){
       id
+      status
+      error
     }
   }
   `;
@@ -576,9 +578,14 @@ export function NewTagDialog(props) {
     });
   const [newTag] = useMutation(createNewTagMutationTemplate({target_object: props.target_object}), {
     onCompleted: data => {
-      snackActions.success("Successfully created new tag!");
-      props.onSubmit({source:newSource, url:newURL, data:newData, tagtype_id:selectedTagType.id, id: data.insert_tag_one.id});
-      props.onClose()
+      if(data.createTag.status === "success"){
+        snackActions.success("Successfully created new tag!");
+        props.onSubmit({source:newSource, url:newURL, data:newData, tagtype_id:selectedTagType.id, id: data.createTag.id});
+        props.onClose()
+      } else {
+        snackActions.error(data.createTag.error);
+      }
+
     },
     onError: error => {
       snackActions.error(error.message);

@@ -15,16 +15,19 @@ type PayloadTypeDynamicQueryFunctionInput struct {
 }
 
 type PayloadTypeDynamicQueryFunction struct {
-	Command       string `json:"command" binding:"required"`
-	ParameterName string `json:"parameter_name" binding:"required"`
-	PayloadType   string `json:"payload_type" binding:"required"`
-	Callback      int    `json:"callback" binding:"required"`
+	Command         string                 `json:"command" binding:"required"`
+	ParameterName   string                 `json:"parameter_name" binding:"required"`
+	PayloadType     string                 `json:"payload_type" binding:"required"`
+	Callback        int                    `json:"callback" binding:"required"`
+	OtherParameters map[string]interface{} `json:"other_parameters"`
 }
 
 type PayloadTypeDynamicQueryFunctionResponse struct {
-	Status  string   `json:"status"`
-	Error   string   `json:"error"`
-	Choices []string `json:"choices"`
+	Status         string                                                  `json:"status"`
+	ParameterName  string                                                  `json:"parameter_name"`
+	Error          string                                                  `json:"error"`
+	Choices        []string                                                `json:"choices"`
+	ComplexChoices []rabbitmq.PayloadTypeDynamicQueryFunctionComplexChoice `json:"complex_choices"`
 }
 
 func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
@@ -33,7 +36,7 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 	if err := c.ShouldBindJSON(&input); err != nil {
 		logging.LogError(err, "Failed to parse out required parameters")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
-			Status: rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
+			Status: "error",
 			Error:  err.Error(),
 		})
 		return
@@ -42,8 +45,9 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 	if err != nil {
 		logging.LogError(err, "Failed to get userID from JWT")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
-			Status: rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
-			Error:  err.Error(),
+			Status:        rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
+			Error:         err.Error(),
+			ParameterName: input.Input.ParameterName,
 		})
 		return
 	}
@@ -51,8 +55,9 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 	if err != nil {
 		logging.LogError(err, "Failed to get userID from JWT")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
-			Status: rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
-			Error:  err.Error(),
+			Status:        rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
+			Error:         err.Error(),
+			ParameterName: input.Input.ParameterName,
 		})
 		return
 	}
@@ -66,8 +71,9 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 	if err != nil {
 		logging.LogError(err, "Failed to get command from loaded commands")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
-			Status: rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
-			Error:  err.Error(),
+			Status:        rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
+			Error:         err.Error(),
+			ParameterName: input.Input.ParameterName,
 		})
 		return
 	}
@@ -77,12 +83,14 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 		ParameterName:      input.Input.ParameterName,
 		Callback:           input.Input.Callback,
 		Secrets:            user.Secrets.StructValue(),
+		OtherParameters:    input.Input.OtherParameters,
 	})
 	if err != nil {
 		logging.LogError(err, "Failed to send SendPtRPCDynamicQueryFunction to payload type", "payload_type", input.Input.PayloadType)
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
-			Status: rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
-			Error:  "Failed to send message to payload type container",
+			Status:        rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
+			Error:         "Failed to send message to payload type container",
+			ParameterName: input.Input.ParameterName,
 		})
 		return
 		// check the response from the RPC call for success or error
@@ -90,16 +98,17 @@ func PayloadTypeDynamicQueryFunctionWebhook(c *gin.Context) {
 	if !payloadtypeDynamicQueryResponse.Success {
 		logging.LogError(nil, payloadtypeDynamicQueryResponse.Error, "Failed to get dynamic query choices")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
-			Status:  rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_ERROR,
-			Error:   "Failed to get dynamic query choices",
-			Choices: []string{},
+			Status:        "error",
+			Error:         payloadtypeDynamicQueryResponse.Error,
+			ParameterName: input.Input.ParameterName,
 		})
 		return
 	}
 	c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
-		Status:  rabbitmq.PT_DYNAMIC_QUERY_FUNCTION_STATUS_SUCCESS,
-		Choices: payloadtypeDynamicQueryResponse.Choices,
+		Status:         "success",
+		Choices:        payloadtypeDynamicQueryResponse.Choices,
+		ComplexChoices: payloadtypeDynamicQueryResponse.ComplexChoices,
+		ParameterName:  input.Input.ParameterName,
 	})
 	return
-
 }

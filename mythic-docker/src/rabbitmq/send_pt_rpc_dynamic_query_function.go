@@ -28,12 +28,17 @@ type PTRPCDynamicQueryFunctionMessage struct {
 	Callback           int                    `json:"callback" binding:"required"`
 	CallbackDisplayID  int                    `json:"callback_display_id"`
 	Secrets            map[string]interface{} `json:"secrets"`
+	OtherParameters    map[string]interface{} `json:"other_parameters"`
 }
-
+type PayloadTypeDynamicQueryFunctionComplexChoice struct {
+	DisplayValue string `json:"display_value"`
+	Value        string `json:"value"`
+}
 type PTRPCDynamicQueryFunctionMessageResponse struct {
-	Success bool     `json:"success"`
-	Error   string   `json:"error"`
-	Choices []string `json:"choices"`
+	Success        bool                                           `json:"success"`
+	Error          string                                         `json:"error"`
+	Choices        []string                                       `json:"choices"`
+	ComplexChoices []PayloadTypeDynamicQueryFunctionComplexChoice `json:"complex_choices"`
 }
 
 func (r *rabbitMQConnection) SendPtRPCDynamicQueryFunction(dynamicQuery PTRPCDynamicQueryFunctionMessage) (*PTRPCDynamicQueryFunctionMessageResponse, error) {

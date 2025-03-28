@@ -57,6 +57,10 @@ const callbackFields = [
     "crypto_type", "dec_key", "enc_key", "os", "architecture", "domain", "extra_info", "sleep_info", "timestamp", "mythictree_groups",
     "dead", "eventstepinstance_id", "process_short_name", "color", "trigger_on_checkin_after_time"
 ].sort();
+const tagFields = [
+    "id", "url", "data", "source", "operation_id", "filemeta_id", "mythictree_id", "credential_id",
+    "task_id", "taskartifact_id", "keylog_id", "response_id", "tagtype"
+].sort();
 function CreateEventingStepperNavigationButtons(props){
     const me = useReactiveVar(meState);
     const disabledButtons = (me?.user?.current_operation_id || 0) <= 0;
@@ -85,7 +89,9 @@ function CreateEventingStepperNavigationButtons(props){
 }
 const triggerOptions = ["manual", "mythic_start", "cron", "payload_build_start",
     "payload_build_finish", "task_create", "task_start", "task_finish", "user_output", "file_download",
-    "file_upload", "screenshot", "alert", "callback_new", "task_intercept", "response_intercept", "callback_checkin"].sort();
+    "file_upload", "screenshot", "alert", "callback_new", "task_intercept", "response_intercept", "callback_checkin",
+    "tag_create"
+].sort();
 const runAsOptions = ["bot", "self", "trigger", "lead"];
 const runAsOptionsData = {
     bot: {
@@ -244,6 +250,21 @@ const triggerOptionsData = {
         description: "This workflow is triggered when a Task returns new output in the user_output field for the user to see in the UI, but first passes that output to this workflow for modification before saving it in the database.",
         trigger_data: [],
         env: []
+    },
+    tag_create: {
+        description: "This workflow is triggered when a new tag is created",
+        trigger_data: [
+            {
+                name: "tag_types",
+                parameter_type: "Array",
+                default_value: "[]",
+                value: [],
+                initialValue: [],
+                trackedValue: [],
+                error: false,
+                description: "a list of all the tag type names where you want this to trigger. If you don't specify any, then it will trigger for all tag types."
+            }
+        ]
     }
 }
 const actionOptions = ["payload_create", "callback_create", "task_create", "custom_function", "conditional_check", "task_intercept", "response_intercept", "alert_create", "webhook_send"].sort();

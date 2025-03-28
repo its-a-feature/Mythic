@@ -17,7 +17,8 @@ type TagType struct {
 
 type Tag struct {
 	ID                  int               `db:"id"`
-	TagType             int               `db:"tagtype_id"`
+	TagTypeID           int               `db:"tagtype_id"`
+	TagType             TagType           `db:"tagtype"`
 	Data                MythicJSONText    `db:"data"`
 	URL                 string            `db:"url"`
 	Operation           int               `db:"operation_id"`

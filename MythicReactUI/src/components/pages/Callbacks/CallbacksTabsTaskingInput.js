@@ -16,7 +16,7 @@ import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import {getDynamicQueryParams} from "./TaskParametersDialogRow";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
-import {GetMythicSetting, SetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 
 const GetLoadedCommandsSubscription = gql`
 subscription GetLoadedCommandsSubscription($callback_id: Int!){
@@ -150,6 +150,7 @@ const IsRepeatableCLIParameterType = (parameter_type) => {
             return false;
     }
 }
+
 export function CallbacksTabsTaskingInputPreMemo(props){
     const toastId = "tasking-toast-message";
     const inputRef = React.useRef(null);
@@ -170,7 +171,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         onCompleted: (data) => {
             if(data.dynamic_query_function.status === "success"){
                 try{
-                    if(data.dynamic_query_function.choices.length > 0){
+                    if(data.dynamic_query_function.choices && data.dynamic_query_function.choices.length > 0){
                         const choices = data.dynamic_query_function.choices.filter( c => {
                             if(c.toLowerCase().includes(lastValueTypedBeforeDynamicParamsRef.current.toLowerCase())){
                                 return c;
@@ -197,6 +198,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         snackActions.warning("no available options", snackMessageStyles);
                     }
                 }catch(error){
+                    console.log(error);
                     setBackdropOpen(false);
                     snackActions.warning("Failed to parse dynamic parameter results", snackMessageStyles);
                     tabOptions.current = [];
@@ -708,7 +710,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 taskOptionsIndex.current = -1;
             }
         }
-        if(message === ""){
+        if(message === "" && tabOptions.current.length === 0){
             setCommandPayloadType("");
         }
     }
@@ -1413,6 +1415,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 }
             }
             setMessage("");
+            setCommandPayloadType("");
             taskOptionsIndex.current = -1;
             reverseSearchIndex.current = -1;
             setReverseSearching(false);
@@ -1423,6 +1426,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         console.log("about to call onSubmitCommandLine", cmd);
         props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, unmodifiedHistoryValue);
         setMessage("");
+        setCommandPayloadType("");
         taskOptionsIndex.current = -1;
         reverseSearchIndex.current = -1;
         setReverseSearching(false);
@@ -1464,13 +1468,14 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         setReverseSearchString(event.target.value);
         if(event.target.value.length === 0){
             setMessage("");
+            setCommandPayloadType("");
             reverseSearchOptions.current = [];
             reverseSearchIndex.current = 0;
             return;
         }
         // need to do a reverse i search through taskOptions
         const lowerCaseTextSearch = event.target.value.toLowerCase();
-        const matchingOptions = taskOptions.current.filter( x => (GetCommandName(x)).toLowerCase().includes(lowerCaseTextSearch));
+        const matchingOptions = taskOptions.current.filter( x => (GetCommandName(x) + x.original_params).toLowerCase().includes(lowerCaseTextSearch));
         const filteredMatches = matchingOptions.filter( x => applyFilteringToTasks(x))
         reverseSearchOptions.current = filteredMatches;
         if(filteredMatches.length > 0){
@@ -1537,7 +1542,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         }
     }, [props.focus])
     return (
-        <React.Fragment>
+        <div style={{position: "relative", overflow: "hidden"}}>
             <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                 <CircularProgress color="inherit" />
             </Backdrop>
@@ -1559,8 +1564,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }
             <TextField
                 placeholder={"Task an agent..."}
-                onKeyDown={onKeyDown}    
-                onChange={handleInputChange}                     
+                onKeyDown={onKeyDown}
+                onChange={handleInputChange}
                 size="small"
                 color={"secondary"}
                 variant="outlined"
@@ -1606,9 +1611,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         {tokenOptions.current.length > 0 ? (
                             <CallbacksTabsTaskingInputTokenSelect options={tokenOptions.current} changeSelectedToken={props.changeSelectedToken}/>
                         ) : null}
-                        
+
                     </React.Fragment>
-                
+
                 }}
                 />
               {openFilterOptionsDialog &&
@@ -1625,7 +1630,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                                                                        action={"select"} identifier={"id"} display={"display"} />}
                 />
             }
-        </React.Fragment>
+        </div>
     );
 }
 export const CallbacksTabsTaskingInput = React.memo(CallbacksTabsTaskingInputPreMemo);

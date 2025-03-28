@@ -14,6 +14,7 @@ query getPayloadTypesBuildParametersQuery($os: jsonb!) {
     name
     id
     file_extension
+    agent_type
     supports_dynamic_loading
     buildparameters(where: {deleted: {_eq: false} }, order_by: {description: asc}) {
         default_value
@@ -92,6 +93,7 @@ export function Step2SelectPayloadType(props){
     const [selectedPayloadType, setSelectedPayloadType] = React.useState('');
     const [fileExtension, setFileExtension] = React.useState('');
     const [supportsDynamicLoading, setSupportsDynamicLoading] = React.useState(false);
+    const [agentType, setAgentType] = React.useState("agent");
     const [payloadTypeParameters, setSelectedPayloadTypeParameters] = React.useState([]);
     const { loading, error, data } = useQuery(GET_Payload_Types,
         {variables:{os: props.buildOptions },
@@ -102,6 +104,7 @@ export function Step2SelectPayloadType(props){
                     //console.log("prevdata", props.prevData);
                     setSelectedPayloadType(props.prevData.payload_type);
                     setFileExtension(props.prevData.file_extension);
+                    setAgentType(props.prevData.agent_type);
                     setSupportsDynamicLoading(props.prevData.supports_dynamic_loading);
                     const payloadtypedata = data.payloadtype.reduce( (prev, payload) => {
                         if(payload.name === props.prevData.payload_type){
@@ -127,6 +130,7 @@ export function Step2SelectPayloadType(props){
                 }else{
                     setSelectedPayloadType(data.payloadtype[0].name);
                     setFileExtension(data.payloadtype[0].file_extension);
+                    setAgentType(data.payloadtype[0].agent_type);
                     setSupportsDynamicLoading(data.payloadtype[0].supports_dynamic_loading);
                     const payloadtypedata = data.payloadtype.reduce( (prev, payloadtype) => {
                         if(payloadtype.name === data.payloadtype[0].name){
@@ -160,6 +164,7 @@ export function Step2SelectPayloadType(props){
                         "parameters": payloadTypeParameters, 
                         "file_extension": fileExtension, 
                         "supports_dynamic_loading": supportsDynamicLoading,
+                        "agent_type": agentType,
                         "os": props.buildOptions});
     }
     const canceled = () => {
@@ -171,6 +176,7 @@ export function Step2SelectPayloadType(props){
             if(payload.name === evt.target.value){
                 setFileExtension(payload.file_extension);
                 setSupportsDynamicLoading(payload.supports_dynamic_loading);
+                setAgentType(payload.agent_type);
                 const params = payload.buildparameters.map( (param) => {
                     const initialValue = getDefaultValueForType(param);
                     return {...param, error: false, 

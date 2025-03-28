@@ -7,12 +7,9 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {snackActions} from "../../utilities/Snackbar";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 
 export function APITokenRow(props){
-    const [showToken, setShowToken] = React.useState(false);
     const onCopyTokenValue = () => {
         let success = copyStringToClipboard(props.token_value);
         if(success){
@@ -46,25 +43,9 @@ export function APITokenRow(props){
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title={"Copy to clipboard"} >
                         <IconButton onClick={onCopyTokenValue} >
-                            <ContentCopyIcon color={"success"} />
+                            <ContentCopyIcon />
                         </IconButton>
                     </MythicStyledTooltip>
-                    {showToken &&
-                        <>
-                            <MythicStyledTooltip title={"Hide Token Value"}>
-                                <IconButton onClick={() => {setShowToken(!showToken)}}>
-                                    <VisibilityIcon />
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        </>
-                    }
-                    {!showToken &&
-                        <MythicStyledTooltip title={"Show Token Value"}>
-                            <IconButton onClick={() => {setShowToken(!showToken)}}>
-                                <VisibilityOffIcon />
-                            </IconButton>
-                        </MythicStyledTooltip>
-                    }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.token_type}</MythicStyledTableCell>
                 <MythicStyledTableCell>{props.name}</MythicStyledTableCell>
@@ -86,13 +67,6 @@ export function APITokenRow(props){
                 </MythicStyledTableCell>
 
             </TableRow>
-            {showToken &&
-                <TableRow>
-                    <MythicStyledTableCell style={{wordBreak: "break-all"}} colSpan={6}>
-                        {props.token_value}
-                    </MythicStyledTableCell>
-                </TableRow>
-            }
         </>
 
         )

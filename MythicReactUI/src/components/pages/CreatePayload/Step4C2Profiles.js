@@ -152,8 +152,8 @@ export function Step4C2Profiles(props){
         });
         if(allValid){
             //console.log(c2Profiles);
-            if(!includedC2){
-                //snackActions.warning("Must select at least one C2 to include");
+            if(!includedC2 && props.buildOptions["agent_type"] === "agent"){
+                // normal agents need to confirm they're not including c2, services can move through
                 setOpenConfirmDialog(true);
                 return;
             }

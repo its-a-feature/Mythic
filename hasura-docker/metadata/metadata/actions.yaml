@@ -224,6 +224,16 @@ actions:
       - role: operation_admin
       - role: operator
       - role: spectator
+  - name: createTag
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/tag_create_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: createTask
     definition:
       kind: synchronous
@@ -337,6 +347,17 @@ actions:
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_export_webhook'
       forward_client_headers: true
     permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+  - name: eventingImportContainerWorkflow
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_import_automatic_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
       - role: operator
       - role: operation_admin
       - role: mythic_admin
@@ -885,4 +906,16 @@ custom_types:
     - name: updateOperatorPreferencesOutput
     - name: updateInviteLinkOutput
     - name: eventingExportWorkflowOutput
+    - name: eventingImportContainerWorkflowOutput
+    - name: createTagOutput
+      relationships:
+        - field_mapping:
+            id: id
+          name: tag
+          remote_table:
+            name: tag
+            schema: public
+          source: default
+          type: object
+    - name: dynamicQueryOutputChoice
   scalars: []

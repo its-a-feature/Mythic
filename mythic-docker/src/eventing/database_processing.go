@@ -24,8 +24,6 @@ var (
 func SaveEventGroup(eventGroup *databaseStructs.EventGroup, currentOperatorOperation *databaseStructs.Operatoroperation) error {
 	eventGroup.OperatorID = currentOperatorOperation.CurrentOperator.ID
 	eventGroup.OperationID = currentOperatorOperation.CurrentOperation.ID
-	eventGroup.Active = true
-	eventGroup.Deleted = false
 	eventGroup.TotalSteps = len(eventGroup.Steps)
 	highestOrder := 0
 	for i, _ := range eventGroup.Steps {
@@ -235,6 +233,42 @@ func getTriggerData(triggerMetadata map[string]interface{}) map[string]interface
 		case "keyword_env_data":
 			for envKey, envVal := range triggerMetadata["keyword_env_data"].(map[string]interface{}) {
 				triggerData[envKey] = envVal
+			}
+		case "tag_id":
+			tag := databaseStructs.Tag{}
+			err := database.DB.Get(&tag, `SELECT 
+				tag.id, tag.url, tag.data, tag.source, tag.taskartifact_id, tag.mythictree_id, tag.credential_id,
+				tag.response_id, tag.filemeta_id, tag.task_id, tag.keylog_id, tag.operation_id,
+				tagtype.id "tagtype.id",
+				tagtype.name "tagtype.name",
+				tagtype.color "tagtype.color",
+				tagtype.description "tagtype.description",
+				tagtype.operation_id "tagtype.operation_id"
+				FROM tag 
+				JOIN tagtype on tag.tagtype_id = tagtype.id
+				WHERE tag.id=$1`, value)
+			if err != nil {
+				logging.LogError(err, "Failed to get trigger data for tag")
+				return triggerData
+			}
+			triggerData["id"] = tag.ID
+			triggerData["url"] = tag.URL
+			triggerData["data"] = tag.Data
+			triggerData["source"] = tag.Source
+			triggerData["operation_id"] = tag.Operation
+			triggerData["taskartifact_id"] = tag.TaskArtifact.Int64
+			triggerData["mythictree_id"] = tag.MythicTree.Int64
+			triggerData["credential_id"] = tag.Credential.Int64
+			triggerData["response_id"] = tag.Response.Int64
+			triggerData["filemeta_id"] = tag.FileMeta.Int64
+			triggerData["task_id"] = tag.Task.Int64
+			triggerData["keylog_id"] = tag.Keylog.Int64
+			triggerData["tagtype"] = map[string]interface{}{
+				"id":           tag.TagType.ID,
+				"name":         tag.TagType.Name,
+				"color":        tag.TagType.Color,
+				"description":  tag.TagType.Description,
+				"operation_id": tag.TagType.Operation,
 			}
 		default:
 			triggerData[key] = value

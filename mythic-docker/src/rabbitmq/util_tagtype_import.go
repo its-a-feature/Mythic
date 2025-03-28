@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"database/sql"
+	"errors"
 	"strings"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -20,15 +21,17 @@ func TagtypeImport(input []databaseStructs.TagType, operatorOperation *databaseS
 	}
 	for _, newTagtype := range input {
 		tagtype := databaseStructs.TagType{}
-		if err := database.DB.Get(&tagtype, `SELECT
+		err := database.DB.Get(&tagtype, `SELECT
 			id
 			FROM tagtype
-			WHERE name=$1 AND operation_id=$2`, newTagtype.Name, operatorOperation.CurrentOperation.ID); err == sql.ErrNoRows {
+			WHERE name=$1 AND operation_id=$2`, newTagtype.Name, operatorOperation.CurrentOperation.ID)
+		if errors.Is(err, sql.ErrNoRows) {
 			// it doesn't exist, so add it
 			newTagtype.Operation = operatorOperation.CurrentOperation.ID
-			if _, err := database.DB.NamedExec(`INSERT INTO tagtype
+			_, err = database.DB.NamedExec(`INSERT INTO tagtype
 				(name, description, color, operation_id)
-				VALUES (:name, :description, :color, :operation_id)`, newTagtype); err != nil {
+				VALUES (:name, :description, :color, :operation_id)`, newTagtype)
+			if err != nil {
 				logging.LogError(err, "Failed to create new tagtype")
 				response.Error = "Failed to create new tagtype: " + err.Error()
 				return response
@@ -37,9 +40,10 @@ func TagtypeImport(input []databaseStructs.TagType, operatorOperation *databaseS
 			// we found it, so update it
 			tagtype.Color = newTagtype.Color
 			tagtype.Description = newTagtype.Description
-			if _, err := database.DB.NamedExec(`UPDATE tagtype SET
+			_, err = database.DB.NamedExec(`UPDATE tagtype SET
 			color=:color, description=:description 
-			WHERE id=:id`, tagtype); err != nil {
+			WHERE id=:id`, tagtype)
+			if err != nil {
 				logging.LogError(err, "Failed to update existing tagtype from imported set")
 				response.Error = "Failed to update existing tagtype: " + err.Error()
 				return response

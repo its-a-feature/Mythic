@@ -1,37 +1,25 @@
 import React from 'react';
-import {Box, Button} from '@mui/material';
 import TableRow from '@mui/material/TableRow';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
-import {Typography} from '@mui/material';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
-import { useTheme, adaptV4Theme } from '@mui/material/styles';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
-import { createTheme } from '@mui/material/styles';
 import {NewTagtypesDialog} from './NewTagtypesDialog';
 import Chip from '@mui/material/Chip';
 import SettingsIcon from '@mui/icons-material/Settings';
 
 
 export function TagtypesTableRow(props){
-    const theme = useTheme();
     const [openUpdate, setOpenUpdateDialog] = React.useState(false);
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
-    const [lightColor, setLightColor] = React.useState(theme.palette.text.primary)
-    const [darkColor, setDarkColor] = React.useState(theme.palette.text.primary);
-    
+
     const onAcceptDelete = () => {
         props.onDeleteTagtype(props.id);
         setOpenDeleteDialog(false);
     }
-    React.useEffect( () => {
-      let lightTheme = createTheme(adaptV4Theme({palette: {mode: "light",}}));
-      let darkTheme = createTheme(adaptV4Theme({palette: {mode: "dark",}}));
-      setLightColor(lightTheme.palette.text.primary);
-      setDarkColor(darkTheme.palette.text.primary);
-    }, [])
+
     return (
       
         <React.Fragment>
@@ -48,34 +36,21 @@ export function TagtypesTableRow(props){
                   
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton size="small" onClick={()=>{setOpenUpdateDialog(true);}} color="info" variant="contained"><SettingsIcon color="warning" /></IconButton>
+                    <IconButton size="small" onClick={()=>{setOpenUpdateDialog(true);}} variant="contained"><SettingsIcon color="info" /></IconButton>
                   {openUpdate && 
-                    <MythicDialog fullWidth={true} maxWidth="sm" open={openUpdate} 
+                    <MythicDialog fullWidth={true} maxWidth="md" open={openUpdate}
                       onClose={()=>{setOpenUpdateDialog(false);}} 
                       innerDialog={<NewTagtypesDialog onClose={()=>{setOpenUpdateDialog(false);}} onSubmit={props.onUpdateTagtype} currentTag={props}/>}
                   />}
+                </MythicStyledTableCell>
+                <MythicStyledTableCell>
+                    {props.tags_aggregate.aggregate.count}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                   <Chip label={props.name} size="small" style={{backgroundColor:props.color}} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                   {props.description}
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                  {props.tags_aggregate.aggregate.count}
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                  
-                  <Box sx={{width: "100%", height: 25, backgroundColor: props.color}} >
-                    <Typography style={{textAlign: "center", color: lightColor}} >
-                      {"Sample Text Light Theme - "}{props.color}
-                    </Typography>
-                  </Box>
-                  <Box sx={{width: "100%", height: 25, backgroundColor: props.color}} >
-                    <Typography style={{textAlign: "center", color: darkColor}}>
-                      {"Sample Text Dark Theme - "}{props.color}
-                    </Typography>
-                  </Box>
                 </MythicStyledTableCell>
             </TableRow>
         </React.Fragment>

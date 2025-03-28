@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc56] - 2025-03-28
+
+### Changed
+
+- Updated MythicRPCTaskSearch to allow specifying parent task to get all subtasks
+- Fixed bug in TagCreateWebhook
+- Added MythicRPCTagCreate
+- Added MythicRPCTagSearch
+- Added MythicRPCTagTypeGetOrCreate
+- Added new trigger - tag_create
+- Updated DynamicQueryFunction to take in OtherParameters - the names/values of other paramters in the task
+- If a command has `task_response:interactive` in its supported ui features, then Mythic will open up a new interactive component in the UI
+  - If that command ALSO has `task:process_interactive_tasks` in their supported ui, then these follow-on tasks will also go to that parent task's create tasking function first
+    - If you set this, you can check for this type of task:
+      - `taskData.Task.IsInteractiveTask` - boolean True or False
+      - `taskData.Task.InteractiveTaskType` - the type of input (normal input, ctrl characters, etc)
+        - There's an enum, `InteractiveTask` that can provide insight into what the int TaskTypes mean
+      - `taskData.Args.GetCommandLine()` - get what they actually typed
+      - `taskData.Args.SetManualArgs("new args\n")` - potentially update the input to something else (don't forget `\n` if you need it!)
+  - Otherwise, follow-on tasks in this new interactive component go directly to the agent
+
 ## [3.3.1-rc55] - 2025-03-19
 
 ### Changed

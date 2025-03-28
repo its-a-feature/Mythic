@@ -123,10 +123,7 @@ export function KeylogsTable(props){
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "12rem"}}>Task Info</TableCell>
-                        <TableCell style={{width: "15rem"}}>Timestamp</TableCell>
-                        <TableCell >User / Host</TableCell>
-                        <TableCell >Window</TableCell>
-                        <TableCell></TableCell>
+                        <TableCell style={{width: "20rem"}}>User / Host / Window</TableCell>
                         <TableCell style={{maxWidth: "50%"}}>Keylogs</TableCell>
                     </TableRow>
                 </TableHead>
@@ -182,33 +179,28 @@ function KeylogTableRow(props){
                         </Typography>
                     ) : null}
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}</Typography>
-                </MythicStyledTableCell>
-                <MythicStyledTableCell>
-                    <Typography variant="body2" >{props.user}</Typography>
-                    <Typography variant="body2" >{props.task.callback.host}</Typography>
-                </MythicStyledTableCell>
-                <MythicStyledTableCell >
-                    <MythicStyledTooltip title={"View current page data grouped together for this program"} style={{
+                <MythicStyledTableCell style={{wordBreak: "break-all"}}>
+                    <Typography variant="body2" ><b>User: </b>{props.user}</Typography>
+                    <Typography variant="body2" ><b>Host: </b>{props.task.callback.host}</Typography>
+                    <Typography variant="body2" ><b>Window:</b> {props.window} </Typography>
+                    <Typography variant="body2" ><b>Time: </b>{toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}</Typography>
+                    <Typography variant="body2" style={{display: "inline-block"}}><b>View Window Together: </b></Typography>
+                    <MythicStyledTooltip title={"View current page data grouped together for this program"} tooltipStyle={{
                         display: "inline-block"
                     }}>
                         <IconButton onClick={() => props.onGroupKeylogData(props.window, props.user, props.task.callback.host)}>
                             <FullscreenIcon />
                         </IconButton>
                     </MythicStyledTooltip>
-                    <Typography variant="body2" style={{display: "inline-block"}}>
-                        {props.window}
-                    </Typography>
+
+
                 </MythicStyledTableCell>
-                <MythicStyledTableCell>
+                <MythicStyledTableCell >
                     <MythicStyledTooltip title={"Copy to clipboard"} style={{display: "inline-block"}}>
                         <IconButton onClick={() => onCopyToClipboard(keylogData)} size="small">
                             <FontAwesomeIcon icon={faCopy} />
                         </IconButton>
                     </MythicStyledTooltip>
-                </MythicStyledTableCell>
-                <MythicStyledTableCell >
                     <Typography variant="body2" style={{wordBreak: "break-all", whiteSpace: "pre-wrap", display: "inline-block"}}>
                         {keylogData.slice(0, 500)}
                         {keylogData.length > 500 ? (

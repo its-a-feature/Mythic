@@ -15,8 +15,6 @@ import Paper from '@mui/material/Paper';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {HexColorInput, HexColorPicker} from 'react-colorful';
 import {Typography, Box} from '@mui/material';
-import { createTheme, adaptV4Theme } from '@mui/material/styles';
-import {useTheme} from '@mui/material/styles';
 
 const newTagtypeMutation = gql`
 mutation newTagType($name: String!, $description: String!, $color: String!) {
@@ -35,17 +33,10 @@ mutation updateTagType($id: Int!, $name: String!, $description: String!, $color:
 `;
 
 export function NewTagtypesDialog(props) {
-  const theme = useTheme();
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [color, setColor] = React.useState("");
-  const [lightColor, setLightColor] = React.useState(theme.palette.text.primary)
-  const [darkColor, setDarkColor] = React.useState(theme.palette.text.primary);
   React.useEffect( () => {
-    let lightTheme = createTheme(adaptV4Theme({palette: {mode: "light",}}));
-    let darkTheme = createTheme(adaptV4Theme({palette: {mode: "dark",}}));
-    setLightColor(lightTheme.palette.text.primary);
-    setDarkColor(darkTheme.palette.text.primary);
     if(props.currentTag !== undefined){
       setName(props.currentTag.name);
       setDescription(props.currentTag.description);
@@ -77,10 +68,8 @@ export function NewTagtypesDialog(props) {
   const onCommitSubmit = () => {
     if(name === ""){
       snackActions.warning("Must supply a name");
-      return;
     } else if(description === ""){
       snackActions.warning("Must supply a description");
-      return
     } else {
       if(props.currentTag !== undefined){
         updateTagtype({variables: {name, description, color, id: props.currentTag.id}});
@@ -125,16 +114,11 @@ export function NewTagtypesDialog(props) {
                 <TableRow hover>
                   <TableCell>Color</TableCell>
                   <TableCell>
-                    <HexColorPicker color={color} onChange={setColor} />
-                    <HexColorInput color={color} onChange={setColor} />
+                    <HexColorPicker style={{width: "100%"}} color={color} onChange={setColor} />
+                    <HexColorInput style={{width: "100%"}} color={color} onChange={setColor} />
                     <Box sx={{width: "100%", height: 25, backgroundColor: color}} >
-                    <Typography style={{textAlign: "center", color: lightColor}} >
-                      {"Sample Text Light Theme"}
-                    </Typography>
-                  </Box>
-                  <Box sx={{width: "100%", height: 25, backgroundColor: color}} >
-                    <Typography style={{textAlign: "center", color: darkColor}}>
-                      {"Sample Text Dark Theme"}
+                    <Typography style={{textAlign: "center"}} >
+                      {"Sample Text"}
                     </Typography>
                   </Box>
                   </TableCell>

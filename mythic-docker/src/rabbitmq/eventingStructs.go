@@ -21,6 +21,9 @@ type TriggerDataFilterPayloadTypes struct {
 	// only trigger for certain payload types if you don't want it for all payload types
 	PayloadTypes []string `json:"payload_types" mapstructure:"payload_types"`
 }
+type TriggerDataFilterTagTypes struct {
+	TagTypeNames []string `json:"tag_types" mapstructure:"tag_types"`
+}
 type TriggerDataCron struct {
 	Cron string `json:"cron" mapstructure:"cron"`
 }

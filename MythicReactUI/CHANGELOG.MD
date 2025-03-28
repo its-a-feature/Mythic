@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.20] - 2025-03-28
+
+### Changed
+
+- Updated the "table/graph" speeddial button on the active callbacks page to be a side bar instead
+- Updated the reverse search to include original params, not just command names
+- Removed confirmation popup for non-agent payload types during payload creation for c2 profiles and an exit command
+- Updated Eventing workflow wizard to support the new tag_create trigger
+- Updated CreateTag API call to go through `createTag` action vs `insert_tag_one` to hook into new eventing
+- Added ability to re-trigger dynamic query functions in the modals
+- Added the ability to pass along other parameters as well and their values for the dynamic query function
+- Updated the backdrop for dynamic query calls to just be that element instead of the whole screen
+- Updated the `tags` page
+
 ## [0.3.19] - 2025-03-19
 
 ### Changed

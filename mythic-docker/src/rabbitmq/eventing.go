@@ -54,6 +54,8 @@ type EventNotification struct {
 	NextTriggerDate time.Time `json:"next_trigger_date"`
 	// response intercept trigger
 	ResponseInterceptData string `json:"agent_message"`
+	// new tag-related trigger
+	TagID int `json:"tag_id"`
 }
 type CronNotification struct {
 	Action       int    `json:"action"`
@@ -330,6 +332,8 @@ func listenForEvents() {
 			processEventFinishAndNextStepStart(event)
 		case eventing.TriggerCallbackCheckin:
 			go findEventGroupsToStart(event)
+		case eventing.TriggerTagCreate:
+			go findEventGroupsToStart(event)
 		default:
 			logging.LogDebug("untracked trigger event", "trigger", event.Trigger)
 		}
@@ -380,6 +384,9 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 	}
 	if eventNotification.ResponseID > 0 {
 		triggerMetadata["response_id"] = eventNotification.ResponseID
+	}
+	if eventNotification.TagID > 0 {
+		triggerMetadata["tag_id"] = eventNotification.TagID
 	}
 	for key, val := range eventNotification.Outputs {
 		triggerMetadata[key] = val
@@ -454,6 +461,28 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 					if !slices.Contains(triggerDataNewCallback.PayloadTypes,
 						callback.Payload.Payloadtype.Name) {
 						logging.LogInfo("Not triggering workflow due to payload type restrictions on new callback")
+						continue
+					}
+				}
+			case eventing.TriggerTagCreate:
+				triggerDataNewTag := TriggerDataFilterTagTypes{}
+				triggerData := possibleEventGroups[i].TriggerData.StructValue()
+				err = mapstructure.Decode(triggerData, &triggerDataNewTag)
+				if err != nil {
+					logging.LogError(err, "Failed to decode trigger data")
+				}
+				if len(triggerDataNewTag.TagTypeNames) > 0 {
+					tagTypeName := ""
+					err = database.DB.Get(&tagTypeName, `SELECT 
+    					tagtype.name "tagtype.name"
+    					FROM tag
+						JOIN tagtype ON tag.tagtype_id = tagtype.id
+						WHERE tag.id=$1`, eventNotification.TagID)
+					if err != nil {
+						logging.LogError(err, "failed to query tagtype data")
+					}
+					if !slices.Contains(triggerDataNewTag.TagTypeNames, tagTypeName) {
+						logging.LogInfo("Not triggering workflow due to tag type name restrictions on tag")
 						continue
 					}
 				}

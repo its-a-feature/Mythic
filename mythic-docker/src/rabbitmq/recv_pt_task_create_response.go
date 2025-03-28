@@ -117,7 +117,11 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 		updateColumns = append(updateColumns, "status_timestamp_processed=:status_timestamp_processed")
 	} else {
 		if payloadMsg.Success {
-			task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST
+			if task.IsInteractiveTask {
+				task.Status = PT_TASK_FUNCTION_STATUS_SUBMITTED
+			} else {
+				task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST
+			}
 		} else {
 			if payloadMsg.TaskStatus != nil {
 				task.Status = *payloadMsg.TaskStatus
@@ -168,6 +172,9 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				ActionSuccess:       !strings.Contains(strings.ToLower(task.Status), "error"),
 			}
 			go CheckAndProcessTaskCompletionHandlers(task.ID)
+		} else if task.IsInteractiveTask {
+			// we're not completed and we are an interactive task, send it down to the agent
+			go submittedTasksAwaitingFetching.addTask(task)
 		}
 	} else {
 		task.Completed = true

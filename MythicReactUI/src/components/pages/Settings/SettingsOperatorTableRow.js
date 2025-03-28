@@ -358,16 +358,21 @@ export function SettingsOperatorTableRow(props){
                         API Tokens
                       </Typography>
                         {showDeleted ? (
-                            <MythicStyledTooltip title={"Hide API Tokens"} style={{float: "right"}}>
+                            <MythicStyledTooltip title={"Hide API Tokens"} tooltipStyle={{float: "right"}}>
                                 <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
                             </MythicStyledTooltip>
 
                         ) : (
-                            <MythicStyledTooltip title={"Show Deleted API Tokens"} style={{float: "right"}}>
+                            <MythicStyledTooltip title={"Show Deleted API Tokens"} tooltipStyle={{float: "right"}}>
                                 <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                             </MythicStyledTooltip>
                         )}
-                      <Button size="small" onClick={() => {setOpenNewAPIToken(true)}} style={{float: "right"}} startIcon={<AddCircleOutlineOutlinedIcon color="success" />} variant="contained">New</Button>
+
+                      <Button size="small" onClick={() => {setOpenNewAPIToken(true)}} style={{marginRight: "20px", float: "right"}}
+                              variant={"contained"}
+                              startIcon={<AddCircleOutlineOutlinedIcon color="success" />} >
+                          API Token
+                      </Button>
                         {openNewAPIToken &&
                             <MythicDialog open={openNewAPIToken}
                                           fullWidth={true}
@@ -429,7 +434,7 @@ const columns = [
         renderCell: (params) => (
             <MythicStyledTooltip title={"Copy to clipboard"} >
                 <IconButton onClick={() => params.row.onCopyTokenValue(params.row.token_value)} >
-                    <ContentCopyIcon color={"success"} />
+                    <ContentCopyIcon />
                 </IconButton>
             </MythicStyledTooltip>
         )

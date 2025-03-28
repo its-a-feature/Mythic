@@ -2,6 +2,7 @@ package webcontroller
 
 import (
 	"github.com/its-a-feature/Mythic/database"
+	"github.com/its-a-feature/Mythic/eventing"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,13 +15,13 @@ type TagCreateInput struct {
 	Input TagCreate `json:"input" binding:"required"`
 }
 type TagCreate struct {
-	TagTypeID int                    `json:"tagtype_id" binding:"required"`
-	Data      map[string]interface{} `json:"data" binding:"required"`
-	URL       string                 `json:"url"`
-	Source    string                 `json:"source"`
+	TagTypeID int         `json:"tagtype_id" binding:"required"`
+	Data      interface{} `json:"data" binding:"required"`
+	URL       string      `json:"url"`
+	Source    string      `json:"source"`
 	// what is this tag tagging
 	MythicTreeID   *int `json:"mythictree_id"`
-	FileMetaID     *int `json:"filemta_id"`
+	FileMetaID     *int `json:"filemeta_id"`
 	CredentialID   *int `json:"credential_id"`
 	TaskID         *int `json:"task_id"`
 	TaskArtifactID *int `json:"taskartifact_id"`
@@ -56,7 +57,7 @@ func TagCreateWebhook(c *gin.Context) {
 	err = database.DB.Get(&tagType, `SELECT id FROM tagtype WHERE id=$1 AND operation_id=$2`,
 		input.Input.TagTypeID, operatorOperation.CurrentOperation.ID)
 	if err != nil {
-		logging.LogError(nil, "Failed to get tagtype information")
+		logging.LogError(err, "Failed to get tagtype information")
 		c.JSON(http.StatusOK, gin.H{
 			"status": "error",
 			"error":  "failed to get tagtype in your operation",
@@ -68,7 +69,7 @@ func TagCreateWebhook(c *gin.Context) {
 		Data:      rabbitmq.GetMythicJSONTextFromStruct(input.Input.Data),
 		URL:       input.Input.URL,
 		Source:    input.Input.Source,
-		TagType:   input.Input.TagTypeID,
+		TagTypeID: input.Input.TagTypeID,
 	}
 	APITokenID, ok := c.Get("apitokens-id")
 	if ok {
@@ -119,8 +120,8 @@ func TagCreateWebhook(c *gin.Context) {
 			})
 			return
 		}
-		databaseObj.FileMeta.Valid = true
-		databaseObj.FileMeta.Int64 = int64(task.ID)
+		databaseObj.Task.Valid = true
+		databaseObj.Task.Int64 = int64(task.ID)
 	}
 	if input.Input.ResponseID != nil {
 		response := databaseStructs.Response{}
@@ -140,7 +141,7 @@ func TagCreateWebhook(c *gin.Context) {
 	if input.Input.CredentialID != nil {
 		credential := databaseStructs.Credential{}
 		err = database.DB.Get(&credential, `SELECT id FROM credential WHERE id=$1 AND operation_id=$2`,
-			*input.Input.ResponseID, operatorOperation.CurrentOperation.ID)
+			*input.Input.CredentialID, operatorOperation.CurrentOperation.ID)
 		if err != nil {
 			logging.LogError(nil, "Failed to get credential info")
 			c.JSON(http.StatusOK, gin.H{
@@ -185,10 +186,10 @@ func TagCreateWebhook(c *gin.Context) {
 	statement, err := database.DB.PrepareNamed(`INSERT INTO tag 
 		(operation_id, data, url, source, tagtype_id, mythictree_id, filemeta_id, task_id, response_id, credential_id, keylog_id, taskartifact_id)
 		VALUES 
-		(:operation_id, :data, :url, :source, :tagtype_id, :mythictree_id, :filemeta_id, :task_id, :response_id, :creential_id, :keylog_id, :taskartifact_id)
+		(:operation_id, :data, :url, :source, :tagtype_id, :mythictree_id, :filemeta_id, :task_id, :response_id, :credential_id, :keylog_id, :taskartifact_id)
 		RETURNING id`)
 	if err != nil {
-		logging.LogError(nil, "Failed to prepare statement for adding tag")
+		logging.LogError(err, "Failed to prepare statement for adding tag")
 		c.JSON(http.StatusOK, gin.H{
 			"status": "error",
 			"error":  err.Error(),
@@ -197,7 +198,7 @@ func TagCreateWebhook(c *gin.Context) {
 	}
 	err = statement.Get(&databaseObj.ID, databaseObj)
 	if err != nil {
-		logging.LogError(nil, "Failed to get new tag info")
+		logging.LogError(err, "Failed to get new tag info")
 		c.JSON(http.StatusOK, gin.H{
 			"status": "error",
 			"error":  err.Error(),
@@ -208,4 +209,12 @@ func TagCreateWebhook(c *gin.Context) {
 		"status": "success",
 		"id":     databaseObj.ID,
 	})
+	go func() {
+		rabbitmq.EventingChannel <- rabbitmq.EventNotification{
+			Trigger:     eventing.TriggerTagCreate,
+			TagID:       databaseObj.ID,
+			OperationID: databaseObj.Operation,
+			OperatorID:  operatorOperation.CurrentOperator.ID,
+		}
+	}()
 }

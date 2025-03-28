@@ -20,6 +20,7 @@ type MythicRPCTaskSearchMessage struct {
 	SearchCompleted     *bool     `json:"completed,omitempty"`
 	SearchCommandNames  *[]string `json:"command_names,omitempty"`
 	SearchParams        *string   `json:"params,omitempty"`
+	SearchParentTaskID  *int      `json:"parent_task_id,omitempty"`
 }
 
 // Every mythicRPC function call must return a response that includes the following two values
@@ -116,44 +117,55 @@ func MythicRPCTaskSearch(input MythicRPCTaskSearchMessage) MythicRPCTaskSearchMe
 		paramDict["search_display_id"] = *input.SearchTaskDisplayID
 		setAnySearchValues = true
 	}
+	if input.SearchParentTaskID != nil {
+		if !setAnySearchValues {
+			searchString += `WHERE task.parent_task_id=:parent_task_id `
+		} else {
+			searchString += `AND task.parent_task_id=:parent_task_id `
+		}
+		paramDict["parent_task_id"] = *input.SearchParentTaskID
+		setAnySearchValues = true
+	}
 	if !setAnySearchValues {
 		searchString += `WHERE task.id=:id`
 		paramDict["id"] = input.TaskID
 	}
-	if query, args, err := sqlx.Named(searchString, paramDict); err != nil {
+	query, args, err := sqlx.Named(searchString, paramDict)
+	if err != nil {
 		logging.LogError(err, "Failed to make named statement when searching for tasks")
 		response.Error = err.Error()
 		return response
-	} else if query, args, err := sqlx.In(query, args...); err != nil {
+	}
+	query, args, err = sqlx.In(query, args...)
+	if err != nil {
 		logging.LogError(err, "Failed to do sqlx.In")
 		response.Error = err.Error()
 		return response
-	} else {
-		query = database.DB.Rebind(query)
-		tasks := []databaseStructs.Task{}
-		if err := database.DB.Select(&tasks, query, args...); err != nil {
-			logging.LogError(err, "Failed to exec sqlx.IN modified statement")
-			response.Error = err.Error()
-			return response
-		} else {
-			for _, task := range tasks {
-				response.Tasks = append(response.Tasks, GetTaskMessageTaskInformation(task.ID))
-			}
-		}
-		response.Success = true
+	}
+	query = database.DB.Rebind(query)
+	tasks := []databaseStructs.Task{}
+	err = database.DB.Select(&tasks, query, args...)
+	if err != nil {
+		logging.LogError(err, "Failed to exec sqlx.IN modified statement")
+		response.Error = err.Error()
 		return response
 	}
+	for _, task := range tasks {
+		response.Tasks = append(response.Tasks, GetTaskMessageTaskInformation(task.ID))
+	}
+	response.Success = true
+	return response
 }
 func processMythicRPCTaskSearch(msg amqp.Delivery) interface{} {
 	incomingMessage := MythicRPCTaskSearchMessage{}
 	responseMsg := MythicRPCTaskSearchMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCTaskSearch(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	return MythicRPCTaskSearch(incomingMessage)
 }

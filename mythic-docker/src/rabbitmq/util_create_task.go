@@ -331,6 +331,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		err = database.DB.Select(&loadedCommands, `SELECT
 			command.id "command.id", 
 			command.attributes "command.attributes",
+			command.supported_ui_features "command.supported_ui_features",
 			payloadtype.name "command.payloadtype.name"
 			FROM loadedcommands 
 			JOIN command ON loadedcommands.command_id = command.id
@@ -438,6 +439,11 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 			return response
 		}
 	}
+	if task.IsInteractiveTask {
+		task.Status = PT_TASK_FUNCTION_STATUS_SUBMITTED
+	} else {
+		task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_PRE
+	}
 	if createTaskInput.TaskingLocation == nil {
 		task.TaskingLocation = "command_line"
 	} else {
@@ -455,11 +461,6 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	}
 	if createTaskInput.GroupCallbackFunction != nil {
 		task.GroupCallbackFunction = *createTaskInput.GroupCallbackFunction
-	}
-	if task.IsInteractiveTask {
-		task.Status = PT_TASK_FUNCTION_STATUS_SUBMITTED
-	} else {
-		task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_PRE
 	}
 	if createTaskInput.Token != nil && *createTaskInput.Token > 0 {
 		token := databaseStructs.Token{}
@@ -496,6 +497,10 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		return response
 		// make sure the command is loaded into this callback
 	}
+	supportedUIFeatures := task.Command.SupportedUiFeatures.StructStringValue()
+	if utils.SliceContains(supportedUIFeatures, PT_TASK_SUPPORTED_UI_FEATURE_TASK_PROCESS_INTERACTIVE_TASKS) {
+		task.Status = PT_TASK_CREATE_TASKING
+	}
 	err = addTaskToDatabase(&task)
 	if err != nil {
 		response.Error = "Failed to create task in database"
@@ -509,14 +514,14 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		TaskID:      task.ID,
 	}
 	if task.IsInteractiveTask {
-		go submittedTasksAwaitingFetching.addTask(task)
-		return CreateTaskResponse{
-			Status:        "success",
-			TaskID:        task.ID,
-			TaskDisplayID: task.DisplayID,
+		if utils.SliceContains(supportedUIFeatures, PT_TASK_SUPPORTED_UI_FEATURE_TASK_PROCESS_INTERACTIVE_TASKS) {
+			go submitTaskToContainerCreateTasking(task.ID)
+		} else {
+			go submittedTasksAwaitingFetching.addTask(task)
 		}
+	} else {
+		go submitTaskToContainerOpsecPre(task.ID)
 	}
-	go submitTaskToContainer(task.ID)
 	return CreateTaskResponse{
 		Status:        "success",
 		TaskID:        task.ID,
@@ -817,7 +822,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 
 }
 
-func submitTaskToContainer(taskID int) {
+func submitTaskToContainerOpsecPre(taskID int) {
 	taskMessage := GetTaskConfigurationForContainer(taskID)
 	err := RabbitMQConnection.SendPtTaskOPSECPre(taskMessage)
 	if err != nil {
@@ -828,4 +833,10 @@ func submitTaskToContainer(taskID int) {
 		}
 	}
 	return
+}
+func submitTaskToContainerCreateTasking(taskID int) {
+	allTaskData := GetTaskConfigurationForContainer(taskID)
+	if err := RabbitMQConnection.SendPtTaskCreate(allTaskData); err != nil {
+		logging.LogError(err, "In submitTaskToContainerCreateTasking, but failed to sendSendPtTaskCreate ")
+	}
 }

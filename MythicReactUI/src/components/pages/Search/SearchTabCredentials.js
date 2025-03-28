@@ -19,7 +19,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const credentialFragment = gql`
-fragment credentialData on credential{
+fragment credentialSearchData on credential{
     account
     comment
     credential_text
@@ -61,7 +61,7 @@ query accountQuery($operation_id: Int!, $account: String!, $offset: Int!, $fetch
       }
     }
     credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {account: {_ilike: $account}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
-      ...credentialData
+      ...credentialSearchData
     }
   }
 `;
@@ -74,7 +74,7 @@ query realmQuery($operation_id: Int!, $realm: String!, $offset: Int!, $fetchLimi
       }
     }
     credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {realm: {_ilike: $realm}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
-      ...credentialData
+      ...credentialSearchData
     }
   }
 `;
@@ -87,7 +87,7 @@ query credQuery($operation_id: Int!, $credential: String!, $offset: Int!, $fetch
       }
     }
     credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {credential_text: {_ilike: $credential}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
-      ...credentialData
+      ...credentialSearchData
     }
   }
 `;
@@ -100,7 +100,7 @@ query commentQuery($operation_id: Int!, $comment: String!, $offset: Int!, $fetch
       }
     }
     credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}, deleted: {_eq: $deleted}}) {
-      ...credentialData
+      ...credentialSearchData
     }
   }
 `;
@@ -114,7 +114,7 @@ query tagQuery($tag: String!, $offset: Int!, $fetchLimit: Int!) {
     }
     tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {credential_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}]}) {
         credential {
-            ...credentialData
+            ...credentialSearchData
         }
     }
   }

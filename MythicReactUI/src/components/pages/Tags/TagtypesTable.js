@@ -97,7 +97,7 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
                          size={"small"}>
                     <AddCircleIcon color={"success"} style={{backgroundColor: "white", borderRadius: "10px", marginRight: "3px"}} />New</Button>
                 {openNewDialog &&
-                    <MythicDialog fullWidth={true} maxWidth="sm" open={openNewDialog} 
+                    <MythicDialog fullWidth={true} maxWidth="md" open={openNewDialog}
                         onClose={()=>{setOpenNewDialog(false);}} 
                         innerDialog={<NewTagtypesDialog onClose={()=>{setOpenNewDialog(false);}} onSubmit={onNewTag} />}
                     />
@@ -110,10 +110,9 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
                             <TableRow>
                                 <TableCell style={{width: "3rem"}}>Delete</TableCell>
                                 <TableCell style={{width: "3rem"}}>Modify</TableCell>
+                                <TableCell style={{width: "7rem"}}>Instances</TableCell>
                                 <TableCell>Name</TableCell>
                                 <TableCell>Description</TableCell>
-                                <TableCell style={{width: "7rem"}}>Instances</TableCell>
-                                <TableCell>Color</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>

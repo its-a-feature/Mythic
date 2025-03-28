@@ -24,7 +24,6 @@ import  ReactLogo from '../assets/Mythic_Logo.svg';
 import JupyterLogo from '../assets/jupyter.png';
 import GraphQLLogo from '../assets/graphql.png';
 import SpaceDashboardTwoToneIcon from '@mui/icons-material/SpaceDashboardTwoTone';
-import Collapse from '@mui/material/Collapse';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import TableChartTwoToneIcon from '@mui/icons-material/TableChartTwoTone';
@@ -65,7 +64,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
-import {TableContainer, TableHead} from '@mui/material';
+import {TableContainer, TableHead, Paper} from '@mui/material';
 import Select from '@mui/material/Select';
 import Input from '@mui/material/Input';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -533,6 +532,7 @@ const defaultShortcuts = [
     "Tags", "Eventing",
 ].sort();
 const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
+    const theme = useTheme();
     const sideShortcuts = useGetMythicSetting({setting_name: "sideShortcuts", default_value: defaultShortcuts})
     const [currentShortcuts, setCurrentShortcuts] = React.useState(sideShortcuts);
     const [updateSetting, _] = useSetMythicSetting();
@@ -575,8 +575,19 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
         <React.Fragment>
             <DialogTitle id="form-dialog-title">Configure Side Shortcuts</DialogTitle>
             <div style={{height: "calc(70vh)", display: "flex", flexDirection: "column"}}>
+                <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px"}}>
+                    <Button size={"small"} style={{color: "white", marginRight: "20px",}}
+                            onClick={() => addShortcut(currentShortcuts.length)}
+                            startIcon={<AddCircleIcon color="success" style={{backgroundColor: "white", borderRadius: "10px"}}/>}
+                    >
+                        Shortcut
+                    </Button>
+                    <Button size={"small"} onClick={reset}  color={"warning"}>
+                        Reset To Defaults
+                    </Button>
+                </Paper>
                 <TableContainer className="mythicElement" style={{flexGrow: 1}}>
-                    <Table size="small" style={{ width: "100%", "overflow": "scroll", tableLayout: "fixed"}}>
+                    <Table size="small" style={{width: "100%", "overflow": "scroll", tableLayout: "fixed"}}>
                         <TableHead>
                             <TableRow>
                                 <MythicStyledTableCell style={{width: "2rem"}}></MythicStyledTableCell>
@@ -588,7 +599,7 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
                             <Droppable droppableId="vertical-shortcuts-column-list">
                                 {(provided) => (
                                     <TableBody ref={provided.innerRef} {...provided.droppableProps}>
-                                        {currentShortcuts.map( (c, i) => (
+                                        {currentShortcuts.map((c, i) => (
                                             <Draggable key={c + i} draggableId={c} index={i}>
                                                 {(provided2, snapshot) => (
                                                     <TableRow hover ref={provided2.innerRef}
@@ -596,22 +607,22 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
                                                               {...provided2.dragHandleProps}
                                                     >
                                                         <MythicStyledTableCell style={{width: "2rem"}}>
-                                                            <DragHandleIcon />
+                                                            <DragHandleIcon/>
                                                         </MythicStyledTableCell>
                                                         <MythicStyledTableCell style={{width: "2rem"}}>
                                                             <IconButton onClick={() => removeShortcut(i)}>
-                                                                <DeleteIcon color={"error"} />
+                                                                <DeleteIcon color={"error"}/>
                                                             </IconButton>
                                                         </MythicStyledTableCell>
                                                         <MythicStyledTableCell style={{}}>
                                                             <Select
                                                                 value={c}
-                                                                onChange={(e) => onChangeShortcutValue(e,i)}
+                                                                onChange={(e) => onChangeShortcutValue(e, i)}
                                                                 input={<Input style={{width: "100%"}}/>}
                                                             >
-                                                                {AllSettingOptions.map( (opt) => (
+                                                                {AllSettingOptions.map((opt) => (
                                                                     <MenuItem value={opt} key={opt}>{opt}</MenuItem>
-                                                                ) )}
+                                                                ))}
                                                             </Select>
                                                         </MythicStyledTableCell>
                                                     </TableRow>)}
@@ -622,15 +633,6 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
                         </DragDropContext>
                     </Table>
                 </TableContainer>
-                <div>
-                    <Button color={"success"} onClick={() => addShortcut(currentShortcuts.length)} >
-                        Add Shortcut to Bottom
-                    </Button>
-                    <Button onClick={reset} color={"warning"}>
-                        Reset To Defaults
-                    </Button>
-                </div>
-
             </div>
 
             <DialogActions>
@@ -644,6 +646,7 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
         </React.Fragment>
     )
 }
+
 export function TopAppBarVertical(props) {
   const theme = useTheme();
   const me = props.me;

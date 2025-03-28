@@ -62,6 +62,7 @@ var (
 	TriggerResponseIntercept         = "response_intercept"
 	TriggerResponseInterceptResponse = "response_intercept_response"
 	TriggerCallbackCheckin           = "callback_checkin"
+	TriggerTagCreate                 = "tag_create"
 )
 
 // when to trigger a new workflow
@@ -84,6 +85,7 @@ var ValidTriggers = []string{
 	TriggerTaskIntercept,
 	TriggerResponseIntercept,
 	TriggerCallbackCheckin,
+	TriggerTagCreate,
 }
 var (
 	RunAsEventGroupCreator = "self"

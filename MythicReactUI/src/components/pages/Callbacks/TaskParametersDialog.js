@@ -916,7 +916,49 @@ export function TaskParametersDialog(props) {
     const onChangeParameterGroup = (event) => {
         setSelectedParameterGroup(event.target.value);
     }
-    
+    const getOtherParameters = () => {
+        let collapsedParameters = {};
+        for(const param of parameters){
+            switch(param.type){
+                case "String":
+                case "Boolean":
+                case "Number":
+                case "ChooseOne":
+                case "ChooseOneCustom":
+                case "ChooseMultiple":
+                case "PayloadList":
+                case "Array":
+                case "TypedArray":
+                case "LinkInfo":
+                    //console.log("submit param", param)
+                    collapsedParameters[param.name] = param.value;
+                    break;
+                case "AgentConnect":
+                    if (Object.keys(param.value).length === 0){
+                        snackActions.warning("No connection info specified")
+                        return
+                    }
+                    collapsedParameters[param.name] = param.value;
+                    break
+                case "File":
+
+                case "FileMultiple":
+                    break
+                case "CredentialJson":
+                    collapsedParameters[param.name] = {
+                        account: param.value["account"],
+                        comment: param.value["comment"],
+                        credential: param.value["credential_text"],
+                        realm: param.value["realm"],
+                        type: param.value["type"]
+                    };
+                    break;
+                default:
+                    console.log("Unknown parameter type");
+            }
+        }
+        return collapsedParameters;
+    }
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{commandInfo.cmd}'s Parameters</DialogTitle>
@@ -967,6 +1009,7 @@ export function TaskParametersDialog(props) {
                                 onAgentConnectRemovePayloadOnHost={onAgentConnectRemovePayloadOnHost}
                                 addedCredential={addedCredential}
                                 setSubmenuOpenPreventTasking={setSubmenuOpenPreventTasking}
+                                                     getOtherParameters={getOtherParameters}
                                 />
                         ))}
                     </TableBody>

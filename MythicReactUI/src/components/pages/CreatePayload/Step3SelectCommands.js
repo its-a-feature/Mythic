@@ -35,7 +35,6 @@ export function Step3SelectCommands(props){
     useQuery(GET_Payload_Types, {fetchPolicy: "network-only", variables: {payloadType: props.buildOptions["payload_type"]},
         onCompleted: ( data ) => {
           if(!props.buildOptions["supports_dynamic_loading"]){
-              
               const allCommands = data.command.map( c => {
                 return {...c, selected: true, disabled: true, reason: "Always included because agent doesn't support dynamic loading"}
               });
@@ -113,9 +112,12 @@ export function Step3SelectCommands(props){
         if(foundExit){
           const cmdNames = selectedCommands.map( c => c.cmd);
           props.finished(cmdNames);
+        }else if(props.buildOptions["agent_type"] === "agent") {
+            // only alert for agent types, not service types
+            setOpenConfirmDialog(true);
         }else{
-          setOpenConfirmDialog(true);
-          setCommands(selectedCommands);
+            const cmdNames = selectedCommands.map( c => c.cmd);
+            props.finished(cmdNames);
         }
     }
     const acceptConfirm = () => {

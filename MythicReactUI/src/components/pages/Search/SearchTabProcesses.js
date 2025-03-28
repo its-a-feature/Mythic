@@ -17,7 +17,7 @@ import {ProcessTable} from "./ProcessTable";
 
 
 const mythictreeFragment = gql`
-fragment mythictreeData on mythictree{
+fragment mythictreeProcessSearchData on mythictree{
     comment
     deleted
     full_path_text
@@ -52,7 +52,7 @@ query nameProcessQuery($pid: String!, $host: String!, $offset: Int!, $fetchLimit
       }
     }
     mythictree(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, full_path_text: {_ilike: $pid}, tree_type: {_eq: "process"}}) {
-      ...mythictreeData
+      ...mythictreeProcessSearchData
     }
   }
 `;
@@ -65,7 +65,7 @@ query nameProcessQuery($name: String!, $host: String!, $offset: Int!, $fetchLimi
       }
     }
     mythictree(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {host: {_ilike: $host}, name_text: {_ilike: $name}, tree_type: {_eq: "process"}}) {
-      ...mythictreeData
+      ...mythictreeProcessSearchData
     }
   }
 `;
@@ -79,7 +79,7 @@ query tagProcessQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit:
     }
     tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, tree_type: {_eq: "process"}}}) {
       mythictree {
-        ...mythictreeData
+        ...mythictreeProcessSearchData
       }
       
     }
