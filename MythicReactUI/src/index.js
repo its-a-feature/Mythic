@@ -15,7 +15,7 @@ import jwt_decode from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 
-export const mythicUIVersion = "0.3.20";
+export const mythicUIVersion = "0.3.21";
 
 let fetchingNewToken = false;
 
@@ -61,25 +61,28 @@ export const isJWTValid = () => {
   if(!access_token){
       let cookie = document.cookie;
       if(cookie && cookie !== ""){
-          let cookiePieces = cookie.split("=")
-          if(cookiePieces.length !== 2){
-              console.log("bad number of cookie pieces", "cookie", cookie)
-          } else if(cookiePieces[0] !== "user") {
-              console.log("unknown cookie", "name", cookiePieces[0]);
-          } else {
-              try{
-                  let cookieString = decodeURIComponent(cookiePieces[1]);
-                  let cookieJSON = JSON.parse(atob(cookieString));
-                  if("access_token" in cookieJSON){
-                      successfulLogin(cookieJSON);
-                      restartWebsockets();
-                      access_token = localStorage.getItem("access_token");
-                  }else{
-                      snackActions.warning("Invalid Authentication");
-                      console.log("Error", cookieJSON);
+          let cookies = cookie.split(";");
+          for(let i = 0; i < cookies.length; i++){
+              let cookiePieces = cookies[i].split("=");
+              if(cookiePieces.length !== 2){
+                  console.log("bad number of cookie pieces", "cookie", cookies[i])
+              } else if(cookiePieces[0] !== "user") {
+                  console.log("unknown cookie", "name", cookiePieces[0]);
+              } else {
+                  try{
+                      let cookieString = decodeURIComponent(cookiePieces[1]);
+                      let cookieJSON = JSON.parse(atob(cookieString));
+                      if("access_token" in cookieJSON){
+                          successfulLogin(cookieJSON);
+                          restartWebsockets();
+                          access_token = localStorage.getItem("access_token");
+                      }else{
+                          snackActions.warning("Invalid Authentication");
+                          console.log("Error", cookieJSON);
+                      }
+                  }catch(error){
+                      console.log("error processing cookie value", error)
                   }
-              }catch(error){
-                  console.log("error processing cookie value", error)
               }
           }
       }

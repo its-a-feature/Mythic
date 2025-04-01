@@ -21,7 +21,7 @@ const DraggableHandles = React.forwardRef(({ height, rowHeight, width, minColumn
                 return (
                     <Draggable
                         key={i}
-                        nodeRef={ref}
+                        nodeRef={nodeRef}
                         axis='x'
                         bounds={{
                             left: minColumnWidth - columnWidths[i],

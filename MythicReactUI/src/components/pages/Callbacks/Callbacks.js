@@ -2,8 +2,6 @@ import React, { useEffect } from 'react';
 import { styled } from '@mui/material/styles';
 import { CallbacksTabs } from './CallbacksTabs';
 import SpeedDial from '@mui/material/SpeedDial';
-import SpeedDialIcon from '@mui/material/SpeedDialIcon';
-import SpeedDialAction from '@mui/material/SpeedDialAction';
 import TocIcon from '@mui/icons-material/Toc';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import { CallbacksTop } from './CallbacksTop';

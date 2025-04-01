@@ -10,6 +10,7 @@ import CardContent from '@mui/material/CardContent';
 export function InviteForm(props){
     const [username, setUsername] = React.useState("");
     const [password, setPassword] = React.useState("");
+    const [passwordAgain, setPasswordAgain] = React.useState("");
     const [email, setEmail] = React.useState("");
     let queryParams = new URLSearchParams(window.location.search);
     const suppliedCode = queryParams.has("code") ? queryParams.get("code") : "";
@@ -19,6 +20,10 @@ export function InviteForm(props){
         e.preventDefault();
         if( username === "" || password === ""){
             snackActions.warning("Username and Password required");
+            return;
+        }
+        if(password !== passwordAgain){
+            snackActions.warning("Passwords do not match");
             return;
         }
         const requestOptions = {
@@ -54,6 +59,9 @@ export function InviteForm(props){
             console.log("There was an error!", error);
         });
     }
+    const checkPasswordsMatch = (newValue) => {
+        return password !== newValue;
+    }
     const onChangeText = (name, value, error) => {
         if(name === "username"){
             setUsername(value);
@@ -63,6 +71,8 @@ export function InviteForm(props){
             setInviteCode(value);
         }else if(name === "email"){
             setEmail(value);
+        }else if(name === "passwordAgain"){
+            setPasswordAgain(value);
         }
     }
 
@@ -77,18 +87,21 @@ export function InviteForm(props){
                         <div style={{backgroundColor: "transparent"}}>
                             <CardContent>
                                 <img src={logo} height="400px" alt="Mythic logo"/>
-                                <form onSubmit={submit}>
+
                                     <MythicTextField name='code' value={inviteCode} debounceDelay={0}
-                                                     onChange={onChangeText} width={31}/>
+                                                     onChange={onChangeText} width={31} required={true}/>
                                     <MythicTextField name='username' value={username} onChange={onChangeText}
                                                      width={31} debounceDelay={0}/>
                                     <MythicTextField name='password' type="password" onEnter={submit} value={password}
-                                                     onChange={onChangeText} width={31} debounceDelay={0}/>
+                                                     onChange={onChangeText} width={31} debounceDelay={0} requiredValue={true}/>
+                                    <MythicTextField name='passwordAgain'  type="password" onEnter={submit} value={passwordAgain}
+                                                     onChange={onChangeText} width={31} debounceDelay={0} requiredValue={true}
+                                                     validate={checkPasswordsMatch} errorText={"Passwords do not match"}/>
                                     <MythicTextField name='email' value={email} onChange={onChangeText}
-                                                     width={31} debounceDelay={0}/>
+                                                     width={31} debounceDelay={0} />
                                     <Button type="submit" color="primary" onClick={submit} variant="contained"
                                             style={{}}>Register</Button>
-                                </form>
+
                             </CardContent>
                         </div>
                     )

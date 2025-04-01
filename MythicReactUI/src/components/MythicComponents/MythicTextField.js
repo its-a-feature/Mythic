@@ -5,27 +5,36 @@ import {useDebounce} from "../utilities/useDebounce";
 const PREFIX = 'MythicTextField';
 
 const classes = {
-    root: `${PREFIX}-root`
+    root: `${PREFIX}Div-root`,
+    textFieldRoot: `${PREFIX}-root`
 };
 
-const Root = styled('div')({
+const Root = styled('div')(({theme}) => ({
       [`&.${classes.root}`]: {
-        '& input:valid + fieldset': {
-          borderColor: 'grey',
-          borderWidth: 1,
+
+      },
+}));
+
+const ValidationTextField = styled(TextField)(({theme}) => ({
+    [`&.${classes.textFieldRoot}`]: {
+        '& fieldset': {
+            borderColor: 'grey',
+            borderWidth: 1,
         },
         '& input:invalid + fieldset': {
-          borderColor: 'red',
-          borderWidth: 2,
+            borderColor: 'red',
+            borderWidth: 2,
         },
         '& input:valid:focus + fieldset': {
-          borderLeftWidth: 6,
-          padding: '4px !important', // override inline-style
+            borderLeftWidth: 6,
+            padding: '4px !important', // override inline-style
         },
-      },
-    });
-
-const ValidationTextField = TextField;
+        '& textarea:focus + textarea + fieldset': {
+            borderLeftWidth: 6,
+            //padding: '4px !important', // override inline-style
+        },
+    },
+}));
 
 const MythicTextField = ({
                              placeholder,
@@ -33,7 +42,7 @@ const MythicTextField = ({
                              validate,
                              width,
                              onChange,
-                             requiredValue,
+                             requiredValue=false,
                              type = "text",
                              onEnter,
                              autoFocus,
@@ -54,6 +63,7 @@ const MythicTextField = ({
                             debounceDelay = 100,
                          }) => {
     const [localValue, setLocalValue] = React.useState({value: value, event: null});
+    const [localError, setLocalError] = React.useState(false);
     const debouncedLocalInput = useDebounce(localValue, debounceDelay);
     React.useEffect( () => {
         const error = validate ? validate(debouncedLocalInput.value) : false;
@@ -66,10 +76,8 @@ const MythicTextField = ({
         const newValue = evt.target.value;
         // Update local state immediately for responsive UI
         setLocalValue({value: newValue, event: evt});
+        setLocalError(validate ? validate(newValue) : false);
     };
-    const checkError = () => {
-        return validate ? validate(localValue.value) : false
-    }
     const onKeyPress = (event) => {
       if(event.key === "Enter") {
           if(event.shiftKey){
@@ -95,21 +103,21 @@ const MythicTextField = ({
                 onChange={handleChange}
                 color={"secondary"}
                 onKeyDown={onKeyPress}
-                label={showLabel === undefined ? name : showLabel ? name : undefined}
+                label={showLabel ? name : undefined}
                 autoFocus={autoFocus}
-                variant={variant === undefined ? "outlined" : variant}
+                variant={variant}
                 data-lpignore={true}
                 autoComplete={autoComplete === undefined ? "new-password" : (autoComplete ? "on" : "new-password")}
-                disabled={disabled === undefined ? false : disabled}
-                required={requiredValue ? requiredValue : false}
+                disabled={disabled}
+                required={requiredValue}
                 InputLabelProps={inputLabelProps}
-                multiline={multiline ? multiline : false}
+                multiline={multiline}
                 maxRows={maxRows}
-                error={checkError()}
-                type={type === undefined ? "text" : type}
+                error={localError}
+                type={type}
                 onWheel={ event => event.target.blur() }
                 InputProps={{...InputProps, spellCheck: false}}
-                helperText={checkError() ? errorText : helperText}
+                helperText={localError ? errorText : helperText}
                 style={{
                     padding:0,
                     marginBottom: marginBottom ? marginBottom : "5px",
@@ -117,7 +125,7 @@ const MythicTextField = ({
                     display: inline ? "inline-block": "",
                 }}
                 classes={{
-                    root: classes.root
+                    root: classes.textFieldRoot
                 }} />
         </Root>
     );

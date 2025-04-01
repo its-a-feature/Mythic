@@ -13,6 +13,9 @@ import {snackActions} from "../../utilities/Snackbar";
 import {useMutation, useQuery, gql} from '@apollo/client';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import IconButton from '@mui/material/IconButton';
+import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
+import MythicTextField from "../../MythicComponents/MythicTextField";
 
 const getCurrentSecrets = gql`
 query gettingOperatorSecrets($operator_id: Int) {
@@ -79,19 +82,19 @@ export function SettingsOperatorSecretsConfigDialog(props) {
         array.splice(index, 1);
         setSettings( array );
     }
-    const onChangeKey = (evt, index) => {
+    const onChangeKey = (value, index) => {
         const newSettings = settings.map( (s, indx) => {
             if(indx === index){
-                return [evt.target.value, s[1]];
+                return [value, s[1]];
             }
             return s;
         });
         setSettings(newSettings);
     }
-    const onChangeValue = (evt, index) => {
+    const onChangeValue = (value, index) => {
         const newSettings = settings.map( (s, indx) => {
             if(indx === index){
-                return [s[0], evt.target.value];
+                return [s[0], value];
             }
             return s;
         });
@@ -108,31 +111,36 @@ export function SettingsOperatorSecretsConfigDialog(props) {
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableHead>
                 <TableRow>
-                    <TableCell style={{width: "2rem"}}/>
-                    <TableCell style={{width: "30%"}}>Secret Key</TableCell>
-                    <TableCell>Secret Value</TableCell>
+                    <MythicStyledTableCell style={{width: "2rem"}}/>
+                    <MythicStyledTableCell style={{width: "30%"}}>Secret Key</MythicStyledTableCell>
+                    <MythicStyledTableCell>Secret Value</MythicStyledTableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                   {settings.map( (s, index) => (
                       <TableRow hover key={"secret" + index}>
-                          <TableCell>
-                              <DeleteIcon style={{cursor: "pointer"}} color={"error"} onClick={() => removeSecret(index)} />
-                          </TableCell>
-                        <TableCell>
-                            <TextField style={{width:"100%"}} size="small" value={s[0]} onChange={(e) => onChangeKey(e, index)}></TextField>
-                        </TableCell>
-                        <TableCell>
-                            <TextField style={{width:"100%"}} size="small" value={s[1]} onChange={(e) => onChangeValue(e, index)}></TextField>
-                        </TableCell>
+                          <MythicStyledTableCell>
+                              <IconButton color={"error"} onClick={() => removeSecret(index)}>
+                                  <DeleteIcon   />
+                              </IconButton>
+                          </MythicStyledTableCell>
+                        <MythicStyledTableCell>
+                            <MythicTextField style={{width:"100%"}} size="small" value={s[0]} onChange={(name, value, error) => onChangeKey(value, index)}></MythicTextField>
+                        </MythicStyledTableCell>
+                        <MythicStyledTableCell>
+                            <MythicTextField style={{width:"100%"}} size="small" value={s[1]} onChange={(name, value, error) => onChangeValue(value, index)}></MythicTextField>
+                        </MythicStyledTableCell>
                       </TableRow>
                   ))}
                   <TableRow>
-                      <TableCell colSpan={2}>
-                          <AddCircleOutlineOutlinedIcon color={"success"} style={{cursor: "pointer"}} onClick={addSecret} />
-                      </TableCell>
-                      <TableCell>
-                      </TableCell>
+                      <MythicStyledTableCell colSpan={2}>
+                          <IconButton color={"success"} onClick={addSecret}>
+                              <AddCircleOutlineOutlinedIcon    />
+                          </IconButton>
+
+                      </MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                      </MythicStyledTableCell>
                   </TableRow>
               </TableBody>
             </Table>

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.21] - 2025-04-01 
+
+### Changed
+
+- Updated vertical nav bar to link to home when clicking mythic icon
+- Updated spacing on fields for home dashboard
+- Updated response/task sorting on interactive tasks
+- Added a few more tooltips for existing icons
+- Updated a few clickable icons to be icon buttons
+- Updated payload generation parameter displays
+- Fixed a few warning messages from MUI
+
 ## [0.3.20] - 2025-03-28
 
 ### Changed

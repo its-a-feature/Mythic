@@ -148,7 +148,6 @@ export const GetOutputFormatAll = ({data, myTask, taskID,  useASNIColor, message
             }
         })
         setDataElement(elements);
-
     }, [data, useASNIColor, showTaskStatus, wrapText]);
     React.useLayoutEffect( () => {
         if(myTask){
@@ -292,8 +291,8 @@ export const ResponseDisplayInteractive = (props) =>{
         if(search === undefined || search === ""){
             let allData = [...rawResponses, ...taskData];
             allData.sort( (a,b) => {
-                let aDate = new Date(a.timestamp);
-                let bDate = new Date(b.timestamp);
+                let aDate = new Date(a?.status_timestamp_preprocessing || a.timestamp);
+                let bDate = new Date(b?.status_timestamp_preprocessing || b.timestamp);
                 return aDate < bDate ? -1 : bDate < aDate ? 1 : 0;
             })
             if(page.current === currentPage){
@@ -317,8 +316,8 @@ export const ResponseDisplayInteractive = (props) =>{
                 }
             })
             allData.sort( (a,b) => {
-                let aDate = new Date(a.timestamp);
-                let bDate = new Date(b.timestamp);
+                let aDate = new Date(a?.status_timestamp_preprocessing || a.timestamp);
+                let bDate = new Date(b?.status_timestamp_preprocessing || b.timestamp);
                 return aDate < bDate ? -1 : bDate < aDate ? 1 : 0;
             });
 
@@ -514,9 +513,6 @@ const InteractiveTaskingBar = ({
             setInputText(inputText + selectedEnterOption.value);
             return;
         }
-        if(inputText === ""){
-            return;
-        }
         if(selectedControlOption.value > 0){
             let ctrlSequence = selectedControlOption.text;
             let enterOption = selectedEnterOption.value;
@@ -595,7 +591,7 @@ const InteractiveTaskingBar = ({
                              value={inputText} variant={"standard"} placeholder={">_ type here..."} inline={true}
                              debounceDelay={50}
                              marginBottom={"0px"} InputProps={{style: { width: "100%"}}}/>
-            <FormControl style={{width: "6rem"}} >
+            <FormControl style={{width: "7rem"}} >
                 <Select
                     labelId="linefeed-label"
                     id="linefeed-control"
@@ -611,7 +607,7 @@ const InteractiveTaskingBar = ({
                 </Select>
             </FormControl>
             <MythicStyledTooltip title={useASNIColor ?  "Disable ANSI Color" : "Enable ANSI Color"} >
-                <IconButton onClick={toggleANSIColor} style={{paddingLeft: 0, paddingRight: 0}}>
+                <IconButton onClick={toggleANSIColor} style={{paddingLeft: 0, paddingRight: 0}} disableRipple={true} disableFocusRipple={true}>
                     <PaletteIcon color={useASNIColor ? "success" : "secondary"}
                                  style={{cursor: "pointer"}}
                     />
@@ -619,7 +615,7 @@ const InteractiveTaskingBar = ({
 
             </MythicStyledTooltip>
             <MythicStyledTooltip title={showTaskStatus ?  "Hide Task Status" : "Show Task Status"} >
-                <IconButton onClick={toggleShowTaskStatus} style={{paddingLeft: 0, paddingRight: 0}}>
+                <IconButton onClick={toggleShowTaskStatus} style={{paddingLeft: 0, paddingRight: 0}} disableRipple={true} disableFocusRipple={true}>
                     <CheckCircleOutlineIcon color={showTaskStatus ? "success" : "secondary"}
                                             style={{cursor: "pointer",}}
                     />
@@ -627,7 +623,7 @@ const InteractiveTaskingBar = ({
 
             </MythicStyledTooltip>
             <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
-                <IconButton onClick={toggleWrapText} style={{paddingLeft: 0, paddingRight: 0}}>
+                <IconButton onClick={toggleWrapText} style={{paddingLeft: 0, paddingRight: 0}} disableRipple={true} disableFocusRipple={true}>
                     <WrapTextIcon color={wrapText ? "success" : "secondary"}
                                   style={{cursor: "pointer"}}
                     />

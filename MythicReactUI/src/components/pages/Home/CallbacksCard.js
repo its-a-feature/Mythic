@@ -611,9 +611,9 @@ export function CallbacksCard({me}) {
         fetchData();
     }, 60000, mountedRef, mountedRef);
     return (
-        <>
+        <div style={{width: "100%", height: "100%", display: "flex", flexDirection: "column", position: "relative"}}>
             {loading &&
-                <div style={{overflowY: "hidden", display: "flex", zIndex: "5", position: "absolute", height: "100%", width: "100%", backgroundColor: "rgba(37,37,37,0.35)"}}>
+                <div style={{overflow: "hidden",  zIndex: "5", position: "absolute", height: "100%", width: "100%", backgroundColor: "rgba(37,37,37,0.35)"}}>
                     <div style={{
                         position: "absolute",
                         left: "45%",
@@ -627,7 +627,7 @@ export function CallbacksCard({me}) {
                     </div>
                 </div>
             }
-            <div style={{display: "flex"}}>
+            <div style={{display: "flex", marginLeft: "5px", marginBottom: "5px"}}>
                 <CallbackDataCard data={active} mainTitle={"Active Callbacks"} secondTitle={"Recent Checkins <1hr"}
                                   mainElement={
                                       <>
@@ -654,20 +654,20 @@ export function CallbacksCard({me}) {
                 />
 
                 <PieMultiChartCard data={commands} onClick={handleErrorTaskClick}
-                                   title={"Top Command Stats"} hidden={true}
+                                   title={"Top 10 Command Stats"} hidden={true}
                 />
 
-                <TableDataCard data={taskedUser} title={"Top User Contexts"} leftKey={"label"} rightKey={"value"}
+                <TableDataCard data={taskedUser} title={"Top 10 User Contexts"} leftKey={"label"} rightKey={"value"}
                                onRowClick={handleUserContextClick}
                                leftColumnTitle={"User"} rightColumnTitle={"Tasks"} />
-                <TableDataCard data={taskedHosts} title={"Top Active Hosts"} leftKey={"label"} rightKey={"value"}
+                <TableDataCard data={taskedHosts} title={"Top 10 Active Hosts"} leftKey={"label"} rightKey={"value"}
                                onRowClick={handleHostContextClick}
                                leftColumnTitle={"Host"} rightColumnTitle={"Tasks"} />
             </div>
-            <div style={{}}>
+            <div style={{display: "flex", marginLeft: "5px", marginBottom: "5px"}}>
                 <LineTimeMultiChartCard data={tasksPerDay} view_utc_time={me?.user?.view_utc_time} />
             </div>
-            <div style={{display: "flex"}}>
+            <div style={{display: "flex", marginLeft: "5px"}}>
                 <PieChartCard data={taskSuccessRate}
                               innerElement={ <PieCenterLabel>Task Status</PieCenterLabel> }
                               hidden={true}
@@ -702,7 +702,7 @@ export function CallbacksCard({me}) {
                               hidden={true}
                 />
             </div>
-        </>
+        </div>
 
     );
 }
@@ -728,8 +728,6 @@ const PieChartCard = ({data, width="100%", additionalStyles, innerElement, hidde
 }, colors=cheerfulFiestaPalette, onClick}) => {
     return (
         <div style={{
-            marginBottom: "5px",
-            marginTop: "5px",
             marginRight: "5px",
             width: width,
             height: "100%",
@@ -790,9 +788,7 @@ const PieMultiChartCard = ({data, width="100%", hidden, title, margin={
 }, colors=cheerfulFiestaPalette, onClick}) => {
     return (
         <div style={{
-            marginBottom: "5px",
-            marginTop: "5px",
-            marginLeft: "5px",
+            marginRight: "5px",
             width: width,
             height: "100%",
             border: "1px solid gray",
@@ -839,59 +835,54 @@ const PieMultiChartCard = ({data, width="100%", hidden, title, margin={
 const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondaryElement, width="100%"}) => {
     return (
         <div style={{
-            marginBottom: "5px",
-            marginTop: "5px",
-            marginLeft: "0px",
+            marginRight: "5px",
             width: width,
-            height: 202,
+            height: "100%",
             border: "1px solid gray",
             overflow: "hidden",
         }}>
             <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
                 {mainTitle}
             </h3>
-            {mainElement}
-            <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
-                {secondTitle}
-            </h3>
-            {secondaryElement}
+            <div style={{height: 200}}>
+                {mainElement}
+                <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
+                    {secondTitle}
+                </h3>
+                {secondaryElement}
+            </div>
         </div>
     )
 }
 const TableDataCard = ({data, title, leftColumnTitle, rightColumnTitle, leftKey, rightKey, width="100%", onRowClick}) => {
-    const theme = useTheme();
     return (
         <div style={{
-            marginBottom: "5px",
-            marginTop: "5px",
-            marginLeft: "5px",
+            marginRight: "5px",
             width: width,
-            height: 200,
+            height: "100%",
             border: "1px solid gray",
-            display: "flex",
-            flexDirection: "column",
         }} >
             <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
                 {title}
             </h3>
-            <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
-            <Table >
-                <TableHead>
-                    <TableRow>
-                        <MythicTableCell>{leftColumnTitle}</MythicTableCell>
-                        <MythicTableCell>{rightColumnTitle}</MythicTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody >
-                    {data.map( (d, index) => (
-                        <TableRow hover key={d[leftKey] + index} onClick={() => {onRowClick(d[leftKey])}} style={{cursor: "pointer"}}>
-                            <MythicTableCell>{d[leftKey]}</MythicTableCell>
-                            <MythicTableCell>{d[rightKey]}</MythicTableCell>
+            <div style={{height: 200, overflowY: "auto"}}>
+                <Table style={{height: "100%"}}>
+                    <TableHead>
+                        <TableRow>
+                            <MythicTableCell>{leftColumnTitle}</MythicTableCell>
+                            <MythicTableCell>{rightColumnTitle}</MythicTableCell>
                         </TableRow>
-                        )
-                    )}
-                </TableBody>
-            </Table>
+                    </TableHead>
+                    <TableBody >
+                        {data.map( (d, index) => (
+                                <TableRow hover key={d[leftKey] + index} onClick={() => {onRowClick(d[leftKey])}} style={{cursor: "pointer"}}>
+                                    <MythicTableCell>{d[leftKey]}</MythicTableCell>
+                                    <MythicTableCell>{d[rightKey]}</MythicTableCell>
+                                </TableRow>
+                            )
+                        )}
+                    </TableBody>
+                </Table>
             </div>
         </div>
     )
@@ -1039,6 +1030,7 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
         <div style={{
             width: "100%",
             height: "100%",
+            marginRight: "5px",
             border: "1px solid gray",
             overflow: "hidden",
         }} >
@@ -1080,7 +1072,7 @@ const LineTimeMultiChartCard = ({data, additionalStyles, colors=cheerfulFiestaPa
                         transform: 'translate(30px, 0)',
                     },
                 }}
-                margin={{ top: 10 }}
+                margin={{  }}
                 height={250}
                 {...additionalStyles}
             ></LineChart>
@@ -1106,9 +1098,7 @@ const StackedBarChartCard = ({data, labels, title, width="100%", hidden, colors=
 }}) => {
     return (
         <div style={{
-            marginBottom: "5px",
-            marginTop: "5px",
-            marginLeft: "5px",
+            marginRight: "5px",
             width: width,
             height: "100%",
             border: "1px solid gray",

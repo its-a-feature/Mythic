@@ -248,10 +248,12 @@ export function SettingsOperatorTableRow(props){
                     }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <IconButton size="medium"
-                            disabled={!(isMe || props.userIsAdmin)}
-                           onClick={()=>{setOpenUpdateDialog(true);}}
-                           color="error" ><PasswordIcon /></IconButton>
+                    <MythicStyledTooltip title={"Adjust Username/Password"}>
+                        <IconButton size="medium"
+                                    disabled={!(isMe || props.userIsAdmin)}
+                                    onClick={()=>{setOpenUpdateDialog(true);}}
+                                    color="error" ><PasswordIcon /></IconButton>
+                    </MythicStyledTooltip>
                   {openUpdate &&
                     <MythicDialog open={openUpdate} 
                      onClose={()=>{setOpenUpdateDialog(false);}} 
@@ -275,12 +277,15 @@ export function SettingsOperatorTableRow(props){
                 <MythicStyledTableCell>
                   {((props.id === me.user.id) || (props.userIsAdmin && props.account_type === "bot")) &&
                       <>
-                        <IconButton style={{display: "inline-block"}} size="medium"
-                                    disabled={props.account_type === "bot"}
-                                    onClick={()=>{setOpenUIConfig(true);}}
-                                    color="info" variant='contained'>
-                            <SettingsIcon />
-                        </IconButton>
+                          <MythicStyledTooltip title={"Configure UI preferences"} tooltipStyle={{display: "inline-block"}}>
+                              <IconButton size="medium"
+                                          disabled={props.account_type === "bot"}
+                                          onClick={()=>{setOpenUIConfig(true);}}
+                                          color="info" variant='contained'>
+                                  <SettingsIcon />
+                              </IconButton>
+                          </MythicStyledTooltip>
+
                         {openUIConfig &&
                           <MythicDialog open={openUIConfig} onClose={()=>{setOpenUIConfig(false)}} maxWidth={"md"} fullWidth
                           innerDialog={<SettingsOperatorUIConfigDialog  onClose={()=>{setOpenUIConfig(false);}} {...props} />}

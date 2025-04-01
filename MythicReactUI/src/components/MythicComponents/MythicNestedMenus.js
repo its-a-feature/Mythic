@@ -14,7 +14,7 @@ export const Dropdown = React.forwardRef(
             minWidth,
             absoluteX,
             absoluteY,
-            anchorReference,
+            anchorReference="anchorEl",
             style,
             transformOrigin,
             anchorOrigin,
@@ -65,13 +65,14 @@ export const Dropdown = React.forwardRef(
                     : props.children
             });
         };
+        const anchorEl = isOpen && isOpen.currentTarget ? isOpen.currentTarget : isOpen;
         return (
             <>
                 <Menu
                     elevation={5}
                     PaperProps={{ sx: { minWidth: minWidth ?? 0 } }}
                     style={{zIndex: 100000, position: "absolute"}}
-                    anchorEl={isOpen}
+                    anchorEl={anchorReference === "anchorEl" ? anchorEl : undefined}
                     transition={"true"}
                     open={!!externallyOpen}
                     anchorPosition={anchorReference === "anchorEl" ? undefined : {top: absoluteY, left: absoluteX}}
@@ -216,6 +217,9 @@ const NestedMenuItem = React.forwardRef((props, ref) => {
             </MenuItem>
             <Menu
                 hideBackdrop
+                disablePortal
+                disableEnforceFocus={false}
+                disableAutoFocus={false}
                 style={{ pointerEvents: "none", zIndex: 100000}}
                 anchorEl={menuItemRef.current}
                 anchorOrigin={{
@@ -228,11 +232,12 @@ const NestedMenuItem = React.forwardRef((props, ref) => {
                 }}
                 css={customTheme}
                 open={!!open}
-                autoFocus={false}
-                disableAutoFocus
-                disableEnforceFocus
                 onClose={() => {
                     setIsSubMenuOpen(false);
+                }}
+                MenuListProps={{
+                    'aria-hidden': false,
+                    role: 'menu'
                 }}
             >
                 <div ref={menuContainerRef} style={{ pointerEvents: "auto" }}>

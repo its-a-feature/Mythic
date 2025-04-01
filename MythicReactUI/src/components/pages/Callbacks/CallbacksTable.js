@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useContext} from 'react';
-import {MythicTransferListDialog} from '../../MythicComponents/MythicTransferList';
 import {MythicDialog} from '../../MythicComponents/MythicDialog';
 import {
     exportCallbackConfigQuery,

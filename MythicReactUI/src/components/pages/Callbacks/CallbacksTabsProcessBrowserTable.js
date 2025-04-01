@@ -6,8 +6,6 @@ import {useTheme} from '@mui/material/styles';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ListIcon from '@mui/icons-material/List';
-import DeleteIcon from '@mui/icons-material/Delete';
-import GetAppIcon from '@mui/icons-material/GetApp';
 import { snackActions } from '../../utilities/Snackbar';
 import 'react-virtualized/styles.css';
 import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
@@ -919,6 +917,7 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
                         isOpen={dropdownAnchorRef.current}
                         onOpen={setDropdownOpen}
                         externallyOpen={dropdownOpen}
+                        anchorReference={"anchorEl"}
                         menu={[
                             ...customMenuOptions.map((option, index) => (
                                 option.type === 'item' ? (

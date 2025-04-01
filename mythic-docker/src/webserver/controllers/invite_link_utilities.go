@@ -141,6 +141,17 @@ type UseInviteLinkResponse struct {
 	Error  string `json:"error"`
 }
 
+func unUseInviteLink(inviteCode string) {
+	inviteLinkCodesLock.Lock()
+	_, ok := inviteLinkCodes[inviteCode]
+	if ok {
+		if inviteLinkCodes[inviteCode].UsedSoFar >= inviteLinkCodes[inviteCode].TotalUsage {
+			inviteLinkCodes[inviteCode].Valid = true
+		}
+		inviteLinkCodes[inviteCode].UsedSoFar -= 1
+	}
+	inviteLinkCodesLock.Unlock()
+}
 func UseInviteLink(c *gin.Context) {
 	var input UseInviteLinkInput
 	err := c.ShouldBindJSON(&input)
@@ -207,6 +218,7 @@ func UseInviteLink(c *gin.Context) {
 			Status: "error",
 			Error:  err.Error(),
 		})
+		unUseInviteLink(input.InviteCode)
 		return
 	}
 	err = statement.Get(&newOperator.ID, newOperator)
@@ -216,6 +228,7 @@ func UseInviteLink(c *gin.Context) {
 			Status: "error",
 			Error:  err.Error(),
 		})
+		unUseInviteLink(input.InviteCode)
 		return
 	}
 	go database.AssignNewOperatorAllBrowserScripts(newOperator.ID)

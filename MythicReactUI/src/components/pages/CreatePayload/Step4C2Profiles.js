@@ -112,7 +112,7 @@ export function Step4C2Profiles(props){
                             })
                             
                             parameters.sort((a,b) => -b.description.localeCompare(a.description));
-                            return {...c2, "selected": props.prevData[p]["selected"], c2profileparameters: parameters};
+                            return {...c2, "selected": props.prevData[p]["selected"], c2profileparameters: parameters, "selected_instance": props.prevData[p]["selected_instance"]};
                         }
                     }
                 }
@@ -359,14 +359,15 @@ export function Step4C2Profiles(props){
                                         </Typography>
                                     </MythicStyledTableCell>
                                 </TableRow>
-                                {c2.selected ? (
-                                    <TableRow><MythicStyledTableCell colSpan={4}>
-                                        <CreatePayloadC2ProfileParametersTable key={"step4table" + c2.id}
+                                {c2.selected &&
+                                    <TableRow>
+                                        <MythicStyledTableCell colSpan={4}>
+                                            <CreatePayloadC2ProfileParametersTable key={"step4table" + c2.id}
                                                                                returnAllDictValues={false} {...c2}
                                                                                onChange={updateC2Parameter}/>
-                                    </MythicStyledTableCell></TableRow>
+                                        </MythicStyledTableCell>
+                                    </TableRow>
 
-                                ) : null
                                 }
                             </TableBody>
                         ))

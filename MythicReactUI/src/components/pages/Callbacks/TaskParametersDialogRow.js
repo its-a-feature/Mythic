@@ -743,9 +743,9 @@ export function TaskParametersDialogRow(props){
                                     <TableRow key={'array' + props.name + i} >
                                         <MythicStyledTableCell style={{width: "2rem"}}>
                                             <MythicStyledTooltip title={"Remove array element"}>
-                                                <DeleteIcon onClick={(e) => {removeArrayValue(i)}} color="error"
-                                                            style={{cursor: "pointer"}}
-                                                />
+                                                <IconButton onClick={(e) => {removeArrayValue(i)}} color="error">
+                                                    <DeleteIcon />
+                                                </IconButton>
                                             </MythicStyledTooltip>
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>

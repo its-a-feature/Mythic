@@ -79,6 +79,7 @@ import {
     Droppable,
 } from "@hello-pangea/dnd";
 import {reorder} from "./MythicComponents/MythicDraggableList";
+import { useNavigate } from 'react-router-dom';
 
 const PREFIX = 'TopAppBarVertical';
 
@@ -650,6 +651,7 @@ const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
 export function TopAppBarVertical(props) {
   const theme = useTheme();
   const me = props.me;
+  const navigate = useNavigate();
   const isOpen = useReactiveVar(menuOpen);
   const [openExtra, setOpenExtra] = React.useState(false);
   const [openEditDialog, setOpenEditDialog ] = React.useState(false);
@@ -755,7 +757,9 @@ export function TopAppBarVertical(props) {
             backgroundColor: theme.topAppBarColor,
             border: "unset !important"}}>
           <ListItem className={classes.listSubHeader} style={{marginTop:0, paddingTop: 0, paddingLeft: "2px", paddingBottom: 0}}>
-            <ListItemIcon ><img src={ReactLogo} onClick={toggleDrawerOpen} width={"40px"} height={"35px"}/></ListItemIcon>
+            <ListItemIcon >
+                <img src={ReactLogo} onClick={()=>navigate('/new')} width={"40px"} height={"35px"}/>
+            </ListItemIcon>
             <ListItemText style={{margin: 0}} primary={
                 <>
                     <Typography style={{ fontSize: 12, color: theme.navBarTextColor, display: "inline-block"}}>
@@ -798,7 +802,7 @@ export function TopAppBarVertical(props) {
                 <>
                     <Link style={{display: "inline-flex", alignItems: "center", paddingRight: "10px", color: "#f84d4d",
                         fontWeight: "bold",}} to="/new/operations">
-                        {"CLICK HERE TO SET OPERATION!"}
+                        {"CLICK TO SET OPERATION!"}
                     </Link>
                 </>
 

@@ -13,6 +13,7 @@ import TableContainer from '@mui/material/TableContainer';
 import {useMutation, useQuery, gql} from '@apollo/client';
 import {snackActions} from "../../utilities/Snackbar";
 import MythicTextField from "../../MythicComponents/MythicTextField";
+import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 
 const GET_SETTINGS = gql`
 query getGlobalSettings {
@@ -86,34 +87,34 @@ export function SettingsGlobalDialog(props) {
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                   <TableRow hover>
-                      <TableCell style={{width: "60%"}}>Adjust the local server name sent as part of webhooks. This can also be set by the GLOBAL_SERVER_NAME config variable.</TableCell>
-                      <TableCell>
-                          <MythicTextField value={serverName} onChange={onChangeServerName}
+                      <MythicStyledTableCell style={{width: "60%"}}>Adjust the local server name sent as part of webhooks. This can also be set by the GLOBAL_SERVER_NAME config variable.</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <MythicTextField value={serverName} onChange={onChangeServerName} showLabel={false}
                                            name={"serverName"} autoFocus={true} onEnter={onAccept}
                           />
-                      </TableCell>
+                      </MythicStyledTableCell>
                   </TableRow>
                 <TableRow hover>
-                  <TableCell style={{width: "60%"}}>Emit detailed agent message parsing information to the event logs. This is very noisy and can slow down the server. Also set by the MYTHIC_DEBUG_AGENT_MESSAGE config variable.</TableCell>
-                  <TableCell>
+                  <MythicStyledTableCell style={{width: "60%"}}>Emit detailed agent message parsing information to the event logs. This is very noisy and can slow down the server. Also set by the MYTHIC_DEBUG_AGENT_MESSAGE config variable.</MythicStyledTableCell>
+                  <MythicStyledTableCell>
                       <Switch
                           checked={debugAgentMessage}
                           onChange={onDebugAgentMessageChange}
                           color="info"
                           inputProps={{ 'aria-label': 'primary checkbox' }}
                       />
-                  </TableCell>
+                  </MythicStyledTableCell>
                 </TableRow>
               <TableRow hover>
-                  <TableCell style={{width: "60%"}}>Allow Admin users to create one-time-use links that allow user creation. This can also be set by the MYTHIC_SERVER_ALLOW_INVITE_LINKS config variable.</TableCell>
-                  <TableCell>
+                  <MythicStyledTableCell style={{width: "60%"}}>Allow Admin users to create one-time-use links that allow user creation. This can also be set by the MYTHIC_SERVER_ALLOW_INVITE_LINKS config variable.</MythicStyledTableCell>
+                  <MythicStyledTableCell>
                       <Switch
                           checked={allowInviteLinks}
                           onChange={onInviteLinkChange}
                           color="info"
                           inputProps={{ 'aria-label': 'primary checkbox' }}
                       />
-                  </TableCell>
+                  </MythicStyledTableCell>
               </TableRow>
               </TableBody>
             </Table>

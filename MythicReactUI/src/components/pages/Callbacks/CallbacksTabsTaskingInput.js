@@ -1542,10 +1542,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         }
     }, [props.focus])
     return (
-        <div style={{position: "relative", overflow: "hidden"}}>
-            <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
-                <CircularProgress color="inherit" />
+        <div style={{position: "relative"}}>
+            {backdropOpen && <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+                <CircularProgress color="inherit" size={30} />
             </Backdrop>
+            }
             {reverseSearching &&
                 <TextField
                     placeholder={"Search previous commands"}
@@ -1584,23 +1585,24 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     style: {paddingTop: "0px", paddingBottom: "0px", paddingRight: "5px"},
                     endAdornment:
                     <React.Fragment>
-                    <IconButton
-                        color="info"
-                        variant="contained"
-                        disableRipple={true}
-                        disableFocusRipple={true}
-                        onClick={onSubmitCommandLine}
-                        size="large"><SendIcon/></IconButton>
-                    {props.filterTasks &&
                         <IconButton
-                            color={activeFiltering ? "warning" : "secondary"}
+                            color="info"
                             variant="contained"
-                            onClick={onClickFilter}
-                            style={{paddingLeft: 0}}
                             disableRipple={true}
                             disableFocusRipple={true}
-                            size="large"><TuneIcon/></IconButton>
-                    }
+                            onClick={onSubmitCommandLine}
+                            size="large"><SendIcon/>
+                        </IconButton>
+                        {props.filterTasks &&
+                            <IconButton
+                                color={activeFiltering ? "warning" : "secondary"}
+                                variant="contained"
+                                onClick={onClickFilter}
+                                style={{paddingLeft: 0}}
+                                disableRipple={true}
+                                disableFocusRipple={true}
+                                size="large"><TuneIcon/></IconButton>
+                        }
                         {commandPayloadType !== "" &&
                             <MythicAgentSVGIcon payload_type={commandPayloadType}
                                                 style={{width: "35px", height: "35px"}}/>
