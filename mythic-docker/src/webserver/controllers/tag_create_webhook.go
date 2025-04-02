@@ -66,10 +66,17 @@ func TagCreateWebhook(c *gin.Context) {
 	}
 	databaseObj := databaseStructs.Tag{
 		Operation: operatorOperation.CurrentOperation.ID,
-		Data:      rabbitmq.GetMythicJSONTextFromStruct(input.Input.Data),
 		URL:       input.Input.URL,
 		Source:    input.Input.Source,
 		TagTypeID: input.Input.TagTypeID,
+	}
+	switch input.Input.Data.(type) {
+	case string:
+		databaseObj.Data = rabbitmq.GetMythicJSONTextFromStruct(map[string]interface{}{
+			"input": input.Input.Data,
+		})
+	default:
+		databaseObj.Data = rabbitmq.GetMythicJSONTextFromStruct(input.Input.Data)
 	}
 	APITokenID, ok := c.Get("apitokens-id")
 	if ok {

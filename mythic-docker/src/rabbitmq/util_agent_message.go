@@ -293,11 +293,11 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		if agentMessageInput.Base64Message != nil {
 			SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 1 (get data): \n%s",
 				string(*agentMessageInput.Base64Message)),
-				0, "debug", database.MESSAGE_LEVEL_INFO)
+				0, "debug", database.MESSAGE_LEVEL_DEBUG)
 		} else {
 			SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 1 (get data): \n%s",
 				base64.StdEncoding.EncodeToString(*agentMessageInput.RawMessage)),
-				0, "debug", database.MESSAGE_LEVEL_INFO)
+				0, "debug", database.MESSAGE_LEVEL_DEBUG)
 		}
 
 	}
@@ -371,7 +371,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		logging.LogDebug("Processing agent message", "step 2", messageUUID.String())
 		SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 2 (get uuid): \n%s",
 			messageUUID.String()),
-			0, "debug", database.MESSAGE_LEVEL_INFO)
+			0, "debug", database.MESSAGE_LEVEL_DEBUG)
 	}
 	instanceResponse.AgentUUIDSize = agentUUIDLength
 	// 4. look up c2 profile and information about UUID
@@ -410,7 +410,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 			logging.LogDebug("Parsing agent message", "step 3", decryptedMessage)
 			SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 3 (decrypted and parsed JSON): \n%s",
 				string(stringMsg)),
-				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_INFO)
+				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_DEBUG)
 		}
 	}
 	delegateResponses := []delegateMessageResponse{}
@@ -442,7 +442,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 	case "upload":
 		{
 			go SendAllOperationsMessage(fmt.Sprintf("Agent %s is using deprecated method of file transfer with the 'upload' action.", uuidInfo.PayloadTypeName),
-				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_INFO)
+				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_DEBUG)
 			logging.LogError(nil, "deprecated form of upload detected, please update agent code to use new method")
 			response, err = handleAgentMessagePostResponse(&map[string]interface{}{
 				"action": "post_response",
@@ -529,7 +529,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 				if utils.MythicConfig.DebugAgentMessage {
 					logging.LogDebug("Parsing agent message", "step 7", delegate)
 					SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 7 (delegate messages): \n%v", delegate),
-						uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_INFO)
+						uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_DEBUG)
 				}
 				currentDelegateMessage := AgentMessageRawInput{
 					C2Profile: delegate.C2ProfileName,
@@ -637,7 +637,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 			logging.LogDebug("Parsing agent message", "step final", response)
 			SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step final (Response JSON): \n%s",
 				string(stringMsg)),
-				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_INFO)
+				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_DEBUG)
 		}
 	}
 	if err != nil {
@@ -996,6 +996,10 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message from Mythic->Custom C2: %s\n%s", uuidInfo.TranslationContainerName, convertedResponse.Error), uuidInfo.OperationID,
 				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
 			return nil, errors.New(convertedResponse.Error)
+		}
+		if len(convertedResponse.Message) == 0 {
+			logging.LogError(nil, "empty message from Mythic->C2 translation")
+			return nil, errors.New("empty message from Mythic->C2 translation")
 		}
 		encryptedBytes, err := uuidInfo.IterateAndAct(&convertedResponse.Message, "encrypt")
 		if err != nil {
