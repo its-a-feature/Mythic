@@ -110,7 +110,7 @@ func MythicRPCTagCreate(input MythicRPCTagCreateMessage) MythicRPCTagCreateMessa
 	statement, err := database.DB.PrepareNamed(`INSERT INTO tag 
 		(operation_id, data, url, source, tagtype_id, mythictree_id, filemeta_id, task_id, response_id, credential_id, keylog_id, taskartifact_id)
 		VALUES 
-		(:operation_id, :data, :url, :source, :tagtype_id, :mythictree_id, :filemeta_id, :task_id, :response_id, :creential_id, :keylog_id, :taskartifact_id)
+		(:operation_id, :data, :url, :source, :tagtype_id, :mythictree_id, :filemeta_id, :task_id, :response_id, :credential_id, :keylog_id, :taskartifact_id)
 		RETURNING id`)
 	if err != nil {
 		logging.LogError(nil, "Failed to prepare statement for adding tag")
