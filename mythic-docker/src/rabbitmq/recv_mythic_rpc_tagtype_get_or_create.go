@@ -8,7 +8,6 @@ import (
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
-	"github.com/jmoiron/sqlx"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -74,20 +73,13 @@ func MythicRPCTagtypeGetOrCreate(input MythicRPCTagTypeGetOrCreateMessage) Mythi
 		tt.Color = *input.GetOrCreateTagTypeColor
 	}
 
-	query, args, err := sqlx.Named(searchString, paramDict)
+	statement, err := database.DB.PrepareNamed(searchString)
 	if err != nil {
 		logging.LogError(err, "Failed to make named statement when searching for tagtypes")
 		response.Error = err.Error()
 		return response
 	}
-	query, args, err = sqlx.In(query, args...)
-	if err != nil {
-		logging.LogError(err, "Failed to do sqlx.In")
-		response.Error = err.Error()
-		return response
-	}
-	query = database.DB.Rebind(query)
-	err = database.DB.Select(&tt, query, args...)
+	err = statement.Get(&tt, paramDict)
 	if errors.Is(err, sql.ErrNoRows) {
 		if input.GetOrCreateTagTypeName == nil || *input.GetOrCreateTagTypeName == "" {
 			response.Success = false
