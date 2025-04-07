@@ -162,7 +162,7 @@ export function CredentialTable(props){
     }
 
     return (
-        <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
+        <TableContainer className="mythicElement">
             <Table stickyHeader size="small" style={{height: "100%", tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
