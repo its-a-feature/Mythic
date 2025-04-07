@@ -668,7 +668,7 @@ func (p *callbackPortUsage) Start() error {
 			if utils.MythicConfig.ServerDockerNetworking == "host" && utils.MythicConfig.ServerDynamicPortsBindLocalhostOnly {
 				addr = fmt.Sprintf("127.0.0.1:%d", p.LocalPort)
 			}
-			l, err := net.Listen("tcp", addr)
+			l, err := net.Listen("tcp4", addr)
 			if err != nil {
 				logging.LogError(err, "Failed to start listening on new port")
 				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
@@ -694,7 +694,7 @@ func (p *callbackPortUsage) Start() error {
 			if utils.MythicConfig.ServerDockerNetworking == "host" && utils.MythicConfig.ServerDynamicPortsBindLocalhostOnly {
 				addr = fmt.Sprintf("127.0.0.1:%d", p.LocalPort)
 			}
-			l, err := net.Listen("tcp", addr)
+			l, err := net.Listen("tcp4", addr)
 			if err != nil {
 				logging.LogError(err, "Failed to start listening on new port")
 				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
