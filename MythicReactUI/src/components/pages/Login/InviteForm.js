@@ -89,16 +89,16 @@ export function InviteForm(props){
                                 <img src={logo} height="400px" alt="Mythic logo"/>
 
                                     <MythicTextField name='code' value={inviteCode} debounceDelay={0}
-                                                     onChange={onChangeText} width={31} required={true}/>
+                                                     onChange={onChangeText} width={31} required={true} showLabel={true}/>
                                     <MythicTextField name='username' value={username} onChange={onChangeText}
-                                                     width={31} debounceDelay={0}/>
+                                                     width={31} debounceDelay={0} showLabel={true}/>
                                     <MythicTextField name='password' type="password" onEnter={submit} value={password}
-                                                     onChange={onChangeText} width={31} debounceDelay={0} requiredValue={true}/>
+                                                     onChange={onChangeText} width={31} debounceDelay={0} requiredValue={true} showLabel={true}/>
                                     <MythicTextField name='passwordAgain'  type="password" onEnter={submit} value={passwordAgain}
-                                                     onChange={onChangeText} width={31} debounceDelay={0} requiredValue={true}
+                                                     onChange={onChangeText} width={31} debounceDelay={0} requiredValue={true} showLabel={true}
                                                      validate={checkPasswordsMatch} errorText={"Passwords do not match"}/>
                                     <MythicTextField name='email' value={email} onChange={onChangeText}
-                                                     width={31} debounceDelay={0} />
+                                                     width={31} debounceDelay={0} showLabel={true} />
                                     <Button type="submit" color="primary" onClick={submit} variant="contained"
                                             style={{}}>Register</Button>
 

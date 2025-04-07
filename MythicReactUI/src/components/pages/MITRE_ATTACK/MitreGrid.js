@@ -23,7 +23,7 @@ export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFilt
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     
     return (
-        <div style={{display: "flex", flexDirection: "column", width: "100%", height: "100%"}}>
+        <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
             <Paper elevation={5}  style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
                 marginBottom: "5px", marginRight: "5px"}} variant={"elevation"}>
                 <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
@@ -41,9 +41,10 @@ export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFilt
             </Paper> 
             
             <div style={{display: "flex", flexGrow: 1, overflow: "auto"}}>
-                <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+                {backdropOpen && <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                     <CircularProgress color="inherit" />
                 </Backdrop>
+                }
                 <MitreGridDisplay entries={entries} showCountGrouping={showCountGrouping} />
             </div>
         </div>
