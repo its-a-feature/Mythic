@@ -676,9 +676,9 @@ func handleAgentMessagePostResponseRemovedFiles(task databaseStructs.Task, remov
 		likePath = strings.ReplaceAll(likePath, "\\", "\\\\")
 		//logging.LogInfo("updating removal path", "path", likePath, "host", host)
 		if _, err := database.DB.Exec(`UPDATE mythictree SET
-		  deleted=true
+		  deleted=true, task_id=$5
 		  WHERE host=$1 AND full_path LIKE $2 AND operation_id=$3 AND "tree_type"=$4`,
-			host, likePath, task.OperationID, databaseStructs.TREE_TYPE_FILE); err != nil {
+			host, likePath, task.OperationID, databaseStructs.TREE_TYPE_FILE, task.ID); err != nil {
 			logging.LogError(err, "Failed to mark file and children as deleted")
 			return err
 		}
@@ -1639,6 +1639,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 					//logging.LogError(nil, "failed to find match, marking as deleted", "name", existingEntry.Name)
 					namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.Name))
 					existingEntry.Deleted = true
+					existingEntry.TaskID = task.ID
 					deleteTreeNode(existingEntry, true)
 				}
 			}
@@ -1867,9 +1868,10 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 		// delete all the ids marked for deletion
 		if len(idsToDelete) > 0 {
 			deleteQuery, args, err := sqlx.Named(`UPDATE mythictree SET
-        			deleted=true, "timestamp"=now() 
+        			deleted=true, "timestamp"=now(), task_id=:task_id 
 					WHERE id IN (:ids)`, map[string]interface{}{
-				"ids": idsToDelete,
+				"ids":     idsToDelete,
+				"task_id": task.ID,
 			})
 			if err != nil {
 				logging.LogError(err, "Failed to make named statement when updated deleted process status")
@@ -2078,7 +2080,7 @@ func deleteTreeNode(treeNode databaseStructs.MythicTree, cascade bool) {
 		// we want to delete this node and all nodes that are children of it
 		treeNode.FullPath = append(treeNode.FullPath, byte('%'))
 		if _, err := database.DB.NamedExec(`UPDATE mythictree SET
-		  deleted=true, "timestamp"=now() 
+		  deleted=true, "timestamp"=now(), task_id=:task_id 
 		  WHERE host=:host AND operation_id=:operation_id AND tree_type=:tree_type AND callback_id=:callback_id AND
 		        parent_path LIKE :full_path
 		   `, treeNode); err != nil {
@@ -2087,7 +2089,7 @@ func deleteTreeNode(treeNode databaseStructs.MythicTree, cascade bool) {
 	}
 	// we just want to delete this specific node
 	if _, err := database.DB.NamedExec(`UPDATE mythictree SET
-        deleted=:deleted, "timestamp"=now() 
+        deleted=:deleted, "timestamp"=now(), task_id=:task_id
 		WHERE id=:id`, treeNode); err != nil {
 		logging.LogError(err, "Failed to update tree node")
 	}

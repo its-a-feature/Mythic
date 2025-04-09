@@ -58,7 +58,7 @@ func MythicRPCResponseSearch(input MythicRPCResponseSearchMessage) MythicRPCResp
 	} else if err := database.DB.Select(&results, `SELECT 
 	id, response, task_id 
 	FROM response
-	WHERE operation_id=$1 AND response LIKE $2 AND task_id=$3`,
+	WHERE operation_id=$1 AND response LIKE $2 AND task_id=$3 ORDER BY id DESC`,
 		task.OperationID, responseSearch, input.TaskID); err != nil {
 		logging.LogError(err, "Failed to fetch responses for MythicRPCResponseSearch")
 		response.Error = err.Error()

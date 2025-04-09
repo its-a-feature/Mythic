@@ -28,6 +28,9 @@ import {Button, Link, IconButton} from '@mui/material';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {HostFileDialog} from "../Payloads/HostFileDialog";
+import PublicIcon from '@mui/icons-material/Public';
 
 const GET_Payload_Details = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -169,6 +172,7 @@ mutation removeLoadedCommand($id: Int!){
 export function DetailedCallbackTable(props){
     const theme = useTheme();
     const me = useReactiveVar(meState);
+    const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const [openDetailedView, setOpenDetailedView] = React.useState(false);
     const [openAddRemoveCommandsDialog, setOpenAddRemoveCommandsDialog] = React.useState(false);
     const [commands, setCommands] = React.useState([]);
@@ -351,7 +355,22 @@ export function DetailedCallbackTable(props){
                     ) : null }
                     <TableRow hover>
                         <TableCell>Download URL</TableCell>
-                        <TableCell>{window.location.origin + "/direct/download/" + data.callback_by_pk.payload.filemetum.agent_file_id}</TableCell>
+                        <TableCell style={{display: "flex", alignItems: "center"}}>
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + data.callback_by_pk.payload.filemetum.agent_file_id}>
+                                {window.location.origin + "/direct/download/" + data.callback_by_pk.payload.filemetum.agent_file_id}
+                            </Link>
+                            <MythicStyledTooltip title={"Host Payload Through C2"} >
+                                <PublicIcon color={"info"} style={{marginLeft: "20px", cursor: "pointer"}} onClick={()=>{setOpenHostDialog(true);}}  />
+                            </MythicStyledTooltip>
+                            {openHostDialog &&
+                                <MythicDialog fullWidth={true} maxWidth="md" open={openHostDialog}
+                                              onClose={()=>{setOpenHostDialog(false);}}
+                                              innerDialog={<HostFileDialog file_uuid={data.callback_by_pk.payload.filemetum.agent_file_id}
+                                                                           file_name={b64DecodeUnicode(data.callback_by_pk.payload.filemetum.filename_text)}
+                                                                           onClose={()=>{setOpenHostDialog(false);}} />}
+                                />
+                            }
+                        </TableCell>
                     </TableRow>
                     <TableRow hover>
                         <TableCell>SHA1</TableCell>

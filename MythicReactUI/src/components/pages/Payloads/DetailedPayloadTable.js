@@ -361,7 +361,7 @@ function DetailedPayloadInnerTable(props){
 
                     <TableRow hover>
                         <TableCell>Download URL</TableCell>
-                        <TableCell>
+                        <TableCell style={{display: "flex", alignItems: "center"}}>
                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + data.payload[0].filemetum.agent_file_id}>
                                 {window.location.origin + "/direct/download/" + data.payload[0].filemetum.agent_file_id}
                             </Link>

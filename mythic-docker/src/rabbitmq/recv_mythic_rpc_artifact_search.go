@@ -72,6 +72,7 @@ func MythicRPCArtifactSearch(input MythicRPCArtifactSearchMessage) MythicRPCArti
 			paramDict["base_artifact"] = fmt.Sprintf("%%%s%%", *input.SearchArtifacts.ArtifactType)
 			searchString += "AND base_artifact LIKE :base_artifact "
 		}
+		searchString += " ORDER BY task_id DESC"
 		if rows, err := database.DB.NamedQuery(searchString, paramDict); err != nil {
 			logging.LogError(err, "Failed to search artifact information")
 			response.Error = err.Error()

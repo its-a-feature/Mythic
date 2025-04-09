@@ -91,6 +91,7 @@ func MythicRPCPayloadSearch(input MythicRPCPayloadSearchMessage) MythicRPCPayloa
 		FROM payload
 		JOIN payloadtype ON payload.payload_type_id = payloadtype.id
 		WHERE payload.operation_id=$1 AND payload.deleted=false AND payload.build_phase='success'
+		ORDER BY payload.id DESC
 		`, operationId)
 	if err != nil {
 		response.Error = err.Error()

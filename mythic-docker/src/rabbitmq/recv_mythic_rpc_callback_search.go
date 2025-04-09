@@ -173,6 +173,7 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 		targetCallback.Description = *input.SearchCallbackDescription
 		searchString += `AND callback.description ILIKE :description`
 	}
+	searchString += " ORDER BY callback.id DESC"
 	rows, err := database.DB.NamedQuery(searchString, targetCallback)
 	if err != nil {
 		logging.LogError(err, "Failed to search callback information")

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc62] - 2025-04-08
+
+### Changed
+
+- Updated the processing of timestamped for linked callbacks to not update nested relationships with egress connections
+- Updated mythictree update/delete to update the associated task_id as well to trigger updates in the UI
+- Added an `ORDER BY id DESC` for most MythicRPC Search calls
+
 ## [3.3.1-rc61] - 2025-04-07
 
 ### Changed

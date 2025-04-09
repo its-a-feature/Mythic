@@ -104,6 +104,7 @@ func MythicRPCProcessSearch(input MythicRPCProcessSearchMessage) MythicRPCProces
 			paramDict["signer"] = fmt.Sprintf("%%%s%%", *input.SearchProcess.Signer)
 			searchString += "AND metadata->>'signer' ILIKE :signer "
 		}
+		searchString += " ORDER BY id DESC"
 		if rows, err := database.DB.NamedQuery(searchString, paramDict); err != nil {
 			logging.LogError(err, "Failed to search artifact information")
 			response.Error = err.Error()

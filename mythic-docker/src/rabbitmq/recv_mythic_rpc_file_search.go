@@ -100,7 +100,7 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 		}
 	} else if input.OperationId == 0 {
 		response.Success = false
-		response.Error = "Must supply callbackID or operationID if not searching for a specific file"
+		response.Error = "Must supply TaskID, CallbackID or OperationID if not searching for a specific file by AgentFileID"
 		return response
 	} else {
 		operationId = input.OperationId

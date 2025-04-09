@@ -159,6 +159,7 @@ func MythicRPCTagSearch(input MythicRPCTagSearchMessage) MythicRPCTagSearchMessa
 		searchString += `AND tag.operation_id=:operation_id `
 		paramDict["operation_id"] = operationID
 	}
+	searchString += " ORDER BY tag.id DESC"
 	query, args, err := sqlx.Named(searchString, paramDict)
 	if err != nil {
 		logging.LogError(err, "Failed to make named statement when searching for tasks")

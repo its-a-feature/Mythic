@@ -9,6 +9,7 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	"github.com/jmoiron/sqlx"
+	"slices"
 	"sync"
 	"time"
 )
@@ -36,7 +37,7 @@ type cbGraphBFSEntry struct {
 	MatrixEntry cbGraphAdjMatrixEntry
 }
 
-var c2profileNameToIdMap map[string]int
+var c2profileNameToIdMap map[string]databaseStructs.C2profile
 
 type idAndOpId struct {
 	CallbackID  int
@@ -119,6 +120,7 @@ func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 	visitedIDs := map[int]bool{}
 	needToVisitIDs := []int{callbackId}
 	callbackIDsToUpdate := []int{callbackId}
+	callbacksWithEgress := []int{}
 	for len(needToVisitIDs) > 0 {
 		// get the next id we're going to check
 		currentId := needToVisitIDs[0]
@@ -131,6 +133,10 @@ func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 			continue
 		}
 		for i, _ := range immediateChildren {
+			if immediateChildren[i].SourceId == immediateChildren[i].DestinationId {
+				//logging.LogInfo("found egress connection", "id", immediateChildren[i])
+				callbacksWithEgress = append(callbacksWithEgress, immediateChildren[i].SourceId)
+			}
 			// check if we've already visited this id, if so, move on
 			if _, visited := visitedIDs[immediateChildren[i].SourceId]; !visited {
 				// mark that we've visited this id
@@ -153,7 +159,18 @@ func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 			}
 		}
 	}
-	return callbackIDsToUpdate
+	// remove all callback ids that have their own egress connections
+	finalCallbackIDsToUpdate := []int{}
+	for _, callbackIdToUpdate := range callbackIDsToUpdate {
+		//logging.LogInfo("checking if should update", "callbackIdToUpdate", callbackIdToUpdate)
+		if slices.Contains(callbacksWithEgress, callbackIdToUpdate) {
+			//logging.LogInfo("checking if should update", "its egress", true, "callbackIdToUpdate", callbackIdToUpdate)
+			continue
+		}
+		//logging.LogInfo("checking if should update", "its egress", false, "callbackIdToUpdate", callbackIdToUpdate)
+		finalCallbackIDsToUpdate = append(finalCallbackIDsToUpdate, callbackIdToUpdate)
+	}
+	return finalCallbackIDsToUpdate
 }
 func updateTimes(updatedTime time.Time, callbackIDs []int) {
 	//logging.LogInfo("updateTimes", "callbacks", callbackIDs)
@@ -190,7 +207,7 @@ func listenForPushConnectDisconnectMessages() {
 func (g *cbGraph) Initialize() {
 	edges := []databaseStructs.Callbackgraphedge{}
 	g.adjMatrix = make(map[int][]cbGraphAdjMatrixEntry, 0)
-	c2profileNameToIdMap = make(map[string]int)
+	c2profileNameToIdMap = make(map[string]databaseStructs.C2profile)
 	if err := database.DB.Select(&edges, `SELECT 
     	callbackgraphedge.id,
     	s.agent_callback_id "source.agent_callback_id",
@@ -214,9 +231,14 @@ func (g *cbGraph) Initialize() {
 	BFSCache.cache = make(map[int]map[int][][]cbGraphAdjMatrixEntry)
 }
 func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStructs.Callback, c2profileName string, initializing bool) {
+	c2 := getC2ProfileForName(c2profileName)
+	if c2.IsP2p && source.ID == destination.ID {
+		return
+	}
 	g.lock.Lock()
 	if _, ok := g.adjMatrix[source.ID]; !ok {
 		// add it
+		//logging.LogInfo("adding new adjMatrix connection", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName)
 		g.adjMatrix[source.ID] = append(g.adjMatrix[source.ID], cbGraphAdjMatrixEntry{
 			DestinationId:      destination.ID,
 			DestinationAgentId: destination.AgentCallbackID,
@@ -229,7 +251,7 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 		for _, dest := range g.adjMatrix[source.ID] {
 			if dest.DestinationId == destination.ID && dest.C2ProfileName == c2profileName {
 				g.lock.Unlock()
-				//logging.LogDebug("Found existing p2p connection, not adding new one to memory")
+				//logging.LogDebug("Found existing connection, not adding new one to memory", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName)
 				if initializing {
 					// don't update callback times when initializing, this is when the Mythic server starts up
 					return
@@ -238,15 +260,14 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 				if isCallbackStreaming(source.ID) {
 					updateTime = time.UnixMicro(0)
 				}
-
 				callbackIDs := g.getAllChildIDs(source.ID)
 				if len(callbackIDs) > 0 {
 					updateTimes(updateTime, callbackIDs)
 				}
-
 				return
 			}
 		}
+		//logging.LogInfo("adding new adjMatrix connection", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName)
 		g.adjMatrix[source.ID] = append(g.adjMatrix[source.ID], cbGraphAdjMatrixEntry{
 			DestinationId:      destination.ID,
 			DestinationAgentId: destination.AgentCallbackID,
@@ -480,19 +501,34 @@ func AddEdgeById(sourceId int, destinationId int, c2profileName string) error {
 	return nil
 }
 func getC2ProfileIdForName(c2profileName string) int {
-	id, ok := c2profileNameToIdMap[c2profileName]
+	c2, ok := c2profileNameToIdMap[c2profileName]
 	if ok {
-		return id
+		return c2.ID
 	}
 	c2profile := databaseStructs.C2profile{}
-	err := database.DB.Get(&c2profile, `SELECT id FROM c2profile WHERE "name"=$1 AND deleted=false`,
+	err := database.DB.Get(&c2profile, `SELECT id, is_p2p FROM c2profile WHERE "name"=$1 AND deleted=false`,
 		c2profileName)
 	if err != nil {
 		logging.LogError(err, "Failed to find c2 profile", "c2profile", c2profileName)
 		return 0
 	}
-	c2profileNameToIdMap[c2profileName] = c2profile.ID
+	c2profileNameToIdMap[c2profileName] = c2profile
 	return c2profile.ID
+}
+func getC2ProfileForName(c2profileName string) databaseStructs.C2profile {
+	c2, ok := c2profileNameToIdMap[c2profileName]
+	if ok {
+		return c2
+	}
+	c2profile := databaseStructs.C2profile{}
+	err := database.DB.Get(&c2profile, `SELECT id, is_p2p FROM c2profile WHERE "name"=$1 AND deleted=false`,
+		c2profileName)
+	if err != nil {
+		logging.LogError(err, "Failed to find c2 profile", "c2profile", c2profileName)
+		return databaseStructs.C2profile{}
+	}
+	c2profileNameToIdMap[c2profileName] = c2profile
+	return c2profile
 }
 func AddEdgeByDisplayIds(sourceId int, destinationId int, c2profileName string, operatorOperation *databaseStructs.Operatoroperation) error {
 	source := databaseStructs.Callback{}

@@ -383,9 +383,12 @@ function AgentNode({data}) {
         return {[offsetComponents.location]: (size * index) + (size / 2)}
 
     }
-    const additionalStyles = data?.selected ? {
-        boxShadow: `3px 3px 5px 0px ${theme.palette.secondary.main}, inset 0px 0px 60px 0px ${theme.palette.info.main}`,
-        borderRadius: "20px"
+    const additionalStyles = data?.anySelected ? data?.selected ? {
+        boxShadow: `0px 0px 5px 0px ${theme.palette.secondary.main}`,
+        borderRadius: "5px"
+    } : {
+        filter: "grayscale(1)",
+        opacity: 0.5
     } : {};
     return (
         <div style={{padding: 0, margin: 0, ...additionalStyles}}>
@@ -420,9 +423,12 @@ function BrowserscriptNode({data}) {
     const theme = useTheme();
     const sourcePosition = getSourcePosition(data["elk.direction"]);
     const targetPosition = getTargetPosition(data["elk.direction"]);
-    const additionalStyles = data?.selected ? {
-        boxShadow: `5px 5px 25px 5px ${theme.palette.info.main}, inset 0px 0px 60px 0px ${theme.palette.info.main}`,
-        borderRadius: "20px"
+    const additionalStyles = data?.anySelected ? data?.selected ? {
+        boxShadow: `0px 0px 5px 0px ${theme.palette.secondary.main}`,
+        borderRadius: "5px"
+    } : {
+        filter: "grayscale(1)",
+        opacity: 0.5
     } : {};
     return (
         <div style={{padding: 0, margin: 0, display: "flex", flexDirection: "column", ...additionalStyles}}>
@@ -771,7 +777,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
         });
         setEdgeFlow(updatedEdges);
         const updatedNodes = nodes.map( n => {
-            return {...n, data: {...n.data, selected: false}};
+            return {...n, data: {...n.data, selected: false, anySelected: false}};
         });
         setNodes(updatedNodes);
         //setGraphData({...graphData, edges: updatedEdges});
@@ -816,9 +822,9 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
         const updatedNodes = nodes.map( n => {
             let isSelected = selectedNodes.current.filter( s => s.id === n.id).length > 0;
             if(isSelected){
-                return {...n, data: {...n.data, selected: true}};
+                return {...n, data: {...n.data, selected: true, anySelected: selectedNodes.current.length > 0}};
             } else {
-                return {...n, data: {...n.data, selected: false}};
+                return {...n, data: {...n.data, selected: false, anySelected: selectedNodes.current.length > 0}};
             }
         });
         setNodes(updatedNodes);
@@ -1223,18 +1229,18 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
         for(let i = 0; i < tempEdges.length; i++){
             if(tempEdges[i].data.end_timestamp === null){
                 tempEdges[i].markerEnd = {
-                    color: theme.palette.info.main,
+                    color: theme.palette.success.main,
                 }
                 tempEdges[i].style = {
-                    stroke: theme.palette.info.main,
+                    stroke: theme.palette.success.main,
                     strokeWidth: 2,
                 }
             } else {
                 tempEdges[i].markerEnd = {
-                    color: theme.palette.warning.main,
+                    color: theme.palette.error.main,
                 }
                 tempEdges[i].style = {
-                    stroke: theme.palette.warning.main,
+                    stroke: theme.palette.error.main,
                     strokeWidth: 2,
                 }
             }
@@ -1400,13 +1406,6 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
     )
 }
 
-export const DrawTaskElementsFlowWithProvider = (props) => {
-    return (
-        <ReactFlowProvider>
-            <DrawTaskElementsFlow {...props} />
-        </ReactFlowProvider>
-    )
-}
 const shouldUseTaskGroups = (view_config) => {
     if(view_config.group_by !== "None"){
         return true;
@@ -1426,284 +1425,6 @@ const getGroupTaskBy = (node, view_config) => {
         }
     }
 }
-export const DrawTaskElementsFlow = ({edges, panel, view_config, theme, contextMenu}) =>{
-    const [graphData, setGraphData] = React.useState({nodes: [], edges: [], groups: [], view_config});
-    const [nodes, setNodes] = React.useState();
-    const [edgeFlow, setEdgeFlow] = React.useState([]);
-    const [openContextMenu, setOpenContextMenu] = React.useState(false);
-    const [contextMenuCoord, setContextMenuCord] = React.useState({});
-    const viewportRef = React.useRef(null);
-    const contextMenuNode = React.useRef(null);
-    const [localViewConfig, setLocalViewConfig] = React.useState(view_config);
-    const {fitView} = useReactFlow();
-    const updateNodeInternals = useUpdateNodeInternals();
-    const onNodesChange = useCallback(
-        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-        []
-    );
-    const onEdgesChange = useCallback(
-        (changes) => setEdgeFlow((eds) => applyEdgeChanges(changes, eds)),
-        []
-    );
-    const onNodeContextMenu = useCallback( (event, node) => {
-        if(!contextMenu){return}
-        if(node.type === "groupNode"){
-            return;
-        }
-        event.preventDefault();
-        contextMenuNode.current = {...node.data, id: node.data.callback_id};
-        setContextMenuCord({
-            top:  event.clientY,
-            left:  event.clientX,
-        });
-        setOpenContextMenu(true);
-    }, [contextMenu])
-    const onPaneClick = useCallback( () => {
-        setOpenContextMenu(false);
-    }, [setOpenContextMenu])
-    React.useEffect( () => {
-        let tempNodes = [];
-        let tempEdges = [];
-        let parentNodes = [];
-
-        const add_node = (node, localViewConfig) => {
-
-            let groupByValue = getGroupTaskBy(node, localViewConfig);
-            let nodeID = `${node.id}`;
-            let found = false;
-            for(let i = 0; i < tempNodes.length; i++){
-                if(tempNodes[i].id === nodeID){
-                    found = true;
-                    break;
-                }
-            }
-            if(!found){
-                //console.log("adding node", node)
-                tempNodes.push(
-                    {
-                        id: `${node.id}`,
-                        position: { x: 0, y: 0 },
-                        type: "taskNode",
-                        height: 50,
-                        width: 100,
-                        parentNode: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? groupByValue : null,
-                        group: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? groupByValue : null,
-                        extent: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? "parent" : null,
-                        data: {
-                            ...node,
-                            parentNode: shouldUseTaskGroups(localViewConfig) && groupByValue !== "" ? groupByValue : null,
-                            label: "",
-                        }
-                    }
-                )
-            }
-            found = false;
-            for(let i = 0; i < parentNodes.length; i++){
-                if(parentNodes[i].id === groupByValue){
-                    found = true;
-                    break;
-                }
-            }
-            if(!found && groupByValue !== ""){
-                //console.log("adding parent", node)
-                parentNodes.push({
-                    id: groupByValue,
-                    position: { x: 110, y: 110 },
-                    type: "groupNode",
-                    width: 200,
-                    height: 200,
-                    data: {
-                        label: groupByValue,
-                    },
-
-                });
-            }
-        }
-        const add_edge_p2p = (edge, localViewConfig) => {
-            add_node(edge.source, localViewConfig);
-            add_node(edge.destination, localViewConfig);
-            if(edge.source.id === edge.destination.id){
-                return
-            }
-            createEdge(edge, localViewConfig);
-        }
-        const createEdge = (edge, localViewConfig) =>{
-            let edgeID = `e${edge.source.id}-${edge.destination.id}`;
-            //console.log("adding edge", edge);
-            let groupByValueSource = getGroupTaskBy(edge.source, localViewConfig);
-            let groupByValueDestination = getGroupTaskBy(edge.destination, localViewConfig);
-            tempEdges.push(
-                {
-                    id: edgeID,
-                    source: `${edge.source.id}`,
-                    target: `${edge.destination.id}`,
-                    animated: true,
-                    label: "subtask",
-                    data: {
-                        label: "subtask",
-                        source: {...edge.source, parentNode: shouldUseTaskGroups(localViewConfig) && groupByValueSource !== "" ? groupByValueSource : null},
-                        target: {...edge.destination, parentNode: shouldUseTaskGroups(localViewConfig) && groupByValueDestination !== "" ? groupByValueDestination : null},
-                    }
-                },
-            )
-        }
-        const hasFakeEdge = (sourceID) => {
-            for(let i = 0; i < tempEdges.length; i++){
-                if(tempEdges[i].data.source.parentNode === sourceID &&
-                    tempEdges[i].data.label === ""
-                ){
-                    return true;
-                }
-            }
-            return false;
-        }
-        edges.forEach( (edge) => {
-            add_edge_p2p(edge, localViewConfig);
-        });
-        for(let i = 0; i < tempEdges.length; i++){
-            tempEdges[i].markerEnd = {
-                color: theme.palette.info.main,
-            }
-            tempEdges[i].style = {
-                stroke: theme.palette.info.main,
-                strokeWidth: 2,
-            }
-
-            tempEdges[i].markerEnd.type = "arrowclosed"
-            tempEdges[i].labelBgStyle = {
-                fill: theme.tableHover,
-                fillOpacity: 0.6,
-            }
-            tempEdges[i].labelStyle = {
-                fill: theme.palette.background.contrast,
-            }
-            tempEdges[i].labelShowBg = true
-            tempEdges[i].zIndex = 20;
-        }
-        if(shouldUseTaskGroups(localViewConfig)){
-            // only add in edges from parents to parents/mythic if we're doing egress flow
-            for(let i = 0; i < parentNodes.length; i++){
-                // every parentNode needs a connection to _something_ - either to Mythic or another parentNode
-                for(let j = 0; j < tempEdges.length; j++){
-                    //console.log("checking", parentNodes[i].id, tempEdges[j].data.target.parentNode, tempEdges[j].data.source.id)
-                    if(tempEdges[j].data.target.parentNode === parentNodes[i].id){
-                        // don't process where source.parentNode == target.parentNode
-                        //console.log("found match")
-                        if(parentNodes[i].id === tempEdges[j].data.source.parentNode){
-                            //console.log("skipping")
-                            continue
-                        }
-                        if(!hasFakeEdge(`${parentNodes[i].id}`)){
-                            //console.log("adding new fake edge")
-                            tempEdges.push(
-                                {
-                                    id: `e${parentNodes[i].id}-${tempEdges[j].data.source.id}`,
-                                    target: `${parentNodes[i].id}`,
-                                    source: `${tempEdges[j].data.source.id}`,
-                                    label: "",
-                                    hidden: true,
-                                    data: {
-                                        source: {...parentNodes[i], parentNode: `${parentNodes[i].id}`},
-                                        target: tempEdges[j].data.target,
-                                        label: "",
-                                    }
-                                },
-                            )
-                        }
-                    }
-                }
-
-                tempNodes.push({
-                    id: `${parentNodes[i].id}-widthAdjuster`,
-                    position: { x: 0, y: 0 },
-                    type: "agentNode",
-                    height: 100,
-                    width: 50,
-                    parentNode: `${parentNodes[i].id}`,
-                    group: `${parentNodes[i].id}`,
-                    hidden: true,
-                    data: {label: `${parentNodes[i].id}`}
-                })
-            }
-        }
-
-        //console.log("parent groups", shouldUseTaskGroups(view_config), [...parentNodes, ...tempNodes], tempEdges);
-        setGraphData({
-            groups: shouldUseTaskGroups(localViewConfig) ? parentNodes : [],
-            nodes: tempNodes,
-            edges: tempEdges,
-            view_config: {...localViewConfig},
-        });
-    }, [edges, localViewConfig, theme]);
-    React.useEffect( () => {
-        (async () => {
-            if(graphData.nodes.length > 0){
-                const {newNodes, newEdges} = await createLayout({
-                    initialGroups: graphData.groups,
-                    initialNodes: graphData.nodes,
-                    initialEdges: graphData.edges,
-                    alignment: graphData.view_config.rankDir
-                });
-                setNodes(newNodes);
-                setEdgeFlow(newEdges);
-                for(let i = 0; i < newNodes.length; i++){
-                    updateNodeInternals(newNodes[i].id);
-                }
-                //console.log("new graph data", newNodes, newEdges)
-                window.requestAnimationFrame(() => {
-                    for(let i = 0; i < newNodes.length; i++){
-                        updateNodeInternals(newNodes[i].id);
-                    }
-                    fitView();
-                });
-            }
-        })();
-    }, [graphData]);
-    const toggleViewConfig = () => {
-        if(localViewConfig.rankDir === "LR"){
-            setLocalViewConfig({...localViewConfig, rankDir: "BT", group_by: "name"});
-        } else {
-            setLocalViewConfig({...localViewConfig, rankDir: "LR", group_by: "name"});
-        }
-    }
-    return (
-        <div style={{height: "100%", width: "100%"}} ref={viewportRef}>
-            <ReactFlow
-                fitView
-                onlyRenderVisibleElements={false}
-                panOnScrollSpeed={50}
-                maxZoom={100}
-                minZoom={0}
-                nodes={nodes}
-                edges={edgeFlow}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                nodeTypes={nodeTypes}
-                onPaneClick={onPaneClick}
-                onNodeContextMenu={onNodeContextMenu}
-            >
-                <Panel position={"top-left"} >{panel}</Panel>
-                <Controls showInteractive={false} >
-                    <ControlButton onClick={toggleViewConfig} title={"Toggle View"}>
-                        <SwapCallsIcon />
-                    </ControlButton>
-                </Controls>
-            </ReactFlow>
-            {openContextMenu &&
-                <div style={{...contextMenuCoord, position: "fixed"}} className="context-menu">
-                    {contextMenu.map( (m) => (
-                        <Button key={m.title} color={"info"} className="context-menu-button" onClick={() => {
-                            m.onClick(contextMenuNode.current);
-                            setOpenContextMenu(false);
-                        }}>{m.title}</Button>
-                    ))}
-                </div>
-            }
-        </div>
-
-    )
-}
-
 const getGroupBrowserscriptBy = (node, view_config) => {
     if(view_config.group_by === undefined){return ""}
     if(view_config.group_by === "None" || view_config.group_by === ""){return ""}
@@ -1781,7 +1502,7 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
 
                 });
                 const updatedNodes = nodes.map( n => {
-                    return {...n, data: {...n.data, selected: false}};
+                    return {...n, data: {...n.data, selected: false, anySelected: false}};
                 });
                 setNodes(updatedNodes);
                 setEdgeFlow(updatedEdges);
@@ -2012,9 +1733,9 @@ export const DrawBrowserScriptElementsFlow = ({edges, panel, view_config, theme,
         const updatedNodes = nodes.map( n => {
             let isSelected = selectedNodes.current.filter( s => s.id === n.id).length > 0;
             if(isSelected){
-                return {...n, data: {...n.data, selected: true}};
+                return {...n, data: {...n.data, selected: true, anySelected: selectedNodes.current.length > 0}};
             } else {
-                return {...n, data: {...n.data, selected: false}};
+                return {...n, data: {...n.data, selected: false, anySelected: selectedNodes.current.length > 0}};
             }
         });
         //setGraphData({...graphData, edges: updatedEdges});

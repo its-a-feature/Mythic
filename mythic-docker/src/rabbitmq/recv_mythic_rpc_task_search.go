@@ -130,6 +130,7 @@ func MythicRPCTaskSearch(input MythicRPCTaskSearchMessage) MythicRPCTaskSearchMe
 		searchString += `WHERE task.id=:id`
 		paramDict["id"] = input.TaskID
 	}
+	searchString += " ORDER BY task.id DESC"
 	query, args, err := sqlx.Named(searchString, paramDict)
 	if err != nil {
 		logging.LogError(err, "Failed to make named statement when searching for tasks")

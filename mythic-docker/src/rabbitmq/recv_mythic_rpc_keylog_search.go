@@ -55,18 +55,18 @@ func MythicRPCKeylogSearch(input MythicRPCKeylogSearchMessage) MythicRPCKeylogSe
 		paramDict["operation_id"] = task.Callback.OperationID
 		searchString := `SELECT * FROM keylog WHERE operation_id=:operation_id  `
 		if input.SearchKeylogs.User != nil {
-			paramDict["user"] = *input.SearchKeylogs.User
-			searchString += "AND user ILIKE %:user% "
+			paramDict["user"] = "%" + *input.SearchKeylogs.User + "%"
+			searchString += "AND user ILIKE :user "
 		}
 		if input.SearchKeylogs.WindowTitle != nil {
-			paramDict["window_title"] = *input.SearchKeylogs.WindowTitle
-			searchString += "AND window ILIKE %:window_title% "
+			paramDict["window_title"] = "%" + *input.SearchKeylogs.WindowTitle + "%"
+			searchString += "AND window ILIKE :window_title "
 		}
 		if input.SearchKeylogs.Keystrokes != nil {
-			paramDict["keystrokes"] = *input.SearchKeylogs.Keystrokes
-			searchString += "AND keystrokes LIKE %:keystrokes% "
+			paramDict["keystrokes"] = "%" + string(*input.SearchKeylogs.Keystrokes) + "%"
+			searchString += "AND keystrokes LIKE :keystrokes "
 		}
-
+		searchString += " ORDER BY id DESC"
 		if err := database.DB.Select(&keylogs, searchString, paramDict); err != nil {
 			response.Error = err.Error()
 			return response

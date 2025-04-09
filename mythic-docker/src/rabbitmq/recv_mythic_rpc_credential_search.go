@@ -80,6 +80,7 @@ func MythicRPCCredentialSearch(input MythicRPCCredentialSearchMessage) MythicRPC
 			params = append(params, "%"+*input.SearchCredentials.Metadata+"%")
 			searchString += fmt.Sprintf("AND metadata ILIKE $%d ", len(params))
 		}
+		searchString += " ORDER BY id DESC"
 		if err := database.DB.Select(&credentials, searchString, params...); err != nil {
 			logging.LogError(err, "Failed to search for credentials")
 			response.Error = err.Error()

@@ -350,6 +350,12 @@ export function TaskParametersDialogRow(props){
                setChoiceOptions(props.choices);
            }
        }
+       else if(props.type === "LinkInfo"){
+           if(props.choices.length > 0){
+               setChoiceOptions([...props.choices]);
+               onChangeLinkInfo(0);
+           }
+       }
        else if(props.type === "AgentConnect"){
             if(props.choices.length > 0){
                 //setAgentConnectHost(0);
