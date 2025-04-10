@@ -47,7 +47,7 @@ const MythicTextField = ({
                              onEnter,
                              autoFocus,
                              autoComplete,
-                             showLabel,
+                             showLabel = true,
                              variant = "outlined",
                              inline,
                              marginBottom = "5px",
