@@ -46,7 +46,7 @@ const MythicTextField = ({
                              type = "text",
                              onEnter,
                              autoFocus,
-                             autoComplete,
+                             autoComplete=false,
                              showLabel = true,
                              variant = "outlined",
                              inline,
@@ -107,7 +107,7 @@ const MythicTextField = ({
                 autoFocus={autoFocus}
                 variant={variant}
                 data-lpignore={true}
-                autoComplete={autoComplete === undefined ? "new-password" : (autoComplete ? "on" : "new-password")}
+                autoComplete={autoComplete === undefined ? "new-password" : (autoComplete ? "on" : "off")}
                 disabled={disabled}
                 required={requiredValue}
                 InputLabelProps={inputLabelProps}

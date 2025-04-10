@@ -206,8 +206,8 @@ export function LoginForm(props){
                             {requestField.length === 0 &&
                                 <>
                                     <MythicTextField name='username' value={username} onChange={onUsernameChange}
-                                                     width={31} debounceDelay={0} showLabel={true}/>
-                                    <MythicTextField name='password' type="password" onEnter={submit} value={password}
+                                                     width={31} debounceDelay={0} showLabel={true} autoComplete={true}/>
+                                    <MythicTextField name='password' type="password" onEnter={submit} value={password} autoComplete={true}
                                                      onChange={onPasswordChange} width={31} debounceDelay={0} showLabel={true}/>
                                     <Button type="submit" color="primary" onClick={submit} variant="contained"
                                             style={{}}>Login</Button>

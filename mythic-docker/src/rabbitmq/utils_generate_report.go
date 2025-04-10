@@ -272,11 +272,12 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 	newFileMeta.ChunkSize = len(fileBytes)
 	newFileMeta.TotalChunks = 1
 	newFileMeta.ChunksReceived = 1
+	newFileMeta.Size = int64(len(fileBytes))
 	newFileMeta.OperatorID = reportConfig.OperatorOperation.CurrentOperator.ID
 	newFileMeta.OperationID = reportConfig.OperatorOperation.CurrentOperation.ID
 	if _, err := database.DB.NamedExec(`INSERT INTO filemeta 
-				(agent_file_id, "path", operation_id, operator_id, sha1, md5, complete, filename, comment, chunk_size, total_chunks, chunks_received)
-				VALUES (:agent_file_id, :path, :operation_id, :operator_id, :sha1, :md5, :complete, :filename, :comment, :chunk_size, :total_chunks, :chunks_received)`,
+				(agent_file_id, "path", operation_id, operator_id, sha1, md5, complete, filename, comment, chunk_size, total_chunks, chunks_received, size)
+				VALUES (:agent_file_id, :path, :operation_id, :operator_id, :sha1, :md5, :complete, :filename, :comment, :chunk_size, :total_chunks, :chunks_received, :size)`,
 		newFileMeta); err != nil {
 		logging.LogError(err, "Failed to create new filemeta data")
 		go SendAllOperationsMessage("Failed to create report", newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_WARNING)
@@ -321,8 +322,17 @@ func getOperationMetricsHTML(reportConfig GenerateReportMessage) []interface{} {
 		totalHighIntegrityCallbacks := 0
 		totalTasks := 0
 		excludedIDs := strings.Split(reportConfig.ExcludedIDs, ",")
+		for i, _ := range excludedIDs {
+			excludedIDs[i] = strings.TrimSpace(excludedIDs[i])
+		}
 		excludedUsers := strings.Split(reportConfig.ExcludedUsers, ",")
+		for i, _ := range excludedUsers {
+			excludedUsers[i] = strings.TrimSpace(excludedUsers[i])
+		}
 		excludedHosts := strings.Split(reportConfig.ExcludedHosts, ",")
+		for i, _ := range excludedHosts {
+			excludedHosts[i] = strings.TrimSpace(excludedHosts[i])
+		}
 		for i := 0; i < len(callbacks); i++ {
 			currentUser := callbacks[i].User
 			if callbacks[i].Domain != "" {
@@ -430,8 +440,17 @@ func getOperationMetricsJSON(reportConfig GenerateReportMessage) map[string]inte
 		totalHighIntegrityCallbacks := 0
 		totalTasks := 0
 		excludedIDs := strings.Split(reportConfig.ExcludedIDs, ",")
+		for i, _ := range excludedIDs {
+			excludedIDs[i] = strings.TrimSpace(excludedIDs[i])
+		}
 		excludedUsers := strings.Split(reportConfig.ExcludedUsers, ",")
+		for i, _ := range excludedUsers {
+			excludedUsers[i] = strings.TrimSpace(excludedUsers[i])
+		}
 		excludedHosts := strings.Split(reportConfig.ExcludedHosts, ",")
+		for i, _ := range excludedHosts {
+			excludedHosts[i] = strings.TrimSpace(excludedHosts[i])
+		}
 		for i := 0; i < len(callbacks); i++ {
 			currentUser := callbacks[i].User
 			if callbacks[i].Domain != "" {
@@ -511,8 +530,17 @@ func getCallbacksTaskingMitre(reportConfig GenerateReportMessage) []interface{} 
 	artifactRows := []XMLTableRows{}
 	// now to make a subsection for each callback
 	excludedIDs := strings.Split(reportConfig.ExcludedIDs, ",")
+	for i, _ := range excludedIDs {
+		excludedIDs[i] = strings.TrimSpace(excludedIDs[i])
+	}
 	excludedUsers := strings.Split(reportConfig.ExcludedUsers, ",")
+	for i, _ := range excludedUsers {
+		excludedUsers[i] = strings.TrimSpace(excludedUsers[i])
+	}
 	excludedHosts := strings.Split(reportConfig.ExcludedHosts, ",")
+	for i, _ := range excludedHosts {
+		excludedHosts[i] = strings.TrimSpace(excludedHosts[i])
+	}
 	if err := database.DB.Select(&callbacks, `SELECT 
     	callback.*,
     	p.id "payload.id",

@@ -160,7 +160,7 @@ export function ReportingTable(props){
                         </TableRow>
                     }
                     <TableRow hover>
-                        <TableCell>Exclude Callbacks With Matching Values</TableCell>
+                        <TableCell>Exclude Callbacks With Matching Values (comma separated)</TableCell>
                         <TableCell>
                                 <Table>
                                     <TableBody>
