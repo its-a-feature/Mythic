@@ -284,12 +284,12 @@ query commentFileMetaScreenshotQuery($operation_id: Int!, $comment: String!, $ho
 const tagFileMetaUploadSearch = gql`
 ${fileMetaFragment}
 query tagFileMetaUploadQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
-    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
+    tag_aggregate(distinct_on: filemeta_id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
+    tag(limit: $fetchLimit, distinct_on: filemeta_id, offset: $offset, order_by: {filemeta_id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, eventgroup_id: {_is_null: true},  is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
       filemetum{
         ...filemetaData
       }
@@ -299,12 +299,12 @@ query tagFileMetaUploadQuery($tag: String!, $host: String!, $offset: Int!, $fetc
 const tagFileMetaDownloadSearch = gql`
 ${fileMetaFragment}
 query tagFileMetaDownloadQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
-    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
+    tag_aggregate(distinct_on: filemeta_id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
+    tag(limit: $fetchLimit, distinct_on: filemeta_id, offset: $offset, order_by: {filemeta_id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
       filemetum {
         ...filemetaData
       }
@@ -315,12 +315,12 @@ query tagFileMetaDownloadQuery($tag: String!, $host: String!, $offset: Int!, $fe
 const tagFileBrowserSearch = gql`
 ${mythictreeFragment}
 query tagFileBrowserQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
-    tag_aggregate(distinct_on: id, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, deleted: {_eq: $deleted}, tree_type: {_eq: "file"}}}) {
+    tag_aggregate(distinct_on: mythictree_id, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, deleted: {_eq: $deleted}, tree_type: {_eq: "file"}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, deleted: {_eq: $deleted}, tree_type: {_eq: "file"}}}) {
+    tag(limit: $fetchLimit, distinct_on: mythictree_id, offset: $offset, order_by: {mythictree_id: desc}, where: {mythictree_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], mythictree: {host: {_ilike: $host}, deleted: {_eq: $deleted}, tree_type: {_eq: "file"}}}) {
       mythictree {
         ...mythictreeData
       }
@@ -331,12 +331,12 @@ query tagFileBrowserQuery($tag: String!, $host: String!, $offset: Int!, $fetchLi
 const tagFileMetaScreenshotSearch = gql`
 ${fileMetaFragment}
 query tagFileMetaScreenshotQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!, $deleted: Boolean!) {
-    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_screenshot: {_eq: true}}}) {
+    tag_aggregate(distinct_on: filemeta_id, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_screenshot: {_eq: true}}}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_screenshot: {_eq: true}}}) {
+    tag(limit: $fetchLimit, distinct_on: filemeta_id, offset: $offset, order_by: {filemeta_id: desc}, where: {filemeta_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}], filemetum: {host: {_ilike: $host}, deleted: {_eq: $deleted}, is_screenshot: {_eq: true}}}) {
       filemetum{
         ...filemetaData
       }

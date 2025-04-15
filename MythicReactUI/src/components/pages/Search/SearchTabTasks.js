@@ -86,12 +86,12 @@ query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $statu
 const tagSearch = gql`
 ${taskingDataFragment}
 query tagSearchTaskQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!) {
-    tag_aggregate(distinct_on: id, order_by: {id: desc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
+    tag_aggregate(distinct_on: task_id, order_by: {task_id: desc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
+    tag(limit: $fetchLimit, distinct_on: task_id, offset: $offset, order_by: {task_id: desc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
       task{
         ...taskData
       }

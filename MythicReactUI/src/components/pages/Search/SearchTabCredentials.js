@@ -107,12 +107,12 @@ query commentQuery($operation_id: Int!, $comment: String!, $offset: Int!, $fetch
 const tagSearch = gql`
 ${credentialFragment}
 query tagQuery($tag: String!, $offset: Int!, $fetchLimit: Int!) {
-    tag_aggregate(distinct_on: id, where: {credential_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}]}) {
+    tag_aggregate(distinct_on: credential_id, where: {credential_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}]}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {credential_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}]}) {
+    tag(limit: $fetchLimit, distinct_on: credential_id, offset: $offset, order_by: {credential_id: desc}, where: {credential_id: {_is_null: false}, _or: [{data: {_cast: {String: {_ilike: $tag}}}}, {tagtype: {name: {_ilike: $tag}}}]}) {
         credential {
             ...credentialSearchData
         }
