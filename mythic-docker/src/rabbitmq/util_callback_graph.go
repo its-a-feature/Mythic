@@ -174,6 +174,9 @@ func (g *cbGraph) getAllChildIDs(callbackId int) []int {
 }
 func updateTimes(updatedTime time.Time, callbackIDs []int) {
 	//logging.LogInfo("updateTimes", "callbacks", callbackIDs)
+	if len(callbackIDs) == 0 {
+		return
+	}
 	query, args, err := sqlx.Named(`UPDATE callback SET last_checkin=:last_checkin, active=:active WHERE id IN (:ids)`,
 		map[string]interface{}{"last_checkin": updatedTime, "ids": callbackIDs, "active": true})
 	if err != nil {

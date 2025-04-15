@@ -273,19 +273,21 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 		finalC2Profile := PayloadBuildC2Profile{
 			Name:       databaseC2Profile.Name,
 			IsP2P:      databaseC2Profile.IsP2p,
+			ID:         databaseC2Profile.ID,
 			Parameters: map[string]interface{}{},
 		}
 		/*
-			if !databaseC2Profile.ContainerRunning {
-				err := errors.New("C2 Profile container isn't running, can't task configuration checks")
-				logging.LogError(err, "C2 Profile container isn't running, can't task configuration checks")
-				return nil, err
+				if !databaseC2Profile.ContainerRunning {
+					err := errors.New("C2 Profile container isn't running, can't task configuration checks")
+					logging.LogError(err, "C2 Profile container isn't running, can't task configuration checks")
+					return nil, err
+				}
+
+			if !databaseC2Profile.Running && !databaseC2Profile.IsP2p {
+				// the profile isn't running, and it's not a P2P container, so issue the start task
+				go autoStartC2Profile(databaseC2Profile)
 			}
 		*/
-		if !databaseC2Profile.Running && !databaseC2Profile.IsP2p {
-			// the profile isn't running, and it's not a P2P container, so issue the start task
-			go autoStartC2Profile(databaseC2Profile)
-		}
 		databaseC2ProfileParameter := databaseStructs.C2profileparameters{}
 		if rows, err := database.DB.NamedQuery(`SELECT
 			*
@@ -412,7 +414,6 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 		}
 		finalC2Profiles = append(finalC2Profiles, finalC2Profile)
 	}
-
 	return finalC2Profiles, nil
 }
 

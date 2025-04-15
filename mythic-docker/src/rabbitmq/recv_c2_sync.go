@@ -300,11 +300,15 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 	return nil
 }
 
-func autoStartC2Profile(c2Profile databaseStructs.C2profile) {
+func autoStartC2Profile(c2Profile databaseStructs.C2profile) *C2StartServerMessageResponse {
 	// on a new sync, if it's not p2p, ask it to start
+	var c2StartResp *C2StartServerMessageResponse
+	var err error
 	if !c2Profile.IsP2p {
-		if c2StartResp, err := RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{Name: c2Profile.Name}); err != nil {
+		c2StartResp, err = RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{Name: c2Profile.Name})
+		if err != nil {
 			logging.LogError(err, "Failed to send start message to C2 profile")
+			c2StartResp.Error = err.Error()
 		} else {
 			UpdateC2ProfileRunningStatus(c2Profile, c2StartResp.InternalServerRunning)
 			if !c2StartResp.InternalServerRunning {
@@ -313,6 +317,7 @@ func autoStartC2Profile(c2Profile databaseStructs.C2profile) {
 		}
 	}
 	autoReHostFiles(c2Profile)
+	return c2StartResp
 }
 
 func autoReHostFiles(c2Profile databaseStructs.C2profile) {

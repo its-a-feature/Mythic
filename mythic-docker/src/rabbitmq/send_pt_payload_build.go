@@ -141,7 +141,6 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 		logging.LogError(err, "Failed to create new payload object for creating payload")
 		return "", 0, err
 	}
-	go emitPayloadLog(databasePayload.ID)
 	go func() {
 		// now that we have a payload, we need to handle adding build parameters
 		buildParameters, err := associateBuildParametersWithPayload(databasePayload, payloadDefinition.BuildParameters)
@@ -301,11 +300,8 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 		}
 		if !c2.IsP2P {
 			buildOutput += fmt.Sprintf("Step 3/%d - Issuing Start command\n", totalSteps)
-			if c2StartServerResponse, err := RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{
-				Name: c2.Name,
-			}); err != nil {
-				buildOutput += err.Error() + "\n"
-			} else if !c2StartServerResponse.Success {
+			c2StartServerResponse := autoStartC2Profile(databaseStructs.C2profile{Name: c2.Name, ID: c2.ID})
+			if !c2StartServerResponse.Success {
 				buildOutput += c2StartServerResponse.Error + "\n"
 			} else {
 				buildOutput += c2StartServerResponse.Message + "\n"

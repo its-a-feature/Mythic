@@ -31,6 +31,7 @@ type PayloadBuildMessage struct {
 type PayloadBuildC2Profile struct {
 	Name  string `json:"name"`
 	IsP2P bool   `json:"is_p2p"`
+	ID    int    `json:"id"`
 	// parameter name: parameter value
 	Parameters map[string]interface{} `json:"parameters"`
 }
@@ -135,6 +136,7 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 		ActionStderr:        databasePayload.BuildStderr,
 	}
 	logging.LogDebug("Finished processing payload build response message")
+	go emitPayloadLog(databasePayload.ID)
 }
 
 func updateLoadedCommandsFromPayloadBuild(databasePayload databaseStructs.Payload, newCommandList *[]string) error {
