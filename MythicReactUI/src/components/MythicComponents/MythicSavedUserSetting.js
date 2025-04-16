@@ -12,6 +12,11 @@ mutation updatePreferences($preferences: jsonb!){
     }
 }
 `;
+export const GetComputedFontSize = () => {
+    const element = document.getElementById('root');
+    const fontSizeString = window.getComputedStyle(element).fontSize;
+    return parseFloat(fontSizeString);
+}
 /*
 setting_name options:
     hideUsernames
@@ -65,7 +70,7 @@ export function useSetMythicSetting() {
         ({settings}) => {
             const updatedPreferences = {
                 ...mePreferences(),
-                ...settings
+                ...settings,
             };
             mePreferences(updatedPreferences);
             updateSetting({variables: {preferences: updatedPreferences}});

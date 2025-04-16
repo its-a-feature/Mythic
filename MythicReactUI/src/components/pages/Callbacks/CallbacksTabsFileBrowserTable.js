@@ -37,6 +37,7 @@ import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
 import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";
+import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
 
 const getFileDownloadHistory = gql`
     query getFileDownloadHistory($full_path_text: String!, $host: String!, $group: [String!]) {
@@ -538,7 +539,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                     sortIndicatorIndex={sortColumn}
                     sortDirection={sortData.sortDirection}
                     items={gridData}
-                    rowHeight={20}
+                    rowHeight={GetComputedFontSize() + 7}
                     onClickHeader={onClickHeader}
                     onDoubleClickRow={onRowDoubleClick}
                     contextMenuOptions={contextMenuOptions}
@@ -639,17 +640,13 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
     return (
         <div style={{ alignItems: 'center', display: 'flex', maxHeight: "100%", textDecoration: treeRootData[selectedFolderData.host][cellData]?.deleted ? 'line-through' : '' }}>
             {!treeRootData[selectedFolderData.host][cellData]?.can_have_children ? (
-                <DescriptionIcon style={{
-                    width: "15px",
-                    height: "15px",
+                <DescriptionIcon size={"small"} style={{
                     marginRight: '5px' }} />
             ) : (
                 <FontAwesomeIcon 
                     icon={faFolder}
-                    size={"lg"}
+                    size={"1x"}
                     style={{
-                        width: "15px",
-                        height: "15px",
                         marginRight: '5px',
                         color:
                         treeRootData[selectedFolderData.host][cellData]?.success || treeRootData[selectedFolderData.host][cellData]?.metadata?.has_children
@@ -668,11 +665,11 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
                 {treeRootData[selectedFolderData.host][cellData]?.name_text}
             </pre>
             {treeRootData[selectedFolderData.host][cellData]?.success === true ? (
-                <MythicStyledTooltip title='Successfully listed contents of folder' style={{display: "inline-flex", marginLeft: "5px"}}>
+                <MythicStyledTooltip title='Successfully listed contents of folder' tooltipStyle={{display: "inline-flex", marginLeft: "5px"}}>
                     <CheckCircleOutlineIcon color="success" fontSize='small' />
                 </MythicStyledTooltip>
             ) : treeRootData[selectedFolderData.host][cellData]?.success === false ? (
-                <MythicStyledTooltip title='Failed to list contents of folder' style={{display: "inline-flex", marginLeft: "5px"}}>
+                <MythicStyledTooltip title='Failed to list contents of folder' tooltipStyle={{display: "inline-flex", marginLeft: "5px"}}>
                     <ErrorIcon fontSize='small' color="error" />
                 </MythicStyledTooltip>
             ) : null}
@@ -864,7 +861,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
             {treeRootData[selectedFolderData.host][cellData]?.filemeta.length > 0 ?
                 <MythicStyledTooltip title={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.complete ?
                     "Preview Media" : "Preview Partial Media"}>
-                    <FontAwesomeIcon icon={faPhotoVideo} style={{height: "15px",
+                    <FontAwesomeIcon icon={faPhotoVideo} size={"1x"} style={{
                         position: "relative", cursor: "pointer", display: "inline-block"}}
                                      onClick={openFilePreview}/>
                 </MythicStyledTooltip>

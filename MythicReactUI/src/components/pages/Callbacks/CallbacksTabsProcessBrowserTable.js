@@ -22,6 +22,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
 import {faSkullCrossbones, faSyringe, faKey,} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
 
 const getPermissionsDataQuery = gql`
     query getPermissionsQuery($mythictree_id: Int!) {
@@ -605,7 +606,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                 sortIndicatorIndex={sortColumn}
                 sortDirection={sortData.sortDirection}
                 items={gridData}
-                rowHeight={20}
+                rowHeight={GetComputedFontSize() + 7}
                 onClickHeader={onClickHeader}
                 onDoubleClickRow={localOnDoubleClick}
                 contextMenuOptions={contextMenuOptions}

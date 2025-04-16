@@ -25,7 +25,7 @@ import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog
 import ip6 from 'ip6';
 import {CallbacksContext, OnOpenTabContext, OnOpenTabsContext} from "./CallbacksTop";
 import {useTheme} from '@mui/material/styles';
-import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting, useSetMythicSetting, GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
 import {DetailedCallbackTable} from "./DetailedCallbackTable";
 import {ModifyCallbackMythicTreeGroupsDialog} from "./ModifyCallbackMythicTreeGroupsDialog";
 import ClickAwayListener from '@mui/material/ClickAwayListener';
@@ -905,7 +905,7 @@ function CallbacksTablePreMemo(props){
                 sortIndicatorIndex={sortColumn}
                 sortDirection={sortData.sortDirection}
                 items={sortedData}
-                rowHeight={20}
+                rowHeight={GetComputedFontSize() + 7}
                 onClickHeader={onClickHeader}
                 onDoubleClickRow={onRowDoubleClick}
                 contextMenuOptions={contextMenuOptions}

@@ -250,7 +250,7 @@ export function SettingsOperatorUIConfigDialog(props) {
               showIP,
               showHostname,
               showCallbackGroups,
-              fontSize,
+              fontSize: parseInt(fontSize),
               fontFamily,
               showMedia,
               interactType,

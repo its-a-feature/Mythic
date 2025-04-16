@@ -254,11 +254,14 @@ function ViewTagDialog(props) {
     }
     props.onClose(event);
   }
-
+  const stopClicks = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  }
 return (
   <React.Fragment>
-      <DialogTitle id="form-dialog-title" onClick={(e) => e.stopPropagation()}>View Tag</DialogTitle>
-        <TableContainer className="mythicElement">
+      <DialogTitle id="form-dialog-title" onClick={stopClicks}>View Tag</DialogTitle>
+        <TableContainer className="mythicElement" onClick={stopClicks}>
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>

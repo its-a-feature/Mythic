@@ -19,6 +19,7 @@ import {faList, faTrashAlt, faSkullCrossbones, faCamera, faSyringe, faFolder, fa
   faFileWord, faFileExcel, faFilePowerpoint, faFilePdf, faDatabase, faKey, faFileCode, faDownload, faUpload,
   faFileImage, faCopy, faBoxOpen, faFileAlt, faCirclePlus, faCheck, faSquareXmark, faRotate } from '@fortawesome/free-solid-svg-icons';
 import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
+import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
 
 const onCopyToClipboard = (data) => {
   let result = copyStringToClipboard(data);
@@ -456,8 +457,8 @@ const createRowCells = ({row, rowIndex, headers, callback_id}) => {
 }
 export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const theme = useTheme();
-  const rowHeight = 20;
-  const headerHeight = 45;
+  const rowHeight = GetComputedFontSize() + 7;
+  const headerHeight = GetComputedFontSize() + 32;
   const maxHeight = 375;
   const [dataHeight, setDataHeight] = React.useState(maxHeight);
   const [allData, setAllData] = React.useState([]);
