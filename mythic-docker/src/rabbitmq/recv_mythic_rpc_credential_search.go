@@ -26,6 +26,7 @@ type MythicRPCCredentialSearchCredentialData struct {
 	Credential *string `json:"credential"` // optional
 	Comment    *string `json:"comment"`    // optional
 	Metadata   *string `json:"metadata"`   // optional
+	Task_ID	   int     `json:"task_id"`    // optional
 }
 
 func init() {
@@ -61,8 +62,8 @@ func MythicRPCCredentialSearch(input MythicRPCCredentialSearchMessage) MythicRPC
 			searchString += fmt.Sprintf("AND \"type\" ILIKE $%d ", len(params))
 		}
 		if input.SearchCredentials.Credential != nil {
-			params = append(params, "%"+*input.SearchCredentials.Credential+"%")
-			searchString += fmt.Sprintf("AND credential ILIKE $%d ", len(params))
+			params = append(params, *input.SearchCredentials.Credential)
+			searchString += fmt.Sprintf("AND credential=$%d ", len(params))
 		}
 		if input.SearchCredentials.Account != nil {
 			params = append(params, "%"+*input.SearchCredentials.Account+"%")
