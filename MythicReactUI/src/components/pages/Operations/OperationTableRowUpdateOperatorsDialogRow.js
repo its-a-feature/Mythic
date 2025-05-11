@@ -95,7 +95,6 @@ export function OperationTableRowUpdateOperatorsDialogRow(props){
                 <TableCell>
                     {checked ? (
                         <FormControl style={{width: "100%"}}>
-                            <InputLabel ref={inputRef}>Options</InputLabel>
                             <Select
                                 labelId="demo-dialog-select-label"
                                 id="demo-dialog-select"
@@ -113,7 +112,6 @@ export function OperationTableRowUpdateOperatorsDialogRow(props){
                 <TableCell>
                   {checked ? (
                     <FormControl style={{width: "100%"}}>
-                      <InputLabel ref={inputRef}>Block List Options</InputLabel>
                       <Select
                         labelId="demo-dialog-select-label"
                         id="demo-dialog-select"

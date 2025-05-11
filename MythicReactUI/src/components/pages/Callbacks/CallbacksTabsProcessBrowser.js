@@ -493,7 +493,7 @@ const ProcessBrowserTableTop = ({
     }
     return (
         <Grid container spacing={0} style={{paddingTop: "10px"}}>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <FormControl style={{width: "30%"}}>
                     <InputLabel ref={inputGroupRef}>Available Groups</InputLabel>
                     <Select

@@ -170,10 +170,12 @@ export function CommandBlockListTable(props){
     const onAcceptDelete = ({name}) => {
         deleteBlockList({variables:{name}})
     }
+    if(props?.me?.user?.current_operation_id === 0){
+        return null;
+    }
     return (
         <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
-            marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}} variant={"elevation"}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
             <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Command Block Lists
             </Typography>

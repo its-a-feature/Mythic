@@ -94,7 +94,7 @@ export const TaskDisplayContainer = ({task, me}) => {
                 bottom: "25px", right: "4px", height: 0}}
               fabStyle={{   }}
               viewAllOutput={selectAllOutput}/>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <ResponseDisplay
                 task={task} 
                 me={me}

@@ -11,11 +11,11 @@ import { RetryLink } from "@apollo/client/link/retry";
 import { getMainDefinition } from '@apollo/client/utilities'
 import { setContext } from '@apollo/client/link/context';
 import {snackActions} from './components/utilities/Snackbar';
-import jwt_decode from 'jwt-decode';
+import {jwtDecode} from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 
-export const mythicUIVersion = "0.3.27";
+export const mythicUIVersion = "0.3.28";
 
 let fetchingNewToken = false;
 
@@ -89,7 +89,7 @@ export const isJWTValid = () => {
   }
   //console.log("in isJWTValid", "access_token", access_token);
   if(access_token){
-    const decoded_token = jwt_decode(access_token);
+    const decoded_token = jwtDecode(access_token);
     if(getSkewedNow().getTime() > decoded_token.exp * 1000){
       console.log("exp is expired: ", decoded_token.exp * 1000, getSkewedNow().getTime())
       return false;
@@ -104,7 +104,7 @@ export const JWTTimeLeft = () => {
   let access_token = localStorage.getItem("access_token");
   //console.log("in isJWTValid", "access_token", access_token);
   if(access_token){
-    const decoded_token = jwt_decode(access_token);
+    const decoded_token = jwtDecode(access_token);
     return (decoded_token.exp * 1000) - getSkewedNow();
   }else{
     return 0;
@@ -119,7 +119,7 @@ const authLink = setContext( async (_, {headers}) => {
   }
     let access_token = localStorage.getItem('access_token');
     if(access_token){
-      const decoded_token = jwt_decode(access_token);
+      const decoded_token = jwtDecode(access_token);
       //console.log(decoded_token);
       // JWT lifetime is 4 hours. If there's 2hrs or less left of the JWT, update it
       let diff = (decoded_token.exp * 1000) - getSkewedNow();

@@ -18,7 +18,7 @@ import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOu
 import {restartWebsockets} from '../../../index';
 import {useNavigate} from 'react-router-dom';
 
-const updateCurrentOperationMutation = gql`
+export const updateCurrentOperationMutation = gql`
 mutation updateCurrentOpertionMutation($operator_id: Int!, $operation_id: Int!) {
   updateCurrentOperation(user_id: $operator_id, operation_id: $operation_id) {
     status
@@ -39,7 +39,7 @@ mutation toggleOperationDeleted($operation_id: Int!, $deleted: Boolean!){
   }
 }
 `;
-const addUserToOperation = gql`
+export const addUserToOperation = gql`
 mutation addNewOperators($operation_id: Int!, $add_users: [Int]) {
     updateOperatorOperation(operation_id: $operation_id, add_users: $add_users) {
         status
@@ -162,11 +162,13 @@ export function OperationTableRow(props){
                         disabled={me?.user?.current_operation_id !== props.id}
                         variant="contained">Analysis</Button>
                 </TableCell>
-                <TableCell>{props.id === me.user.current_operation_id ? ("Current Operation") : (
-                  <React.Fragment>
-                    <Button size="small" startIcon={<PlayArrowIcon/>} onClick={makeCurrentOperation} color="info" variant="contained">Make Current</Button>
-                  </React.Fragment>
-                )}</TableCell>
+                <TableCell>
+                    {props.id === me.user.current_operation_id ? ("Current Operation") : (
+                      <React.Fragment>
+                        <Button size="small" startIcon={<PlayArrowIcon/>} onClick={makeCurrentOperation} color="info" variant="contained">Make Current</Button>
+                      </React.Fragment>
+                    )}
+                </TableCell>
             </TableRow>
         </React.Fragment>
         )

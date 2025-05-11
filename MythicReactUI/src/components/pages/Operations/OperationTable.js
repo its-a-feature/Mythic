@@ -32,7 +32,7 @@ mutation NewOperator($username: String!, $password: String!) {
   }
 }
 `;
-const Update_Operation = gql`
+export const Update_Operation = gql`
 mutation MyMutation($operation_id: Int!, $channel: String!, $complete: Boolean!, $name: String!, $webhook: String!, $banner_text: String!, $banner_color: String!) {
     updateOperation(operation_id: $operation_id, channel: $channel, complete: $complete, name: $name, webhook: $webhook, banner_text: $banner_text, banner_color: $banner_color) {
         status
@@ -45,7 +45,7 @@ mutation MyMutation($operation_id: Int!, $channel: String!, $complete: Boolean!,
     }
 }
 `;
-const newOperationMutation = gql`
+export const newOperationMutation = gql`
 mutation newOperationMutation($name: String){
     createOperation(name: $name){
         status
@@ -113,7 +113,7 @@ export function OperationTable(props){
             snackActions.error("Unable to create new operation - Access Denied")
             console.log(data);
         }
-    })
+    });
     const onUpdateOperation = ({operation_id, name, channel, webhook, complete, banner_text, banner_color}) => {
         updateOperation({variables:{
             operation_id,
@@ -144,8 +144,7 @@ export function OperationTable(props){
     }
     return (
         <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
-            marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}} variant={"elevation"}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
             <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Operations
             </Typography>

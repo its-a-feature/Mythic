@@ -95,10 +95,9 @@ export function ReportingTable(props){
         }})
     }
     return (
-        <React.Fragment>
-
+    <React.Fragment>
         <TableContainer className="mythicElement">
-            <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
+            <Table  size="small" style={{"tableLayout": "fixed", width: "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "25rem"}}>Report Option</TableCell>
@@ -111,7 +110,6 @@ export function ReportingTable(props){
                         <TableCell>
                             <Select
                               autoFocus
-                              style={{width: "100%", marginBottom: "10px"}}
                               value={selectedOutputFormat}
                               onChange={setOutputFormat}
                             >
@@ -190,7 +188,9 @@ export function ReportingTable(props){
                 </TableBody>
             </Table>
         </TableContainer>
-        <Button variant="contained" style={{marginTop: "10px", backgroundColor: theme.palette.success.main, color: "white"}} onClick={onGenerateReport}>Generate</Button>
+        <div style={{display: "flex", justifyContent: "space-around"}}>
+            <Button color={"success"} style={{marginTop: "10px"}} onClick={onGenerateReport}>Start Generating</Button>
+        </div>
     </React.Fragment>
     )
 }

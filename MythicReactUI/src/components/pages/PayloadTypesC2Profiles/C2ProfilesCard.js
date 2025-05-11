@@ -171,7 +171,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                 <MythicTableCell>
                     {service.name}
                 </MythicTableCell>
-                <MythicTableCell>C2 Profile</MythicTableCell>
+                <MythicTableCell>{service.is_p2p ? "P2P" : "Egress"}</MythicTableCell>
                 <MythicTableCell>
                     <Typography variant="body1" component="p">
                         <b>Author:</b> {service.author}
@@ -184,6 +184,9 @@ export function C2ProfilesRow({service, showDeleted}) {
                     </Typography>
                 </MythicTableCell>
                 <MythicTableCell>
+                    <Typography variant="body2" component="p" >
+                        <b>Container Status: </b>
+                    </Typography>
                     <Typography variant="body2" component="p" color={service.container_running ? theme.palette.success.main : theme.palette.error.main} >
                         <b>{service.container_running ? "Online" : "Offline"}</b>
                     </Typography>
@@ -203,7 +206,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                                 <b>C2 Server Status: </b>
                             </Typography>
                             <Typography variant="body2" component="p" style={{color:theme.palette.error.main}}>
-                                <b>{"Not Accepting Connection"}</b>
+                                <b>{"Not Accepting Connections"}</b>
                             </Typography>
                         </React.Fragment>
                     }
@@ -212,10 +215,9 @@ export function C2ProfilesRow({service, showDeleted}) {
                     {service.container_running ? (
                         service.running ?
                             (
-                                <ButtonGroup variant="contained" color={"secondary"} ref={dropdownAnchorRef} aria-label="split button" >
+                                <ButtonGroup ref={dropdownAnchorRef} aria-label="split button" >
                                     <Button size="small"
                                             disabled={alreadyRunningStartStop}
-                                            color={service.running ? "success" : "error"}
                                             onClick={onStartStopProfile}
                                             style={{width: "100%"}}>
                                         {alreadyRunningStartStop ? "Waiting..." : "Stop Profile"}
@@ -227,7 +229,6 @@ export function C2ProfilesRow({service, showDeleted}) {
                                         aria-expanded={dropdownOpen ? 'true' : undefined}
                                         aria-label="select merge strategy"
                                         aria-haspopup="menu"
-                                        color={service.running ? "success" : "error"}
                                         onClick={handleDropdownToggle}
                                     >
                                         <ArrowDropDownIcon />
@@ -237,11 +238,10 @@ export function C2ProfilesRow({service, showDeleted}) {
                             :
                             (
                                 service.is_p2p ? null : (
-                                    <ButtonGroup size="small" variant="contained" ref={dropdownAnchorRef} aria-label="split button" color={service.running ? "success" : "error"} >
+                                    <ButtonGroup size="small" ref={dropdownAnchorRef} aria-label="split button"  >
                                         <Button size="small"
                                                 disabled={alreadyRunningStartStop}
                                                 onClick={onStartStopProfile}
-                                                color={service.running ? "success" : "error"}
                                                 style={{width: "100%"}}>
                                             {alreadyRunningStartStop ? "Waiting..." : "Start Profile"}
                                         </Button>
@@ -252,7 +252,6 @@ export function C2ProfilesRow({service, showDeleted}) {
                                             aria-expanded={dropdownOpen ? 'true' : undefined}
                                             aria-label="select merge strategy"
                                             aria-haspopup="menu"
-                                            color={service.running ? "success" : "error"}
                                             onClick={handleDropdownToggle}
                                         >
                                             <ArrowDropDownIcon />
@@ -283,7 +282,7 @@ export function C2ProfilesRow({service, showDeleted}) {
                     <MythicStyledTooltip title={"Save/Edit Instances for Building"}>
                         <IconButton
                             onClick={() => {setOpenProfileSavedInstancesDialog(true);}}
-                            color={"success"}
+                            color={"secondary"}
                             size="medium">
                             <SaveIcon />
                         </IconButton>

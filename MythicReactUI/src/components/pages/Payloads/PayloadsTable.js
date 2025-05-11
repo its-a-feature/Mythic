@@ -2,7 +2,6 @@ import React from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
@@ -74,8 +73,7 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
     };
     return (
         <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px",
-                marginRight: "5px"}} variant={"elevation"}>
+            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
                 <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Payloads
                 </Typography>
@@ -120,20 +118,17 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
                 }
             </Paper>
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
-                <TableContainer>
-                    <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll", tableLayout: "fixed"}}>
+
+                    <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "auto", tableLayout: "fixed"}}>
                         <TableHead >
                             <TableRow>
-                                <TableCell style={{width: "2rem"}}></TableCell>
                                 <TableCell style={{width: "6rem"}}></TableCell>
-                                <TableCell>Progress</TableCell>
-                                <TableCell style={{width: "6rem"}}>Download</TableCell>
-                                <TableCell>Tags</TableCell>
+                                <TableCell style={{width: "3rem"}}></TableCell>
                                 <TableCell>File</TableCell>
+                                <TableCell>Progress</TableCell>
                                 <TableCell>Description</TableCell>
                                 <TableCell >C2 Status</TableCell>
-                                <TableCell style={{width: "3rem"}}></TableCell>
-                                <TableCell style={{width: "3rem"}}></TableCell>
+                                <TableCell>Tags</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -150,7 +145,6 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
                         ))}
                         </TableBody>
                     </Table>
-                </TableContainer>
             </div>
             <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: "5px", paddingBottom: "10px"}}>
                 <Pagination count={Math.ceil(pageData.totalCount / pageData.fetchLimit)} variant="outlined" color="primary" boundaryCount={1}

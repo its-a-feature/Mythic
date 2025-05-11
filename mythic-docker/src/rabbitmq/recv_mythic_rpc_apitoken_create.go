@@ -116,9 +116,9 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage) MythicRPCAPIT
 		return response
 	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens 
-		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id) 
+		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id, payload_id) 
 		VALUES
-		(:token_value, :operator_id, :token_type, :active, :name, :created_by, :task_id, :callback_id)
+		(:token_value, :operator_id, :token_type, :active, :name, :created_by, :task_id, :callback_id, :payload_id)
 		RETURNING id`)
 	if err != nil {
 		response.Error = err.Error()

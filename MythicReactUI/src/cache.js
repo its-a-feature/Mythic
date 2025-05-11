@@ -36,7 +36,7 @@ export const operatorSettingDefaults =  {
     ["experiment-responseStreamLimit"]: 50,
     palette: {
         primary: {
-            dark: "#465b73",
+            dark: "#75859b",
             light: "#75859b",
         },
         error: {
@@ -109,6 +109,11 @@ export const operatorSettingDefaults =  {
         }
     },
 }
+export const defaultShortcuts = [
+    "ActiveCallbacks", "Payloads", "PayloadTypesAndC2",
+    "Operations", "SearchFiles", "SearchProxies",
+     "Reporting", "Eventing",
+].sort();
 export const mePreferences = makeVar(operatorSettingDefaults);
 
 

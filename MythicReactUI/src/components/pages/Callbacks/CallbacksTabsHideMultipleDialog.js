@@ -94,7 +94,10 @@ const columns = [
 ];
 const CustomSelectTable = ({initialData, selectedData}) => {
     const [data, setData] = React.useState([]);
-    const [rowSelectionModel, setRowSelectionModel] = React.useState([]);
+    const [rowSelectionModel, setRowSelectionModel] = React.useState({
+        type: 'include',
+        ids: new Set([]),
+    });
     React.useEffect( () => {
         selectedData.current = data.reduce( (prev, cur) => {
             if(rowSelectionModel.includes(cur.id)){return [...prev, cur]}

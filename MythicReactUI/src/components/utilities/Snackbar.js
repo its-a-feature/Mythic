@@ -59,10 +59,11 @@ export const CloseButton = ({ closeToast }) => {
   };
   const [dnd, setDnd] = React.useState(stillDoNotDisturb());
   return (
-      <div >
+      <div style={{flexGrow: 1}} >
         {!dnd &&
             <>
-            <ButtonGroup ref={dropdownAnchorRef} aria-label="split button" style={{marginRight: "10px", marginTop:"10px", float: "right"}}>
+            <ButtonGroup ref={dropdownAnchorRef} aria-label="split button"
+                         style={{marginRight: "10px", marginTop:"10px", float: "right"}}>
               <Button  aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                       aria-expanded={dropdownOpen ? 'true' : undefined}
                       aria-haspopup="menu"
@@ -124,28 +125,35 @@ const stillDoNotDisturb = () => {
   }));
   return false; // disturb now!
 }
+const ToastComponent = ({msg}) => {
+  return (
+      <div style={{display: "flex"}}>
+        {msg}
+      </div>
+  )
+}
 export const snackActions = {
   success(msg, options) {
     if(document.hidden){return}
-    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "success", onClick: this.dismiss, ...options});
+    toast(msg, {position: "top-center", type: "success", onClick: this.dismiss, ...options});
   },
   warning(msg, options) {
     if(document.hidden){return}
     if(stillDoNotDisturb()){
       return;
     }
-    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "warning", onClick: this.dismiss, closeButton: CloseButton, ...options});
+    toast(msg, {position: "top-center", type: "warning", onClick: this.dismiss, closeButton: CloseButton, ...options});
   },
   info(msg, options) {
     if(document.hidden){return}
     if(stillDoNotDisturb()){
       return;
     }
-    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "info", onClick: this.dismiss, closeButton: CloseButton, ...options});
+    toast(msg, {position: "top-center", type: "info", onClick: this.dismiss, closeButton: CloseButton, ...options});
   },
   error(msg, options) {
     if(document.hidden){return}
-    toast(msg, {position: toast.POSITION.TOP_CENTER, type: "error", onClick: this.dismiss, ...options});
+    toast(msg, {position: "top-center", type: "error", onClick: this.dismiss, ...options});
   },
   update(msg, toastID, options) {
     if(document.hidden){return}
@@ -155,7 +163,7 @@ export const snackActions = {
   },
   loading(msg, options) {
     if(document.hidden){return}
-    toast.loading(msg,{position: toast.POSITION.TOP_CENTER, ...options})
+    toast.loading(msg,{position: "top-center", ...options})
   },
   dismiss(){
     toast.dismiss();

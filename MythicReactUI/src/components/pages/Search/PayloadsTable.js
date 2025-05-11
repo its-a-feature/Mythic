@@ -95,16 +95,13 @@ export function SearchPayloadsTable({payloads, setPayloads, showDeleted, me}){
                     <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll", tableLayout: "fixed"}}>
                         <TableHead>
                             <TableRow>
-                                <TableCell style={{width: "2rem"}}></TableCell>
                                 <TableCell style={{width: "6rem"}}></TableCell>
-                                <TableCell>Progress</TableCell>
-                                <TableCell style={{width: "6rem"}}>Download</TableCell>
-                                <TableCell>Tags</TableCell>
+                                <TableCell style={{width: "3rem"}}></TableCell>
                                 <TableCell>File</TableCell>
+                                <TableCell>Progress</TableCell>
                                 <TableCell>Description</TableCell>
                                 <TableCell >C2 Status</TableCell>
-                                <TableCell style={{width: "3rem"}}></TableCell>
-                                <TableCell style={{width: "3rem"}}></TableCell>
+                                <TableCell>Tags</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>

@@ -2,7 +2,6 @@ import React from 'react';
 import {Typography, Link} from '@mui/material';
 import { Button, IconButton } from '@mui/material';
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
-import {modeOptions} from "../Search/PreviewFileStringDialog";
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import AceEditor from 'react-ace';
@@ -54,7 +53,9 @@ import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import WarningOutlinedIcon from '@mui/icons-material/WarningOutlined';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 
-
+export const modeOptions = ["csharp", "golang", "html", "json", "markdown", "ruby", "python", "java",
+    "javascript", "yaml", "toml", "swift", "sql", "rust", "powershell", "pgsql", "perl", "php", "objectivec",
+    "nginx", "makefile", "kotlin", "dockerfile", "sh", "ini", "apache_conf"].sort();
 const fileMetaQuery = gql`
     query fileMetaStats($agent_file_id: String!){
         filemeta(where: {agent_file_id: {_eq: $agent_file_id}}){

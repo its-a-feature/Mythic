@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc65] - 2025-05-11
+
+### Changed
+
+- Fixed a bug with credential searching via MythicRPC
+- Updated healthcheck to include details about all installed services
+- Fixed issue in apitoken create for tasks
+- Updated post response token action to be "add" if none specified
+- Updated callbackToken action to be "add" if none specified
+- Updated command action to be "add" if none specified
+- Updated README sponsors
+
 ## [3.3.1-rc64] - 2025-04-15
 
 ### Changed

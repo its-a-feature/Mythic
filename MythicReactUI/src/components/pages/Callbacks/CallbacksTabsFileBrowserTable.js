@@ -520,12 +520,12 @@ export const CallbacksTabsFileBrowserTable = (props) => {
             ]
         }
         let options = [...optionsA(rowDataStatic)];
-        options.push(...await optionsB(props.tabInfo.callbackID, props.tabInfo.displayID, rowDataStatic));
+        options.push(...(await optionsB(props.tabInfo.callbackID, props.tabInfo.displayID, rowDataStatic)));
         if(rowDataStatic.callback.display_id !== props.tabInfo.displayID){
             options.push({
                 name: `Original Callback: ${rowDataStatic.callback.display_id}`, icon: null, click: () => {}, type: "menu",
                 menuItems: [
-                    ...await optionsB(rowDataStatic.callback.id, rowDataStatic.callback.display_id, rowDataStatic)
+                    ...(await optionsB(rowDataStatic.callback.id, rowDataStatic.callback.display_id, rowDataStatic))
                 ]
             })
         }
@@ -647,7 +647,8 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
                     icon={faFolder}
                     size={"1x"}
                     style={{
-                        marginRight: '5px',
+                        marginRight: '8px',
+                        marginLeft: "4px",
                         color:
                         treeRootData[selectedFolderData.host][cellData]?.success || treeRootData[selectedFolderData.host][cellData]?.metadata?.has_children
                                 ? theme.folderColor

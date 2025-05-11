@@ -882,7 +882,7 @@ const FileBrowserTableTop = ({
     }, [autoTaskLsOnEmptyDirectories]);
     return (
         <Grid container spacing={0} style={{ paddingTop: '10px' }}>
-            <Grid item xs={12} >
+            <Grid size={12}>
                 <MythicTextField
                     placeholder={selectedFolderData.host}
                     value={fullPath}

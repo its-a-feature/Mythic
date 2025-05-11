@@ -861,7 +861,7 @@ func handleAgentMessagePostResponseTokens(task databaseStructs.Task, tokens *[]a
 	var err error
 	err = nil
 	for _, token := range *tokens {
-		if token.Action == "add" {
+		if token.Action == "add" || token.Action == "" {
 			_, err = addToken(task, token)
 		} else if token.Action == "remove" {
 			err = removeToken(task, token)
@@ -898,7 +898,7 @@ func handleAgentMessagePostResponseCallbackTokens(task databaseStructs.Task, cal
 			} else {
 				logging.LogDebug("Successfully removed token from callback")
 			}
-		} else if callbackToken.Action == "add" {
+		} else if callbackToken.Action == "add" || callbackToken.Action == "" {
 			// we want to associate a new token with the callback (one that already exists or create one)
 			if callbackToken.TokenInfo != nil {
 				// we'll create a new token and associate it with this callback
@@ -963,7 +963,7 @@ func handleAgentMessagePostResponseCommands(task databaseStructs.Task, commands 
 			logging.LogError(err, "Failed to find specified command for loading")
 			continue
 		}
-		if command.Action == "add" {
+		if command.Action == "add" || command.Action == "" {
 			// need to register this databaseCommand.ID with the callback
 			loadedCommand := databaseStructs.Loadedcommands{
 				CommandID:  databaseCommand.ID,

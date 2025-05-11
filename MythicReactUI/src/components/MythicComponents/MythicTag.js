@@ -116,6 +116,7 @@ export const TagsDisplay = ({tags}) => {
 }
 const TagChipDisplay = ({tag}) => {
   const [openTagDisplay, setOpenTagDisplay] = React.useState(false);
+  const [label, setLabel] = React.useState(tag.tagtype.name[0]);
   const onSelectTag = (event, tag) => {
     if(event){
       event.preventDefault();
@@ -130,9 +131,17 @@ const TagChipDisplay = ({tag}) => {
     }
     setOpenTagDisplay(false);
   }
+  const onMouseOver = () => {
+    setLabel(tag.tagtype.name);
+  }
+  const onMouseOut = () => {
+    setTimeout( () => {
+      setLabel(tag.tagtype.name[0]);
+    }, 10000); // wait 10s then go back to just a single letter
+  }
   return (
     <React.Fragment>
-      <Chip label={tag.tagtype.name} size="small" onClick={(e) => onSelectTag(e)}
+      <Chip onMouseOver={onMouseOver} onMouseOut={onMouseOut} label={label} size="small" onClick={(e) => onSelectTag(e)}
             style={{float: "right", backgroundColor:tag.tagtype.color,}}
             sx={{
               "& .MuiChip-label": {overflow: "visible"}
@@ -382,7 +391,11 @@ export function ViewEditTagsDialog(props) {
         setNewSource(data.tag[0].source);
         setNewURL(data.tag[0].url);
         try{
-          setNewData(JSON.stringify(data.tag[0].data, null, 2));
+          if(typeof data.tag[0].data !== "string"){
+            setNewData(JSON.stringify(data.tag[0].data, null, 2));
+          } else {
+            setNewData(String(data.tag[0].data));
+          }
         }catch(error){
           setNewData(String(data.tag[0].data));
         }

@@ -15,7 +15,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import { useReactiveVar } from '@apollo/client';
-import {menuOpen, FailedRefresh} from '../cache';
+import {menuOpen, FailedRefresh, defaultShortcuts} from '../cache';
 import { TopAppBarVerticalEventLogNotifications} from './TopAppBarEventLogNotifications';
 import { EventFeedNotifications } from './EventFeedNotifications';
 import HelpTwoToneIcon from '@mui/icons-material/HelpTwoTone';
@@ -45,7 +45,6 @@ import ThumbDownTwoTone from '@mui/icons-material/ThumbDownTwoTone';
 import { MythicDialog } from './MythicComponents/MythicDialog';
 import {MythicFeedbackDialog} from './MythicComponents/MythicFeedbackDialog';
 import LocalOfferTwoToneIcon from '@mui/icons-material/LocalOfferTwoTone';
-import PublicIcon from '@mui/icons-material/Public';
 import LightModeTwoToneIcon from '@mui/icons-material/LightModeTwoTone';
 import DarkModeTwoToneIcon from '@mui/icons-material/DarkModeTwoTone';
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
@@ -440,19 +439,6 @@ const GraphQL = () => {
       </StyledListItem>
   )
 }
-const ConsumingServices = () => {
-    const theme = useTheme();
-  return (
-      <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/consuming_services' key={"consuming"} >
-        <StyledListItemIcon>
-            <MythicStyledTooltip title={"Consuming Services"} tooltipStyle={{display: "inline-flex"}}>
-                <PublicIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"} className="mythicElement"/>
-            </MythicStyledTooltip>
-        </StyledListItemIcon>
-        <ListItemText primary={"Consuming Services"} />
-      </StyledListItem>
-  )
-}
 const CreatePayload = () => {
     const theme = useTheme();
   return (
@@ -486,11 +472,11 @@ const PayloadTypesAndC2 = () => {
   return (
       <StyledListItem button className={classes.listSubHeader} component={Link} to='/new/payloadtypes' key={"payloadtypes"}>
         <StyledListItemIcon>
-            <MythicStyledTooltip title={"Payload Types & C2"} tooltipStyle={{display: "inline-flex"}}>
+            <MythicStyledTooltip title={"Installed Services"} tooltipStyle={{display: "inline-flex"}}>
                 <HeadsetTwoToneIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"} className="mythicElement"/>
             </MythicStyledTooltip>
         </StyledListItemIcon>
-        <ListItemText primary={"Payload Types & C2"} />
+        <ListItemText primary={"Installed Services"} />
       </StyledListItem>
   )
 }
@@ -524,14 +510,10 @@ const AllSettingOptions = [
     "Dashboard", "ActiveCallbacks", "Payloads", "SearchCallbacks", "SearchTasks", "SearchPayloads",
     "SearchFiles", "SearchScreenshots", "SearchCredentials", "SearchKeylogs", "SearchArtifacts", "SearchTokens", "SearchProxies",
     "SearchProcesses", "SearchTags", "Mitre", "Reporting", "Tags", "Eventing", "JupyterNotebook",
-    "GraphQL", "ConsumingServices", "CreatePayload", "CreateWrapper", "PayloadTypesAndC2", "Operations",
+    "GraphQL", "CreatePayload", "CreateWrapper", "PayloadTypesAndC2", "Operations",
     "BrowserScripts"
 ].sort();
-const defaultShortcuts = [
-    "PayloadTypesAndC2", "Payloads", "SearchCallbacks", "SearchFiles", "SearchArtifacts", "SearchProxies",
-    "SearchScreenshots", "SearchCredentials", "ActiveCallbacks", "Reporting",  "Mitre",
-    "Tags", "Eventing",
-].sort();
+
 const TopAppBarVerticalAdjustShortcutsDialog = ({onClose}) => {
     const theme = useTheme();
     const sideShortcuts = useGetMythicSetting({setting_name: "sideShortcuts", default_value: defaultShortcuts})
@@ -720,8 +702,6 @@ export function TopAppBarVertical(props) {
                   return <JupyterNotebook key={c + i} />
               case "GraphQL":
                   return <GraphQL key={c + i} />
-              case "ConsumingServices":
-                  return <ConsumingServices key={c + i} />
               case "CreatePayload":
                   return <CreatePayload key={c + i} />
               case "CreateWrapper":
@@ -808,19 +788,21 @@ export function TopAppBarVertical(props) {
 
             } />
         </StyledListItem>
-          <Divider style={{borderColor: "white"}} />
-            {getShortcuts({shortcuts: sideShortcuts})}
-          <Divider style={{borderColor: "white"}} />
-            <StyledListItem button className={classes.listSubHeader} onClick={handleToggleExtra}>
-                <StyledListItemIcon>
-                    <MoreHorizIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"} />
-                </StyledListItemIcon>
-                <ListItemText>Extra Shortcuts</ListItemText>
-                {openExtra ? <ExpandLess /> : <ExpandMore />}
-            </StyledListItem>
-            {openExtra &&  getExtraShortcuts()}
             <Divider style={{borderColor: "white"}} />
-          <div className={classes.listSubHeader} style={{ flexGrow: 1}}></div>
+            <div style={{flexGrow: 1, overflowY: "auto", overflowX: "hidden"}}>
+                {getShortcuts({shortcuts: sideShortcuts})}
+                <Divider style={{borderColor: "white"}} />
+                <StyledListItem button className={classes.listSubHeader} onClick={handleToggleExtra}>
+                    <StyledListItemIcon>
+                        <MoreHorizIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"} />
+                    </StyledListItemIcon>
+                    <ListItemText>Extra Shortcuts</ListItemText>
+                    {openExtra ? <ExpandLess /> : <ExpandMore />}
+                </StyledListItem>
+                {openExtra &&  getExtraShortcuts()}
+                <Divider style={{borderColor: "white"}} />
+                <div className={classes.listSubHeader} style={{ flexGrow: 1}}></div>
+            </div>
           <TopBarRightShortcutsVertical me={me} isOpen={isOpen} serverName={serverName} />
         </List>
       </Drawer>

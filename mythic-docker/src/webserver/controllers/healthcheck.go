@@ -11,21 +11,21 @@ import (
 
 func HealthCheckDetailed(c *gin.Context) {
 	// webserver must obviously be running if we got this request
-	result := rabbitmq.HealthCheck()
-	if jsonBytes, err := json.MarshalIndent(result, "", "    "); err != nil {
+	result := rabbitmq.HealthCheck(true)
+	jsonBytes, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
 		logging.LogError(err, "Failed to marshal result from health check")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
-	} else {
-		c.String(http.StatusOK, "%s", jsonBytes)
 	}
+	c.String(http.StatusOK, "%s", jsonBytes)
 	return
 
 }
 
 func HealthCheckSimple(c *gin.Context) {
 	// webserver must obviously be running if we got this request
-	result := rabbitmq.HealthCheck()
+	result := rabbitmq.HealthCheck(false)
 	if result.RabbitmqSuccess && result.DatabaseSuccess && result.GRPCSuccess {
 		c.Status(http.StatusOK)
 	} else {

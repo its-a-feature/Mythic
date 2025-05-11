@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.28] - 2025-05-11
+
+### Changed
+
+- Updated the cli parsing to accept partial match tab complete for static choice lists 
+- Updated MaterialUI libraries
+- Updated tags to only show first letter until you hover over them to help minimize space
+- Updated Payloads page to be less busy and indicate meaningful data better
+- Updated PayloadTypes&C2Profiles page to Installed Services page
+  - Added tabs for each kind of installed service with counts
+  - Removed dedicated "Consuming Services" page
+- Updated default shortcuts for vertical nav bar
+- Removed horizontal top nav bar and now only use the vertical navbar
+- Fixed an issue with multi-select on the payload builders page
+- Updated dashboard home page to have "Operator", "Lead", and "Custom" views
+  - Custom view is saved to your preferences and allows you to choose which dashboard elements on which rows you want
+  - Dashboard elements have additional action buttons and shortcuts
+
 ## [0.3.27] - 2025-04-16
 
 ### Changed

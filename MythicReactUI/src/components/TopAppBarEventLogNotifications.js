@@ -2,9 +2,6 @@ import React from 'react';
 import {useSubscription, gql } from '@apollo/client';
 import Badge from '@mui/material/Badge';
 import NotificationsActiveTwoToneIcon from '@mui/icons-material/NotificationsActiveTwoTone';
-import { Link } from 'react-router-dom';
-import { IconButton } from '@mui/material';
-import {MythicStyledTooltip} from "./MythicComponents/MythicStyledTooltip";
 import { useTheme } from '@mui/material/styles';
 import {alertCount} from "../cache";
 
@@ -17,53 +14,12 @@ subscription OperationAlertCounts{
 }
  `;
 
-export function TopAppBarEventLogNotifications(props) {
-    const [alerts, setAlerts] = React.useState(alertCount());
-    const { loading, error } = useSubscription(SUB_Event_Logs, {
-        onError: data => {
-            console.error(data);
-        },
-        onData: ({data}) => {
-
-            const newAlertCount = data.data.operation_stream[0].alert_count;
-            if(newAlertCount !== alerts){
-                setAlerts(newAlertCount);
-                alertCount(newAlertCount);
-            }
-        }
-    });
-
-    return (
-            <MythicStyledTooltip title="Event Feed">
-                <IconButton
-                    color="inherit"
-                    component={Link}
-                    disableFocusRipple={true}
-                    disableRipple={true}
-                    to='/new/EventFeed'
-                    style={{float: "right"}}>
-                    {error ? (
-                        <Badge color="secondary" badgeContent={"X"}>
-                            <NotificationsActiveTwoToneIcon fontSize={"large"}  />
-                        </Badge>
-                    ) : (
-                        <Badge badgeContent={alerts}
-                               color="error" max={99}
-                               sx={{marginTop: "3px"}}
-                        >
-                            <NotificationsActiveTwoToneIcon fontSize={"large"}
-                            style={{marginTop: "-3px"}}/>
-                        </Badge>
-                    )}
-                </IconButton>
-            </MythicStyledTooltip>
-    );
-}
 export function TopAppBarVerticalEventLogNotifications(props) {
     const theme = useTheme();
     const [alerts, setAlerts] = React.useState(alertCount());
     const { loading, error } = useSubscription(SUB_Event_Logs, {
         onError: data => {
+            console.log("vertical event log error")
             console.error(data);
         },
         onData: ({data}) => {

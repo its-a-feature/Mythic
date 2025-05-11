@@ -15,7 +15,6 @@ import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableHead from '@mui/material/TableHead';
 import TableContainer from '@mui/material/TableContainer';
-import Paper from '@mui/material/Paper';
 
 export function PayloadsTableRowBuildProgress(props){
     const [buildProgressData, setBuildProgressData] = React.useState({
@@ -89,18 +88,18 @@ export function PayloadsTableRowBuildProgress(props){
     }
     const getButton = (step) => {
         if(step.step_skip){
-            return <HideSourceIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
+            return <HideSourceIcon style={{cursor: "pointer", filter: "grayscale(1)", opacity: 0.3}} onClick={() => buildStepClick(step)}/>
         }
         if(step.end_time === null){
             // this will either be the current step or a future step
             if(step.start_time === null){
                 // this we have no info on it, so it's just waiting
-                return <PanoramaFishEyeIcon style={{cursor: "pointer"}} onClick={() => buildStepClick(step)} />
+                return <PanoramaFishEyeIcon style={{cursor: "pointer", filter: "grayscale(1)", opacity: 0.3}} onClick={() => buildStepClick(step)} />
             } else {
                 if(props.build_phase === "building"){
                     return <TimelapseIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
                 } else {
-                    return <HideSourceIcon style={{cursor: "pointer"}} color="info" onClick={() => buildStepClick(step)}/>
+                    return <HideSourceIcon style={{cursor: "pointer", filter: "grayscale(1)", opacity: 0.3}} color={"info"} onClick={() => buildStepClick(step)}/>
                 }
             }
         } else if(step.step_success) {
@@ -110,23 +109,23 @@ export function PayloadsTableRowBuildProgress(props){
         }
     }
     return (
-        <React.Fragment>
-            {buildProgressData.total_steps > 0 ? (
-                <React.Fragment>
-                    {props.payload_build_steps.map( step => (
+        <span style={props.build_phase === "success" ? {
+            filter: "grayscale(1)",
+            opacity: 0.5} : {}}>
+            {buildProgressData.total_steps > 0 &&
+                    props.payload_build_steps.map( step => (
                         <MythicStyledTooltip title={step.step_name} key={"buildstep" + step.step_number}>
                             {getButton(step)}
                         </MythicStyledTooltip>
-                    ))}
-                </React.Fragment>
-                ) : null}
+                    ))
+                }
                 {openStatusDialog &&
                     <MythicDialog fullWidth={true} maxWidth="lg" open={openStatusDialog} 
                         onClose={()=>{setOpenStatusDialog(false);}} 
                         innerDialog={<PayloadBuildStepStatusDialog step={displayData} onClose={()=>{setOpenStatusDialog(false);}} />}
                     />
                 }
-        </React.Fragment>
+        </span>
     );
 }
 

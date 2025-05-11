@@ -119,7 +119,7 @@ export function Operations(props){
                         onNewOperation={onNewOperation} me={props.me}
                         onUpdateCurrentOperation={onUpdateCurrentOperation}
                         updateDeleted={updateDeleted}/>
-        <CommandBlockListTable blockLists={blockLists} />
+        <CommandBlockListTable blockLists={blockLists} me={props.me} />
       </div>
     );
 } 

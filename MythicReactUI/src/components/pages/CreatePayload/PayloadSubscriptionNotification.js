@@ -106,7 +106,7 @@ subscription NewPayloadsSubscription($fromNow: timestamp!) {
 
 const SnackMessage = (props) => {
     return (
-        <React.Fragment>                    
+        <div style={{display: "flex", flexDirection: "column"}}>
             <Typography variant="subtitle2" className={classes.typography}>
                     {props.payloadData.build_phase === "success" ? (
                         "Payload successfully built!"
@@ -114,17 +114,17 @@ const SnackMessage = (props) => {
                         "Payload Building..."
                     )}
                     
-                </Typography>
-                    <PayloadsTableRowBuildProgress {...props.payloadData} />
-                    {props.payloadData.build_phase === "success" && 
-                        <React.Fragment>
-                            <Typography gutterBottom>Agent ready for download</Typography>
-                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/direct/download/" + props.file_id}>
-                                Download here
-                            </Link>
-                        </React.Fragment>
-                    }
-        </React.Fragment>
+            </Typography>
+            <PayloadsTableRowBuildProgress {...props.payloadData} />
+            {props.payloadData.build_phase === "success" &&
+                <React.Fragment>
+                    <Typography gutterBottom>Agent ready for download</Typography>
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/direct/download/" + props.file_id}>
+                        Download here
+                    </Link>
+                </React.Fragment>
+            }
+        </div>
 
     );
 };
@@ -208,7 +208,7 @@ export function PayloadSubscriptionNotification(props) {
             setDisplayErrorDialog(true);
         } else if(displayingToast.current) {
             snackActions.update(getSnackMessage(), payloadData.uuid, {
-                type: payloadData.build_phase === "success" ? toast.TYPE.SUCCESS : toast.TYPE.INFO,
+                type: payloadData.build_phase === "success" ? "success" : "info",
             });
         }
         

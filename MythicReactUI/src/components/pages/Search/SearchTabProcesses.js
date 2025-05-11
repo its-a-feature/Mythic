@@ -160,11 +160,11 @@ const SearchTabProcessesSearchPanel = (props) => {
     }, [props.value, props.index]);
     return (
         <Grid container spacing={1} style={{paddingTop: "10px", paddingLeft: "10px", maxWidth: "100%"}}>
-            <Grid item xs={2}>
+            <Grid size={2}>
                 <MythicTextField placeholder="Host Name Search..." value={searchHost}
                                  onChange={handleSearchHostValueChange} onEnter={submitSearch} name="Host Name Search..." />
             </Grid>
-            <Grid item xs={3}>
+            <Grid size={3}>
                 <MythicTextField placeholder="Search..." value={search}
                                  onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
                     endAdornment:
@@ -176,7 +176,7 @@ const SearchTabProcessesSearchPanel = (props) => {
                     style: {padding: 0}
                 }}/>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
                 <Select
                     style={{marginBottom: "10px", width: "100%"}}
                     value={searchField}

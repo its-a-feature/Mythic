@@ -870,14 +870,14 @@ const FileBrowserTableRowActionCell = ({rowData, onTaskRowAction, treeRootData, 
     }
     async function getMenuOptions() {
         let options = [...optionsA];
-        options.push(...await optionsB(tabInfo["callbackID"], tabInfo["displayID"]));
+        options.push(...(await optionsB(tabInfo["callbackID"], tabInfo["displayID"])));
         if(treeRootData[host][rowData["full_path_text"] ]?.callback?.["id"] !== tabInfo["callbackID"]){
             options.push({
                 name: `Original Callback: ${treeRootData[host][rowData["full_path_text"] ]?.callback?.["id"]}`,
                 icon: null, click: () => {}, type: "menu",
                 menuItems: [
-                    ...await optionsB(treeRootData[host][rowData["full_path_text"] ]?.callback?.["id"],
-                        treeRootData[host][rowData["full_path_text"] ]?.callback?.display_id)
+                    ...(await optionsB(treeRootData[host][rowData["full_path_text"] ]?.callback?.["id"],
+                        treeRootData[host][rowData["full_path_text"] ]?.callback?.display_id))
                 ]
             })
         }

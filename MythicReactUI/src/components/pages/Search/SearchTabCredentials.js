@@ -221,7 +221,7 @@ const SearchTabCredentialsSearchPanel = (props) => {
     }, [props.value, props.index])
     return (
         <Grid container spacing={2} style={{paddingTop: "10px", paddingLeft: "10px", maxWidth: "100%"}}>
-            <Grid item xs={5}>
+            <Grid size={5}>
                 <MythicTextField placeholder="Search..." value={search}
                     onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
                         endAdornment: 
@@ -233,7 +233,7 @@ const SearchTabCredentialsSearchPanel = (props) => {
                         style: {padding: 0}
                     }}/>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
                 <Select
                     style={{marginBottom: "10px", width: "100%"}}
                     value={searchField}
@@ -246,7 +246,7 @@ const SearchTabCredentialsSearchPanel = (props) => {
                     }
                 </Select>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
                 {createCredentialDialogOpen &&
                     <MythicDialog fullWidth={true} maxWidth="md" open={createCredentialDialogOpen} 
                         onClose={()=>{setCreateCredentialDialogOpen(false);}} 

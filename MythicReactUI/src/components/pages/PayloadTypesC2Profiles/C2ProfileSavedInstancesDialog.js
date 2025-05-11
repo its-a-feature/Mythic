@@ -367,70 +367,70 @@ export function C2ProfileSavedInstancesDialog(props) {
         reader.readAsBinaryString(evt.target.files[0]);
     }
   return (
-    <React.Fragment>
-        <DialogTitle id="form-dialog-title">Save an Instance of {props.name}'s Parameters</DialogTitle>
-        <DialogContent dividers={true}>
-          <Typography style={{paddingBottom: "10px"}}>
-            Saving an instance of the parameters allows you to select them from a dropdown when creating agents later, saving time and typos.
-          </Typography>
-            {createdInstances.length > 0 ? (
-              <Grid container spacing={2} style={{paddingTop: "10px"}}>
-                <Grid item xs={6}>
-                  <FormControl style={{width: "100%"}}>
-                  <InputLabel >Select an Existing Instance</InputLabel>
-                      <Select
-                        style={{width: "100%", marginBottom: "10px"}}
-                        value={selectedInstance}
-                        label="Select an Existing Instance"
-                        onChange={onChangeCreatedInstanceName}
-                      >
-                        <MenuItem value="">New Instance</MenuItem>
-                      {
-                          createdInstances.map((opt, i) => (
-                              <MenuItem key={"buildparamopt" + i} value={opt.instance_name}>{opt.instance_name}</MenuItem>
-                          ))
-                      }
-                      </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={6}>
-                  {selectedInstance.length > 0 ? (
-                      <>
-                          <Button style={{backgroundColor: theme.palette.error.main, color: "white", marginRight: "10px"}} variant="contained" onClick={deleteInstanceButton}>
-                              <DeleteIcon style={{marginRight: "5px"}} /> Delete</Button>
-                          <Button style={{backgroundColor: theme.palette.success.main, color: "white"}} variant="contained" onClick={exportInstanceButton}>
-                              <IosShareIcon style={{marginRight: "5px"}} /> Export</Button>
-                      </>
-                    ) : null}
-                    <Button style={{backgroundColor: theme.palette.warning.main, color: "white", marginLeft: "10px"}} component="label" variant="contained">
-                        <SystemUpdateAltIcon style={{marginRight: "5px"}} />Import
-                        <input onChange={onFileChange} type="file" hidden />
-                    </Button>
-                </Grid>
-            </Grid>
-            ) : null}
-            <MythicTextField name="Instance Name" onChange={onChange} value={instanceName} width={createdInstances.length === 0 ? 20 : undefined}
-                             style={{paddingTop: "10px"}}
-                             inline={createdInstances.length === 0}/>
-            {createdInstances.length === 0 &&
-                <>
-                    <Button style={{backgroundColor: theme.palette.warning.main, color: "white", marginLeft: "10px",  marginTop: "20px"}} component="label" variant="contained">
-                        <SystemUpdateAltIcon style={{marginRight: "5px"}} />Import
-                        <input onChange={onFileChange} type="file" hidden />
-                    </Button>
-                </>
-            }
-            <CreatePayloadC2ProfileParametersTable {...props} returnAllDictValues={true} c2profileparameters={currentParameters} onChange={updateC2Parameter} />
-        </DialogContent>
-        <DialogActions>
-          <Button variant="contained" onClick={props.onClose} color="primary">
-            Close
-          </Button>
-          <Button variant="contained" onClick={onConfigSubmit} color="success">
-            {selectedInstance.length > 0 ? (selectedInstance !== instanceName ? "Create": "Update") : ("Create")}
-          </Button>
-        </DialogActions>
-  </React.Fragment>
+      <React.Fragment>
+          <DialogTitle id="form-dialog-title">Save an Instance of {props.name}'s Parameters</DialogTitle>
+          <DialogContent dividers={true}>
+            <Typography style={{paddingBottom: "10px"}}>
+              Saving an instance of the parameters allows you to select them from a dropdown when creating agents later, saving time and typos.
+            </Typography>
+              {createdInstances.length > 0 ? (
+                <Grid container spacing={2} style={{paddingTop: "10px"}}>
+                  <Grid size={6}>
+                    <FormControl style={{width: "100%"}}>
+                    <InputLabel >Select an Existing Instance</InputLabel>
+                        <Select
+                          style={{width: "100%", marginBottom: "10px"}}
+                          value={selectedInstance}
+                          label="Select an Existing Instance"
+                          onChange={onChangeCreatedInstanceName}
+                        >
+                          <MenuItem value="">New Instance</MenuItem>
+                        {
+                            createdInstances.map((opt, i) => (
+                                <MenuItem key={"buildparamopt" + i} value={opt.instance_name}>{opt.instance_name}</MenuItem>
+                            ))
+                        }
+                        </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={6}>
+                    {selectedInstance.length > 0 ? (
+                        <>
+                            <Button style={{backgroundColor: theme.palette.error.main, color: "white", marginRight: "10px"}} variant="contained" onClick={deleteInstanceButton}>
+                                <DeleteIcon style={{marginRight: "5px"}} /> Delete</Button>
+                            <Button style={{backgroundColor: theme.palette.success.main, color: "white"}} variant="contained" onClick={exportInstanceButton}>
+                                <IosShareIcon style={{marginRight: "5px"}} /> Export</Button>
+                        </>
+                      ) : null}
+                      <Button style={{backgroundColor: theme.palette.warning.main, color: "white", marginLeft: "10px"}} component="label" variant="contained">
+                          <SystemUpdateAltIcon style={{marginRight: "5px"}} />Import
+                          <input onChange={onFileChange} type="file" hidden />
+                      </Button>
+                  </Grid>
+              </Grid>
+              ) : null}
+              <MythicTextField name="Instance Name" onChange={onChange} value={instanceName} width={createdInstances.length === 0 ? 20 : undefined}
+                               style={{paddingTop: "10px"}}
+                               inline={createdInstances.length === 0}/>
+              {createdInstances.length === 0 &&
+                  <>
+                      <Button style={{backgroundColor: theme.palette.warning.main, color: "white", marginLeft: "10px",  marginTop: "20px"}} component="label" variant="contained">
+                          <SystemUpdateAltIcon style={{marginRight: "5px"}} />Import
+                          <input onChange={onFileChange} type="file" hidden />
+                      </Button>
+                  </>
+              }
+              <CreatePayloadC2ProfileParametersTable {...props} returnAllDictValues={true} c2profileparameters={currentParameters} onChange={updateC2Parameter} />
+          </DialogContent>
+          <DialogActions>
+            <Button variant="contained" onClick={props.onClose} color="primary">
+              Close
+            </Button>
+            <Button variant="contained" onClick={onConfigSubmit} color="success">
+              {selectedInstance.length > 0 ? (selectedInstance !== instanceName ? "Create": "Update") : ("Create")}
+            </Button>
+          </DialogActions>
+      </React.Fragment>
   );
 }
 

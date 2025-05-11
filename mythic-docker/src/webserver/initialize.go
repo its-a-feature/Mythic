@@ -167,8 +167,7 @@ func setRoutes(r *gin.Engine) {
 		// unauthenticated file upload based on file UUID
 		// this is for payload containers to upload files that are too big for rabbitmq
 		r.POST("/direct/upload/:file_uuid", webcontroller.FileDirectUploadWebhook)
-		// a refresh post will contain the access_token and refresh_token
-		r.POST("/refresh", webcontroller.RefreshJWT)
+
 		// create a protected group that allows Cookie values to access things instead of only a JWT header field
 		// this mainly allows the user through the UI to view agent icons and download files
 		allowAuthenticatedCookies := r.Group("/")
@@ -208,6 +207,10 @@ func setRoutes(r *gin.Engine) {
 			protected.POST("/api/v1.4/operator_update_preferences_webhook", webcontroller.UpdatePreferencesWebhook)
 			// operation
 			protected.POST("/api/v1.4/create_operation_webhook", webcontroller.CreateOperationWebhook)
+			// global config
+			protected.POST("/api/v1.4/get_global_settings_webhook", webcontroller.GetGlobalSettingWebhook)
+			// a refresh post will contain the access_token and refresh_token
+			protected.POST("/refresh", webcontroller.RefreshJWT)
 			// following require you to have an operation set
 			allOperationMembers := protected.Group("/api/v1.4/")
 			allOperationMembers.Use(authentication.RBACMiddlewareAll())
@@ -226,8 +229,6 @@ func setRoutes(r *gin.Engine) {
 				// file
 				allOperationMembers.POST("download_bulk_webhook", webcontroller.DownloadBulkFilesWebhook)
 				allOperationMembers.POST("preview_file_webhook", webcontroller.PreviewFileWebhook)
-				// global config
-				allOperationMembers.POST("get_global_settings_webhook", webcontroller.GetGlobalSettingWebhook)
 			}
 			noSpectators := protected.Group("/api/v1.4/")
 			noSpectators.Use(authentication.RBACMiddlewareNoSpectators())

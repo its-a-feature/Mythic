@@ -62,7 +62,7 @@ func MythicRPCCredentialSearch(input MythicRPCCredentialSearchMessage) MythicRPC
 		}
 		if input.SearchCredentials.Credential != nil {
 			params = append(params, "%"+*input.SearchCredentials.Credential+"%")
-			searchString += fmt.Sprintf("AND credential ILIKE $%d ", len(params))
+			searchString += fmt.Sprintf("AND credential LIKE $%d ", len(params))
 		}
 		if input.SearchCredentials.Account != nil {
 			params = append(params, "%"+*input.SearchCredentials.Account+"%")

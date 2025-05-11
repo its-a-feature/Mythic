@@ -134,15 +134,15 @@ function PayloadTypeBlockListPreMemo(props){
     
   return (
     <Grid container spacing={0} justifyContent="center" alignItems="center" className={classes.root}>
-      <Grid item xs={12}>
+      <Grid size={12}>
         <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
             <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 {props.name}
             </Typography>
         </Paper>
       </Grid>
-      <Grid item xs={5}>{customList(leftTitle, left)}</Grid>
-      <Grid item>
+      <Grid size={5}>{customList(leftTitle, left)}</Grid>
+      <Grid>
         <Grid container direction="column" alignItems="center">
           <StyledButton
             variant="contained"
@@ -186,7 +186,7 @@ function PayloadTypeBlockListPreMemo(props){
           </StyledButton>
         </Grid>
       </Grid>
-      <Grid item xs={5}>{customList(rightTitle, right)}</Grid>
+      <Grid size={5}>{customList(rightTitle, right)}</Grid>
     </Grid>
   );
 }

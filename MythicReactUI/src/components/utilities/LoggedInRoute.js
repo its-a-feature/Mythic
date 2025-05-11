@@ -4,13 +4,7 @@ import React from 'react';
 
 export function LoggedInRoute({children, me}){
     const location = useLocation();
-    return (
-            me?.loggedIn && me?.user ? (
-                //logged in
-                children
-            ) : (
-                //not logged in
-                <Navigate to={'/new/login?redirect=' + location.pathname} />
-            )
-    )
+    return (me?.loggedIn && me?.user ? //logged in
+    children : //not logged in
+    (<Navigate to={'/new/login?redirect=' + location.pathname} />));
 }

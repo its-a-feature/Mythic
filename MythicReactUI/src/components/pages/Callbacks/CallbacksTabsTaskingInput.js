@@ -154,8 +154,8 @@ const IsRepeatableCLIParameterType = (parameter_type) => {
 export function CallbacksTabsTaskingInputPreMemo(props){
     const toastId = "tasking-toast-message";
     const inputRef = React.useRef(null);
-    const snackMessageStyles = {position:"bottom-left", autoClose: 1000, style:{marginBottom: "50px"}, toastId: toastId};
-    const snackReverseSearchMessageStyles = {position:"bottom-left", autoClose: 1000, style:{marginBottom: "100px"}, toastId: toastId};
+    const snackMessageStyles = {position:"bottom-left", autoClose: 1000, toastId: toastId, style: {marginBottom: "30px"}};
+    const snackReverseSearchMessageStyles = {position:"bottom-left", autoClose: 1000,  toastId: toastId, style: {marginBottom: "70px"}};
     const [commandPayloadType, setCommandPayloadType] = React.useState("");
     const [message, setMessage] = React.useState("");
     const loadedOptions = React.useRef([]);
@@ -457,11 +457,16 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                         lastValueTypedBeforeDynamicParamsRef.current = lastSuppliedParameterHasValue;
                         if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined && lastSuppliedParameterHasValue === ""){
                             if (lastSuppliedParameter.choices.length > 0){
-                                tabOptions.current = lastSuppliedParameter.choices;
+                                const choices = lastSuppliedParameter.choices.filter( c => {
+                                    if(c.toLowerCase().includes(lastValueTypedBeforeDynamicParamsRef.current.toLowerCase())){
+                                        return c;
+                                    }
+                                })
+                                tabOptions.current = choices;
                                 tabOptionsIndex.current = 0;
                                 tabOptionsType.current = "param_value";
-                                let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
-                                let newMsg = message + newChoice;
+                                let newChoice = choices[0].includes(" ") ? "\"" + choices[0] + "\"" : choices[0];
+                                let newMsg = message.substring(0, message.length - lastValueTypedBeforeDynamicParamsRef.current.length) + newChoice;
                                 setMessage(newMsg);
                                 return;
                             } else if(lastSuppliedParameter.dynamic_query_function !== ""){
@@ -607,11 +612,16 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                             lastValueTypedBeforeDynamicParamsRef.current = lastSuppliedParameterHasValue;
                             if (lastSuppliedParameter !== undefined && parsed[lastSuppliedParameter.cli_name] !== undefined){
                                 if (lastSuppliedParameter.choices.length > 0){
-                                    tabOptions.current = lastSuppliedParameter.choices;
+                                    const choices = lastSuppliedParameter.choices.filter( c => {
+                                        if(c.toLowerCase().includes(lastValueTypedBeforeDynamicParamsRef.current.toLowerCase())){
+                                            return c;
+                                        }
+                                    })
+                                    tabOptions.current = choices;
                                     tabOptionsIndex.current = 0;
                                     tabOptionsType.current = "param_value";
-                                    let newChoice = lastSuppliedParameter.choices[0].includes(" ") ? "\"" + lastSuppliedParameter.choices[0] + "\"" : lastSuppliedParameter.choices[0];
-                                    let newMsg = message + newChoice;
+                                    let newChoice = choices[0].includes(" ") ? "\"" + choices[0] + "\"" : choices[0];
+                                    let newMsg = message.substring(0, message.length - lastValueTypedBeforeDynamicParamsRef.current.length) + newChoice;
                                     setMessage(newMsg);
                                     return;
                                 } else if(lastSuppliedParameter.dynamic_query_function !== ""){

@@ -1,7 +1,5 @@
 import React, { useEffect } from 'react';
-import { styled } from '@mui/material/styles';
 import { CallbacksTabs } from './CallbacksTabs';
-import SpeedDial from '@mui/material/SpeedDial';
 import TocIcon from '@mui/icons-material/Toc';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import { CallbacksTop } from './CallbacksTop';
@@ -14,45 +12,6 @@ import Paper from '@mui/material/Paper';
 import IconButton from '@mui/material/IconButton';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
-const PREFIX = 'Callbacks';
-
-const classes = {
-    root: `${PREFIX}-root`,
-    speedDial: `${PREFIX}-speedDial`,
-    speedDialAction: `${PREFIX}-speedDialAction`,
-    tooltip: `${PREFIX}-tooltip`,
-    arrow: `${PREFIX}-arrow`
-};
-
-const StyledSpeedDial = styled(SpeedDial)(({theme}) => ({
-    [`&.${classes.speedDial}`]: {
-        position: 'absolute',
-        '&.MuiSpeedDial-directionUp, &.MuiSpeedDial-directionLeft': {
-            bottom: theme.spacing(2),
-            right: theme.spacing(2),
-        },
-        '&.MuiSpeedDial-directionDown, &.MuiSpeedDial-directionRight': {
-            top: theme.spacing(2),
-            right: theme.spacing(2),
-        },
-        zIndex: 4,
-    },
-
-    [`& .${classes.speedDialAction}`]: {
-        backgroundColor: theme.palette.speedDialAction,
-    },
-
-    [`& .${classes.tooltip}`]: {
-        backgroundColor: theme.palette.background.contrast,
-        color: theme.palette.text.contrast,
-        boxShadow: theme.shadows[1],
-        fontSize: 13,
-    },
-
-    [`& .${classes.arrow}`]: {
-        color: theme.palette.background.contrast,
-    }
-}));
 export const getCallbackIdFromClickedTab = (tabId) => {
     if(tabId === null || tabId === undefined){return 0}
     if(tabId === ""){return 0}

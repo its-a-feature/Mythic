@@ -242,7 +242,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
     }, []);
     return (
         <Grid container spacing={1} style={{paddingTop: "10px", paddingLeft: "10px", maxWidth: "100%"}}>
-            <Grid item xs={4}>
+            <Grid size={4}>
                 <MythicTextField placeholder="Search..." value={search}
                                  onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..."
                                  InputProps={{
@@ -256,7 +256,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
                                      style: {padding: 0}
                                  }}/>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
                 <Select
                     style={{marginBottom: "10px", width: "100%"}}
                     value={searchField}
@@ -269,7 +269,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
                     }
                 </Select>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
                 <Select
                     style={{marginBottom: "10px", width: "100%"}}
                     value={searchC2}
@@ -283,7 +283,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
                 </Select>
 
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
                 <Select
                     style={{marginBottom: "10px", width: "100%"}}
                     value={searchPayloadType}
@@ -296,7 +296,7 @@ const SearchTabPayloadsSearchPanel = (props) => {
                     }
                 </Select>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
                 <Button variant={"contained"} color={"primary"} size={"small"} style={{marginRight: "5px"}} onClick={handleToggleShowDeleted}>
                     {showDeleted ? (
                         <>

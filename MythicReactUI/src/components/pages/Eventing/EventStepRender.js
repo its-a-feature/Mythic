@@ -8,7 +8,7 @@ import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import {Link} from '@mui/material';
 import createLayout, {getSourcePosition, getTargetPosition} from "../Callbacks/C2PathDialog";
-import ReactFlow, {
+import {ReactFlow,
     applyEdgeChanges,
     applyNodeChanges,
     Controls,
@@ -16,8 +16,8 @@ import ReactFlow, {
     ReactFlowProvider,
     useReactFlow,
     useUpdateNodeInternals
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import {useTheme} from '@mui/material/styles';
 import TimelapseIcon from '@mui/icons-material/Timelapse';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
@@ -481,7 +481,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
                 position: {x: 0, y: 0},
                 type: "eventNode",
                 maxNameLength: maxNameLength[node.order],
-                parentNode: `groupEventNode-${node.order}`,
+                parentId: `groupEventNode-${node.order}`,
                 group: `groupEventNode-${node.order}`,
                 extent: "parent",
                 data: {
@@ -492,11 +492,11 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
             }
         });
         let tempEdges = [];
-        let parentNodes = [];
+        let parentIds = [];
         for (let i = 0; i < tempNodes.length; i++) {
             let found = false;
-            for (let j = 0; j < parentNodes.length; j++) {
-                if (parentNodes[j].id === `groupEventNode-${tempNodes[i].data.order}`) {
+            for (let j = 0; j < parentIds.length; j++) {
+                if (parentIds[j].id === `groupEventNode-${tempNodes[i].data.order}`) {
                     found = true;
                     break;
                 }
@@ -508,7 +508,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
                         count += 1;
                     }
                 }
-                parentNodes.push({
+                parentIds.push({
                     id: `groupEventNode-${tempNodes[i].data.order}`,
                     position: {x: 110, y: 110},
                     type: "groupEventNode",
@@ -539,8 +539,8 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
                     label: "",
                     animated: true,
                     data: {
-                        source: {...destination, parentNode: `groupEventNode-${destination.order}`},
-                        target: {...source, parentNode: `groupEventNode-${source.order}`},
+                        source: {...destination, parentId: `groupEventNode-${destination.order}`},
+                        target: {...source, parentId: `groupEventNode-${source.order}`},
                     }
                 };
                 tmpEdge.markerEnd = {
@@ -572,7 +572,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
             }
         }
         setGraphData({
-            groups: parentNodes,
+            groups: parentIds,
             nodes: tempNodes,
             edges: tempEdges
         })
@@ -770,7 +770,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                 position: {x: 0, y: 0},
                 type: "eventNode",
                 maxNameLength: maxNameLength[node.order],
-                parentNode: `groupEventNode-${node.order}`,
+                parentId: `groupEventNode-${node.order}`,
                 group: `groupEventNode-${node.order}`,
                 dragHandle: '.eventnode-drag-handle',
                 extent: "parent",
@@ -783,11 +783,11 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
             }
         });
         let tempEdges = [];
-        let parentNodes = [];
+        let parentIds = [];
         for (let i = 0; i < tempNodes.length; i++) {
             let found = false;
-            for (let j = 0; j < parentNodes.length; j++) {
-                if (parentNodes[j].id === `groupEventNode-${tempNodes[i].data.order}`) {
+            for (let j = 0; j < parentIds.length; j++) {
+                if (parentIds[j].id === `groupEventNode-${tempNodes[i].data.order}`) {
                     found = true;
                     break;
                 }
@@ -799,7 +799,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                         count += 1;
                     }
                 }
-                parentNodes.push({
+                parentIds.push({
                     id: `groupEventNode-${tempNodes[i].data.order}`,
                     position: {x: 110, y: 110},
                     type: "groupEventNode",
@@ -830,8 +830,8 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                     label: "",
                     animated: true,
                     data: {
-                        source: {...destination, parentNode: `groupEventNode-${destination.order}`},
-                        target: {...source, parentNode: `groupEventNode-${source.order}`},
+                        source: {...destination, parentId: `groupEventNode-${destination.order}`},
+                        target: {...source, parentId: `groupEventNode-${source.order}`},
                     }
                 };
                 tmpEdge.markerEnd = {
@@ -863,7 +863,7 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
             }
         }
         setGraphData({
-            groups: parentNodes,
+            groups: parentIds,
             nodes: tempNodes,
             edges: tempEdges
         })

@@ -6,7 +6,7 @@ import 'ace-builds/src-noconflict/theme-xcode';
 import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
 import {snackActions} from "../../utilities/Snackbar";
-import {modeOptions} from "../Search/PreviewFileStringDialog";
+import {modeOptions} from "./ResponseDisplayMedia";
 import FormControl from '@mui/material/FormControl';
 import WrapTextIcon from '@mui/icons-material/WrapText';
 import 'ace-builds/src-noconflict/mode-csharp';

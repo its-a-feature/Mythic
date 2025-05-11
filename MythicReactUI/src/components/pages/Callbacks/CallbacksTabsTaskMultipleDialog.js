@@ -88,7 +88,10 @@ const columns = [
 ];
 const CustomSelectTable = ({initialData, selectedData}) => {
     const [data, setData] = React.useState([]);
-    const [rowSelectionModel, setRowSelectionModel] = React.useState([]);
+    const [rowSelectionModel, setRowSelectionModel] = React.useState({
+        type: 'include',
+        ids: new Set([]),
+    });
     React.useEffect( () => {
         selectedData.current = data.reduce( (prev, cur) => {
             if(rowSelectionModel.includes(cur.id)){return [...prev, cur]}
@@ -286,33 +289,33 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
         }
     }
   return (
-    <React.Fragment>
-        <DialogTitle id="form-dialog-title">Task Multiple {callback.payload.payloadtype.name} Callbacks at Once</DialogTitle>
-            <CustomSelectTable initialData={initialData}
-                               selectedData={selectedData}  />
-        <Grid item xs={12} >
-            <CallbacksTabsTaskingInput filterTasks={false} onSubmitFilter={()=>{}} onSubmitCommandLine={onSubmitCommandLine}
-                                       changeSelectedToken={changeSelectedToken}
-                                       payloadtype_name={callback.payload.payloadtype.name}
-                                       filterOptions={{}} callback_id={callback.id} callback_os={callback.payload.os} parentMountedRef={mountedRef} />
-        </Grid>
-        {openTaskingButton && 
-            <TaskFromUIButton cmd={taskingData.current?.cmd} 
-                callback_id={taskingData?.current?.callback_id || 0}
-                callback_ids={taskingData?.current?.callback_ids || undefined}
-                parameters={taskingData.current?.parameters || ""}
-                openDialog={taskingData.current?.openDialog || false}
-                tasking_location={taskingData.current?.tasking_location || "command_line"}
-                dontShowSuccessDialog={taskingData.current?.dontShowSuccessDialog || false}
-                selectCallback={taskingData.current?.selectCallback || false}
-                onTasked={onTasked}/>
-        }
-        <DialogActions>
-          <Button onClick={onClose} variant="contained" color="primary">
-            Cancel
-          </Button>
-        </DialogActions>
-  </React.Fragment>
+      <React.Fragment>
+          <DialogTitle id="form-dialog-title">Task Multiple {callback.payload.payloadtype.name} Callbacks at Once</DialogTitle>
+          <CustomSelectTable initialData={initialData}
+                             selectedData={selectedData}  />
+          <Grid size={12}>
+              <CallbacksTabsTaskingInput filterTasks={false} onSubmitFilter={()=>{}} onSubmitCommandLine={onSubmitCommandLine}
+                                         changeSelectedToken={changeSelectedToken}
+                                         payloadtype_name={callback.payload.payloadtype.name}
+                                         filterOptions={{}} callback_id={callback.id} callback_os={callback.payload.os} parentMountedRef={mountedRef} />
+          </Grid>
+          {openTaskingButton && 
+              <TaskFromUIButton cmd={taskingData.current?.cmd} 
+                  callback_id={taskingData?.current?.callback_id || 0}
+                  callback_ids={taskingData?.current?.callback_ids || undefined}
+                  parameters={taskingData.current?.parameters || ""}
+                  openDialog={taskingData.current?.openDialog || false}
+                  tasking_location={taskingData.current?.tasking_location || "command_line"}
+                  dontShowSuccessDialog={taskingData.current?.dontShowSuccessDialog || false}
+                  selectCallback={taskingData.current?.selectCallback || false}
+                  onTasked={onTasked}/>
+          }
+          <DialogActions>
+            <Button onClick={onClose} variant="contained" color="primary">
+              Cancel
+            </Button>
+          </DialogActions>
+      </React.Fragment>
   );
 }
 

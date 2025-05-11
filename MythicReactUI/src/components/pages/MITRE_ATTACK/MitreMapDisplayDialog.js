@@ -12,7 +12,7 @@ import {useTheme} from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import { Button, Link} from '@mui/material/';
+import { Button, Link} from '@mui/material';
 
 export function MitreMapDisplayDialog({entry, showCountGrouping, onClose}){
     const [commands, setCommands] = React.useState([]);

@@ -26,9 +26,9 @@ export function Step5Build(props){
     const [showExtraOptions, setShowExtraOptions] = React.useState(false);
     const [createPayloadMutation] = useMutation(create_payload, {
         update: (cache, {data}) => {
+            setSubscriptionID(data.createPayload.uuid);
             if(data.createPayload.status === "success"){
                 snackActions.info("Submitted payload to build pipeline", {autoClose: 1000});
-                setSubscriptionID(data.createPayload.uuid);
                 if(!startSubscription){
                     setStartSubscription(true);
                 }

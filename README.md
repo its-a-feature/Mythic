@@ -137,6 +137,7 @@ The following people have contributed a lot to the project. As you see their han
 ## Sponsors
 
 - [w33ts](https://github.com/w33ts) / [@w33t_io](https://twitter.com/w33t_io)
+- [DonnieMarco](https://github.com/DonnieMarco)
 
 ## Liability
 

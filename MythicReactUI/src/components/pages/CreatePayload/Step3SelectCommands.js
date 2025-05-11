@@ -29,7 +29,7 @@ query getCommands($payloadType: String!) {
  `;
 
 export function Step3SelectCommands(props){
-    const [commands, setCommands] = React.useState([]);
+    const confirmDialogCommands = React.useRef([]);
     const [commandOptions, setCommandOptions] = React.useState([]);
     const [openConfirmDialog, setOpenConfirmDialog] = React.useState(false);
     useQuery(GET_Payload_Types, {fetchPolicy: "network-only", variables: {payloadType: props.buildOptions["payload_type"]},
@@ -114,6 +114,7 @@ export function Step3SelectCommands(props){
           props.finished(cmdNames);
         }else if(props.buildOptions["agent_type"] === "agent") {
             // only alert for agent types, not service types
+            confirmDialogCommands.current = selectedCommands;
             setOpenConfirmDialog(true);
         }else{
             const cmdNames = selectedCommands.map( c => c.cmd);
@@ -121,7 +122,7 @@ export function Step3SelectCommands(props){
         }
     }
     const acceptConfirm = () => {
-      const cmdNames = commands.map( c => c.cmd);
+      const cmdNames = confirmDialogCommands.current.map( c => c.cmd);
       props.finished(cmdNames);
     }
     const canceled = () => {
@@ -286,104 +287,103 @@ function CommandTransferSelect(props) {
     props.finished(right);
   }
 return (
-    <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
-        <div style={{flexGrow: 1}}>
-            <Grid container spacing={2} justifyContent="center" alignItems="center" className={classes.root}>
-                <Grid item xs={5}>
-                    {customList("Available Commands", left)}
-                </Grid>
-                <Grid item>
-                    <Grid container direction="column" alignItems="center">
-                        <StyledButton
-                            variant="contained"
-                            size="small"
-                            className={classes.button}
-                            onClick={handleAllRight}
-                            disabled={left.length === 0}
-                            aria-label="move all right"
-                        >
-                            &gt;&gt;
-                        </StyledButton>
-                        <StyledButton
-                            variant="contained"
-                            size="small"
-                            className={classes.button}
-                            onClick={handleCheckedRight}
-                            disabled={leftChecked.length === 0}
-                            aria-label="move selected right"
-                        >
-                            &gt;
-                        </StyledButton>
-                        <StyledButton
-                            variant="contained"
-                            size="small"
-                            className={classes.button}
-                            onClick={handleCheckedLeft}
-                            disabled={rightChecked.length === 0}
-                            aria-label="move selected left"
-                        >
-                            &lt;
-                        </StyledButton>
-                        <StyledButton
-                            variant="contained"
-                            size="small"
-                            className={classes.button}
-                            onClick={handleAllLeft}
-                            disabled={right.length === 0}
-                            aria-label="move all left"
-                        >
-                            &lt;&lt;
-                        </StyledButton>
-                    </Grid>
-                </Grid>
-                <Grid item xs={5}>
-                    {customList("Commands Included", right)}
+  <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
+    <div style={{flexGrow: 1}}>
+        <Grid container spacing={2} justifyContent="center" alignItems="center" className={classes.root}>
+            <Grid size={5}>
+                {customList("Available Commands", left)}
+            </Grid>
+            <Grid>
+                <Grid container direction="column" alignItems="center">
+                    <StyledButton
+                        variant="contained"
+                        size="small"
+                        className={classes.button}
+                        onClick={handleAllRight}
+                        disabled={left.length === 0}
+                        aria-label="move all right"
+                    >
+                        &gt;&gt;
+                    </StyledButton>
+                    <StyledButton
+                        variant="contained"
+                        size="small"
+                        className={classes.button}
+                        onClick={handleCheckedRight}
+                        disabled={leftChecked.length === 0}
+                        aria-label="move selected right"
+                    >
+                        &gt;
+                    </StyledButton>
+                    <StyledButton
+                        variant="contained"
+                        size="small"
+                        className={classes.button}
+                        onClick={handleCheckedLeft}
+                        disabled={rightChecked.length === 0}
+                        aria-label="move selected left"
+                    >
+                        &lt;
+                    </StyledButton>
+                    <StyledButton
+                        variant="contained"
+                        size="small"
+                        className={classes.button}
+                        onClick={handleAllLeft}
+                        disabled={right.length === 0}
+                        aria-label="move all left"
+                    >
+                        &lt;&lt;
+                    </StyledButton>
                 </Grid>
             </Grid>
-            <Grid container justifyContent="center" alignItems="flex-start" className={classes.root}>
-                <Grid item xs={12} style={{height: "100%", marginBottom: "10px"}}>
-                    {hoveredCommand["cmd"] !== undefined &&
-                        <Paper className={classes.paper} style={{width: "100%"}} elevation={5}>
-
-                            <CardHeader
-                                title={
-                                    <React.Fragment>
-                                        {hoveredCommand["cmd"]}
-                                        <Button variant="contained" color="primary"
-                                                href={"/docs/agents/" + props.payload_type + "/commands/" + hoveredCommand["cmd"]}
-                                                style={{marginLeft: "10px", float: "right"}} target="_blank">Documentation
-                                        </Button>
-                                    </React.Fragment>
-                                }
-                            />
-                            <StyledDivider classes={{root: classes.divider}}/>
-                            {hoveredCommand["reason"] !== "" ? (
-                                <Typography variant="body1" align="left" component="div"
-                                            style={{"marginLeft": "10px"}}><b>{hoveredCommand["disabled"] ? ("Disabled Reason: ") : ("Information: ")} </b>{hoveredCommand["reason"]}
-                                </Typography>
-                            ) : null}
-                            <br/>
-                            <Typography align="left" component="div"
-                                        style={{"marginLeft": "10px"}}><b>Commandline
-                                Help: </b>{hoveredCommand["help_cmd"]}
-                            </Typography>
-                            <Typography align="left" component="div"
-                                        style={{"marginLeft": "10px"}}><b>Needs Admin
-                                Permissions: </b>{hoveredCommand["needs_admin"] ? "True" : "False"}
-                            </Typography>
-                            <Typography align="left" component="div"
-                                        style={{"marginLeft": "10px"}}><b>Description: </b>{hoveredCommand["description"]}
-                            </Typography>
-                        </Paper>
-                    }
-
-                </Grid>
+            <Grid size={5}>
+                {customList("Commands Included", right)}
             </Grid>
-        </div>
+        </Grid>
+        <Grid container justifyContent="center" alignItems="flex-start" className={classes.root}>
+            <Grid style={{height: "100%", marginBottom: "10px"}} size={12}>
+                {hoveredCommand["cmd"] !== undefined &&
+                    <Paper className={classes.paper} style={{width: "100%"}} elevation={5}>
 
-        <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={props.canceled}
-                                        finished={finished}/>
-        <br/><br/>
+                        <CardHeader
+                            title={
+                                <React.Fragment>
+                                    {hoveredCommand["cmd"]}
+                                    <Button variant="contained" color="primary"
+                                            href={"/docs/agents/" + props.payload_type + "/commands/" + hoveredCommand["cmd"]}
+                                            style={{marginLeft: "10px", float: "right"}} target="_blank">Documentation
+                                    </Button>
+                                </React.Fragment>
+                            }
+                        />
+                        <StyledDivider classes={{root: classes.divider}}/>
+                        {hoveredCommand["reason"] !== "" ? (
+                            <Typography variant="body1" align="left" component="div"
+                                        style={{"marginLeft": "10px"}}><b>{hoveredCommand["disabled"] ? ("Disabled Reason: ") : ("Information: ")} </b>{hoveredCommand["reason"]}
+                            </Typography>
+                        ) : null}
+                        <br/>
+                        <Typography align="left" component="div"
+                                    style={{"marginLeft": "10px"}}><b>Commandline
+                            Help: </b>{hoveredCommand["help_cmd"]}
+                        </Typography>
+                        <Typography align="left" component="div"
+                                    style={{"marginLeft": "10px"}}><b>Needs Admin
+                            Permissions: </b>{hoveredCommand["needs_admin"] ? "True" : "False"}
+                        </Typography>
+                        <Typography align="left" component="div"
+                                    style={{"marginLeft": "10px"}}><b>Description: </b>{hoveredCommand["description"]}
+                        </Typography>
+                    </Paper>
+                }
+
+            </Grid>
+        </Grid>
     </div>
+    <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={props.canceled}
+                                    finished={finished}/>
+    <br/><br/>
+  </div>
 );
 }

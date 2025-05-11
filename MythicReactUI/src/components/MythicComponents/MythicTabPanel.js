@@ -13,7 +13,7 @@ import {
 } from "@hello-pangea/dnd";
 
 export function MythicTabPanel(props) {
-    const { children, value, index, maxHeight, tabInfo, getCallbackData, queryParams, changeSearchParam, ...other } =
+    const { children, value, index, maxHeight, tabInfo, getCallbackData, queryParams, changeSearchParam, showDeleted, ...other } =
         props;
     const style =
         props.style === undefined

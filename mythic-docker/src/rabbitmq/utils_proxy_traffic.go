@@ -930,7 +930,7 @@ func (p *callbackPortUsage) manageConnections() {
 					d := net.Dialer{Timeout: 5 * time.Second}
 					conn, err := d.Dial("tcp", fmt.Sprintf("%s:%d", p.RemoteIP, p.RemotePort))
 					if err != nil {
-						logging.LogError(err, "Failed to connect to remote for rpfwd", "remote_ip", p.RemoteIP, "remote port", p.RemotePort)
+						logging.LogError(err, "Failed to connect to remote for rpfwd", "remote_ip", p.RemoteIP, "remote port", p.RemotePort, "server_id", newMsg.ServerID)
 						interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
 							Message: proxyToAgentMessage{
 								Message:  nil,
@@ -942,9 +942,12 @@ func (p *callbackPortUsage) manageConnections() {
 							CallbackID:      p.CallbackID,
 							ProxyType:       p.PortType,
 						}
+						go SendAllOperationsMessage(fmt.Sprintf("Failed to connect to %s:%d for new rpfwd message", p.RemoteIP, p.RemotePort),
+							p.OperationID, "rpfwd", database.MESSAGE_LEVEL_WARNING)
 					} else {
 						// we have a valid connection to the remote server
 						// Handle connections in a new goroutine
+						logging.LogDebug("got new connection for rpfwd", "server_id", newMsg.ServerID)
 						newConnection := acceptedConnection{
 							conn:              conn,
 							shouldClose:       make(chan bool, 1),

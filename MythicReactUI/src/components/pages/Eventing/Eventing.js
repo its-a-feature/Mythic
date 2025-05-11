@@ -128,7 +128,7 @@ subscription GetEventGroups {
   }
 }
  `;
-const initialWorkflow = `name: "New Eventing Workflow"
+export const initialWorkflow = `name: "New Eventing Workflow"
 description: "automatically do something based on a new callback"
 trigger: callback_new
 trigger_data:

@@ -132,15 +132,9 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         onChange(name, evt.target.value, false);
     }
     const onChangeMultValue = (evt) => {
-        const {options} = evt.target;
-        const tmpValue = [];
-        for (let i = 0, l = options.length; i < l; i += 1) {
-          if (options[i].selected) {
-            tmpValue.push(options[i].value);
-          }
-        }
-        setMultiValue(tmpValue);
-        onChange(name, tmpValue, false);
+        const { value:options } = evt.target;
+        setMultiValue(options);
+        onChange(name, options, false);
     }
     const onChangeText = (name, value, error) => {
         setValue(value);

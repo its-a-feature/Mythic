@@ -55,7 +55,7 @@ export function EventFeedTable(props){
         <div style={{display: "flex", flexDirection: "column", height: "100%", maxWidth: "100%", overflowX: "hidden"}}>
             <Paper elevation={5} style={{backgroundColor: theme.body, marginBottom: "5px", marginRight: "5px"}}>
                 <Grid container spacing={1} style={{ marginTop: "0px"}}>
-                    <Grid item xs={10} style={{paddingTop: 0}}>
+                    <Grid style={{paddingTop: 0}} size={10}>
                         <MythicTextField placeholder="Search..." value={search} marginBottom={"0px"}
                                          onChange={handleSearchValueChange} onEnter={submitSearch} InputProps={{
                             endAdornment:
@@ -73,7 +73,7 @@ export function EventFeedTable(props){
                             style: {padding: 0}
                         }}/>
                     </Grid>
-                    <Grid item xs={2} style={{paddingTop: 0, paddingLeft: 0}}>
+                    <Grid style={{paddingTop: 0, paddingLeft: 0}} size={2}>
                         <Select
                             style={{width: "100%"}}
                             value={level}
@@ -100,5 +100,5 @@ export function EventFeedTable(props){
                 <Typography style={{paddingLeft: "10px"}}>Total Results: {props.pageData.totalCount}</Typography>
             </div>
         </div>
-    )
+    );
 }

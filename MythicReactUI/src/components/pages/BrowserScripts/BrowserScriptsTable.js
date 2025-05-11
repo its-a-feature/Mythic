@@ -20,8 +20,7 @@ export function BrowserScriptsTable(props){
     const [openNewScriptDialog, setOpenNewScriptDialog] = React.useState(false);
     return (
         <React.Fragment>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
-                marginBottom: "5px", marginLeft: "5px", marginRight: "5px"}} variant={"elevation"}>
+            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
                 <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Browser Scripts
                 </Typography>

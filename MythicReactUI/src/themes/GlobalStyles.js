@@ -251,9 +251,13 @@ tspan {
     color: red;
     height: 100px;
 }
-.Toastify__toast-body > div > div {
+.Toastify__toast {
     word-break: break-all;
     white-space: pre-wrap !important;
+    display: flex;
+    align-items: center;
+    min-width: 100%;
+    width: 100%;
 }
 .MuiPaper-root {
     border: 1px solid grey;

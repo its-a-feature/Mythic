@@ -39,7 +39,6 @@ import {Eventing} from "./pages/Eventing/Eventing";
 import {InviteForm} from "./pages/Login/InviteForm";
 import {snackActions} from "./utilities/Snackbar";
 import {TopAppBarVertical} from "./TopAppBarVertical";
-import {TopAppBar} from "./TopAppBar";
 
 export const userSettingsQuery = gql`
 query getUserSettings {
@@ -65,7 +64,8 @@ export function App(props) {
                     create: () => 'none',
                 },
                 palette: {
-                    //contrastThreshold: 4.5,
+                    contrastThreshold: 4.5,
+                    //tonalOffset: 0.5,
                     primary: {
                         main: themeMode === "dark" ? preferences?.palette?.primary?.dark || operatorSettingDefaults.palette.primary.dark :
                             preferences?.palette?.primary?.light || operatorSettingDefaults.palette.primary.light,
@@ -203,8 +203,11 @@ export function App(props) {
                 <Tooltip id={"my-tooltip"} style={{zIndex: 100000, wordBreak: "break-word", maxWidth: "80%", whiteSpace: "pre-wrap"}}/>
                 <ToastContainer limit={2} autoClose={3000}
                                 theme={themeMode}
-                                style={{maxWidth: "100%", minWidth: "40%", width: "40%", marginTop: "20px", display: "flex", flexWrap: "wrap",
-                                wordBreak: "break-all", flexDirection: "column", justifyContent: "center"}}
+                                hideProgressBar={true}
+                                newestOnTop={true}
+                                stacked={false}
+                                style={{maxWidth: "100%", minWidth: "40%", width: "40%", display: "flex", flexWrap: "wrap",
+                                wordBreak: "break-all", flexDirection: "column", justifyContent: "center",}}
                                 pauseOnFocusLoss={false} />
                     <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'row', maxWidth: "100%", width:"100%",
                         ...background}}>
@@ -216,7 +219,7 @@ export function App(props) {
                                               onClose={()=>{setOpenRefreshDialog(false);}} />}
                             />
                         }
-                        {me.loggedIn && me.user !== undefined && me.user !== null && preferences?.["experiment-newSidebar"] ? (
+                        {me.loggedIn && me.user !== undefined && me.user !== null  ? (
                             <TopAppBarVertical me={me} theme={themeMode} toggleTheme={themeToggler} />
                         ) : null}
                         <div style={{
@@ -226,16 +229,7 @@ export function App(props) {
                             flexDirection: 'column',
                             width: "100%"
                         }}>
-                            {me.loggedIn && !preferences?.["experiment-newSidebar"] &&
-                                <div style={{minHeight: '50px', flexGrow: 0}}>
-                                    {me.loggedIn && me.user !== undefined && me.user !== null ? (
-                                        <TopAppBar me={me} theme={themeMode} toggleTheme={themeToggler}/>
-                                    ) : null}
-                                </div>
-                            }
-                            {me.loggedIn && (me?.user?.current_operation_banner_text !== "" ||
-                                    preferences?.["experiment-newSidebar"])
-                                &&
+                            {me.loggedIn && me?.user?.current_operation_banner_text !== "" &&
                                 <Typography style={{
                                     backgroundColor: me?.user?.current_operation_banner_color,
                                     width: "100%",
