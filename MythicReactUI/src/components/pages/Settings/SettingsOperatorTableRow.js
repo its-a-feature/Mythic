@@ -407,13 +407,13 @@ const columns = [
                 </IconButton>
             )
         ),
-        valueGetter: (params) => params.row.deleted
+        valueGetter: (value, row) => row.deleted
     },
     {
         field: 'active',
         headerName: 'Active',
         width: 80,
-        valueGetter: (params) => params.row.active,
+        valueGetter: (value, row) => row.active,
         renderCell: (params) => (
                 <Switch
                     color={ "info"}
@@ -429,13 +429,13 @@ const columns = [
         field: 'created_by',
         headerName: 'Created By',
         flex: 1,
-        valueGetter: (params) => params.row.created_by_operator?.username,
+        valueGetter: (value, row) => row.created_by_operator?.username,
     },
     {
         field: 'token',
         headerName: 'Token',
         width: 60,
-        valueGetter: (params) => params.row.token_value,
+        valueGetter: (value, row) => row.token_value,
         renderCell: (params) => (
             <MythicStyledTooltip title={"Copy to clipboard"} >
                 <IconButton onClick={() => params.row.onCopyTokenValue(params.row.token_value)} >
@@ -475,8 +475,8 @@ const columns = [
 
         ),
         sortable: false,
-        valueGetter: (params) => {
-            return params.row.eventstepinstance?.eventgroupinstance?.eventgroup?.name
+        valueGetter: (value, row) => {
+            return row.eventstepinstance?.eventgroupinstance?.eventgroup?.name
         }
     },
 ];
