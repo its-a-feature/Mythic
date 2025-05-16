@@ -63,11 +63,11 @@ const columns = [
       width: 100,
       renderCell: (params) => <CallbacksTableIPCell rowData={params.row} cellData={params.row.ip} />,
         sortable: false,
-      valueGetter: (params) => {
+      valueGetter: (value, row) => {
           try{
-              return JSON.parse(params.row.ip)[0];
+              return JSON.parse(row.ip)[0];
           }catch(error){
-              return params.row.ip;
+              return row.ip;
           }
       }
     },
@@ -75,7 +75,7 @@ const columns = [
         field: "last_checkin",
         headerName: "Checkin",
         width: 100,
-        valueGetter: (params) => new Date(params.row.last_checkin),
+        valueGetter: (value, row) => new Date(row.last_checkin),
         renderCell: (params) =>
             <CallbacksTableLastCheckinCell rowData={params.row} />,
     },
@@ -83,7 +83,7 @@ const columns = [
         field: "payload.payloadtype.name",
         headerName: "Agent",
         flex: 0.5,
-        valueGetter: (params) => params.row.payload.payloadtype.name,
+        valueGetter: (value, row) => row.payload.payloadtype.name,
         renderCell: (params) => <CallbacksTablePayloadTypeCell rowData={params.row} />
     },
     {
@@ -100,7 +100,7 @@ const CustomSelectTable = ({initialData, selectedData}) => {
     });
     React.useEffect( () => {
         selectedData.current = data.reduce( (prev, cur) => {
-            if(rowSelectionModel.includes(cur.id)){return [...prev, cur]}
+            if(rowSelectionModel.ids.has(cur.id)){return [...prev, cur]}
             return [...prev];
         }, []);
     }, [data, rowSelectionModel]);
