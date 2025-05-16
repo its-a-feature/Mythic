@@ -503,7 +503,6 @@ const APITokens = ({apiTokens, onDeleteAPIToken, onToggleActive, showDeleted}) =
     return (
         <div style={{display: "flex", flexDirection: "column", width: "100%", height: "calc(30vh)"}}>
             <DataGrid
-                getRowHeight={() => 'auto'}
                 rows={data}
                 columns={columns}
                 initialState={{
