@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc67] - 2025-05-19
+
+### Changed
+
+- Updated some processing of process data to update task_ids so that newer data gets updated in the UI
+
 ## [3.3.1-rc66] - 2025-05-14
 
 ### Changed

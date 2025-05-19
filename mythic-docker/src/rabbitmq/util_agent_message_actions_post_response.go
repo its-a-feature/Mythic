@@ -1802,10 +1802,11 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 			if !existingEntryStillExists {
 				// full path is just the string of the PID
 				namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.FullPath))
-				//existingEntry.Deleted = true
+				existingEntry.Deleted = true
+				existingEntry.TaskID = task.ID
 				//logging.LogInfo("found process to delete", "name", string(existingEntry.Name), "pid", string(existingEntry.FullPath))
 				idsToDelete = append(idsToDelete, existingEntry.ID)
-				//deleteTreeNode(existingEntry, false)
+				deleteTreeNode(existingEntry, false)
 			}
 		}
 		// now all existing ones have been updated or deleted, so it's time to add new ones

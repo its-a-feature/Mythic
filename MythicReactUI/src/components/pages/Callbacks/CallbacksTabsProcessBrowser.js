@@ -161,7 +161,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         for(const[group, groupMatrix] of Object.entries(treeRootDataRef.current)){
             if(newMatrix[group] === undefined){newMatrix[group] = {}}
             for(const[host, hostMatrix] of Object.entries(treeRootDataRef.current[group])){
-                if(newMatrix[group][host] === undefined){newMatrix[group][host] = {"":[]}}
+                if(newMatrix[group][host] === undefined){newMatrix[group][host] = {"":{}}}
                 for(const[full_path_text, node] of Object.entries(treeRootDataRef.current[group][host])){
                     if(newMatrix[group][host][ node["parent_path_text"] ] === undefined){
                         newMatrix[group][host][ node["parent_path_text"] ] = {}
@@ -278,7 +278,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         existingData.callbacks.push(data.data.mythictree_stream[i].callback)
                         existingData.comment += data.data.mythictree_stream[i].comment;
                         existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];
-                        if(existingData.id > data.data.mythictree_stream[i].id){
+                        if(existingData.task_id > data.data.mythictree_stream[i].task_id){
                             existingData.metadata = {...data.data.mythictree_stream[i].metadata, ...existingData.metadata};
                         } else {
                             existingData.metadata = {...existingData.metadata, ...data.data.mythictree_stream[i].metadata};
@@ -323,7 +323,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
                         existingData.comment += data.mythictree[i].comment;
                         existingData.callbacks.push(data.mythictree[i].callback)
                         existingData.tags = [...existingData.tags, ...data.mythictree[i].tags];
-                        if(existingData.id > data.mythictree[i].id){
+                        if(existingData.task_id > data.mythictree[i].task_id){
                             existingData.metadata = {...data.mythictree[i].metadata, ...existingData.metadata};
                         } else {
                             existingData.metadata = {...existingData.metadata, ...data.mythictree[i].metadata};

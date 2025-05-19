@@ -107,9 +107,12 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                         // check if key  is in children anywhere, if not, add it to adjustedMatrix[host][""][key] = 1
                         let found = false;
                         for(const [keySearch, childrenSearch] of Object.entries(matrix)){
-                            for(const [i, v] of Object.entries(childrenSearch)){
-                                if(i === key){found=true}
+                            if(childrenSearch.hasOwnProperty(key)){
+                                found=true;
                             }
+                            //for(const [i, v] of Object.entries(childrenSearch)){
+                            //    if(i === key){found=true}
+                            //}
                         }
                         if(!found){
                             if(adjustedMatrix[group][host][""] === undefined){adjustedMatrix[group][host][""] = {}}
@@ -117,13 +120,51 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                         }
                     }
                 }
+                // check for loops in our adjusted matrix
+                for(const [key, _] of Object.entries(adjustedMatrix[group][host])){
+                    // key == 540
+                    // does anything have 540 has a child? 760 does - 760 is visited
+                    // does anything have 760 as a child? 676 does
+                    // does anything have 676 as a child? 540 does - X loop detected
+                    // let badKey = checkLoop(540, adjustedMatrix[group][host], [540]);
+                    let removeKey = checkLoop(adjustedMatrix[group][host], [key]);
+                    if(adjustedMatrix[group][host][removeKey]){
+                        delete adjustedMatrix[group][host][removeKey][key];
+                        adjustedMatrix[group][host][""][key] = 1;
+                    }
+                }
             }
         }
 
-        //console.log("adjustedMatrix", adjustedMatrix, "realMatrix", treeAdjMatrix)
+        console.log("adjustedMatrix", adjustedMatrix, "realMatrix", treeAdjMatrix)
         setUpdatedTreeAdjMatrix(adjustedMatrix);
-
     }, [treeAdjMatrix]);
+    const checkLoop = (nodes, visited) => {
+        let found = false;
+        let checkingKey = visited[visited.length-1]; // the latest thing we've seen
+        for(const [testKey, testNodes] of Object.entries(nodes)){
+            if(testNodes.hasOwnProperty(checkingKey)){
+                // we found a new node that has the last node we saw as a child
+                found = true;
+                //console.log("found", testNodes, "has", checkingKey, "visited", visited, "testKey", testKey)
+                if(visited.includes(testKey)){
+                    // we found a loop
+                    //console.log("found loop", visited, testKey)
+                    return true;
+                }
+                visited.push(testKey);
+                if(checkLoop(nodes, visited)){
+                    return visited.pop()
+                }
+            }
+        }
+        if(!found){
+            //console.log("didn't find", checkingKey, "in any edges")
+        } else {
+            //console.log("found nested, but no loop with", checkingKey)
+        }
+        return false;
+    }
     React.useEffect( () => {
         openAllNodes(true);
         setViewSingleTreeData(false);
