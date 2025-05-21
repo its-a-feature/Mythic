@@ -14,6 +14,7 @@ import { Typography } from '@mui/material';
 import {KeylogsTable} from './KeylogsTable';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 
 const keylogFragment = gql`
@@ -244,65 +245,43 @@ export const SearchTabKeylogsPanel = (props) =>{
         snackActions.error("Failed to fetch data for search");
         console.log(data);
     }
-    const [getKeylogSearch] = useLazyQuery(keylogSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleKeylogSearchResults,
-        onError: handleCallbackSearchFailure
-    })
-    const [getUserSearch] = useLazyQuery(userSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleKeylogSearchResults,
-        onError: handleCallbackSearchFailure
-    })
-    const [getUserUniqueSearch] = useLazyQuery(userUniqueSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: (data) => {
-            snackActions.dismiss();
-            if(data.keylog_aggregate.aggregate.count === 0){
-                snackActions.info("No Results");
-            }else{
-                snackActions.success("Showing One Entry for Each Unique User");
-            }
-            setTotalCount(data.keylog_aggregate.aggregate.count);
-            setKeylogData(data.keylog);
-        },
-        onError: (data) => {
-            snackActions.error("Failed to fetch data for search");
-            console.log(data);
+    const handleKeylogUserUniqueSearch = (data) => {
+        snackActions.dismiss();
+        if(data.keylog_aggregate.aggregate.count === 0){
+            snackActions.info("No Results");
+        }else{
+            snackActions.success("Showing One Entry for Each Unique User");
         }
-    })
-    const [getProgramSearch] = useLazyQuery(programSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleKeylogSearchResults,
-        onError: (data) => {
-            snackActions.error("Failed to fetch data for search");
-            console.log(data);
+        setTotalCount(data.keylog_aggregate.aggregate.count);
+        setKeylogData(data.keylog);
+    }
+    const handleKeylogProgramUniqueSearch = (data) => {
+        snackActions.dismiss();
+        if(data.keylog_aggregate.aggregate.count === 0){
+            snackActions.info("No Results");
+        }else{
+            snackActions.success("Showing One Entry for Each Unique Program");
         }
+        setTotalCount(data.keylog_aggregate.aggregate.count);
+        setKeylogData(data.keylog);
+    }
+    const getKeylogSearch = useMythicLazyQuery(keylogSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getProgramUniqueSearch] = useLazyQuery(programUniqueSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: (data) => {
-            snackActions.dismiss();
-            if(data.keylog_aggregate.aggregate.count === 0){
-                snackActions.info("No Results");
-            }else{
-                snackActions.success("Showing One Entry for Each Unique Program");
-            }
-            setTotalCount(data.keylog_aggregate.aggregate.count);
-            setKeylogData(data.keylog);
-        },
-        onError: (data) => {
-            snackActions.error("Failed to fetch data for search");
-            console.log(data);
-        }
+    const getUserSearch = useMythicLazyQuery(userSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getHostSearch] = useLazyQuery(hostSearch, {
+    const getUserUniqueSearch = useMythicLazyQuery(userUniqueSearch, {
         fetchPolicy: "no-cache",
-        onCompleted: handleKeylogSearchResults,
-        onError: (data) => {
-            snackActions.error("Failed to fetch data for search");
-            console.log(data);
-        }
+    })
+    const getProgramSearch = useMythicLazyQuery(programSearch, {
+        fetchPolicy: "no-cache"
+    })
+    const getProgramUniqueSearch = useMythicLazyQuery(programUniqueSearch, {
+        fetchPolicy: "no-cache"
+    })
+    const getHostSearch = useMythicLazyQuery(hostSearch, {
+        fetchPolicy: "no-cache"
     })
     const onKeylogSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -316,7 +295,7 @@ export const SearchTabKeylogsPanel = (props) =>{
             offset: offset,
             fetchLimit: fetchLimit,
             keylog: "%" + new_search + "%",
-        }})
+        }}).then(({data}) => handleKeylogSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onUserSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -327,14 +306,14 @@ export const SearchTabKeylogsPanel = (props) =>{
                 offset: offset,
                 fetchLimit: fetchLimit,
                 user: "%_%",
-            }})
+            }}).then(({data}) => handleKeylogUserUniqueSearch(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }else{
             getUserSearch({variables:{
                 operation_id: me?.user?.current_operation_id || 0,
                 offset: offset,
                 fetchLimit: fetchLimit,
                 user: "%" + search + "%",
-            }})
+            }}).then(({data}) => handleKeylogSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }
         
     }
@@ -347,14 +326,14 @@ export const SearchTabKeylogsPanel = (props) =>{
                 offset: offset,
                 fetchLimit: fetchLimit,
                 program: "%_%",
-            }})
+            }}).then(({data}) => handleKeylogProgramUniqueSearch(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }else{
             getProgramSearch({variables:{
                 operation_id: me?.user?.current_operation_id || 0,
                 offset: offset,
                 fetchLimit: fetchLimit,
                 program: "%" + search + "%",
-            }})
+            }}).then(({data}) => handleKeylogSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }
         
     }
@@ -370,7 +349,7 @@ export const SearchTabKeylogsPanel = (props) =>{
             offset: offset,
             fetchLimit: fetchLimit,
             host: "%" + new_search + "%",
-        }})
+        }}).then(({data}) => handleKeylogSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onChangePage = (event, value) => {
         switch(searchField){

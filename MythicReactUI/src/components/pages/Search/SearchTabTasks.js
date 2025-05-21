@@ -16,6 +16,7 @@ import { Typography } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import {TaskDisplayInteractiveSearch} from "./SearchTabInteractiveTasks";
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const fetchLimit = 50;
 const responseSearch = gql`
@@ -328,45 +329,29 @@ export const SearchTabTasksPanel = (props) =>{
         snackActions.error("Failed to fetch data for search");
         console.log(data);
     }
-    const [getOutputSearch] = useLazyQuery(responseSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchSuccess,
-        onError: handleCallbackSearchFailure
+    const getOutputSearch = useMythicLazyQuery(responseSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getParameterSearch] = useLazyQuery(parameterSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchSuccess,
-        onError: handleCallbackSearchFailure
+    const getParameterSearch = useMythicLazyQuery(parameterSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getCommentSearch] = useLazyQuery(commentSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchSuccess,
-        onError: handleCallbackSearchFailure
+    const getCommentSearch = useMythicLazyQuery(commentSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getCommandSearch] = useLazyQuery(commandSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchSuccess,
-        onError: handleCallbackSearchFailure
+    const getCommandSearch = useMythicLazyQuery(commandSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getCommandAndParametersSearch] = useLazyQuery(commandAndParameterSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchSuccess,
-        onError: handleCallbackSearchFailure
+    const getCommandAndParametersSearch = useMythicLazyQuery(commandAndParameterSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getTagSearch] = useLazyQuery(tagSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchSuccess,
-        onError: handleCallbackSearchFailure
+    const getTagSearch = useMythicLazyQuery(tagSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getCallbackIDSearch] = useLazyQuery(callbackIDSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchSuccess,
-        onError: handleCallbackSearchFailure
+    const getCallbackIDSearch = useMythicLazyQuery(callbackIDSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getCallbackGroupSearch] = useLazyQuery(callbackGroupSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchSuccess,
-        onError: handleCallbackSearchFailure
+    const getCallbackGroupSearch = useMythicLazyQuery(callbackGroupSearch, {
+        fetchPolicy: "no-cache"
     })
     const onOutputSearch = ({search, offset, taskStatus, host}) => {
         if(alreadySearching){
@@ -395,7 +380,7 @@ export const SearchTabTasksPanel = (props) =>{
             search: "%" + new_search + "%",
             status: "%" + newTaskStatus + "%",
             host: "%" + newHost + "%"
-        }})
+        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onParameterSearch = ({search, offset, taskStatus, host}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -424,7 +409,7 @@ export const SearchTabTasksPanel = (props) =>{
             search: "%" + new_search + "%",
             status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%"
-        }})
+        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onCommentSearch = ({search, offset, taskStatus, host}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -453,7 +438,7 @@ export const SearchTabTasksPanel = (props) =>{
             search: "%" + new_search + "%",
             status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%"
-        }})
+        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onCommandSearch = ({search, offset, taskStatus, host}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -482,10 +467,10 @@ export const SearchTabTasksPanel = (props) =>{
             search: "%" + new_search + "%",
             status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%"
-        }})
+        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onCommandAndParametersSearch = ({search, offset, taskStatus, host}) => {
-        //snackActions.info("Searching...", {persist:true});
+        snackActions.info("Searching...", {persist:true});
         if(alreadySearching){
             snackActions.info("Still searching, please wait for it to finish");
             return;
@@ -511,7 +496,7 @@ export const SearchTabTasksPanel = (props) =>{
                 search: "%" + new_search + "%",
                 status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%"
-            }})
+            }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onTagSearch = ({search, offset, taskStatus, host}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -540,7 +525,7 @@ export const SearchTabTasksPanel = (props) =>{
                 search: "%" + new_search + "%",
                 status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%"
-            }})
+            }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onCallbackIDSearch = ({search, offset, taskStatus, host}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -574,7 +559,7 @@ export const SearchTabTasksPanel = (props) =>{
                     search: new_search,
                     status: "%" + newTaskStatus + "%",
                     host: "%" + newHost + "%"
-                }})
+                }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }catch(error){
             snackActions.warning("Must supply an integer to search.");
             setAlreadySearching(false);
@@ -607,7 +592,7 @@ export const SearchTabTasksPanel = (props) =>{
                 search: "%" + new_search + "%",
                 status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%"
-            }})
+            }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onChangePage = (event, value) => {
 

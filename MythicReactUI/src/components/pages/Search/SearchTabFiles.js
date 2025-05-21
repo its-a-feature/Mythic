@@ -24,6 +24,7 @@ import {UploadTaskFile} from '../../MythicComponents/MythicFileUpload';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import BackupIcon from '@mui/icons-material/Backup';
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const fileMetaFragment = gql`
 fragment filemetaData on filemeta{
@@ -719,105 +720,65 @@ export const SearchTabFilesPanel = (props) => {
         snackActions.error("Failed to fetch data for search");
         console.log(data);
     }
-    const [getfilenameFileMetaUploadSearch] = useLazyQuery(filenameFileMetaUploadSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaUploadSearchResults,
-        onError: handleCallbackSearchFailure
+    const getfilenameFileMetaUploadSearch = useMythicLazyQuery(filenameFileMetaUploadSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getfilenameFileMetaDownloadSearch] = useLazyQuery(filenameFileMetaDownloadSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaDownloadSearchResults,
-        onError: handleCallbackSearchFailure
+    const getfilenameFileMetaDownloadSearch = useMythicLazyQuery(filenameFileMetaDownloadSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getfilenameFileBrowserSearch] = useLazyQuery(filenameFileBrowserSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileBrowserSearchResults,
-        onError: handleCallbackSearchFailure
+    const getfilenameFileBrowserSearch = useMythicLazyQuery(filenameFileBrowserSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getfilenameFileMetaScreenshotSearch] = useLazyQuery(filenameFileMetaScreenshotSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaScreenshotSearchResults,
-        onError: handleCallbackSearchFailure
+    const getfilenameFileMetaScreenshotSearch = useMythicLazyQuery(filenameFileMetaScreenshotSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getfilenameFileMetaEventingWorkflowSearch] = useLazyQuery(filenameFileMetaEventingWorkflowSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaUploadSearchResults,
-        onError: handleCallbackSearchFailure
+    const getfilenameFileMetaEventingWorkflowSearch = useMythicLazyQuery(filenameFileMetaEventingWorkflowSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [gethashFileMetaUploadSearch] = useLazyQuery(hashFileMetaUploadSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaUploadSearchResults,
-        onError: handleCallbackSearchFailure
+    const gethashFileMetaUploadSearch = useMythicLazyQuery(hashFileMetaUploadSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [gethashFileMetaDownloadSearch] = useLazyQuery(hashFileMetaDownloadSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaDownloadSearchResults,
-        onError: handleCallbackSearchFailure
+    const gethashFileMetaDownloadSearch = useMythicLazyQuery(hashFileMetaDownloadSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [gethashFileMetaScreenshotSearch] = useLazyQuery(hashFileMetaScreenshotSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaScreenshotSearchResults,
-        onError: handleCallbackSearchFailure
+    const gethashFileMetaScreenshotSearch = useMythicLazyQuery(hashFileMetaScreenshotSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getcommentFileMetaUploadSearch] = useLazyQuery(commentFileMetaUploadSearch, {
+    const getcommentFileMetaUploadSearch = useMythicLazyQuery(commentFileMetaUploadSearch, {
         fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaUploadSearchResults,
-        onError: handleCallbackSearchFailure
     })
-    const [getcommentFileMetaDownloadSearch] = useLazyQuery(commentFileMetaDownloadSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaDownloadSearchResults,
-        onError: handleCallbackSearchFailure
+    const getcommentFileMetaDownloadSearch = useMythicLazyQuery(commentFileMetaDownloadSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getcommentFileBrowserSearch] = useLazyQuery(commentFileBrowserSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileBrowserSearchResults,
-        onError: handleCallbackSearchFailure
+    const getcommentFileBrowserSearch = useMythicLazyQuery(commentFileBrowserSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getcommentFileMetaScreenshotSearch] = useLazyQuery(commentFileMetaScreenshotSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaScreenshotSearchResults,
-        onError: handleCallbackSearchFailure
+    const getcommentFileMetaScreenshotSearch = useMythicLazyQuery(commentFileMetaScreenshotSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [gettagFileMetaUploadSearch] = useLazyQuery(tagFileMetaUploadSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaUploadSearchResults,
-        onError: handleCallbackSearchFailure
+    const gettagFileMetaUploadSearch = useMythicLazyQuery(tagFileMetaUploadSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [gettagFileMetaDownloadSearch] = useLazyQuery(tagFileMetaDownloadSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaDownloadSearchResults,
-        onError: handleCallbackSearchFailure
+    const gettagFileMetaDownloadSearch = useMythicLazyQuery(tagFileMetaDownloadSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [gettagFileBrowserSearch] = useLazyQuery(tagFileBrowserSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileBrowserSearchResults,
-        onError: handleCallbackSearchFailure
+    const gettagFileBrowserSearch = useMythicLazyQuery(tagFileBrowserSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [gettagFileMetaScreenshotSearch] = useLazyQuery(tagFileMetaScreenshotSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaScreenshotSearchResults,
-        onError: handleCallbackSearchFailure
+    const gettagFileMetaScreenshotSearch = useMythicLazyQuery(tagFileMetaScreenshotSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getUUIDFileMetaUploadSearch] = useLazyQuery(uuidFileMetaUploadSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaUploadSearchResults,
-        onError: handleCallbackSearchFailure
+    const getUUIDFileMetaUploadSearch = useMythicLazyQuery(uuidFileMetaUploadSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getUUIDFileMetaDownloadSearch] = useLazyQuery(uuidFileMetaDownloadSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaDownloadSearchResults,
-        onError: handleCallbackSearchFailure
+    const getUUIDFileMetaDownloadSearch = useMythicLazyQuery(uuidFileMetaDownloadSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getUUIDFileMetaScreenshotSearch] = useLazyQuery(uuidFileMetaScreenshotSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaScreenshotSearchResults,
-        onError: handleCallbackSearchFailure
+    const getUUIDFileMetaScreenshotSearch = useMythicLazyQuery(uuidFileMetaScreenshotSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getUUIDFileMetaEventingWorkflowSearch] = useLazyQuery(uuidFileMetaEventingWorkflowSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleFileMetaUploadSearchResults,
-        onError: handleCallbackSearchFailure
+    const getUUIDFileMetaEventingWorkflowSearch = useMythicLazyQuery(uuidFileMetaEventingWorkflowSearch, {
+        fetchPolicy: "no-cache"
     })
     const onFilenameSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -833,7 +794,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileBrowserSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Uploads") {
             getfilenameFileMetaUploadSearch({
                 variables: {
@@ -844,7 +805,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Downloads") {
             getfilenameFileMetaDownloadSearch({
                 variables: {
@@ -855,7 +816,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Eventing Workflows"){
             getfilenameFileMetaEventingWorkflowSearch({
                 variables: {
@@ -864,7 +825,7 @@ export const SearchTabFilesPanel = (props) => {
                     filename: "%" + search + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else {
             getfilenameFileMetaScreenshotSearch({
                 variables: {
@@ -875,7 +836,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }
     }
     const onHashSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
@@ -900,7 +861,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Downloads") {
             gethashFileMetaDownloadSearch({
                 variables: {
@@ -911,7 +872,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else {
             gethashFileMetaScreenshotSearch({
                 variables: {
@@ -922,7 +883,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }
     }
     const onCommentSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
@@ -943,7 +904,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileBrowserSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Uploads") {
             getcommentFileMetaUploadSearch({
                 variables: {
@@ -954,7 +915,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Downloads") {
             getcommentFileMetaDownloadSearch({
                 variables: {
@@ -965,7 +926,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else {
             getcommentFileMetaScreenshotSearch({
                 variables: {
@@ -976,7 +937,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }
     }
     const onTagSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
@@ -996,7 +957,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileBrowserSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Uploads") {
             gettagFileMetaUploadSearch({
                 variables: {
@@ -1006,7 +967,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Downloads") {
             gettagFileMetaDownloadSearch({
                 variables: {
@@ -1016,7 +977,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else {
             gettagFileMetaScreenshotSearch({
                 variables: {
@@ -1026,7 +987,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }
     }
     const onUUIDSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
@@ -1051,7 +1012,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Downloads") {
             getUUIDFileMetaDownloadSearch({
                 variables: {
@@ -1062,7 +1023,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Eventing Workflows") {
             getUUIDFileMetaEventingWorkflowSearch({
                 variables: {
@@ -1073,7 +1034,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         } else {
             getUUIDFileMetaScreenshotSearch({
                 variables: {
@@ -1084,7 +1045,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            })
+            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }
     }
     const onChangePage = (event, value) => {

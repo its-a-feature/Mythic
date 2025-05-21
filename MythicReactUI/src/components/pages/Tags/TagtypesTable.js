@@ -18,6 +18,7 @@ import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import {downloadFileFromMemory} from '../../utilities/Clipboard';
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const importTagtypesMutation = gql`
  mutation importMultipleTagtypes($tagtypes: String!) {
@@ -68,16 +69,19 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
         }
         reader.readAsBinaryString(evt.target.files[0]);
     }
-    const [exportTagtypes] = useLazyQuery(exportTagtypesQuery, {
-        onCompleted: data => {
-            // remove __typename entry from each tagtype field
-            let finalData = data.tagtype.map( c => {return {...c, __typename: undefined}})
-            downloadFileFromMemory(JSON.stringify(finalData, null, 2), "tagtypes.json");
-        },
-        onError: error => {
-            console.log(error);
-        }
+    const exportTagTypesSuccess = (data) => {
+        let finalData = data.tagtype.map( c => {return {...c, __typename: undefined}})
+        downloadFileFromMemory(JSON.stringify(finalData, null, 2), "tagtypes.json");
+    }
+    const exportTagTypesError = (data) => {
+        console.log(data);
+    }
+    const exportTagtypes = useMythicLazyQuery(exportTagtypesQuery, {
     })
+    const onClickExportTagTypes = (e) => {
+        exportTagtypes({variables: {operation_id: me?.user?.current_operation_id || 0}})
+            .then(({data}) => exportTagTypesSuccess(data)).catch(({data}) => exportTagTypesError(data));
+    }
     return (
         <div style={{display: "flex", flexDirection: "column", width: "100%", height: "100%"}}>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
@@ -90,7 +94,7 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
                     <input onChange={onFileChange} value={fileValue.current} type="file" hidden /> 
                 </Button>
                 <Button style={{float: "right", marginRight: "5px", color: "white"}} size={"small"}
-                    onClick={() => exportTagtypes({variables: {operation_id: me?.user?.current_operation_id || 0}})}>
+                    onClick={onClickExportTagTypes}>
                     <FileDownloadIcon />Export</Button>
                 <Button onClick={()=>setOpenNewDialog(true)} style={{float: "right", marginRight: "5px", color: "white"}}
                          size={"small"}>

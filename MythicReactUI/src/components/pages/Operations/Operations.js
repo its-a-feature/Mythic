@@ -3,6 +3,7 @@ import { OperationTable } from './OperationTable';
 import {useQuery, gql, useLazyQuery} from '@apollo/client';
 import {CommandBlockListTable} from './CommandBlockListTable';
 import { snackActions } from '../../utilities/Snackbar';
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const GET_Operations = gql`
 query GetOperations {
@@ -61,28 +62,28 @@ export function Operations(props){
         snackActions.error("Failed to get list of operations");
       }
     });
-    const [getBlockLists] = useLazyQuery(GET_BlockLists, {fetchPolicy: "network-only",
-      onCompleted: (data) => {
-        const condensed = data.disabledcommandsprofile.reduce( (prev, cur) => {
-          if(prev[cur.name] === undefined){
-            prev[cur.name] = {};
-          }
-          if(prev[cur.name][cur.command.payloadtype.name] === undefined){
-            prev[cur.name][cur.command.payloadtype.name] = [];
-          }
-          prev[cur.name][cur.command.payloadtype.name].push(cur);
-          return {...prev};
-        }, {});
-        // now break out into array
-        let arrayForm = [];
-        for(const [key, value] of Object.entries(condensed)){
-          arrayForm.push({"name": key, entries: value});
+    const getBlockListsSuccess = (data) => {
+      const condensed = data.disabledcommandsprofile.reduce( (prev, cur) => {
+        if(prev[cur.name] === undefined){
+          prev[cur.name] = {};
         }
-        setBlockLists(arrayForm);
-      },
-      onError: (data) => {
-        snackActions.error("Failed to get blocklist options");
-      } 
+        if(prev[cur.name][cur.command.payloadtype.name] === undefined){
+          prev[cur.name][cur.command.payloadtype.name] = [];
+        }
+        prev[cur.name][cur.command.payloadtype.name].push(cur);
+        return {...prev};
+      }, {});
+      // now break out into array
+      let arrayForm = [];
+      for(const [key, value] of Object.entries(condensed)){
+        arrayForm.push({"name": key, entries: value});
+      }
+      setBlockLists(arrayForm);
+    }
+    const getBlockListsError = (data) => {
+      snackActions.error("Failed to get blocklist options");
+    }
+    const getBlockLists = useMythicLazyQuery(GET_BlockLists, {fetchPolicy: "network-only"
     });
     const onUpdateOperation = ({id, name, complete}) => {
       const updatedOperations = operations.map( o => {
@@ -107,10 +108,10 @@ export function Operations(props){
       setOperations(updatedOps);
     }
     const onUpdateCurrentOperation = (operation_id) => {
-      getBlockLists();
+      getBlockLists().then(({data}) => getBlockListsSuccess(data)).catch(({data}) => getBlockListsError(data));
     }
     React.useEffect( () => {
-      getBlockLists();
+      getBlockLists().then(({data}) => getBlockListsSuccess(data)).catch(({data}) => getBlockListsError(data));
     }, []);
     return (
       <div style={{  height: "100%", display: "flex", flexDirection: "column"}}>

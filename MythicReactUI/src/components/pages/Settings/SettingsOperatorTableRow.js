@@ -33,6 +33,7 @@ import {useLazyQuery, gql, useMutation} from '@apollo/client';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import {copyStringToClipboard} from "../../utilities/Clipboard";
 import { DataGrid } from '@mui/x-data-grid';
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const createAPITokenMutation = gql`
 mutation createAPITokenMutation($operator_id: Int, $name: String){
@@ -107,14 +108,11 @@ export function SettingsOperatorTableRow(props){
     const [openSecretsConfig, setOpenSecretsConfig] = React.useState(false);
     const [showDeleted, setShowDeleted] = React.useState(false);
     const [apiTokens, setAPITokens] = React.useState([]);
-    const [queryAPITokens] = useLazyQuery(GetAPITokens, {
-        fetchPolicy: "no-cache",
-        onCompleted: (data) => {
-            setAPITokens(data.apitokens);
-        },
-        onError: (error) => {
-
-        }
+    const queryAPITokensSuccess = (data) => {
+        setAPITokens(data.apitokens);
+    }
+    const queryAPITokens = useMythicLazyQuery(GetAPITokens, {
+        fetchPolicy: "no-cache"
     });
     const [createAPIToken] = useMutation(createAPITokenMutation, {
         onCompleted: (data) => {
@@ -212,7 +210,8 @@ export function SettingsOperatorTableRow(props){
     }
     React.useEffect( () => {
         if(open){
-            queryAPITokens({variables: {operator_id: props.id}});
+            queryAPITokens({variables: {operator_id: props.id}})
+                .then(({data}) => queryAPITokensSuccess(data)).catch(({data}) => console.log(data));
         }
     }, [open]);
     return (

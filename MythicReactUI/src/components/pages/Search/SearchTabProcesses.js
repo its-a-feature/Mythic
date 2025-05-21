@@ -14,6 +14,7 @@ import { Typography } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import {ProcessTable} from "./ProcessTable";
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 
 const mythictreeFragment = gql`
@@ -215,7 +216,7 @@ export const SearchTabProcessPanel = (props) =>{
                 break;
         }
     }
-    const handleKeylogSearchResults = (data) => {
+    const handleSearchResults = (data) => {
         snackActions.dismiss();
         if(searchField === "Tag"){
             setTotalCount(data.tag_aggregate.aggregate.count);
@@ -231,23 +232,14 @@ export const SearchTabProcessPanel = (props) =>{
         snackActions.error("Failed to fetch data for search");
         console.log(data);
     }
-    const [getNameSearch] = useLazyQuery(nameSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleKeylogSearchResults,
-        onError: handleCallbackSearchFailure
+    const getNameSearch = useMythicLazyQuery(nameSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getPidSearch] = useLazyQuery(pidSearch, {
+    const getPidSearch = useMythicLazyQuery(pidSearch, {
         fetchPolicy: "no-cache",
-        onCompleted: handleKeylogSearchResults,
-        onError: handleCallbackSearchFailure
     })
-    const [getTagSearch] = useLazyQuery(tagSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleKeylogSearchResults,
-        onError: (data) => {
-            snackActions.error("Failed to fetch data for search");
-            console.log(data);
-        }
+    const getTagSearch = useMythicLazyQuery(tagSearch, {
+        fetchPolicy: "no-cache"
     })
     const onNameSearch = ({search, searchHost, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -262,7 +254,7 @@ export const SearchTabProcessPanel = (props) =>{
             fetchLimit: fetchLimit,
             name: "%" + new_search + "%",
             host: "%" + searchHost + "%",
-        }})
+        }}).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onPidSearch = ({search, searchHost, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -277,7 +269,7 @@ export const SearchTabProcessPanel = (props) =>{
             fetchLimit: fetchLimit,
             pid: "%" + new_search + "%",
             host: "%" + searchHost + "%",
-        }})
+        }}).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onTagSearch = ({search, searchHost, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -292,7 +284,7 @@ export const SearchTabProcessPanel = (props) =>{
                 fetchLimit: fetchLimit,
                 tag: "%" + new_search + "%",
                 host: "%" + searchHost + "%",
-            }})
+            }}).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onChangePage = (event, value) => {
         switch(searchField){

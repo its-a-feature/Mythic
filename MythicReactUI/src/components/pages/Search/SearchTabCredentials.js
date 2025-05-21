@@ -17,6 +17,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const credentialFragment = gql`
 fragment credentialSearchData on credential{
@@ -278,6 +279,8 @@ const SearchTabCredentialsSearchPanel = (props) => {
         </Grid>
     );
 }
+
+
 export const SearchTabCredentialsPanel = (props) =>{
     const [credentialaData, setCredentialData] = React.useState([]);
     const [totalCount, setTotalCount] = React.useState(0);
@@ -327,30 +330,20 @@ export const SearchTabCredentialsPanel = (props) =>{
         snackActions.error("Failed to fetch data for search");
         console.log(data);
     }
-    const [getAccountSearch] = useLazyQuery(accountSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCredentialSearchResults,
-        onError: handleCallbackSearchFailure
+    const getAccountSearch = useMythicLazyQuery(accountSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getRealmSearch] = useLazyQuery(realmSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCredentialSearchResults,
-        onError: handleCallbackSearchFailure
+    const getRealmSearch = useMythicLazyQuery(realmSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getCredentialSearch] = useLazyQuery(credentialSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCredentialSearchResults,
-        onError: handleCallbackSearchFailure
+    const getCredentialSearch = useMythicLazyQuery(credentialSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getCommentSearch] = useLazyQuery(commentSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCredentialSearchResults,
-        onError: handleCallbackSearchFailure
+    const getCommentSearch = useMythicLazyQuery(commentSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getTagSearch] = useLazyQuery(tagSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCredentialSearchResults,
-        onError: handleCallbackSearchFailure
+    const getTagSearch = useMythicLazyQuery(tagSearch, {
+        fetchPolicy: "no-cache"
     })
     const onAccountSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -361,7 +354,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             fetchLimit: fetchLimit,
             account: "%" + search + "%",
             deleted: showDeleted.current
-        }})
+        }}).then(({data}) => handleCredentialSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onRealmSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -372,7 +365,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             fetchLimit: fetchLimit,
             realm: "%" + search + "%",
             deleted: showDeleted.current
-        }})
+        }}).then(({data}) => handleCredentialSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onCredentialSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -383,7 +376,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             fetchLimit: fetchLimit,
             credential: "%" + search + "%",
             deleted: showDeleted.current
-        }})
+        }}).then(({data}) => handleCredentialSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onCommentSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -398,7 +391,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             fetchLimit: fetchLimit,
             comment: "%" + new_search + "%",
             deleted: showDeleted.current
-        }})
+        }}).then(({data}) => handleCredentialSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onTagSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -413,7 +406,7 @@ export const SearchTabCredentialsPanel = (props) =>{
                 fetchLimit: fetchLimit,
                 tag:  "%" + new_search + "%",
                 deleted: showDeleted.current
-            }})
+            }}).then(({data}) => handleCredentialSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onChangePage = (event, value) => {
         if(value === 1){

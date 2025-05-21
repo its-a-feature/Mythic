@@ -14,6 +14,7 @@ import { Typography } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import {TagTable} from "./TagTable";
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 
 const tagFragment = gql`
@@ -225,7 +226,7 @@ export const SearchTabTagsPanel = (props) =>{
                 break;
         }
     }
-    const handleKeylogSearchResults = (data) => {
+    const handleSearchResults = (data) => {
         snackActions.dismiss();
         setTotalCount(data.tag_aggregate.aggregate.count);
         setTagData(data.tag);
@@ -235,23 +236,14 @@ export const SearchTabTagsPanel = (props) =>{
         snackActions.error("Failed to fetch data for search");
         console.log(data);
     }
-    const [getTagTypeSearch] = useLazyQuery(tagTypeSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleKeylogSearchResults,
-        onError: handleCallbackSearchFailure
+    const getTagTypeSearch = useMythicLazyQuery(tagTypeSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getSourceSearch] = useLazyQuery(sourceSearch, {
+    const getSourceSearch = useMythicLazyQuery(sourceSearch, {
         fetchPolicy: "no-cache",
-        onCompleted: handleKeylogSearchResults,
-        onError: handleCallbackSearchFailure
     })
-    const [getDataSearch] = useLazyQuery(dataSearch, {
+    const getDataSearch = useMythicLazyQuery(dataSearch, {
         fetchPolicy: "no-cache",
-        onCompleted: handleKeylogSearchResults,
-        onError: (data) => {
-            snackActions.error("Failed to fetch data for search");
-            console.log(data);
-        }
     })
     const onTagTypeSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -264,7 +256,7 @@ export const SearchTabTagsPanel = (props) =>{
             offset: offset,
             fetchLimit: fetchLimit,
             name: "%" + new_search + "%",
-        }})
+        }}).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onSourceSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -277,7 +269,7 @@ export const SearchTabTagsPanel = (props) =>{
             offset: offset,
             fetchLimit: fetchLimit,
             source: "%" + new_search + "%",
-        }})
+        }}).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onDataSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -290,7 +282,7 @@ export const SearchTabTagsPanel = (props) =>{
                 offset: offset,
                 fetchLimit: fetchLimit,
                 data: "%" + new_search + "%",
-            }})
+            }}).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onChangePage = (event, value) => {
         switch(searchField){

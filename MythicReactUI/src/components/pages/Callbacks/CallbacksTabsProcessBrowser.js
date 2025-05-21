@@ -23,6 +23,7 @@ import {snackActions} from "../../utilities/Snackbar";
 import { Backdrop, Typography } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import ExpandIcon from '@mui/icons-material/Expand';
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const treeFragment = gql`
 fragment treeObjData on mythictree {
@@ -236,18 +237,18 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         },
         fetchPolicy: 'no-cache',
     });
-    const [getLoadedCommandsQuery] = useLazyQuery(loadedCommandsQuery, {
-        fetchPolicy: 'no-cache',
-        onCompleted: (data) => {
-            if(data.loadedcommands.length > 0){
-                loadedCommandsRef.current[data.loadedcommands[0].callback_id] = [...data.loadedcommands];
-            }
-            loadingCommandsRef.current = false;
-        },
-        onError: (data) => {
-            console.log(data);
-            loadingCommandsRef.current = false;
+    const getLoadedCommandsQuerySuccess = (data) => {
+        if(data.loadedcommands.length > 0){
+            loadedCommandsRef.current[data.loadedcommands[0].callback_id] = [...data.loadedcommands];
         }
+        loadingCommandsRef.current = false;
+    }
+    const getLoadedCommandsQueryError = (data) => {
+        console.log(data);
+        loadingCommandsRef.current = false;
+    }
+    const getLoadedCommandsQuery = useMythicLazyQuery(loadedCommandsQuery, {
+        fetchPolicy: 'no-cache',
     });
     useSubscription(treeSubscription, {
         variables: {now: fromNow.current},
@@ -290,55 +291,52 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
             const newMatrix = getNewMatrix();
             setTreeAdjMtx(newMatrix);
         }
-    })
-    const [getHostProcessesQuery] = useLazyQuery(treeHostQuery, {
-        onError: (data) => {
-            console.error(data);
-        },
-        fetchPolicy: 'no-cache',
-        onCompleted: (data) => {
-            snackActions.dismiss();
-            // add in all of the raw data
-            for(let i = 0; i < data.mythictree.length; i++){
-                let currentGroups = data.mythictree[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
-                for(let j = 0; j < currentGroups.length; j++){
-                    if(treeRootDataRef.current[currentGroups[j]] === undefined){
-                        treeRootDataRef.current[currentGroups[j]] = {};
+    });
+    const getHostProcessesQuerySuccess = (data) => {
+        snackActions.dismiss();
+        // add in all of the raw data
+        for(let i = 0; i < data.mythictree.length; i++){
+            let currentGroups = data.mythictree[i]?.["callback"]?.["mythictree_groups"] || ["Unknown Callbacks"];
+            for(let j = 0; j < currentGroups.length; j++){
+                if(treeRootDataRef.current[currentGroups[j]] === undefined){
+                    treeRootDataRef.current[currentGroups[j]] = {};
+                }
+                if( treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] === undefined) {
+                    // new host discovered
+                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] = {};
+                }
+                if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] === undefined){
+                    // first time we're seeing this file data, just add it
+                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]};
+                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].callbacks = [data.mythictree[i].callback];
+                } else {
+                    // we need to merge data in because we already have some info
+                    if(data.mythictree[i].deleted){
+                        delete treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
+                        continue;
                     }
-                    if( treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] === undefined) {
-                        // new host discovered
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]] = {};
-                    }
-                    if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] === undefined){
-                        // first time we're seeing this file data, just add it
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]};
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].callbacks = [data.mythictree[i].callback];
+                    let existingData = treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
+                    existingData.comment += data.mythictree[i].comment;
+                    existingData.callbacks.push(data.mythictree[i].callback)
+                    existingData.tags = [...existingData.tags, ...data.mythictree[i].tags];
+                    if(existingData.task_id > data.mythictree[i].task_id){
+                        existingData.metadata = {...data.mythictree[i].metadata, ...existingData.metadata};
                     } else {
-                        // we need to merge data in because we already have some info
-                        if(data.mythictree[i].deleted){
-                            delete treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
-                            continue;
-                        }
-                        let existingData = treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]];
-                        existingData.comment += data.mythictree[i].comment;
-                        existingData.callbacks.push(data.mythictree[i].callback)
-                        existingData.tags = [...existingData.tags, ...data.mythictree[i].tags];
-                        if(existingData.task_id > data.mythictree[i].task_id){
-                            existingData.metadata = {...data.mythictree[i].metadata, ...existingData.metadata};
-                        } else {
-                            existingData.metadata = {...existingData.metadata, ...data.mythictree[i].metadata};
-                        }
-                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...existingData};
+                        existingData.metadata = {...existingData.metadata, ...data.mythictree[i].metadata};
                     }
+                    treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...existingData};
                 }
             }
-            // create the top level data in the adjacency matrix
-            const newMatrix = getNewMatrix();
-            //console.log(treeRootDataRef.current);
-            setTreeAdjMtx(newMatrix);
-            //console.log("just set treeAdjMtx, about to close backdrop")
-            setBackdropOpen(false);
         }
+        // create the top level data in the adjacency matrix
+        const newMatrix = getNewMatrix();
+        //console.log(treeRootDataRef.current);
+        setTreeAdjMtx(newMatrix);
+        //console.log("just set treeAdjMtx, about to close backdrop")
+        setBackdropOpen(false);
+    }
+    const getHostProcessesQuery = useMythicLazyQuery(treeHostQuery, {
+        fetchPolicy: 'no-cache',
     })
     const onListFilesButton = () => {
         taskingData.current = ({parameters: "",
@@ -373,7 +371,8 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         }
         if(loadedCommandsRef.current[callback_id] === undefined){
             loadingCommandsRef.current = true;
-            getLoadedCommandsQuery({variables: {callback_id: callback_id}});
+            getLoadedCommandsQuery({variables: {callback_id: callback_id}})
+                .then(({data}) => getLoadedCommandsQuerySuccess(data)).catch(({data}) => getLoadedCommandsQueryError(data));
             while(loadingCommandsRef.current){
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
@@ -389,7 +388,8 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         return undefined;
     }
     React.useEffect( () => {
-        getHostProcessesQuery({variables: {host: selectedHost}});
+        getHostProcessesQuery({variables: {host: selectedHost}})
+            .then(({data}) => getHostProcessesQuerySuccess(data)).catch(({data}) => console.log(data));
         setBackdropOpen(true);
     }, [selectedHost]);
     React.useEffect( () => {

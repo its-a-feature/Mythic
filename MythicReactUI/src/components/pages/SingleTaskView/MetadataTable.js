@@ -4,6 +4,7 @@ import {TaskArtifactsTable} from './TaskArtifactsTable';
 import {TaskMITREATTACKTable} from './TaskMITREATTACKTable';
 import {TaskFilesTable} from './TaskFilesTable';
 import {TaskCredentialsTable} from './TaskCredentialsTable';
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 
 const MetadataQuery = gql`
@@ -68,16 +69,14 @@ query taskMetadataQuery($task_range: [Int!]) {
 export function TaskMetadataTable(props){
    const [tasks, setTasks] = React.useState([]);
 
-   const [getMetadata] = useLazyQuery(MetadataQuery, {
-        onCompleted: data => {
-            setTasks(data.task);
-        },
-        onError: data => {
-            console.log("error!", data)
-        }
+   const getMetadata = useMythicLazyQuery(MetadataQuery, {fetchPolicy: "no-cache"
     });
     useEffect( () => {
-        getMetadata({variables: {task_range: props.taskIDs } });
+        getMetadata({variables: {task_range: props.taskIDs } }).then(({data}) => {
+            setTasks(data.task);
+        }).catch(({data}) => {
+            console.log("error!", data)
+        });
     }, [props.taskIDs, getMetadata]);
   return (
     <div style={{marginTop: "10px", marginRight: "5px"}}>

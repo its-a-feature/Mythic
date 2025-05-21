@@ -19,6 +19,7 @@ import {SearchPayloadsTable} from "./PayloadsTable";
 import { Backdrop, CircularProgress } from '@mui/material';
 import {faBiohazard} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const fetchLimit = 20;
 const filenameSearch = gql`
@@ -470,30 +471,20 @@ export const SearchTabPayloadsPanel = (props) => {
         setOpenBackdrop(false);
     }
 
-    const [getFilenameSearch] = useLazyQuery(filenameSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleSearchResults,
-        onError: handleCallbackSearchFailure
+    const getFilenameSearch = useMythicLazyQuery(filenameSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getDescriptionSearch] = useLazyQuery(descriptionSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleSearchResults,
-        onError: handleCallbackSearchFailure
+    const getDescriptionSearch = useMythicLazyQuery(descriptionSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getUUIDSearch] = useLazyQuery(uuidSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleSearchResults,
-        onError: handleCallbackSearchFailure
+    const getUUIDSearch = useMythicLazyQuery(uuidSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getC2ParameterValueSearch] = useLazyQuery(c2parametervalueSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleSearchResults,
-        onError: handleCallbackSearchFailure
+    const getC2ParameterValueSearch = useMythicLazyQuery(c2parametervalueSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getBuildParameterValueSearch] = useLazyQuery(buildParameterSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleSearchResults,
-        onError: handleCallbackSearchFailure
+    const getBuildParameterValueSearch = useMythicLazyQuery(buildParameterSearch, {
+        fetchPolicy: "no-cache"
     })
 
     const onFilenameSearch = ({search, offset, adjustedSearchC2, adjustedSearchPayloadType}) => {
@@ -520,7 +511,7 @@ export const SearchTabPayloadsPanel = (props) => {
                 c2Name: localSearchC2,
                 payloadtypeName: localSearchPayloadType
             }
-        })
+        }).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
 
     }
     const onDescriptionSearch = ({search, offset, adjustedSearchC2, adjustedSearchPayloadType}) => {
@@ -547,7 +538,7 @@ export const SearchTabPayloadsPanel = (props) => {
                 c2Name: localSearchC2,
                 payloadtypeName: localSearchPayloadType
             }
-        })
+        }).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onUUIDSearch = ({search, offset, adjustedSearchC2, adjustedSearchPayloadType}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -573,7 +564,7 @@ export const SearchTabPayloadsPanel = (props) => {
                 c2Name: localSearchC2,
                 payloadtypeName: localSearchPayloadType
             }
-        })
+        }).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onC2ParameterValueSearch = ({search, offset, adjustedSearchC2, adjustedSearchPayloadType}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -599,7 +590,7 @@ export const SearchTabPayloadsPanel = (props) => {
                 c2Name: localSearchC2,
                 payloadtypeName: localSearchPayloadType
             }
-        })
+        }).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onBuildParameterValueSearch = ({search, offset, adjustedSearchC2, adjustedSearchPayloadType}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -625,7 +616,7 @@ export const SearchTabPayloadsPanel = (props) => {
                 c2Name: localSearchC2,
                 payloadtypeName: localSearchPayloadType
             }
-        })
+        }).then(({data}) => handleSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onChangePage = (event, value) => {
 

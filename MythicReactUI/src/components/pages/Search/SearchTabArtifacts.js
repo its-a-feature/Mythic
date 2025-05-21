@@ -14,6 +14,7 @@ import { Typography } from '@mui/material';
 import {ArtifactTable} from './ArtifactTable';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const artifactFragment = gql`
 fragment artifactData on taskartifact{
@@ -300,40 +301,26 @@ export const SearchTabArtifactsPanel = (props) =>{
         snackActions.error("Failed to fetch data for search");
         console.log(data);
     }
-    const [getArtifactSearch] = useLazyQuery(artifactSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchResults,
-        onError: handleCallbackSearchFailure
+    const getArtifactSearch = useMythicLazyQuery(artifactSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getCommandSearch] = useLazyQuery(commandSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchResults,
-        onError: handleCallbackSearchFailure
+    const getCommandSearch = useMythicLazyQuery(commandSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getTypeSearch] = useLazyQuery(typeSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchResults,
-        onError: handleCallbackSearchFailure
+    const getTypeSearch = useMythicLazyQuery(typeSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getHostSearch] = useLazyQuery(hostSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchResults,
-        onError: handleCallbackSearchFailure
+    const getHostSearch = useMythicLazyQuery(hostSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getTaskSearch] = useLazyQuery(taskSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchResults,
-        onError: handleCallbackSearchFailure
+    const getTaskSearch = useMythicLazyQuery(taskSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getCallbackSearch] = useLazyQuery(callbackSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchResults,
-        onError: handleCallbackSearchFailure
+    const getCallbackSearch = useMythicLazyQuery(callbackSearch, {
+        fetchPolicy: "no-cache"
     })
-    const [getOperatorSearch] = useLazyQuery(operatorSearch, {
-        fetchPolicy: "no-cache",
-        onCompleted: handleCallbackSearchResults,
-        onError: handleCallbackSearchFailure
+    const getOperatorSearch = useMythicLazyQuery(operatorSearch, {
+        fetchPolicy: "no-cache"
     });
     const getCleanupSearchOptions = () => {
         switch(cleanupField.current){
@@ -359,7 +346,7 @@ export const SearchTabArtifactsPanel = (props) =>{
             fetchLimit: fetchLimit,
             artifact: "%" + new_search + "%",
             ...cleanupOptions,
-        }})
+        }}).then(({data}) => handleCallbackSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onCommandSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -375,7 +362,7 @@ export const SearchTabArtifactsPanel = (props) =>{
             fetchLimit: fetchLimit,
             command: "%" + new_search + "%",
                 ...cleanupOptions,
-        }})
+        }}).then(({data}) => handleCallbackSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onHostSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -391,7 +378,7 @@ export const SearchTabArtifactsPanel = (props) =>{
             fetchLimit: fetchLimit,
             host: "%" + new_search + "%",
                 ...cleanupOptions
-        }})
+        }}).then(({data}) => handleCallbackSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onTypeSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -407,7 +394,7 @@ export const SearchTabArtifactsPanel = (props) =>{
             fetchLimit: fetchLimit,
             type: "%" + new_search + "%",
                 ...cleanupOptions
-        }})
+        }}).then(({data}) => handleCallbackSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onTaskSearch = ({search, offset}) => {
         if(search === ""){
@@ -423,7 +410,7 @@ export const SearchTabArtifactsPanel = (props) =>{
             fetchLimit: fetchLimit,
             task_id: parseInt(search),
                 ...cleanupOptions
-        }})
+        }}).then(({data}) => handleCallbackSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onCallbackSearch = ({search, offset}) => {
         if(search === ""){
@@ -439,7 +426,7 @@ export const SearchTabArtifactsPanel = (props) =>{
             fetchLimit: fetchLimit,
             callback_id: search,
                 ...cleanupOptions
-        }})
+        }}).then(({data}) => handleCallbackSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onOperatorSearch = ({search, offset}) => {
         setSearch(search);
@@ -454,7 +441,7 @@ export const SearchTabArtifactsPanel = (props) =>{
             fetchLimit: fetchLimit,
             username: "%" + new_search + "%",
                 ...cleanupOptions
-        }})
+        }}).then(({data}) => handleCallbackSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onChangePage = (event, value) => {
         switch(searchField){
