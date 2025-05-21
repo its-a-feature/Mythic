@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const mythicServerVersion = "3.3.1-rc68"
+
 type Config struct {
 	// server configuration
 	AdminUser                           string
@@ -111,13 +113,7 @@ func Initialize() {
 
 func setConfigFromEnv(mythicEnv *viper.Viper) {
 	// mythic server configuration
-	serverFileContents, err := os.ReadFile(filepath.Join(getCwdFromExe(), "VERSION"))
-	if err != nil {
-		MythicConfig.ServerVersion = "-1"
-	}
-	if err == nil {
-		MythicConfig.ServerVersion = string(serverFileContents)
-	}
+	MythicConfig.ServerVersion = mythicServerVersion
 	MythicConfig.DebugAgentMessage = mythicEnv.GetBool("mythic_debug_agent_message")
 	MythicConfig.ServerPort = mythicEnv.GetUint("mythic_server_port")
 	MythicConfig.ServerBindLocalhostOnly = mythicEnv.GetBool("mythic_server_bind_localhost_only")
