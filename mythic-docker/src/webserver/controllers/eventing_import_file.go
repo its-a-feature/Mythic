@@ -227,7 +227,7 @@ func EventingImportAutomaticWebhook(c *gin.Context) {
     	filemeta.path "filemeta.path"
 		FROM eventgroup
 		JOIN filemeta ON eventgroup.filemeta_id = filemeta.id
-		WHERE eventgroup.active=true AND eventgroup.deleted=false AND filemeta.comment=$1 AND filemeta.deleted=false AND eventgroup.operation_id=$2`,
+		WHERE eventgroup.deleted=false AND filemeta.comment=$1 AND filemeta.deleted=false AND eventgroup.operation_id=$2`,
 			targetComment, operatorOperation.CurrentOperation.ID)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			logging.LogError(err, "Failed to process file contents as Event data")
@@ -237,26 +237,29 @@ func EventingImportAutomaticWebhook(c *gin.Context) {
 			})
 			return
 		}
-		contents, err := os.ReadFile(eventGroup.Filemeta.Path)
-		if err != nil {
-			logging.LogError(err, "Failed to read eventing file contents")
-			c.JSON(http.StatusOK, EventingImportWebhookResponse{
-				Status: "error",
-				Error:  err.Error(),
-			})
-			return
-		}
-		if input.Input.Contents == string(contents) {
-			logging.LogInfo("Got new eventing file from automation, but same contents as existing one, skipping")
-			c.JSON(http.StatusOK, EventingImportWebhookResponse{
-				Status:       "success",
-				EventGroupID: eventGroup.ID,
-			})
-			return
-		}
-		_, err = database.DB.Exec(`UPDATE eventgroup SET active=false, deleted=true WHERE id=$1`, eventGroup.ID)
-		if err != nil {
-			logging.LogError(err, "Failed to update eventgroup to database")
+		if err == nil && eventGroup.ID > 0 {
+			// we have an existing one, so check for its contents
+			contents, err := os.ReadFile(eventGroup.Filemeta.Path)
+			if err != nil {
+				logging.LogError(err, "Failed to read eventing file contents")
+				c.JSON(http.StatusOK, EventingImportWebhookResponse{
+					Status: "error",
+					Error:  err.Error(),
+				})
+				return
+			}
+			if input.Input.Contents == string(contents) {
+				logging.LogInfo("Got new eventing file from automation, but same contents as existing one, skipping")
+				c.JSON(http.StatusOK, EventingImportWebhookResponse{
+					Status:       "success",
+					EventGroupID: eventGroup.ID,
+				})
+				return
+			}
+			_, err = database.DB.Exec(`UPDATE eventgroup SET active=false, deleted=true WHERE id=$1`, eventGroup.ID)
+			if err != nil {
+				logging.LogError(err, "Failed to update eventgroup to database")
+			}
 		}
 	}
 	fileData := databaseStructs.Filemeta{
