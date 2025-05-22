@@ -42,7 +42,8 @@ func MythicRPCTokenRemove(input MythicRPCTokenRemoveMessage) MythicRPCTokenRemov
 	task := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT
 	callback.operation_id "callback.operation_id",
-	callback.host "callback.host"
+	callback.host "callback.host",
+	task.callback_id "task.callback_id"
 	FROM task
 	JOIN callback ON task.callback_id = callback.id
 	WHERE task.id = $1`, input.TaskID); err != nil {

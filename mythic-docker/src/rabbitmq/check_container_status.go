@@ -127,6 +127,7 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 		err = database.DB.Select(&operatorOperationData, `SELECT 
     		operator.account_type "operator.account_type",
     		operator.id "operator.id",
+    		operator.current_operation_id "operator.current_operation_id",
     		operator.deleted "operator.deleted",
     		operator.active "operator.active",
     		operation.name "operation.name",
@@ -141,7 +142,9 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 		}
 		for i, _ := range operatorOperationData {
 			if operatorOperationData[i].CurrentOperator.AccountType == databaseStructs.AccountTypeBot {
-				if !operatorOperationData[i].CurrentOperator.Deleted && operatorOperationData[i].CurrentOperator.Active {
+				if !operatorOperationData[i].CurrentOperator.Deleted && operatorOperationData[i].CurrentOperator.Active &&
+					operatorOperationData[i].CurrentOperator.CurrentOperationID.Int64 == int64(operation.ID) {
+					// current operator is a bot, not deleted, and current operation is this operation
 					apiToken.OperatorID = operatorOperationData[i].CurrentOperator.ID
 					apiToken.CreatedBy = operatorOperationData[i].CurrentOperator.ID
 					operatorData.ID = operatorOperationData[i].CurrentOperator.ID
