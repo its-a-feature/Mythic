@@ -4,7 +4,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContentText from '@mui/material/DialogContentText';
 import Typography from '@mui/material/Typography';
-import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Switch from '@mui/material/Switch';
 import Table from '@mui/material/Table';
@@ -15,7 +14,7 @@ import {snackActions} from "../../utilities/Snackbar";
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 
-const GET_SETTINGS = gql`
+export const GET_GLOBAL_SETTINGS = gql`
 query getGlobalSettings {
   getGlobalSettings {
     settings
@@ -34,7 +33,7 @@ export function SettingsGlobalDialog(props) {
     const [debugAgentMessage, setDebugAgentMessage] = React.useState(false);
     const [allowInviteLinks, setAllowInviteLinks] = React.useState(false);
     const [serverName, setServerName] = React.useState(false);
-    useQuery(GET_SETTINGS, {fetchPolicy: "no-cache",
+    useQuery(GET_GLOBAL_SETTINGS, {fetchPolicy: "no-cache",
         onCompleted: (data) => {
             setDebugAgentMessage(data.getGlobalSettings.settings["MYTHIC_DEBUG_AGENT_MESSAGE"]);
             setAllowInviteLinks(data.getGlobalSettings.settings["MYTHIC_SERVER_ALLOW_INVITE_LINKS"]);

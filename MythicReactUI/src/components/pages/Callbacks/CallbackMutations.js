@@ -95,6 +95,8 @@ export const taskingDataFragment = gql`
     fragment taskData on task {
         comment
         parent_task_id
+        agent_task_id
+        tasking_location
         callback {
             display_id
             id
@@ -152,6 +154,7 @@ export const taskingDataFragment = gql`
         tasks(where: {is_interactive_task: {_eq: false}}, order_by: {id: asc}) {
             id
             comment
+            agent_task_id
             commentOperator{
                 username
             }

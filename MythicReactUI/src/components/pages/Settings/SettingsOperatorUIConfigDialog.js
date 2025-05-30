@@ -107,6 +107,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
     const [taskTimestampDisplayField, setTaskTimestampDisplayField] = React.useState(initialTaskTimestampDisplayField);
 
+    const initialHideBrowserTasking = GetMythicSetting({setting_name: "hideBrowserTasking", default_value: operatorSettingDefaults.hideBrowserTasking});
+    const [hideBrowserTasking, setHideBrowserTasking] = React.useState(initialHideBrowserTasking);
+
     const initialPalette = GetMythicSetting({setting_name: 'palette', default_value: operatorSettingDefaults.palette});
     const [palette, setPalette] = React.useState({
         primary: {
@@ -213,6 +216,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onShowIPChanged = (evt) => {
         setShowIP(!showIP);
     }
+    const onHideBrowserTaskingChanged = (evt) => {
+        setHideBrowserTasking(!hideBrowserTasking);
+    }
     const onShowHostnameChanged = (evt) => {
         setShowHostname(!showHostname);
     }
@@ -256,6 +262,7 @@ export function SettingsOperatorUIConfigDialog(props) {
               interactType,
               useDisplayParamsForCLIHistory,
               taskTimestampDisplayField,
+              hideBrowserTasking,
               palette: palette
       }});
       props.onClose();
@@ -501,6 +508,18 @@ export function SettingsOperatorUIConfigDialog(props) {
                                   <MenuItem value={opt.name} key={opt.name}>{opt.display}</MenuItem>
                               ) )}
                           </Select>
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Hide Browser-based Tasking</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <Switch
+                              checked={hideBrowserTasking}
+                              onChange={onHideBrowserTaskingChanged}
+                              color="info"
+                              inputProps={{ 'aria-label': 'info checkbox' }}
+                              name="hideBrowserTasking"
+                          />
                       </MythicStyledTableCell>
                   </TableRow>
                   <TableRow>

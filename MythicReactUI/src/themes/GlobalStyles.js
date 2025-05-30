@@ -93,7 +93,7 @@ tspan {
     z-index: 0 !important
 }
 .gutter {
-  background-color: #3c4d67;
+  background-color: ${(props) => props.theme.topAppBarColor};
   background-repeat: no-repeat;
   background-position: 50%;
 }

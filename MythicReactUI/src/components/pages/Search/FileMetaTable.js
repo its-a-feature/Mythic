@@ -44,8 +44,8 @@ mutation downloadBulkMutation($files: [String!]!){
 }
 `;
 export const updateFileDeleted = gql`
-mutation updateFileMutation($file_id: Int!){
-    deleteFile(file_id: $file_id) {
+mutation updateFileMutation($file_id: Int, $file_ids: [Int!]){
+    deleteFile(file_id: $file_id, file_ids: $file_ids) {
         status
         error
         file_ids
@@ -170,7 +170,38 @@ export function FileMetaDownloadTable(props){
         }
         downloadBulk({variables:{files: fileIds}})
     }
+    const [deleteBulk] = useMutation(updateFileDeleted, {
+        onCompleted: (data) => {
+            snackActions.dismiss();
+            if(data.deleteFile.status === "success"){
+                onDelete(data.deleteFile);
+            }else {
+                snackActions.error(data.deleteFile.error);
+            }
+
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to delete files");
+        }
+    })
+    const onDeleteBulk = () => {
+        let fileIds = [];
+        for(const [key, value] of Object.entries(selected)){
+            if(value){
+                for(let j = 0; j < props.files.length; j++){
+                    if(props.files[j].id === parseInt(key)){
+                        fileIds.push(props.files[j].id);
+                    }
+                }
+            }
+        }
+        deleteBulk({variables:{file_ids: fileIds}})
+    }
     const onDelete = ({file_ids}) => {
+        if(!file_ids){
+            return;
+        }
         const updated = files.map( (file) => {
             if(file_ids.includes(file.id)){
                 return {...file, deleted: true};
@@ -178,6 +209,12 @@ export function FileMetaDownloadTable(props){
                 return {...file}
             }
         });
+        let currentSelected = {...selected};
+        file_ids.map(f => {
+            currentSelected[f] = false;
+        });
+        setCheckAll(false);
+        setSelected(currentSelected);
         setFiles(updated);
     }
     const onEditComment = ({id, comment}) => {
@@ -201,12 +238,20 @@ export function FileMetaDownloadTable(props){
     }, [selected]);
     return (
         <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
-            <Button size="small" onClick={onDownloadBulk} style={{float: "right"}}
-                    color="primary" variant="contained"
-                    disabled={disabled}
-            >
-                <ArchiveIcon/>Zip & Download Selected
-            </Button>
+            <span style={{width: "100%", display: "flex"}}>
+                <Button size="small" onClick={onDownloadBulk} style={{float: "right", width: "100%"}}
+                        color="primary" variant="contained"
+                        disabled={disabled}
+                >
+                    <ArchiveIcon/>Zip & Download Selected
+                </Button>
+                <Button size="small" onClick={onDeleteBulk} style={{width: "100%"}}
+                        color="primary" variant="contained"
+                        disabled={disabled}
+                >
+                    <DeleteIcon color={disabled ? "" : "error"}/>Delete Selected
+                </Button>
+            </span>
             <div style={{height: "100%", overflowY: "auto"}}>
                 <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
@@ -507,7 +552,36 @@ export function FileMetaUploadTable(props){
         }
         downloadBulk({variables:{files: fileIds}})
     }
+    const [deleteBulk] = useMutation(updateFileDeleted, {
+        onCompleted: (data) => {
+            snackActions.dismiss();
+            if(data.deleteFile.status === "success"){
+                onDelete(data.deleteFile);
+            }else {
+                snackActions.error(data.deleteFile.error);
+            }
+
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to delete files");
+        }
+    })
+    const onDeleteBulk = () => {
+        let fileIds = [];
+        for(const [key, value] of Object.entries(selected)){
+            if(value){
+                for(let j = 0; j < props.files.length; j++){
+                    if(props.files[j].id === parseInt(key)){
+                        fileIds.push(props.files[j].id);
+                    }
+                }
+            }
+        }
+        deleteBulk({variables:{file_ids: fileIds}})
+    }
     const onDelete = ({file_ids}) => {
+        if(!file_ids){return}
         const updated = files.map( (file) => {
             if(file_ids.includes(file.id)){
                 return {...file, deleted: true};
@@ -515,6 +589,12 @@ export function FileMetaUploadTable(props){
                 return {...file}
             }
         });
+        let currentSelected = {...selected};
+        file_ids.map(f => {
+            currentSelected[f] = false;
+        });
+        setCheckAll(false);
+        setSelected(currentSelected);
         setFiles(updated);
     }
     const onEditComment = ({id, comment}) => {
@@ -538,20 +618,29 @@ export function FileMetaUploadTable(props){
     }, [selected]);
     return (
         <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
-            <Button size="small" onClick={onDownloadBulk} style={{float: "right"}}
-                    color="primary" variant="contained"
-                    disabled={disabled}
-            >
-                <ArchiveIcon/>Zip & Download Selected
-            </Button>
+            <span style={{width: "100%", display: "flex"}}>
+                <Button size="small" onClick={onDownloadBulk} style={{float: "right", width: "100%"}}
+                        color="primary" variant="contained"
+                        disabled={disabled}
+                >
+                    <ArchiveIcon/>Zip & Download Selected
+                </Button>
+                <Button size="small" onClick={onDeleteBulk} style={{width: "100%"}}
+                        color="primary" variant="contained"
+                        disabled={disabled}
+                >
+                    <DeleteIcon color={disabled ? "" : "error"}/>Delete Selected
+                </Button>
+            </span>
             <div style={{height: "100%", overflowY: "auto"}}>
-                <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
+                <Table stickyHeader size="small"
+                       style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                     <TableHead>
                         <TableRow>
                             <TableCell style={{width: "3rem"}}>
                                 <Checkbox checked={checkAll} onChange={onToggleCheckAll}
                                           sx={{pl: "3px"}}
-                                          inputProps={{ 'aria-label': 'controlled' }} />
+                                          inputProps={{'aria-label': 'controlled'}}/>
                             </TableCell>
                             <TableCell style={{width: "4rem"}}>Actions</TableCell>
                             <TableCell style={{}}>Source</TableCell>
@@ -674,6 +763,10 @@ function FileMetaUploadTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</Link>
+                    {props.complete ? null : (
+                        <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.chunks_received} / {props.total_chunks} Chunks Received</Typography>
+                    )
+                    }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell  style={{wordBreak: "break-all"}}>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>
@@ -1039,7 +1132,36 @@ export function FileMetaEventingWorkflowsTable(props){
         }
         downloadBulk({variables:{files: fileIds}})
     }
+    const [deleteBulk] = useMutation(updateFileDeleted, {
+        onCompleted: (data) => {
+            snackActions.dismiss();
+            if(data.deleteFile.status === "success"){
+                onDelete(data.deleteFile);
+            }else {
+                snackActions.error(data.deleteFile.error);
+            }
+
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to delete files");
+        }
+    })
+    const onDeleteBulk = () => {
+        let fileIds = [];
+        for(const [key, value] of Object.entries(selected)){
+            if(value){
+                for(let j = 0; j < props.files.length; j++){
+                    if(props.files[j].id === parseInt(key)){
+                        fileIds.push(props.files[j].id);
+                    }
+                }
+            }
+        }
+        deleteBulk({variables:{file_ids: fileIds}})
+    }
     const onDelete = ({file_ids}) => {
+        if(!file_ids){return}
         const updated = files.map( (file) => {
             if(file_ids.includes(file.id)){
                 return {...file, deleted: true};
@@ -1047,6 +1169,12 @@ export function FileMetaEventingWorkflowsTable(props){
                 return {...file}
             }
         });
+        let currentSelected = {...selected};
+        file_ids.map(f => {
+            currentSelected[f] = false;
+        });
+        setCheckAll(false);
+        setSelected(currentSelected);
         setFiles(updated);
     }
     const onEditComment = ({id, comment}) => {
@@ -1070,20 +1198,29 @@ export function FileMetaEventingWorkflowsTable(props){
     }, [selected]);
     return (
         <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
-            <Button size="small" onClick={onDownloadBulk} style={{float: "right"}}
-                    color="primary" variant="contained"
-                    disabled={disabled}
-            >
-                <ArchiveIcon/>Zip & Download Selected
-            </Button>
+            <span style={{width: "100%", display: "flex"}}>
+                <Button size="small" onClick={onDownloadBulk} style={{float: "right", width: "100%"}}
+                        color="primary" variant="contained"
+                        disabled={disabled}
+                >
+                    <ArchiveIcon/>Zip & Download Selected
+                </Button>
+                <Button size="small" onClick={onDeleteBulk} style={{width: "100%"}}
+                        color="primary" variant="contained"
+                        disabled={disabled}
+                >
+                    <DeleteIcon color={disabled ? "" : "error"}/>Delete Selected
+                </Button>
+            </span>
             <div style={{height: "100%", overflowY: "auto"}}>
-                <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
+                <Table stickyHeader size="small"
+                       style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                     <TableHead>
                         <TableRow>
                             <TableCell style={{width: "3rem"}}>
                                 <Checkbox checked={checkAll} onChange={onToggleCheckAll}
                                           sx={{pl: "3px"}}
-                                          inputProps={{ 'aria-label': 'controlled' }} />
+                                          inputProps={{'aria-label': 'controlled'}}/>
                             </TableCell>
                             <TableCell style={{width: "5rem"}}>Actions</TableCell>
                             <TableCell style={{width: "20rem"}}>Source</TableCell>

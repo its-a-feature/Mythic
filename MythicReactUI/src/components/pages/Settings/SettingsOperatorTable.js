@@ -18,13 +18,14 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import TuneIcon from '@mui/icons-material/Tune';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { IconButton } from '@mui/material';
-import {SettingsGlobalDialog} from "./SettingsGlobalDialog";
+import {GET_GLOBAL_SETTINGS, SettingsGlobalDialog} from "./SettingsGlobalDialog";
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import SearchIcon from '@mui/icons-material/Search';
 import {SettingsOperatorAPITokenSearchDialog} from "./SettingsOperatorAPITokenSearchDialog";
 import ForwardToInboxTwoToneIcon from '@mui/icons-material/ForwardToInboxTwoTone';
 import {InviteLinksDialog} from "./InviteLinksDialog";
+import {useLazyQuery} from '@apollo/client';
 
 
 
@@ -61,7 +62,16 @@ export function SettingsOperatorTable(props){
     const [showDeleted, setShowDeleted] = React.useState(false);
     const [openGlobalSettingsDialog, setOpenGlobalSettingsDialog] = React.useState(false);
     const [openInviteLinksDialog, setOpenInviteLinksDialog] = React.useState(false);
-
+    const [inviteLinksEnabled, setInviteLinksEnabled] = React.useState(false);
+    const [getGlobalSettings] = useLazyQuery(GET_GLOBAL_SETTINGS, {fetchPolicy: "no-cache",
+    });
+    const closeGlobalSettingsDialog = () => {
+        getGlobalSettings().then(({data}) => setInviteLinksEnabled(data.getGlobalSettings.settings["MYTHIC_SERVER_ALLOW_INVITE_LINKS"]));
+        setOpenGlobalSettingsDialog(false);
+    }
+    React.useEffect( () => {
+        getGlobalSettings().then(({data}) => setInviteLinksEnabled(data.getGlobalSettings.settings["MYTHIC_SERVER_ALLOW_INVITE_LINKS"]));
+    }, []);
     return (
     <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
         <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
@@ -85,9 +95,9 @@ export function SettingsOperatorTable(props){
             )}
             {openGlobalSettingsDialog &&
                 <MythicDialog open={openGlobalSettingsDialog} fullWidth={true} maxWidth={"md"}
-                              onClose={()=>{setOpenGlobalSettingsDialog(false);}}
+                              onClose={closeGlobalSettingsDialog}
                               innerDialog={<SettingsGlobalDialog
-                                  onClose={()=>{setOpenGlobalSettingsDialog(false);}}  />}
+                                  onClose={closeGlobalSettingsDialog}  />}
                 />
             }
             <MythicStyledTooltip title={"Search for API Tokens"}  tooltipStyle={{float: "right", marginRight: "5px",}} >
@@ -115,7 +125,8 @@ export function SettingsOperatorTable(props){
                 </IconButton>
             </MythicStyledTooltip>
             <MythicStyledTooltip title={"Manage Invite Links"} tooltipStyle={{float: "right", marginLeft: "5px"}}>
-                <IconButton size={"small"}  onClick={()=>{setOpenInviteLinksDialog(true);}} variant={"contained"} >
+                <IconButton size={"small"} disabled={!inviteLinksEnabled || !userIsAdmin}
+                            onClick={()=>{setOpenInviteLinksDialog(true);}} variant={"contained"} >
                     <ForwardToInboxTwoToneIcon />
                 </IconButton>
             </MythicStyledTooltip>

@@ -1248,85 +1248,93 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 	// transferring a file from Mythic to the agent.
 	// The agent knows of a file_id and requests a certain size chunk from it, we respond with the
 	uploadResponse := agentMessagePostResponseUploadResponse{}
-	if agentResponse.Upload.FileID != nil && *agentResponse.Upload.FileID != "" {
-		fileMeta := databaseStructs.Filemeta{AgentFileID: *agentResponse.Upload.FileID}
-		if err := database.DB.Get(&fileMeta, `SELECT 
-			*
-			FROM filemeta
-			WHERE agent_file_id=$1 AND operation_id=$2`, *agentResponse.Upload.FileID, task.OperationID); err != nil {
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to find fileID in agent upload request: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-			logging.LogError(err, "Failed to find fileID in agent upload request", "file_id", *agentResponse.Upload.FileID)
-			return uploadResponse, err
-		} else {
-			// we found the file
-			// update in the background so the agent can get the necessary data asap
-			go updateFileMetaFromUpload(fileMeta, task, agentResponse, uploadResponse)
-			chunkSize := float64(512000)
-			if agentResponse.Upload.ChunkSize != nil {
-				chunkSize = float64(*agentResponse.Upload.ChunkSize)
-			}
-			if !fileMeta.Complete {
-				logging.LogError(nil, "Trying to upload a file to an agent that isn't fully on Mythic's server yet")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - not completely uploaded to Mythic yet: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-				return uploadResponse, errors.New("trying to upload a file to an agent that isn't fully on Mythic's server yet")
-			} else if fileMeta.Deleted {
-				logging.LogError(nil, "Trying to upload a file to an agent that is deleted")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was deleted from Mythic: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-				return uploadResponse, errors.New("trying to upload a file to an agent that is deleted")
-			} else if fileStat, err := os.Stat(fileMeta.Path); err != nil {
-				logging.LogError(err, "Failed to find file on disk")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was not found on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-				return uploadResponse, errors.New("trying to upload a file to an agent that was not found on disk")
-			} else {
-				totalChunks := int(math.Ceil(float64(fileStat.Size()) / chunkSize))
-				chunkData := make([]byte, int64(chunkSize))
-				// for legacy reasons, chunks start at 1
-				chunkNum := agentResponse.Upload.ChunkNum - 1
-				if chunkNum < 0 {
-					return uploadResponse, nil
-				}
-				if chunkNum >= totalChunks {
-					logging.LogError(nil, "Requested chunk number greater than number of available chunks for file")
-					go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Requested chunk number greater than number of available chunks for file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-					return uploadResponse, errors.New("requested chunk number greater than number of available chunks for file")
-				} else if file, err := os.Open(fileMeta.Path); err != nil {
-					logging.LogError(err, "Failed to open file to get chunk for agent upload")
-					go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to open file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-					return uploadResponse, errors.New("failed to open file to get chunk for agent upload")
-				} else if _, err := file.Seek(int64(chunkNum*int(chunkSize)), 0); err != nil {
-					logging.LogError(err, "Failed to seek file to get chunk for agent upload")
-					go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to seek file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-					return uploadResponse, errors.New("failed to seek file to get chunk for agent upload")
-				} else if bytesRead, err := file.Read(chunkData); err != nil {
-					logging.LogError(err, "Failed to read file to get chunk for agent upload")
-					go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to read file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-					return uploadResponse, errors.New("failed to read file to get chunk for agent upload")
-				} else {
-					uploadResponse.ChunkData = chunkData[:bytesRead]
-					uploadResponse.TotalChunks = totalChunks
-					uploadResponse.ChunkNum = agentResponse.Upload.ChunkNum
-					uploadResponse.FileID = *agentResponse.Upload.FileID
-					if uploadResponse.TotalChunks == uploadResponse.ChunkNum && fileMeta.DeleteAfterFetch {
-						go uploadDeleteAfterFetch(fileMeta)
-					}
-					if uploadResponse.TotalChunks == uploadResponse.ChunkNum {
-						go func(file databaseStructs.Filemeta) {
-							EventingChannel <- EventNotification{
-								Trigger:     eventing.TriggerFileUpload,
-								OperationID: task.OperationID,
-								OperatorID:  task.OperatorID,
-								FileMetaID:  file.ID,
-							}
-						}(fileMeta)
-					}
-					return uploadResponse, nil
-				}
-			}
-		}
-	} else {
+	if agentResponse.Upload.FileID == nil || *agentResponse.Upload.FileID == "" {
 		logging.LogError(nil, "Trying to upload a file, but no file_id specified for the transfer")
 		return uploadResponse, errors.New("no file_id specified")
 	}
+	fileMeta := databaseStructs.Filemeta{AgentFileID: *agentResponse.Upload.FileID}
+	err := database.DB.Get(&fileMeta, `SELECT 
+			*
+			FROM filemeta
+			WHERE agent_file_id=$1 AND operation_id=$2`, *agentResponse.Upload.FileID, task.OperationID)
+	if err != nil {
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to find fileID in agent upload request: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		logging.LogError(err, "Failed to find fileID in agent upload request", "file_id", *agentResponse.Upload.FileID)
+		return uploadResponse, err
+	}
+	// we found the file
+	// update in the background so the agent can get the necessary data asap
+	go updateFileMetaFromUpload(fileMeta, task, agentResponse, uploadResponse)
+	chunkSize := float64(512000)
+	if agentResponse.Upload.ChunkSize != nil {
+		chunkSize = float64(*agentResponse.Upload.ChunkSize)
+	}
+	if !fileMeta.Complete {
+		logging.LogError(nil, "Trying to upload a file to an agent that isn't fully on Mythic's server yet")
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - not completely uploaded to Mythic yet: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		return uploadResponse, errors.New("trying to upload a file to an agent that isn't fully on Mythic's server yet")
+	}
+	if fileMeta.Deleted {
+		logging.LogError(nil, "Trying to upload a file to an agent that is deleted")
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was deleted from Mythic: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		return uploadResponse, errors.New("trying to upload a file to an agent that is deleted")
+	}
+	fileStat, err := os.Stat(fileMeta.Path)
+	if err != nil {
+		logging.LogError(err, "Failed to find file on disk")
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was not found on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		return uploadResponse, errors.New("trying to upload a file to an agent that was not found on disk")
+	}
+	totalChunks := int(math.Ceil(float64(fileStat.Size()) / chunkSize))
+	chunkData := make([]byte, int64(chunkSize))
+	// for legacy reasons, chunks start at 1
+	chunkNum := agentResponse.Upload.ChunkNum - 1
+	if chunkNum < 0 {
+		return uploadResponse, nil
+	}
+	if chunkNum >= totalChunks {
+		logging.LogError(nil, "Requested chunk number greater than number of available chunks for file")
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Requested chunk number greater than number of available chunks for file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		return uploadResponse, errors.New("requested chunk number greater than number of available chunks for file")
+	}
+	file, err := os.Open(fileMeta.Path)
+	if err != nil {
+		logging.LogError(err, "Failed to open file to get chunk for agent upload")
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to open file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		return uploadResponse, errors.New("failed to open file to get chunk for agent upload")
+	}
+	_, err = file.Seek(int64(chunkNum*int(chunkSize)), 0)
+	if err != nil {
+		logging.LogError(err, "Failed to seek file to get chunk for agent upload")
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to seek file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		return uploadResponse, errors.New("failed to seek file to get chunk for agent upload")
+	}
+	bytesRead, err := file.Read(chunkData)
+	if err != nil {
+		file.Close()
+		logging.LogError(err, "Failed to read file to get chunk for agent upload")
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to read file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		return uploadResponse, errors.New("failed to read file to get chunk for agent upload")
+	}
+	file.Close()
+	uploadResponse.ChunkData = chunkData[:bytesRead]
+	uploadResponse.TotalChunks = totalChunks
+	uploadResponse.ChunkNum = agentResponse.Upload.ChunkNum
+	uploadResponse.FileID = *agentResponse.Upload.FileID
+	if uploadResponse.TotalChunks == uploadResponse.ChunkNum && fileMeta.DeleteAfterFetch {
+		go uploadDeleteAfterFetch(fileMeta)
+	}
+	if uploadResponse.TotalChunks == uploadResponse.ChunkNum {
+		go func(file databaseStructs.Filemeta) {
+			EventingChannel <- EventNotification{
+				Trigger:     eventing.TriggerFileUpload,
+				OperationID: task.OperationID,
+				OperatorID:  task.OperatorID,
+				FileMetaID:  file.ID,
+			}
+		}(fileMeta)
+	}
+	return uploadResponse, nil
 }
 func uploadDeleteAfterFetch(fileMeta databaseStructs.Filemeta) {
 	fileMeta.Deleted = true
@@ -1339,15 +1347,31 @@ func uploadDeleteAfterFetch(fileMeta databaseStructs.Filemeta) {
 func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseStructs.Task, agentResponse agentMessagePostResponse, uploadResponse agentMessagePostResponseUploadResponse) {
 	// update the host/full path/filename if they're specified
 	// create a new fileMeta object for the full path/host/task if the fileMeta.task is different from task
-	if (!fileMeta.TaskID.Valid || fileMeta.TaskID.Int64 != int64(task.ID)) && agentResponse.Upload.ChunkNum-1 == 0 {
-		// this was uploaded manually through the file hosting and not part of a task or was uploaded as part of a different task
-		// either way, we need to make a new fileMeta tracker for it
-		newFileMeta := fileMeta
-		newFileMeta.TaskID.Int64 = int64(task.ID)
-		newFileMeta.TaskID.Valid = true
-		newFileMeta.Comment = fmt.Sprintf("Newly tracked copy of file: %s", fileMeta.AgentFileID)
-		newFileMeta.AgentFileID = uuid.NewString()
-		if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
+	fileStat, err := os.Stat(fileMeta.Path)
+	if err != nil {
+		logging.LogError(err, "Failed to find file on disk")
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was not found on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		return
+	}
+	chunkSize := float64(512000)
+	if agentResponse.Upload.ChunkSize != nil {
+		chunkSize = float64(*agentResponse.Upload.ChunkSize)
+	}
+	totalChunks := int(math.Ceil(float64(fileStat.Size()) / chunkSize))
+	if !fileMeta.TaskID.Valid || fileMeta.TaskID.Int64 != int64(task.ID) {
+		if agentResponse.Upload.ChunkNum-1 == 0 {
+			// this was uploaded manually through the file hosting and not part of a task or was uploaded as part of a different task
+			// either way, we need to make a new fileMeta tracker for it
+			newFileMeta := fileMeta
+			newFileMeta.TaskID.Int64 = int64(task.ID)
+			newFileMeta.TaskID.Valid = true
+			newFileMeta.TotalChunks = totalChunks
+			newFileMeta.ChunksReceived = 1
+			newFileMeta.Complete = newFileMeta.ChunksReceived == newFileMeta.TotalChunks
+			newFileMeta.ChunkSize = int(chunkSize)
+			newFileMeta.Comment = fmt.Sprintf("Newly tracked copy of file: %s", string(fileMeta.Filename))
+			newFileMeta.AgentFileID = uuid.NewString()
+			if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
 			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,comment,operator_id,
 			 delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_download_from_agent,is_screenshot,
 			 host,size,is_payload)
@@ -1355,14 +1379,32 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			        :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_download_from_agent, :is_screenshot, 
 			        :host, :size, :is_payload)
 			RETURNING id`); err != nil {
-			logging.LogError(err, "Failed to insert new filemeta data for a separate task pulling down an already uploaded file")
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
-		} else if err = statement.Get(&newFileMeta, newFileMeta); err != nil {
-			logging.LogError(err, "Failed to insert net filemeta data for a separate task")
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				logging.LogError(err, "Failed to insert new filemeta data for a separate task pulling down an already uploaded file")
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			} else if err = statement.Get(&newFileMeta, newFileMeta); err != nil {
+				logging.LogError(err, "Failed to insert net filemeta data for a separate task")
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			} else {
+				go EmitFileLog(newFileMeta.ID)
+			}
 		} else {
-			go EmitFileLog(newFileMeta.ID)
+			newFileMeta := databaseStructs.Filemeta{AgentFileID: fileMeta.AgentFileID}
+			err = database.DB.Get(&newFileMeta, `SELECT id, total_chunks FROM filemeta WHERE
+                                          task_id=$1 AND path=$2`, task.ID, fileMeta.Path)
+			if err != nil {
+				logging.LogError(err, "failed to find new filemeta data for task to update chunk count")
+			} else {
+				newFileMeta.ChunksReceived = agentResponse.Upload.ChunkNum
+				newFileMeta.Complete = newFileMeta.ChunksReceived == newFileMeta.TotalChunks
+				_, err = database.DB.NamedExec(`UPDATE filemeta 
+					SET chunks_received=:chunks_received, complete=:complete
+					WHERE id=:id`, newFileMeta)
+				if err != nil {
+					logging.LogError(err, "failed to update chunks received for new filemeta for task")
+				}
+			}
 		}
+
 	}
 	if agentResponse.Upload.FullPath != nil && *agentResponse.Upload.FullPath != "" {
 		if filePieces, err := utils.SplitFilePathGetHost(*agentResponse.Upload.FullPath, "", []string{}); err != nil {

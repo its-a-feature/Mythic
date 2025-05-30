@@ -52,6 +52,7 @@ import {Table, TableHead, TableRow, TableBody} from '@mui/material';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import WarningOutlinedIcon from '@mui/icons-material/WarningOutlined';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 export const modeOptions = ["csharp", "golang", "html", "json", "markdown", "ruby", "python", "java",
     "javascript", "yaml", "toml", "swift", "sql", "rust", "powershell", "pgsql", "perl", "php", "objectivec",
@@ -87,32 +88,31 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
     const displayType = mimeType(media?.filename);
     const [value, setValue] = React.useState(displayType !== undefined ? 0 : 1);
     const [fileMetaData, setFileMetaData] = React.useState({});
-    useQuery(fileMetaQuery, {
-        variables: {agent_file_id: media?.agent_file_id},
-        fetchPolicy: "no-cache",
-        onCompleted: (data) => {
-            if(data.filemeta.length > 0){
-                setFileMetaData({
-                    id: data.filemeta[0].id,
-                    tags: data.filemeta[0].tags,
-                    filename: b64DecodeUnicode(data.filemeta[0].filename_text),
-                    full_remote_path: b64DecodeUnicode(data.filemeta[0].full_remote_path_text),
-                    host: data.filemeta[0].host,
-                    size: data.filemeta[0].size,
-                    agent_file_id: data.filemeta[0].agent_file_id,
-                    task_display_id: data.filemeta[0]?.task?.display_id,
-                    complete: data.filemeta[0].complete,
-                    total_chunks: data.filemeta[0].total_chunks,
-                    chunks_received: data.filemeta[0].chunks_received
-                })
-            } else {
-                snackActions.warning("failed to find file specified")
-            }
-        },
-        onError: (data) => {
-            console.log(data);
+    const fetchedData = ({data}) => {
+        if(data.filemeta.length > 0){
+            setFileMetaData({
+                id: data.filemeta[0].id,
+                tags: data.filemeta[0].tags,
+                filename: b64DecodeUnicode(data.filemeta[0].filename_text),
+                full_remote_path: b64DecodeUnicode(data.filemeta[0].full_remote_path_text),
+                host: data.filemeta[0].host,
+                size: data.filemeta[0].size,
+                agent_file_id: data.filemeta[0].agent_file_id,
+                task_display_id: data.filemeta[0]?.task?.display_id,
+                complete: data.filemeta[0].complete,
+                total_chunks: data.filemeta[0].total_chunks,
+                chunks_received: data.filemeta[0].chunks_received
+            })
+        } else {
+            snackActions.warning("failed to find file specified")
         }
+    }
+    const fetchFileMetaData = useMythicLazyQuery(fileMetaQuery, {
+        fetchPolicy: "no-cache",
     });
+    React.useEffect( () => {
+        fetchFileMetaData({variables: {agent_file_id: media?.agent_file_id}}).then( (data) => fetchedData(data)).catch((e) => console.log(e))
+    }, [task.timestamp]);
     const handleChange = (event, newValue) => {
         setValue(newValue);
     }

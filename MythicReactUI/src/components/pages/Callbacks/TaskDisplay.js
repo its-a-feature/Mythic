@@ -20,6 +20,9 @@ import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwo
 import CropRotateTwoToneIcon from '@mui/icons-material/CropRotateTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {operatorSettingDefaults} from "../../../cache";
+import {TaskFromUIButton} from "./TaskFromUIButton";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {faSkullCrossbones} from '@fortawesome/free-solid-svg-icons';
 
 
 const PREFIX = 'TaskDisplay';
@@ -241,6 +244,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
   const initialShowCallbackGroupsValue = GetMythicSetting({setting_name: "showCallbackGroups", default_value: operatorSettingDefaults.showCallbackGroups});
   const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
   const displayTimestamp = task[initialTaskTimestampDisplayField] ? task[initialTaskTimestampDisplayField] : task.timestamp;
+  const [openKillTaskButton, setOpenKillTaskButton] = React.useState({open: false});
   const toggleDisplayComment = (evt) => {
     evt.stopPropagation();
     setDisplayComment(!displayComment);
@@ -255,16 +259,21 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
     }
     //preventPropagation(e);
   }
-
+  const onClickKillIcon = (e, open) => {
+    if(e){
+      e.stopPropagation();
+    }
+    setOpenKillTaskButton({open: open});
+  }
   return (
       <ColoredTaskDisplay task={task} theme={theme} expanded={expanded}  >
         <div id={taskDivID} style={{width: "100%"}}>
-          {displayComment ? (
+          {displayComment && (
               <React.Fragment>
                 <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>{task.commentOperator.username}</Typography><br/>
                 <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
               </React.Fragment>
-          ) : null}
+          )}
           <div style={{lineHeight: 0}}>
             <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
               [{toLocalTime(displayTimestamp, me?.user?.view_utc_time || false)}]
@@ -302,7 +311,18 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                     <Link style={{wordBreak: "break-all"}} color={"textPrimary"} underline={"always"} target={"_blank"}
                           href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
                   </MythicStyledTooltip>
-
+                {!task.completed && task.status_timestamp_processing &&
+                    <>
+                      <MythicStyledTooltip title={"Task the agent to kill this task"} >
+                        <IconButton style={{padding: 0}} onClick={(e) => onClickKillIcon(e, true)}
+                                    color="inherit" disableFocusRipple={true}
+                                    disableRipple={true}>
+                          <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones}
+                                           style={{cursor: "pointer", height: "15px", marginLeft: "5px"}} />
+                        </IconButton>
+                      </MythicStyledTooltip>
+                    </>
+                }
               </span>
               {" "}
               <GetOperatorDisplay initialHideUsernameValue={initialHideUsernameValue} task={task}/>
@@ -351,6 +371,17 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
             </div>
           </div>
         </div>
+        {openKillTaskButton.open &&
+            <TaskFromUIButton ui_feature={"task:job_kill"}
+                              callback_id={task.callback?.id}
+                              display_id={task.callback?.display_id}
+                              parameters={task.agent_task_id}
+                              openDialog={false}
+                              getConfirmation={true}
+                              acceptText={"KILL JOB"}
+                              selectCallback={false}
+                              onTasked={({tasked}) => onClickKillIcon(null, false)}/>
+        }
       </ColoredTaskDisplay>
   )
 }
@@ -359,7 +390,9 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collap
     const [taskingData, setTaskingData] = React.useState([]);
     const [shouldDisplay, setShouldDisplay] = React.useState(true);
     const [displayChildren, setDisplayChildren] = React.useState(false);
-    useSubscription(getSubTaskingQuery, {
+    const hideBrowserTasking = GetMythicSetting({setting_name: "hideBrowserTasking", default_value: operatorSettingDefaults.hideBrowserTasking});
+
+  useSubscription(getSubTaskingQuery, {
       variables: {task_id: task.id},
       onData:  ({data}) => {
         //console.log(subscriptionData);
@@ -386,6 +419,10 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collap
       "parameterString": onlyParameters,
       "hideErrors": hideErrors
     }); */
+      if(hideBrowserTasking && task.tasking_location.includes("browser")){
+        setShouldDisplay(false);
+        return;
+      }
       if(task.display_params.includes("help") && task.operator.username !== me.user.username){
         setShouldDisplay(false);
         return;
@@ -495,6 +532,8 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
   const [taskingData, setTaskingData] = React.useState([]);
   const [shouldDisplay, setShouldDisplay] = React.useState(true);
   const [displayChildren, setDisplayChildren] = React.useState(false);
+  const hideBrowserTasking = GetMythicSetting({setting_name: "hideBrowserTasking", default_value: operatorSettingDefaults.hideBrowserTasking});
+
   useSubscription(getSubTaskingQuery, {
     variables: {task_id: task.id},
     onData:  ({data}) => {
@@ -520,6 +559,10 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
     "everythingButList": everythingBut,
     "parameterString": onlyParameters
   }); */
+    if(hideBrowserTasking && task.tasking_location.includes("browser")){
+      setShouldDisplay(false);
+      return;
+    }
     if(task.display_params.includes("help") && task.operator.username !== me.user.username){
       setShouldDisplay(false);
       return;
@@ -635,6 +678,8 @@ const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [taskingData, setTaskingData] = React.useState([]);
   const [shouldDisplay, setShouldDisplay] = React.useState(true);
+  const hideBrowserTasking = GetMythicSetting({setting_name: "hideBrowserTasking", default_value: operatorSettingDefaults.hideBrowserTasking});
+
   useSubscription(getSubTaskingQuery, {
     variables: {task_id: task.id},
     onData:  ({data}) => {
@@ -662,6 +707,10 @@ const TaskRowConsole = ({task, filterOptions, me, newlyIssuedTasks, indentLevel}
     "parameterString": onlyParameters,
     "hideErrors": hideErrors
   }); */
+    if(hideBrowserTasking && task.tasking_location.includes("browser")){
+      setShouldDisplay(false);
+      return;
+    }
     if(task.display_params.includes("help") && task.operator.username !== me.user.username){
       setShouldDisplay(false);
       return;

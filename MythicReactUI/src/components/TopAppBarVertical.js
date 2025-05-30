@@ -14,8 +14,7 @@ import SportsScoreIcon from '@mui/icons-material/SportsScore';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import { useReactiveVar } from '@apollo/client';
-import {menuOpen, FailedRefresh, defaultShortcuts} from '../cache';
+import { FailedRefresh, defaultShortcuts, operatorSettingDefaults} from '../cache';
 import { TopAppBarVerticalEventLogNotifications} from './TopAppBarEventLogNotifications';
 import { EventFeedNotifications } from './EventFeedNotifications';
 import HelpTwoToneIcon from '@mui/icons-material/HelpTwoTone';
@@ -53,7 +52,7 @@ import {useQuery, gql} from '@apollo/client';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import {useGetMythicSetting, useSetMythicSetting} from "./MythicComponents/MythicSavedUserSetting";
+import {GetMythicSetting, useGetMythicSetting, useSetMythicSetting} from "./MythicComponents/MythicSavedUserSetting";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import ManageSearchIcon from '@mui/icons-material/ManageSearch';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -634,7 +633,9 @@ export function TopAppBarVertical(props) {
   const theme = useTheme();
   const me = props.me;
   const navigate = useNavigate();
-  const isOpen = useReactiveVar(menuOpen);
+  const initialNavBarOpen = GetMythicSetting({setting_name: 'navBarOpen', default_value: operatorSettingDefaults.navBarOpen});
+  const [updateSetting] = useSetMythicSetting();
+  const [menuOpen, setMenuOpen] = React.useState(initialNavBarOpen);
   const [openExtra, setOpenExtra] = React.useState(false);
   const [openEditDialog, setOpenEditDialog ] = React.useState(false);
   const sideShortcuts = useGetMythicSetting({setting_name: "sideShortcuts", default_value: defaultShortcuts})
@@ -649,10 +650,12 @@ export function TopAppBarVertical(props) {
   const toggleDrawerOpen = (e) => {
       e.preventDefault();
       e.stopPropagation();
-    menuOpen(!isOpen);
+      setMenuOpen(!menuOpen);
+      updateSetting({setting_name: "navBarOpen", value: !menuOpen})
   };
   const handleDrawerClose = () => {
-    menuOpen(false);
+      setMenuOpen(false);
+      updateSetting({setting_name: "navBarOpen", value: false})
   }
   const handleToggleExtra = () => {
         setOpenExtra(!openExtra);
@@ -732,7 +735,7 @@ export function TopAppBarVertical(props) {
   return (
     <>
       {me?.user?.current_operation_id ? (<EventFeedNotifications me={me} />) : null }
-      <Drawer anchor="left" variant="permanent" open={isOpen} onClose={handleDrawerClose} >
+      <Drawer anchor="left" variant="permanent" open={menuOpen} onClose={handleDrawerClose} >
         <List style={{paddingTop: 0, marginTop: 0, height: "100%", display: "flex", flexDirection: "column",
             backgroundColor: theme.topAppBarColor,
             border: "unset !important"}}>
@@ -746,7 +749,7 @@ export function TopAppBarVertical(props) {
                         <b>Mythic:</b> v{serverVersion}<br/>
                         <b>UI:</b> v{mythicUIVersion}<br/>
                     </Typography>
-                    <IconButton onClick={props.toggleTheme} style={{float:"right", display: isOpen ? "" : "none"}} >
+                    <IconButton onClick={props.toggleTheme} style={{float:"right", display: menuOpen ? "" : "none"}} >
                         {theme.palette.mode === 'light' &&
                             <DarkModeTwoToneIcon style={{color: "#2f0e67"}} fontSize={"medium"} className="mythicElement" />
                         }
@@ -761,7 +764,7 @@ export function TopAppBarVertical(props) {
             <StyledListItemIcon ><MenuIcon style={{color: theme.navBarTextIconColor}} onClick={toggleDrawerOpen} fontSize={"medium"} className="mythicElement" /></StyledListItemIcon>
             <ListItemText primary={
               <>
-                <MythicStyledTooltip title={"Edit Shortcuts"} tooltipStyle={{float: isOpen ? 'right' : '', margin: 0, padding: 0}}>
+                <MythicStyledTooltip title={"Edit Shortcuts"} tooltipStyle={{float: menuOpen ? 'right' : '', margin: 0, padding: 0}}>
                     <Button onClick={openEditShortcuts} style={{color: theme.navBarTextColor}}>
                         <EditIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"}/> Edit
                     </Button>
@@ -803,14 +806,14 @@ export function TopAppBarVertical(props) {
                 <Divider style={{borderColor: "white"}} />
                 <div className={classes.listSubHeader} style={{ flexGrow: 1}}></div>
             </div>
-          <TopBarRightShortcutsVertical me={me} isOpen={isOpen} serverName={serverName} />
+          <TopBarRightShortcutsVertical me={me} menuOpen={menuOpen} serverName={serverName} />
         </List>
       </Drawer>
     </>
   );
 }
 
-function TopBarRightShortcutsVertical({me, isOpen, serverName}){
+function TopBarRightShortcutsVertical({me, menuOpen, serverName}){
     const theme = useTheme();
   const documentationRef = React.useRef(null);
   const [documentationOpen, setDocumentationOpen] = React.useState(false);
@@ -818,7 +821,6 @@ function TopBarRightShortcutsVertical({me, isOpen, serverName}){
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [openFeedbackForm, setOpenFeedbackForm] = React.useState(false);
   const handleLogout = () => {
-    menuOpen(false);
     FailedRefresh(true);
   }
   const handleSettingsMenu = (event) => {
@@ -979,7 +981,7 @@ function TopBarRightShortcutsVertical({me, isOpen, serverName}){
             <StyledListItemIcon>
                 <MythicStyledTooltip title={"Documentation Links"} tooltipStyle={{display: "inline-flex"}}>
                   <HelpTwoToneIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"} className="mythicElement"/>
-                  <KeyboardArrowDownIcon style={{color: theme.navBarTextIconColor, display: isOpen ? "" : "none"}} />
+                  <KeyboardArrowDownIcon style={{color: theme.navBarTextIconColor, display: menuOpen ? "" : "none"}} />
                 </MythicStyledTooltip>
             </StyledListItemIcon>
             <ListItemText primary={"Help"} />
@@ -998,7 +1000,7 @@ function TopBarRightShortcutsVertical({me, isOpen, serverName}){
             <StyledListItemIcon>
                 <MythicStyledTooltip title={"User Settings"} tooltipStyle={{display: "inline-flex"}}>
                     <ManageAccountsTwoToneIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"} className="mythicElement" />
-                    <KeyboardArrowDownIcon style={{color: theme.navBarTextIconColor, display: isOpen ? "" : "none"}} />
+                    <KeyboardArrowDownIcon style={{color: theme.navBarTextIconColor, display: menuOpen ? "" : "none"}} />
                 </MythicStyledTooltip>
             </StyledListItemIcon>
             <ListItemText primary={"Settings"} />

@@ -14,6 +14,7 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	"github.com/mitchellh/mapstructure"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -707,8 +708,20 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 	}
 	if task.Params == "" {
 		// looking for help about all loaded commands
+		addedHelp := false
+		addedClear := false
 		responseUserOutput := "Loaded Commands In Agent:\n"
-		for _, cmd := range loadedCommands {
+		for i, cmd := range loadedCommands {
+			if !addedClear && "clear" > cmd.Command.Cmd && i+1 < len(loadedCommands) && "clear" < loadedCommands[i+1].Command.Cmd {
+				responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
+					"clear", "clear { | all | task Num}", "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents")
+				addedClear = true
+			}
+			if !addedHelp && "help" > cmd.Command.Cmd && i+1 < len(loadedCommands) && "help" < loadedCommands[i+1].Command.Cmd {
+				responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
+					"help", "help [command]", "The 'help' command gives detailed information about specific commands or general information about all available commands.")
+				addedHelp = true
+			}
 			commandAttributes := CommandAttribute{}
 			// for a given command, first check that it's appropriate for our callback.payload.os
 			err = mapstructure.Decode(cmd.Command.Attributes.StructValue(), &commandAttributes)
@@ -725,10 +738,14 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 
 			}
 		}
-		responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
-			"help", "help [command]", "The 'help' command gives detailed information about specific commands or general information about all available commands.")
-		responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
-			"clear", "clear { | all | task Num}", "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents")
+		if !addedHelp {
+			responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
+				"help", "help [command]", "The 'help' command gives detailed information about specific commands or general information about all available commands.")
+		}
+		if !addedClear {
+			responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
+				"clear", "clear { | all | task Num}", "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents")
+		}
 		go updateTaskStatus(task.ID, "completed", true)
 		go addOutputToTask(task.ID, responseUserOutput, task.OperationID)
 		output.Error = ""
@@ -758,18 +775,20 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 	commandParameters := []databaseStructs.Commandparameters{}
 	responseUserOutput := ""
 	for _, cmd := range loadedCommands {
-		if cmd.Command.Cmd != task.Params {
+		matched, err := regexp.MatchString(task.Params, cmd.Command.Cmd)
+		if err != nil {
+			logging.LogError(err, "failed to check for matching command name", "params", task.Params)
+			continue
+		}
+		if !matched {
 			continue
 		}
 		command = cmd.Command
 		err = database.DB.Select(&commandParameters, `SELECT
-		commandparameters.*,
-		command.attributes "command.attributes",
-		command.description "command.description",
-		command.help_cmd "command.help_cmd"
+		commandparameters.*
 		FROM commandparameters
 		JOIN command ON command_id=command.id
-		WHERE command.payload_type_id=$1 AND command.cmd=$2`, callback.Payload.PayloadTypeID, task.Params)
+		WHERE command.id=$1`, command.ID)
 		if err != nil {
 			logging.LogError(err, "Failed to fetch loaded commands")
 			go updateTaskStatus(task.ID, "error", true)
@@ -788,12 +807,12 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		if cmd.Command.Payloadtype.Name != callback.Payload.Payloadtype.Name {
 			commandName += " (" + cmd.Command.Payloadtype.Name + ")"
 		}
-		if attributesJSON, err := json.MarshalIndent(commandAttributes, "", "\t"); err != nil {
-			responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s\nAttributes: %v\nParameters:\n\n",
+		if attributesJSON, err := json.MarshalIndent(commandAttributes, "\t", "\t"); err != nil {
+			responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s\n\tAttributes: %v\n",
 				commandName, command.HelpCmd, command.Description, err.Error())
 			logging.LogError(err, "Failed to marshal command attributes")
 		} else {
-			responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s\nAttributes: %s\nParameters:\n\n",
+			responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s\n\tAttributes: %s\n",
 				commandName, command.HelpCmd, command.Description, attributesJSON)
 		}
 		paramGroupNames := []string{}
@@ -803,12 +822,12 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 			}
 		}
 		for _, groupName := range paramGroupNames {
-			responseUserOutput += fmt.Sprintf("Parameter Group: %s\n", groupName)
+			responseUserOutput += fmt.Sprintf("\tParameter Group: %s\n", groupName)
 			for _, param := range commandParameters {
 				if param.ParameterGroupName == groupName {
-					responseUserOutput += fmt.Sprintf("\tParameter Name: %s\n\t\tCLI Name: %s\n\t\tDisplay Name: %s\n\t\tDescription: %s\n\t\tParameter Type: %s\n",
+					responseUserOutput += fmt.Sprintf("\t\tParameter Name: %s\n\t\t\tCLI Name: %s\n\t\t\tDisplay Name: %s\n\t\t\tDescription: %s\n\t\t\tParameter Type: %s\n",
 						param.Name, param.CliName, param.DisplayName, param.Description, param.Type)
-					responseUserOutput += fmt.Sprintf("\t\tRequired: %v\n", param.Required)
+					responseUserOutput += fmt.Sprintf("\t\t\tRequired: %v\n", param.Required)
 				}
 			}
 		}

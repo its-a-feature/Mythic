@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc71]- 2025-05-30
+
+### Changed
+
+- Updated `help` output to have `help` and `clear` alphabetically included
+- Adding regex checks for `help`, so you can do `help list.*` to find all commands that start with `list` that are loaded
+- File Uploads (Mythic -> Agent) now track and display chunks sent on the File Search page for Uploads
+- State of the vertical navbar (open/close) is saved in user preferences so it'll stay through refresh
+- Updated the "InviteLinks" UI button on the settings page to only be enabled if you're an admin and the feature is enabled
+- Updated UI and GraphQL to allow bulk file delete
+- Added new User Preference to hide browser-based tasking (file browser / process browser) from your normal tasking views
+- Updated file media viewer to dynamically update as more chunks for a file are received
+- Added a new `task:job_kill` supported UI feature that takes in a raw agent_task_id (uuid)
+  - This shows up as a `skull` icon for tasking that has been picked up by the agent but hasn't completed
+- Updated UI callback drag columns to match vertical navbar color
+  
 ## [3.3.1-rc70] - 2025-05-22
 
 ### Changed

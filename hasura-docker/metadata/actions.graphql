@@ -217,7 +217,8 @@ type Mutation {
 
 type Mutation {
   deleteFile(
-    file_id: Int!
+    file_id: Int
+    file_ids: [Int!]
   ): deletionOutput
 }
 
