@@ -155,6 +155,9 @@ const ResizableGridWrapper = ({
 
     useEffect(() => {
         gridRef.current.resetAfterColumnIndex(0, true);
+        if(name !== undefined){
+            updateSetting({setting_name: `${name}_column_widths`, value: columnWidths});
+        }
     }, [columnWidths]);
 
     /* Event Handlers */
@@ -249,12 +252,17 @@ const ResizableGridWrapper = ({
             }
             return Math.floor(columnWidth);
         });
-        //console.log(updatedWidths, longestElementInColumn);
-        setColumnWidths(updatedColumnWidths);
-        if(name !== undefined){
-            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+        //console.log(updatedColumnWidths, columnWidths, longestElementInColumn);
+        let updatedValues = false;
+        for(let i = 0; i < updatedColumnWidths.length; i++){
+            if(updatedColumnWidths[i] !== columnWidths[i]){
+                updatedValues = true;
+                break;
+            }
         }
-
+        if(updatedValues){
+            setColumnWidths(() => updatedColumnWidths);
+        }
     }, [columnWidths]);
 
     useEffect( () => {
