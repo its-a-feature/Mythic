@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/its-a-feature/Mythic/utils"
 	"strings"
+	"time"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -165,10 +166,14 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 		return response
 	}
 	if input.UpdateLastCheckinTime != nil && *input.UpdateLastCheckinTime {
-		if input.UpdateLastCheckinTimeViaC2Profile == nil {
-			response.Success = false
-			response.Error = "When asking to update the last checkin time, you must also supply the UpdateLastCheckinTimeViaC2Profile parameter with the name of the c2 profile that callback is using"
-			return response
+		callback.LastCheckin = time.Now().UTC()
+		if input.UpdateLastCheckinTimeViaC2Profile == nil || *input.UpdateLastCheckinTimeViaC2Profile == "" {
+			_, err := database.DB.NamedExec(`UPDATE callback SET last_checkin=:last_checkin WHERE id=:id`, callback)
+			if err != nil {
+				response.Success = false
+				response.Error = err.Error()
+				return response
+			}
 		}
 		_, err := LookupEncryptionData(*input.UpdateLastCheckinTimeViaC2Profile, callback.AgentCallbackID, true)
 		if err != nil {

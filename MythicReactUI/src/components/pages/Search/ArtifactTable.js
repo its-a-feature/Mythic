@@ -11,6 +11,7 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import CleanHandsTwoToneIcon from '@mui/icons-material/CleanHandsTwoTone';
 import AddAlertTwoToneIcon from '@mui/icons-material/AddAlertTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {snackActions} from "../../utilities/Snackbar";
 
 const updateNeedsCleanupMutation = gql`
 mutation updateNeedsCleanupStatus($taskartifact_id: Int!, $needs_cleanup: Boolean!){
@@ -25,6 +26,15 @@ mutation updateResolvedStatus($taskartifact_id: Int!, $resolved: Boolean!){
     update_taskartifact_by_pk(pk_columns: {id: $taskartifact_id}, _set: {resolved: $resolved}){
         resolved
         id
+    }
+}
+`;
+const createArtifactMutation = gql`
+mutation createNewArtifact($task_id: Int, $base_artifact: String!, $artifact: String!, $needs_cleanup: Boolean, $resolved: Boolean, $host: String){
+    createArtifact(task_id: $task_id, base_artifact: $base_artifact, artifact: $artifact, needs_cleanup: $needs_cleanup, resolved: $resolved, host: $host){
+        id
+        status
+        error
     }
 }
 `;
@@ -53,6 +63,18 @@ export function ArtifactTable(props){
                 return {...a};
             });
             setArtifacts(updatedArtifacts);
+        },
+        onError: (error) => {
+
+        }
+    });
+    const [createArtifact] = useMutation(createArtifactMutation, {
+        onCompleted: (data) => {
+            if(data.createArtifact.status === "success"){
+                snackActions.info("Successfully created artifact");
+            } else {
+                snackActions.error(data.createArtifact.error);
+            }
         },
         onError: (error) => {
 
@@ -137,22 +159,27 @@ function ArtifactTableRow(props){
                     <Typography variant="body2" >{props.base_artifact}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <Typography variant="body2" >{props.task.command.cmd}</Typography>
+                    <Typography variant="body2" >{props?.task?.command?.cmd}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell style={{wordBreak: "break-all"}}>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
-                          href={"/new/callbacks/" + props.task.callback.display_id}>
-                        C-{props.task.callback.display_id}
-                    </Link>{" / "}
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
-                          href={"/new/task/" + props.task.display_id}>
-                        T-{props.task.display_id}
-                    </Link>
-                    {props.task?.callback?.mythictree_groups.length > 0 ? (
-                        <Typography variant="body2" style={{whiteSpace: "pre"}}>
-                            <b>Groups: </b>{"\n" + props?.task?.callback.mythictree_groups.join("\n")}
-                        </Typography>
-                    ) : null}
+                    {props.task &&
+                    <>
+                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                              href={"/new/callbacks/" + props.task.callback.display_id}>
+                            C-{props.task.callback.display_id}
+                        </Link>{" / "}
+                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                              href={"/new/task/" + props.task.display_id}>
+                            T-{props.task.display_id}
+                        </Link>
+                        {props.task?.callback?.mythictree_groups.length > 0 ? (
+                            <Typography variant="body2" style={{whiteSpace: "pre"}}>
+                                <b>Groups: </b>{"\n" + props?.task?.callback.mythictree_groups.join("\n")}
+                            </Typography>
+                        ) : null}
+                    </>
+                    }
+
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                 <Typography variant="body2" style={{ display: "inline-block"}}>{props?.task?.operator?.username || null}</Typography>

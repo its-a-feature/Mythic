@@ -735,10 +735,11 @@ export function TopAppBarVertical(props) {
   return (
     <>
       {me?.user?.current_operation_id ? (<EventFeedNotifications me={me} />) : null }
-      <Drawer anchor="left" variant="permanent" open={menuOpen} onClose={handleDrawerClose} >
+      <Drawer anchor="left" variant="permanent" open={menuOpen} onClose={handleDrawerClose}
+        style={{borderRight: "1px solid grey !important"}}>
         <List style={{paddingTop: 0, marginTop: 0, height: "100%", display: "flex", flexDirection: "column",
             backgroundColor: theme.topAppBarColor,
-            border: "unset !important"}}>
+            borderBottom: "unset !important", borderLeft: "unset !important", borderTop: "unset !important"}}>
           <ListItem className={classes.listSubHeader} style={{marginTop:0, paddingTop: 0, paddingLeft: "2px", paddingBottom: 0}}>
             <ListItemIcon >
                 <img src={ReactLogo} onClick={()=>navigate('/new')} width={"40px"} height={"35px"}/>

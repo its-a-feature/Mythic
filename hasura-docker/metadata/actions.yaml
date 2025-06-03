@@ -143,6 +143,17 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
+  - name: createArtifact
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/artifact_create_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: createCallback
     definition:
       kind: synchronous
@@ -918,4 +929,5 @@ custom_types:
           source: default
           type: object
     - name: dynamicQueryOutputChoice
+    - name: createArtifactOutput
   scalars: []

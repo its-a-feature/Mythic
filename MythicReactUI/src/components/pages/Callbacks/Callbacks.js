@@ -210,7 +210,8 @@ export function Callbacks({me}) {
                    onDragEnd={(sizes) => localStorage.setItem('callbackTableSplitSizes', JSON.stringify(sizes))}
                    style={{ height: "100%" }}>
                 <div style={{display: "flex", flexDirection: "row-reverse"}}>
-                    <Paper elevation={5} style={{width: "30px", display: "flex", flexDirection: "column", alignItems: "center", overflow: "hidden"}}>
+                    <Paper elevation={5} style={{width: "30px", display: "flex", flexDirection: "column", alignItems: "center", overflow: "hidden",
+                    backgroundColor: "transparent"}}>
                         {topDisplay !== 'table' &&
                             <MythicStyledTooltip title={"Table View"}>
                                 <IconButton onClick={() =>setTopDisplay("table")}>

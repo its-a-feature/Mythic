@@ -743,7 +743,8 @@ func handleAgentMessagePostResponseArtifacts(task databaseStructs.Task, artifact
 			OperationID:  task.OperationID,
 			Host:         task.Callback.Host,
 		}
-		databaseArtifact.TaskID = task.ID
+		databaseArtifact.TaskID.Int64 = int64(task.ID)
+		databaseArtifact.TaskID.Valid = true
 		if newArtifact.Host != nil && *newArtifact.Host != "" {
 			databaseArtifact.Host = strings.ToUpper(*newArtifact.Host)
 		}

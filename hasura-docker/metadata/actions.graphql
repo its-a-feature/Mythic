@@ -96,6 +96,17 @@ type Mutation {
 }
 
 type Mutation {
+  createArtifact(
+    task_id: Int
+    base_artifact: String!
+    artifact: String!
+    needs_cleanup: Boolean
+    resolved: Boolean
+    host: String
+  ): createArtifactOutput
+}
+
+type Mutation {
   createCallback(
     newCallback: newCallbackConfig
     payloadUuid: String!
@@ -1200,5 +1211,11 @@ type createTagOutput {
 type dynamicQueryOutputChoice {
   display_value: String!
   value: String!
+}
+
+type createArtifactOutput {
+  id: Int
+  status: String!
+  error: String
 }
 

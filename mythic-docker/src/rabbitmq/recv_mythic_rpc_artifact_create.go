@@ -36,7 +36,8 @@ func MythicRPCArtifactCreate(input MythicRPCArtifactCreateMessage) MythicRPCArti
 		Success: false,
 	}
 	taskArtifact := databaseStructs.Taskartifact{}
-	taskArtifact.TaskID = input.TaskID
+	taskArtifact.TaskID.Int64 = int64(input.TaskID)
+	taskArtifact.TaskID.Valid = true
 	taskArtifact.Artifact = []byte(input.ArtifactMessage)
 	taskArtifact.BaseArtifact = input.BaseArtifactType
 	task := databaseStructs.Task{}

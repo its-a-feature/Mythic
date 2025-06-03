@@ -1090,8 +1090,14 @@ export function TaskParametersDialogRow(props){
                                     <MenuItem key={props.name + i} value={i}>
                                         <Typography style={{wordBreak: "break-all", whiteSpace: "pre-wrap"}}>
                                             {opt.account + (opt.realm === "" ? "" : "@" + opt.realm) + " - " +
-                                                (opt.credential_text.length > 40 ? opt.credential_text.substring(0, 40) + "..." : opt.credential_text) +
-                                                (opt.comment.length > 0 ? "\n" + opt.comment : "")}
+                                                (opt.credential_text.length > 40 ? opt.credential_text.substring(0, 40) + "..." : opt.credential_text)}
+                                            {opt.comment.length > 0 ?
+                                                (
+                                                    <>
+                                                        <b>{"\nComment: "}</b>  {opt.comment}
+                                                    </>
+                                                )
+                                                : ""}
                                         </Typography>
 
                                     </MenuItem>

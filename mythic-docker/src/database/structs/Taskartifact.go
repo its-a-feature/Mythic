@@ -1,13 +1,14 @@
 package databaseStructs
 
 import (
+	"database/sql"
 	"github.com/its-a-feature/Mythic/utils/structs"
 	"time"
 )
 
 type Taskartifact struct {
 	ID                  int               `db:"id" json:"id" mapstructure:"id"`
-	TaskID              int               `db:"task_id" json:"task_id" mapstructure:"task_id"`
+	TaskID              sql.NullInt64     `db:"task_id" json:"task_id" mapstructure:"task_id"`
 	Task                Task              `db:"task" json:"-"`
 	Timestamp           time.Time         `db:"timestamp" json:"timestamp" mapstructure:"timestamp"`
 	Artifact            []byte            `db:"artifact" json:"artifact" mapstructure:"artifact"`

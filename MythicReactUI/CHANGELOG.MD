@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.37] - 2025-06-03
+
+### Changed
+
+- Fixed bug with viewing files for eventing workflows
+- Updated comment view on credential types for tasking
+- Updated resize bars to be a bit thinner so that their color is less intrustive
+- Updated the default dark-mode color for the side bar to be a bit darker
+
 ## [0.3.36] - 2025-06-02
 
 ### Changed

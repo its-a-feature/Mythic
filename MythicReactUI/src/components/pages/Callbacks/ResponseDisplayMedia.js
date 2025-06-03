@@ -112,7 +112,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
     });
     React.useEffect( () => {
         fetchFileMetaData({variables: {agent_file_id: media?.agent_file_id}}).then( (data) => fetchedData(data)).catch((e) => console.log(e))
-    }, [task.timestamp]);
+    }, [task]);
     const handleChange = (event, newValue) => {
         setValue(newValue);
     }

@@ -105,7 +105,7 @@ export const operatorSettingDefaults =  {
             light: '#ffffff'
         },
         navBarColor: {
-            dark: "#3c4d67",
+            dark: "#2e373c",
             light: "#3c4d67",
         }
     },
