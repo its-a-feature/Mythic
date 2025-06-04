@@ -174,6 +174,8 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 				response.Error = err.Error()
 				return response
 			}
+			response.Success = true
+			return response
 		}
 		_, err := LookupEncryptionData(*input.UpdateLastCheckinTimeViaC2Profile, callback.AgentCallbackID, true)
 		if err != nil {

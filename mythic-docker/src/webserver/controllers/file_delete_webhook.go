@@ -44,8 +44,6 @@ func DeleteFileWebhook(c *gin.Context) {
 	if input.Input.FileId > 0 {
 		fileIDsToProcess = append(fileIDsToProcess, input.Input.FileId)
 	}
-	deletedFileIDs := []int{}
-	deletedPayloadIDs := []int{}
 	ginOperatorOperation, ok := c.Get("operatorOperation")
 	if !ok {
 		logging.LogError(nil, "Failed to get user information")
@@ -56,6 +54,27 @@ func DeleteFileWebhook(c *gin.Context) {
 		return
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+
+	err, deletedFileIDs, deletedPayloadIDs := DeleteFilesHelper(fileIDsToProcess, operatorOperation)
+	if err != nil {
+		c.JSON(http.StatusOK, DeleteFileResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, DeleteFileResponse{
+		Status:     "success",
+		FileIDs:    deletedFileIDs,
+		PayloadIDs: deletedPayloadIDs,
+	})
+	return
+
+}
+
+func DeleteFilesHelper(fileIDsToProcess []int, operatorOperation *databaseStructs.Operatoroperation) (error, []int, []int) {
+	deletedFileIDs := []int{}
+	deletedPayloadIDs := []int{}
 	for _, fileID := range fileIDsToProcess {
 		filemeta := databaseStructs.Filemeta{}
 		err := database.DB.Get(&filemeta, `SELECT
@@ -66,11 +85,7 @@ func DeleteFileWebhook(c *gin.Context) {
 		`, fileID, operatorOperation.CurrentOperation.ID)
 		if err != nil {
 			logging.LogError(err, "Failed to get file data from database", "file_id", fileID)
-			c.JSON(http.StatusOK, DeleteFileResponse{
-				Status: "error",
-				Error:  err.Error(),
-			})
-			return
+			return err, deletedFileIDs, deletedPayloadIDs
 		}
 		if err := os.Remove(filemeta.Path); err != nil {
 			logging.LogError(err, "Failed to remove file")
@@ -130,12 +145,5 @@ func DeleteFileWebhook(c *gin.Context) {
 			}
 		}
 	}
-
-	c.JSON(http.StatusOK, DeleteFileResponse{
-		Status:     "success",
-		FileIDs:    deletedFileIDs,
-		PayloadIDs: deletedPayloadIDs,
-	})
-	return
-
+	return nil, deletedFileIDs, deletedPayloadIDs
 }

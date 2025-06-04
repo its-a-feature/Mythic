@@ -47,6 +47,8 @@ import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import BlockIcon from '@mui/icons-material/Block';
+import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 
 const rebuildPayloadMutation = gql`
 mutation triggerRebuildMutation($uuid: String!) {
@@ -125,18 +127,21 @@ export function PayloadsTableRow(props){
       }
     })
     const onAlertChanged = () => {
-        const {id, callback_alert} = props;
-        props.onAlertChanged(id, !callback_alert);
+        const {uuid: payload_uuid, callback_alert} = props;
+        props.onAlertChanged(payload_uuid, !callback_alert);
     }
     const onAcceptDelete = () => {
         if(props.deleted){
-            props.onRestorePayload(props.id);
+            props.onRestorePayload(props.uuid);
             setOpenDeleteDialog(false);
         }else{
-            props.onDeletePayload(props.filemetum.id);
+            props.onDeletePayload(props.uuid);
             setOpenDeleteDialog(false);
         }
     }
+    const onCallbacksAllowedChanged = () =>[
+        props.onCallbacksAllowedChanged(props.uuid, !props.callback_allowed)
+    ]
     const handleMenuItemClick = (event, index) => {
         options[index].click();
         setOpenUpdateDialog(false);
@@ -152,11 +157,17 @@ export function PayloadsTableRow(props){
                             setOpenDetailedView(true);
                         }},
                      {name: props.callback_alert ?
-                             <><VisibilityIcon color={"success"} style={{marginRight: "10px"}}  />{'Stop Alerting to New Callbacks'}</> :
-                             <><VisibilityOffIcon color={"error"} style={{marginRight: "10px"}}  />{"Start Alerting to New Callbacks"}</>,
+                             <><VisibilityIcon color={"success"} style={{marginRight: "10px"}}  />{'Alerting to New Callbacks'}</> :
+                             <><VisibilityOffIcon color={"error"} style={{marginRight: "10px"}}  />{"Not Alerting to New Callbacks"}</>,
                          click: () => {
                         onAlertChanged();
                       }},
+                    {name: props.callback_allowed ?
+                            <><VisibilityIcon color={"success"} style={{marginRight: "10px"}}  />{'Allowing New Callbacks from this Payload'}</> :
+                            <><VisibilityOffIcon color={"error"} style={{marginRight: "10px"}}  />{"Preventing New Callbacks from this Payload"}</>,
+                        click: () => {
+                            onCallbacksAllowedChanged();
+                        }},
                      {name: <><MessageIcon style={{marginRight: "10px"}}  />{'View Build Message/Stdout'} </> , click: () => {
                         setViewError(false);
                         setOpenBuildMessageDialog(true);
@@ -257,7 +268,7 @@ export function PayloadsTableRow(props){
                 {openDescription &&
                     <MythicDialog fullWidth={true} maxWidth="md" open={openDescription} 
                         onClose={()=>{setOpenDescriptionDialog(false);}} 
-                        innerDialog={<PayloadDescriptionDialog payload_id={props.id} onClose={()=>{setOpenDescriptionDialog(false);}} />}
+                        innerDialog={<PayloadDescriptionDialog payload_uuid={props.uuid} payload_id={props.id} onClose={()=>{setOpenDescriptionDialog(false);}} />}
                     />
                 }
                 {openFilename &&
@@ -313,9 +324,25 @@ export function PayloadsTableRow(props){
                 }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <MythicStyledTooltip title={props.payloadtype.name}>
+                    <MythicStyledTooltip title={props.payloadtype.name} tooltipStyle={{display: "inline-block"}}>
                         <MythicAgentSVGIcon payload_type={props.payloadtype.name} style={{width: "35px", height: "35px"}} />
                     </MythicStyledTooltip>
+                    {!props.callback_allowed &&
+                        <MythicStyledTooltip title={"No new Callbacks allowed from this payload"}
+                                             tooltipStyle={{display: 'inline-block', position: "relative",
+                                                 top: "3px", left: "-10px", height: 0, width: 0
+                        }}>
+                            <BlockIcon fontSize={"small"} color={"error"} style={{backgroundColor: "white", borderRadius: "10px"}} />
+                        </MythicStyledTooltip>
+                    }
+                    {!props.callback_alert &&
+                        <MythicStyledTooltip title={"No Callback Alerts"}
+                                             tooltipStyle={{display: 'inline-block', position: "relative",
+                                                 top: "3px", left: "-45px", height: 0, width: 0
+                                             }}>
+                            <NotificationsOffOutlinedIcon fontSize={"small"} color={"error"} style={{backgroundColor: "white", borderRadius: "10px"}} />
+                        </MythicStyledTooltip>
+                    }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell style={{wordBreak: "break-all"}}>
                     {props.auto_generated && props.task &&

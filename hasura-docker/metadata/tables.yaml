@@ -5836,6 +5836,7 @@
         columns:
           - auto_generated
           - callback_alert
+          - callback_allowed
           - deleted
           - apitokens_id
           - eventstepinstance_id
@@ -5865,6 +5866,7 @@
         columns:
           - auto_generated
           - callback_alert
+          - callback_allowed
           - deleted
           - apitokens_id
           - eventstepinstance_id
@@ -5894,6 +5896,7 @@
         columns:
           - auto_generated
           - callback_alert
+          - callback_allowed
           - deleted
           - apitokens_id
           - eventstepinstance_id
@@ -5923,6 +5926,7 @@
         columns:
           - auto_generated
           - callback_alert
+          - callback_allowed
           - deleted
           - apitokens_id
           - eventstepinstance_id
@@ -5952,6 +5956,7 @@
         columns:
           - auto_generated
           - callback_alert
+          - callback_allowed
           - deleted
           - apitokens_id
           - eventstepinstance_id
@@ -5976,55 +5981,6 @@
           operation_id:
             _eq: X-Hasura-current-operation-id
         allow_aggregations: true
-  update_permissions:
-    - role: developer
-      permission:
-        columns:
-          - callback_alert
-          - deleted
-          - description
-        filter:
-          operation_id:
-            _eq: x-hasura-current-operation-id
-        check:
-          operation_id:
-            _eq: x-hasura-current-operation-id
-    - role: mythic_admin
-      permission:
-        columns:
-          - callback_alert
-          - deleted
-          - description
-        filter:
-          operation_id:
-            _eq: x-hasura-current-operation-id
-        check:
-          operation_id:
-            _eq: x-hasura-current-operation-id
-    - role: operation_admin
-      permission:
-        columns:
-          - callback_alert
-          - deleted
-          - description
-        filter:
-          operation_id:
-            _eq: x-hasura-current-operation-id
-        check:
-          operation_id:
-            _eq: x-hasura-current-operation-id
-    - role: operator
-      permission:
-        columns:
-          - callback_alert
-          - deleted
-          - description
-        filter:
-          operation_id:
-            _eq: x-hasura-current-operation-id
-        check:
-          operation_id:
-            _eq: x-hasura-current-operation-id
 - table:
     name: payload_build_step
     schema: public

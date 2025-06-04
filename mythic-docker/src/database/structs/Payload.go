@@ -33,4 +33,5 @@ type Payload struct {
 	Timestamp           time.Time         `db:"timestamp" json:"timestamp"`
 	EventStepInstanceID structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`
 	APITokensID         structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
+	CallbackAllowed     bool              `db:"callback_allowed" json:"callback_allowed" mapstructure:"callback_allowed"`
 }

@@ -105,6 +105,11 @@ type agentMessagePostResponseArtifacts struct {
 	Host         *string `json:"host" mapstructure:"host" xml:"host"`
 	NeedsCleanup *bool   `json:"needs_cleanup,omitempty" mapstructure:"needs_cleanup,omitempty" xml:"needs_cleanup,omitempty"`
 	Resolved     *bool   `json:"resolved,omitempty" mapstructure:"resolved,omitempty" xml:"resolved,omitempty"`
+	ArtifactID   *int    `json:"id" mapstructure:"id" xml:"id"`
+}
+type agentMessagePostResponseArtifactsResponse struct {
+	ArtifactID int  `json:"id" mapstructure:"id" xml:"id"`
+	Success    bool `json:"success" mapstructure:"success" xml:"success"`
 }
 type agentMessagePostResponseProcesses struct {
 	Host                   *string                `mapstructure:"host,omitempty" json:"host,omitempty" xml:"host,omitempty"`
@@ -454,9 +459,6 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		if agentMessage.Responses[i].Credentials != nil {
 			go handleAgentMessagePostResponseCredentials(currentTask, agentMessage.Responses[i].Credentials)
 		}
-		if agentMessage.Responses[i].Artifacts != nil {
-			go handleAgentMessagePostResponseArtifacts(currentTask, agentMessage.Responses[i].Artifacts)
-		}
 		if agentMessage.Responses[i].Keylogs != nil {
 			go handleAgentMessagePostResponseKeylogs(currentTask, agentMessage.Responses[i].Keylogs)
 		}
@@ -482,6 +484,11 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		}
 		if agentMessage.Responses[i].Alerts != nil {
 			go handleAgentMessagePostResponseAlerts(currentTask.OperationID, uUIDInfo.CallbackID, uUIDInfo.CallbackDisplayID, agentMessage.Responses[i].Alerts)
+		}
+		if agentMessage.Responses[i].Artifacts != nil {
+			// report back artifact information so that the agent can update the specific artifacts if needed
+			artifactResponses := handleAgentMessagePostResponseArtifacts(currentTask, agentMessage.Responses[i].Artifacts)
+			mythicResponse["artifacts"] = artifactResponses
 		}
 		// this section always happens
 		reflectBackOtherKeys(&mythicResponse, &agentMessage.Responses[i].Other)
@@ -734,38 +741,92 @@ func handleAgentMessagePostResponseCredentials(task databaseStructs.Task, creden
 	}
 	return nil
 }
-func handleAgentMessagePostResponseArtifacts(task databaseStructs.Task, artifacts *[]agentMessagePostResponseArtifacts) {
+func handleAgentMessagePostResponseArtifacts(task databaseStructs.Task, artifacts *[]agentMessagePostResponseArtifacts) []agentMessagePostResponseArtifactsResponse {
 	// mark the file / folder as removed and recursively mark all children as deleted too
+	artifactResponses := []agentMessagePostResponseArtifactsResponse{}
 	for _, newArtifact := range *artifacts {
-		databaseArtifact := databaseStructs.Taskartifact{
-			Artifact:     []byte(newArtifact.Artifact),
-			BaseArtifact: newArtifact.BaseArtifact,
-			OperationID:  task.OperationID,
-			Host:         task.Callback.Host,
-		}
-		databaseArtifact.TaskID.Int64 = int64(task.ID)
-		databaseArtifact.TaskID.Valid = true
-		if newArtifact.Host != nil && *newArtifact.Host != "" {
-			databaseArtifact.Host = strings.ToUpper(*newArtifact.Host)
-		}
-		if newArtifact.NeedsCleanup != nil {
-			databaseArtifact.NeedsCleanup = *newArtifact.NeedsCleanup
-		}
-		if newArtifact.Resolved != nil {
-			databaseArtifact.Resolved = *newArtifact.Resolved
-		}
-		if statement, err := database.DB.PrepareNamed(`INSERT INTO taskartifact
+		if newArtifact.ArtifactID == nil || *newArtifact.ArtifactID <= 0 {
+			databaseArtifact := databaseStructs.Taskartifact{
+				Artifact:     []byte(newArtifact.Artifact),
+				BaseArtifact: newArtifact.BaseArtifact,
+				OperationID:  task.OperationID,
+				Host:         task.Callback.Host,
+			}
+			databaseArtifact.TaskID.Int64 = int64(task.ID)
+			databaseArtifact.TaskID.Valid = true
+			if newArtifact.Host != nil && *newArtifact.Host != "" {
+				databaseArtifact.Host = strings.ToUpper(*newArtifact.Host)
+			}
+			if newArtifact.NeedsCleanup != nil {
+				databaseArtifact.NeedsCleanup = *newArtifact.NeedsCleanup
+			}
+			if newArtifact.Resolved != nil {
+				databaseArtifact.Resolved = *newArtifact.Resolved
+			}
+			if statement, err := database.DB.PrepareNamed(`INSERT INTO taskartifact
 			(artifact, base_artifact, operation_id, host, task_id, needs_cleanup, resolved)
 			VALUES (:artifact, :base_artifact, :operation_id, :host, :task_id, :needs_cleanup, :resolved)
 			RETURNING id`); err != nil {
-			logging.LogError(err, "Failed to register artifact", "base artifact", newArtifact.BaseArtifact, "artifact", newArtifact.Artifact)
-		} else if err = statement.Get(&databaseArtifact.ID, databaseArtifact); err != nil {
-			logging.LogError(err, "Failed to register artifact", "base artifact", newArtifact.BaseArtifact, "artifact", newArtifact.Artifact)
+				logging.LogError(err, "Failed to register artifact", "base artifact", newArtifact.BaseArtifact, "artifact", newArtifact.Artifact)
+				artifactResponses = append(artifactResponses, agentMessagePostResponseArtifactsResponse{
+					ArtifactID: databaseArtifact.ID,
+					Success:    false,
+				})
+			} else if err = statement.Get(&databaseArtifact.ID, databaseArtifact); err != nil {
+				logging.LogError(err, "Failed to register artifact", "base artifact", newArtifact.BaseArtifact, "artifact", newArtifact.Artifact)
+				artifactResponses = append(artifactResponses, agentMessagePostResponseArtifactsResponse{
+					Success: false,
+				})
+			} else {
+				go emitArtifactLog(databaseArtifact.ID)
+				artifactResponses = append(artifactResponses, agentMessagePostResponseArtifactsResponse{
+					ArtifactID: databaseArtifact.ID,
+					Success:    true,
+				})
+			}
+			continue
+		}
+		// this means an artifact ID was specified and it's > 0, so lets process it
+		databaseArtifact := databaseStructs.Taskartifact{
+			ID:          *newArtifact.ArtifactID,
+			OperationID: task.OperationID,
+		}
+		queryString := `UPDATE taskartifact SET `
+		updatingValue := false
+		if newArtifact.NeedsCleanup != nil {
+			databaseArtifact.NeedsCleanup = *newArtifact.NeedsCleanup
+			queryString += "needs_cleanup=:needs_cleanup "
+			updatingValue = true
+		}
+		if newArtifact.Resolved != nil {
+			databaseArtifact.Resolved = *newArtifact.Resolved
+			queryString += "resolved=:resolved "
+			updatingValue = true
+		}
+		queryString += "WHERE id=:id AND operation_id=:operation_id"
+		if updatingValue {
+			_, err := database.DB.NamedExec(queryString, databaseArtifact)
+			if err != nil {
+				logging.LogError(err, "failed to update task artifact from agent")
+				artifactResponses = append(artifactResponses, agentMessagePostResponseArtifactsResponse{
+					ArtifactID: databaseArtifact.ID,
+					Success:    false,
+				})
+			} else {
+				artifactResponses = append(artifactResponses, agentMessagePostResponseArtifactsResponse{
+					ArtifactID: databaseArtifact.ID,
+					Success:    true,
+				})
+			}
 		} else {
-			go emitArtifactLog(databaseArtifact.ID)
+			logging.LogError(nil, "agent asked to update task artifact, but didn't specify resolved or needs_cleanup")
+			artifactResponses = append(artifactResponses, agentMessagePostResponseArtifactsResponse{
+				ArtifactID: databaseArtifact.ID,
+				Success:    true,
+			})
 		}
 	}
-
+	return artifactResponses
 }
 func handleAgentMessagePostResponseKeylogs(task databaseStructs.Task, keylogs *[]agentMessagePostResponseKeylogs) error {
 	// mark the file / folder as removed and recursively mark all children as deleted too

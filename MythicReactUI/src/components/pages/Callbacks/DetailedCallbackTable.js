@@ -31,6 +31,8 @@ import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {HostFileDialog} from "../Payloads/HostFileDialog";
 import PublicIcon from '@mui/icons-material/Public';
+import {payloadsCallbackAllowed} from "../Payloads/Payloads";
+import Switch from '@mui/material/Switch';
 
 const GET_Payload_Details = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -39,6 +41,7 @@ query GetCallbackDetails($callback_id: Int!) {
       uuid
       id
       creation_time
+      callback_allowed
       payloadtype{
           name
           agent_type
@@ -210,6 +213,7 @@ export function DetailedCallbackTable(props){
         issueNextMod();
       }
     })
+    const [payloadCallbackAllowed, setPayloadCallbackAllowed] = React.useState(true);
     const issueNextMod = () => {
       if(commandMods.current.add >= addTotal.current){
         if(commandMods.current.remove >= removeTotal.current) {
@@ -286,8 +290,29 @@ export function DetailedCallbackTable(props){
                 }];
             }, []);
             setC2Profiles(c2ProfilesState);
+            setPayloadCallbackAllowed(data.callback_by_pk.payload.callback_allowed);
         }
         });
+    const [toggleCallbackAllowedMutation] = useMutation(payloadsCallbackAllowed, {
+        onCompleted: (data) => {
+            if(data.updatePayload.status === "success"){
+                setPayloadCallbackAllowed(data.updatePayload.callback_allowed);
+                if(data.updatePayload.callback_allowed){
+                    snackActions.success("New Callbacks allowed from this Payload");
+                } else {
+                    snackActions.warning("No new Callback allowed from this Payload");
+                }
+            } else {
+                console.log(data.updatePayload);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+        }
+    });
+    const onToggleCallbackAllowed = () => {
+        toggleCallbackAllowedMutation({variables: {payload_uuid: data.callback_by_pk.payload.uuid, callback_allowed: !payloadCallbackAllowed}})
+    }
     if (loading) {
      return <LinearProgress style={{marginTop: "10px"}}/>;
     }
@@ -383,6 +408,18 @@ export function DetailedCallbackTable(props){
                     <TableRow hover>
                         <TableCell>Created By</TableCell>
                         <TableCell>{data.callback_by_pk.payload?.operator?.username}</TableCell>
+                    </TableRow>
+                    <TableRow hover>
+                        <TableCell>New Callbacks Allowed?</TableCell>
+                        <TableCell>
+                            <Switch
+                                checked={payloadCallbackAllowed}
+                                onChange={onToggleCallbackAllowed}
+                                color="info"
+                                inputProps={{'aria-label': 'primary checkbox'}}
+                                name="callback_allowed"
+                            />
+                        </TableCell>
                     </TableRow>
                     {data.callback_by_pk.payload?.eventstepinstance &&
                         <>

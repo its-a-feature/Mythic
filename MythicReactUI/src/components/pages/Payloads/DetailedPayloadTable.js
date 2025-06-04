@@ -27,12 +27,16 @@ import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import {TableRowSizeCell} from "../Callbacks/CallbacksTabsFileBrowserTable";
+import {payloadsCallbackAllowed} from "./Payloads";
+import Switch from '@mui/material/Switch';
+
 
 const GET_Payload_Details = gql`
 query GetPayloadDetails($payload_id: Int!) {
   payload(where: {id: {_eq: $payload_id}}) {
     uuid
     wrapped_payload_id
+    callback_allowed
     payloadtype{
         name
     }
@@ -208,6 +212,7 @@ function DetailedPayloadInnerTable(props){
                                       "remove": 0,
                                       "commandsToAdd": [],
                                       "commandsToRemove": []})
+    const [payloadCallbackAllowed, setPayloadCallbackAllowed] = React.useState(true);
     const { loading, error, data } = useQuery(GET_Payload_Details, {
         variables: {payload_id: props.payload_id},
         fetchPolicy: "no-cache",
@@ -251,6 +256,7 @@ function DetailedPayloadInnerTable(props){
             }, []);
             setC2Profiles(c2ProfilesState);
             setBuildSteps(data.payload[0].payload_build_steps);
+            setPayloadCallbackAllowed(data.payload[0].callback_allowed);
         }
         });
     const [addCommandMutation] = useMutation(addCommandsMutation, {
@@ -279,6 +285,26 @@ function DetailedPayloadInnerTable(props){
         issueNextMod();
       }
     })
+    const [toggleCallbackAllowedMutation] = useMutation(payloadsCallbackAllowed, {
+        onCompleted: (data) => {
+            if(data.updatePayload.status === "success"){
+                setPayloadCallbackAllowed(data.updatePayload.callback_allowed);
+                if(data.updatePayload.callback_allowed){
+                    snackActions.success("New Callbacks allowed from this Payload");
+                } else {
+                    snackActions.warning("No new Callback allowed from this Payload");
+                }
+            } else {
+                console.log(data.updatePayload);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+        }
+    });
+    const onToggleCallbackAllowed = () => {
+        toggleCallbackAllowedMutation({variables: {payload_uuid: data.payload[0].uuid, callback_allowed: !payloadCallbackAllowed}})
+    }
     const issueNextMod = () => {
       if(commandMods.current.add >= addTotal.current){
         if(commandMods.current.remove >= removeTotal.current) {
@@ -395,6 +421,18 @@ function DetailedPayloadInnerTable(props){
                     <TableRow hover>
                         <TableCell>Created By</TableCell>
                         <TableCell>{data.payload[0]?.operator?.username}</TableCell>
+                    </TableRow>
+                    <TableRow hover>
+                        <TableCell>New Callbacks Allowed?</TableCell>
+                        <TableCell>
+                            <Switch
+                                checked={payloadCallbackAllowed}
+                                onChange={onToggleCallbackAllowed}
+                                color="info"
+                                inputProps={{'aria-label': 'primary checkbox'}}
+                                name="callback_allowed"
+                            />
+                        </TableCell>
                     </TableRow>
                     {data.payload[0]?.eventstepinstance &&
                         <>

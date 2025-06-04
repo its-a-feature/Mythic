@@ -6,8 +6,8 @@ import Typography from '@mui/material/Typography';
 import {MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
 
 const updateDescriptionMutation = gql`
-mutation updateDescription ($payload_id: Int!, $description: String) {
-  update_payload_by_pk(pk_columns: {id: $payload_id}, _set: {description: $description}) {
+mutation updateDescription ($payload_uuid: String!, $description: String) {
+  updatePayload(payload_uuid: $payload_uuid, description: $description) {
     description
     id
   }
@@ -89,7 +89,7 @@ export function PayloadDescriptionDialog(props) {
     }
     const updatePayloadDescription = () => {
         setOpenUpdateAll(false);
-        updateDescription({variables: {payload_id: props.payload_id, description: description.current}});
+        updateDescription({variables: {payload_uuid: props.payload_uuid, description: description.current}});
     }
     const onCommitSubmit = (updatedMessage) => {
         description.current = updatedMessage;

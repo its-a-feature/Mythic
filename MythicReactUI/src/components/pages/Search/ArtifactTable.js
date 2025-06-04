@@ -11,7 +11,6 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import CleanHandsTwoToneIcon from '@mui/icons-material/CleanHandsTwoTone';
 import AddAlertTwoToneIcon from '@mui/icons-material/AddAlertTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {snackActions} from "../../utilities/Snackbar";
 
 const updateNeedsCleanupMutation = gql`
 mutation updateNeedsCleanupStatus($taskartifact_id: Int!, $needs_cleanup: Boolean!){
@@ -29,15 +28,7 @@ mutation updateResolvedStatus($taskartifact_id: Int!, $resolved: Boolean!){
     }
 }
 `;
-const createArtifactMutation = gql`
-mutation createNewArtifact($task_id: Int, $base_artifact: String!, $artifact: String!, $needs_cleanup: Boolean, $resolved: Boolean, $host: String){
-    createArtifact(task_id: $task_id, base_artifact: $base_artifact, artifact: $artifact, needs_cleanup: $needs_cleanup, resolved: $resolved, host: $host){
-        id
-        status
-        error
-    }
-}
-`;
+
 export function ArtifactTable(props){
     const [artifacts, setArtifacts] = React.useState([]);
     const [updateNeedsCleanup] = useMutation(updateNeedsCleanupMutation, {
@@ -63,18 +54,6 @@ export function ArtifactTable(props){
                 return {...a};
             });
             setArtifacts(updatedArtifacts);
-        },
-        onError: (error) => {
-
-        }
-    });
-    const [createArtifact] = useMutation(createArtifactMutation, {
-        onCompleted: (data) => {
-            if(data.createArtifact.status === "success"){
-                snackActions.info("Successfully created artifact");
-            } else {
-                snackActions.error(data.createArtifact.error);
-            }
         },
         onError: (error) => {
 

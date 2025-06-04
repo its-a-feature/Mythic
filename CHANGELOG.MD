@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc73] - 2025-06-04
+
+### Changed
+
+- Updated the UI to allow creation of new Artifacts (that aren't tied to specific tasks)
+- Updated payload updating information to a new GraphQL Action for:
+  - description, callback_alert, delete, and callback_allowed
+  - New data tracked for callback_allowed to optionally prevent new callbacks from payloads
+- Updated Artifact processing
+  - Reporting an artifact will result in getting back an `id` for the artifact
+  - That `id` can then be sent in future artifact messages to update its `needs_cleanup` and `resolved` status
+- Payloads now have a `callback_allowed` attribute
+  - this is `true` by default, but setting it to false (toggling in the UI on the payloads page or callback metadata) will prevent future new callbacks from that payload
+  - this feature was "implicitly" there when you delete a payload, but that is removed in favor of this new method
+  - A new UI element will show on the payload if it's not marked for allowing callbacks
+
 ## [3.3.1-rc72] - 2025-6-03
 
 ### Changed

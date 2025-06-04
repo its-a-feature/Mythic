@@ -793,6 +793,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: updatePayload
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_payload_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
 custom_types:
   enums: []
   input_objects:
@@ -930,4 +940,5 @@ custom_types:
           type: object
     - name: dynamicQueryOutputChoice
     - name: createArtifactOutput
+    - name: updatePayloadOutput
   scalars: []

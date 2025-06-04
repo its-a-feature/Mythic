@@ -75,8 +75,9 @@ type cachedUUIDInfo struct {
 	CallbackDisplayID            int `json:"callback_display_id" db:"display_id"`
 	OperationID                  int `json:"operation_id" db:"operation_id"`
 	// Active - tracking if the callback is active or not in a cached way
-	Active                    bool
-	TriggerOnCheckinAfterTime int `json:"trigger_on_checkin_after_time"`
+	Active                     bool
+	TriggerOnCheckinAfterTime  int  `json:"trigger_on_checkin_after_time"`
+	CallbackAllowedFromPayload bool `json:"callback_allowed_from_payload"`
 	// EdgeId - tracking the edge id for this callback to make sure it's updated as needed
 	EdgeId int
 }
@@ -216,6 +217,16 @@ func UpdateCallbackInfoTriggerOnCheckin(callbackID int, triggerOnCheckinAfterTim
 	for k, _ := range cachedUUIDInfoMap {
 		if cachedUUIDInfoMap[k].CallbackID == callbackID {
 			cachedUUIDInfoMap[k].TriggerOnCheckinAfterTime = triggerOnCheckinAfterTime
+			return
+		}
+	}
+}
+func UpdatePayloadInfoCallbackAllowed(payloadID int, callbackAllowed bool) {
+	cachedUUIDInfoMapMutex.Lock()
+	defer cachedUUIDInfoMapMutex.Unlock()
+	for k, _ := range cachedUUIDInfoMap {
+		if cachedUUIDInfoMap[k].PayloadID == payloadID && cachedUUIDInfoMap[k].UUIDType == UUIDTYPEPAYLOAD {
+			cachedUUIDInfoMap[k].CallbackAllowedFromPayload = callbackAllowed
 			return
 		}
 	}
@@ -382,6 +393,21 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
 		logging.LogError(err, errorMessage)
 		instanceResponse.Err = errors.New(errorMessage)
+		return instanceResponse
+	}
+	if !uuidInfo.CallbackAllowedFromPayload {
+		payload := databaseStructs.Payload{}
+		err = database.DB.Get(&payload, `SELECT
+			payload.description, 
+			filemeta.filename "filemeta.filename"
+			FROM payload
+			JOIN filemeta on payload.file_id = filemeta.id
+			WHERE payload.uuid=$1`, messageUUID.String())
+		errorMessage := fmt.Sprintf("Payload (%s) - %s\n", string(payload.Filemeta.Filename), payload.Description)
+		errorMessage += fmt.Sprintf("Registered as not allowing new callbacks, so messages are blocked. If this isn't intended, allow this from the payloads page.\n")
+		errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
+		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
+		instanceResponse.Err = err
 		return instanceResponse
 	}
 	decryptBytes := base64DecodedMessage[agentUUIDLength:totalBase64Bytes]
@@ -667,7 +693,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 	defer cachedUUIDInfoMapMutex.Unlock()
 	if _, ok := cachedUUIDInfoMap[messageUUID+c2profile]; ok {
 		// we found an instance of the cache info with c2 profile encryption data
-		if cachedUUIDInfoMap[messageUUID+c2profile].UUIDType == "callback" {
+		if cachedUUIDInfoMap[messageUUID+c2profile].UUIDType == UUIDTYPECALLBACK {
 			if updateCheckinTime {
 				UpdateCallbackEdgesAndCheckinTime(cachedUUIDInfoMap[messageUUID+c2profile])
 			}
@@ -676,7 +702,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		return cachedUUIDInfoMap[messageUUID+c2profile], nil
 	} else if _, ok = cachedUUIDInfoMap[messageUUID]; ok {
 		// we found an instance of the cache info with payload encryption data
-		if cachedUUIDInfoMap[messageUUID].UUIDType == "callback" {
+		if cachedUUIDInfoMap[messageUUID].UUIDType == UUIDTYPECALLBACK {
 			if updateCheckinTime {
 				UpdateCallbackEdgesAndCheckinTime(cachedUUIDInfoMap[messageUUID])
 			}
@@ -718,6 +744,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		WHERE callback.agent_callback_id=$1`, messageUUID); err == nil {
 		// we are looking at a callback
 		newCache.UUID = messageUUID
+		newCache.CallbackAllowedFromPayload = true
 		newCache.UUIDType = UUIDTYPECALLBACK
 		newCache.PayloadID = callback.Payload.ID
 		newCache.PayloadTypeID = callback.Payload.Payloadtype.ID
@@ -738,7 +765,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		newCache.TriggerOnCheckinAfterTime = callback.TriggerOnCheckinAfterTime
 	} else if err = database.DB.Get(&payload, `SELECT
 		payload.id, payload.operation_id,
-		payload.deleted, payload.description, payload.uuid,
+		payload.deleted, payload.description, payload.uuid, payload.callback_allowed,
 		payloadtype.id "payloadtype.id",
 		payloadtype.name "payloadtype.name", 
 		payloadtype.mythic_encrypts "payloadtype.mythic_encrypts",
@@ -749,13 +776,9 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		JOIN payloadtype on payload.payload_type_id = payloadtype.id
 		WHERE payload.uuid=$1`, messageUUID); err == nil {
 		// we're looking at a payload message
-		if payload.Deleted {
-			err = errors.New(fmt.Sprintf("Payload %s, %s, is deleted, but trying to make a new callback. Attempt is blocked until you mark the payload as no longer deleted.", payload.UuID, payload.Description))
-			logging.LogError(err, "rejecting new callback")
-			return &newCache, err
-		}
 		newCache.UUID = messageUUID
 		newCache.UUIDType = UUIDTYPEPAYLOAD
+		newCache.CallbackAllowedFromPayload = payload.CallbackAllowed
 		newCache.PayloadID = payload.ID
 		newCache.PayloadTypeID = payload.Payloadtype.ID
 		newCache.PayloadTypeName = payload.Payloadtype.Name
@@ -828,6 +851,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		WHERE staginginfo.staging_uuid=$1`, messageUUID); err == nil {
 		// we're looking at a staging message
 		newCache.UUID = messageUUID
+		newCache.CallbackAllowedFromPayload = true
 		newCache.UUIDType = UUIDTYPESTAGING
 		newCache.StagingEncKey = stager.EncKey
 		newCache.StagingDecKey = stager.DecKey

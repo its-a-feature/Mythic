@@ -573,6 +573,16 @@ type Mutation {
   ): passwordUpdateOutput
 }
 
+type Mutation {
+  updatePayload(
+    payload_uuid: String!
+    callback_alert: Boolean
+    callback_allowed: Boolean
+    description: String
+    deleted: Boolean
+  ): updatePayloadOutput
+}
+
 input OperatorInput {
   username: String!
   password: String
@@ -1217,5 +1227,16 @@ type createArtifactOutput {
   id: Int
   status: String!
   error: String
+}
+
+type updatePayloadOutput {
+  status: String!
+  error: String
+  callback_alert: Boolean
+  callback_allowed: Boolean
+  description: String
+  deleted: Boolean
+  id: Int
+  payload_uuid: String
 }
 

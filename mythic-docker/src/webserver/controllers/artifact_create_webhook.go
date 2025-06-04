@@ -62,6 +62,8 @@ func ArtifactCreateWebhook(c *gin.Context) {
 		Artifact:     []byte(input.Input.Artifact),
 		BaseArtifact: input.Input.BaseArtifact,
 		Host:         input.Input.Host,
+		NeedsCleanup: input.Input.NeedsCleanup,
+		Resolved:     input.Input.Resolved,
 	}
 	if input.Input.TaskID > 0 {
 		task := databaseStructs.Task{}

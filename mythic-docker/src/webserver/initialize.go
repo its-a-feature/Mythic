@@ -260,6 +260,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("c2profile_host_file_webhook", webcontroller.C2HostFileMessageWebhook)
 				// payload
 				noSpectators.POST("rebuild_webhook", webcontroller.PayloadRebuildWebhook)
+				noSpectators.POST("update_payload_webhook", webcontroller.UpdatePayloadWebhook)
 				// operation
 				noSpectators.POST("update_operation_webhook", webcontroller.UpdateOperationWebhook)
 				noSpectators.POST("update_operatoroperation_webhook", webcontroller.UpdateOperatorOperationWebhook)

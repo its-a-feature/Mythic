@@ -6,7 +6,7 @@ import Grid from '@mui/material/Grid';
 import SearchIcon from '@mui/icons-material/Search';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
-import { gql, useLazyQuery, useMutation} from '@apollo/client';
+import { gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
 import Pagination from '@mui/material/Pagination';
 import { Button, Typography } from '@mui/material';
