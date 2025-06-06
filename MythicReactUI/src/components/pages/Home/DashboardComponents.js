@@ -11,7 +11,6 @@ import {Gauge, GaugeContainer,
     useGaugeState} from '@mui/x-charts/Gauge';
 import Table from '@mui/material/Table';
 import { BarChart } from '@mui/x-charts/BarChart';
-import {useNavigate} from 'react-router-dom';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
@@ -235,7 +234,7 @@ export const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondary
                     }
                     {mainTitle}
                 </h5>
-                <div style={{height: 160, cursor: "pointer"}}>
+                <div style={{height: 180, cursor: "pointer"}}>
                     <MythicStyledTooltip title={"Go to Active Callbacks"}>
                         {mainElement}
                         <h4 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>

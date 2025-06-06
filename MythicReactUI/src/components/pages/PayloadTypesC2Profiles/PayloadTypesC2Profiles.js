@@ -153,31 +153,31 @@ export function PayloadTypesC2Profiles({me}){
     const getTabComponent = () => {
         switch(value){
             case 0:
-                return <ContainersTabPayloadTypesPanel key={"Payload Types"} index={value} value={value} showDeleted={showDeleted}
+                return <ContainersTabPayloadTypesPanel key={"Payload Types"} type={"Payload Types"} index={value} value={value} showDeleted={showDeleted}
                                                        containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "payloadtype" && (c.agent_type === "agent" || c.agent_type === "wrapper"))} />
             case 1:
-                return <ContainersTabPayloadTypesPanel key={"C2 Profiles"} index={value} value={value} showDeleted={showDeleted}
+                return <ContainersTabPayloadTypesPanel key={"C2 Profiles"} type={"C2 Profiles"} index={value} value={value} showDeleted={showDeleted}
                                                        containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "c2profile")} />
             case 2:
-                return <ContainersTabPayloadTypesPanel key={"Translators"} index={value} value={value} showDeleted={showDeleted}
+                return <ContainersTabPayloadTypesPanel key={"Translators"} type={"Translators"} index={value} value={value} showDeleted={showDeleted}
                                                        containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "translationcontainer")} />
             case 3:
-                return <ContainersTabPayloadTypesPanel key={"Command Augmentation"} index={value} value={value} showDeleted={showDeleted}
+                return <ContainersTabPayloadTypesPanel key={"Command Augmentation"} type={"Command Augmentation"} index={value} value={value} showDeleted={showDeleted}
                                                        containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "payloadtype" && (c.agent_type === "command_augment"))} />
             case 4:
-                return <ContainersTabPayloadTypesPanel key={"3rd Party"} index={value} value={value} showDeleted={showDeleted}
+                return <ContainersTabPayloadTypesPanel key={"3rd Party"} type={"3rd Party"} index={value} value={value} showDeleted={showDeleted}
                                                        containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "payloadtype" && (c.agent_type === "service"))} />
             case 5:
-                return <ContainersTabConsumingServicesPanel key={"Webhooks"} index={value} value={value} showDeleted={showDeleted}
+                return <ContainersTabConsumingServicesPanel key={"Webhooks"} type={"Webhooks"} index={value} value={value} showDeleted={showDeleted}
                                                             containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "webhook")} />
             case 6:
-                return <ContainersTabConsumingServicesPanel key={"Loggers"} index={value} value={value} showDeleted={showDeleted}
+                return <ContainersTabConsumingServicesPanel key={"Loggers"} type={"Loggers"} index={value} value={value} showDeleted={showDeleted}
                                                             containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "logging")} />
             case 7:
-                return <ContainersTabConsumingServicesPanel key={"Eventing"} index={value} value={value} showDeleted={showDeleted}
+                return <ContainersTabConsumingServicesPanel key={"Eventing"} type={"Eventing"} index={value} value={value} showDeleted={showDeleted}
                                                             containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "eventing")} />
             case 8:
-                return <ContainersTabConsumingServicesPanel key={"Auth"} index={value} value={value} showDeleted={showDeleted}
+                return <ContainersTabConsumingServicesPanel key={"Auth"} type={"Auth"} index={value} value={value} showDeleted={showDeleted}
                                                             containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "auth")} />
             default:
                 return null;
@@ -331,6 +331,51 @@ const ContainersTabCommandAugmentLabel = (props) => {
 
 
 const ContainersTabPayloadTypesPanel = (props) => {
+    const getEmptyServiceListMessage = () => {
+        let message = "";
+        switch(props.type){
+            case "Payload Types":
+                message = `Payload Types are the backbone of Mythic and represent the kinds of payloads you can create.
+github.com/MythicAgents has a wide selection depending on what you're wanting to do.
+https://mythicmeta.github.io/overview/ has a graphical overview and metadata about these community resources.`;
+                break;
+            case "C2 Profiles":
+                message = `C2 Profiles represent how Payload Types connect back to Mythic or between themselves.
+github.com/C2Profiles has a wide selection depending on what you're wanting to do.
+https://mythicmeta.github.io/overview/ has a graphical overview and metadata about these community resources.`;
+                break;
+            case "Translators":
+                message = `Sometimes Payload Types don't want to or can't use Mythic's normal JSON messaging.
+Translation containers allow a Payload Type to use a custom message format while still interfacing with Mythic properly.`;
+                break;
+            case "Command Augmentation":
+                message = `Command Augmentation containers allow agent-agnostic commands that can be leveraged within many Payload Types.
+github.com/MythicAgents/forge is an example of this that provides more direct support for BOFs and Assemblies while being agnostic if any specific payload type.
+Command Augmentation container commands get "injected" into the callbacks of supported Payload Types, so you'll never see them when building a payload.`;
+                break;
+            case "3rd Party":
+                message = `To help ease the burden of context switching between applications while operating, Mythic supports 3rd Party Agents.
+These are containers that generate "callbacks" and allow you to interact with a 3rd Party Service over an API from Mythic's standard tasking workflow.
+A few examples are github.com/MythicAgents/bloodhound and github.com/MythicAgents/ghostwriter.`;
+                break;
+        }
+        return (
+            <div style={{overflowY: "hidden", flexGrow: 1}}>
+                <div style={{
+                    position: "absolute",
+                    left: "35%",
+                    top: "40%",
+                    borderRadius: "4px",
+                    border: "1px solid black",
+                    padding: "5px",
+                    backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                    whiteSpace: "pre-wrap"
+                }}>
+                    {message}
+                </div>
+            </div>
+        )
+    }
     return (
         <MythicTabPanel {...props} >
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
@@ -351,6 +396,7 @@ const ContainersTabPayloadTypesPanel = (props) => {
                             {props.containers.map((service, index) => (
                                 <PayloadTypesC2ProfilesTableRow key={"service" + index} service={service} showDeleted={props.showDeleted}/>
                             ))}
+                            {props.containers.length === 0 && getEmptyServiceListMessage()}
                         </TableBody>
                     </Table>
                 </TableContainer>
@@ -359,6 +405,46 @@ const ContainersTabPayloadTypesPanel = (props) => {
     )
 }
 const ContainersTabConsumingServicesPanel = (props) => {
+    const getEmptyServiceListMessage = () => {
+        let message = "";
+        switch(props.type){
+            case "Webhooks":
+                message = `Mythic supports webhooks, but doesn't have any way to send them natively.
+To enable webhooks, you first need to install a webhook container (or create your own).
+github.com/MythicC2Profiles/basic_webhook is a good default for Slack webhooks.`;
+                break;
+            case "Loggers":
+                message = `Mythic supports customized logging, but doesn't save this anywhere outside of the database natively.
+To enable custom logging, you first need to install a logging container (or create your own).
+github.com/MythicC2Profiles/basic_logger is a good default for capturing to standard out or to a file.`;
+                break;
+            case "Eventing":
+                message = `Mythic supports dynamic eventing workflows that take a series of actions based on some trigger.
+Some of these actions Mythic can do itself (such as sending a webhook or issuing a task), but if you want more customized logic, then you'll need a container.
+You can easily create your own containers, or you can use github.com/MythicAgents/hydra as a dynamic way to add your own functions as you go.`;
+                break;
+            case "Auth":
+                message = `Mythic supports basic username/password authentication to users within its database.
+You can extend this auth capability to support your own LDAP, SSO, or otherwise customized authentication flow with auth containers.`;
+                break;
+        }
+        return (
+            <div style={{overflowY: "hidden", flexGrow: 1}}>
+                <div style={{
+                    position: "absolute",
+                    left: "35%",
+                    top: "40%",
+                    borderRadius: "4px",
+                    border: "1px solid black",
+                    padding: "5px",
+                    backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                    whiteSpace: "pre-wrap"
+                }}>
+                    {message}
+                </div>
+            </div>
+        )
+    }
     return (
         <MythicTabPanel {...props} >
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
@@ -376,6 +462,7 @@ const ContainersTabConsumingServicesPanel = (props) => {
                             {props.containers.map((service, index) => (
                                 <ConsumingServicesTableRow key={"service" + index + service.name} service={service} showDeleted={props.showDeleted}/>
                             ))}
+                            {props.containers.length === 0 && getEmptyServiceListMessage()}
                         </TableBody>
                     </Table>
                 </TableContainer>

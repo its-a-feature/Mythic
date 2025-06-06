@@ -702,7 +702,8 @@ const Top10RecentPayloadsDashboardElement = ({me, data, editing, removeElement})
                 width: "100%",
                 height: "100%",
                 border: "1px solid gray",
-                position: "relative"
+                position: "relative",
+                borderRadius: "4px",
             }} >
                 <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
                     {"No Payloads Created"}
@@ -812,7 +813,8 @@ const Top10RecentWorkflowsDashboardElement = ({me, data, editing, removeElement}
                 width: "100%",
                 height: "100%",
                 border: "1px solid gray",
-                position: "relative"
+                position: "relative",
+                borderRadius: "4px",
             }} >
                 <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
                     {"No Workflows Created"}
@@ -1037,7 +1039,8 @@ const MyOperationsDashboardElement = ({me, data, reloadDashboard, editing, remov
                 width: "100%",
                 height: "100%",
                 border: "1px solid gray",
-                position: "relative"
+                position: "relative",
+                borderRadius: "4px",
             }} >
                 <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
                     {"You Belong to No Operations"}
@@ -1693,7 +1696,7 @@ const OperatorDashboard = ({me, setLoading, loading}) => {
     }
 
     const [fetchData] = useLazyQuery(LeadDashboardQuery, {
-        fetchPolicy: "network-only",
+        fetchPolicy: "no-cache",
         variables: {operator_id: me.user.id},
         onCompleted: (data) => {
             processData({data}).then(r => setLoading(false));
@@ -1801,7 +1804,7 @@ const CustomDashboard = ({me, setLoading, loading, editing}) => {
     const [updateSetting] = useSetMythicSetting();
     const [analysisData, setAnalysisData] = React.useState({});
     const [dashboards, setDashboards] = React.useState([...initialDashboardView]);
-    const [fetchData] = useLazyQuery(LeadDashboardQuery, {fetchPolicy: "network-only",
+    const [fetchData] = useLazyQuery(LeadDashboardQuery, {fetchPolicy: "no-cache",
         variables: {operator_id: me.user.id},
         onCompleted: (data) => {
             setAnalysisData(data);

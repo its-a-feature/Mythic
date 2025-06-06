@@ -1357,22 +1357,19 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         let parsedWithPositionalParameters = {};
         let params = splitMessage.slice(1).join(" ");
         let failed_json_parse = true;
-        if(unmodifiedHistoryValue === "modal" || unmodifiedHistoryValue.includes("browserscript")){
-            // these are the two kinds that'll introduce dictionary values as original_params
-            try{
-                parsedWithPositionalParameters = JSON.parse(params);
-                cmdGroupName = determineCommandGroupName(cmd, parsedWithPositionalParameters);
-                if(cmdGroupName !== undefined){
-                    cmdGroupName.sort()
-                } else {
-                    snackActions.warning("Two or more of the specified parameters can't be used together", snackMessageStyles);
-                    return;
-                }
-                failed_json_parse = false;
-
-            }catch(error){
-                failed_json_parse = true;
+        try{
+            parsedWithPositionalParameters = JSON.parse(params);
+            cmdGroupName = determineCommandGroupName(cmd, parsedWithPositionalParameters);
+            if(cmdGroupName !== undefined){
+                cmdGroupName.sort()
+            } else {
+                snackActions.warning("Two or more of the specified parameters can't be used together", snackMessageStyles);
+                return;
             }
+            failed_json_parse = false;
+
+        }catch(error){
+            failed_json_parse = true;
         }
         if(failed_json_parse){
             let parsed = parseCommandLine(params, cmd);
@@ -1393,7 +1390,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(cmd.commandparameters.length > 0){
                 parsed["_"].unshift(cmd);
                 parsedWithPositionalParameters = fillOutPositionalArguments(cmd, parsed, cmdGroupName);
-                //console.log(parsedWithPositionalParameters);
+                console.log("what's left", parsedWithPositionalParameters);
                 if(parsedWithPositionalParameters === undefined){
                     return;
                 }

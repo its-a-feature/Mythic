@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.39] - 2025-06-06
+
+### Changed
+
+- Fixed some rounded corners on the dashboards page
+- Updated the Payload Types / C2 Profiles page to have some context if there's no container installed of each type
+- Fixed some hasura permissions that were not scoping fetches down to the current operation but all operations you were assigned to
+
 ## [0.3.38] - 2025-06-04
 
 ### Changed
