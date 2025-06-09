@@ -417,96 +417,151 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 	return finalC2Profiles, nil
 }
 
-func associateCommandsWithPayload(databasePayload databaseStructs.Payload, commands []string, buildParameters map[string]interface{}) ([]string, error) {
+func associateCommandsWithPayload(databasePayload databaseStructs.Payload, commands []string, commandGroups []string, buildParameters map[string]interface{}) ([]string, error) {
 	// given the payload databasePayload, make sure that the commands exist and fit within the buildParameter specifications
-	databaseCommand := databaseStructs.Command{}
+	databaseCommands := []databaseStructs.Command{}
 	finalCommands := []databaseStructs.Command{}
 	finalCommandNames := []string{}
-	if rows, err := database.DB.NamedQuery(`SELECT
-		id, cmd, attributes, version
+	// commands that explicitly can't go in the payload due to conflicting attribute requirements
+	deniedCommandNames := []string{}
+	err := database.DB.Select(&databaseCommands, `SELECT
+		id, cmd, attributes, version, script_only
 		FROM command
-		WHERE payload_type_id = :payload_type_id and deleted=false
-	`, databasePayload); err != nil {
+		WHERE payload_type_id=$1 and deleted=false
+	`, databasePayload.PayloadTypeID)
+	if err != nil {
 		logging.LogError(err, "Failed to get commands from database when trying to build payload")
 		return nil, err
-	} else {
-		for rows.Next() {
-			if err = rows.StructScan(&databaseCommand); err != nil {
-				logging.LogError(err, "Failed to get row from command when trying to build payload")
-				return nil, err
-			} else {
-				if !databasePayload.Payloadtype.SupportsDynamicLoading {
-					// the payload type doesn't support dynamic loading of commands, so we have to include all of the commands, regardless of what the user said
+	}
+	for _, databaseCommand := range databaseCommands {
+		if !databasePayload.Payloadtype.SupportsDynamicLoading {
+			// the payload type doesn't support dynamic loading of commands, so we have to include all of the commands, regardless of what the user said
+			finalCommands = append(finalCommands, databaseCommand)
+			continue
+		}
+		// make sure that the commands attributes don't clash with the buildParameters. If they do, don't actually include it for the agent
+		commandAttributes := CommandAttribute{}
+		err = mapstructure.Decode(databaseCommand.Attributes.StructValue(), &commandAttributes)
+		if err != nil {
+			logging.LogError(err, "Failed to unmarshal command attributes", "command", databaseCommand)
+			continue
+		}
+		// now that we have the command attributes, time to do some checks against the buildParameters to make sure all is good
+		// first make sure that the command supports the operating system we selected
+		if len(commandAttributes.SupportedOS) == 0 || utils.SliceContains(commandAttributes.SupportedOS, databasePayload.Os) {
+			if commandAttributes.CommandIsBuiltin {
+				// if the command is marked as built-in, we have to include it
+				finalCommands = append(finalCommands, databaseCommand)
+				finalCommandNames = append(finalCommandNames, databaseCommand.Cmd)
+				continue
+			}
+			if commandAttributes.CommandCanOnlyBeLoadedLater {
+				// can't be built in now, can only be loaded later
+				deniedCommandNames = append(deniedCommandNames, databaseCommand.Cmd)
+				continue
+			}
+			if len(commandAttributes.FilterCommandAvailabilityByAgentBuildParameters) > 0 {
+				includeCommand := true
+				// loop through the key-value pairs for the command
+				for key, value := range commandAttributes.FilterCommandAvailabilityByAgentBuildParameters {
+					// check to see if the key we see in the command is in our build parameters
+					if buildParamValue, ok := buildParameters[key]; ok {
+						// make sure that the build parameter value matches what the command required
+						if value != buildParamValue {
+							// if there's a mismatch, don't include the command
+							includeCommand = false
+						}
+					}
+				}
+				if includeCommand && utils.SliceContains(commands, databaseCommand.Cmd) {
+					// we aren't filtering out this command and the user specified it, so include it
 					finalCommands = append(finalCommands, databaseCommand)
+					finalCommandNames = append(finalCommandNames, databaseCommand.Cmd)
+				} else if includeCommand && len(commands) == 0 && commandAttributes.CommandIsSuggested {
+					// we aren't filtering out this command, but the user didn't specify any and this command is suggested, so include it
+					finalCommands = append(finalCommands, databaseCommand)
+					finalCommandNames = append(finalCommandNames, databaseCommand.Cmd)
 				} else {
-					// make sure that the commands attributes don't clash with the buildParameters. If they do, don't actually include it for the agent
-					commandAttributes := CommandAttribute{}
-					if err := mapstructure.Decode(databaseCommand.Attributes.StructValue(), &commandAttributes); err != nil {
-						logging.LogError(err, "Failed to unmarshal command attributes", "command", databaseCommand)
-						continue
-					} else {
-						// now that we have the command attributes, time to do some checks against the buildParameters to make sure all is good
-						// first make sure that the command supports the operating system we selected
-						if len(commandAttributes.SupportedOS) == 0 || utils.SliceContains(commandAttributes.SupportedOS, databasePayload.Os) {
-							if commandAttributes.CommandIsBuiltin {
-								// if the command is marked as built-in, we have to include it
+					deniedCommandNames = append(deniedCommandNames, databaseCommand.Cmd)
+				}
+				continue
+			}
+			// if the user didn't specify any commands, then just do the required and recommended ones
+			if len(commands) == 0 && commandAttributes.CommandIsSuggested {
+				finalCommands = append(finalCommands, databaseCommand)
+				finalCommandNames = append(finalCommandNames, databaseCommand.Cmd)
+				continue
+			}
+			if utils.SliceContains(commands, databaseCommand.Cmd) {
+				finalCommands = append(finalCommands, databaseCommand)
+				finalCommandNames = append(finalCommandNames, databaseCommand.Cmd)
+				continue
+			}
+		} else {
+			deniedCommandNames = append(deniedCommandNames, databaseCommand.Cmd)
+		}
+	}
+	// now that we have all the commands selected, we need to process for any dependencies that might not be satisfied
+	madeMods := true
+	// keep looping while we're adjusting the final commands because we might have multiple layers of dependencies to add
+	for madeMods {
+		madeMods = false
+		for _, command := range finalCommands {
+			commandAttributes := CommandAttribute{}
+			err = mapstructure.Decode(command.Attributes.StructValue(), &commandAttributes)
+			if err != nil {
+				logging.LogError(err, "Failed to unmarshal command attributes", "command", command)
+				continue
+			}
+			if len(commandAttributes.Dependencies) > 0 {
+				for _, dependency := range commandAttributes.Dependencies {
+					if !utils.SliceContains(finalCommandNames, dependency) {
+						// we're missing the dependency so far, see if we can find it in all the commands
+						if utils.SliceContains(deniedCommandNames, dependency) {
+							// uh oh, we included a command that depends on a rejected command
+							return nil, errors.New(fmt.Sprintf("%s depends on %s, but %s isn't allowed with the currently selected parameters",
+								command.Cmd, dependency))
+						}
+						// the dependency we have isn't included, but isn't explicitly denied, so just add it
+						finalCommandNames = append(finalCommandNames, dependency)
+						found := false
+						for _, databaseCommand := range databaseCommands {
+							if databaseCommand.Cmd == dependency {
 								finalCommands = append(finalCommands, databaseCommand)
-								continue
+								found = true
+								madeMods = true
+								break
 							}
-							if commandAttributes.CommandCanOnlyBeLoadedLater {
-								continue
-							}
-							if len(commandAttributes.FilterCommandAvailabilityByAgentBuildParameters) > 0 {
-								includeCommand := true
-								// loop through the key-value pairs for the command
-								for key, value := range commandAttributes.FilterCommandAvailabilityByAgentBuildParameters {
-									// check to see if the key we see in the command is in our build parameters
-									if buildParamValue, ok := buildParameters[key]; ok {
-										// make sure that the build parameter value matches what the command required
-										if value != buildParamValue {
-											// if there's a mismatch, don't include the command
-											includeCommand = false
-										}
-									}
-								}
-								if includeCommand && utils.SliceContains(commands, databaseCommand.Cmd) {
-									// we aren't filtering out this command and the user specified it, so include it
-									finalCommands = append(finalCommands, databaseCommand)
-								} else if includeCommand && len(commands) == 0 && commandAttributes.CommandIsSuggested {
-									// we aren't filtering out this command, but the user didn't specify any and this command is suggested, so include it
-									finalCommands = append(finalCommands, databaseCommand)
-								}
-								continue
-							}
-							// if the user didn't specify any commands, then just do the required and recommended ones
-							if len(commands) == 0 && commandAttributes.CommandIsSuggested {
-								finalCommands = append(finalCommands, databaseCommand)
-								continue
-							}
-							if utils.SliceContains(commands, databaseCommand.Cmd) {
-								finalCommands = append(finalCommands, databaseCommand)
-								continue
-							}
+						}
+						if !found {
+							// we have a dependency for a command that doesn't exist
+							return nil, errors.New(fmt.Sprintf("%s depends on %s, but there is no %s command",
+								command.Cmd, dependency, dependency))
 						}
 					}
 				}
 			}
 		}
-		for _, command := range finalCommands {
-			payloadCommandInstance := databaseStructs.Payloadcommand{
-				PayloadID: databasePayload.ID,
-				CommandID: command.ID,
-				Version:   command.Version,
-			}
-			if _, err := database.DB.NamedExec(`INSERT INTO 
+	}
+
+	finalCommandNames = []string{}
+	for _, command := range finalCommands {
+		payloadCommandInstance := databaseStructs.Payloadcommand{
+			PayloadID: databasePayload.ID,
+			CommandID: command.ID,
+			Version:   command.Version,
+		}
+		if _, err := database.DB.NamedExec(`INSERT INTO 
 				payloadcommand (payload_id, command_id, version)
 				VALUES (:payload_id, :command_id, :version)`,
-				payloadCommandInstance); err != nil {
-				logging.LogError(err, "Failed to create new commandparameter instance mapping")
-				return nil, err
-			}
+			payloadCommandInstance); err != nil {
+			logging.LogError(err, "Failed to create new command parameter instance mapping")
+			return nil, err
+		}
+		if !command.ScriptOnly {
 			finalCommandNames = append(finalCommandNames, command.Cmd)
 		}
 	}
+
 	return finalCommandNames, nil
 }

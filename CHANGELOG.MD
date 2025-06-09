@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc74] - 2025-06-09
+
+### Changed
+
+- Updated the processing of commands for building payloads to include `dependencies` in a command's attributes
+  - if `command1` is a dependency for `command2`, and the user selected command2 but not command1 when building,
+    - then mythic will automatically add `command1` to the list of commands that need to be built into the agent
+  - an example would be `dependencies = ["command1"]`
+
 ## [3.3.1-rc73] - 2025-06-04
 
 ### Changed

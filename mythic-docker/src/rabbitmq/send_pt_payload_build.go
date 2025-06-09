@@ -157,7 +157,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 				database.UpdatePayloadWithError(databasePayload, err)
 				return
 			}
-			buildCommands, err := associateCommandsWithPayload(databasePayload, payloadDefinition.Commands, buildParameters)
+			buildCommands, err := associateCommandsWithPayload(databasePayload, payloadDefinition.Commands, payloadDefinition.CommandGroups, buildParameters)
 			if err != nil {
 				logging.LogError(err, "Failed to associate commands with Payload", "commands", payloadDefinition.Commands)
 				database.UpdatePayloadWithError(databasePayload, err)

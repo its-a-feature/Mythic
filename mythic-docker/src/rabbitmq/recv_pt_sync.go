@@ -146,6 +146,8 @@ type CommandAttribute struct {
 	CommandIsSuggested                              bool                   `json:"suggested_command" mapstructure:"suggested_command"`
 	CommandCanOnlyBeLoadedLater                     bool                   `json:"load_only" mapstructure:"load_only"`
 	FilterCommandAvailabilityByAgentBuildParameters map[string]string      `json:"filter_by_build_parameter" mapstructure:"filter_by_build_parameter"`
+	Dependencies                                    []string               `json:"dependencies" mapstructure:"dependencies"`
+	Groups                                          []string               `json:"groups" mapstructure:"groups"`
 	AdditionalAttributes                            map[string]interface{} `json:"additional_items" mapstructure:",remain"`
 }
 

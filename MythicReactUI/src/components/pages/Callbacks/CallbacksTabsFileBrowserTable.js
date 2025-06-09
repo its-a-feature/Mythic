@@ -306,6 +306,10 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         {
             name: 'Filter Column', 
             click: ({event, columnIndex}) => {
+                if(event){
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
                 if(columns[columnIndex].disableFilterMenu){
                     snackActions.warning("Can't filter that column");
                     return;
@@ -317,6 +321,10 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         {
             name: "Show/Hide Columns",
             click: ({event, columnIndex}) => {
+                if(event){
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
                 setOpenAdjustColumnsDialog(true);
             }
         }

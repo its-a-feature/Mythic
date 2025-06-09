@@ -90,7 +90,7 @@ export function TaskParametersDialogRow(props){
     const currentParameterGroup = React.useRef(props.parameterGroupName);
     const [ChoiceOptions, setChoiceOptions] = React.useState([]);
     const [boolValue, setBoolValue] = React.useState(false);
-    const [arrayValue, setArrayValue] = React.useState([""]);
+    const [arrayValue, setArrayValue] = React.useState([]);
     const [typedArrayValue, setTypedArrayValue] = React.useState([]);
     const [chooseMultipleValue, setChooseMultipleValue] = React.useState([]);
     const [chooseOneCustomValue, setChooseOneCustomValue] = React.useState("");

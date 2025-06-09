@@ -25,6 +25,7 @@ type PayloadConfiguration struct {
 	C2Profiles         *[]PayloadConfigurationC2Profile      `json:"c2_profiles,omitempty" mapstructure:"c2_profiles"`
 	BuildParameters    *[]PayloadConfigurationBuildParameter `json:"build_parameters,omitempty" mapstructure:"build_parameters"`
 	Commands           []string                              `json:"commands,omitempty" mapstructure:"commands"`
+	CommandGroups      []string                              `json:"command_groups,omitempty" mapstructure:"command_groups"`
 	SelectedOS         string                                `json:"selected_os" mapstructure:"selected_os" binding:"required"`
 	Filename           string                                `json:"filename" mapstructure:"filename" binding:"required"`
 	WrappedPayloadUUID string                                `json:"wrapped_payload,omitemtpy" mapstructure:"wrapped_payload"`

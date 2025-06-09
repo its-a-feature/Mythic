@@ -52,8 +52,8 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     const [filterOptions, setFilterOptions] = React.useState({});
     const selectedColumn = React.useRef({});
     const [columnVisibility, setColumnVisibility] = React.useState({
-        "visible": ["Info","PID", "PPID", "Name", "User", "Arch", "CMD"],
-        "hidden": [ "Session", "Comment", "Tags" ]
+        "visible": ["Info","PID", "PPID", "Name",  "Arch", "Session", "User", "CMD"],
+        "hidden": [ "Comment", "Tags" ]
     })
     const [singleTreeData, setSingleTreeData] = React.useState({});
     const [viewSingleTreeData, setViewSingleTreeData] = React.useState(false);
@@ -197,12 +197,12 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         { name: 'PID', type: 'number', key: 'process_id', inMetadata: true, width: 100},
         { name: 'PPID', type: 'number', key: 'parent_process_id', inMetadata: true, width: 100},
         { name: 'Name', type: 'string', disableSort: false, key: 'name_text', fillWidth: true },
+        { name: "Arch", type: 'string', key: 'architecture', inMetadata: true, width: 70},
+        { name: 'Session', type: 'number', key: 'session_id', inMetadata: true, width: 100},
         { name: "User", type: 'string', key: 'user', inMetadata: true, fillWidth: true},
-        { name: "Arch", type: 'string', key: 'architecture', inMetadata: true, width: 100},
         { name: 'Tags', type: 'tags', disableSort: true, disableFilterMenu: true, width: 220 },
         { name: 'Comment', type: 'string', key: 'comment', disableSort: false, width: 200 },
         { name: "CMD", type: "string", key: 'command_line', inMetadata: true, fillWidth: true},
-        { name: 'Session', type: 'number', key: 'session_id', inMetadata: true, width: 100}
     ];
     const columns = React.useMemo(
         () => 
@@ -607,6 +607,10 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         {
             name: 'Filter Column', 
             click: ({event, columnIndex}) => {
+                if(event){
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
                 if(columns[columnIndex].disableFilterMenu){
                     snackActions.warning("Can't filter that column");
                     return;
@@ -618,6 +622,10 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         {
             name: "Show/Hide Columns",
             click: ({event, columnIndex}) => {
+                if(event){
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
                 if(columns[columnIndex].disableFilterMenu){
                     snackActions.warning("Can't filter that column");
                     return;
