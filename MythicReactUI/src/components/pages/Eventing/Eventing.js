@@ -286,7 +286,7 @@ export function Eventing({me}){
                                                   }}/>}
                                 />
                             }
-                            <ListItem button onClick={() => setSelectedEventGroup({id: 0})}
+                            <ListItem onClick={() => setSelectedEventGroup({id: 0})}
                                 style={selectedEventGroup.id === 0 ?
                                     {paddingTop: 0, paddingBottom: 0, borderLeft: `5px solid ${theme.palette.info.main}`} :
                                     {paddingTop: 0, paddingBottom: 0}}>
@@ -311,7 +311,7 @@ export function Eventing({me}){
                                 }>
                                     {eventgroups.map( (e, i) => (
                                         (showDeleted || !e.deleted) &&
-                                        <ListItem key={e.id + e.name} button onClick={() => setSelectedEventGroup(e)}
+                                        <ListItem key={e.id + e.name} onClick={() => setSelectedEventGroup(e)}
                                                   style={selectedEventGroup.id === e.id ?
                                                       {paddingTop: 0, paddingBottom: 0, borderLeft: `5px solid ${theme.palette.info.main}`} :
                                                       {paddingTop: 0, paddingBottom: 0}}>
