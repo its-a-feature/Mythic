@@ -439,7 +439,7 @@ const FileBrowserVirtualTreePreMemo = ({
     {(AutoSizerProps) => (
       <List
         itemData={flattenedNodes}
-        direction="vertical"
+        layout="vertical"
         height={AutoSizerProps.height}
         width={AutoSizerProps.width}
         itemCount={flattenedNodes.length}

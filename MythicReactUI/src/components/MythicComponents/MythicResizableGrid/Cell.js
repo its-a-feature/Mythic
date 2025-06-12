@@ -6,6 +6,7 @@ import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../MythicNeste
 const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const rowClassName = data.gridUUID + "row" + rowIndex;
+    const rowHighlight = rowIndex % 2 === 1 ? 'MythicResizableGridRowHighlight' : '';
     const [contextMenuOptions, setContextMenuOptions] = React.useState(data?.rowContextMenuOptions || []);
     const dropdownAnchorRef = React.useRef(null);
     const item = data.items[rowIndex][columnIndex];
@@ -77,7 +78,7 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
     );
     return (
         <div style={{...style, ...cellStyle, ...rowStyle}}
-            className={`${classes.cell} ${rowClassName} ${selectedClass}`}
+            className={`${classes.cell} ${rowClassName} ${rowHighlight} ${selectedClass}`}
             onDoubleClick={handleDoubleClick}
             onClick={handleClick}
             onMouseEnter={onMouseEnter}

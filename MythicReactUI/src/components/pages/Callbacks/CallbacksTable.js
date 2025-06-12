@@ -764,7 +764,7 @@ function CallbacksTablePreMemo(props){
                                                                  rowStyle: {backgroundColor: `${row.color}`},
                                                              }} />;
                         case "User":
-                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.user}
+                            return <CallbacksTableStringCell key={`callback${row.id}_${c.name}`} cellData={row.user + (row.impersonation_context === "" ? "" : ` [${row.impersonation_context}]`)}
                                                              rowData={{...row,
                                                                  selected: row.id === clickedCallbackID,
                                                                  rowStyle: {backgroundColor: `${row.color}`},

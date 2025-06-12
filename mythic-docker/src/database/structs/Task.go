@@ -61,4 +61,5 @@ type Task struct {
 	EventStepInstanceID                structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`
 	APITokensID                        structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 	HasInterceptedResponse             bool              `db:"has_intercepted_response" json:"has_intercepted_response"`
+	CommandPayloadType                 string            `db:"command_payload_type" json:"command_payload_type" mapstructure:"command_payload_type"`
 }

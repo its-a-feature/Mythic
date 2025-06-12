@@ -44,4 +44,6 @@ type Callback struct {
 	EventStepInstanceID       structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`
 	Color                     string            `db:"color" json:"color" mapstructure:"color"`
 	TriggerOnCheckinAfterTime int               `db:"trigger_on_checkin_after_time" json:"trigger_on_checkin_after_time" mapstructure:"trigger_on_checkin_after_time"`
+	ImpersonationContext      string            `db:"impersonation_context" json:"impersonation_context" mapstructure:"impersonation_context"`
+	Cwd                       string            `db:"cwd" json:"cwd" mapstructure:"cwd"`
 }

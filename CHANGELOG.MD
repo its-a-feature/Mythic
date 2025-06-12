@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc75] - 2025-06-11
+
+### Changed
+
+- Updated the processing of completion handlers for tasks to better account script only and child tasks
+- Added `cwd` and `impersonation_context` to callbacks as part of their `checkin` and update messages
+- Added new `callback` field to agent response dictionary
+  - this field allows you to update any fields that you'd normally set in your `checkin` message
+- Added new field to tasks, `CommandParameterType`, to better track where processing should go if a task sets a new PayloadType as part of its processing
+  - An example would be `forge` updating the command name and container where processing should continue - this new payload type is also tracked
+- Updated health check code for database to properly report success
+
 ## [3.3.1-rc74] - 2025-06-09
 
 ### Changed

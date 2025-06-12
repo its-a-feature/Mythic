@@ -149,6 +149,11 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				if payloadMsg.CommandName != nil && *payloadMsg.CommandName != "" {
 					allTaskData.Task.CommandName = *payloadMsg.CommandName
 				}
+				_, err = database.DB.Exec(`UPDATE task SET command_payload_type=$1
+					WHERE id=$2`, allTaskData.CommandPayloadType, task.ID)
+				if err != nil {
+					logging.LogError(err, "failed to update command_payload_type based on ReprocessAtNewCommandPayloadType")
+				}
 				logging.LogInfo("sending task back to create tasking", "payload type", allTaskData.CommandPayloadType,
 					"command name", allTaskData.Task.CommandName)
 				err = RabbitMQConnection.SendPtTaskCreate(allTaskData)

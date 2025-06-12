@@ -1,22 +1,10 @@
 import React, { useEffect } from 'react';
 import AceEditor from 'react-ace';
-import 'ace-builds/src-noconflict/mode-json';
-import 'ace-builds/src-noconflict/theme-monokai';
-import 'ace-builds/src-noconflict/theme-xcode';
-import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
 import {snackActions} from "../../utilities/Snackbar";
 import {modeOptions} from "./ResponseDisplayMedia";
 import FormControl from '@mui/material/FormControl';
 import WrapTextIcon from '@mui/icons-material/WrapText';
-import 'ace-builds/src-noconflict/mode-csharp';
-import 'ace-builds/src-noconflict/mode-golang';
-import 'ace-builds/src-noconflict/mode-html';
-import 'ace-builds/src-noconflict/mode-markdown';
-import 'ace-builds/src-noconflict/mode-ruby';
-import 'ace-builds/src-noconflict/mode-python';
-import 'ace-builds/src-noconflict/mode-java';
-import 'ace-builds/src-noconflict/mode-javascript';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
@@ -145,19 +133,34 @@ export const ResponseDisplayPlaintext = (props) =>{
                   </MythicStyledTooltip>
               </div>
           }
-          <div style={{height: "1px", width: "100%", display: "flex", zIndex: 1,  backgroundColor: theme.palette.secondary.main}}>
-              {showOptions &&
-                <UnfoldLessIcon onClick={onChangeShowOptions} style={{cursor: "pointer", position: "relative", top: "-9px"}} />
-              }
-              {!showOptions &&
-                <UnfoldMoreIcon onClick={onChangeShowOptions} style={{cursor: "pointer", position: "relative", top: "-9px"}} />
-              }
-          </div>
+          {props.displayType !== 'console' &&
+              <div style={{
+                  height: "1px",
+                  width: "100%",
+                  display: "flex",
+                  zIndex: 1,
+                  backgroundColor: theme.palette.secondary.main
+              }}>
+                  {showOptions &&
+                      <UnfoldLessIcon onClick={onChangeShowOptions}
+                                      style={{cursor: "pointer", position: "relative", top: "-9px"}}/>
+                  }
+                  {!showOptions &&
+                      <UnfoldMoreIcon onClick={onChangeShowOptions}
+                                      style={{cursor: "pointer", position: "relative", top: "-9px"}}/>
+                  }
+              </div>
+          }
 
-          <div style={{flexGrow: 1, height: "100%", paddingLeft: renderColors ? "15px" : "0px", paddingRight: renderColors ? "5px": "0px"}}>
+          <div style={{
+              flexGrow: 1,
+              height: "100%",
+              paddingLeft: renderColors ? "15px" : "0px",
+              paddingRight: renderColors ? "5px" : "0px"
+          }}>
               {renderColors &&
                   <GetOutputFormatAll data={[
-                      {response: plaintextView,  id: props?.task?.id || 0, timestamp: "1970-01-01"}]}
+                      {response: plaintextView, id: props?.task?.id || 0, timestamp: "1970-01-01"}]}
                                       myTask={false}
                                       taskID={props?.task?.id || 0}
                                       useASNIColor={true}
@@ -170,10 +173,10 @@ export const ResponseDisplayPlaintext = (props) =>{
                   <AceEditor
                       className={"roundedBottomCorners"}
                       ref={currentContentRef}
-                      mode={mode}
+                      mode={props.displayType !== 'console' ? mode : 'html'}
                       theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
                       fontSize={14}
-                      showGutter={true}
+                      showGutter={ props.displayType !== 'console'}
                       onChange={onChangeText}
                       //onLoad={onLoad}
                       highlightActiveLine={false}
@@ -184,13 +187,14 @@ export const ResponseDisplayPlaintext = (props) =>{
                       width={"100%"}
                       //style={{backgroundColor: "transparent"}}
                       //autoScrollEditorIntoView={true}
-                      wrapEnabled={wrapText}
+                      wrapEnabled={props.displayType !== 'console' ? wrapText : true}
                       minLines={1}
                       //maxLines={props.expand ? 50 : 20}
                       setOptions={{
-                          showLineNumbers: true,
+                          showLineNumbers: props.displayType !== 'console',
                           tabSize: 4,
-                          useWorker: false
+                          useWorker: false,
+                          showInvisibles: false,
                       }}/>
               }
 

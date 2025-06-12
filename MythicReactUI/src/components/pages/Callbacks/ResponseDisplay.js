@@ -363,15 +363,9 @@ export const NonInteractiveResponseDisplayConsole = (props) => {
     fetchPolicy: "network_only",
     onData: subscriptionDataCallback
   });
-  const onSubmitSearch = React.useCallback( (newSearch) => {
-    snackActions.warning("Search not supported for console view");
-  }, []);
 
   return (
       <React.Fragment>
-        {props.searchOutput &&
-            <SearchBar onSubmitSearch={onSubmitSearch}/>
-        }
         <div style={{overflowY: "auto", width: "100%", height: props.expand ? "100%" : undefined}}
              ref={props.responseRef}>
           <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}

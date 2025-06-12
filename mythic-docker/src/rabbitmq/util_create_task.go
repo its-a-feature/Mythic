@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"text/tabwriter"
 	"time"
 )
 
@@ -371,6 +372,11 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		}
 		task.CommandID.Int64 = int64(task.Command.ID)
 		task.CommandID.Valid = true
+		if createTaskInput.PayloadType != nil && *createTaskInput.PayloadType != "" {
+			task.CommandPayloadType = *createTaskInput.PayloadType
+		} else {
+			task.CommandPayloadType = task.Command.Payloadtype.Name
+		}
 		// if the operator has a command block list applied, make sure they can issue this task
 		if createTaskInput.DisabledCommandID != nil {
 			err = database.DB.Get(&baseBlockedCommandsProfile, `SELECT
@@ -562,11 +568,13 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 	(agent_task_id,command_name,callback_id,operator_id,command_id,token_id,params,
 		original_params,display_params,status,tasking_location,parameter_group_name,
 		parent_task_id,subtask_callback_function,group_callback_function,subtask_group_name,operation_id,
-	    is_interactive_task, interactive_task_type, eventstepinstance_id, status_timestamp_submitted)
+	    is_interactive_task, interactive_task_type, eventstepinstance_id, status_timestamp_submitted,
+	 command_payload_type)
 		VALUES (:agent_task_id, :command_name, :callback_id, :operator_id, :command_id, :token_id, :params,
 			:original_params, :display_params, :status, :tasking_location, :parameter_group_name,
 			:parent_task_id, :subtask_callback_function, :group_callback_function, :subtask_group_name, :operation_id,
-		        :is_interactive_task, :interactive_task_type, :eventstepinstance_id, :status_timestamp_submitted)
+		        :is_interactive_task, :interactive_task_type, :eventstepinstance_id, :status_timestamp_submitted,
+		        :command_payload_type)
 			RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to make a prepared statement for new task creation")
@@ -680,6 +688,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		Error:  "not implemented",
 	}
 	task.Status = "processing"
+	outputFields := [][]string{}
 	if err := addTaskToDatabase(&task); err != nil {
 		logging.LogError(err, "Failed to add task to database")
 		output.Error = err.Error()
@@ -710,16 +719,17 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		// looking for help about all loaded commands
 		addedHelp := false
 		addedClear := false
-		responseUserOutput := "Loaded Commands In Agent:\n"
 		for i, cmd := range loadedCommands {
 			if !addedClear && "clear" > cmd.Command.Cmd && i+1 < len(loadedCommands) && "clear" < loadedCommands[i+1].Command.Cmd {
-				responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
-					"clear", "clear { | all | task Num}", "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents")
+				outputFields = append(outputFields, []string{
+					"clear", "clear { | all | task Num}", "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents",
+				})
 				addedClear = true
 			}
 			if !addedHelp && "help" > cmd.Command.Cmd && i+1 < len(loadedCommands) && "help" < loadedCommands[i+1].Command.Cmd {
-				responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
-					"help", "help [command]", "The 'help' command gives detailed information about specific commands or general information about all available commands.")
+				outputFields = append(outputFields, []string{
+					"help", "help [command]", "The 'help' command gives detailed information about specific commands or general information about all available commands.",
+				})
 				addedHelp = true
 			}
 			commandAttributes := CommandAttribute{}
@@ -729,25 +739,39 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 				logging.LogError(err, "Failed to parse out command attributes")
 			} else if len(commandAttributes.SupportedOS) == 0 || utils.SliceContains(commandAttributes.SupportedOS, callback.Payload.Os) {
 				if cmd.Command.Payloadtype.Name != callback.Payload.Payloadtype.Name {
-					responseUserOutput += fmt.Sprintf("\n%s (%s)\n\tUsage: %s\n\tDescription: %s",
-						cmd.Command.Cmd, cmd.Command.Payloadtype.Name, cmd.Command.HelpCmd, cmd.Command.Description)
+					outputFields = append(outputFields, []string{
+						fmt.Sprintf("%s (%s)", cmd.Command.Cmd, cmd.Command.Payloadtype.Name),
+						cmd.Command.HelpCmd, cmd.Command.Description,
+					})
 				} else {
-					responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
-						cmd.Command.Cmd, cmd.Command.HelpCmd, cmd.Command.Description)
+					outputFields = append(outputFields, []string{
+						cmd.Command.Cmd, cmd.Command.HelpCmd, cmd.Command.Description,
+					})
 				}
 
 			}
 		}
 		if !addedHelp {
-			responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
-				"help", "help [command]", "The 'help' command gives detailed information about specific commands or general information about all available commands.")
+			outputFields = append(outputFields, []string{
+				"help", "help [command]", "The 'help' command gives detailed information about specific commands or general information about all available commands.",
+			})
 		}
 		if !addedClear {
-			responseUserOutput += fmt.Sprintf("\n%s\n\tUsage: %s\n\tDescription: %s",
-				"clear", "clear { | all | task Num}", "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents")
+			outputFields = append(outputFields, []string{
+				"clear", "clear { | all | task Num}", "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents",
+			})
 		}
+		var formattedBuilder strings.Builder
+		w := tabwriter.NewWriter(&formattedBuilder, 0, 0, 3, ' ', 0)
+		fmt.Fprintln(w, "Command\tDescription")
+		fmt.Fprintln(w, "=======\t============")
+		for _, row := range outputFields {
+			fmt.Fprintln(w, row[0]+"\tUsage: "+row[1])
+			fmt.Fprintln(w, "\tDescription:"+strings.ReplaceAll(row[2], "\n", ""))
+		}
+		w.Flush()
 		go updateTaskStatus(task.ID, "completed", true)
-		go addOutputToTask(task.ID, responseUserOutput, task.OperationID)
+		go addOutputToTask(task.ID, formattedBuilder.String(), task.OperationID)
 		output.Error = ""
 		output.Status = "success"
 		return output

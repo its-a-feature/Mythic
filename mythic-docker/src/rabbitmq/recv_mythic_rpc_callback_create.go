@@ -17,26 +17,28 @@ import (
 )
 
 type MythicRPCCallbackCreateMessage struct {
-	PayloadUUID         string   `json:"payload_uuid" mapstructure:"uuid"`     // required
-	C2ProfileName       string   `json:"c2_profile" mapstructure:"c2_profile"` // required
-	EncryptionKey       *[]byte  `json:"encryption_key" mapstructure:"enc_key"`
-	DecryptionKey       *[]byte  `json:"decryption_key" mapstructure:"dec_key"`
-	CryptoType          string   `json:"crypto_type" mapstructure:"crypto_type"`
-	User                string   `json:"user" mapstructure:"user"`
-	Host                string   `json:"host" mapstructure:"host"`
-	PID                 int      `json:"pid" mapstructure:"pid"`
-	ExtraInfo           string   `json:"extra_info"  mapstructure:"extra_info"`
-	SleepInfo           string   `json:"sleep_info" mapstructure:"sleep_info"`
-	Ip                  string   `json:"ip" mapstructure:"ip"`
-	IPs                 []string `json:"ips" mapstructure:"ips"`
-	ExternalIP          string   `json:"external_ip" mapstructure:"external_ip"`
-	IntegrityLevel      *int     `json:"integrity_level" mapstructure:"integrity_level"`
-	Os                  string   `json:"os" mapstructure:"os"`
-	Domain              string   `json:"domain" mapstructure:"domain"`
-	Architecture        string   `json:"architecture" mapstructure:"architecture"`
-	Description         string   `json:"description" mapstructure:"description"`
-	ProcessName         string   `json:"process_name" mapstructure:"process_name"`
-	EventStepInstanceID *int     `json:"eventstepinstance_id" mapstructure:"eventstepinstance_id"`
+	PayloadUUID          string   `json:"payload_uuid" mapstructure:"uuid"`     // required
+	C2ProfileName        string   `json:"c2_profile" mapstructure:"c2_profile"` // required
+	EncryptionKey        *[]byte  `json:"encryption_key" mapstructure:"enc_key"`
+	DecryptionKey        *[]byte  `json:"decryption_key" mapstructure:"dec_key"`
+	CryptoType           string   `json:"crypto_type" mapstructure:"crypto_type"`
+	User                 string   `json:"user" mapstructure:"user"`
+	Host                 string   `json:"host" mapstructure:"host"`
+	PID                  int      `json:"pid" mapstructure:"pid"`
+	ExtraInfo            string   `json:"extra_info"  mapstructure:"extra_info"`
+	SleepInfo            string   `json:"sleep_info" mapstructure:"sleep_info"`
+	Ip                   string   `json:"ip" mapstructure:"ip"`
+	IPs                  []string `json:"ips" mapstructure:"ips"`
+	ExternalIP           string   `json:"external_ip" mapstructure:"external_ip"`
+	IntegrityLevel       *int     `json:"integrity_level" mapstructure:"integrity_level"`
+	Os                   string   `json:"os" mapstructure:"os"`
+	Domain               string   `json:"domain" mapstructure:"domain"`
+	Architecture         string   `json:"architecture" mapstructure:"architecture"`
+	Description          string   `json:"description" mapstructure:"description"`
+	ProcessName          string   `json:"process_name" mapstructure:"process_name"`
+	Cwd                  string   `json:"cwd" mapstructure:"cwd"`
+	ImpersonationContext string   `json:"impersonation_context" mapstructure:"impersonation_context"`
+	EventStepInstanceID  *int     `json:"eventstepinstance_id" mapstructure:"eventstepinstance_id"`
 }
 type MythicRPCCallbackCreateMessageResponse struct {
 	Success           bool   `json:"success"`
@@ -94,6 +96,8 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 	callback.Domain = input.Domain
 	callback.Architecture = input.Architecture
 	callback.CryptoType = input.CryptoType
+	callback.Cwd = input.Cwd
+	callback.ImpersonationContext = input.ImpersonationContext
 	payload := databaseStructs.Payload{}
 	payloadCommands := []databaseStructs.Payloadcommand{}
 	err := database.DB.Get(&payload, `SELECT
@@ -161,10 +165,10 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 			INSERT INTO callback 
 			( host, pid, ip, extra_info, sleep_info, external_ip, integrity_level, os, domain, architecture, process_name, registered_payload_id, 
 				operation_id, enc_key, dec_key, operator_id, active, crypto_type, description, agent_callback_id, "user", eventstepinstance_id,
-			 process_short_name)
+			 process_short_name, cwd, impersonation_context)
 			VALUES ( :host, :pid, :ip, :extra_info, :sleep_info, :external_ip, :integrity_level, :os, :domain, :architecture, :process_name, :registered_payload_id, 
 				:operation_id, :enc_key, :dec_key, :operator_id, :active, :crypto_type, :description, :agent_callback_id, :user, :eventstepinstance_id,
-			        :process_short_name) 
+			        :process_short_name, :cwd, :impersonation_context) 
 			RETURNING *`)
 	if err != nil {
 		logging.LogError(err, "Failed to create callback in database in MythicRPCCallbackCreate")

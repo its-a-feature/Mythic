@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -750,14 +751,23 @@ func GetCallbackCommandInformation(callback databaseStructs.Callback) []string {
 	}
 }
 
+var completionMutex sync.Mutex
+
 // Helper functions for getting information for sending Task data to a container
 func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	// check if this task has a completion function
+	logging.LogDebug("starting task completion handler processing, waiting for lock")
+	completionMutex.Lock()
+	logging.LogDebug("starting task completion handler processing with lock")
+	defer func() {
+		completionMutex.Unlock()
+		logging.LogDebug("exiting task completion handler processing and releasing lock")
+	}()
 	//logging.LogInfo("kicking off CheckAndProcessTaskCompletionHandlers", "taskId", taskId)
 	task := databaseStructs.Task{}
 	parentTask := databaseStructs.Task{}
 	err := database.DB.Get(&task, `SELECT
-		task.parent_task_id, task.operator_id,
+		task.parent_task_id, task.operator_id, task.completed,
 		task.subtask_callback_function, task.subtask_callback_function_completed,
 		task.group_callback_function, task.group_callback_function_completed, task.completed_callback_function,
 		task.completed_callback_function_completed, task.subtask_group_name, task.id, task.status, task.eventstepinstance_id
@@ -766,13 +776,17 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	if err != nil {
 		logging.LogError(err, "Failed to check for completion functions for task")
 	}
+	if !task.Completed {
+		return
+	}
 	_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, taskId)
 	if err != nil {
 		logging.LogError(err, "Failed to update the apitokens to set to deleted")
 	}
 	if task.ParentTaskID.Valid {
 		err = database.DB.Get(&parentTask, `SELECT 
-    		task.id, task.status, task.completed, task.eventstepinstance_id,
+    		task.id, task.status, task.completed, task.eventstepinstance_id, task.completed_callback_function_completed,
+    		task.subtask_callback_function,
     		c.script_only "command.script_only"
     		from task
     		LEFT OUTER JOIN command c on task.command_id = c.id
@@ -878,12 +892,28 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 					if _, err = database.DB.NamedExec(`UPDATE task SET status=:status, completed=:completed WHERE id=:id`, parentTask); err != nil {
 						logging.LogError(err, "Failed to update parent task information to submitted")
 					}
+					if parentTask.CompletedCallbackFunction != "" && !parentTask.CompletedCallbackFunctionCompleted {
+						// this task has a completion function set, and it hasn't been executed, so run it
+						// ex in create_tasking: completionFunctionName := "shellCompleted"
+						//	response.CompletionFunctionName = &completionFunctionName
+						// this function is executed for the TASK
+						taskMessage := PTTaskCompletionFunctionMessage{
+							TaskData:               GetTaskConfigurationForContainer(parentTask.ID),
+							CompletionFunctionName: parentTask.CompletedCallbackFunction,
+						}
+						err = RabbitMQConnection.SendPtTaskCompletionFunction(taskMessage)
+						if err != nil {
+							logging.LogError(err, "Failed to send task completion function message to container")
+							task.Status = PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION_ERROR
+							if _, err = database.DB.NamedExec(`UPDATE task SET status=:status WHERE id=:id`, task); err != nil {
+								logging.LogError(err, "Failed to update task status for completion function error")
+							}
+						}
+					}
 				}
-
 			}
 		}
 	}
-
 }
 
 func GetTaskMessageCommandList(callbackID int) []string {
@@ -1006,6 +1036,8 @@ func GetTaskMessageCallbackInformation(callbackID int) PTTaskMessageCallbackData
 	data.Domain = databaseData.Domain
 	data.ExtraInfo = databaseData.ExtraInfo
 	data.SleepInfo = databaseData.SleepInfo
+	data.Cwd = databaseData.Cwd
+	data.ImpersonationContext = databaseData.ImpersonationContext
 	return data
 }
 
@@ -1028,13 +1060,15 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 		logging.LogError(err, "Failed to get task information")
 		return data
 	}
-	if !utils.SliceContains(NonPayloadCommands, databaseTask.CommandName) {
-		err = database.DB.Get(&databaseTask.CommandName, `SELECT cmd FROM command WHERE id=$1`, databaseTask.CommandID)
-		if err != nil {
-			logging.LogError(err, "Failed to get command name for task information")
-			return data
+	/*
+		if !utils.SliceContains(NonPayloadCommands, databaseTask.CommandName) {
+			err = database.DB.Get(&databaseTask.CommandName, `SELECT cmd FROM command WHERE id=$1`, databaseTask.CommandID)
+			if err != nil {
+				logging.LogError(err, "Failed to get command name for task information")
+				return data
+			}
 		}
-	}
+	*/
 	data = PTTaskMessageTaskData{
 		ID:                                 databaseTask.ID,
 		DisplayID:                          databaseTask.DisplayID,
@@ -1044,7 +1078,7 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 		Timestamp:                          databaseTask.Timestamp.String(),
 		CallbackID:                         databaseTask.CallbackID,
 		CallbackDisplayID:                  databaseTask.Callback.DisplayID,
-		PayloadType:                        databaseTask.Callback.Payload.Payloadtype.Name,
+		PayloadType:                        databaseTask.CommandPayloadType,
 		Status:                             databaseTask.Status,
 		OriginalParams:                     databaseTask.OriginalParams,
 		DisplayParams:                      databaseTask.DisplayParams,
@@ -1146,19 +1180,24 @@ func GetTaskConfigurationForContainer(taskID int) PTTaskMessageAllData {
 	taskMessage.C2Profiles = GetTaskMessageCallbackC2ProfileInformation(taskMessage.Task.CallbackID)
 	taskMessage.BuildParameters = *GetBuildParameterInformation(taskMessage.Callback.RegisteredPayloadID)
 	taskMessage.PayloadType = taskMessage.Payload.PayloadType
-	commandPayloadType := databaseStructs.Task{}
-	err := database.DB.Get(&commandPayloadType, `SELECT 
-    payloadtype.name "command.payloadtype.name"
-    FROM task 
-    JOIN command ON task.command_id = command.id
-    JOIN payloadtype ON command.payload_type_id = payloadtype.id
-    WHERE task.id=$1`, taskID)
-	if err != nil {
-		logging.LogError(err, "failed to get payload type information from task")
-		taskMessage.CommandPayloadType = taskMessage.PayloadType
-	} else {
-		taskMessage.CommandPayloadType = commandPayloadType.Command.Payloadtype.Name
-	}
+	taskMessage.CommandPayloadType = taskMessage.Task.PayloadType
+	/*
+			commandPayloadType := databaseStructs.Task{}
+			err := database.DB.Get(&commandPayloadType, `SELECT
+		    payloadtype.name "command.payloadtype.name"
+		    FROM task
+		    JOIN command ON task.command_id = command.id
+		    JOIN payloadtype ON command.payload_type_id = payloadtype.id
+		    WHERE task.id=$1`, taskID)
+			if err != nil {
+				logging.LogError(err, "failed to get payload type information from task")
+				taskMessage.CommandPayloadType = taskMessage.PayloadType
+			} else {
+				taskMessage.CommandPayloadType = commandPayloadType.Command.Payloadtype.Name
+			}
+
+	*/
+
 	return taskMessage
 }
 func GetOnNewCallbackConfigurationForContainer(callbackId int) PTOnNewCallbackAllData {

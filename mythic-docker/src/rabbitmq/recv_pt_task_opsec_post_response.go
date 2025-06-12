@@ -66,6 +66,7 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 		task.OpsecPostMessage = payloadMsg.OpsecPostMessage
 		childTasks := []databaseStructs.Task{}
 		if task.Status != PT_TASK_FUNCTION_STATUS_OPSEC_POST_BLOCKED {
+			// get tasks where this task is the parent task and the tasks aren't complete
 			err = database.DB.Select(&childTasks, `SELECT id FROM task WHERE parent_task_id=$1 AND completed=false`, task.ID)
 			if err != nil {
 				logging.LogError(err, "Failed to check for subtasks when completing opsec post check")
@@ -83,7 +84,7 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 				logging.LogError(err, "Failed to get command information for task finishing")
 				return
 			}
-			if task.Command.ScriptOnly {
+			if task.Command.ScriptOnly && len(childTasks) == 0 {
 				task.Completed = true
 				if task.Status == PT_TASK_FUNCTION_STATUS_SUBMITTED {
 					// if we're script only and are about to move to submitted, instead move to completed

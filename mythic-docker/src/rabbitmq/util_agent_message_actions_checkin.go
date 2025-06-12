@@ -9,23 +9,25 @@ import (
 )
 
 type agentMessageCheckin struct {
-	User           string                 `json:"user" mapstructure:"user"`
-	Host           string                 `json:"host" mapstructure:"host"`
-	PID            int                    `json:"pid" mapstructure:"pid"`
-	IP             string                 `json:"ip" mapstructure:"ip"`
-	IPs            []string               `json:"ips" mapstructure:"ips"`
-	PayloadUUID    string                 `json:"uuid" mapstructure:"uuid"`
-	IntegrityLevel int                    `json:"integrity_level" mapstructure:"integrity_level"`
-	OS             string                 `json:"os" mapstructure:"os"`
-	Domain         string                 `json:"domain" mapstructure:"domain"`
-	Architecture   string                 `json:"architecture" mapstructure:"architecture"`
-	ExternalIP     string                 `json:"external_ip" mapstructure:"external_ip"`
-	ExtraInfo      string                 `json:"extra_info" mapstructure:"extra_info"`
-	SleepInfo      string                 `json:"sleep_info" mapstructure:"sleep_info"`
-	ProcessName    string                 `json:"process_name" mapstructure:"process_name"`
-	EncKey         *[]byte                `json:"enc_key" mapstructure:"enc_key"`
-	DecKey         *[]byte                `json:"dec_key" mapstructure:"dec_key"`
-	Other          map[string]interface{} `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
+	User                 string                 `json:"user" mapstructure:"user"`
+	Host                 string                 `json:"host" mapstructure:"host"`
+	PID                  int                    `json:"pid" mapstructure:"pid"`
+	IP                   string                 `json:"ip" mapstructure:"ip"`
+	IPs                  []string               `json:"ips" mapstructure:"ips"`
+	PayloadUUID          string                 `json:"uuid" mapstructure:"uuid"`
+	IntegrityLevel       int                    `json:"integrity_level" mapstructure:"integrity_level"`
+	OS                   string                 `json:"os" mapstructure:"os"`
+	Domain               string                 `json:"domain" mapstructure:"domain"`
+	Architecture         string                 `json:"architecture" mapstructure:"architecture"`
+	ExternalIP           string                 `json:"external_ip" mapstructure:"external_ip"`
+	ExtraInfo            string                 `json:"extra_info" mapstructure:"extra_info"`
+	SleepInfo            string                 `json:"sleep_info" mapstructure:"sleep_info"`
+	ProcessName          string                 `json:"process_name" mapstructure:"process_name"`
+	EncKey               *[]byte                `json:"enc_key" mapstructure:"enc_key"`
+	DecKey               *[]byte                `json:"dec_key" mapstructure:"dec_key"`
+	Cwd                  string                 `json:"cwd" mapstructure:"cwd"`
+	ImpersonationContext string                 `json:"impersonation_context" mapstructure:"impersonation_context"`
+	Other                map[string]interface{} `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
 }
 
 func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cachedUUIDInfo, remoteIP string) (map[string]interface{}, error) {

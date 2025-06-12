@@ -41,11 +41,11 @@ export const operatorSettingDefaults =  {
             light: "#75859b",
         },
         error: {
-            dark: '#da3237',
+            dark: '#bd5142',
             light: '#c42c32'
         },
         success: {
-            dark: '#44b636',
+            dark: '#85b089',
             light: '#0e7004',
         },
         secondary: {
@@ -53,19 +53,19 @@ export const operatorSettingDefaults =  {
             light: '#a6a5a5'
         },
         info: {
-            dark: '#2184d3',
+            dark: '#84b4dc',
             light: '#4990b2'
         },
         warning: {
-            dark: "#f57c00",
+            dark: "#dc8455",
             light: "#ffb74d",
         },
         background: {
-            dark: '#303030',
+            dark: '#282828',
             light: '#f6f6f6'
         },
         paper: {
-            dark: '#424242',
+            dark: '#282828',
             light: '#ececec'
         },
         tableHeader: {
@@ -77,11 +77,11 @@ export const operatorSettingDefaults =  {
             light: "#e8e8e8",
         },
         pageHeader: {
-            dark: '#706c6e',
+            dark: '#1b2025',
             light: '#706c6e'
         },
         text: {
-            dark: "#ffffff",
+            dark: "#e4e4e4",
             light: "#000000",
         },
         selectedCallbackColor: {

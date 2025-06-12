@@ -13,6 +13,8 @@ const SUB_Callbacks = gql`
 subscription CallbacksSubscription($fromNow: timestamp!){
 callback_stream(batch_size: 1000, cursor: {initial_value: {timestamp: $fromNow}}) {
     architecture
+    cwd
+    impersonation_context
     active
     dead
     color
@@ -67,6 +69,8 @@ export const Query_Callbacks_And_Edges = gql`
 query InitialActiveCallbacksQuery{
 callback(where: {active: {_eq: true}}) {
     architecture
+    cwd
+    impersonation_context
     active
     dead
     color

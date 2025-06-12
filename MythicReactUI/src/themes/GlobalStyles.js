@@ -34,6 +34,20 @@ html, body, #root {
     background-color: ${(props) => props.theme.tableHeader} !important;
     font-weight: bold;
 }
+tr:nth-child(even) {
+  background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "0D" : props.theme.tableHover + "80"};
+}
+.MythicResizableGridRowHighlight {
+  background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "0D" : props.theme.tableHover + "80"};
+} 
+.MuiTableRow-hover {
+    &:hover,
+    &--hovered {
+        background-color: ${(props) => props.theme.tableHover + "CC"} !important;
+        color: ${(props) => props.theme.palette.text.primary} !important;
+    }
+}
+
 .MuiSelect-select.MuiSelect-select{
     padding-left: 10px
 }
@@ -126,13 +140,13 @@ tspan {
   opacity: 1;
 }
 .groupNode {
-    border: 1px solid #eee;
+    border: 1px solid grey;
     padding: 5px;
     border-radius: 5px;
     background: ${(props) => props.theme.palette.graphGroupRGBA} !important;
 }
 .groupEventNode {
-    border: 1px solid ${(props) => props.theme.palette.secondary.main};
+    border: 1px solid grey;
     padding: 2px;
     border-radius: 5px;
     background: ${(props) => props.theme.palette.graphGroupRGBA} !important;
@@ -146,7 +160,7 @@ tspan {
    z-index: -1 !important;
 }
 .context-menu {
-    background-color: ${(props) => props.theme.palette.background.default};
+    background-color: ${(props) => props.theme.palette.background.paper};
     border: 1px solid grey;
     border-radius: 5px;
     box-shadow: 10px 19px 20px rgba(0, 0, 0, 10%);
@@ -159,7 +173,7 @@ tspan {
     padding: 0.5em;
     text-align: left;
     width: 100%;
-    background-color: ${(props) => props.theme.palette.background.default};
+    background-color: ${(props) => props.theme.palette.background.paper};
     color: unset;
 }
 
@@ -202,7 +216,7 @@ tspan {
     user-select: none;
     background-color: ${(props) => props.theme.tableHeader} !important;
     &:first-child-of-type {
-        border-left: 1px solid ${(props) => props.theme.tableHover};
+        border-left: 1px solid grey;
     }
     &:hover {
         background-color: ${(props) => props.theme.tableHover};
@@ -218,7 +232,7 @@ tspan {
     padding: 0 0.5em;
     box-sizing: border-box;
     font-family: monospace;
-    border-bottom: 1px solid  ${(props) => props.theme.tableHover};
+    border-bottom: 1px solid grey;
     cursor: default !important;
 }
 .MythicResizableGrid-cellInner {
@@ -270,11 +284,10 @@ tspan {
 .no-box-shadow {
     box-shadow: unset;
 }
-.MuiList-root > .MuiListSubheader-root {
-    background-color: ${(props) => props.theme.palette.secondary.dark};
-    color: white;
-    line-height: 30px;
+.no-border {
+    border: 0px !important;
 }
+
 .MuiList-root {
     background-color: ${(props) => props.theme.palette.background.paper};
     border: 1px solid grey;
@@ -363,5 +376,11 @@ tspan {
 }
 .ace_gutter {
     //background: transparent !important;
+}
+.ace_editor .ace_text-layer {
+    color: ${(props) => props.theme.palette.text.primary};
+}
+.ace_cursor {
+  opacity: 0 !important;
 }
 `

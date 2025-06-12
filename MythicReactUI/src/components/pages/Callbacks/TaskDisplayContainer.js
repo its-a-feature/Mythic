@@ -160,33 +160,13 @@ export const TaskDisplayContainerConsole = ({task, me}) => {
   const [viewBrowserScript, setViewBrowserScript] = React.useState(true);
   const [commandID, setCommandID] = React.useState(task?.command?.id || 0);
   const [searchOutput, setSearchOutput] = React.useState(false);
-  const [selectAllOutput, setSelectAllOutput] = React.useState(false);
   const responseRef = React.useRef(null);
   useEffect( () => {
     setCommandID(task.command === null ? 0 : task.command.id);
   }, [task.command?.id]);
-  const toggleViewBrowserScript = React.useCallback( () => {
-    setViewBrowserScript(!viewBrowserScript);
-  }, [viewBrowserScript]);
-  const toggleSelectAllOutput = React.useCallback( () => {
-    setSelectAllOutput(!selectAllOutput);
-  }, [selectAllOutput]);
-  const toggleOpenSearch = React.useCallback( () => {
-    setSearchOutput(!searchOutput);
-  }, [searchOutput]);
 
   return (
       <>
-          <SpeedDialDisplayGeneric toggleViewBrowserScript={toggleViewBrowserScript}
-                            toggleSelectAllOutput={toggleSelectAllOutput}
-                            toggleOpenSearch={toggleOpenSearch}
-                            taskData={task}
-                            me={me}
-                            viewBrowserScript={viewBrowserScript}
-                            responseRef={responseRef}
-                            style={{  bottom: "25px", right: "4px", zIndex: 2, height: "0px", position: "relative", display: "flex", flexDirection: "row-reverse"}}
-                            fabStyle={{ }}
-                            viewAllOutput={true}/>
             <ResponseDisplayConsole
                 task={task}
                 me={me}

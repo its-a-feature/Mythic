@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
-	"strings"
-
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"strings"
 )
 
 func init() {
@@ -25,25 +24,32 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 	task := databaseStructs.Task{}
 	parentTask := databaseStructs.Task{}
 	payloadMsg := PTTaskCompletionFunctionMessageResponse{}
-	if err := json.Unmarshal(msg.Body, &payloadMsg); err != nil {
+	err := json.Unmarshal(msg.Body, &payloadMsg)
+	if err != nil {
 		logging.LogError(err, "Failed to process message into struct")
-	} else if err = database.DB.Get(&task, `SELECT
+		return
+	}
+	logging.LogInfo("completion response", "response", payloadMsg)
+	err = database.DB.Get(&task, `SELECT
 		completed, parent_task_id, subtask_callback_function, subtask_callback_function_completed,
 		group_callback_function, group_callback_function_completed, completed_callback_function,
 		completed_callback_function_completed, subtask_group_name,
 		status, "stdout", stderr, params, parameter_group_name, display_params, id
 		FROM task
-		WHERE id=$1`, payloadMsg.TaskID); err != nil {
+		WHERE id=$1`, payloadMsg.TaskID)
+	if err != nil {
 		logging.LogError(err, "Failed to get task information when processing task completion function response")
 		return
-	} else if payloadMsg.ParentTaskId != 0 {
-		if err = database.DB.Get(&parentTask, `SELECT
+	}
+	if payloadMsg.ParentTaskId != 0 {
+		err = database.DB.Get(&parentTask, `SELECT
 		completed, parent_task_id, subtask_callback_function, subtask_callback_function_completed,
 		group_callback_function, group_callback_function_completed, completed_callback_function,
 		completed_callback_function_completed, subtask_group_name,
 		status, "stdout", stderr, params, parameter_group_name, display_params, id
 		FROM task
-		WHERE id=$1`, payloadMsg.ParentTaskId); err != nil {
+		WHERE id=$1`, payloadMsg.ParentTaskId)
+		if err != nil {
 			logging.LogError(err, "Failed to get task information when processing task completion function response")
 			return
 		}
@@ -188,16 +194,18 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		go CheckAndProcessTaskCompletionHandlers(task.ID)
 	}
 	if payloadMsg.ParentTaskId != 0 {
-		if _, err := database.DB.NamedExec(`UPDATE task SET
+		_, err := database.DB.NamedExec(`UPDATE task SET
 		status=:status, display_params=:display_params, "stdout"=:stdout, stderr=:stderr,
 		params=:params, parameter_group_name=:parameter_group_name, completed=:completed,
 		subtask_callback_function_completed=:subtask_callback_function_completed,
 		group_callback_function_completed=:group_callback_function_completed,
 		completed_callback_function_completed=:completed_callback_function_completed
-		WHERE id=:id`, parentTask); err != nil {
+		WHERE id=:id`, parentTask)
+		if err != nil {
 			logging.LogError(err, "Failed to update task status from completion function response")
-		} else if parentTask.Completed && payloadMsg.Success {
-			go CheckAndProcessTaskCompletionHandlers(parentTask.ID)
+			return
 		}
+		// check for completion handlers for the parent
+		go CheckAndProcessTaskCompletionHandlers(parentTask.ID)
 	}
 }

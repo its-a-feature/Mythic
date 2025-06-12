@@ -18,6 +18,24 @@ export function toLocalTime(date, view_utc) {
         return date + " UTC";
     }
 }
+export function toLocalTimeShort(date, view_utc) {
+    try {
+        if(date === null){
+            return "N/A";
+        }
+        let init_date = new Date(date);
+        if (view_utc) {
+            return init_date.toLocaleDateString() + " " + init_date.toLocaleTimeString();
+        } else {
+            let timezoneDate = new Date(date + "Z");
+            return timezoneDate.toLocaleDateString() + " " + timezoneDate.toLocaleTimeString(['en-us'], {hour12: true, hour: "2-digit", minute: "2-digit"});
+        }
+
+    } catch (error) {
+        console.log("warning", "Failed to get local time converted: " + error.toString());
+        return date + " UTC";
+    }
+}
 
 export function getTimeDifference(checkin_time, current_time) {
     let date = new Date();

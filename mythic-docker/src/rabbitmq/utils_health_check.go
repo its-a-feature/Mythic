@@ -27,6 +27,7 @@ func HealthCheck(detailed bool) ServiceHealth {
 		result.DatabaseErrorMessage = err.Error()
 		return result
 	}
+	result.DatabaseSuccess = true
 	if detailed {
 		payloadTypes := []databaseStructs.Payloadtype{}
 		c2Profiles := []databaseStructs.C2profile{}

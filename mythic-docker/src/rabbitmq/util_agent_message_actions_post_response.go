@@ -60,6 +60,7 @@ type agentMessagePostResponse struct {
 	Download        *agentMessagePostResponseDownload         `json:"download,omitempty" mapstructure:"download,omitempty" xml:"download,omitempty"`
 	Upload          *agentMessagePostResponseUpload           `json:"upload,omitempty" mapstructure:"upload,omitempty" xml:"upload,omitempty"`
 	Alerts          *[]agentMessagePostResponseAlert          `json:"alerts,omitempty" mapstructure:"alerts,omitempty" xml:"alerts,omitempty"`
+	Callback        *agentMessagePostResponseCallback         `json:"callback,omitempty" mapstructure:"callback,omitempty" xml:"callback,omitempty"`
 	Other           map[string]interface{}                    `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
 }
 
@@ -209,6 +210,21 @@ type agentMessagePostResponseInteractive struct {
 	TaskUUID    string                      `json:"task_id" mapstructure:"task_id" xml:"task_id"`
 	Data        string                      `json:"data" mapstructure:"data" xml:"data"`
 	MessageType InteractiveTask.MessageType `json:"message_type" mapstructure:"message_type" xml:"message_type"`
+}
+type agentMessagePostResponseCallback struct {
+	User                 *string   `json:"user" mapstructure:"user" xml:"user"`
+	Host                 *string   `json:"host" mapstructure:"host" xml:"host"`
+	PID                  *int      `json:"pid" mapstructure:"pid" xml:"pid"`
+	IntegrityLevel       *int      `json:"integrity_level" mapstructure:"integrity_level" xml:"integrity_level"`
+	OS                   *string   `json:"os" mapstructure:"os" xml:"os"`
+	Domain               *string   `json:"domain" mapstructure:"domain" xml:"domain"`
+	Architecture         *string   `json:"architecture" mapstructure:"architecture" xml:"architecture"`
+	ExtraInfo            *string   `json:"extra_info" mapstructure:"extra_info" xml:"extra_info"`
+	SleepInfo            *string   `json:"sleep_info" mapstructure:"sleep_info" xml:"sleep_info"`
+	ProcessName          *string   `json:"process_name" mapstructure:"process_name" xml:"process_name"`
+	Cwd                  *string   `json:"cwd,omitempty" mapstructure:"cwd,omitempty" xml:"cwd,omitempty"`
+	ImpersonationContext *string   `json:"impersonation_context,omitempty" mapstructure:"impersonation_context,omitempty" xml:"impersonation_context,omitempty"`
+	IPs                  *[]string `json:"ips" mapstructure:"ips" xml:"ips"`
 }
 
 // writeDownloadChunkToDiskChan is a blocking call intentionally
@@ -489,6 +505,9 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			// report back artifact information so that the agent can update the specific artifacts if needed
 			artifactResponses := handleAgentMessagePostResponseArtifacts(currentTask, agentMessage.Responses[i].Artifacts)
 			mythicResponse["artifacts"] = artifactResponses
+		}
+		if agentMessage.Responses[i].Callback != nil {
+			go handleAgentMessagePostResponseCallback(currentTask, agentMessage.Responses[i].Callback)
 		}
 		// this section always happens
 		reflectBackOtherKeys(&mythicResponse, &agentMessage.Responses[i].Other)
@@ -1043,6 +1062,24 @@ func handleAgentMessagePostResponseCommands(task databaseStructs.Task, commands 
 			logging.LogError(err, "Failed to remove command from callback")
 		}
 	}
+}
+func handleAgentMessagePostResponseCallback(task databaseStructs.Task, callbackUpdate *agentMessagePostResponseCallback) {
+	MythicRPCCallbackUpdate(MythicRPCCallbackUpdateMessage{
+		TaskID:               &task.ID,
+		User:                 callbackUpdate.User,
+		Host:                 callbackUpdate.Host,
+		PID:                  callbackUpdate.PID,
+		ExtraInfo:            callbackUpdate.ExtraInfo,
+		SleepInfo:            callbackUpdate.SleepInfo,
+		IPs:                  callbackUpdate.IPs,
+		IntegrityLevel:       callbackUpdate.IntegrityLevel,
+		Os:                   callbackUpdate.OS,
+		Domain:               callbackUpdate.Domain,
+		Architecture:         callbackUpdate.Architecture,
+		ProcessName:          callbackUpdate.ProcessName,
+		Cwd:                  callbackUpdate.Cwd,
+		ImpersonationContext: callbackUpdate.ImpersonationContext,
+	})
 }
 
 type chunkWriterData struct {

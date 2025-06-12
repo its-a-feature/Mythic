@@ -31,22 +31,24 @@ type WebhookMessage struct {
 }
 
 type NewCallbackWebhookData struct {
-	User           string `json:"user" mapstructure:"user"`
-	Host           string `json:"host" mapstructure:"host"`
-	IPs            string `json:"ips" mapstructure:"ips"`
-	Domain         string `json:"domain" mapstructure:"domain"`
-	ExternalIP     string `json:"external_ip" mapstructure:"external_ip"`
-	ProcessName    string `json:"process_name" mapstructure:"process_name"`
-	PID            int    `json:"pid" mapstructure:"pid"`
-	Os             string `json:"os" mapstructure:"os"`
-	Architecture   string `json:"architecture" mapstructure:"architecture"`
-	AgentType      string `json:"agent_type" mapstructure:"agent_type"`
-	Description    string `json:"description" mapstructure:"description"`
-	ExtraInfo      string `json:"extra_info" mapstructure:"extra_info"`
-	SleepInfo      string `json:"sleep_info" mapstructure:"sleep_info"`
-	DisplayID      int    `json:"display_id" mapstructure:"display_id"`
-	ID             int    `json:"id" mapstructure:"id"`
-	IntegrityLevel int    `json:"integrity_level" mapstructure:"integrity_level"`
+	User                 string `json:"user" mapstructure:"user"`
+	Host                 string `json:"host" mapstructure:"host"`
+	IPs                  string `json:"ips" mapstructure:"ips"`
+	Domain               string `json:"domain" mapstructure:"domain"`
+	ExternalIP           string `json:"external_ip" mapstructure:"external_ip"`
+	ProcessName          string `json:"process_name" mapstructure:"process_name"`
+	PID                  int    `json:"pid" mapstructure:"pid"`
+	Os                   string `json:"os" mapstructure:"os"`
+	Architecture         string `json:"architecture" mapstructure:"architecture"`
+	AgentType            string `json:"agent_type" mapstructure:"agent_type"`
+	Description          string `json:"description" mapstructure:"description"`
+	ExtraInfo            string `json:"extra_info" mapstructure:"extra_info"`
+	SleepInfo            string `json:"sleep_info" mapstructure:"sleep_info"`
+	DisplayID            int    `json:"display_id" mapstructure:"display_id"`
+	ID                   int    `json:"id" mapstructure:"id"`
+	IntegrityLevel       int    `json:"integrity_level" mapstructure:"integrity_level"`
+	Cwd                  string `json:"cwd" mapstructure:"cwd"`
+	ImpersonationContext string `json:"impersonation_context" mapstructure:"impersonation_context"`
 }
 
 type NewAlertMessageWebhookData struct {
