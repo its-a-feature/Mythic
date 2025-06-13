@@ -157,6 +157,14 @@ export function ExpandedCallbackSideDetailsTable(props){
                     <TableCell>Process Name</TableCell>
                     <TableCell>{props.process_name}</TableCell>
                 </TableRow>
+                <TableRow hover>
+                    <TableCell>Current Working Directory</TableCell>
+                    <TableCell>{props.cwd}</TableCell>
+                </TableRow>
+                <TableRow hover>
+                    <TableCell>Impersonation Context</TableCell>
+                    <TableCell>{props.impersonation_context}</TableCell>
+                </TableRow>
                 <MythicDialog fullWidth={true} open={openEditDescriptionDialog}
                               onClose={() => {setOpenEditDescriptionDialog(false);}}
                     innerDialog={

@@ -274,7 +274,9 @@ export function App(props) {
         )
     }
     const background = theme.palette.background.image !== null ? {
-        background: "linear-gradient(" + theme.palette.background.default + "99" + "," + theme.palette.background.default + "99" + ")," + theme.palette.background.image,
+        background: "linear-gradient(" + theme.palette.background.default + "99" + "," + theme.palette.background.default + "99" + ")," + theme.palette.background.image ,
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "100% 100%"
     } : {
         backgroundColor: theme.palette.background.default
     };

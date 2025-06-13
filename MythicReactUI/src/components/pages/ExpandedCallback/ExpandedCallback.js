@@ -12,6 +12,8 @@ const SUB_Callbacks = gql`
 subscription CallbacksSubscription ($callback_display_id: Int!){
   callback_stream(batch_size: 1, cursor: {initial_value: {timestamp: "1969-01-01"}}, where: {display_id: {_eq: $callback_display_id}}) {
     architecture
+    cwd
+    impersonation_context
     description
     display_id
     domain

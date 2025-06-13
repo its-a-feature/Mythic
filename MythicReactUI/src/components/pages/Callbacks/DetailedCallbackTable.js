@@ -148,6 +148,8 @@ query GetCallbackDetails($callback_id: Int!) {
     process_name
     init_callback
     mythictree_groups
+    cwd
+    impersonation_context
   }
   
 }
