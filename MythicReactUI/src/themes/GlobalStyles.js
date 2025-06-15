@@ -331,25 +331,25 @@ tspan {
     border-bottom-right-radius: 4px;
 }
 .MuiInputLabel-root {
-    color:  ${(props) => props.theme.palette.secondary.main} !important;
+    color:  grey !important;
 }
 .MuiOutlinedInput-notchedOutline {
-    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+    border-color: grey !important;
 }
 .MuiInput-underline {
-    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+    border-color: grey !important;
 }
 .MuiSelect-outlined {
-    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+    border-color: grey !important;
 }
 .Mui-focused {
-    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+    border-color: grey !important;
 }
 .MuiInputBase-input {
-    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+    border-color: grey !important;
 }
 .MuiInput-root::after {
-    border-color: ${(props) => props.theme.palette.secondary.main} !important;
+    border-color: grey !important;
 }
 .MuiTableCell-root {
     padding: 0 16px 0 16px;

@@ -1532,25 +1532,24 @@ const Top10RecentScreenshotsDashboardElement = ({me, data, editing, removeElemen
                            tableBody={
                                <TableBody>
                                    {files.length > 0 &&
-                                       <TableRow style={{display: "flex", height: "100%", alignItems: "center", justifyContent: "space-between"}}>
-                                           <MythicTableCell>
-                                               <IconButton size="small" onClick={handleBack} disabled={activeStep === 0}>
+                                       <TableRow style={{display: "flex", height: "100%", width: "100%", alignItems: "center", justifyContent: "space-between"}}>
+                                           <MythicTableCell style={{borderBottom: 0}}>
+                                               <Button onClick={handleBack} disabled={activeStep === 0}>
                                                    {<KeyboardArrowLeft/>}
-                                               </IconButton>
+                                               </Button>
                                            </MythicTableCell>
                                            <MythicTableCell>
                                                <img onClick={(e) => onPreviewMedia(e, activeStep)}
                                                     src={"/api/v1.4/files/screencaptures/" + files[activeStep] + "?" + now}
                                                     style={{height: "200px", cursor: "pointer"}}/>
                                            </MythicTableCell>
-                                            <MythicTableCell>
-                                                <IconButton
-                                                    size="small"
+                                            <MythicTableCell style={{borderBottom: 0}} >
+                                                <Button
                                                     onClick={handleNext}
                                                     disabled={activeStep === maxSteps - 1}
                                                 >
                                                     {<KeyboardArrowRight/>}
-                                                </IconButton>
+                                                </Button>
                                             </MythicTableCell>
                                        </TableRow>
                                    }

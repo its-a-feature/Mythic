@@ -136,6 +136,8 @@ export function App(props) {
                         fontSize: preferences?.fontSize,
                         fontFamily: preferences?.fontFamily
                     },
+                    taskPromptTextColor: themeMode === 'dark' ? preferences?.palette?.taskPromptTextColor?.dark || operatorSettingDefaults.palette.taskPromptTextColor.dark :
+                        preferences?.palette?.taskPromptTextColor?.light || operatorSettingDefaults.palette.taskPromptTextColor.light,
                 })
             }catch(error){
                 console.log(error);

@@ -557,15 +557,21 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     }
     
     return (
-            <TableRow key={"buildparam" + id}>
-                <TableCell>
+            <TableRow key={"buildparam" + id} hover>
+                <MythicStyledTableCell>
                     <MythicStyledTooltip title={name.length > 0 ? name : "No Description"}>
-                        {description}
+                        <Typography variant={"h6"} style={{fontWeight: 600}}>
+                            {name}
+                        </Typography>
+                        <Typography variant={"body2"} style={{marginLeft: "10px"}}>
+                            {description}
+                        </Typography>
+
                         {modifiedValue() ? (
                             <Typography color="warning.main">Modified</Typography>
                         ) : null}
                     </MythicStyledTooltip>
-                 </TableCell>
+                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {getParameterObject()}
                 </MythicStyledTableCell>

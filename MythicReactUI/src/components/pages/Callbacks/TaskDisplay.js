@@ -69,10 +69,11 @@ export const StyledPaper = styled(Paper)((
     WebkitBoxOrient: "vertical",
     cursor: "default",
     wordBreak: "break-all",
+    //color: theme.taskPromptTextColor,
   },
   [`& .${classes.secondaryHeading}`]: {
     fontSize: theme.typography.pxToRem(15),
-    //color: theme.palette.text.secondary,
+    //color: theme.taskPromptTextColor,
     overflow: "auto",
     display: "block",
     textOverflow: "ellipsis",
@@ -81,7 +82,7 @@ export const StyledPaper = styled(Paper)((
   },
   [`& .${classes.taskAndTimeDisplay}`]: {
     fontSize: theme.typography.pxToRem(12),
-    color: theme.palette.text.secondary,
+    color: theme.taskPromptTextColor,
     overflow: "hidden",
     textOverflow: "ellipsis",
     maxWidth: "100%",
@@ -92,7 +93,7 @@ export const StyledPaper = styled(Paper)((
   },
   [`& .${classes.secondaryHeadingExpanded}`]: {
     fontSize: theme.typography.pxToRem(15),
-    //color: theme.palette.text.secondary,
+    //color: theme.taskPromptTextColor,
     display: "block",
     overflow: "auto",
     maxWidth: "100%",
@@ -310,7 +311,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                     </>
                 }
                   <MythicStyledTooltip title={"View Task in separate page"} >
-                    <Link style={{wordBreak: "break-all"}} color={"textPrimary"} underline={"always"} target={"_blank"}
+                    <Link style={{wordBreak: "break-all", color: theme.taskPromptTextColor,}} underline={"always"} target={"_blank"}
                           href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
                   </MythicStyledTooltip>
                 {!task.completed && task.status_timestamp_processing &&
@@ -330,7 +331,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
               <GetOperatorDisplay initialHideUsernameValue={initialHideUsernameValue} task={task}/>
               {" / "}
               <MythicStyledTooltip title={"View Callback in separate page"}>
-                <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
+                <Link style={{wordBreak: "break-all", color: theme.taskPromptTextColor}} underline="always" target="_blank"
                       href={"/new/callbacks/" + task.callback.display_id}>C-{task.callback.display_id}</Link>
               </MythicStyledTooltip>
 
@@ -973,14 +974,14 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
       <ColoredTaskDisplayConsole task={task} theme={theme} expanded={expanded}  >
         <div id={taskDivID} style={{width: "100%"}}>
           <div style={{lineHeight: 0, display: "flex", alignItems: "center"}}>
-            <Typography style={{display: "inline-block"}} color={"secondary"} onClick={preventPropagation}>
+            <Typography style={{display: "inline-block"}} sx={{color: theme.taskPromptTextColor}} onClick={preventPropagation}>
               [{toLocalTimeShort(displayTimestamp, me?.user?.view_utc_time || false)}]
               {" "}
               <GetOperatorDisplay initialHideUsernameValue={initialHideUsernameValue} task={task}/>
             </Typography>
             <Typography style={{display: "inline-block", marginLeft: "5px"}} color={themeColor}>
               <MythicStyledTooltip title={task.status}>
-                <b>{"$"}</b>
+                <b>{">_"}</b>
               </MythicStyledTooltip>
             </Typography>
             <MythicStyledTooltip maxWidth={"calc(80vw)"}
@@ -1020,9 +1021,10 @@ const TaskLabelConsole = ({task, me}) => {
   }
 
   return (
-      <StyledPaper className={classes.root + " no-box-shadow no-border"} elevation={5} style={{marginRight: 0, marginBottom: "10px"}} id={`taskHeader-${task.id}`}>
+      <StyledPaper className={classes.root + " no-box-shadow no-border"} elevation={5} style={{marginRight: 0, marginBottom: "5px"}} id={`taskHeader-${task.id}`}>
           <ColoredTaskLabelConsole theme={theme} task={task} me={me} taskDivID={`scrolltotaskconsole${task.id}`} expanded={true}/>
           <TaskDisplayContainerConsole me={me} task={task} />
+          <div style={{borderBottom: "1px dashed grey", width: "100%", height: "5px", marginTop: "5px"}}/>
       </StyledPaper>
   );
 }

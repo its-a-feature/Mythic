@@ -107,6 +107,10 @@ export const operatorSettingDefaults =  {
         navBarColor: {
             dark: "#2e373c",
             light: "#3c4d67",
+        },
+        taskPromptTextColor: {
+            dark: '#bebebe',
+            light: '#a6a5a5'
         }
     },
 }

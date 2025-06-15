@@ -18,6 +18,17 @@ export function toLocalTime(date, view_utc) {
         return date + " UTC";
     }
 }
+function formatDate(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const monthNames = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+
+    return `${day}-${month}-${year} ` + date.toLocaleString(['en-us'], {hour12: false, hour: "2-digit", minute: "2-digit"});
+}
 export function toLocalTimeShort(date, view_utc) {
     try {
         if(date === null){
@@ -25,10 +36,10 @@ export function toLocalTimeShort(date, view_utc) {
         }
         let init_date = new Date(date);
         if (view_utc) {
-            return init_date.toLocaleDateString() + " " + init_date.toLocaleTimeString();
+            return formatDate(view_utc);
         } else {
             let timezoneDate = new Date(date + "Z");
-            return timezoneDate.toLocaleDateString() + " " + timezoneDate.toLocaleTimeString(['en-us'], {hour12: true, hour: "2-digit", minute: "2-digit"});
+            return formatDate(timezoneDate);
         }
 
     } catch (error) {

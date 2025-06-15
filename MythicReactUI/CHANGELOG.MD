@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.44] - 2025-06-15
+
+### Changed
+
+- Updated the console view to have a output divider
+- Updated the tasking prompt color to be a separate color you can specify in your settings
+- Updated task/callback links to match the tasking prompt color so they blend better
+- Updated the highlighting of text fields to be consistent grey instead of based on the secondary color
+  - should help with some whiplash from editing colors
+- Updated the time formatting for console view
+- Update the command selection pane when building payloads to not show commands you can't include
+
 ## [0.3.43] - 2025-06-13
 
 ### Changed

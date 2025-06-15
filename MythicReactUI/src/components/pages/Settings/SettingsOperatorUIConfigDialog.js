@@ -8,6 +8,7 @@ import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import Link from '@mui/material/Link';
 import TableContainer from '@mui/material/TableContainer';
 import Typography from '@mui/material/Typography';
 import {HexColorInput, HexColorPicker} from 'react-colorful';
@@ -195,6 +196,10 @@ export function SettingsOperatorUIConfigDialog(props) {
         navBarColor: {
             dark: isValidColor(initialPalette?.navBarColor?.dark) ? initialPalette?.navBarColor?.dark : operatorSettingDefaults.palette.navBarColor.dark,
             light: isValidColor(initialPalette?.navBarColor?.light) ? initialPalette?.navBarColor?.light : operatorSettingDefaults.palette.navBarColor.light,
+        },
+        taskPromptTextColor: {
+            dark: isValidColor(initialPalette?.taskPromptTextColor?.dark) ? initialPalette?.taskPromptTextColor?.dark : operatorSettingDefaults.palette.taskPromptTextColor.dark,
+            light: isValidColor(initialPalette?.taskPromptTextColor?.light) ? initialPalette?.taskPromptTextColor?.light : operatorSettingDefaults.palette.taskPromptTextColor.light,
         }
     });
     const paletteOptionsSolidColor = [
@@ -204,7 +209,8 @@ export function SettingsOperatorUIConfigDialog(props) {
         {name: "info", display: "Informational"},
         {name: "success", display: "Success"},
         {name: "secondary", display: "Secondary"},
-        {name: "pageHeader", display: "Page Headers"}
+        {name: "pageHeader", display: "Page Headers"},
+        {name: "taskPromptTextColor", display: "Tasking Prompt Text"}
     ];
     const paletteOptionsTextColor = [
         {name: "tableHeader", display: "Table Headers"},
@@ -375,7 +381,9 @@ export function SettingsOperatorUIConfigDialog(props) {
                     </IconButton>
                 </MythicStyledTooltip>
             </div>
-
+            <Typography variant={"body2"}>
+                Community themes are located on <Link target={"_blank"} href={"https://github.com/MythicMeta/CommunityThemes"}>GitHub</Link>
+            </Typography>
         </DialogTitle>
         <TableContainer className="mythicElement" style={{paddingLeft: "10px", paddingRight: "10px"}}>
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>

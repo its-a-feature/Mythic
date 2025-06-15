@@ -1,11 +1,10 @@
 import React from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import { CreatePayloadParameter } from './CreatePayloadParameter';
+import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 
 
 export function CreatePayloadC2ProfileParametersTable(props){
@@ -14,13 +13,11 @@ export function CreatePayloadC2ProfileParametersTable(props){
         props.onChange(props.name, paramName, value, error);
     }
     return (
-    <TableContainer >
-  
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "auto"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "20%"}}>Parameter</TableCell>
-                        <TableCell>Value</TableCell>
+                        <MythicStyledTableCell style={{width: "20%"}}>Parameter</MythicStyledTableCell>
+                        <MythicStyledTableCell>Value</MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -29,6 +26,5 @@ export function CreatePayloadC2ProfileParametersTable(props){
                     ))}
                 </TableBody>
             </Table>
-        </TableContainer>
     );
 } 
