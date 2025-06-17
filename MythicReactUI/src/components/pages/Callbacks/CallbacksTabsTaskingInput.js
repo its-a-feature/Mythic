@@ -17,6 +17,9 @@ import {CircularProgress} from '@mui/material';
 import {getDynamicQueryParams} from "./TaskParametersDialogRow";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
+import {getSkewedNow} from "../../utilities/Time";
+import { useTheme } from '@mui/material/styles';
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 const GetLoadedCommandsSubscription = gql`
 subscription GetLoadedCommandsSubscription($callback_id: Int!){
@@ -88,7 +91,14 @@ subscription tasksSubscription($callback_id: Int!){
     }
 }
 `;
-
+const contextSubscription = gql`
+subscription CallbackMetadataForTasking($callback_id: Int!, $now: timestamp!){
+    callback_stream(batch_size: 1, cursor: {initial_value: {timestamp: $now}}, where: {id: {_eq: $callback_id} }){
+        cwd
+        impersonation_context
+    }
+}
+`;
 const GetUpDownArrowName = (task, useDisplayParamsForCLIHistoryUserSetting) => {
     if(task.command){
         if(task?.command?.payloadtype?.use_display_params_for_cli_history){
@@ -153,10 +163,13 @@ const IsRepeatableCLIParameterType = (parameter_type) => {
 
 export function CallbacksTabsTaskingInputPreMemo(props){
     const toastId = "tasking-toast-message";
+    const theme = useTheme();
     const inputRef = React.useRef(null);
+    const fromNow = React.useRef(getSkewedNow());
     const snackMessageStyles = {position:"bottom-left", autoClose: 1000, toastId: toastId, style: {marginBottom: "30px"}};
     const snackReverseSearchMessageStyles = {position:"bottom-left", autoClose: 1000,  toastId: toastId, style: {marginBottom: "70px"}};
     const [commandPayloadType, setCommandPayloadType] = React.useState("");
+    const [callbackContext, setCallbackContext] = React.useState({cwd: "", impersonation_context: ""});
     const [message, setMessage] = React.useState("");
     const loadedOptions = React.useRef([]);
     const taskOptions = React.useRef([]);
@@ -229,7 +242,8 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const commandOptionsForcePopup = React.useRef(false);
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
     const me = useReactiveVar(meState);
-    const useDisplayParamsForCLIHistoryUserSetting = React.useRef(GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: "true"}));
+    const useDisplayParamsForCLIHistoryUserSetting = React.useRef(GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: true}));
+    const hideTaskingContext = React.useRef(GetMythicSetting({setting_name: "hideTaskingContext", default_value: false}));
     const forwardOrBackwardTabIndex = (event, currentIndex, options) => {
         if(event.shiftKey){
             let newIndex = currentIndex - 1;
@@ -251,6 +265,16 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             tokenOptions.current = data.data.callbacktoken;
         }
       });
+    useSubscription(contextSubscription, {
+        variables: {callback_id: props.callback_id, now: fromNow.current}, fetchPolicy: "network-only",
+        shouldResubscribe: true,
+        onData: ({data}) => {
+            if(!mountedRef.current || !props.parentMountedRef.current){
+                return;
+            }
+            setCallbackContext(data.data.callback_stream[0]);
+        }
+    });
     useSubscription(subscriptionTask, {
         variables: {callback_id: props.callback_id}, fetchPolicy: "network-only",
         shouldResubscribe: true,
@@ -1551,24 +1575,42 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     return (
         <div style={{position: "relative"}}>
             {backdropOpen && <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
-                <CircularProgress color="inherit" size={30} />
+                <CircularProgress color="inherit" size={30}/>
             </Backdrop>
             }
             {reverseSearching &&
                 <TextField
                     placeholder={"Search previous commands"}
-                    onKeyDown={onReverseSearchKeyDown}    
-                    onChange={handleReverseSearchInputChange}                     
+                    onKeyDown={onReverseSearchKeyDown}
+                    onChange={handleReverseSearchInputChange}
                     size="small"
                     color={"secondary"}
                     autoFocus={true}
                     variant="outlined"
                     value={reverseSearchString}
                     fullWidth={true}
-                    InputProps={{ type: 'search',
-                        startAdornment: <React.Fragment><Typography style={{width: "10%"}}>reverse-i-search:</Typography></React.Fragment>
+                    InputProps={{
+                        type: 'search',
+                        startAdornment: <React.Fragment><Typography
+                            style={{width: "10%"}}>reverse-i-search:</Typography></React.Fragment>
                     }}
                 />
+            }
+            {callbackContext?.impersonation_context !== "" && !hideTaskingContext.current &&
+                <MythicStyledTooltip title={"Impersonation Context"}>
+                    <span className={"rounded-tab"} style={{backgroundColor: theme.selectedCallbackColor}}>
+                        {callbackContext.impersonation_context}
+                    </span>
+                </MythicStyledTooltip>
+
+            }
+            {callbackContext?.cwd !== "" && !hideTaskingContext.current &&
+                <MythicStyledTooltip title={"Current Working Directory"}>
+                    <span className={"rounded-tab"} style={{backgroundColor: theme.selectedCallbackColor}}>
+                        {callbackContext.cwd}
+                    </span>
+                </MythicStyledTooltip>
+
             }
             <TextField
                 placeholder={"Task an agent..."}
@@ -1591,55 +1633,70 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     autoFocus: true,
                     style: {paddingTop: "0px", paddingBottom: "0px", paddingRight: "5px"},
                     endAdornment:
-                    <React.Fragment>
-                        <IconButton
-                            color="info"
-                            variant="contained"
-                            disableRipple={true}
-                            disableFocusRipple={true}
-                            onClick={onSubmitCommandLine}
-                            size="large"><SendIcon/>
-                        </IconButton>
-                        {props.filterTasks &&
+                        <React.Fragment>
                             <IconButton
-                                color={activeFiltering ? "warning" : "secondary"}
+                                color="info"
                                 variant="contained"
-                                onClick={onClickFilter}
-                                style={{paddingLeft: 0}}
                                 disableRipple={true}
                                 disableFocusRipple={true}
-                                size="large"><TuneIcon/></IconButton>
-                        }
-                        {commandPayloadType !== "" &&
-                            <MythicAgentSVGIcon payload_type={commandPayloadType}
-                                                style={{width: "35px", height: "35px"}}/>
-                        }
-                    </React.Fragment>
+                                onClick={onSubmitCommandLine}
+                                size="large"><SendIcon/>
+                            </IconButton>
+                            {props.filterTasks &&
+                                <IconButton
+                                    color={activeFiltering ? "warning" : "secondary"}
+                                    variant="contained"
+                                    onClick={onClickFilter}
+                                    style={{paddingLeft: 0}}
+                                    disableRipple={true}
+                                    disableFocusRipple={true}
+                                    size="large"><TuneIcon/></IconButton>
+                            }
+                            {commandPayloadType !== "" &&
+                                <MythicAgentSVGIcon payload_type={commandPayloadType}
+                                                    style={{width: "35px", height: "35px"}}/>
+                            }
+                        </React.Fragment>
                     ,
                     startAdornment: <React.Fragment>
                         {tokenOptions.current.length > 0 ? (
-                            <CallbacksTabsTaskingInputTokenSelect options={tokenOptions.current} changeSelectedToken={props.changeSelectedToken}/>
+                            <CallbacksTabsTaskingInputTokenSelect options={tokenOptions.current}
+                                                                  changeSelectedToken={props.changeSelectedToken}/>
                         ) : null}
 
                     </React.Fragment>
 
                 }}
+            />
+            {openFilterOptionsDialog &&
+                <MythicDialog fullWidth={true} maxWidth="md" open={openFilterOptionsDialog}
+                              onClose={() => {
+                                  setOpenFilterOptionsDialog(false);
+                              }}
+                              innerDialog={<CallbacksTabsTaskingFilterDialog
+                                  filterCommandOptions={loadedOptions.current} onSubmit={props.onSubmitFilter}
+                                  filterOptions={props.filterOptions} onClose={() => {
+                                  setOpenFilterOptionsDialog(false);
+                              }}/>}
                 />
-              {openFilterOptionsDialog &&
-                <MythicDialog fullWidth={true} maxWidth="md" open={openFilterOptionsDialog} 
-                    onClose={()=>{setOpenFilterOptionsDialog(false);}} 
-                    innerDialog={<CallbacksTabsTaskingFilterDialog filterCommandOptions={loadedOptions.current} onSubmit={props.onSubmitFilter} filterOptions={props.filterOptions} onClose={()=>{setOpenFilterOptionsDialog(false);}} />}
-                />
-              }
+            }
             {openSelectCommandDialog &&
                 <MythicDialog fullWidth={true} maxWidth="md" open={openSelectCommandDialog}
-                              onClose={()=>{setOpenSelectCommandDialog(false)}}
-                              innerDialog={<MythicSelectFromListDialog onClose={()=>{setOpenSelectCommandDialog(false);}}
-                                                                       onSubmit={processCommandAndCommandLine} options={commandOptions.current} title={"Select Command"}
-                                                                       action={"select"} identifier={"id"} display={"display"} />}
+                              onClose={() => {
+                                  setOpenSelectCommandDialog(false)
+                              }}
+                              innerDialog={<MythicSelectFromListDialog onClose={() => {
+                                  setOpenSelectCommandDialog(false);
+                              }}
+                                                                       onSubmit={processCommandAndCommandLine}
+                                                                       options={commandOptions.current}
+                                                                       title={"Select Command"}
+                                                                       action={"select"} identifier={"id"}
+                                                                       display={"display"}/>}
                 />
             }
         </div>
     );
 }
+
 export const CallbacksTabsTaskingInput = React.memo(CallbacksTabsTaskingInputPreMemo);

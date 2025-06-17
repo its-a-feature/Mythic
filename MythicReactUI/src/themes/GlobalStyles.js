@@ -383,4 +383,12 @@ tspan {
 .ace_cursor {
   opacity: 0 !important;
 }
+.rounded-tab { 
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    padding: 0 10px 0 10px;
+    border-top: 1px solid grey;
+    border-right: 1px solid grey;
+}
+
 `

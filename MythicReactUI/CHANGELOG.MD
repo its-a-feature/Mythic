@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.45] - 2025-06-17
+
+### Changed
+
+- Updated tasking field to show more info about cwd and impersonation_context
+- Added user setting to show/hide new cwd and impersonation_context tabs
+
 ## [0.3.44] - 2025-06-15
 
 ### Changed

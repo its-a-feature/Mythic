@@ -123,6 +123,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const initialHideBrowserTasking = GetMythicSetting({setting_name: "hideBrowserTasking", default_value: operatorSettingDefaults.hideBrowserTasking});
     const [hideBrowserTasking, setHideBrowserTasking] = React.useState(initialHideBrowserTasking);
 
+    const initialHideTaskingContext = GetMythicSetting({setting_name: "hideTaskingContext", default_value: operatorSettingDefaults.hideTaskingContext});
+    const [hideTaskingContext, setHideTaskingContext] = React.useState(initialHideTaskingContext);
+
     const initialPalette = GetMythicSetting({setting_name: 'palette', default_value: operatorSettingDefaults.palette});
     const [palette, setPalette] = React.useState({
         primary: {
@@ -237,6 +240,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onHideBrowserTaskingChanged = (evt) => {
         setHideBrowserTasking(!hideBrowserTasking);
     }
+    const onHideTaskingContextChanged = (evt) => {
+        setHideTaskingContext(!hideTaskingContext);
+    }
     const onShowHostnameChanged = (evt) => {
         setShowHostname(!showHostname);
     }
@@ -281,6 +287,7 @@ export function SettingsOperatorUIConfigDialog(props) {
               useDisplayParamsForCLIHistory,
               taskTimestampDisplayField,
               hideBrowserTasking,
+              hideTaskingContext,
               palette: palette
       }});
       props.onClose();
@@ -303,6 +310,7 @@ export function SettingsOperatorUIConfigDialog(props) {
       setResumeNotifications(false);
       setPalette(operatorSettingDefaults.palette);
       setTaskTimestampDisplayField(operatorSettingDefaults.taskTimestampDisplayField);
+      setHideTaskingContext(operatorSettingDefaults.hideTaskingContext);
     }
     const clearAllUserSettings = () => {
         clearSettings();
@@ -539,6 +547,18 @@ export function SettingsOperatorUIConfigDialog(props) {
                               color="info"
                               inputProps={{ 'aria-label': 'info checkbox' }}
                               name="hideBrowserTasking"
+                          />
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Hide Tasking Context Tabs</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <Switch
+                              checked={hideTaskingContext}
+                              onChange={onHideTaskingContextChanged}
+                              color="info"
+                              inputProps={{ 'aria-label': 'info checkbox' }}
+                              name="hideTaskingContext"
                           />
                       </MythicStyledTableCell>
                   </TableRow>

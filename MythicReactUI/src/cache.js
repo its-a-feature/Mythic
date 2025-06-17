@@ -34,6 +34,7 @@ export const operatorSettingDefaults =  {
     callbacks_table_filters: {},
     autoTaskLsOnEmptyDirectories: false,
     hideBrowserTasking: false,
+    hideTaskingContext: false,
     ["experiment-responseStreamLimit"]: 50,
     palette: {
         primary: {

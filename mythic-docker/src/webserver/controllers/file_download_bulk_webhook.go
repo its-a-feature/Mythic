@@ -93,8 +93,15 @@ func DownloadBulkFilesWebhook(c *gin.Context) {
 		// construct a new filename that's HOST_filename_uuid.extension to help with unique-ness
 		stringFileName := string(filemeta.Filename)
 		justFileName := strings.TrimSuffix(stringFileName, filepath.Ext(stringFileName))
-		justFileExtension := filepath.Ext(stringFileName)
-		newFileName := fmt.Sprintf("%s_%s_%s.%s", filemeta.Host, justFileName, filemeta.AgentFileID, justFileExtension)
+		justFileExtension := "." + filepath.Ext(stringFileName)
+		if justFileExtension == "." {
+			justFileExtension = ""
+		}
+		hostName := filemeta.Host
+		if hostName == "" {
+			hostName = "UNKNOWN"
+		}
+		newFileName := fmt.Sprintf("%s_%s_%s%s", hostName, justFileName, filemeta.AgentFileID, justFileExtension)
 		fileWriter, err := zipWriter.Create(newFileName)
 		if err != nil {
 			logging.LogError(err, "Failed to create file entry in zip")
