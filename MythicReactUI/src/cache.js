@@ -112,7 +112,23 @@ export const operatorSettingDefaults =  {
         taskPromptTextColor: {
             dark: '#bebebe',
             light: '#a6a5a5'
-        }
+        },
+        taskPromptCommandTextColor: {
+            dark: "#e4e4e4",
+            light: "#000000",
+        },
+        taskContextCwdColor: {
+            dark: "#122848",
+            light: "#acc0da",
+        },
+        taskContextImpersonationColor: {
+            dark: "#641616",
+            light: "#dec0c0",
+        },
+        taskContextExtraColor: {
+            dark: "#2a5953",
+            light: "#a7ce9d",
+        },
     },
 }
 export const defaultShortcuts = [

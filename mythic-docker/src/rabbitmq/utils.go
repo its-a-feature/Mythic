@@ -722,7 +722,7 @@ func GetPayloadCommandInformation(payload databaseStructs.Payload) []string {
 	command.cmd "command.cmd" 
 	FROM payloadcommand 
 	JOIN command ON payloadcommand.command_id = command.id
-	WHERE payloadcommand.payload_id=$1`, payload.ID); err != nil {
+	WHERE payloadcommand.payload_id=$1 ORDER BY command.cmd`, payload.ID); err != nil {
 		logging.LogError(err, "Failed to fetch commands for payload")
 		return []string{}
 	} else {
@@ -739,7 +739,7 @@ func GetCallbackCommandInformation(callback databaseStructs.Callback) []string {
 	command.cmd "command.cmd" 
 	FROM loadedcommands 
 	JOIN command ON loadedcommands.command_id = command.id
-	WHERE loadedcommands.callback_id=$1`, callback.ID); err != nil {
+	WHERE loadedcommands.callback_id=$1 ORDER BY command.cmd`, callback.ID); err != nil {
 		logging.LogError(err, "Failed to fetch commands for payload")
 		return []string{}
 	} else {

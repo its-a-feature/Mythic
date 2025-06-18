@@ -49,6 +49,7 @@ import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import BlockIcon from '@mui/icons-material/Block';
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
+import {EditPayloadConfigDialog} from "./EditPayloadConfigDialog";
 
 const rebuildPayloadMutation = gql`
 mutation triggerRebuildMutation($uuid: String!) {
@@ -60,7 +61,7 @@ mutation triggerRebuildMutation($uuid: String!) {
 }
 `;
 
-const exportPayloadConfigQuery = gql`
+export const exportPayloadConfigQuery = gql`
 query exportPayloadConfigQuery($uuid: String!) {
   exportPayloadConfig(uuid: $uuid) {
       status
@@ -83,6 +84,7 @@ export function PayloadsTableRow(props){
     const [openCreateNewCallbackDialog, setOpenCreateNewCallbackDialog] = React.useState(false);
     const [openGenerateIOCDialog, setOpenGenerateIOCDialog] = React.useState(false);
     const [openGenerateSampleMessageDialog, setOpenGenerateSampleMessageDialog] = React.useState(false);
+    const [openEditPayloadConfigDialog, setOpenEditPayloadConfigDialog] = React.useState(false);
     const dropdownAnchorRef = useRef(null);
     const [triggerRebuild] = useMutation(rebuildPayloadMutation, {
       onCompleted: (data) => {
@@ -169,15 +171,18 @@ export function PayloadsTableRow(props){
                             onCallbacksAllowedChanged();
                         }},
                      {name: <><MessageIcon style={{marginRight: "10px"}}  />{'View Build Message/Stdout'} </> , click: () => {
-                        setViewError(false);
+                         setViewError(false);
                         setOpenBuildMessageDialog(true);
-                     }},
-                     {name: <><ErrorIcon color={"error"} style={{marginRight: "10px"}}  />{'View Build Errors'}</>, click: () => {
-                        setViewError(true);
-                        setOpenBuildMessageDialog(true);
-                     }},
-                     {name: <><CachedIcon color={"success"} style={{marginRight: "10px"}} />{'Trigger New Build'}</>, click: () => {
+                    }},
+                    {name: <><ErrorIcon color={"error"} style={{marginRight: "10px"}}  />{'View Build Errors'}</>, click: () => {
+                       setViewError(true);
+                       setOpenBuildMessageDialog(true);
+                    }},
+                    {name: <><CachedIcon color={"success"} style={{marginRight: "10px"}} />{'Trigger New Build'}</>, click: () => {
                       triggerRebuild({variables: {uuid: props.uuid}});
+                    }},
+                    {name: <><CachedIcon color={"success"} style={{marginRight: "10px"}} />{'Trigger New Build With Edits'}</>, click: () => {
+                            setOpenEditPayloadConfigDialog(true);
                     }},
                     {name: <><IosShareIcon color={"info"} style={{marginRight: "10px"}} />{'Export Payload Config'}</>, click: () => {
                       exportConfig({variables: {uuid: props.uuid}});
@@ -194,7 +199,7 @@ export function PayloadsTableRow(props){
                     {name: <><BiotechIcon style={{marginRight: "10px"}} />{'Generate Sample Message'}</>, click: () => {
                         setOpenGenerateSampleMessageDialog(true);
                     }},
-                    {name: <><AddIcCallIcon color={"success"} style={{marginRight: "10px"}} />{'Generate Callback'}</>, click: () => {
+                    {name: <><AddIcCallIcon color={"success"} style={{marginRight: "10px"}} />{'Generate Fake Callback'}</>, click: () => {
                       setOpenCreateNewCallbackDialog(true);
                     }},
                     {name:<>
@@ -373,6 +378,12 @@ export function PayloadsTableRow(props){
                   innerDialog={<DetailedPayloadTable {...props} payload_id={props.id} onClose={()=>{setOpenDetailedView(false);}} />}
               />
             ) : null }
+            {openEditPayloadConfigDialog &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openEditPayloadConfigDialog}
+                              onClose={()=>{setOpenEditPayloadConfigDialog(false);}}
+                              innerDialog={<EditPayloadConfigDialog uuid={props.uuid} onClose={()=>{setOpenEditPayloadConfigDialog(false);}} />}
+                />
+            }
         </React.Fragment>
       ) : null
     )

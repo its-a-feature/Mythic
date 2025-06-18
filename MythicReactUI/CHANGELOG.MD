@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated tasking field to show more info about cwd and impersonation_context
 - Added user setting to show/hide new cwd and impersonation_context tabs
+- Added new tab for extra_info field in callbacks to show
+- Added ability to color cwd, impersonation context, and extra info separately
+- Added ability to generate new payload based on slightly edited config from the payload's Action dropdown
 
 ## [0.3.44] - 2025-06-15
 

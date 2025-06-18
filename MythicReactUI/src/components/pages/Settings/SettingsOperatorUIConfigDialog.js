@@ -203,7 +203,23 @@ export function SettingsOperatorUIConfigDialog(props) {
         taskPromptTextColor: {
             dark: isValidColor(initialPalette?.taskPromptTextColor?.dark) ? initialPalette?.taskPromptTextColor?.dark : operatorSettingDefaults.palette.taskPromptTextColor.dark,
             light: isValidColor(initialPalette?.taskPromptTextColor?.light) ? initialPalette?.taskPromptTextColor?.light : operatorSettingDefaults.palette.taskPromptTextColor.light,
-        }
+        },
+        taskPromptCommandTextColor: {
+            dark: isValidColor(initialPalette?.taskPromptCommandTextColor?.dark) ? initialPalette?.taskPromptCommandTextColor?.dark : operatorSettingDefaults.palette.taskPromptCommandTextColor.dark,
+            light: isValidColor(initialPalette?.taskPromptCommandTextColor?.light) ? initialPalette?.taskPromptCommandTextColor?.light : operatorSettingDefaults.palette.taskPromptCommandTextColor.light,
+        },
+        taskContextCwdColor: {
+            dark: isValidColor(initialPalette?.taskContextCwdColor?.dark) ? initialPalette?.taskContextCwdColor?.dark : operatorSettingDefaults.palette.taskContextCwdColor.dark,
+            light: isValidColor(initialPalette?.taskContextCwdColor?.light) ? initialPalette?.taskContextCwdColor?.light : operatorSettingDefaults.palette.taskContextCwdColor.light,
+        },
+        taskContextImpersonationColor: {
+            dark: isValidColor(initialPalette?.taskContextImpersonationColor?.dark) ? initialPalette?.taskContextImpersonationColor?.dark : operatorSettingDefaults.palette.taskContextImpersonationColor.dark,
+            light: isValidColor(initialPalette?.taskContextImpersonationColor?.light) ? initialPalette?.taskContextImpersonationColor?.light : operatorSettingDefaults.palette.taskContextImpersonationColor.light,
+        },
+        taskContextExtraColor: {
+            dark: isValidColor(initialPalette?.taskContextExtraColor?.dark) ? initialPalette?.taskContextExtraColor?.dark : operatorSettingDefaults.palette.taskContextExtraColor.dark,
+            light: isValidColor(initialPalette?.taskContextExtraColor?.light) ? initialPalette?.taskContextExtraColor?.light : operatorSettingDefaults.palette.taskContextExtraColor.light,
+        },
     });
     const paletteOptionsSolidColor = [
         {name: "primary", display: "Primary"},
@@ -213,7 +229,8 @@ export function SettingsOperatorUIConfigDialog(props) {
         {name: "success", display: "Success"},
         {name: "secondary", display: "Secondary"},
         {name: "pageHeader", display: "Page Headers"},
-        {name: "taskPromptTextColor", display: "Tasking Prompt Text"}
+        {name: "taskPromptTextColor", display: "Tasking Prompt Text"},
+        {name: "taskPromptCommandTextColor", display: "Tasking Command and Parameter Text"}
     ];
     const paletteOptionsTextColor = [
         {name: "tableHeader", display: "Table Headers"},
@@ -221,7 +238,10 @@ export function SettingsOperatorUIConfigDialog(props) {
         {name: "selectedCallbackColor", display: "Currently active callback row highlight"},
         {name: "selectedCallbackHierarchyColor", display: "Current Host highlight in tree views"},
         {name: "paper", display: "Menu and Modals Background"},
-        {name: "background", display: "Background"}
+        {name: "background", display: "Background"},
+        {name: "taskContextCwdColor", display: "Tasking Context Dir Background Color"},
+        {name: "taskContextImpersonationColor", display: "Tasking Context User Background Color"},
+        {name: "taskContextExtraColor", display: "Tasking Context Extra Info Background Color"}
     ]
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
     const [_, updateSettings, clearSettings] = useSetMythicSetting();

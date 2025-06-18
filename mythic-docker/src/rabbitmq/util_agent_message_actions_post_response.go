@@ -239,27 +239,6 @@ type writeDownloadChunkToDisk struct {
 
 var writeDownloadChunkToDiskChan = make(chan writeDownloadChunkToDisk)
 
-// GraphQLHandleAgentMessagePostResponse allows one-off GraphQL queries to submit full post-response data to Mythic
-func GraphQLHandleAgentMessagePostResponse(callbackDisplayID int, operationID int, incoming map[string]interface{}) (map[string]interface{}, error) {
-	callback := databaseStructs.Callback{}
-	err := database.DB.Get(&callback, `SELECT * FROM callback WHERE display_id=$1 AND operation_id=$2`, callbackDisplayID, operationID)
-	if err != nil {
-		return nil, err
-	}
-	uUIDInfo := cachedUUIDInfo{
-		OperationID:       operationID,
-		CallbackID:        callback.ID,
-		CallbackDisplayID: callback.DisplayID,
-		UUID:              callback.AgentCallbackID,
-		UUIDType:          "callback",
-	}
-	responseMessage := map[string]interface{}{
-		"action":    "post_response",
-		"responses": []interface{}{incoming},
-	}
-	return handleAgentMessagePostResponse(&responseMessage, &uUIDInfo)
-}
-
 type agentAgentMessagePostResponseChannelMessage struct {
 	Response    string
 	SequenceNum *int64

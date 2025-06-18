@@ -234,6 +234,8 @@ const (
 	MYTHIC_RPC_C2_UPDATE_STATUS = "mythic_rpc_c2_update_status"
 	//
 	MYTHIC_RPC_APITOKEN_CREATE = "mythic_rpc_apitoken_create"
+	// Agent Message
+	MYTHIC_RPC_HANDLE_AGENT_JSON = "mythic_rpc_handle_agent_json"
 	// MYTHIC_RPC_BLANK blank
 	MYTHIC_RPC_BLANK = "mythic_rpc_blank"
 )

@@ -366,7 +366,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                                      enterDelay={2000}
                     placement={"top"}
                     title={(task?.command?.cmd || task.command_name) + " " + task.display_params} >
-                  <Typography className={classes.heading} onClick={onLocalClick} >
+                  <Typography className={classes.heading} style={{color: theme.taskPromptCommandTextColor}} onClick={onLocalClick} >
                     {(task?.command?.cmd || task.command_name) + " " + task.display_params}
                   </Typography>
                 </MythicStyledTooltip>
@@ -988,7 +988,7 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
                                  enterDelay={2000}
                                  placement={"top"}
                                  title={(task?.command?.cmd || task.command_name) + " " + task.display_params}>
-              <Typography className={classes.heading} style={{marginLeft: "10px"}} >
+              <Typography className={classes.heading} style={{marginLeft: "10px", color: theme.taskPromptCommandTextColor}} >
                 <b>{(task?.command?.cmd || task.command_name)}</b>{ " " + task.display_params}
               </Typography>
             </MythicStyledTooltip>

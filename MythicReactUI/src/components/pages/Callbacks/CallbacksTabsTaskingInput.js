@@ -92,10 +92,11 @@ subscription tasksSubscription($callback_id: Int!){
 }
 `;
 const contextSubscription = gql`
-subscription CallbackMetadataForTasking($callback_id: Int!, $now: timestamp!){
-    callback_stream(batch_size: 1, cursor: {initial_value: {timestamp: $now}}, where: {id: {_eq: $callback_id} }){
+subscription CallbackMetadataForTasking($callback_id: Int!){
+    callback_stream(batch_size: 1, cursor: {initial_value: {timestamp: "1970-01-01"}}, where: {id: {_eq: $callback_id} }){
         cwd
         impersonation_context
+        extra_info
     }
 }
 `;
@@ -165,11 +166,14 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const toastId = "tasking-toast-message";
     const theme = useTheme();
     const inputRef = React.useRef(null);
-    const fromNow = React.useRef(getSkewedNow());
     const snackMessageStyles = {position:"bottom-left", autoClose: 1000, toastId: toastId, style: {marginBottom: "30px"}};
     const snackReverseSearchMessageStyles = {position:"bottom-left", autoClose: 1000,  toastId: toastId, style: {marginBottom: "70px"}};
     const [commandPayloadType, setCommandPayloadType] = React.useState("");
-    const [callbackContext, setCallbackContext] = React.useState({cwd: "", impersonation_context: ""});
+    const [callbackContext, setCallbackContext] = React.useState({
+        cwd: "",
+        impersonation_context: "",
+        extra_info: "",
+    });
     const [message, setMessage] = React.useState("");
     const loadedOptions = React.useRef([]);
     const taskOptions = React.useRef([]);
@@ -266,7 +270,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         }
       });
     useSubscription(contextSubscription, {
-        variables: {callback_id: props.callback_id, now: fromNow.current}, fetchPolicy: "network-only",
+        variables: {callback_id: props.callback_id}, fetchPolicy: "network-only",
         shouldResubscribe: true,
         onData: ({data}) => {
             if(!mountedRef.current || !props.parentMountedRef.current){
@@ -1598,16 +1602,23 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             }
             {callbackContext?.impersonation_context !== "" && !hideTaskingContext.current &&
                 <MythicStyledTooltip title={"Impersonation Context"}>
-                    <span className={"rounded-tab"} style={{backgroundColor: theme.selectedCallbackColor}}>
-                        {callbackContext.impersonation_context}
+                    <span className={"rounded-tab"} style={{backgroundColor: theme.taskContextImpersonationColor}}>
+                        <b>{"User: "}</b>{callbackContext.impersonation_context}
                     </span>
                 </MythicStyledTooltip>
 
             }
             {callbackContext?.cwd !== "" && !hideTaskingContext.current &&
                 <MythicStyledTooltip title={"Current Working Directory"}>
-                    <span className={"rounded-tab"} style={{backgroundColor: theme.selectedCallbackColor}}>
-                        {callbackContext.cwd}
+                    <span className={"rounded-tab"} style={{backgroundColor: theme.taskContextCwdColor}}>
+                        <b>{"Dir: "}</b>{callbackContext.cwd}
+                    </span>
+                </MythicStyledTooltip>
+            }
+            {callbackContext?.extra_info !== "" && !hideTaskingContext.current &&
+                <MythicStyledTooltip title={"Extra Callback Context"}>
+                    <span className={"rounded-tab"} style={{backgroundColor: theme.taskContextExtraColor}}>
+                        {callbackContext.extra_info}
                     </span>
                 </MythicStyledTooltip>
 

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc76] - 2025-06-18
+
+### Changed
+
+- Updated processing for agent messages to support new MythicRPCHandleAgentJson function
+  - This allows developers to hook into more "standard" agent message processing from MythicRPC locations
+- Updated bulk downloading to force host if none exists ("UNKNOWN") and removes trailing "." if no file extension exists
+- Fixed an issue where sometimes a callback on checking in after getting hidden wouldn't re-appear in the active table
+
 ## [3.3.1-rc75] - 2025-06-11
 
 ### Changed
