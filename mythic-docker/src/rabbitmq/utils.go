@@ -1060,15 +1060,14 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 		logging.LogError(err, "Failed to get task information")
 		return data
 	}
-	/*
-		if !utils.SliceContains(NonPayloadCommands, databaseTask.CommandName) {
-			err = database.DB.Get(&databaseTask.CommandName, `SELECT cmd FROM command WHERE id=$1`, databaseTask.CommandID)
-			if err != nil {
-				logging.LogError(err, "Failed to get command name for task information")
-				return data
-			}
+	if !utils.SliceContains(NonPayloadCommands, databaseTask.CommandName) && databaseTask.ProcessAtOriginalCommand {
+		// update the command name to be what was originally issued instead of whatever the task changed it to
+		err = database.DB.Get(&databaseTask.CommandName, `SELECT cmd FROM command WHERE id=$1`, databaseTask.CommandID)
+		if err != nil {
+			logging.LogError(err, "Failed to get command name for task information")
+			return data
 		}
-	*/
+	}
 	data = PTTaskMessageTaskData{
 		ID:                                 databaseTask.ID,
 		DisplayID:                          databaseTask.DisplayID,

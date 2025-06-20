@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc77] - 2025-06-19
+
+### Changed
+
+- Updated the database to track if a task wants to reprocess with a new command or the original command
+  - This was originally updated for `Command Augmentation` containers to allow proper tracking for when
+    - the `CommandName` was changed for a new `CommandPayloadType`, but this also resulted in every time the
+    - `CommandName` was changed in tasking that the processing would continue under the new command, which isn't always ideal
+  - Now, only if you set `response.ReprocessAtNewCommandPayloadType` will the processing change to the new `CommandName`
+    - This means that CommandA that sets its `response.CommandName = commandB` and does a `process_response` field will have the message processed at `CommandA` still
+    - Setting the above AND `response.ReprocessAtNewCommandPayloadType` will have the `process_response` processed at `commandB` (specify the same payload type name is ok too)
+    
 ## [3.3.1-rc76] - 2025-06-18
 
 ### Changed

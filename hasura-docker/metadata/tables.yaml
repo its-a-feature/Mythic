@@ -7748,6 +7748,7 @@
           - opsec_post_bypassed
           - opsec_pre_blocked
           - opsec_pre_bypassed
+          - process_at_original_command
           - subtask_callback_function_completed
           - apitokens_id
           - callback_id
@@ -7805,6 +7806,7 @@
           - opsec_post_bypassed
           - opsec_pre_blocked
           - opsec_pre_bypassed
+          - process_at_original_command
           - subtask_callback_function_completed
           - apitokens_id
           - callback_id
@@ -7862,6 +7864,7 @@
           - opsec_post_bypassed
           - opsec_pre_blocked
           - opsec_pre_bypassed
+          - process_at_original_command
           - subtask_callback_function_completed
           - apitokens_id
           - callback_id
@@ -7919,6 +7922,7 @@
           - opsec_post_bypassed
           - opsec_pre_blocked
           - opsec_pre_bypassed
+          - process_at_original_command
           - subtask_callback_function_completed
           - apitokens_id
           - callback_id
@@ -7976,6 +7980,7 @@
           - opsec_post_bypassed
           - opsec_pre_blocked
           - opsec_pre_bypassed
+          - process_at_original_command
           - subtask_callback_function_completed
           - apitokens_id
           - callback_id

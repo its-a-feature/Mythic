@@ -149,7 +149,7 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				if payloadMsg.CommandName != nil && *payloadMsg.CommandName != "" {
 					allTaskData.Task.CommandName = *payloadMsg.CommandName
 				}
-				_, err = database.DB.Exec(`UPDATE task SET command_payload_type=$1
+				_, err = database.DB.Exec(`UPDATE task SET command_payload_type=$1, process_at_original_command=false
 					WHERE id=$2`, allTaskData.CommandPayloadType, task.ID)
 				if err != nil {
 					logging.LogError(err, "failed to update command_payload_type based on ReprocessAtNewCommandPayloadType")

@@ -270,7 +270,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         getInfiniteScrollTasking({variables: {callback_id: tabInfo.callbackID, offset: taskingData.task.length, fetchLimit}});
     }
     const onSubmitCommandLine = (message, cmd, parsed, force_parsed_popup, cmdGroupNames, previousTaskingLocation) => {
-        //console.log(message, cmd, parsed);
+        console.log(message, cmd, parsed);
         let params = message.split(" ");
         delete params[0];
         params = params.join(" ").trim();

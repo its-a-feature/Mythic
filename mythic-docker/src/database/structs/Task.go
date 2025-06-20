@@ -62,4 +62,5 @@ type Task struct {
 	APITokensID                        structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
 	HasInterceptedResponse             bool              `db:"has_intercepted_response" json:"has_intercepted_response"`
 	CommandPayloadType                 string            `db:"command_payload_type" json:"command_payload_type" mapstructure:"command_payload_type"`
+	ProcessAtOriginalCommand           bool              `db:"process_at_original_command" json:"process_at_original_command" mapstructure:"process_at_original_command"`
 }

@@ -1387,6 +1387,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         let failed_json_parse = true;
         try{
             parsedWithPositionalParameters = JSON.parse(params);
+            if(['string', 'number', 'boolean', null].includes(typeof parsedWithPositionalParameters)){
+                throw("failed to parse json");
+            }
             cmdGroupName = determineCommandGroupName(cmd, parsedWithPositionalParameters);
             if(cmdGroupName !== undefined){
                 cmdGroupName.sort()
@@ -1459,6 +1462,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         }
         console.log("positional args added in:", parsedWithPositionalParameters);
         console.log("about to call onSubmitCommandLine", cmd);
+        console.log("commandOptionsForcePopup", Boolean(commandOptionsForcePopup.current), "group name", cmdGroupName)
         props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), cmdGroupName, unmodifiedHistoryValue);
         setMessage("");
         setCommandPayloadType("");
