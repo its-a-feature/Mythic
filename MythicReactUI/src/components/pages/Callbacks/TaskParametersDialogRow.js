@@ -1116,11 +1116,14 @@ export function TaskParametersDialogRow(props){
     return (
             <TableRow key={"buildparam" + props.id}>
                 <MythicStyledTableCell >
-                    <MythicStyledTooltip title={props.description.length > 0 ? props.description : "No Description"}>
+                    <Typography style={{fontWeight: "600"}} >
                         {props.display_name}
-                    </MythicStyledTooltip>
+                    </Typography>
+                    <Typography variant={"body2"} style={{fontSize: theme.typography.pxToRem(15)}}>
+                        {props.description}
+                    </Typography>
                     {props.required ? (
-                        <Typography component="div" style={{color: theme.palette.warning.main}}>Required</Typography>
+                        <Typography component="div" color={"warning"}>Required</Typography>
                     ) : null }
                  </MythicStyledTableCell>
                 <MythicStyledTableCell>

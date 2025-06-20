@@ -20,8 +20,10 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {Typography} from '@mui/material';
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import {snackActions} from "../../utilities/Snackbar";
+import {useTheme} from '@mui/material/styles';
 
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id, description, initialValue, choices, trackedValue, returnAllDictValues}){
+    const theme = useTheme();
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
     const [multiValue, setMultiValue] = React.useState([]);
@@ -560,10 +562,10 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             <TableRow key={"buildparam" + id} hover>
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title={name.length > 0 ? name : "No Description"}>
-                        <Typography variant={"h6"} style={{fontWeight: 600}}>
+                        <Typography style={{fontWeight: "600"}} >
                             {name}
                         </Typography>
-                        <Typography variant={"body2"} style={{marginLeft: "10px"}}>
+                        <Typography style={{fontSize: theme.typography.pxToRem(15), marginLeft: "10px"}}>
                             {description}
                         </Typography>
 
