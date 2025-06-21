@@ -21,8 +21,15 @@ import CropRotateTwoToneIcon from '@mui/icons-material/CropRotateTwoTone';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {operatorSettingDefaults} from "../../../cache";
 import {TaskFromUIButton} from "./TaskFromUIButton";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {faSkullCrossbones} from '@fortawesome/free-solid-svg-icons';
+// Icons for console-view display
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import ComputerIcon from '@mui/icons-material/Computer';
+import PublicIcon from '@mui/icons-material/Public';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import NumbersIcon from '@mui/icons-material/Numbers';
 
 
 const PREFIX = 'TaskDisplay';
@@ -939,6 +946,8 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
   const initialHideUsernameValue = GetMythicSetting({setting_name: "hideUsernames", default_value: operatorSettingDefaults.hideUsernames});
   const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
   const displayTimestamp = task[initialTaskTimestampDisplayField] ? task[initialTaskTimestampDisplayField] : task.timestamp;
+  const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: operatorSettingDefaults.showHostname});
+  const initialShowIPValue = GetMythicSetting({setting_name: "showIP", default_value: operatorSettingDefaults.showIP});
   const [openKillTaskButton, setOpenKillTaskButton] = React.useState({open: false});
   const preventPropagation = (e) => {
     e.stopPropagation();
@@ -971,32 +980,62 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
     }
   }, [task.status, task.completed])
   return (
-      <ColoredTaskDisplayConsole task={task} theme={theme} expanded={expanded}  >
-        <div id={taskDivID} style={{width: "100%"}}>
-          <div style={{lineHeight: 0, display: "flex", alignItems: "center"}}>
-            <Typography style={{display: "inline-block"}} sx={{color: theme.taskPromptTextColor}} onClick={preventPropagation}>
-              [{toLocalTimeShort(displayTimestamp, me?.user?.view_utc_time || false)}]
-              {" "}
-              <GetOperatorDisplay initialHideUsernameValue={initialHideUsernameValue} task={task}/>
-            </Typography>
-            <Typography style={{display: "inline-block", marginLeft: "5px"}} color={themeColor}>
-              <MythicStyledTooltip title={task.status}>
-                <b>{">_"}</b>
-              </MythicStyledTooltip>
-            </Typography>
-            <MythicStyledTooltip maxWidth={"calc(80vw)"}
-                                 enterDelay={2000}
-                                 placement={"top"}
-                                 title={(task?.command?.cmd || task.command_name) + " " + task.display_params}>
-              <Typography className={classes.heading} style={{marginLeft: "10px", color: theme.taskPromptCommandTextColor}} >
-                <b>{(task?.command?.cmd || task.command_name)}</b>{ " " + task.display_params}
-              </Typography>
-            </MythicStyledTooltip>
-          </div>
-
-        </div>
-      </ColoredTaskDisplayConsole>
-  )
+	    <ColoredTaskDisplayConsole task={task} theme={theme} expanded={expanded}>
+	        <div id={taskDivID} style={{ width: "100%" }}>
+	            <Typography sx={{ color: theme.taskPromptTextColor, fontSize: 15, display: "flex", alignItems: "center" }} style={{ fontFamily: "monospace" }}>
+	                <span style={{ fontFamily: "monospace" }}>┌──([</span>
+	                <AccessTimeIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
+	                {toLocalTimeShort(displayTimestamp, me?.user?.view_utc_time || false)}
+	                {"]-["}
+	                <PersonOutlineIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
+	                {task.operator.username}
+	                {"]-["}
+	                <NumbersIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
+	                T-{task.display_id}
+	                {initialShowHostnameValue ? (
+	                    <>
+	                        {"]-["}
+	                        <ComputerIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
+	                        {task.callback.host}
+	                    </>) : null}
+	                {initialShowIPValue ? (
+	                    <>
+	                        {"]-["}
+	                        <PublicIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
+	                        {JSON.parse(task.callback.ip)[0]}
+	                    </> ) : null}
+	                {(task.opsec_pre_blocked && !task.opsec_pre_bypassed) ? (
+	                    <>
+	                        {"]-["}
+	                        <WarningAmberIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle", color: theme.palette.warning.main }} />
+	                        OPSEC BLOCKED (PRE)
+	                    </>) : null}
+	                {(task.opsec_post_blocked && !task.opsec_post_bypassed) ? (
+	                    <>
+	                        {"]-["}
+	                        <WarningAmberIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle", color: theme.palette.warning.main }} />
+	                        OPSEC BLOCKED (POST)
+	                    </>) : null}
+	                {"])"}
+	            </Typography>
+	            <MythicStyledTooltip
+	                title={(task?.command?.cmd || task.command_name) + " " + task.display_params}
+	                maxWidth="calc(80vw)"
+	                enterDelay={2000}
+	                placement="top">
+	                <Typography
+	                    sx={{ fontSize: 15, display: "flex", alignItems: "center", marginLeft: 0, cursor: "pointer" }}
+	                    style={{ fontFamily: "monospace" }}>
+	                    <span style={{ fontFamily: "monospace", marginRight: 2, color: theme.taskPromptTextColor }}>└─</span>
+	                    <b style={{ fontFamily: "monospace", color: themeColor }}>{">_"}</b>{" "}
+	                    <span style={{ marginLeft: 4, color: theme.taskPromptTextColor }}>
+	                        <b>{(task?.command?.cmd || task.command_name)}</b> {task.display_params}
+	                    </span>
+	                </Typography>
+	            </MythicStyledTooltip>
+	        </div>
+	    </ColoredTaskDisplayConsole>
+	);
 }
 const TaskLabelConsole = ({task, me}) => {
   const theme = useTheme();
@@ -1024,7 +1063,7 @@ const TaskLabelConsole = ({task, me}) => {
       <StyledPaper className={classes.root + " no-box-shadow no-border"} elevation={5} style={{marginRight: 0, marginBottom: "5px"}} id={`taskHeader-${task.id}`}>
           <ColoredTaskLabelConsole theme={theme} task={task} me={me} taskDivID={`scrolltotaskconsole${task.id}`} expanded={true}/>
           <TaskDisplayContainerConsole me={me} task={task} />
-          <div style={{borderBottom: "1px dashed grey", width: "100%", height: "5px", marginTop: "5px"}}/>
+          <div style={{borderBottom: "0px dashed grey", width: "100%", height: "5px", marginTop: "5px"}}/>
       </StyledPaper>
   );
 }
