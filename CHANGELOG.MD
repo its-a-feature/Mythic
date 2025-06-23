@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc78] - 2025-06-23
+
+### Changed
+
+- Added `payload_id` and `callback_id` as options for tags
+- Added `supports_multiple_c2_in_build` and `supports_multiple_c2_instances_in_build` database fields for Payload Types
+  - This is prepping for a future update to allow Payload Types to identify if they support multiple c2 to be selected at build
+
 ## [3.3.1-rc77] - 2025-06-19
 
 ### Changed

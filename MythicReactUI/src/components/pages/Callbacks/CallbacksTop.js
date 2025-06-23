@@ -43,6 +43,14 @@ callback_stream(batch_size: 1000, cursor: {initial_value: {timestamp: $fromNow}}
     current_time
     mythictree_groups
     trigger_on_checkin_after_time
+    tags {
+        tagtype {
+            name
+            color
+            id
+          }
+        id
+    }
     callbackports(where: {deleted: {_eq: false}}) {
         local_port
         remote_port
@@ -99,6 +107,14 @@ callback(where: {active: {_eq: true}}) {
     current_time
     mythictree_groups
     trigger_on_checkin_after_time
+    tags {
+        tagtype {
+            name
+            color
+            id
+          }
+        id
+    }
     callbackports(where: {deleted: {_eq: false}}) {
         id
         local_port
@@ -135,6 +151,14 @@ callback(where: {active: {_eq: true}}) {
       process_name
       integrity_level
       extra_info
+      tags {
+        tagtype {
+            name
+            color
+            id
+          }
+        id
+      }
       payload {
         payloadtype {
           name
@@ -160,6 +184,14 @@ callback(where: {active: {_eq: true}}) {
       process_name
       integrity_level
       extra_info
+      tags {
+        tagtype {
+            name
+            color
+            id
+          }
+        id
+      }
       payload {
         payloadtype {
           name
@@ -199,6 +231,14 @@ callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $
       process_name
       integrity_level
       extra_info
+      tags {
+        tagtype {
+            name
+            color
+            id
+          }
+        id
+      }
       payload {
         payloadtype {
           name
@@ -225,6 +265,14 @@ callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $
       process_name
       integrity_level
       extra_info
+      tags {
+        tagtype {
+            name
+            color
+            id
+          }
+        id
+      }
       payload {
         payloadtype {
           name

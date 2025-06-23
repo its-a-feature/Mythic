@@ -53,7 +53,7 @@ const MythicTextField = ({
                              marginBottom = "5px",
                              value,
                              disabled = false,
-                             marginTop = "0px",
+                             marginTop = "5px",
                              InputProps = {},
                              inputLabelProps  = {},
                              multiline = false,
@@ -121,7 +121,7 @@ const MythicTextField = ({
                 style={{
                     padding:0,
                     marginBottom: marginBottom ? marginBottom : "5px",
-                    marginTop: marginTop ? marginTop: "0px",
+                    marginTop: marginTop ? marginTop: "5px",
                     display: inline ? "inline-block": "",
                 }}
                 classes={{

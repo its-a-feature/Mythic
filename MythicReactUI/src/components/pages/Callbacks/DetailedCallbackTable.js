@@ -37,6 +37,14 @@ import Switch from '@mui/material/Switch';
 const GET_Payload_Details = gql`
 query GetCallbackDetails($callback_id: Int!) {
   callback_by_pk(id: $callback_id){
+    tags {
+        tagtype {
+            name
+            color
+            id
+          }
+        id
+      }
     payload {
       uuid
       id

@@ -33,4 +33,6 @@ type Tag struct {
 	TaskArtifact sql.NullInt64 `db:"taskartifact_id"`
 	Keylog       sql.NullInt64 `db:"keylog_id"`
 	Response     sql.NullInt64 `db:"response_id"`
+	Callback     sql.NullInt64 `db:"callback_id"`
+	Payload      sql.NullInt64 `db:"payload_id"`
 }

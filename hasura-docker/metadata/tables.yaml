@@ -17,6 +17,9 @@
     - name: operator
       using:
         foreign_key_constraint_on: operator_id
+    - name: payload
+      using:
+        foreign_key_constraint_on: payload_id
     - name: task
       using:
         foreign_key_constraint_on: task_id
@@ -1621,6 +1624,13 @@
           column: callback_id
           table:
             name: mythictree
+            schema: public
+    - name: tags
+      using:
+        foreign_key_constraint_on:
+          column: callback_id
+          table:
+            name: tag
             schema: public
     - name: tasks
       using:
@@ -5785,6 +5795,13 @@
       using:
         foreign_key_constraint_on: task_id
   array_relationships:
+    - name: apitokens
+      using:
+        foreign_key_constraint_on:
+          column: payload_id
+          table:
+            name: apitokens
+            schema: public
     - name: buildparameterinstances
       using:
         foreign_key_constraint_on:
@@ -5847,6 +5864,13 @@
           column: payload_id
           table:
             name: staginginfo
+            schema: public
+    - name: tags
+      using:
+        foreign_key_constraint_on:
+          column: payload_id
+          table:
+            name: tag
             schema: public
   select_permissions:
     - role: developer
@@ -6560,6 +6584,8 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - supports_multiple_c2_in_build
+          - supports_multiple_c2_instances_in_build
           - use_display_params_for_cli_history
           - wrapper
           - id
@@ -6583,6 +6609,8 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - supports_multiple_c2_in_build
+          - supports_multiple_c2_instances_in_build
           - use_display_params_for_cli_history
           - wrapper
           - id
@@ -6606,6 +6634,8 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - supports_multiple_c2_in_build
+          - supports_multiple_c2_instances_in_build
           - use_display_params_for_cli_history
           - wrapper
           - id
@@ -6629,6 +6659,8 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - supports_multiple_c2_in_build
+          - supports_multiple_c2_instances_in_build
           - use_display_params_for_cli_history
           - wrapper
           - id
@@ -6652,6 +6684,8 @@
           - deleted
           - mythic_encrypts
           - supports_dynamic_loading
+          - supports_multiple_c2_in_build
+          - supports_multiple_c2_instances_in_build
           - use_display_params_for_cli_history
           - wrapper
           - id
@@ -7038,6 +7072,9 @@
     - name: apitoken
       using:
         foreign_key_constraint_on: apitokens_id
+    - name: callback
+      using:
+        foreign_key_constraint_on: callback_id
     - name: credential
       using:
         foreign_key_constraint_on: credential_id
@@ -7056,6 +7093,9 @@
     - name: operation
       using:
         foreign_key_constraint_on: operation_id
+    - name: payload
+      using:
+        foreign_key_constraint_on: payload_id
     - name: response
       using:
         foreign_key_constraint_on: response_id
@@ -7078,12 +7118,14 @@
           operation_id: x-hasura-current-operation-id
         columns:
           - apitokens_id
+          - callback_id
           - credential_id
           - data
           - eventstepinstance_id
           - filemeta_id
           - keylog_id
           - mythictree_id
+          - payload_id
           - response_id
           - source
           - tagtype_id
@@ -7099,12 +7141,14 @@
           operation_id: x-hasura-current-operation-id
         columns:
           - apitokens_id
+          - callback_id
           - credential_id
           - data
           - eventstepinstance_id
           - filemeta_id
           - keylog_id
           - mythictree_id
+          - payload_id
           - response_id
           - source
           - tagtype_id
@@ -7120,12 +7164,14 @@
           operation_id: x-hasura-current-operation-id
         columns:
           - apitokens_id
+          - callback_id
           - credential_id
           - data
           - eventstepinstance_id
           - filemeta_id
           - keylog_id
           - mythictree_id
+          - payload_id
           - response_id
           - source
           - tagtype_id
@@ -7141,12 +7187,14 @@
           operation_id: x-hasura-current-operation-id
         columns:
           - apitokens_id
+          - callback_id
           - credential_id
           - data
           - eventstepinstance_id
           - filemeta_id
           - keylog_id
           - mythictree_id
+          - payload_id
           - response_id
           - source
           - tagtype_id
@@ -7162,12 +7210,14 @@
           operation_id: x-hasura-current-operation-id
         columns:
           - apitokens_id
+          - callback_id
           - credential_id
           - data
           - eventstepinstance_id
           - filemeta_id
           - keylog_id
           - mythictree_id
+          - payload_id
           - response_id
           - source
           - tagtype_id
@@ -7179,6 +7229,7 @@
       permission:
         columns:
           - apitokens_id
+          - callback_id
           - credential_id
           - eventstepinstance_id
           - filemeta_id
@@ -7186,6 +7237,7 @@
           - keylog_id
           - mythictree_id
           - operation_id
+          - payload_id
           - response_id
           - tagtype_id
           - task_id
@@ -7201,6 +7253,7 @@
       permission:
         columns:
           - apitokens_id
+          - callback_id
           - credential_id
           - eventstepinstance_id
           - filemeta_id
@@ -7208,6 +7261,7 @@
           - keylog_id
           - mythictree_id
           - operation_id
+          - payload_id
           - response_id
           - tagtype_id
           - task_id
@@ -7223,6 +7277,7 @@
       permission:
         columns:
           - apitokens_id
+          - callback_id
           - credential_id
           - eventstepinstance_id
           - filemeta_id
@@ -7230,6 +7285,7 @@
           - keylog_id
           - mythictree_id
           - operation_id
+          - payload_id
           - response_id
           - tagtype_id
           - task_id
@@ -7245,6 +7301,7 @@
       permission:
         columns:
           - apitokens_id
+          - callback_id
           - credential_id
           - eventstepinstance_id
           - filemeta_id
@@ -7252,6 +7309,7 @@
           - keylog_id
           - mythictree_id
           - operation_id
+          - payload_id
           - response_id
           - tagtype_id
           - task_id
@@ -7267,6 +7325,7 @@
       permission:
         columns:
           - apitokens_id
+          - callback_id
           - credential_id
           - eventstepinstance_id
           - filemeta_id
@@ -7274,6 +7333,7 @@
           - keylog_id
           - mythictree_id
           - operation_id
+          - payload_id
           - response_id
           - tagtype_id
           - task_id
@@ -7289,12 +7349,14 @@
     - role: developer
       permission:
         columns:
+          - callback_id
           - credential_id
           - data
           - eventstepinstance_id
           - filemeta_id
           - keylog_id
           - mythictree_id
+          - payload_id
           - response_id
           - source
           - tagtype_id
@@ -7308,12 +7370,14 @@
     - role: mythic_admin
       permission:
         columns:
+          - callback_id
           - credential_id
           - data
           - eventstepinstance_id
           - filemeta_id
           - keylog_id
           - mythictree_id
+          - payload_id
           - response_id
           - source
           - tagtype_id
@@ -7327,12 +7391,14 @@
     - role: operation_admin
       permission:
         columns:
+          - callback_id
           - credential_id
           - data
           - eventstepinstance_id
           - filemeta_id
           - keylog_id
           - mythictree_id
+          - payload_id
           - response_id
           - source
           - tagtype_id
@@ -7346,12 +7412,14 @@
     - role: operator
       permission:
         columns:
+          - callback_id
           - credential_id
           - data
           - eventstepinstance_id
           - filemeta_id
           - keylog_id
           - mythictree_id
+          - payload_id
           - response_id
           - source
           - tagtype_id

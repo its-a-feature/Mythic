@@ -38,6 +38,14 @@ fragment payloadData on payload {
     step_stderr
     id
   }
+  tags {
+    tagtype {
+        name
+        color
+        id
+      }
+    id
+  }
   filemetum {
     agent_file_id
     filename_text

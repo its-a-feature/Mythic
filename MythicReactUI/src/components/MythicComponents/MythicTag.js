@@ -26,6 +26,9 @@ import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import Typography from '@mui/material/Typography';
+import MythicStyledTableCell from "./MythicTableCell";
+import {meState} from "../../cache";
+import { useReactiveVar } from '@apollo/client';
 
 const createNewTagMutationTemplate = ({target_object}) => {
   // target_object should be something like "task_id"
@@ -96,6 +99,8 @@ query getSingleTag($tag_id: Int!){
     mythictree_id
     operation_id
     response_id
+    callback_id
+    payload_id
     task_id
     taskartifact_id
     tagtype {
@@ -107,14 +112,14 @@ query getSingleTag($tag_id: Int!){
   }
 }
 `
-export const TagsDisplay = ({tags}) => {
+export const TagsDisplay = ({tags, expand}) => {
   return (
       tags?.map( tt => (
-          <TagChipDisplay tag={tt} key={tt.id} />
+          <TagChipDisplay tag={tt} key={tt.id} expand={expand} />
         ))
   )
 }
-const TagChipDisplay = ({tag}) => {
+const TagChipDisplay = ({tag, expand}) => {
   const [openTagDisplay, setOpenTagDisplay] = React.useState(false);
   const [label, setLabel] = React.useState(tag.tagtype.name[0]);
   const onSelectTag = (event, tag) => {
@@ -132,17 +137,21 @@ const TagChipDisplay = ({tag}) => {
     setOpenTagDisplay(false);
   }
   const onMouseOver = () => {
-    setLabel(tag.tagtype.name);
+    if(expand === undefined || expand){
+      setLabel(tag.tagtype.name);
+    }
   }
   const onMouseOut = () => {
-    setTimeout( () => {
-      setLabel(tag.tagtype.name[0]);
-    }, 10000); // wait 10s then go back to just a single letter
+    if(expand === undefined || expand){
+      setTimeout( () => {
+        setLabel(tag.tagtype.name[0]);
+      }, 10000); // wait 10s then go back to just a single letter
+    }
   }
   return (
     <React.Fragment>
       <Chip onMouseOver={onMouseOver} onMouseOut={onMouseOut} label={label} size="small" onClick={(e) => onSelectTag(e)}
-            style={{float: "right", backgroundColor:tag.tagtype.color,}}
+            style={{float: "right", backgroundColor:tag.tagtype.color, height: "15px"}}
             sx={{
               "& .MuiChip-label": {overflow: "visible"}
             }}
@@ -233,6 +242,10 @@ function ViewTagDialog(props) {
         setObjectInfo({object_type: "task_id", object_id: data.tag_by_pk.task_id});
       }else if(data.tag_by_pk.taskartifact_id !== null){
         setObjectInfo({object_type: "taskartifact_id", object_id: data.tag_by_pk.taskartifact_id});
+      }else if(data.tag_by_pk.payload_id !== null){
+        setObjectInfo({object_type: "payload_id", object_id: data.tag_by_pk.payload_id});
+      }else if(data.tag_by_pk.callback_id !== null){
+        setObjectInfo({object_type: "callback_id", object_id: data.tag_by_pk.callback_id});
       }
       let newTag = {...data.tag_by_pk};
       let tagData = newTag;
@@ -493,8 +506,8 @@ return (
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                 <TableRow hover>
-                  <TableCell style={{width: "30%"}}>Select Existing Tag to Edit or Add New</TableCell>
-                  <TableCell style={{display: "inline-flex", flexDirection: "row-reverse"}}>
+                  <MythicStyledTableCell style={{width: "30%"}}>Select Existing Tag to Edit or Add New</MythicStyledTableCell>
+                  <MythicStyledTableCell style={{display: "inline-flex", flexDirection: "row-reverse"}}>
                     <MythicStyledTooltip title={"Add New Tag"}>
                       <IconButton variant='contained' color="success" style={{float: "right"}} onClick={() => setOpenNewDialog(true)} >
                         <AddCircleOutlineIcon />
@@ -519,28 +532,28 @@ return (
                       {openDelete && 
                         <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                       }
-                  </TableCell>
+                  </MythicStyledTableCell>
                 </TableRow>
                 <TableRow hover>
-                  <TableCell>Tag Description</TableCell>
-                  <TableCell>{selectedTag?.tagtype?.description || ""}</TableCell>
+                  <MythicStyledTableCell>Tag Description</MythicStyledTableCell>
+                  <MythicStyledTableCell>{selectedTag?.tagtype?.description || ""}</MythicStyledTableCell>
                 </TableRow>
                 <TableRow hover>
-                  <TableCell>Source</TableCell>
-                  <TableCell>
+                  <MythicStyledTableCell>Source</MythicStyledTableCell>
+                  <MythicStyledTableCell>
                     <MythicTextField value={newSource} onChange={onChangeSource} name="Source of tag data" />
-                  </TableCell>
+                  </MythicStyledTableCell>
                 </TableRow>
                 <TableRow hover>
-                  <TableCell>External URL</TableCell>
-                  <TableCell>
+                  <MythicStyledTableCell>External URL</MythicStyledTableCell>
+                  <MythicStyledTableCell>
                     <MythicTextField value={newURL} onChange={onChangeURL} name="External URL reference" />
                     <Link href={newURL} color="textPrimary" target="_blank" referrerPolicy='no'>{newURL ? "click here" : ""}</Link>
-                  </TableCell>
+                  </MythicStyledTableCell>
                 </TableRow>
                 <TableRow hover>
-                  <TableCell>JSON Data</TableCell>
-                  <TableCell>
+                  <MythicStyledTableCell>JSON Data</MythicStyledTableCell>
+                  <MythicStyledTableCell>
                   <AceEditor 
                     mode="json"
                     theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
@@ -556,7 +569,7 @@ return (
                       tabSize: 4,
                       useWorker: false
                     }}/>
-                  </TableCell>
+                  </MythicStyledTableCell>
                 </TableRow>
               </TableBody>
           </Table>
@@ -635,7 +648,7 @@ export function NewTagDialog(props) {
             <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableBody>
                   <TableRow hover>
-                    <TableCell style={{width: "20%"}}>
+                    <MythicStyledTableCell style={{width: "20%"}}>
                       <Typography>
                         Tag
                       </Typography>
@@ -647,8 +660,8 @@ export function NewTagDialog(props) {
                         here
                       </Link>
                       </Typography>
-                    </TableCell>
-                    <TableCell>
+                    </MythicStyledTableCell>
+                    <MythicStyledTableCell>
                       <Select
                         labelId="demo-dialog-select-label"
                         id="demo-dialog-select"
@@ -662,24 +675,24 @@ export function NewTagDialog(props) {
                             </MenuItem>
                         ) )}
                       </Select>
-                    </TableCell>
+                    </MythicStyledTableCell>
                   </TableRow>
                   <TableRow hover>
-                    <TableCell>Source</TableCell>
-                    <TableCell>
+                    <MythicStyledTableCell>Source</MythicStyledTableCell>
+                    <MythicStyledTableCell>
                       <MythicTextField value={newSource} onChange={onChangeSource} name="Source of tag data" />
-                    </TableCell>
+                    </MythicStyledTableCell>
                   </TableRow>
                   <TableRow hover>
-                    <TableCell>External URL</TableCell>
-                    <TableCell>
+                    <MythicStyledTableCell>External URL</MythicStyledTableCell>
+                    <MythicStyledTableCell>
                       <MythicTextField value={newURL} onChange={onChangeURL} name="External URL reference" />
                       <Link href={newURL} color="textPrimary" target="_blank" referrerPolicy='no'>{newURL}</Link>
-                    </TableCell>
+                    </MythicStyledTableCell>
                   </TableRow>
                   <TableRow hover>
-                    <TableCell>JSON Data</TableCell>
-                    <TableCell>
+                    <MythicStyledTableCell>JSON Data</MythicStyledTableCell>
+                    <MythicStyledTableCell>
                     <AceEditor 
                       mode="json"
                       theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
@@ -695,7 +708,7 @@ export function NewTagDialog(props) {
                         tabSize: 4,
                         useWorker: false
                       }}/>
-                    </TableCell>
+                    </MythicStyledTableCell>
                   </TableRow>
                 </TableBody>
             </Table>
@@ -715,7 +728,8 @@ export function NewTagDialog(props) {
   </React.Fragment>
   );
 }
-export const ViewEditTags = ({target_object, target_object_id, me}) => {
+export const ViewEditTags = ({target_object, target_object_id}) => {
+  const me = useReactiveVar(meState);
   const [openTagDialog, setOpenTagDialog] = React.useState(false);
   const toggleTagDialog = (event, open) => {
     if(event){
@@ -726,7 +740,10 @@ export const ViewEditTags = ({target_object, target_object_id, me}) => {
   }
   return(
     <React.Fragment>
-    <IconButton onClick={(e) => toggleTagDialog(e, true)} size="small" style={{display: "inline-block", float: "right"}}><LocalOfferOutlinedIcon /></IconButton>
+    <IconButton onClick={(e) => toggleTagDialog(e, true)} size="small"
+                style={{display: "inline-block", float: "right", padding: "0px"}}>
+      <LocalOfferOutlinedIcon />
+    </IconButton>
     {openTagDialog &&
       <MythicDialog fullWidth={true} maxWidth="xl" open={openTagDialog}
         onClose={(e)=>{toggleTagDialog(e, false)}}

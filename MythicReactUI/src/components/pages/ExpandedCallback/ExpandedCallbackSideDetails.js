@@ -21,6 +21,7 @@ import {
 } from "../Callbacks/CallbacksTableRow";
 import {updateSleepInfoCallbackMutation} from "../Callbacks/CallbackMutations";
 import {snackActions} from "../../utilities/Snackbar";
+import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 
 export function ExpandedCallbackSideDetails(props){
     const theme = useTheme();
@@ -209,6 +210,13 @@ export function ExpandedCallbackSideDetailsTable(props){
                 <TableRow>
                     <TableCell>Agent Callback ID</TableCell>
                     <TableCell>{props.agent_callback_id}</TableCell>
+                </TableRow>
+                <TableRow>
+                    <TableCell>Tags</TableCell>
+                    <TableCell>
+                        <ViewEditTags target_object={"callback_id"} target_object_id={props.id} />
+                        <TagsDisplay tags={props.tags} />
+                    </TableCell>
                 </TableRow>
             </TableBody>
         </Table>

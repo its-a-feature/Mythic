@@ -27,6 +27,8 @@ type TagCreate struct {
 	TaskArtifactID *int `json:"taskartifact_id"`
 	KeylogID       *int `json:"keylog_id"`
 	ResponseID     *int `json:"response_id"`
+	PayloadID      *int `json:"payload_id"`
+	CallbackID     *int `json:"callback_id"`
 }
 type TagCreateResponse struct {
 	Status string `json:"status"`
@@ -79,6 +81,7 @@ func TagCreateWebhook(c *gin.Context) {
 		databaseObj.Data = rabbitmq.GetMythicJSONTextFromStruct(input.Input.Data)
 	}
 	APITokenID, ok := c.Get("apitokens-id")
+	associatedWithValidObject := false
 	if ok {
 		if APITokenID.(int) > 0 {
 			databaseObj.APITokensID.Valid = true
@@ -99,6 +102,7 @@ func TagCreateWebhook(c *gin.Context) {
 		}
 		databaseObj.MythicTree.Valid = true
 		databaseObj.MythicTree.Int64 = int64(mythicTree.ID)
+		associatedWithValidObject = true
 	}
 	if input.Input.FileMetaID != nil {
 		fileMeta := databaseStructs.Filemeta{}
@@ -114,6 +118,7 @@ func TagCreateWebhook(c *gin.Context) {
 		}
 		databaseObj.FileMeta.Valid = true
 		databaseObj.FileMeta.Int64 = int64(fileMeta.ID)
+		associatedWithValidObject = true
 	}
 	if input.Input.TaskID != nil {
 		task := databaseStructs.Task{}
@@ -129,6 +134,7 @@ func TagCreateWebhook(c *gin.Context) {
 		}
 		databaseObj.Task.Valid = true
 		databaseObj.Task.Int64 = int64(task.ID)
+		associatedWithValidObject = true
 	}
 	if input.Input.ResponseID != nil {
 		response := databaseStructs.Response{}
@@ -144,6 +150,7 @@ func TagCreateWebhook(c *gin.Context) {
 		}
 		databaseObj.Response.Valid = true
 		databaseObj.Response.Int64 = int64(response.ID)
+		associatedWithValidObject = true
 	}
 	if input.Input.CredentialID != nil {
 		credential := databaseStructs.Credential{}
@@ -159,6 +166,7 @@ func TagCreateWebhook(c *gin.Context) {
 		}
 		databaseObj.Credential.Valid = true
 		databaseObj.Credential.Int64 = int64(credential.ID)
+		associatedWithValidObject = true
 	}
 	if input.Input.KeylogID != nil {
 		keylog := databaseStructs.Keylog{}
@@ -174,6 +182,7 @@ func TagCreateWebhook(c *gin.Context) {
 		}
 		databaseObj.Keylog.Valid = true
 		databaseObj.Keylog.Int64 = int64(keylog.ID)
+		associatedWithValidObject = true
 	}
 	if input.Input.TaskArtifactID != nil {
 		artifact := databaseStructs.Taskartifact{}
@@ -189,11 +198,51 @@ func TagCreateWebhook(c *gin.Context) {
 		}
 		databaseObj.TaskArtifact.Valid = true
 		databaseObj.TaskArtifact.Int64 = int64(artifact.ID)
+		associatedWithValidObject = true
+	}
+	if input.Input.PayloadID != nil {
+		payload := databaseStructs.Payload{}
+		err = database.DB.Get(&payload, `SELECT id FROM payload WHERE id=$1 AND operation_id=$2`,
+			*input.Input.PayloadID, operatorOperation.CurrentOperation.ID)
+		if err != nil {
+			logging.LogError(nil, "Failed to get payload info")
+			c.JSON(http.StatusOK, gin.H{
+				"status": "error",
+				"error":  "failed to get object in your operation",
+			})
+			return
+		}
+		databaseObj.Payload.Valid = true
+		databaseObj.Payload.Int64 = int64(payload.ID)
+		associatedWithValidObject = true
+	}
+	if input.Input.CallbackID != nil {
+		callback := databaseStructs.Callback{}
+		err = database.DB.Get(&callback, `SELECT id FROM callback WHERE id=$1 AND operation_id=$2`,
+			*input.Input.CallbackID, operatorOperation.CurrentOperation.ID)
+		if err != nil {
+			logging.LogError(nil, "Failed to get callback info")
+			c.JSON(http.StatusOK, gin.H{
+				"status": "error",
+				"error":  "failed to get object in your operation",
+			})
+			return
+		}
+		databaseObj.Callback.Valid = true
+		databaseObj.Callback.Int64 = int64(callback.ID)
+		associatedWithValidObject = true
+	}
+	if !associatedWithValidObject {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "error",
+			"error":  "Failed to associate tag with any valid objects",
+		})
+		return
 	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO tag 
-		(operation_id, data, url, source, tagtype_id, mythictree_id, filemeta_id, task_id, response_id, credential_id, keylog_id, taskartifact_id)
+		(operation_id, data, url, source, tagtype_id, mythictree_id, filemeta_id, task_id, response_id, credential_id, keylog_id, taskartifact_id, payload_id, callback_id)
 		VALUES 
-		(:operation_id, :data, :url, :source, :tagtype_id, :mythictree_id, :filemeta_id, :task_id, :response_id, :credential_id, :keylog_id, :taskartifact_id)
+		(:operation_id, :data, :url, :source, :tagtype_id, :mythictree_id, :filemeta_id, :task_id, :response_id, :credential_id, :keylog_id, :taskartifact_id, :payload_id, :callback_id)
 		RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to prepare statement for adding tag")

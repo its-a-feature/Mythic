@@ -368,8 +368,9 @@ export function PayloadsTableRow(props){
                     <PayloadsTableRowC2Status payloadc2profiles={props.payloadc2profiles} uuid={props.uuid} />
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <ViewEditTags target_object={"filemeta_id"} target_object_id={props.filemetum.id} me={props.me} />
+                    <ViewEditTags target_object={"payload_id"} target_object_id={props.id} me={props.me} />
                     <TagsDisplay tags={props.filemetum.tags} />
+                    <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
             </TableRow>
             {openDetailedView ? (

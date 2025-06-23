@@ -31,6 +31,7 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
 import NotificationsActiveTwoToneIcon from '@mui/icons-material/NotificationsActiveTwoTone';
 import {faSocks} from '@fortawesome/free-solid-svg-icons';
+import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 
 export const CallbacksTableIDCell = React.memo(({rowData, callbackDropdown}) =>{
     const theme = useTheme();
@@ -473,5 +474,13 @@ export const CallbacksTableSleepCell = React.memo( ({rowData, cellData, updateSl
         </div>
         
             
+    )
+}, areEqual)
+export const CallbacksTableTagsCell = React.memo(({rowData, cellData}) => {
+    return (
+        <div>
+            <ViewEditTags target_object={"callback_id"} target_object_id={rowData.id} />
+            <TagsDisplay tags={cellData} expand={false} />
+        </div>
     )
 }, areEqual)

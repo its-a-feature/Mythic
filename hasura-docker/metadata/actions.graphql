@@ -178,6 +178,8 @@ type Mutation {
     keylog_id: Int
     response_id: Int
     task_id: Int
+    payload_id: Int
+    callback_id: Int
   ): createTagOutput
 }
 
