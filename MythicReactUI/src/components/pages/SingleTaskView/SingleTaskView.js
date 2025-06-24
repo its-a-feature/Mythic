@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {TaskDisplay, TaskDisplayConsole} from '../Callbacks/TaskDisplay';
+import {TaskDisplay} from '../Callbacks/TaskDisplay';
 import {gql, useLazyQuery, useQuery } from '@apollo/client';
 import  {useParams} from "react-router-dom";
 import {TaskMetadataTable} from './MetadataTable';
@@ -71,7 +71,7 @@ export const RenderSingleTask = ({task_id}) => {
     });
     return (
         taskData.id &&
-        <TaskDisplayConsole me={me} task={taskData} command_id={taskData.command === null ? 0 : taskData.command.id} />
+        <TaskDisplay me={me} task={taskData} command_id={taskData.command === null ? 0 : taskData.command.id} />
     )
 }
 export function SingleTaskView(props){
@@ -258,7 +258,7 @@ export function SingleTaskView(props){
             task.type === "task" ? (
                     <div key={"taskdisplay:" + task.display_id} style={{marginRight: "5px"}}>
                         <div style={{width: removing ? "95%" : "100%", display: "inline-block"}}>
-                            <TaskDisplayConsole me={me} task={task} command_id={task.command === null ? 0 : task.command.id} />
+                            <TaskDisplay me={me} task={task} command_id={task.command === null ? 0 : task.command.id} />
                         </div>
                         {removing ? (
                             <Switch

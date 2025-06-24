@@ -798,26 +798,6 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
 
 
 const ColoredTaskDisplayConsole = ({task, theme, children, expanded}) => {
-  const [themeColor, setThemeColor] = React.useState(theme.palette.info.main);
-  useEffect( () => {
-    if(task.status.toLowerCase().includes("error")){
-      setThemeColor(theme.palette.error.main);
-    }else if(task.status.toLowerCase() === "cleared"){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.status === "submitted"){
-      setThemeColor(theme.palette.info.main);
-    }else if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.opsec_post_blocked && !task.opsec_post_bypassed){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.status.toLowerCase().includes("processing")){
-      setThemeColor(theme.palette.warning.main);
-    }else if(task.status === "completed" || (task.status === "success" && task.completed)){
-      setThemeColor(theme.palette.success.main);
-    }else{
-      setThemeColor(theme.palette.info.main);
-    }
-  }, [task.status, task.completed])
   return(
       <span style={{display: "flex", margin: 0, borderWidth: 0, padding: 0, minHeight: "30px", alignItems: "center",
         height: "100%", paddingLeft: "5px", width: "100%",
@@ -982,58 +962,95 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
   return (
 	    <ColoredTaskDisplayConsole task={task} theme={theme} expanded={expanded}>
 	        <div id={taskDivID} style={{ width: "100%" }}>
-	            <Typography sx={{ color: theme.taskPromptTextColor, fontSize: 15, display: "flex", alignItems: "center" }} style={{ fontFamily: "monospace" }}>
-	                <span style={{ fontFamily: "monospace" }}>┌──([</span>
+	            <Typography sx={{ color: theme.taskPromptTextColor,  display: "flex", alignItems: "center" }} style={{ fontFamily: "monospace" }}>
+	                <span style={{ fontFamily: "monospace" }}>┌──[</span>
 	                <AccessTimeIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
 	                {toLocalTimeShort(displayTimestamp, me?.user?.view_utc_time || false)}
-	                {"]-["}
-	                <PersonOutlineIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
-	                {task.operator.username}
-	                {"]-["}
+	                {"]"}
+                  {!initialHideUsernameValue &&
+                      <>
+                        {"-["}
+                        <PersonOutlineIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
+                        {task.operator.username}
+                        {"]"}
+                      </>
+                  }
+                  {"-["}
 	                <NumbersIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
-	                T-{task.display_id}
+                    <MythicStyledTooltip title={"View Task in separate page"} >
+                      <Link style={{wordBreak: "break-all", color: theme.taskPromptTextColor,}} underline={"always"} target={"_blank"}
+                            href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
+                    </MythicStyledTooltip>
+                  {!task.completed && task.status_timestamp_processing &&
+                      <>
+                        <MythicStyledTooltip title={"Task the agent to kill this task"} >
+                          <IconButton style={{padding: 0}} onClick={(e) => onClickKillIcon(e, true)}
+                                      color="inherit" disableFocusRipple={true}
+                                      disableRipple={true}>
+                            <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones}
+                                             style={{cursor: "pointer", height: "15px", marginLeft: "5px"}} />
+                          </IconButton>
+                        </MythicStyledTooltip>
+                      </>
+                  }
+                  {"]"}
 	                {initialShowHostnameValue ? (
 	                    <>
-	                        {"]-["}
+	                        {"-["}
 	                        <ComputerIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
 	                        {task.callback.host}
+                            {"]"}
 	                    </>) : null}
 	                {initialShowIPValue ? (
 	                    <>
-	                        {"]-["}
+	                        {"-["}
 	                        <PublicIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle" }} />
 	                        {JSON.parse(task.callback.ip)[0]}
+                            {"]"}
 	                    </> ) : null}
 	                {(task.opsec_pre_blocked && !task.opsec_pre_bypassed) ? (
 	                    <>
-	                        {"]-["}
+	                        {"-["}
 	                        <WarningAmberIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle", color: theme.palette.warning.main }} />
-	                        OPSEC BLOCKED (PRE)
+                            {"OPSEC BLOCKED (PRE)]"}
 	                    </>) : null}
 	                {(task.opsec_post_blocked && !task.opsec_post_bypassed) ? (
 	                    <>
-	                        {"]-["}
+	                        {"-["}
 	                        <WarningAmberIcon fontSize="small" style={{ margin: "0 3px 0 0px", verticalAlign: "middle", color: theme.palette.warning.main }} />
-	                        OPSEC BLOCKED (POST)
+                            {"OPSEC BLOCKED (POST)]"}
 	                    </>) : null}
-	                {"])"}
+	                {")"}
 	            </Typography>
+              <MythicStyledTooltip title={task.status}>
+                <span style={{ fontFamily: "monospace", marginRight: 2, color: theme.taskPromptTextColor }}>└─</span>
+                <b style={{ fontFamily: "monospace", color: themeColor, fontWeight: 600 }}>{">_"}</b>{" "}
+              </MythicStyledTooltip>
 	            <MythicStyledTooltip
 	                title={(task?.command?.cmd || task.command_name) + " " + task.display_params}
 	                maxWidth="calc(80vw)"
 	                enterDelay={2000}
 	                placement="top">
 	                <Typography
-	                    sx={{ fontSize: 15, display: "flex", alignItems: "center", marginLeft: 0, cursor: "pointer" }}
+	                    sx={{ fontSize: 15, display: "flex", alignItems: "center", marginLeft: 0}}
 	                    style={{ fontFamily: "monospace" }}>
-	                    <span style={{ fontFamily: "monospace", marginRight: 2, color: theme.taskPromptTextColor }}>└─</span>
-	                    <b style={{ fontFamily: "monospace", color: themeColor }}>{">_"}</b>{" "}
-	                    <span style={{ marginLeft: 4, color: theme.taskPromptTextColor }}>
+	                    <span style={{ marginLeft: 4, color: theme.taskPromptCommandTextColor }}>
 	                        <b>{(task?.command?.cmd || task.command_name)}</b> {task.display_params}
 	                    </span>
 	                </Typography>
 	            </MythicStyledTooltip>
 	        </div>
+          {openKillTaskButton.open &&
+              <TaskFromUIButton ui_feature={"task:job_kill"}
+                                callback_id={task.callback?.id}
+                                display_id={task.callback?.display_id}
+                                parameters={task.agent_task_id}
+                                openDialog={false}
+                                getConfirmation={true}
+                                acceptText={"KILL JOB"}
+                                selectCallback={false}
+                                onTasked={({tasked}) => onClickKillIcon(null, false)}/>
+          }
 	    </ColoredTaskDisplayConsole>
 	);
 }
