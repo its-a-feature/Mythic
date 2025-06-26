@@ -29,6 +29,11 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import {TableRowSizeCell} from "../Callbacks/CallbacksTabsFileBrowserTable";
 import {payloadsCallbackAllowed} from "./Payloads";
 import Switch from '@mui/material/Switch';
+import Split from 'react-split';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import {ViewPayloadConfigJSON} from "./EditPayloadConfigDialog";
 
 
 const GET_Payload_Details = gql`
@@ -132,6 +137,21 @@ mutation removeCommandsMutation($command_id: Int!, $payload_id: Int!) {
   }
 }
 `;
+const GetPayloads = gql`
+    query GetPayloads {
+        payload(where: {deleted: {_eq: false}}, order_by: {id: desc}) {
+            id
+            uuid
+            description
+            payloadtype {
+                name
+            }
+            filemetum {
+              filename_text
+            }
+        }
+    }
+`;
 export function DetailedPayloadTable(props){
     return (
         <React.Fragment>
@@ -148,7 +168,141 @@ export function DetailedPayloadTable(props){
         )
 }
 
-export const ParseForDisplay = ({cmd, filename}) => {
+export function DetailedPayloadComparisonTable(props){
+    const [payloads, setPayloads] = React.useState([]);
+    const [selectedPayload1, setSelectedPayload1] = React.useState("");
+    const [selectedPayload2, setSelectedPayload2] = React.useState("");
+    const [splitSizes, setSplitSizes] = React.useState([50, 50]);
+    const [view, setView] = React.useState('table');
+    const viewOptions = ['table', 'json'];
+    const handleChangePayload1 = (event) => {
+        setSelectedPayload1(event.target.value);
+    }
+    const handleChangePayload2 = (event) => {
+        setSelectedPayload2(event.target.value);
+    }
+    const handleViewChange = (event) => {
+        setView(event.target.value);
+    }
+    useQuery(GetPayloads, {
+        onCompleted: (data) => {
+            setPayloads(data.payload);
+            if(data.payload.length > 0){
+                setSelectedPayload2(data.payload[0]);
+            }
+            let matchedPayload = data.payload.filter(p => p.id === props.payload_id)
+            if(matchedPayload.length > 0){
+                setSelectedPayload1(matchedPayload[0]);
+            }
+        },
+        onError: (data) => {
+
+        }
+    })
+    return (
+        <React.Fragment>
+            <DialogTitle id="form-dialog-title">
+                Compare Payload Configurations
+                <Select
+                    value={view}
+                    onChange={handleViewChange}
+                    style={{ float: "right"}}
+                >
+                    {viewOptions.map(p => (
+                        <MenuItem
+                            key={p}
+                            value={p}
+                        > {p}</MenuItem>
+                    ))}
+                </Select>
+            </DialogTitle>
+            <DialogContent dividers={true} style={{padding: 0, margin: 0, height: "100%"}}>
+                <Split direction="horizontal"
+                       sizes={splitSizes}
+                       minSize={[0, 0]}
+                       onDrag={()=>{}}
+                       style={{display: "flex", height: "100%"}}>
+                    <div style={{display: 'flex',
+                        flexDirection: 'column',
+                        flexGrow: 1,
+                        width: '100%',
+                        maxWidth: '100%',
+                        overflowY: "auto",}}>
+                            <Select
+                                value={selectedPayload1}
+                                onChange={handleChangePayload1}
+                                style={{width: "100%"}}
+                            >
+                                {payloads.map(p => (
+                                    <MenuItem
+                                        key={p.id}
+                                        value={p}
+                                    >
+                                        <div style={{display: "flex", alignItems: "center"}}>
+                                            <MythicStyledTooltip title={p.payloadtype.name} tooltipStyle={{display: "inline-block"}}>
+                                                <MythicAgentSVGIcon payload_type={p.payloadtype.name} style={{width: "35px", height: "35px"}} />
+                                            </MythicStyledTooltip>
+                                            {" "}{b64DecodeUnicode(p.filemetum.filename_text)}{" - "}{p.description}
+                                        </div>
+
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        {view === 'table' && selectedPayload1 !== "" &&
+                                <DetailedPayloadInnerTable me={props.me} payload_id={selectedPayload1.id}/>
+                        }
+                        {view === 'json' && selectedPayload1 !== "" &&
+                            <ViewPayloadConfigJSON uuid={selectedPayload1.uuid} />
+                        }
+                    </div>
+                    <div style={{display: 'flex',
+                        flexDirection: 'column',
+                        flexGrow: 1,
+                        width: '100%',
+                        maxWidth: '100%',
+                        overflowY: "auto",}}>
+                        <Select
+                            value={selectedPayload2}
+                            onChange={handleChangePayload2}
+                            style={{width: "100%"}}
+                        >
+                            {payloads.map(p => (
+                                <MenuItem
+                                    key={p.id}
+                                    value={p}
+                                >
+                                    <div style={{display: "flex", alignItems: "center"}}>
+                                        <MythicStyledTooltip title={p.payloadtype.name}
+                                                             tooltipStyle={{display: "inline-block"}}>
+                                            <MythicAgentSVGIcon payload_type={p.payloadtype.name}
+                                                                style={{width: "35px", height: "35px"}}/>
+                                        </MythicStyledTooltip>
+                                        {" "}{b64DecodeUnicode(p.filemetum.filename_text)}{" - "}{p.description}
+                                    </div>
+                                </MenuItem>
+                            ))}
+                        </Select>
+                        {view === 'table' && selectedPayload2 !== "" &&
+                                <DetailedPayloadInnerTable me={props.me} payload_id={selectedPayload2.id} />
+                        }
+                        {view === 'json' && selectedPayload2 !== "" &&
+                            <ViewPayloadConfigJSON uuid={selectedPayload2.uuid} />
+                        }
+                    </div>
+                </Split>
+            </DialogContent>
+                <DialogActions>
+                    <Button onClick={props.onClose} variant="contained" color="primary">
+                        Close
+                    </Button>
+                </DialogActions>
+        </React.Fragment>
+)
+}
+
+export const ParseForDisplay = ({
+    cmd, filename
+}) => {
     const [renderObj, setRenderObj] = React.useState(cmd.value);
     const [fileMultipleValue, setFileMultipleValue] = React.useState([]);
     React.useEffect( () => {

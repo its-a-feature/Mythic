@@ -80,7 +80,7 @@ export function MythicModifyStringDialog(props) {
     }, [props.value]);
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
+        {props.title !== "" && <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>}
         <DialogContent dividers={true} style={{height: "100%", margin: 0, padding: 0}}>
             <AceEditor
                 mode="json"
@@ -100,9 +100,11 @@ export function MythicModifyStringDialog(props) {
             />
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
-            Close
-          </Button>
+            {props.onClose &&
+                <Button onClick={props.onClose} variant="contained" color="primary">
+                    Close
+                </Button>
+            }
             {props.onSubmit &&
                 <Button onClick={onCommitSubmit} variant="contained" color="success">
                     {props.onSubmitText ? props.onSubmitText : "Submit"}

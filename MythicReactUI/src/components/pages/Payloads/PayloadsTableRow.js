@@ -4,7 +4,7 @@ import TableRow from '@mui/material/TableRow';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
-import {DetailedPayloadTable} from './DetailedPayloadTable';
+import {DetailedPayloadComparisonTable, DetailedPayloadTable} from './DetailedPayloadTable';
 import Grow from '@mui/material/Grow';
 import Popper from '@mui/material/Popper';
 import MenuItem from '@mui/material/MenuItem';
@@ -50,6 +50,7 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import BlockIcon from '@mui/icons-material/Block';
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 import {EditPayloadConfigDialog} from "./EditPayloadConfigDialog";
+import DifferenceIcon from '@mui/icons-material/Difference';
 
 const rebuildPayloadMutation = gql`
 mutation triggerRebuildMutation($uuid: String!) {
@@ -85,6 +86,7 @@ export function PayloadsTableRow(props){
     const [openGenerateIOCDialog, setOpenGenerateIOCDialog] = React.useState(false);
     const [openGenerateSampleMessageDialog, setOpenGenerateSampleMessageDialog] = React.useState(false);
     const [openEditPayloadConfigDialog, setOpenEditPayloadConfigDialog] = React.useState(false);
+    const [openComparePayloadsDialog, setOpenComparePayloadsDialog] = React.useState(false);
     const dropdownAnchorRef = useRef(null);
     const [triggerRebuild] = useMutation(rebuildPayloadMutation, {
       onCompleted: (data) => {
@@ -157,6 +159,9 @@ export function PayloadsTableRow(props){
                      }},
                     {name: <><InfoIconOutline color={"info"} style={{marginRight: "10px"}} /> View Payload Configuration</>, click: () => {
                             setOpenDetailedView(true);
+                        }},
+                    {name: <><DifferenceIcon color={"info"} style={{marginRight: "10px"}} /> Compare Payload Configuration</>, click: () => {
+                            setOpenComparePayloadsDialog(true);
                         }},
                      {name: props.callback_alert ?
                              <><VisibilityIcon color={"success"} style={{marginRight: "10px"}}  />{'Alerting to New Callbacks'}</> :
@@ -319,6 +324,12 @@ export function PayloadsTableRow(props){
                       innerDialog={<CreateNewCallbackDialog uuid={props.uuid} filename={b64DecodeUnicode(props.filemetum.filename_text)} onClose={()=>{setOpenCreateNewCallbackDialog(false);}} />}
                   />
                 }
+                {openComparePayloadsDialog &&
+                    <MythicDialog fullWidth={true} maxWidth="xl" open={openComparePayloadsDialog}
+                                  onClose={()=>{setOpenComparePayloadsDialog(false);}}
+                                  innerDialog={<DetailedPayloadComparisonTable {...props} payload_id={props.id} onClose={()=>{setOpenComparePayloadsDialog(false);}} />}
+                    />
+                }
                 {openDelete &&
                     <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}}
                                          onSubmit={onAcceptDelete} open={openDelete}
@@ -374,7 +385,7 @@ export function PayloadsTableRow(props){
                 </MythicStyledTableCell>
             </TableRow>
             {openDetailedView ? (
-              <MythicDialog fullWidth={true} maxWidth="lg" open={openDetailedView} 
+              <MythicDialog fullWidth={true} maxWidth="lg" open={openDetailedView}
                   onClose={()=>{setOpenDetailedView(false);}} 
                   innerDialog={<DetailedPayloadTable {...props} payload_id={props.id} onClose={()=>{setOpenDetailedView(false);}} />}
               />
