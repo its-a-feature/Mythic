@@ -159,7 +159,8 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 		if err != nil {
 			// mythic can't keep track of the new connection for some reason, abort it
 			logging.LogError(err, "Failed to add new channels to listen for connection")
-			go updatePushC2LastCheckinDisconnectTimestamp(callback.ID, c2ProfileName)
+			t.SetPushC2ChannelExited(callback.ID)
+			//go updatePushC2LastCheckinDisconnectTimestamp(callback.ID, c2ProfileName)
 			return err
 		}
 		logging.LogDebug("Got new push c2 agent", "agent id", callbackUUID)
@@ -252,19 +253,19 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 			case <-failedReadFromAgent:
 				logging.LogError(nil, "hit error reading and processing message from agent, bailing")
 				t.SetPushC2ChannelExited(callback.ID)
-				go updatePushC2LastCheckinDisconnectTimestamp(callback.ID, c2ProfileName)
+				//go updatePushC2LastCheckinDisconnectTimestamp(callback.ID, c2ProfileName)
 				return errors.New(fmt.Sprintf("client disconnected: %s", callbackUUID))
 			case <-stream.Context().Done():
 				// something closed the grpc connection, bail out
 				logging.LogError(stream.Context().Err(), fmt.Sprintf("client disconnected: %s", callbackUUID))
 				t.SetPushC2ChannelExited(callback.ID)
-				go updatePushC2LastCheckinDisconnectTimestamp(callback.ID, c2ProfileName)
+				//go updatePushC2LastCheckinDisconnectTimestamp(callback.ID, c2ProfileName)
 				return errors.New(fmt.Sprintf("client disconnected: %s", callbackUUID))
 			case msgToSend, ok := <-newPushMessageFromMythicChannel:
 				if !ok {
 					logging.LogError(nil, "got !ok from messageToSend, channel was closed for push c2")
 					t.SetPushC2ChannelExited(callback.ID)
-					go updatePushC2LastCheckinDisconnectTimestamp(callback.ID, c2ProfileName)
+					//go updatePushC2LastCheckinDisconnectTimestamp(callback.ID, c2ProfileName)
 					return nil
 				}
 				// msgToSend.Message should be in the form:
@@ -274,7 +275,7 @@ func (t *pushC2Server) StartPushC2Streaming(stream services.PushC2_StartPushC2St
 				if err != nil {
 					logging.LogError(err, "Failed to send message through stream to push c2")
 					t.SetPushC2ChannelExited(callback.ID)
-					go updatePushC2LastCheckinDisconnectTimestamp(callback.ID, c2ProfileName)
+					//go updatePushC2LastCheckinDisconnectTimestamp(callback.ID, c2ProfileName)
 					return err
 				}
 			}

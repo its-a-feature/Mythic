@@ -59,6 +59,7 @@ type grpcTranslationContainerClientConnections struct {
 type grpcPushC2ClientConnections struct {
 	pushC2MessageFromMythic chan services.PushC2MessageFromMythic
 	connected               bool
+	connections             int
 	callbackUUID            string
 	base64Encoded           bool
 	c2ProfileName           string
@@ -198,18 +199,19 @@ func (t *translationContainerServer) GetChannelTimeout() time.Duration {
 func (t *pushC2Server) GetRabbitMqProcessAgentMessageChannel() chan PushC2ServerConnected {
 	return t.rabbitmqProcessPushC2AgentConnection
 }
-func (t *pushC2Server) addNewPushC2Client(CallbackAgentID int, callbackUUID string, base64Encoded bool, c2ProfileName string, agentUUIDSize int) (chan services.PushC2MessageFromMythic, error) {
+func (t *pushC2Server) addNewPushC2Client(CallbackID int, callbackUUID string, base64Encoded bool, c2ProfileName string, agentUUIDSize int) (chan services.PushC2MessageFromMythic, error) {
 	t.Lock()
-	if _, ok := t.clients[CallbackAgentID]; !ok {
-		t.clients[CallbackAgentID] = &grpcPushC2ClientConnections{}
-		t.clients[CallbackAgentID].pushC2MessageFromMythic = make(chan services.PushC2MessageFromMythic, 100)
+	if _, ok := t.clients[CallbackID]; !ok {
+		t.clients[CallbackID] = &grpcPushC2ClientConnections{}
+		t.clients[CallbackID].pushC2MessageFromMythic = make(chan services.PushC2MessageFromMythic, 100)
 	}
-	fromMythic := t.clients[CallbackAgentID].pushC2MessageFromMythic
-	t.clients[CallbackAgentID].connected = true
-	t.clients[CallbackAgentID].callbackUUID = callbackUUID
-	t.clients[CallbackAgentID].base64Encoded = base64Encoded
-	t.clients[CallbackAgentID].c2ProfileName = c2ProfileName
-	t.clients[CallbackAgentID].AgentUUIDSize = agentUUIDSize
+	fromMythic := t.clients[CallbackID].pushC2MessageFromMythic
+	t.clients[CallbackID].connected = true
+	t.clients[CallbackID].connections += 1
+	t.clients[CallbackID].callbackUUID = callbackUUID
+	t.clients[CallbackID].base64Encoded = base64Encoded
+	t.clients[CallbackID].c2ProfileName = c2ProfileName
+	t.clients[CallbackID].AgentUUIDSize = agentUUIDSize
 	t.Unlock()
 	return fromMythic, nil
 }
@@ -225,17 +227,17 @@ func (t *pushC2Server) addNewPushC2OneToManyClient(c2ProfileName string) (chan s
 	t.Unlock()
 	return fromMythic, nil
 }
-func (t *pushC2Server) GetPushC2ClientInfo(CallbackAgentID int) (chan services.PushC2MessageFromMythic, string, bool, string, string, int, error) {
+func (t *pushC2Server) GetPushC2ClientInfo(CallbackID int) (chan services.PushC2MessageFromMythic, string, bool, string, string, int, error) {
 	t.RLock()
-	if _, ok := t.clients[CallbackAgentID]; ok {
-		if t.clients[CallbackAgentID].connected {
+	if _, ok := t.clients[CallbackID]; ok {
+		if t.clients[CallbackID].connected {
 			t.RUnlock()
-			return t.clients[CallbackAgentID].pushC2MessageFromMythic,
-				t.clients[CallbackAgentID].callbackUUID,
-				t.clients[CallbackAgentID].base64Encoded,
-				t.clients[CallbackAgentID].c2ProfileName,
-				t.clients[CallbackAgentID].callbackUUID,
-				t.clients[CallbackAgentID].AgentUUIDSize,
+			return t.clients[CallbackID].pushC2MessageFromMythic,
+				t.clients[CallbackID].callbackUUID,
+				t.clients[CallbackID].base64Encoded,
+				t.clients[CallbackID].c2ProfileName,
+				t.clients[CallbackID].callbackUUID,
+				t.clients[CallbackID].AgentUUIDSize,
 				nil
 		} else {
 			t.RUnlock()
@@ -246,15 +248,15 @@ func (t *pushC2Server) GetPushC2ClientInfo(CallbackAgentID int) (chan services.P
 	for c2, _ := range t.clientsOneToMany {
 		c2ProfileToCallbackIDsMapLock.RLock()
 		if _, ok := c2ProfileToCallbackIDsMap[c2]; ok {
-			if _, ok = c2ProfileToCallbackIDsMap[c2][CallbackAgentID]; ok {
+			if _, ok = c2ProfileToCallbackIDsMap[c2][CallbackID]; ok {
 				t.RUnlock()
 				c2ProfileToCallbackIDsMapLock.RUnlock()
 				return t.clientsOneToMany[c2].pushC2MessageFromMythic,
-					c2ProfileToCallbackIDsMap[c2][CallbackAgentID].CallbackUUID,
-					c2ProfileToCallbackIDsMap[c2][CallbackAgentID].Base64Encoded,
+					c2ProfileToCallbackIDsMap[c2][CallbackID].CallbackUUID,
+					c2ProfileToCallbackIDsMap[c2][CallbackID].Base64Encoded,
 					c2,
-					c2ProfileToCallbackIDsMap[c2][CallbackAgentID].TrackingID,
-					c2ProfileToCallbackIDsMap[c2][CallbackAgentID].AgentUUIDSize,
+					c2ProfileToCallbackIDsMap[c2][CallbackID].TrackingID,
+					c2ProfileToCallbackIDsMap[c2][CallbackID].AgentUUIDSize,
 					nil
 			}
 		}
@@ -263,12 +265,17 @@ func (t *pushC2Server) GetPushC2ClientInfo(CallbackAgentID int) (chan services.P
 	t.RUnlock()
 	return nil, "", false, "", "", 0, errors.New("no push c2 channel for that callback available")
 }
-func (t *pushC2Server) SetPushC2ChannelExited(CallbackAgentID int) {
-	t.RLock()
-	if _, ok := t.clients[CallbackAgentID]; ok {
-		t.clients[CallbackAgentID].connected = false
+func (t *pushC2Server) SetPushC2ChannelExited(CallbackID int) {
+	t.Lock()
+	if _, ok := t.clients[CallbackID]; ok {
+		t.clients[CallbackID].connections -= 1
+		if t.clients[CallbackID].connections <= 0 {
+			t.clients[CallbackID].connections = 0
+			t.clients[CallbackID].connected = false
+			go updatePushC2LastCheckinDisconnectTimestamp(CallbackID, t.clients[CallbackID].c2ProfileName)
+		}
 	}
-	t.RUnlock()
+	t.Unlock()
 }
 func (t *pushC2Server) SetPushC2OneToManyChannelExited(c2ProfileName string) {
 	t.RLock()
