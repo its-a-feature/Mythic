@@ -47,12 +47,13 @@ import { useMutation, gql, useQuery } from '@apollo/client';
 import CodeIcon from '@mui/icons-material/Code';
 import DownloadIcon from '@mui/icons-material/Download';
 import {b64DecodeUnicode} from "./ResponseDisplay";
-import {TableRowSizeCell} from "../../MythicComponents/MythicDialog";
+import {MythicDialog, TableRowSizeCell} from "../../MythicComponents/MythicDialog";
 import {Table, TableHead, TableRow, TableBody} from '@mui/material';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import WarningOutlinedIcon from '@mui/icons-material/WarningOutlined';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {ResponseDisplayScreenshotModal} from "./ResponseDisplayScreenshotModal";
 
 export const modeOptions = ["csharp", "golang", "html", "json", "markdown", "ruby", "python", "java",
     "javascript", "yaml", "toml", "swift", "sql", "rust", "powershell", "pgsql", "perl", "php", "objectivec",
@@ -138,7 +139,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     <Tab className={value === 0 ? "selectedCallback": ""} label={"Preview"}></Tab>
                     <Tab className={value === 1 ? "selectedCallback": ""} label={"Text"}></Tab>
                     <Tab className={value === 2 ? "selectedCallback": ""} label={"Hex"}></Tab>
-                    <MythicStyledTooltip title={"Download the file"} style={{display: "inline-flex"}}>
+                    <MythicStyledTooltip title={"Download the file"} tooltipStyle={{display: "inline-flex"}}>
                         <Button style={{}}  size={"small"} href={"/direct/download/" +  media.agent_file_id}
                                 download color={"success"}>
                             <DownloadIcon />
@@ -216,13 +217,17 @@ export const textExtensionTypesToSyntax = {
     "python_history": "python",
 }
 const knownTextFiles = ["config", "credentials", "known_hosts", "config_default", "id_rsa", "dockerfile", "makefile"];
-const imgExtensionTypes = ["png", "jpg", "gif", "jpeg", "pdf"];
+const imgExtensionTypes = ["png", "jpg", "gif", "jpeg", "svg"];
+const renderExtensionTypes = ["pdf"];
 const mimeType = (path) => {
     if(!path){return undefined}
     let extension = path.split(".");
     if(extension.length > 1){
         extension = extension[extension.length - 1];
         if(imgExtensionTypes.includes(extension.toLowerCase())){
+            return "image";
+        }
+        if(renderExtensionTypes.includes(extension.toLowerCase())){
             return "object";
         }
         if(textExtensionTypes.includes(extension.toLowerCase())){
@@ -236,6 +241,7 @@ const mimeType = (path) => {
 }
 export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaData}) => {
     const showMediaSetting = GetMythicSetting({setting_name: "showMedia", default_value: true});
+    const [openScreenshot, setOpenScreenshot] = React.useState(false);
     const [showMedia, setShowMedia] = React.useState(showMediaSetting);
     const [fileData, setFileData] = React.useState({
         display: false,
@@ -275,6 +281,11 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
     React.useLayoutEffect( () => {
         scrollContent()
     }, []);
+    const clickedScreenshot = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpenScreenshot(true);
+    }
     if(!showMedia){
         return (
             <>
@@ -311,10 +322,32 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
             </object>
         )
     }
-    if(fileData.display_type === "text"){
+    if(fileData.display_type === "image"){
         return (
-            <div style={{height: "100%", minHeight: "100px", width: "100%"}} >
-                <DisplayText agent_file_id={agent_file_id} expand={expand} filename={filename} fileMetaData={fileMetaData} />
+            <>
+                <img width={"100%"} onClick={clickedScreenshot}
+                        src={"/direct/view/" + agent_file_id} style={{cursor: "zoom-in", width: "100%"}}>
+                </img>
+                {openScreenshot &&
+                    <MythicDialog fullWidth={true} maxWidth="xl" open={openScreenshot}
+                                  onClose={() => {
+                                      setOpenScreenshot(false);
+                                  }}
+                                  innerDialog={<ResponseDisplayScreenshotModal images={[agent_file_id]}
+                                                                               onClose={() => {
+                                                                                   setOpenScreenshot(false);
+                                                                               }}/>}
+                    />
+                }
+            </>
+
+        )
+    }
+    if (fileData.display_type === "text") {
+        return (
+            <div style={{height: "100%", minHeight: "100px", width: "100%"}}>
+                <DisplayText agent_file_id={agent_file_id} expand={expand} filename={filename}
+                             fileMetaData={fileMetaData}/>
             </div>
         )
     }

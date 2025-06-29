@@ -8,7 +8,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import Tooltip from '@mui/material/Tooltip';
 import {useTheme} from '@mui/material/styles';
 import IconButton from '@mui/material/IconButton';
-import { gql, useLazyQuery } from '@apollo/client';
+import { gql, useQuery } from '@apollo/client';
 import {taskingDataFragment} from '../Callbacks/CallbackMutations'
 import { snackActions } from '../../utilities/Snackbar';
 import Pagination from '@mui/material/Pagination';
@@ -17,82 +17,83 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import {TaskDisplayInteractiveSearch} from "./SearchTabInteractiveTasks";
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 
 const fetchLimit = 50;
 const responseSearch = gql`
 ${taskingDataFragment}
-query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, responses: {response_escape: {_ilike: $search}}}) {
+query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, responses: {response_escape: {_ilike: $search}}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, responses: {response_escape: {_ilike: $search}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, responses: {response_escape: {_ilike: $search}}}) {
       ...taskData
     }
   }
 `;
 const parameterSearch = gql`
 ${taskingDataFragment}
-query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, original_params: {_ilike: $search}}) {
+query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status},operator: {username: {_like: $filterOperator}},  callback: {host: {_ilike: $host}}, original_params: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, original_params: {_ilike: $search}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status},operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, original_params: {_ilike: $search}}) {
       ...taskData
     }
   }
 `;
 const commentSearch = gql`
 ${taskingDataFragment}
-query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, comment: {_ilike: $search}}) {
+query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, comment: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, comment: {_ilike: $search}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, comment: {_ilike: $search}}) {
       ...taskData
     }
   }
 `;
 const commandSearch = gql`
 ${taskingDataFragment}
-query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, command_name: {_ilike: $search}}) {
+query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, command_name: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, command_name: {_ilike: $search}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, command_name: {_ilike: $search}}) {
       ...taskData
     }
   }
 `;
 const commandAndParameterSearch = gql`
 ${taskingDataFragment}
-query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, _or: [{original_params: {_ilike: $search}}, {command: {cmd: {_ilike: $search}}}, {command_name: {_ilike: $search}}]}) {
+query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, _or: [{original_params: {_ilike: $search}}, {command: {cmd: {_ilike: $search}}}, {command_name: {_ilike: $search}}]}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, _or: [{original_params: {_ilike: $search}}, {command: {cmd: {_ilike: $search}}}, {command_name: {_ilike: $search}}]}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, _or: [{original_params: {_ilike: $search}}, {command: {cmd: {_ilike: $search}}}, {command_name: {_ilike: $search}}]}) {
       ...taskData
     }
   }
 `;
 const tagSearch = gql`
 ${taskingDataFragment}
-query tagSearchTaskQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!) {
-    tag_aggregate(distinct_on: task_id, order_by: {task_id: desc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
+query tagSearchTaskQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
+    tag_aggregate(distinct_on: task_id, order_by: {task_id: desc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
       aggregate {
         count
       }
     }
-    tag(limit: $fetchLimit, distinct_on: task_id, offset: $offset, order_by: {task_id: desc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
+    tag(limit: $fetchLimit, distinct_on: task_id, offset: $offset, order_by: {task_id: desc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status},operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}}, _or: [{data: {_cast: {String: {_ilike: $search}}}}, {tagtype: {name: {_ilike: $search}}}]}) {
       task{
         ...taskData
       }
@@ -101,29 +102,41 @@ query tagSearchTaskQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $st
 `;
 const callbackIDSearch = gql`
 ${taskingDataFragment}
-query responseQuery($search: Int!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, callback: {display_id: {_eq: $search}}}) {
+query responseQuery($search: Int!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, callback: {display_id: {_eq: $search}}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, callback: {display_id: {_eq: $search}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, callback: {display_id: {_eq: $search}}}) {
       ...taskData
     }
   }
 `;
 const callbackGroupSearch = gql`
 ${taskingDataFragment}
-query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, callback: {mythictree_groups_string: {_ilike: $search}}}) {
+query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, callback: {mythictree_groups_string: {_ilike: $search}}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, callback: {host: {_ilike: $host}}, callback: {mythictree_groups_string: {_ilike: $search}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, callback: {mythictree_groups_string: {_ilike: $search}}}) {
       ...taskData
     }
   }
+`;
+
+const getOperators = gql`
+    query getOperators {
+        operator(order_by: {username: asc}) {
+            id
+            username
+            account_type
+            deleted
+            active
+        }
+    }
 `;
 
 export function SearchTabTasksLabel(props){
@@ -132,6 +145,7 @@ export function SearchTabTasksLabel(props){
     )
 }
 
+const AllOperator = {id: 0, username: "All Operators", account_type: "", active: true, deleted: false}
 const SearchTabTasksSearchPanel = (props) => {
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
@@ -139,10 +153,24 @@ const SearchTabTasksSearchPanel = (props) => {
     const [searchField, setSearchField] = React.useState("Command and Parameters");
     const searchFieldOptions = ["Output", "Command and Parameters", "Command", "Parameters", "Comment", "Tag", "Callback ID", "Callback Group"];
     const [filterTaskStatus, setFilterTaskStatus] = React.useState("");
+    const [filterOperator, setFilterOperator] = React.useState(AllOperator.username);
+    const [operatorOptions, setOperatorOptions] = React.useState([AllOperator]);
+    useQuery(getOperators, {
+        onCompleted: (data) => {
+            setOperatorOptions([AllOperator, ...data.operator])
+        },
+        onError: (data) => {
+
+        }
+    })
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
         props.onChangeSearchField(event.target.value);
         props.changeSearchParam("searchField", event.target.value);
+    }
+    const handleOperatorFilterChange = (event) => {
+        setFilterOperator(event.target.value);
+        props.onChangeFilterOperator(event.target.value);
     }
     const handleSearchValueChange = (name, value, error) => {
         setSearch(value);
@@ -155,38 +183,40 @@ const SearchTabTasksSearchPanel = (props) => {
         setFilterTaskStatus(value);
         props.onChangeTaskStatus(value);
     }
-    const submitSearch = (event, querySearch, querySearchField, queryTaskStatus, queryHost) => {
+    const submitSearch = (event, querySearch, querySearchField, queryTaskStatus, queryHost, queryFilterOperator) => {
             let adjustedSearchField = querySearchField ? querySearchField : searchField;
             let adjustedSearch = querySearch ? querySearch : search;
             let adjustedTaskStatus = queryTaskStatus ? queryTaskStatus : filterTaskStatus;
             let adjustedHost = queryHost ? queryHost : host;
+            let adjustedFilterOperator = queryFilterOperator ? queryFilterOperator : filterOperator;
             props.changeSearchParam("search", adjustedSearch);
             props.changeSearchParam("taskStatus", adjustedTaskStatus);
             props.changeSearchParam("host", adjustedHost);
+            props.changeSearchParam("filterOperator", adjustedFilterOperator);
             switch(adjustedSearchField){
             case "Output":
-                props.onOutputSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost})
+                props.onOutputSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost, filterOperator: adjustedFilterOperator})
                 break;
             case "Parameters":
-                props.onParameterSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost})
+                props.onParameterSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost, filterOperator: adjustedFilterOperator})
                 break;
             case "Comment":
-                props.onCommentSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost})
+                props.onCommentSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost, filterOperator: adjustedFilterOperator})
                 break;
             case "Command":
-                props.onCommandSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost})
+                props.onCommandSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost, filterOperator: adjustedFilterOperator})
                 break;
             case "Command and Parameters":
-                props.onCommandAndParametersSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost})
+                props.onCommandAndParametersSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost, filterOperator: adjustedFilterOperator})
                 break;
             case "Tag":
-                props.onTagSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost});
+                props.onTagSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost, filterOperator: adjustedFilterOperator});
                 break;
             case "Callback ID":
-                props.onCallbackIDSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost});
+                props.onCallbackIDSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost, filterOperator: adjustedFilterOperator});
                 break;
             case "Callback Group":
-                props.onCallbackGroupSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost});
+                props.onCallbackGroupSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus, host: adjustedHost, filterOperator: adjustedFilterOperator});
                 break;
             default:
                 break;
@@ -199,6 +229,7 @@ const SearchTabTasksSearchPanel = (props) => {
             let adjustedSearchField = "Command and Parameters";
             let adjustedTaskStatus = "";
             let adjustedHost = "";
+            let adjustedFilterOperator = "";
             if(queryParams.has("search")){
                 setSearch(queryParams.get("search"));
                 adjustedSearch = queryParams.get("search");
@@ -222,19 +253,26 @@ const SearchTabTasksSearchPanel = (props) => {
                 props.onChangeHost(queryParams.get("host"));
                 adjustedHost = queryParams.get("host");
             }
-            submitSearch(null, adjustedSearch, adjustedSearchField, adjustedTaskStatus, adjustedHost);
+            if(queryParams.has("filterOperator")){
+                setFilterOperator(queryParams.get("filterOperator"));
+                props.onChangeFilterOperator(queryParams.get("filterOperator"));
+                adjustedFilterOperator = queryParams.get("filterOperator");
+            }
+            submitSearch(null, adjustedSearch, adjustedSearchField, adjustedTaskStatus, adjustedHost, adjustedFilterOperator);
         }
     }, [props.value, props.index]);
     return (
-        <Grid container spacing={2} style={{paddingTop: "10px", paddingLeft: "10px", maxWidth: "100%"}}>
+        <Grid container spacing={1} style={{padding: "5px 5px 0px 5px", maxWidth: "100%"}}>
             <Grid size={2}>
                 <MythicTextField disabled={props.alreadySearching} placeholder="Host..." value={host}
+                                 marginTop={"0px"}
                                  onChange={handleHostValueChange} onEnter={submitSearch} name="Search by Host..." InputProps={{
                     style: {padding: 0}
                 }}/>
             </Grid>
             <Grid size={4}>
                 <MythicTextField disabled={props.alreadySearching} placeholder="Search..." value={search}
+                                 marginTop={"0px"}
                     onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
                         endAdornment: 
                         <React.Fragment>
@@ -259,9 +297,36 @@ const SearchTabTasksSearchPanel = (props) => {
                     }
                 </Select>
             </Grid>
-            <Grid size={4}>
+            <Grid size={2}>
                 <MythicTextField disabled={props.alreadySearching} placeholder="Filter Task Status..." value={filterTaskStatus}
+                                 marginTop={"0px"}
                         onChange={handleFilterTaskStatusValueChange} onEnter={submitSearch} name="Filter Task Status..."/>
+            </Grid>
+            <Grid size={2}>
+                <Select
+                    style={{marginBottom: "10px", width: "100%"}}
+                    value={filterOperator}
+                    disabled={props.alreadySearching}
+                    onChange={handleOperatorFilterChange}
+                >
+                    {
+                        operatorOptions.map((opt, i) => (
+                            <MenuItem key={"searchopt" + opt.id} value={opt.username}>
+                                <Typography style={{textDecoration: opt.deleted ? 'line-through': ''}}>
+                                    {opt.username}
+                                </Typography>
+                                {opt.account_type === 'bot' && (
+                                    <>
+                                        {" ( "} <SmartToyTwoToneIcon /> {" )"}
+                                    </>
+                                )}
+                                {!opt.active &&
+                                    " ( inactive ) "
+                                }
+                            </MenuItem>
+                        ))
+                    }
+                </Select>
             </Grid>
         </Grid>
     );
@@ -274,32 +339,64 @@ export const SearchTabTasksPanel = (props) =>{
     const [taskStatus, setTaskStatus] = React.useState("");
     const [alreadySearching, setAlreadySearching] = React.useState(false);
     const [host, setHost] = React.useState("");
+    const [filterOperator, setFilterOperator] = React.useState("All Operators")
+    const onChangeFilterOperator = (operator) => {
+        setFilterOperator(operator);
+        switch(searchField){
+            case "Output":
+                onOutputSearch({search, offset: 0, taskStatus, host, filterOperator:operator});
+                break;
+            case "Parameters":
+                onParameterSearch({search, offset: 0, taskStatus, host, filterOperator:operator});
+                break;
+            case "Comment":
+                onCommentSearch({search, offset: 0, taskStatus, host, filterOperator:operator});
+                break;
+            case "Command":
+                onCommandSearch({search, offset: 0, taskStatus, host, filterOperator:operator});
+                break;
+            case "Command and Parameters":
+                onCommandAndParametersSearch({search, offset: 0, taskStatus, host, filterOperator:operator});
+                break;
+            case "Tag":
+                onTagSearch({search, offset: 0, taskStatus, host, filterOperator:operator});
+                break;
+            case "Callback ID":
+                onCallbackIDSearch({search, offset: 0, taskStatus, host, filterOperator:operator});
+                break;
+            case "Callback Group":
+                onCallbackGroupSearch({search, offset: 0, taskStatus, host, filterOperator:operator});
+                break;
+            default:
+                break;
+        }
+    }
     const onChangeSearchField = (field) => {
         setSearchField(field);
         switch(field){
             case "Output":
-                onOutputSearch({search, offset: 0, taskStatus, host});
+                onOutputSearch({search, offset: 0, taskStatus, host, filterOperator});
                 break;
             case "Parameters":
-                onParameterSearch({search, offset: 0, taskStatus, host});
+                onParameterSearch({search, offset: 0, taskStatus, host, filterOperator});
                 break;
             case "Comment":
-                onCommentSearch({search, offset: 0, taskStatus, host});
+                onCommentSearch({search, offset: 0, taskStatus, host, filterOperator});
                 break;
             case "Command":
-                onCommandSearch({search, offset: 0, taskStatus, host});
+                onCommandSearch({search, offset: 0, taskStatus, host, filterOperator});
                 break;
             case "Command and Parameters":
-                onCommandAndParametersSearch({search, offset: 0, taskStatus, host});
+                onCommandAndParametersSearch({search, offset: 0, taskStatus, host, filterOperator});
                 break;
             case "Tag":
-                onTagSearch({search, offset: 0, taskStatus, host});
+                onTagSearch({search, offset: 0, taskStatus, host, filterOperator});
                 break;
             case "Callback ID":
-                onCallbackIDSearch({search, offset: 0, taskStatus, host});
+                onCallbackIDSearch({search, offset: 0, taskStatus, host, filterOperator});
                 break;
             case "Callback Group":
-                onCallbackGroupSearch({search, offset: 0, taskStatus, host});
+                onCallbackGroupSearch({search, offset: 0, taskStatus, host, filterOperator});
                 break;
             default:
                 break;
@@ -353,7 +450,7 @@ export const SearchTabTasksPanel = (props) =>{
     const getCallbackGroupSearch = useMythicLazyQuery(callbackGroupSearch, {
         fetchPolicy: "no-cache"
     })
-    const onOutputSearch = ({search, offset, taskStatus, host}) => {
+    const onOutputSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         if(alreadySearching){
             snackActions.info("Still searching, please wait for it to finish");
             return;
@@ -374,15 +471,20 @@ export const SearchTabTasksPanel = (props) =>{
         if(newHost === ""){
             newHost = "_";
         }
+        let newFilterOperator = filterOperator;
+        if(newFilterOperator === "All Operators"){
+            newFilterOperator = "%_%";
+        }
         getOutputSearch({variables:{
             offset: offset,
             fetchLimit: fetchLimit,
             search: "%" + new_search + "%",
             status: "%" + newTaskStatus + "%",
-            host: "%" + newHost + "%"
+            host: "%" + newHost + "%",
+                filterOperator: newFilterOperator
         }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
-    const onParameterSearch = ({search, offset, taskStatus, host}) => {
+    const onParameterSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
         if(alreadySearching){
             snackActions.info("Still searching, please wait for it to finish");
@@ -403,15 +505,20 @@ export const SearchTabTasksPanel = (props) =>{
         if(newHost === ""){
             newHost = "_";
         }
+        let newFilterOperator = filterOperator;
+        if(newFilterOperator === "All Operators"){
+            newFilterOperator = "%_%";
+        }
         getParameterSearch({variables:{
             offset: offset,
             fetchLimit: fetchLimit,
             search: "%" + new_search + "%",
             status: "%" + newTaskStatus + "%",
-                host: "%" + newHost + "%"
+                host: "%" + newHost + "%",
+                filterOperator: newFilterOperator,
         }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
-    const onCommentSearch = ({search, offset, taskStatus, host}) => {
+    const onCommentSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
         if(alreadySearching){
             snackActions.info("Still searching, please wait for it to finish");
@@ -430,6 +537,10 @@ export const SearchTabTasksPanel = (props) =>{
         let newHost = host;
         if(newHost === ""){
             newHost = "_";
+        }
+        let newFilterOperator = filterOperator;
+        if(newFilterOperator === "All Operators"){
+            newFilterOperator = "%_%";
         }
         setSearch(search);
         getCommentSearch({variables:{
@@ -437,10 +548,11 @@ export const SearchTabTasksPanel = (props) =>{
             fetchLimit: fetchLimit,
             search: "%" + new_search + "%",
             status: "%" + newTaskStatus + "%",
-                host: "%" + newHost + "%"
+                host: "%" + newHost + "%",
+                filterOperator: newFilterOperator,
         }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
-    const onCommandSearch = ({search, offset, taskStatus, host}) => {
+    const onCommandSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
         if(alreadySearching){
             snackActions.info("Still searching, please wait for it to finish");
@@ -460,16 +572,21 @@ export const SearchTabTasksPanel = (props) =>{
         if(newHost === ""){
             newHost = "_";
         }
+        let newFilterOperator = filterOperator;
+        if(newFilterOperator === "All Operators"){
+            newFilterOperator = "%_%";
+        }
         setSearch(search);
         getCommandSearch({variables:{
             offset: offset,
             fetchLimit: fetchLimit,
             search: "%" + new_search + "%",
             status: "%" + newTaskStatus + "%",
-                host: "%" + newHost + "%"
+                host: "%" + newHost + "%",
+                filterOperator: newFilterOperator,
         }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
-    const onCommandAndParametersSearch = ({search, offset, taskStatus, host}) => {
+    const onCommandAndParametersSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         snackActions.info("Searching...", {persist:true});
         if(alreadySearching){
             snackActions.info("Still searching, please wait for it to finish");
@@ -489,16 +606,21 @@ export const SearchTabTasksPanel = (props) =>{
         if(newHost === ""){
             newHost = "_";
         }
+        let newFilterOperator = filterOperator;
+        if(newFilterOperator === "All Operators"){
+            newFilterOperator = "%_%";
+        }
         setSearch(search);
         getCommandAndParametersSearch({variables:{
                 offset: offset,
                 fetchLimit: fetchLimit,
                 search: "%" + new_search + "%",
                 status: "%" + newTaskStatus + "%",
-                host: "%" + newHost + "%"
+                host: "%" + newHost + "%",
+                filterOperator: newFilterOperator,
             }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
-    const onTagSearch = ({search, offset, taskStatus, host}) => {
+    const onTagSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
         if(alreadySearching){
             snackActions.info("Still searching, please wait for it to finish");
@@ -518,16 +640,21 @@ export const SearchTabTasksPanel = (props) =>{
         if(newHost === ""){
             newHost = "_";
         }
+        let newFilterOperator = filterOperator;
+        if(newFilterOperator === "All Operators"){
+            newFilterOperator = "%_%";
+        }
         setSearch(search);
         getTagSearch({variables:{
                 offset: offset,
                 fetchLimit: fetchLimit,
                 search: "%" + new_search + "%",
                 status: "%" + newTaskStatus + "%",
-                host: "%" + newHost + "%"
+                host: "%" + newHost + "%",
+                filterOperator: newFilterOperator,
             }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
-    const onCallbackIDSearch = ({search, offset, taskStatus, host}) => {
+    const onCallbackIDSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
         if(alreadySearching){
             snackActions.info("Still searching, please wait for it to finish");
@@ -552,20 +679,25 @@ export const SearchTabTasksPanel = (props) =>{
             if(newHost === ""){
                 newHost = "_";
             }
+            let newFilterOperator = filterOperator;
+            if(newFilterOperator === "All Operators"){
+                newFilterOperator = "%_%";
+            }
             setSearch(search);
             getCallbackIDSearch({variables:{
                     offset: offset,
                     fetchLimit: fetchLimit,
                     search: new_search,
                     status: "%" + newTaskStatus + "%",
-                    host: "%" + newHost + "%"
+                    host: "%" + newHost + "%",
+                    filterOperator: newFilterOperator,
                 }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
         }catch(error){
             snackActions.warning("Must supply an integer to search.");
             setAlreadySearching(false);
         }
     }
-    const onCallbackGroupSearch = ({search, offset, taskStatus, host}) => {
+    const onCallbackGroupSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
         if(alreadySearching){
             snackActions.info("Still searching, please wait for it to finish");
@@ -585,41 +717,46 @@ export const SearchTabTasksPanel = (props) =>{
         if(newHost === ""){
             newHost = "_";
         }
+        let newFilterOperator = filterOperator;
+        if(newFilterOperator === "All Operators"){
+            newFilterOperator = "%_%";
+        }
         setSearch(search);
         getCallbackGroupSearch({variables:{
                 offset: offset,
                 fetchLimit: fetchLimit,
                 search: "%" + new_search + "%",
                 status: "%" + newTaskStatus + "%",
-                host: "%" + newHost + "%"
+                host: "%" + newHost + "%",
+                filterOperator: newFilterOperator,
             }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
     }
     const onChangePage = (event, value) => {
 
         switch(searchField){
             case "Output":
-                onOutputSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host });
+                onOutputSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host, filterOperator });
                 break;
             case "Parameters":
-                onParameterSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host });
+                onParameterSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host, filterOperator });
                 break;
             case "Comment":
-                onCommentSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host });
+                onCommentSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host, filterOperator });
                 break;
             case "Command":
-                onCommandSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host });
+                onCommandSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host, filterOperator });
                 break;
             case "Command and Parameters":
-                onCommandAndParametersSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host});
+                onCommandAndParametersSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host, filterOperator});
                 break;
             case "Tag":
-                onTagSearch({search, offset: (value-1) *fetchLimit, taskStatus, host});
+                onTagSearch({search, offset: (value-1) *fetchLimit, taskStatus, host, filterOperator});
                 break;
             case "Callback ID":
-                onCallbackIDSearch({search, offset: (value-1) *fetchLimit, taskStatus, host});
+                onCallbackIDSearch({search, offset: (value-1) *fetchLimit, taskStatus, host, filterOperator});
                 break;
             case "Callback Group":
-                onCallbackGroupSearch({search, offset: (value-1) *fetchLimit, taskStatus, host});
+                onCallbackGroupSearch({search, offset: (value-1) *fetchLimit, taskStatus, host, filterOperator});
                 break;
             default:
                 break;
@@ -635,6 +772,7 @@ export const SearchTabTasksPanel = (props) =>{
                 alreadySearching={alreadySearching}
                 onCallbackIDSearch={onCallbackIDSearch} onCallbackGroupSearch={onCallbackGroupSearch}
                 onCommandAndParametersSearch={onCommandAndParametersSearch}
+                onChangeFilterOperator={onChangeFilterOperator}
                 onParameterSearch={onParameterSearch} onCommentSearch={onCommentSearch} changeSearchParam={props.changeSearchParam}/>
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 

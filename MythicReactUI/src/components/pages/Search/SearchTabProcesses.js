@@ -160,13 +160,13 @@ const SearchTabProcessesSearchPanel = (props) => {
         }
     }, [props.value, props.index]);
     return (
-        <Grid container spacing={1} style={{paddingTop: "10px", paddingLeft: "10px", maxWidth: "100%"}}>
+        <Grid container spacing={1} style={{padding: "5px 5px 0 5px", maxWidth: "100%"}}>
             <Grid size={2}>
-                <MythicTextField placeholder="Host Name Search..." value={searchHost}
+                <MythicTextField placeholder="Host Name Search..." value={searchHost} marginTop={"0px"}
                                  onChange={handleSearchHostValueChange} onEnter={submitSearch} name="Host Name Search..." />
             </Grid>
             <Grid size={3}>
-                <MythicTextField placeholder="Search..." value={search}
+                <MythicTextField placeholder="Search..." value={search} marginTop={"0px"}
                                  onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
                     endAdornment:
                         <React.Fragment>

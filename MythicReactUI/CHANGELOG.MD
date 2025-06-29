@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.52] - 2025-06-29
+
+### Changed
+
+- Fixed some alignment issues in the search page
+- Added an option when searching tasks to filter by operator
+- Added the ability to click to zoom into rendered media images
+
 ## [0.3.51] - 2025-06-25
 
 ### Changed

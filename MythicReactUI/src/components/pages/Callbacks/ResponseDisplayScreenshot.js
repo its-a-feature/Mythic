@@ -3,17 +3,14 @@ import {Button} from '@mui/material';
 import {ResponseDisplayScreenshotModal} from './ResponseDisplayScreenshotModal';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {getSkewedNow} from "../../utilities/Time";
 
 
 export const ResponseDisplayScreenshot = (props) =>{
   const [openScreenshot, setOpenScreenshot] = React.useState(false);
-
-  const now = (getSkewedNow()).toUTCString();
   const clickOpenScreenshot = () => {
     setOpenScreenshot(true);
   }
-    const scrollContent = (node, isAppearing) => {
+  const scrollContent = (node, isAppearing) => {
         // only auto-scroll if you issued the task
         document.getElementById(`scrolltotaskbottom${props.task.id}`)?.scrollIntoView({
             //behavior: "smooth",
@@ -21,21 +18,21 @@ export const ResponseDisplayScreenshot = (props) =>{
             inline: "nearest"
         })
     }
-    React.useLayoutEffect( () => {
+  React.useLayoutEffect( () => {
         scrollContent()
     }, []);
   return (
     <>
       {openScreenshot &&
-      <MythicDialog fullWidth={true} maxWidth="xl" open={openScreenshot} 
-          onClose={()=>{setOpenScreenshot(false);}} 
-          innerDialog={<ResponseDisplayScreenshotModal images={props.agent_file_id} onClose={()=>{setOpenScreenshot(false);}} />}
-      />
+          <MythicDialog fullWidth={true} maxWidth="xl" open={openScreenshot}
+              onClose={()=>{setOpenScreenshot(false);}}
+              innerDialog={<ResponseDisplayScreenshotModal images={[props.agent_file_id]} onClose={()=>{setOpenScreenshot(false);}} />}
+          />
       }
       <pre style={{display: "inline-block"}}>
         {props?.plaintext || ""}
       </pre>
-      <MythicStyledTooltip title={props?.hoverText || "View Screenshot"}  >
+      <MythicStyledTooltip title={props?.hoverText || "View Screenshot (s)"}  >
         <Button color="primary" variant={props.variant ? props.variant : "contained"} onClick={clickOpenScreenshot} style={{marginBottom: "10px"}}>{props.name}</Button>
       </MythicStyledTooltip>
     </>

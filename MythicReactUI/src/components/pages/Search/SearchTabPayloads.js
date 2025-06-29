@@ -242,9 +242,9 @@ const SearchTabPayloadsSearchPanel = (props) => {
         fetchOptions();
     }, []);
     return (
-        <Grid container spacing={1} style={{paddingTop: "10px", paddingLeft: "10px", maxWidth: "100%"}}>
+        <Grid container spacing={1} style={{padding: "5px 5px 0 5px", maxWidth: "100%"}}>
             <Grid size={4}>
-                <MythicTextField placeholder="Search..." value={search}
+                <MythicTextField placeholder="Search..." value={search} marginTop={"0px"}
                                  onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..."
                                  InputProps={{
                                      endAdornment:

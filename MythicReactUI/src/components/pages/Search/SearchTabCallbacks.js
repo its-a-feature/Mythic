@@ -219,9 +219,9 @@ const SearchTabCallbacksSearchPanel = (props) => {
         }
     }, [props.value, props.index])
     return (
-        <Grid container spacing={2} style={{paddingTop: "10px", paddingLeft: "10px", maxWidth: "100%"}}>
+        <Grid container spacing={2} style={{padding: "5px 5px 0 5px", maxWidth: "100%"}}>
             <Grid size={6}>
-                <MythicTextField placeholder="Search..." value={search}
+                <MythicTextField placeholder="Search..." value={search} marginTop={"0px"}
                     onChange={handleSearchValueChange} onEnter={submitSearch} name="Search..." InputProps={{
                         endAdornment: 
                         <React.Fragment>

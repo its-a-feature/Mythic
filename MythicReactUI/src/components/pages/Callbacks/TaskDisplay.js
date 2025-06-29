@@ -324,12 +324,8 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                 {!task.completed && task.status_timestamp_processing &&
                     <>
                       <MythicStyledTooltip title={"Task the agent to kill this task"} >
-                        <IconButton style={{padding: 0}} onClick={(e) => onClickKillIcon(e, true)}
-                                    color="inherit" disableFocusRipple={true}
-                                    disableRipple={true}>
-                          <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones}
+                          <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} onClick={(e) => onClickKillIcon(e, true)}
                                            style={{cursor: "pointer", height: "15px", marginLeft: "5px"}} />
-                        </IconButton>
                       </MythicStyledTooltip>
                     </>
                 }
@@ -984,12 +980,8 @@ export const ColoredTaskLabelConsole = ({task, theme, me, taskDivID, onClick, di
                   {!task.completed && task.status_timestamp_processing &&
                       <>
                         <MythicStyledTooltip title={"Task the agent to kill this task"} >
-                          <IconButton style={{padding: 0}} onClick={(e) => onClickKillIcon(e, true)}
-                                      color="inherit" disableFocusRipple={true}
-                                      disableRipple={true}>
-                            <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones}
+                            <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} onClick={(e) => onClickKillIcon(e, true)}
                                              style={{cursor: "pointer", height: "15px", marginLeft: "5px"}} />
-                          </IconButton>
                         </MythicStyledTooltip>
                       </>
                   }
