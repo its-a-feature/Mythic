@@ -73,6 +73,7 @@ export function SettingsOperatorDialog(props) {
                     <MythicTextField
                         margin="dense"
                         id="passwordOld"
+                        value={passwordOld}
                         onChange={onPasswordOldChange}
                         name={props.title === "New Operator" ? "password" : "old password"}
                         type="password"
@@ -82,6 +83,7 @@ export function SettingsOperatorDialog(props) {
                 <MythicTextField
                     margin="dense"
                     id="passwordNew"
+                    value={passwordNew}
                     onChange={onPasswordNewChange}
                     name={props.title === "New Operator" ? "password again" : "new password"}
                     type="password"

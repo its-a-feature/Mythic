@@ -230,7 +230,7 @@ export function Settings({me}){
     const [updatePassword] = useMutation(operatorsUpdatePassword, {
       onCompleted: (result) => {
         if(result.updatePasswordAndEmail.status === "success"){
-          snackActions.success("Successfully updated password");
+          snackActions.success("Successfully updated account");
           if(result.updatePasswordAndEmail.operator_id > 0){
               const updatedOperators = operators.map(o => {
                   if(o.id === result.updatePasswordAndEmail.operator_id){
