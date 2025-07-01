@@ -15,7 +15,7 @@ import {jwtDecode} from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 
-export const mythicUIVersion = "0.3.53";
+export const mythicUIVersion = "0.3.54";
 
 let fetchingNewToken = false;
 
@@ -66,12 +66,12 @@ export const isJWTValid = () => {
               let cookiePieces = cookies[i].split("=");
               if(cookiePieces.length !== 2){
                   console.log("bad number of cookie pieces", "cookie", cookies[i])
-              } else if(cookiePieces[0] !== "user") {
-                  console.log("unknown cookie", "name", cookiePieces[0]);
+              } else if(cookiePieces[0].trim() !== "user") {
+                  console.log("unknown cookie", "name", cookiePieces[0].trim());
               } else {
                   try{
                       console.log("user cookie found, trying to parse");
-                      let cookieString = decodeURIComponent(cookiePieces[1]);
+                      let cookieString = decodeURIComponent(cookiePieces[1].trim());
                       let cookieJSON = JSON.parse(atob(cookieString));
                       if("access_token" in cookieJSON){
                           successfulLogin(cookieJSON);
