@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
@@ -551,12 +552,15 @@ func associateCommandsWithPayload(databasePayload databaseStructs.Payload, comma
 			CommandID: command.ID,
 			Version:   command.Version,
 		}
-		if _, err := database.DB.NamedExec(`INSERT INTO 
+		if slices.Contains(finalCommandNames, command.Cmd) {
+			continue
+		}
+		if _, err = database.DB.NamedExec(`INSERT INTO 
 				payloadcommand (payload_id, command_id, version)
 				VALUES (:payload_id, :command_id, :version)`,
 			payloadCommandInstance); err != nil {
-			logging.LogError(err, "Failed to create new command parameter instance mapping")
-			return nil, err
+			logging.LogError(err, "Failed to create new command parameter instance mapping", "command", command.Cmd)
+			continue
 		}
 		if !command.ScriptOnly {
 			finalCommandNames = append(finalCommandNames, command.Cmd)
