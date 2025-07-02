@@ -50,7 +50,7 @@ func Login(c *gin.Context) {
 		"current_utc_time":               time.Now().UTC(),
 	}
 	// setting cookie max age to 2 days
-	c.SetCookie("mythic", accessToken, 60*60*24*2, "/", strings.Split(c.Request.Host, ":")[0], true, true)
+	c.SetCookie("mythic", accessToken, 60*60*24*2, "/", strings.Split(c.Request.Host, ":")[0], false, true)
 	c.SetSameSite(http.SameSiteStrictMode)
 	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken, "user": user})
 	return
@@ -132,7 +132,7 @@ func RefreshJWT(c *gin.Context) {
 	// setting cookie max age to 2 days
 	c.Set("user_id", currentOperation.CurrentOperator.ID)
 	c.Set("username", currentOperation.CurrentOperator.Username)
-	c.SetCookie("mythic", accessToken, 60*60*24*2, "/", strings.Split(c.Request.Host, ":")[0], true, true)
+	c.SetCookie("mythic", accessToken, 60*60*24*2, "/", strings.Split(c.Request.Host, ":")[0], false, true)
 	c.SetSameSite(http.SameSiteStrictMode)
 	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken, "user": user})
 	return
