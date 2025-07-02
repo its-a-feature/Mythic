@@ -105,8 +105,11 @@ func CreateInviteLink(c *gin.Context) {
 		}
 
 	}
-
-	inviteLinkURI := fmt.Sprintf("%s/new/invite?code=%s", c.GetHeader("X-Forwarded-Origin"), inviteLinkCode)
+	host := c.GetHeader("X-Forwarded-Origin")
+	if host == "" {
+		host = fmt.Sprintf("%s://%s", c.GetHeader("X-Forwarded-Proto"), c.GetHeader("X-Forwarded-Host"))
+	}
+	inviteLinkURI := fmt.Sprintf("%s/new/invite?code=%s", host, inviteLinkCode)
 	inviteLinkCodesLock.Lock()
 	inviteLinkCodes[inviteLinkCode] = &inviteLinkData{
 		GeneratingOperatorUsername: operator.Username,
