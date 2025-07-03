@@ -26,6 +26,7 @@ import {CircularProgress} from '@mui/material';
 import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import RefreshIcon from '@mui/icons-material/Refresh';
+import {updateCredentialDeleted} from "../Search/CredentialTable";
 
 export const getDynamicQueryParams = gql`
 mutation getDynamicParamsMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $other_parameters: jsonb){
@@ -269,6 +270,18 @@ export function TaskParametersDialogRow(props){
             console.log(data);
         }
     });
+    const [deleteCredential] = useMutation(updateCredentialDeleted, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            snackActions.success("removed credential!");
+            updateToLatestCredential.current = true;
+            props.removedCredential(data.credential_by_pk);
+        },
+        onError: (data) => {
+            snackActions.error("Failed to delete credential");
+            console.log(data);
+        }
+    });
     const [treatNewlinesAsNewEntries, setTreatNewlinesAsNewEntries] = React.useState(false);
     const reIssueDynamicQueryFunction = () => {
         setBackdropOpen(true);
@@ -411,8 +424,8 @@ export function TaskParametersDialogRow(props){
                //console.log("updating choiceOptions from useEffect in dialog row: ", [...props.choices])
                setChoiceOptions([...props.choices]);
                if(updateToLatestCredential.current){
-                setValue(props.choices.length-1);
-                props.onChange(props.name, {...props.choices[props.choices.length-1]}, false);
+                setValue(0);
+                props.onChange(props.name, {...props.choices[0]}, false);
                 updateToLatestCredential.current = false;
                }
                if(value === ""){
@@ -644,6 +657,9 @@ export function TaskParametersDialogRow(props){
     }
     const onCreateCredential = ({type, account, realm, comment, credential}) => {
         createCredential({variables: {type, account, realm, comment, credential}})
+    }
+    const onDeleteCredential = () => {
+        deleteCredential({variables: {deleted: true, credential_id: ChoiceOptions[value].id}})
     }
     const getParameterObject = () => {
         switch(props.type){
@@ -1074,10 +1090,12 @@ export function TaskParametersDialogRow(props){
             case "CredentialJson":
                 return (
                     <React.Fragment>
-                        <MythicDialog fullWidth={true} maxWidth="md" open={createCredentialDialogOpen} 
-                            onClose={()=>{setCreateCredentialDialogOpen(false);}} 
-                            innerDialog={<CredentialTableNewCredentialDialog onSubmit={onCreateCredential} onClose={()=>{setCreateCredentialDialogOpen(false);}} />}
-                        />
+                        {createCredentialDialogOpen &&
+                            <MythicDialog fullWidth={true} maxWidth="md" open={createCredentialDialogOpen}
+                                          onClose={()=>{setCreateCredentialDialogOpen(false);}}
+                                          innerDialog={<CredentialTableNewCredentialDialog onSubmit={onCreateCredential} onClose={()=>{setCreateCredentialDialogOpen(false);}} />}
+                            />
+                        }
                         <FormControl style={{width: "100%"}}>
                             <Select
                                 value={value}
@@ -1105,7 +1123,20 @@ export function TaskParametersDialogRow(props){
                             }
                             </Select>
                         </FormControl>
-                        <Button size="small" color="primary" onClick={ () => {setCreateCredentialDialogOpen(true);}} variant="contained">New Credential</Button>
+                        <Button color={"success"} component="span" style={{marginRight: "20px"}} onClick={() =>{
+                            setCreateCredentialDialogOpen(true)
+                        }}><AddCircleIcon style={{
+                            color: theme.palette.success.main,
+                            background: "white",
+                            borderRadius: "10px",
+                            marginRight: "5px"
+                        }}/> Credential</Button>
+                        <Button color={"warning"} component="span" style={{padding: 0}} onClick={() =>{
+                            onDeleteCredential();
+                        }}><DeleteIcon style={{
+                            color: theme.palette.error.main,
+                            marginRight: "5px"
+                        }}/> Credential</Button>
                     </React.Fragment>
                     
                 )

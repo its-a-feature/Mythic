@@ -83,7 +83,7 @@ mutation updateAccountMutation($credential_id: Int!, $credential: bytea!){
     }
 }
 `;
-const updateCredentialDeleted = gql`
+export const updateCredentialDeleted = gql`
 mutation updateAccountMutation($credential_id: Int!, $deleted: Boolean!){
     update_credential_by_pk(pk_columns: {id: $credential_id}, _set: {deleted: $deleted}) {
         deleted

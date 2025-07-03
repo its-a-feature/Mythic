@@ -105,7 +105,7 @@ query getAllEdgesQuery($callback_id: Int!){
 // get all payloads query
 const getAllPayloadsQuery = gql`
 query getAllPayloadsQuery($operation_id: Int!){
-    payload(where: {deleted: {_eq: false}, build_phase: {_eq: "success"}, operation_id: {_eq: $operation_id}}) {
+    payload(where: {deleted: {_eq: false}, build_phase: {_eq: "success"}, operation_id: {_eq: $operation_id}}, order_by: {id: desc}) {
     id
     description
     uuid
@@ -141,7 +141,7 @@ query getAllPayloadsQuery($operation_id: Int!){
 // get all payloads on hosts
 const getAllPayloadsOnHostsQuery = gql`
 query getAllPayloadsOnHostsQuery($operation_id: Int!){
-    payloadonhost(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}, payload: {c2profileparametersinstances: {c2profile: {is_p2p: {_eq: true}}}}}) {
+    payloadonhost(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}, payload: {c2profileparametersinstances: {c2profile: {is_p2p: {_eq: true}}}}}, order_by: {id: desc}) {
         host
         id
         payload {
@@ -263,7 +263,7 @@ query getCommandQuery($id: Int!){
 // use this to get all the credentials for the command we're trying to execute
 const getCredentialsQuery = gql`
 query getCredentialsQuery($operation_id: Int!){
-    credential(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}}){
+    credential(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}}, order_by: {id: desc}){
         account
         comment
         credential_text
@@ -381,6 +381,9 @@ export function TaskParametersDialog(props) {
         }
     });
     const addedCredential = (credential) => {
+        getAllCredentials({variables: {operation_id: props.operation_id}});
+    }
+    const removedCredential = (credential) => {
         getAllCredentials({variables: {operation_id: props.operation_id}});
     }
     const intersect = (a, b) => {
@@ -1007,7 +1010,7 @@ export function TaskParametersDialog(props) {
                                 callback_id={props.callback_id}
                                 onAgentConnectAddNewPayloadOnHost={onAgentConnectAddNewPayloadOnHost}
                                 onAgentConnectRemovePayloadOnHost={onAgentConnectRemovePayloadOnHost}
-                                addedCredential={addedCredential}
+                                addedCredential={addedCredential} removedCredential={removedCredential}
                                 setSubmenuOpenPreventTasking={setSubmenuOpenPreventTasking}
                                                      getOtherParameters={getOtherParameters}
                                 />

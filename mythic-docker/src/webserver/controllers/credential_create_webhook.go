@@ -74,8 +74,8 @@ func CreateCredentialWebhook(c *gin.Context) {
 	}
 	// check if the cred already exists. If it does, move on. If it doesn't, create it
 	err = database.DB.Get(&databaseCred, `SELECT * FROM credential WHERE
-			 account=$1 AND realm=$2 AND credential=$3 AND operation_id=$4`,
-		databaseCred.Account, databaseCred.Realm, databaseCred.Credential, databaseCred.OperationID)
+			 account=$1 AND realm=$2 AND credential=$3 AND operation_id=$4 AND "type"=$5 AND comment=$6`,
+		databaseCred.Account, databaseCred.Realm, databaseCred.Credential, databaseCred.OperationID, databaseCred.Type, databaseCred.Comment)
 	if errors.Is(err, sql.ErrNoRows) {
 		// credential doesn't exist, so create it
 		statement, err := database.DB.PrepareNamed(`INSERT INTO credential
@@ -126,4 +126,8 @@ func CreateCredentialWebhook(c *gin.Context) {
 		})
 		return
 	}
+	c.JSON(http.StatusOK, CreateCredentialResponse{
+		Status: "success",
+		ID:     databaseCred.ID,
+	})
 }

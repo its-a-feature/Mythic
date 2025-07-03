@@ -1445,8 +1445,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 }else{
                     let simplifiedGroupName = simplifyGroupNameChoices(cmdGroupName, cmd, parsedWithPositionalParameters)
                     if(simplifiedGroupName === "" ){
-                        snackActions.warning("Passed arguments are ambiguous, use shift+enter for modal or provide more parameters", snackMessageStyles);
-                        return;
+                        props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, true, cmdGroupName, unmodifiedHistoryValue)
                     } else {
                         props.onSubmitCommandLine(message, cmd, parsedWithPositionalParameters, Boolean(commandOptionsForcePopup.current), [simplifiedGroupName], unmodifiedHistoryValue);
                     }
