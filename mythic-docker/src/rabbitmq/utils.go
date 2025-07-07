@@ -831,10 +831,8 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 			SubtaskData:            &subtaskData,
 			CompletionFunctionName: task.SubtaskCallbackFunction,
 		}
-		task.Status = PT_TASK_FUNCTION_STATUS_SUBTASK_COMPLETED_FUNCTION
-		if _, err := database.DB.NamedExec(`UPDATE task SET status=:status WHERE id=:id`, task); err != nil {
-			logging.LogError(err, "Failed to update status to completion task running")
-		} else if err = RabbitMQConnection.SendPtTaskCompletionFunction(taskMessage); err != nil {
+		err = RabbitMQConnection.SendPtTaskCompletionFunction(taskMessage)
+		if err != nil {
 			logging.LogError(err, "Failed to send task completion function message to container")
 			task.Status = PT_TASK_FUNCTION_STATUS_SUBTASK_COMPLETED_FUNCTION_ERROR
 			if _, err = database.DB.NamedExec(`UPDATE task SET status=:status WHERE id=:id`, task); err != nil {
@@ -860,20 +858,16 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 			task.ParentTaskID.Int64, task.SubtaskGroupName); err != nil {
 			logging.LogError(err, "Failed to fetch other group tasks")
 		} else if len(groupTasks) == 0 {
-			task.Status = PT_TASK_FUNCTION_STATUS_GROUP_COMPLETED_FUNCTION
-			if _, err := database.DB.NamedExec(`UPDATE task SET status=:status WHERE id=:id`, task); err != nil {
-				logging.LogError(err, "Failed to update status to completion task running")
-			} else if err = RabbitMQConnection.SendPtTaskCompletionFunction(taskMessage); err != nil {
+			logging.LogInfo("subtask completed, parent task completion function going to run", "taskId", task.ParentTaskID.Int64, "subtaskid", task.ID)
+			err = RabbitMQConnection.SendPtTaskCompletionFunction(taskMessage)
+			if err != nil {
 				logging.LogError(err, "Failed to send task completion function message to container")
 				task.Status = PT_TASK_FUNCTION_STATUS_GROUP_COMPLETED_FUNCTION_ERROR
 				if _, err := database.DB.NamedExec(`UPDATE task SET status=:status WHERE id=:id`, task); err != nil {
 					logging.LogError(err, "Failed to update task status for completion function error")
 				}
 			}
-		} else {
-
 		}
-
 	} else if task.ParentTaskID.Valid && !parentTask.Completed {
 		unfinishedChildren := []databaseStructs.Task{}
 		if err := database.DB.Select(&unfinishedChildren, `SELECT id FROM task WHERE parent_task_id=$1 AND completed=false`, parentTask.ID); err != nil {

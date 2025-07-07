@@ -76,10 +76,19 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		//	});
 		// this function is executed for the PARENT_TASK
 		task.SubtaskCallbackFunctionCompleted = true
-		if payloadMsg.Success {
-			task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
+		if payloadMsg.ParentTaskId != 0 {
+			if payloadMsg.Success {
+				parentTask.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
+			} else {
+				parentTask.Status = PT_TASK_FUNCTION_STATUS_SUBTASK_COMPLETED_FUNCTION_ERROR
+				parentTask.Completed = true
+			}
 		} else {
-			task.Status = PT_TASK_FUNCTION_STATUS_SUBTASK_COMPLETED_FUNCTION_ERROR
+			if payloadMsg.Success {
+				task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
+			} else {
+				task.Status = PT_TASK_FUNCTION_STATUS_SUBTASK_COMPLETED_FUNCTION_ERROR
+			}
 		}
 
 	} else if task.SubtaskGroupName != "" && task.GroupCallbackFunction != "" && !task.GroupCallbackFunctionCompleted {
@@ -94,10 +103,19 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 			    parent_task_id=:id AND subtask_group_name=:subtask_group_name`, task); err != nil {
 				logging.LogError(err, "Failed to update group to all set completion function to true")
 			} else {
-				task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
+				if payloadMsg.ParentTaskId != 0 {
+					parentTask.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
+				} else {
+					task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
+				}
 			}
 		} else {
-			task.Status = PT_TASK_FUNCTION_STATUS_GROUP_COMPLETED_FUNCTION_ERROR
+			if payloadMsg.ParentTaskId != 0 {
+				parentTask.Status = PT_TASK_FUNCTION_STATUS_GROUP_COMPLETED_FUNCTION_ERROR
+				parentTask.Completed = true
+			} else {
+				task.Status = PT_TASK_FUNCTION_STATUS_GROUP_COMPLETED_FUNCTION_ERROR
+			}
 		}
 	}
 	// this stuff happens for all of these options
@@ -159,6 +177,7 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		if payloadMsg.ParentTaskId != 0 {
 			parentTask.Stderr += payloadMsg.Error
 			parentTask.Status = PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION_ERROR
+			parentTask.Completed = true
 		} else {
 			task.Stderr += payloadMsg.Error
 			task.Status = PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION_ERROR
