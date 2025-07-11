@@ -380,9 +380,6 @@ tspan {
 .ace_editor .ace_text-layer {
     color: ${(props) => props.theme.palette.text.primary};
 }
-.ace_cursor {
-  opacity: 0 !important;
-}
 .rounded-tab { 
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
