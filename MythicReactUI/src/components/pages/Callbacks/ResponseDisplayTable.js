@@ -406,7 +406,7 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
                                                                               table={taskingData?.value || {}} callback_id={callback_id} onClose={finishedViewingData} />}
                   />
               }
-              <Button size="small" color="info" ref={dropdownAnchorRef}
+              <Button size="small" variant={"contained"} color={"info"} ref={dropdownAnchorRef}
                       onClick={() => setOpenDropdownButton(true)} disabled={cellData?.button?.disabled || false}
                       startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : null}
                       style={{...actionCellButtonStyle}}
