@@ -140,8 +140,8 @@ export function App(props) {
                         preferences?.palette?.taskPromptTextColor?.light || operatorSettingDefaults.palette.taskPromptTextColor.light,
                     taskPromptCommandTextColor: themeMode === 'dark' ? preferences?.palette?.taskPromptCommandTextColor?.dark || operatorSettingDefaults.palette.taskPromptCommandTextColor.dark :
                         preferences?.palette?.taskPromptCommandTextColor?.light || operatorSettingDefaults.palette.taskPromptCommandTextColor.light,
-                    taskContextCwdColor: themeMode === 'dark' ? preferences?.palette?.taskContextCwdColor?.dark || operatorSettingDefaults.palette.taskContextCwdColor.dark :
-                        preferences?.palette?.taskContextCwdColor?.light || operatorSettingDefaults.palette.taskContextCwdColor.light,
+                    taskContextColor: themeMode === 'dark' ? preferences?.palette?.taskContextColor?.dark || operatorSettingDefaults.palette.taskContextColor.dark :
+                        preferences?.palette?.taskContextColor?.light || operatorSettingDefaults.palette.taskContextColor.light,
                     taskContextImpersonationColor: themeMode === 'dark' ? preferences?.palette?.taskContextImpersonationColor?.dark || operatorSettingDefaults.palette.taskContextImpersonationColor.dark :
                         preferences?.palette?.taskContextImpersonationColor?.light || operatorSettingDefaults.palette.taskContextImpersonationColor.light,
                     taskContextExtraColor: themeMode === 'dark' ? preferences?.palette?.taskContextExtraColor?.dark || operatorSettingDefaults.palette.taskContextExtraColor.dark :

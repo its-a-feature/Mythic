@@ -8,7 +8,7 @@ import {CallbacksTabsTaskingFilterDialog} from './CallbacksTabsTaskingFilterDial
 import {CallbacksTabsTaskingInputTokenSelect} from './CallbacksTabsTaskingInputTokenSelect';
 import { gql, useSubscription, useMutation } from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
-import { meState } from '../../../cache';
+import {meState, operatorSettingDefaults} from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
 import { validate as uuidValidate } from 'uuid';
 import {MythicSelectFromListDialog} from "../../MythicComponents/MythicSelectFromListDialog";
@@ -97,6 +97,14 @@ subscription CallbackMetadataForTasking($callback_id: Int!){
         cwd
         impersonation_context
         extra_info
+        host
+        pid
+        process_short_name
+        user
+        ip
+        color
+        integrity_level
+        architecture
     }
 }
 `;
@@ -173,6 +181,14 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         cwd: "",
         impersonation_context: "",
         extra_info: "",
+        ip: "",
+        host: "",
+        user: "",
+        pid: "",
+        process_short_name: "",
+        color: "",
+        integrity_level: 2,
+        architecture: "",
     });
     const [message, setMessage] = React.useState("");
     const loadedOptions = React.useRef([]);
@@ -246,8 +262,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const commandOptionsForcePopup = React.useRef(false);
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
     const me = useReactiveVar(meState);
-    const useDisplayParamsForCLIHistoryUserSetting = React.useRef(GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: true}));
-    const hideTaskingContext = React.useRef(GetMythicSetting({setting_name: "hideTaskingContext", default_value: false}));
+    const useDisplayParamsForCLIHistoryUserSetting = React.useRef(GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: operatorSettingDefaults.useDisplayParamsForCLIHistory}));
+    const hideTaskingContext = React.useRef(GetMythicSetting({setting_name: "hideTaskingContext", default_value: operatorSettingDefaults.hideTaskingContext}));
+    const taskingContextFields = React.useRef(GetMythicSetting({setting_name: "taskingContextFields", default_value: operatorSettingDefaults.taskingContextFields}));
     const forwardOrBackwardTabIndex = (event, currentIndex, options) => {
         if(event.shiftKey){
             let newIndex = currentIndex - 1;
@@ -276,7 +293,14 @@ export function CallbacksTabsTaskingInputPreMemo(props){
             if(!mountedRef.current || !props.parentMountedRef.current){
                 return;
             }
-            setCallbackContext(data.data.callback_stream[0]);
+            let newContext = data.data.callback_stream[0];
+            try{
+                let ips = JSON.parse(newContext.ip);
+                newContext.ip = ips[0];
+            }catch(error){
+                newContext.ip = "";
+            }
+            setCallbackContext(newContext);
         }
     });
     useSubscription(subscriptionTask, {
@@ -1603,28 +1627,96 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     }}
                 />
             }
-            {callbackContext?.impersonation_context !== "" && !hideTaskingContext.current &&
+            {callbackContext?.impersonation_context !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("impersonation_context") &&
                 <MythicStyledTooltip title={"Impersonation Context"}>
-                    <span className={"rounded-tab"} style={{backgroundColor: theme.taskContextImpersonationColor}}>
+                    <span className={"rounded-tab"} style={{
+                        backgroundColor: theme.taskContextImpersonationColor,
+                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
+                    }}>
                         <b>{"User: "}</b>{callbackContext.impersonation_context}
                     </span>
                 </MythicStyledTooltip>
 
             }
-            {callbackContext?.cwd !== "" && !hideTaskingContext.current &&
+            {callbackContext?.user !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("user") &&
+                <MythicStyledTooltip title={"User Context" + (callbackContext.integrity_level > 2 ? " (high integrity)" : "")}>
+                    <span className={"rounded-tab"} style={{
+                        backgroundColor: theme.taskContextColor,
+                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
+                    }}>
+                        <b>{"User: "}</b>{callbackContext.user}{callbackContext.integrity_level > 2 ? "*" : ""}
+                    </span>
+                </MythicStyledTooltip>
+            }
+            {callbackContext?.cwd !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("cwd") &&
                 <MythicStyledTooltip title={"Current Working Directory"}>
-                    <span className={"rounded-tab"} style={{backgroundColor: theme.taskContextCwdColor}}>
+                    <span className={"rounded-tab"} style={{
+                        backgroundColor: theme.taskContextColor,
+                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
+                    }}>
                         <b>{"Dir: "}</b>{callbackContext.cwd}
                     </span>
                 </MythicStyledTooltip>
             }
-            {callbackContext?.extra_info !== "" && !hideTaskingContext.current &&
+            {callbackContext?.host !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("host") &&
+                <MythicStyledTooltip title={"Hostname"}>
+                    <span className={"rounded-tab"} style={{
+                        backgroundColor: theme.taskContextColor,
+                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
+                    }}>
+                        <b>{"Host: "}</b>{callbackContext.host}
+                    </span>
+                </MythicStyledTooltip>
+            }
+            {callbackContext?.ip !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("ip") &&
+                <MythicStyledTooltip title={"First IP Address"}>
+                    <span className={"rounded-tab"} style={{
+                        backgroundColor: theme.taskContextColor,
+                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
+                    }}>
+                        <b>{"IP: "}</b>{callbackContext.ip}
+                    </span>
+                </MythicStyledTooltip>
+            }
+            {callbackContext?.pid !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("pid") &&
+                <MythicStyledTooltip title={"Process ID"}>
+                    <span className={"rounded-tab"} style={{
+                        backgroundColor: theme.taskContextColor,
+                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
+                    }}>
+                        <b>{"PID: "}</b>{callbackContext.pid}
+                    </span>
+                </MythicStyledTooltip>
+            }
+            {callbackContext?.architecture !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("architecture") &&
+                <MythicStyledTooltip title={"Process Architecture"}>
+                    <span className={"rounded-tab"} style={{
+                        backgroundColor: theme.taskContextColor,
+                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
+                    }}>
+                        <b>{"Arch: "}</b>{callbackContext.architecture}
+                    </span>
+                </MythicStyledTooltip>
+            }
+            {callbackContext?.process_short_name !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("process_short_name") &&
+                <MythicStyledTooltip title={"Process Name"}>
+                    <span className={"rounded-tab"} style={{
+                        backgroundColor: theme.taskContextColor,
+                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
+                    }}>
+                        <b>{"Process: "}</b>{callbackContext.process_short_name}
+                    </span>
+                </MythicStyledTooltip>
+            }
+            {callbackContext?.extra_info !== "" && !hideTaskingContext.current && taskingContextFields.current.includes("extra_info") &&
                 <MythicStyledTooltip title={"Extra Callback Context"}>
-                    <span className={"rounded-tab"} style={{backgroundColor: theme.taskContextExtraColor}}>
+                    <span className={"rounded-tab"} style={{
+                        backgroundColor: theme.taskContextExtraColor,
+                        borderColor: callbackContext.color === "" ? "" : callbackContext.color
+                    }}>
                         {callbackContext.extra_info}
                     </span>
                 </MythicStyledTooltip>
-
             }
             <TextField
                 placeholder={"Task an agent..."}

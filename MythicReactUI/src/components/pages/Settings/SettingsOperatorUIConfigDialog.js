@@ -18,7 +18,7 @@ import Select from '@mui/material/Select';
 import Input from '@mui/material/Input';
 import IconButton from '@mui/material/IconButton';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
-import {operatorSettingDefaults, taskTimestampDisplayFieldOptions} from "../../../cache";
+import {operatorSettingDefaults, taskingContextFieldsOptions, taskTimestampDisplayFieldOptions} from "../../../cache";
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
@@ -126,6 +126,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const initialHideTaskingContext = GetMythicSetting({setting_name: "hideTaskingContext", default_value: operatorSettingDefaults.hideTaskingContext});
     const [hideTaskingContext, setHideTaskingContext] = React.useState(initialHideTaskingContext);
 
+    const initialTaskingContextField = GetMythicSetting({setting_name: "taskingContextFields", default_value: operatorSettingDefaults.taskingContextFields});
+    const [taskingContextFields, setTaskingContextFields] = React.useState(initialTaskingContextField);
+
     const initialPalette = GetMythicSetting({setting_name: 'palette', default_value: operatorSettingDefaults.palette});
     const [palette, setPalette] = React.useState({
         primary: {
@@ -208,9 +211,9 @@ export function SettingsOperatorUIConfigDialog(props) {
             dark: isValidColor(initialPalette?.taskPromptCommandTextColor?.dark) ? initialPalette?.taskPromptCommandTextColor?.dark : operatorSettingDefaults.palette.taskPromptCommandTextColor.dark,
             light: isValidColor(initialPalette?.taskPromptCommandTextColor?.light) ? initialPalette?.taskPromptCommandTextColor?.light : operatorSettingDefaults.palette.taskPromptCommandTextColor.light,
         },
-        taskContextCwdColor: {
-            dark: isValidColor(initialPalette?.taskContextCwdColor?.dark) ? initialPalette?.taskContextCwdColor?.dark : operatorSettingDefaults.palette.taskContextCwdColor.dark,
-            light: isValidColor(initialPalette?.taskContextCwdColor?.light) ? initialPalette?.taskContextCwdColor?.light : operatorSettingDefaults.palette.taskContextCwdColor.light,
+        taskContextColor: {
+            dark: isValidColor(initialPalette?.taskContextColor?.dark) ? initialPalette?.taskContextColor?.dark : operatorSettingDefaults.palette.taskContextColor.dark,
+            light: isValidColor(initialPalette?.taskContextColor?.light) ? initialPalette?.taskContextColor?.light : operatorSettingDefaults.palette.taskContextColor.light,
         },
         taskContextImpersonationColor: {
             dark: isValidColor(initialPalette?.taskContextImpersonationColor?.dark) ? initialPalette?.taskContextImpersonationColor?.dark : operatorSettingDefaults.palette.taskContextImpersonationColor.dark,
@@ -239,7 +242,7 @@ export function SettingsOperatorUIConfigDialog(props) {
         {name: "selectedCallbackHierarchyColor", display: "Current Host highlight in tree views"},
         {name: "paper", display: "Menu and Modals Background"},
         {name: "background", display: "Background"},
-        {name: "taskContextCwdColor", display: "Tasking Context Dir Background Color"},
+        {name: "taskContextColor", display: "Tasking Context Generic Background Color"},
         {name: "taskContextImpersonationColor", display: "Tasking Context User Background Color"},
         {name: "taskContextExtraColor", display: "Tasking Context Extra Info Background Color"}
     ]
@@ -287,6 +290,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const onChangePaletteColor = (name, mode, value) => {
         setPalette({...palette, [name]: {...palette[name], [mode]: value}});
     }
+    const onChangeTaskingContextFields = (evt) => {
+        setTaskingContextFields(evt.target.value);
+    }
     const onAccept = () => {
       if(resumeNotifications){
           localStorage.setItem("dnd", JSON.stringify({
@@ -308,6 +314,7 @@ export function SettingsOperatorUIConfigDialog(props) {
               taskTimestampDisplayField,
               hideBrowserTasking,
               hideTaskingContext,
+              taskingContextFields,
               palette: palette
       }});
       props.onClose();
@@ -331,6 +338,7 @@ export function SettingsOperatorUIConfigDialog(props) {
       setPalette(operatorSettingDefaults.palette);
       setTaskTimestampDisplayField(operatorSettingDefaults.taskTimestampDisplayField);
       setHideTaskingContext(operatorSettingDefaults.hideTaskingContext);
+      setTaskingContextFields(operatorSettingDefaults.taskingContextFields);
     }
     const clearAllUserSettings = () => {
         clearSettings();
@@ -417,27 +425,27 @@ export function SettingsOperatorUIConfigDialog(props) {
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                   <TableRow hover>
-                  <MythicStyledTableCell style={{width: "30%"}}>Font Size</MythicStyledTableCell>
-                  <MythicStyledTableCell>
-                    <MythicTextField type="number" value={fontSize} onChange={onChangeFontSize} showLabel={false} />
-                  </MythicStyledTableCell>
-                </TableRow>
+                      <MythicStyledTableCell style={{width: "30%"}}>Font Size</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                        <MythicTextField type="number" value={fontSize} onChange={onChangeFontSize} showLabel={false} />
+                      </MythicStyledTableCell>
+                  </TableRow>
                   <TableRow hover>
-                  <MythicStyledTableCell>Font Family</MythicStyledTableCell>
-                  <MythicStyledTableCell>
-                    <MythicTextField value={fontFamily} onChange={onChangeFontFamily} showLabel={false} multiline maxRows={5} />
-                      <Select
-                          value={" "}
-                          onChange={changeCommonFontFamilies}
-                          input={<Input style={{width: "100%"}}/>}
-                      >
-                          <MenuItem value={" "}>Select a common font family</MenuItem>
-                          {commonFontFamilies.map( (opt) => (
-                              <MenuItem value={opt} key={opt}>{opt}</MenuItem>
-                          ) )}
-                      </Select>
-                  </MythicStyledTableCell>
-                </TableRow>
+                      <MythicStyledTableCell>Font Family</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                        <MythicTextField value={fontFamily} onChange={onChangeFontFamily} showLabel={false} multiline maxRows={5} />
+                          <Select
+                              value={" "}
+                              onChange={changeCommonFontFamilies}
+                              input={<Input style={{width: "100%"}}/>}
+                          >
+                              <MenuItem value={" "}>Select a common font family</MenuItem>
+                              {commonFontFamilies.map( (opt) => (
+                                  <MenuItem value={opt} key={opt}>{opt}</MenuItem>
+                              ) )}
+                          </Select>
+                    </MythicStyledTableCell>
+                    </TableRow>
                   <TableRow hover>
                   <MythicStyledTableCell>Hide Usernames In Tasking</MythicStyledTableCell>
                   <MythicStyledTableCell>
@@ -580,6 +588,21 @@ export function SettingsOperatorUIConfigDialog(props) {
                               inputProps={{ 'aria-label': 'info checkbox' }}
                               name="hideTaskingContext"
                           />
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Tasking Context Fields</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <Select
+                              multiple={true}
+                              value={taskingContextFields}
+                              onChange={onChangeTaskingContextFields}
+                              input={<Input style={{width: "100%"}}/>}
+                          >
+                              {taskingContextFieldsOptions.map( (opt) => (
+                                  <MenuItem value={opt} key={opt}>{opt}</MenuItem>
+                              ) )}
+                          </Select>
                       </MythicStyledTableCell>
                   </TableRow>
                   <TableRow>

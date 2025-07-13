@@ -18,6 +18,7 @@ export const taskTimestampDisplayFieldOptions = [
         display: "When Agent Picked up Task",
     }
 ]
+export const taskingContextFieldsOptions = ["impersonation_context", "cwd", "user", "host", "ip", "pid", "process_short_name", "extra_info", "architecture"].sort();
 export const operatorSettingDefaults =  {
     fontSize: 12,
     navBarOpen: false,
@@ -35,6 +36,7 @@ export const operatorSettingDefaults =  {
     autoTaskLsOnEmptyDirectories: false,
     hideBrowserTasking: false,
     hideTaskingContext: false,
+    taskingContextFields: ["impersonation_context", "cwd", "extra_info"],
     ["experiment-responseStreamLimit"]: 50,
     palette: {
         primary: {
@@ -117,7 +119,7 @@ export const operatorSettingDefaults =  {
             dark: "#e4e4e4",
             light: "#000000",
         },
-        taskContextCwdColor: {
+        taskContextColor: {
             dark: "#122848",
             light: "#acc0da",
         },
