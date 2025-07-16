@@ -34,6 +34,8 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {ViewPayloadConfigJSON} from "./EditPayloadConfigDialog";
+import {meState} from "../../../cache";
+import { useReactiveVar } from '@apollo/client';
 
 
 const GET_Payload_Details = gql`
@@ -349,7 +351,7 @@ export const ParseForDisplay = ({
 }
 
 function DetailedPayloadInnerTable(props){
-    const me = props.me;
+    const me = useReactiveVar(meState);
     const theme = useTheme();
     const [commands, setCommands] = React.useState([]);
     const [buildParameters, setBuildParameters] = React.useState([]);

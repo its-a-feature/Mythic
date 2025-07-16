@@ -244,9 +244,7 @@ If you don't do this then you won't see any of your changes take effect`
 	mythicEnv.SetDefault("mythic_docker_networking", "bridge")
 	mythicEnvInfo["mythic_docker_networking"] = `Configure how the mythic services are networked (everything except the 3rd party things you install) - the default is 'bridge' which means that ports must be explicitly exposed (mythic_server_dynamic_ports). 
 The other option, 'host', means that the services will share networking with the host and not need explicit ports exposed. 
-Either way, MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY and MYTHIC_SERVER_BIND_LOCALHOST_ONLY still determine if ports are bound to 0.0.0.0 or 127.0.0.1. 
-If setting this to 'host', make sure you update the 'MYTHIC_SERVER_HOST' option as well to be the IP of the host machine (not localhost) and then restart Mythic to get the changes applied to docker compose. 
-The containers will default to using localhost which won't work when the mythic_server is set to host networking.`
+Either way, MYTHIC_SERVER_DYNAMIC_PORTS_BIND_LOCALHOST_ONLY and MYTHIC_SERVER_BIND_LOCALHOST_ONLY still determine if ports are bound to 0.0.0.0 or 127.0.0.1.`
 
 	// postgres configuration ---------------------------------------------
 	mythicEnv.SetDefault("postgres_host", "mythic_postgres")

@@ -121,7 +121,7 @@ export const TagsDisplay = ({tags, expand}) => {
 }
 const TagChipDisplay = ({tag, expand}) => {
   const [openTagDisplay, setOpenTagDisplay] = React.useState(false);
-  const [label, setLabel] = React.useState(tag.tagtype.name[0]);
+  const [label, setLabel] = React.useState(expand ? tag.tagtype.name : tag.tagtype.name[0]);
   const onSelectTag = (event, tag) => {
     if(event){
       event.preventDefault();
@@ -137,12 +137,12 @@ const TagChipDisplay = ({tag, expand}) => {
     setOpenTagDisplay(false);
   }
   const onMouseOver = () => {
-    if(expand === undefined || expand){
+    if(expand === undefined || !expand){
       setLabel(tag.tagtype.name);
     }
   }
   const onMouseOut = () => {
-    if(expand === undefined || expand){
+    if(expand === undefined || !expand){
       setTimeout( () => {
         setLabel(tag.tagtype.name[0]);
       }, 10000); // wait 10s then go back to just a single letter

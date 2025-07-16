@@ -21,6 +21,7 @@ const tagFragment = gql`
 fragment tagData on tag{
     id
     source
+    data
     tagtype {
         name
         color
@@ -46,7 +47,6 @@ fragment tagData on tag{
         md5
         sha1
         comment
-        filename_text
     }
     keylog_id
     mythictree {
@@ -67,10 +67,37 @@ fragment tagData on tag{
         comment
         callback {
             display_id
+            host
+            user
+            color
+            integrity_level
+            description
             id
         }
     }
     taskartifact_id
+    callback {
+        display_id
+        host
+        domain
+        user
+        color
+        integrity_level
+        description
+        ip
+        id
+    }
+    payload {
+        uuid
+        id
+        payloadtype {
+            name
+        }
+        description
+        filemetum {
+            filename_text
+        }
+    }
 }
 `;
 const tagTypeSearch = gql`

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.58] - 2025-07-16
+
+### Changed
+
+- Updated some of the context in tag search for tasks to include more callback information
+- Added fields for Callback/Payload tags to show up
+
 ## [0.3.57] - 2025-07-13
 
 ### Changed

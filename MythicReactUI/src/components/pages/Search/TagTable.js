@@ -20,6 +20,8 @@ import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {HostFileDialog} from "../Payloads/HostFileDialog";
 import PublicIcon from '@mui/icons-material/Public';
+import {DetailedPayloadTable} from "../Payloads/DetailedPayloadTable";
+import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 
 export function TagTable(props){
     const [tags, setTags] = React.useState([]);
@@ -80,7 +82,7 @@ function TagTableRow(props){
                     </IconButton>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <div style={{float: "left"}}><TagsDisplay  tags={[props]} /></div>
+                    <div style={{float: "left"}}><TagsDisplay expand={true} tags={[props]} /></div>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.source}</MythicStyledTableCell>
                 <MythicStyledTableCell style={{wordBreak: "break-all"}}><TagTableRowElement {...props} /></MythicStyledTableCell>
@@ -96,6 +98,7 @@ function TagTableRow(props){
 }
 function TagTableRowElement(props){
     const [viewPermissionsDialogOpen, setViewPermissionsDialogOpen] = React.useState(false);
+    const [openDetailedView, setOpenDetailedView] = React.useState(false);
     const [openHostDialog, setOpenHostDialog] = React.useState(false);
     const getElement = () => {
         if(props.task) {
@@ -111,12 +114,17 @@ function TagTableRowElement(props){
                                 <TableCell >Task / Callback</TableCell>
                                 <TableCell>
                                     <Link href={"/new/task/" + props.task.display_id} color="textPrimary" target={"_blank"}>
-                                        {props.task.display_id}
+                                        T-{props.task.display_id}
                                     </Link>
                                     {"  /  "}
                                     <Link href={"/new/callbacks/" + props.task.callback.display_id} color="textPrimary" target={"_blank"}>
-                                        {props.task.callback.display_id}
+                                        C-{props.task.callback.display_id}
                                     </Link>
+                                    <div style={{border: props.task.callback.color === "" ? "" : `1px solid ${props.task.callback.color}`}}>
+                                        {props.task.callback.user}{props.task.callback.integrity_level > 2 ? "*" : ""}@{props.task.callback.host}
+                                        {" - "}{props.task.callback.description}
+                                    </div>
+
                                 </TableCell>
                             </TableRow>
                             <TableRow hover>
@@ -128,6 +136,10 @@ function TagTableRowElement(props){
                             <TableRow hover>
                                 <TableCell>Comment</TableCell>
                                 <TableCell>{props.task.comment}</TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell>Data</TableCell>
+                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
@@ -161,6 +173,10 @@ function TagTableRowElement(props){
                             <TableRow hover style={{whiteSpace: "pre"}}>
                                 <TableCell>Credential</TableCell>
                                 <TableCell>{props.credential.credential_text}</TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell>Data</TableCell>
+                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
@@ -204,6 +220,10 @@ function TagTableRowElement(props){
                                         <PlaylistAddCheckIcon style={{marginRight: "5px"}}/> View
                                     </Button>
                                 </TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell>Data</TableCell>
+                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
@@ -259,6 +279,10 @@ function TagTableRowElement(props){
                                     </MythicStyledTooltip>
                                 </TableCell>
                             </TableRow>
+                            <TableRow hover>
+                                <TableCell>Data</TableCell>
+                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
+                            </TableRow>
                         </TableBody>
 
                         {openHostDialog &&
@@ -274,12 +298,88 @@ function TagTableRowElement(props){
             )
         }else if(props.keylog_id) {
             return <Typography ><b>Keylog: </b> {props.keylog_id}</Typography>
-        }else if(props.response_id){
-            return <Typography ><b>Response: </b> {props.response_id}</Typography>
-        }else if(props.taskartifact_id){
-            return <Typography ><b>Artifact: </b> {props.taskartifact_id}</Typography>
+        }else if(props.payload){
+            return (
+                <TableContainer className="mythicElement" >
+                    <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
+                        <TableBody>
+                            <TableRow hover>
+                                <TableCell style={{width: "20%"}}>Element Type</TableCell>
+                                <TableCell><b>Payload</b></TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell >Filename</TableCell>
+                                <TableCell>
+                                    {b64DecodeUnicode(props.payload.filemetum.filename_text)}
+                                </TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell >UUID</TableCell>
+                                <TableCell>
+                                    {props.payload.uuid}
+                                    <IconButton color={"info"} onClick={()=>setOpenDetailedView(true)}>
+                                        <InfoIconOutline />
+                                    </IconButton>
+                                    {openDetailedView &&
+                                        <MythicDialog fullWidth={true} maxWidth="lg" open={openDetailedView}
+                                                      onClose={()=>{setOpenDetailedView(false);}}
+                                                      innerDialog={<DetailedPayloadTable {...props.payload} payload_id={props.payload.id} onClose={()=>{setOpenDetailedView(false);}} />}
+                                        />}
+                                </TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell>Description</TableCell>
+                                <TableCell>{props.payload.description}</TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell>Data</TableCell>
+                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )
+        }else if(props.taskartifact_id) {
+            return <Typography><b>Artifact: </b> {props.taskartifact_id}</Typography>
+        }else if(props.callback){
+            return (
+                <TableContainer className="mythicElement" >
+                    <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
+                        <TableBody>
+                            <TableRow hover>
+                                <TableCell style={{width: "20%"}}>Element Type</TableCell>
+                                <TableCell><b>Callback</b></TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell >Callback</TableCell>
+                                <TableCell>
+                                    <Link href={"/new/callbacks/" + props.callback.display_id} color="textPrimary" target={"_blank"}>
+                                        C-{props.callback.display_id}
+                                    </Link>
+                                    <div style={{border: props.callback.color === "" ? "" : `1px solid ${props.callback.color}`}}>
+                                        {props.callback.user}{props.callback.integrity_level > 2 ? "*" : ""}@{props.callback.host}
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell>Description</TableCell>
+                                <TableCell>{props.callback.description}</TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell>IP</TableCell>
+                                <TableCell>{props.callback.ip}</TableCell>
+                            </TableRow>
+                            <TableRow hover>
+                                <TableCell>Data</TableCell>
+                                <TableCell>{JSON.stringify(props.data, null, 2)}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )
+
         } else {
-            console.log("unknown id for tag")
+            console.log("unknown id for tag", props)
         }
     }
     return getElement()

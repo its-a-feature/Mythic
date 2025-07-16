@@ -384,12 +384,11 @@ export function PayloadsTableRow(props){
                     <TagsDisplay tags={props.tags} />
                 </MythicStyledTableCell>
             </TableRow>
-            {openDetailedView ? (
+            {openDetailedView &&
               <MythicDialog fullWidth={true} maxWidth="lg" open={openDetailedView}
                   onClose={()=>{setOpenDetailedView(false);}} 
                   innerDialog={<DetailedPayloadTable {...props} payload_id={props.id} onClose={()=>{setOpenDetailedView(false);}} />}
-              />
-            ) : null }
+              />}
             {openEditPayloadConfigDialog &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openEditPayloadConfigDialog}
                               onClose={()=>{setOpenEditPayloadConfigDialog(false);}}
