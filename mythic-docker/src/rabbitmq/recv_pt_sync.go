@@ -405,9 +405,9 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	checkContainerStatusAddPtChannel <- payloadtype
 	if !in.ForcedSync {
 		go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(payloadtype.Name)
-		if in.PayloadType.AgentType == "command_augment" {
-			go updateAllCallbacksWithCommandAugments()
-		}
+	}
+	if in.PayloadType.AgentType == "command_augment" {
+		go updateAllCallbacksWithCommandAugments()
 	}
 	return nil
 }

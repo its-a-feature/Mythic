@@ -105,7 +105,7 @@ ${taskingDataFragment}
 query responseQuery($search: Int!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
     task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, callback: {display_id: {_eq: $search}}}) {
       aggregate {
-        count(columns: id)
+        count
       }
     }
     task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, callback: {display_id: {_eq: $search}}}) {
@@ -115,13 +115,13 @@ query responseQuery($search: Int!, $offset: Int!, $fetchLimit: Int!, $status: St
 `;
 const callbackGroupSearch = gql`
 ${taskingDataFragment}
-query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, callback: {mythictree_groups_string: {_ilike: $search}}}) {
+query callbackGroupSearchQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!, $host: String!, $filterOperator: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}, mythictree_groups_string: {_ilike: $search}}}) {
       aggregate {
-        count(columns: id)
+        count
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}}, callback: {mythictree_groups_string: {_ilike: $search}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {status: {_ilike: $status}, operator: {username: {_like: $filterOperator}}, callback: {host: {_ilike: $host}, mythictree_groups_string: {_ilike: $search}}}) {
       ...taskData
     }
   }
@@ -336,13 +336,14 @@ export const SearchTabTasksPanel = (props) =>{
     const [totalCount, setTotalCount] = React.useState(0);
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Command and Parameters");
+    const searchFieldRef = React.useRef("Command and Parameters");
     const [taskStatus, setTaskStatus] = React.useState("");
     const [alreadySearching, setAlreadySearching] = React.useState(false);
     const [host, setHost] = React.useState("");
     const [filterOperator, setFilterOperator] = React.useState("All Operators")
     const onChangeFilterOperator = (operator) => {
         setFilterOperator(operator);
-        switch(searchField){
+        switch(searchFieldRef.current){
             case "Output":
                 onOutputSearch({search, offset: 0, taskStatus, host, filterOperator:operator});
                 break;
@@ -373,7 +374,8 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const onChangeSearchField = (field) => {
         setSearchField(field);
-        switch(field){
+        searchFieldRef.current = field;
+        switch(searchFieldRef.current){
             case "Output":
                 onOutputSearch({search, offset: 0, taskStatus, host, filterOperator});
                 break;
@@ -411,7 +413,7 @@ export const SearchTabTasksPanel = (props) =>{
     const handleCallbackSearchSuccess = (data) => {
         snackActions.dismiss();
         setAlreadySearching(false);
-        if(searchField === "Tag"){
+        if(searchFieldRef.current === "Tag"){
             setTotalCount(data.tag_aggregate.aggregate.count);
             setTaskingData({task: data.tag.map(t => t.task)});
         } else {
@@ -482,7 +484,7 @@ export const SearchTabTasksPanel = (props) =>{
             status: "%" + newTaskStatus + "%",
             host: "%" + newHost + "%",
                 filterOperator: newFilterOperator
-        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
+        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onParameterSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -516,7 +518,7 @@ export const SearchTabTasksPanel = (props) =>{
             status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%",
                 filterOperator: newFilterOperator,
-        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
+        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onCommentSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -550,7 +552,7 @@ export const SearchTabTasksPanel = (props) =>{
             status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%",
                 filterOperator: newFilterOperator,
-        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
+        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onCommandSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -584,7 +586,7 @@ export const SearchTabTasksPanel = (props) =>{
             status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%",
                 filterOperator: newFilterOperator,
-        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
+        }}).then(({data}) => handleCallbackSearchSuccess(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onCommandAndParametersSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         snackActions.info("Searching...", {persist:true});
@@ -618,7 +620,7 @@ export const SearchTabTasksPanel = (props) =>{
                 status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%",
                 filterOperator: newFilterOperator,
-            }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }}).then(({data}) => handleCallbackSearchSuccess(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onTagSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -652,7 +654,7 @@ export const SearchTabTasksPanel = (props) =>{
                 status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%",
                 filterOperator: newFilterOperator,
-            }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }}).then(({data}) => handleCallbackSearchSuccess(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onCallbackIDSearch = ({search, offset, taskStatus, host, filterOperator}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -691,7 +693,7 @@ export const SearchTabTasksPanel = (props) =>{
                     status: "%" + newTaskStatus + "%",
                     host: "%" + newHost + "%",
                     filterOperator: newFilterOperator,
-                }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
+                }}).then(({data}) => handleCallbackSearchSuccess(data)).catch((data) => handleCallbackSearchFailure(data))
         }catch(error){
             snackActions.warning("Must supply an integer to search.");
             setAlreadySearching(false);
@@ -729,11 +731,11 @@ export const SearchTabTasksPanel = (props) =>{
                 status: "%" + newTaskStatus + "%",
                 host: "%" + newHost + "%",
                 filterOperator: newFilterOperator,
-            }}).then(({data}) => handleCallbackSearchSuccess(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }}).then(({data}) => handleCallbackSearchSuccess(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onChangePage = (event, value) => {
 
-        switch(searchField){
+        switch(searchFieldRef.current){
             case "Output":
                 onOutputSearch({search, offset: (value - 1) * fetchLimit, taskStatus, host, filterOperator });
                 break;

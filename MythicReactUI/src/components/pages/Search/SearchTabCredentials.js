@@ -286,6 +286,7 @@ export const SearchTabCredentialsPanel = (props) =>{
     const [totalCount, setTotalCount] = React.useState(0);
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Account");
+    const searchFieldRef = React.useRef("Account");
     const me = props.me;
     const showDeleted = React.useRef(false);
     const onChangeDeletedField = (newShowDeleted) => {
@@ -294,6 +295,7 @@ export const SearchTabCredentialsPanel = (props) =>{
     }
     const onChangeSearchField = (field) => {
         setSearchField(field);
+        searchFieldRef.current = field;
         switch(field){
             case "Account":
                 onAccountSearch({search, offset: 0});
@@ -316,7 +318,7 @@ export const SearchTabCredentialsPanel = (props) =>{
     }
     const handleCredentialSearchResults = (data) => {
         snackActions.dismiss();
-        if(searchField === "Tag"){
+        if(searchFieldRef.current === "Tag"){
             setTotalCount(data.tag_aggregate.aggregate.count);
             setCredentialData(data.tag.map(c => c.credential));
         } else {
@@ -354,7 +356,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             fetchLimit: fetchLimit,
             account: "%" + search + "%",
             deleted: showDeleted.current
-        }}).then(({data}) => handleCredentialSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+        }}).then(({data}) => handleCredentialSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onRealmSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -365,7 +367,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             fetchLimit: fetchLimit,
             realm: "%" + search + "%",
             deleted: showDeleted.current
-        }}).then(({data}) => handleCredentialSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+        }}).then(({data}) => handleCredentialSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onCredentialSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -376,7 +378,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             fetchLimit: fetchLimit,
             credential: "%" + search + "%",
             deleted: showDeleted.current
-        }}).then(({data}) => handleCredentialSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+        }}).then(({data}) => handleCredentialSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onCommentSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -391,7 +393,7 @@ export const SearchTabCredentialsPanel = (props) =>{
             fetchLimit: fetchLimit,
             comment: "%" + new_search + "%",
             deleted: showDeleted.current
-        }}).then(({data}) => handleCredentialSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+        }}).then(({data}) => handleCredentialSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onTagSearch = ({search, offset}) => {
         //snackActions.info("Searching...", {persist:true});
@@ -406,11 +408,11 @@ export const SearchTabCredentialsPanel = (props) =>{
                 fetchLimit: fetchLimit,
                 tag:  "%" + new_search + "%",
                 deleted: showDeleted.current
-            }}).then(({data}) => handleCredentialSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }}).then(({data}) => handleCredentialSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
     }
     const onChangePage = (event, value) => {
         if(value === 1){
-            switch(searchField){
+            switch(searchFieldRef.current){
                 case "Account":
                     onAccountSearch({search, offset: 0});
                     break;

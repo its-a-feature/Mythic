@@ -605,6 +605,7 @@ export const SearchTabFilesPanel = (props) => {
     const [search, setSearch] = React.useState("");
     const [searchHost, setSearchHost] = React.useState("");
     const [searchField, setSearchField] = React.useState("Filename");
+    const searchFieldRef = React.useRef("Filename");
     const [searchLocation, setSearchLocation] = React.useState("Downloads");
     const showDeleted = React.useRef(false);
     const me = props.me;
@@ -614,6 +615,7 @@ export const SearchTabFilesPanel = (props) => {
     }
     const onChangeSearchField = (field) => {
         setSearchField(field);
+        searchFieldRef.current = field;
         switch (field) {
             case "Filename":
                 onFilenameSearch({search, searchHost, offset: 0, adjustedSearchLocation: searchLocation});
@@ -636,7 +638,7 @@ export const SearchTabFilesPanel = (props) => {
     }
     const onChangeSearchLocation = (field) => {
         setSearchLocation(field);
-        switch (searchField) {
+        switch (searchFieldRef.current) {
             case "Filename":
                 onFilenameSearch({search, searchHost, offset: 0, adjustedSearchLocation: field});
                 break;
@@ -658,7 +660,7 @@ export const SearchTabFilesPanel = (props) => {
     }
     const handleFileMetaDownloadSearchResults = (data) => {
         snackActions.dismiss();
-        if (searchField === "Tag") {
+        if (searchFieldRef.current === "Tag") {
             setTotalCount(data?.tag_aggregate?.aggregate?.count || 0);
             setFileMetaDownloadData(data?.tag?.map(t => t.filemetum) || []);
         } else {
@@ -669,11 +671,10 @@ export const SearchTabFilesPanel = (props) => {
         setFileBrowserData([]);
         setFileMetaUploadData([]);
         setFileMetaScreenshotData([]);
-
     }
     const handleFileMetaUploadSearchResults = (data) => {
         snackActions.dismiss();
-        if (searchField === "Tag") {
+        if (searchFieldRef.current === "Tag") {
             setTotalCount(data?.tag_aggregate?.aggregate?.count || 0);
             const tagData = data?.tag?.map(t => t.filemetum) || [];
             setFileMetaUploadData( tagData);
@@ -689,7 +690,7 @@ export const SearchTabFilesPanel = (props) => {
     }
     const handleFileMetaScreenshotSearchResults = (data) => {
         snackActions.dismiss();
-        if (searchField === "Tag") {
+        if (searchFieldRef.current === "Tag") {
             setTotalCount(data?.tag_aggregate?.aggregate?.count || 0);
             setFileMetaScreenshotData(data?.tag?.map(t => t.filemetum) || []);
         } else {
@@ -703,7 +704,7 @@ export const SearchTabFilesPanel = (props) => {
     }
     const handleFileBrowserSearchResults = (data) => {
         snackActions.dismiss();
-        if (searchField === "Tag") {
+        if (searchFieldRef.current === "Tag") {
             setTotalCount(data?.tag_aggregate?.aggregate?.count || 0);
             setFileBrowserData(data?.tag?.map(t => t.mythictree) || []);
         } else {
@@ -794,7 +795,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileBrowserSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileBrowserSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Uploads") {
             getfilenameFileMetaUploadSearch({
                 variables: {
@@ -805,7 +806,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Downloads") {
             getfilenameFileMetaDownloadSearch({
                 variables: {
@@ -816,7 +817,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Eventing Workflows"){
             getfilenameFileMetaEventingWorkflowSearch({
                 variables: {
@@ -825,7 +826,7 @@ export const SearchTabFilesPanel = (props) => {
                     filename: "%" + search + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else {
             getfilenameFileMetaScreenshotSearch({
                 variables: {
@@ -836,7 +837,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         }
     }
     const onHashSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
@@ -861,7 +862,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Downloads") {
             gethashFileMetaDownloadSearch({
                 variables: {
@@ -872,7 +873,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else {
             gethashFileMetaScreenshotSearch({
                 variables: {
@@ -883,7 +884,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         }
     }
     const onCommentSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
@@ -904,7 +905,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileBrowserSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileBrowserSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Uploads") {
             getcommentFileMetaUploadSearch({
                 variables: {
@@ -915,7 +916,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Downloads") {
             getcommentFileMetaDownloadSearch({
                 variables: {
@@ -926,7 +927,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else {
             getcommentFileMetaScreenshotSearch({
                 variables: {
@@ -937,7 +938,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         }
     }
     const onTagSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
@@ -957,7 +958,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileBrowserSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileBrowserSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Uploads") {
             gettagFileMetaUploadSearch({
                 variables: {
@@ -967,7 +968,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Downloads") {
             gettagFileMetaDownloadSearch({
                 variables: {
@@ -977,7 +978,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else {
             gettagFileMetaScreenshotSearch({
                 variables: {
@@ -987,7 +988,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         }
     }
     const onUUIDSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
@@ -1012,7 +1013,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Downloads") {
             getUUIDFileMetaDownloadSearch({
                 variables: {
@@ -1023,7 +1024,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaDownloadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else if (adjustedSearchLocation === "Eventing Workflows") {
             getUUIDFileMetaEventingWorkflowSearch({
                 variables: {
@@ -1034,7 +1035,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaUploadSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         } else {
             getUUIDFileMetaScreenshotSearch({
                 variables: {
@@ -1045,7 +1046,7 @@ export const SearchTabFilesPanel = (props) => {
                     host: "%" + searchHost + "%",
                     deleted: showDeleted.current
                 }
-            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+            }).then(({data}) => handleFileMetaScreenshotSearchResults(data)).catch((data) => handleCallbackSearchFailure(data))
         }
     }
     const onChangePage = (event, value) => {

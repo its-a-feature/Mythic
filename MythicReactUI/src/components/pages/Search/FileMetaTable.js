@@ -118,24 +118,24 @@ export function FileMetaDownloadTable(props){
             setSelected({});
         } else {
             setCheckAll(true);
-            const newSelected = files.reduce( (prev, cur) => {
+            const newSelected = files?.reduce( (prev, cur) => {
                 if(!cur.deleted){
                     return {...prev, [cur.id]: true};
                 } else {
                     return {...prev}
                 }
 
-            }, {});
+            }, {}) || {};
             setSelected(newSelected);
         }
     }
     useEffect( () => {
-        const initialSelected = props.files.reduce( (prev, file) => {
+        const initialSelected = props.files?.reduce( (prev, file) => {
             return {...prev, [file.id]: false}
-        }, {});
-        const initialFiles = props.files.reduce( (prev, file) => {
+        }, {}) || {};
+        const initialFiles = props.files?.reduce( (prev, file) => {
             return [...prev, {...file, filename_text: b64DecodeUnicode(file.filename_text), full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text)}]
-        }, []);
+        }, []) || [];
         setSelected(initialSelected);
         setFiles(initialFiles);
     }, [props.files]);
@@ -503,24 +503,24 @@ export function FileMetaUploadTable(props){
             setSelected({});
         } else {
             setCheckAll(true);
-            const newSelected = files.reduce( (prev, cur) => {
+            const newSelected = files?.reduce( (prev, cur) => {
                 if(!cur.deleted){
                     return {...prev, [cur.id]: true};
                 } else {
                     return {...prev}
                 }
 
-            }, {});
+            }, {}) || {};
             setSelected(newSelected);
         }
     }
     useEffect( () => {
-        const initialSelected = props.files.reduce( (prev, file) => {
+        const initialSelected = props.files?.reduce( (prev, file) => {
             return {...prev, [file.id]: false}
-        }, {});
-        const initialFiles = props.files.reduce( (prev, file) => {
+        }, {})  || [];
+        const initialFiles = props.files?.reduce( (prev, file) => {
             return [...prev, {...file, filename_text: b64DecodeUnicode(file.filename_text), full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text)}]
-        }, []);
+        }, []) || [];
         setSelected(initialSelected);
         setFiles(initialFiles);
     }, [props.files]);
@@ -878,13 +878,13 @@ function FileMetaUploadTableRow(props){
 export function FileMetaScreenshotTable(props){
     const [files, setFiles] = React.useState([]);
     useEffect( () => {
-        const initialFiles = props.files.reduce( (prev, file) => {
+        const initialFiles = props.files?.reduce( (prev, file) => {
             return [...prev, {...file, filename_text: b64DecodeUnicode(file.filename_text), full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text)}]
-        }, []);
+        }, [])  || [];
         setFiles(initialFiles);
     }, [props.files]);
     const onEditComment = ({id, comment}) => {
-        const updated = files.map( (file) => {
+        const updated = files?.map( (file) => {
             if(file.id === id){
                 return {...file, comment: comment};
             }else{
@@ -1083,24 +1083,24 @@ export function FileMetaEventingWorkflowsTable(props){
             setSelected({});
         } else {
             setCheckAll(true);
-            const newSelected = files.reduce( (prev, cur) => {
+            const newSelected = files?.reduce( (prev, cur) => {
                 if(!cur.deleted){
                     return {...prev, [cur.id]: true};
                 } else {
                     return {...prev}
                 }
 
-            }, {});
+            }, {}) || {};
             setSelected(newSelected);
         }
     }
     useEffect( () => {
-        const initialSelected = props.files.reduce( (prev, file) => {
+        const initialSelected = props.files?.reduce( (prev, file) => {
             return {...prev, [file.id]: false}
-        }, {});
-        const initialFiles = props.files.reduce( (prev, file) => {
+        }, {}) || {};
+        const initialFiles = props.files?.reduce( (prev, file) => {
             return [...prev, {...file, filename_text: b64DecodeUnicode(file.filename_text), full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text)}]
-        }, []);
+        }, [])  || [];
         setSelected(initialSelected);
         setFiles(initialFiles);
     }, [props.files]);
