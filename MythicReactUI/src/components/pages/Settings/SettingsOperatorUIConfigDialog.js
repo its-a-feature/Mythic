@@ -317,6 +317,7 @@ export function SettingsOperatorUIConfigDialog(props) {
               taskingContextFields,
               palette: palette
       }});
+      snackActions.success("updating settings");
       props.onClose();
     }
     const changeCommonFontFamilies = (event) => {

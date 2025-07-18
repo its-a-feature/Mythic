@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc86] - 2025-07-18
+
+### Changed
+
+- Updated the processing of new file tracking to auto mark the file as completed for uploads
+
 ## [3.3.1-rc85] - 2025-07-17
 
 ### Changed

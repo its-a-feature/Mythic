@@ -100,7 +100,7 @@ func TestMythicRabbitmqConnection() {
 		rabbitmqAddress = mythicEnv.GetString("RABBITMQ_HOST")
 	}
 	if rabbitmqAddress == "127.0.0.1" && !manager.GetManager().IsServiceRunning("mythic_rabbitmq") {
-		log.Printf("[-] Service mythic_rabbitmq should be running on the host, but isn't. Containers will be unable to connect.\nStart it by starting Mythic ('sudo ./mythic-cli mythic start') or manually with 'sudo ./mythic-cli mythic start mythic_rabbitmq'\n")
+		log.Printf("[-] Service mythic_rabbitmq should be running on the host, but isn't. Containers will be unable to connect.\nStart it by starting Mythic ('sudo ./mythic-cli start') or manually with 'sudo ./mythic-cli start mythic_rabbitmq'\n")
 		return
 	}
 	maxCount := 10

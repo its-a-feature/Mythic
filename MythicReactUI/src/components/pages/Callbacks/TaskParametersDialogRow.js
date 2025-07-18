@@ -382,15 +382,15 @@ export function TaskParametersDialogRow(props){
                 let payloadNum = 0;
                 if(agentConnectPayload < props.choices[hostNum]["payloads"].length){
                     payloadNum = agentConnectPayload;
-                }else{
-                    setAgentConnectPayload(0);
                 }
+                setAgentConnectPayload(payloadNum);
                 setAgentConnectPayloadOptions(props.choices[hostNum]["payloads"]);
                 if(props.choices[hostNum]["payloads"].length > 0){
                     //setAgentConnectPayload(0);  
                     if(props.choices[hostNum]["payloads"][payloadNum]["c2info"].length > 0){
                         setAgentConnectC2ProfileOptions(props.choices[hostNum]["payloads"][payloadNum]["c2info"]);
                         //setAgentConnectC2Profile(0);
+                        onChangeAgentConnect(agentConnectHost, payloadNum, 0);
                     }
                 }else{
                     snackActions.warning("Mythic knows of no host with a P2P payload. Please add one.");

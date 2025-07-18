@@ -56,7 +56,7 @@ export function EventFeedTable(props){
             <Paper elevation={5} style={{backgroundColor: theme.body, marginBottom: "5px", marginRight: "5px"}}>
                 <Grid container spacing={1} style={{ marginTop: "0px"}}>
                     <Grid style={{paddingTop: 0}} size={10}>
-                        <MythicTextField placeholder="Search..." value={search} marginBottom={"0px"}
+                        <MythicTextField placeholder="Search..." value={search} marginBottom={"0px"} marginTop={"0px"}
                                          onChange={handleSearchValueChange} onEnter={submitSearch} InputProps={{
                             endAdornment:
                                 <React.Fragment>

@@ -1445,7 +1445,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			newFileMeta.TaskID.Valid = true
 			newFileMeta.TotalChunks = totalChunks
 			newFileMeta.ChunksReceived = 1
-			newFileMeta.Complete = newFileMeta.ChunksReceived == newFileMeta.TotalChunks
+			newFileMeta.Complete = true //newFileMeta.ChunksReceived == newFileMeta.TotalChunks
 			newFileMeta.ChunkSize = int(chunkSize)
 			newFileMeta.Comment = fmt.Sprintf("Newly tracked copy of file: %s", string(fileMeta.Filename))
 			newFileMeta.AgentFileID = uuid.NewString()
@@ -1467,13 +1467,15 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			}
 		} else {
 			newFileMeta := databaseStructs.Filemeta{AgentFileID: fileMeta.AgentFileID}
-			err = database.DB.Get(&newFileMeta, `SELECT id, total_chunks FROM filemeta WHERE
+			err = database.DB.Get(&newFileMeta, `SELECT id, total_chunks, complete FROM filemeta WHERE
                                           task_id=$1 AND path=$2`, task.ID, fileMeta.Path)
 			if err != nil {
 				logging.LogError(err, "failed to find new filemeta data for task to update chunk count")
 			} else {
 				newFileMeta.ChunksReceived = agentResponse.Upload.ChunkNum
-				newFileMeta.Complete = newFileMeta.ChunksReceived == newFileMeta.TotalChunks
+				if !newFileMeta.Complete {
+					newFileMeta.Complete = newFileMeta.ChunksReceived >= newFileMeta.TotalChunks
+				}
 				_, err = database.DB.NamedExec(`UPDATE filemeta 
 					SET chunks_received=:chunks_received, complete=:complete
 					WHERE id=:id`, newFileMeta)
