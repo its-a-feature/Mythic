@@ -111,6 +111,7 @@ func processC2SyncMessages(msg amqp.Delivery) interface{} {
 func c2Sync(in C2SyncMessage) error {
 	//logging.LogDebug("Received connection to c2Sync", "syncMessage", in)
 	c2Profile := databaseStructs.C2profile{}
+	newProfile := false
 	if in.Profile.Name == "" {
 		logging.LogError(nil, "Can't have c2 container with empty name - bad sync")
 		return errors.New("Can't have c2 container with empty name - bad sync")
@@ -120,6 +121,7 @@ func c2Sync(in C2SyncMessage) error {
 	}
 	if err := database.DB.Get(&c2Profile, `SELECT * FROM c2profile WHERE "name"=$1`, in.Profile.Name); err != nil {
 		// this means we don't have the c2 profile, so we need to create it and all the associated components
+		newProfile = true
 		logging.LogDebug("Failed to find c2 profile, syncing new data", "c2_profile", c2Profile)
 		c2Profile.Name = in.Profile.Name
 		c2Profile.Author = in.Profile.Author
@@ -171,7 +173,9 @@ func c2Sync(in C2SyncMessage) error {
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", c2Profile.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG)
 	go database.ResolveAllOperationsMessage(getDownContainerMessage(c2Profile.Name), 0)
 	go autoStartC2Profile(c2Profile)
-	go reSyncPayloadTypes()
+	if newProfile {
+		go reSyncPayloadTypes()
+	}
 	checkContainerStatusAddC2Channel <- c2Profile
 	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(c2Profile.Name)
 	return nil

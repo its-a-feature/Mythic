@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc87] - 2025-07-21
+
+### Changed
+
+- Updated syncing for payload types to only happen with new c2, not all c2
+- Updated syncing for translation containers to only force sync payload types when translation container is new
+
 ## [3.3.1-rc86] - 2025-07-18
 
 ### Changed

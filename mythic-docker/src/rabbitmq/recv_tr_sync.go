@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -53,7 +54,6 @@ func processTrSyncMessages(msg amqp.Delivery) interface{} {
 			go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", trSyncMsg.Name, trSyncMsg.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG)
 			go database.ResolveAllOperationsMessage(getDownContainerMessage(trSyncMsg.Name), 0)
 			logging.LogDebug("Successfully synced", "service", trSyncMsg.Name)
-			go reSyncPayloadTypes()
 		}
 	}
 	return response
@@ -61,6 +61,7 @@ func processTrSyncMessages(msg amqp.Delivery) interface{} {
 
 func trSync(in TrSyncMessage) error {
 	//logging.LogDebug("Received connection to c2Sync", "syncMessage", in)
+	newTranslationContainer := false
 	translationDatabase := databaseStructs.Translationcontainer{
 		Name:             in.Name,
 		Deleted:          false,
@@ -71,21 +72,33 @@ func trSync(in TrSyncMessage) error {
 	if in.Name == "" {
 		logging.LogError(nil, "Can't have translation container with empty name - bad sync")
 		return errors.New("Can't have translation container with empty name - bad sync")
-	} else if !isValidContainerVersion(in.ContainerVersion) {
+	}
+	if !isValidContainerVersion(in.ContainerVersion) {
 		logging.LogError(nil, "attempting to sync bad translation container version")
 		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
 	}
-	if _, err := database.DB.NamedExec(`INSERT INTO translationcontainer 
+	err := database.DB.Get(&translationDatabase, `SELECT id 
+		FROM translationcontainer
+		WHERE "name" = $1`, in.Name)
+	if errors.Is(err, sql.ErrNoRows) {
+		newTranslationContainer = true
+	}
+	_, err = database.DB.NamedExec(`INSERT INTO translationcontainer 
     	("name", deleted, container_running, description, author) VALUES (:name, :deleted, :container_running, :description, :author)
-    	ON CONFLICT ("name") DO UPDATE SET deleted=false, container_running=true, description=:description, author=:author`, translationDatabase); err != nil {
+    	ON CONFLICT ("name") DO UPDATE SET deleted=false, container_running=true, description=:description, author=:author`, translationDatabase)
+	if err != nil {
 		logging.LogError(err, "Failed to sync translation container")
 		return err
-	} else if err := database.DB.Get(&translationDatabase.ID, `SELECT id FROM translationcontainer WHERE "name"=$1`, translationDatabase.Name); err != nil {
+	}
+	err = database.DB.Get(&translationDatabase.ID, `SELECT id FROM translationcontainer WHERE "name"=$1`, translationDatabase.Name)
+	if err != nil {
 		logging.LogError(err, "Failed to get translation information back after creation")
 		return err
-	} else {
-		checkContainerStatusAddTrChannel <- translationDatabase
-		go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(translationDatabase.Name)
-		return nil
 	}
+	checkContainerStatusAddTrChannel <- translationDatabase
+	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(translationDatabase.Name)
+	if newTranslationContainer {
+		go reSyncPayloadTypes()
+	}
+	return nil
 }
