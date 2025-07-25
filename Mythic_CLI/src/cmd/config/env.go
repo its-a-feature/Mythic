@@ -354,6 +354,9 @@ Setting this to "true" means that the local Mythic/hasura-docker/Dockerfile is u
 	mythicEnv.SetDefault("COMPOSE_PROJECT_NAME", "mythic")
 	mythicEnvInfo["compose_project_name"] = `This is the project name for Docker Compose - it sets the prefix of the container names and shouldn't be changed`
 
+	mythicEnv.SetDefault("COMPOSE_BAKE", true)
+	mythicEnvInfo["COMPOSE_BAKE"] = `This is a newer option in Docker Compose to delegate builds to bake for better build performance`
+	
 	mythicEnv.SetDefault("REBUILD_ON_START", false)
 	mythicEnvInfo["rebuild_on_start"] = `This identifies if a container's backing image should be re-built (or re-fetched) each time you start the container. 
 This can cause agent and c2 profile containers to have their volumes wiped on each start (and thus deleting any changes). 
