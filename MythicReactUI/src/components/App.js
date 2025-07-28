@@ -12,7 +12,6 @@ import { Home } from './pages/Home/Home';
 import { LoggedInRoute } from './utilities/LoggedInRoute';
 import { Callbacks } from './pages/Callbacks/Callbacks';
 import { Search } from './pages/Search/Search';
-import { ConsumingServices } from './pages/ConsumingServices/ConsumingServices';
 import React, {createContext} from 'react';
 import { Typography } from '@mui/material';
 import { useReactiveVar } from '@apollo/client';
@@ -404,9 +403,6 @@ export function App(props) {
                                            element={<LoggedInRoute me={me}><MitreAttack me={me}/></LoggedInRoute>}/>
                                     <Route exact path='/new/tagtypes'
                                            element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>}/>
-                                    <Route exact path='/new/consuming_services'
-                                           element={<LoggedInRoute me={me}><ConsumingServices
-                                               me={me}/></LoggedInRoute>}/>
                                     <Route exact path='/new/eventing'
                                            element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>}/>
                                 </Routes>
