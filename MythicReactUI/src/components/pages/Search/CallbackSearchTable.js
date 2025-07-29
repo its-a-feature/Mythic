@@ -49,6 +49,7 @@ export function CallbackSearchTable(props){
                         <TableCell >User</TableCell>
                         <TableCell >Domain</TableCell>
                         <TableCell >Host</TableCell>
+                        <TableCell> PID</TableCell>
                         <TableCell >Last Checkin</TableCell>
                         <TableCell >Description</TableCell>
                         <TableCell >IP</TableCell>
@@ -110,6 +111,7 @@ function CallbackSearchTableRow(props){
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.domain}</Typography>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.host}</MythicStyledTableCell>
+                <MythicStyledTableCell>{props.pid}</MythicStyledTableCell>
                 <MythicStyledTableCell style={{whiteSpace: "pre"}}>
                     <CallbacksTableLastCheckinCell rowData={{...props}} ></CallbacksTableLastCheckinCell>
                 </MythicStyledTableCell>

@@ -26,6 +26,7 @@ fragment callbackSearchData on callback{
     id
     display_id
     ip
+    pid
     active
     dead
     last_checkin
@@ -142,6 +143,19 @@ query hostQuery($operation_id: Int!, $callbackDisplayID: Int!, $offset: Int!, $f
     }
 }
 `;
+const callbackPIDSearch = gql`
+${callbackFragment}
+query pidQuery($operation_id: Int!, $callbackPID: Int!, $offset: Int!, $fetchLimit: Int!) {
+    callback_aggregate(distinct_on: id, order_by: {id: desc}, where: {pid: {_eq: $callbackPID}, operation_id: {_eq: $operation_id}}) {
+      aggregate {
+        count
+      }
+    }
+    callback(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {pid: {_eq: $callbackPID}, operation_id: {_eq: $operation_id}}) {
+      ...callbackSearchData
+    }
+}
+`;
 
 export function SearchTabCallbacksLabel(props){
     return (
@@ -153,7 +167,7 @@ const SearchTabCallbacksSearchPanel = (props) => {
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Host");
-    const searchFieldOptions = ["User", "Domain", "Host", "Description", "IP", "Group", "PayloadType", "CallbackDisplayID"];
+    const searchFieldOptions = ["User", "Domain", "Host", "Description", "IP", "PID", "Group", "PayloadType", "CallbackDisplayID"];
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
         props.onChangeSearchField(event.target.value);
@@ -182,6 +196,9 @@ const SearchTabCallbacksSearchPanel = (props) => {
                 break;
             case "IP":
                 props.onIPSearch({search:adjustedSearch, offset: 0});
+                break;
+            case "PID":
+                props.onPIDSearch({search:adjustedSearch, offset:0});
                 break;
             case "Group":
                 props.onGroupSearch({search:adjustedSearch, offset: 0});
@@ -273,6 +290,9 @@ export const SearchTabCallbacksPanel = (props) =>{
             case "IP":
                 onIPSearch({search, offset: 0});
                 break;
+            case "PID":
+                onPIDSearch({search, offset: 0});
+                break;
             case "Group":
                 onGroupSearch({search, offset: 0});
                 break;
@@ -306,6 +326,9 @@ export const SearchTabCallbacksPanel = (props) =>{
         fetchPolicy: "no-cache"
     })
     const getIPSearch = useMythicLazyQuery(ipSearch, {
+        fetchPolicy: "no-cache"
+    })
+    const getPIDSearch = useMythicLazyQuery(callbackPIDSearch, {
         fetchPolicy: "no-cache"
     })
     const getGroupSearch = useMythicLazyQuery(groupSearch, {
@@ -433,6 +456,25 @@ export const SearchTabCallbacksPanel = (props) =>{
             snackActions.warning("ID must be an integer");
         }
     }
+    const onPIDSearch = ({search, offset}) => {
+        //snackActions.info("Searching...", {persist:true});
+        setSearch(search);
+        if(search === ""){
+            snackActions.warning("Must supply a PID to search for");
+            return;
+        }
+        try{
+            let new_search = parseInt(search);
+            getPIDSearch({variables:{
+                    operation_id: me?.user?.current_operation_id || 0,
+                    offset: offset,
+                    fetchLimit: fetchLimit,
+                    callbackPID: new_search,
+                }}).then(({data}) => handleCallbackSearchResults(data)).catch(({data}) => handleCallbackSearchFailure(data))
+        }catch(error){
+            snackActions.warning("ID must be an integer");
+        }
+    }
     const onChangePage = (event, value) => {
         switch(searchField){
             case "User":
@@ -449,6 +491,9 @@ export const SearchTabCallbacksPanel = (props) =>{
                 break;
             case "IP":
                 onIPSearch({search, offset: (value - 1) * fetchLimit});
+                break;
+            case "PID":
+                onPIDSearch({search, offset: (value -1) * fetchLimit});
                 break;
             case "Group":
                 onGroupSearch({search, offset: (value - 1) * fetchLimit});
@@ -472,6 +517,7 @@ export const SearchTabCallbacksPanel = (props) =>{
                                                onGroupSearch={onGroupSearch}
                                                onPayloadTypeSearch={onPayloadTypeSearch}
                                                onCallbackDisplayIDSearch={onCallbackDisplayIDSearch}
+                                               onPIDSearch={onPIDSearch}
                                                onHostSearch={onHostSearch} onDescriptionSearch={onDescriptionSearch} changeSearchParam={props.changeSearchParam}/>
                 <div style={{overflowY: "auto", flexGrow: 1}}>
                     {callbackData.length > 0 ? (
