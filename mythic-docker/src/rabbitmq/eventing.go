@@ -135,10 +135,16 @@ func listenForCronEvents() {
 				gocron.WithName(fmt.Sprintf("%d", event.EventGroupID)))
 			if err != nil {
 				logging.LogError(err, "failed to create new cron job")
+				SendAllOperationsMessage(fmt.Sprintf("Failed to create new cron job\n%v", err),
+					event.OperationID, "eventing_cron_listen", database.MESSAGE_LEVEL_WARNING)
+				continue
 			}
 			nextTriggerDate, err := j.NextRun()
 			if err != nil {
 				logging.LogError(err, "failed to get next run")
+				SendAllOperationsMessage(fmt.Sprintf("Failed to get next chron job run\n%v", err),
+					event.OperationID, "eventing_cron_next", database.MESSAGE_LEVEL_WARNING)
+				continue
 			}
 			_, err = database.DB.Exec(`UPDATE eventgroup SET next_scheduled_run=$1 WHERE id=$2`,
 				nextTriggerDate, event.EventGroupID)
