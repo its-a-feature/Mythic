@@ -2,13 +2,13 @@
 <a href="https://github.com/its-a-feature/Mythic/pulse">
         <img src="https://img.shields.io/github/commit-activity/m/its-a-feature/Mythic/master" 
           alt="Activity"/></a>
-<img src="https://img.shields.io/badge/version-3.3.1rc53-blue" alt="version 3.3.1-rc53"/>
+<img src="https://img.shields.io/badge/version-3.3.1rc88-blue" alt="version 3.3.1-rc88"/>
 <img src="https://img.shields.io/github/commits-since/its-a-feature/Mythic/latest?include_prereleases&color=orange" 
   alt="commits since last release"/>
 <a href="https://twitter.com/its_a_feature_">
     <img src="https://img.shields.io/twitter/follow/its_a_feature_?style=social" 
       alt="@its_a_feature_ on Twitter"/></a>
-<a href="https://ghst.ly/BHSlack">
+<a href="https://slack.specterops.io">
     <img src="https://img.shields.io/badge/BloodHound Slack-4A154B?logo=slack&logoColor=white"
         alt="chat on Bloodhound Slack"></a>
 <a href="https://github.com/specterops#mythic">
