@@ -233,6 +233,7 @@ export function App(props) {
     const mountedRef = React.useRef(true);
     const [openRefreshDialog, setOpenRefreshDialog] = React.useState(false);
     const [getUserPreferences] = useLazyQuery(userSettingsQuery, {
+        fetchPolicy: "no-cache",
         onCompleted: (data) => {
             //console.log("got preferences", data.getOperatorPreferences.preferences)
             if(data.getOperatorPreferences.status === "success"){

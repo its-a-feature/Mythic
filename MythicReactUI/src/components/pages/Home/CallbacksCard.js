@@ -1696,7 +1696,7 @@ const OperatorDashboard = ({me, setLoading, loading}) => {
 
     const [fetchData] = useLazyQuery(LeadDashboardQuery, {
         fetchPolicy: "no-cache",
-        variables: {operator_id: me.user.id},
+        variables: {operator_id: me.user.user_id},
         onCompleted: (data) => {
             processData({data}).then(r => setLoading(false));
         },
@@ -1741,7 +1741,7 @@ const LeadDashboard = ({me, setLoading, loading}) => {
         setAnalysisData(data);
     }
     const [fetchData] = useLazyQuery(LeadDashboardQuery, {fetchPolicy: "network-only",
-        variables: {operator_id: me.user.id},
+        variables: {operator_id: me.user.user_id},
         onCompleted: (data) => {
             processData({data}).then(r => setLoading(false));
         },
@@ -1804,7 +1804,7 @@ const CustomDashboard = ({me, setLoading, loading, editing}) => {
     const [analysisData, setAnalysisData] = React.useState({});
     const [dashboards, setDashboards] = React.useState([...initialDashboardView]);
     const [fetchData] = useLazyQuery(LeadDashboardQuery, {fetchPolicy: "no-cache",
-        variables: {operator_id: me.user.id},
+        variables: {operator_id: me.user.user_id},
         onCompleted: (data) => {
             setAnalysisData(data);
             setLoading(false);

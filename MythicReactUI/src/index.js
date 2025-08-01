@@ -15,7 +15,7 @@ import {jwtDecode} from 'jwt-decode';
 import {meState} from './cache';
 import {getSkewedNow} from "./components/utilities/Time";
 
-export const mythicUIVersion = "0.3.64";
+export const mythicUIVersion = "0.3.65";
 
 let fetchingNewToken = false;
 
@@ -345,12 +345,22 @@ if(localStorage.getItem("access_token") !== null){
   if(isJWTValid(localStorage.getItem("access_token"))){
       if(localStorage.getItem("user") !== null){
           console.log("loading meState from localStorage")
-          meState({
-              loggedIn: true,
-              access_token: localStorage.getItem("access_token"),
-              refresh_token: localStorage.getItem("refresh_token"),
-              user: JSON.parse(localStorage.getItem("user"))
-          })
+          try {
+              let userData = JSON.parse(localStorage.getItem("user"));
+              if(userData.user_id !== undefined && userData.user_id > 0){
+                  meState({
+                      loggedIn: true,
+                      access_token: localStorage.getItem("access_token"),
+                      refresh_token: localStorage.getItem("refresh_token"),
+                      user: {...userData}
+                  })
+              } else {
+                  FailedRefresh();
+              }
+          }catch(error){
+              console.log("failed to parse saved user state", error);
+              FailedRefresh();
+          }
       } else {
           FailedRefresh();
       }
