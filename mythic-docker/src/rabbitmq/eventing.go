@@ -142,7 +142,7 @@ func listenForCronEvents() {
 			nextTriggerDate, err := j.NextRun()
 			if err != nil {
 				logging.LogError(err, "failed to get next run")
-				SendAllOperationsMessage(fmt.Sprintf("Failed to get next chron job run\n%v", err),
+				SendAllOperationsMessage(fmt.Sprintf("Failed to get next cron job run\n%v", err),
 					event.OperationID, "eventing_cron_next", database.MESSAGE_LEVEL_WARNING)
 				continue
 			}
