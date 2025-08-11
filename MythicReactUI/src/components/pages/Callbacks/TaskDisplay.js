@@ -62,7 +62,7 @@ export const StyledPaper = styled(Paper)((
     marginTop: "3px",
     marginRight: "0px",
     height: "auto",
-    width: "99%",
+    width: "100%",
     boxShadow: "unset",
     backgroundColor: theme.palette.background.default + "CC",
   },

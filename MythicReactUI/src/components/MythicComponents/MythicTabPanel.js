@@ -63,13 +63,15 @@ export function MythicTabLabel(props) {
         ...other
     } = props;
     const onClick = (e) => {
-        //e.stopPropagation();
+        e.stopPropagation();
+        e.preventDefault();
         onCloseTab({ tabID: tabInfo.tabID, index: index });
     };
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const dropdownAnchorRef = React.useRef(null);
     const handleContextClick = (event) => {
         event.preventDefault();
+        event.stopPropagation();
         if(contextMenuOptions && contextMenuOptions.length > 0){
             setOpenContextMenu(true);
         }

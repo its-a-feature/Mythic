@@ -13,6 +13,7 @@ type MythicRPCTaskCreateSubtaskMessage struct {
 	TaskID                  int     `json:"task_id"`
 	SubtaskCallbackFunction *string `json:"subtask_callback_function,omitempty"`
 	CommandName             string  `json:"command_name"`
+	PayloadTypeName         *string `json:"payload_type_name,omitempty"`
 	Params                  string  `json:"params"`
 	ParameterGroupName      *string `json:"parameter_group_name,omitempty"`
 	Token                   *int    `json:"token,omitempty"`
@@ -43,6 +44,7 @@ func MythicRPCTaskCreateSubtask(input MythicRPCTaskCreateSubtaskMessage) MythicR
 	createTaskInput := CreateTaskInput{
 		ParentTaskID:            &input.TaskID,
 		CommandName:             input.CommandName,
+		PayloadType:             input.PayloadTypeName,
 		Params:                  input.Params,
 		Token:                   input.Token,
 		ParameterGroupName:      input.ParameterGroupName,

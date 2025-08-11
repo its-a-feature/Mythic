@@ -14,6 +14,7 @@ import (
 	"github.com/its-a-feature/Mythic/utils"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/exp/slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -1070,6 +1071,22 @@ func replaceVariableInActionDataString(actionDataString string, key string, val 
 }
 
 // starting a specific step action
+func convertMapStringToInt(actionDataMap map[string]interface{}, key string, required bool) error {
+	if _, ok := actionDataMap[key]; ok {
+		callbackDisplayID := actionDataMap[key].(string)
+		intCallbackDisplayID, err := strconv.Atoi(callbackDisplayID)
+		if err != nil {
+			logging.LogError(err, "failed to convert callback_display_id to int")
+			return err
+		}
+		actionDataMap[key] = intCallbackDisplayID
+	} else if required {
+		err := fmt.Sprintf("%s is required", key)
+		logging.LogError(nil, err)
+		return errors.New(err)
+	}
+	return nil
+}
 func startEventStepInstanceActionCreatePayload(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
 	eventData := EventActionDataCreatePayload{}
 	err := mapstructure.Decode(actionDataMap, &eventData.PayloadConfiguration)
@@ -1095,7 +1112,19 @@ func startEventStepInstanceActionCreatePayload(eventStepInstance databaseStructs
 }
 func startEventStepInstanceActionCreateCallback(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
 	eventData := MythicRPCCallbackCreateMessage{}
-	err := mapstructure.Decode(actionDataMap, &eventData)
+	err := convertMapStringToInt(actionDataMap, "pid", false)
+	if err != nil {
+		return err
+	}
+	err = convertMapStringToInt(actionDataMap, "integrity_level", false)
+	if err != nil {
+		return err
+	}
+	err = convertMapStringToInt(actionDataMap, "eventstepinstance_id", false)
+	if err != nil {
+		return err
+	}
+	err = mapstructure.Decode(actionDataMap, &eventData)
 	if err != nil {
 		logging.LogError(err, "Failed to decode action data")
 		return err
@@ -1114,7 +1143,19 @@ func startEventStepInstanceActionCreateCallback(eventStepInstance databaseStruct
 }
 func startEventStepInstanceActionCreateTask(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
 	eventData := EventActionDataCreateTask{}
-	err := mapstructure.Decode(actionDataMap, &eventData)
+	err := convertMapStringToInt(actionDataMap, "callback_display_id", true)
+	if err != nil {
+		return err
+	}
+	err = convertMapStringToInt(actionDataMap, "token", false)
+	if err != nil {
+		return err
+	}
+	err = convertMapStringToInt(actionDataMap, "parent_task_id", false)
+	if err != nil {
+		return err
+	}
+	err = mapstructure.Decode(actionDataMap, &eventData)
 	if err != nil {
 		logging.LogError(err, "failed to decode action data")
 		return err
@@ -1135,7 +1176,7 @@ func startEventStepInstanceActionCreateTask(eventStepInstance databaseStructs.Ev
 		IsInteractiveTask:   eventData.IsInteractiveTask,
 		InteractiveTaskType: eventData.InteractiveTaskType,
 	}
-	if eventData.ParamDictionary != nil {
+	if eventData.ParamDictionary != nil && len(eventData.ParamDictionary) > 0 {
 		paramsString, _ := json.Marshal(eventData.ParamDictionary)
 		createTaskInput.Params = string(paramsString)
 	}

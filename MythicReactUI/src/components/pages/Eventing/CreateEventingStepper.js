@@ -931,7 +931,7 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
     React.useEffect( () => {
         let simplifiedParams = {};
         if(actionData.callback_display_id.length > 0){
-            simplifiedParams.callback_display_id = parseInt(actionData.callback_display_id);
+            simplifiedParams.callback_display_id = actionData.callback_display_id;
         }
         if(actionData.command_name.length > 0){
             simplifiedParams.command_name = actionData.command_name;
@@ -953,11 +953,11 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
             simplifiedParams.parameter_group_name = actionData.parameter_group_name;
         }
         if(actionData.parent_task_id.length > 0){
-            simplifiedParams.parent_task_id = parseInt(actionData.parent_task_id);
+            simplifiedParams.parent_task_id = actionData.parent_task_id;
         }
         if(actionData.is_interactive_task){
             simplifiedParams.is_interactive_task = actionData.is_interactive_task;
-            simplifiedParams.interactive_task_type = parseInt(actionData.interactive_task_type);
+            simplifiedParams.interactive_task_type = actionData.interactive_task_type;
         }
         updateStep(index, "action_data", simplifiedParams);
     }, [debouncedLocalOutput]);
@@ -1003,7 +1003,7 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
                             </Typography>
                         </MythicStyledTableCell>
                         <MythicStyledTableCell >
-                            <MythicTextField type={"Number"} onChange={onChangeValue} value={actionData.callback_display_id} name={"callback_display_id"}
+                            <MythicTextField onChange={onChangeValue} value={actionData.callback_display_id} name={"callback_display_id"}
                             />
                         </MythicStyledTableCell>
                     </TableRow>
@@ -1087,7 +1087,7 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
                             </Typography>
                         </MythicStyledTableCell>
                         <MythicStyledTableCell >
-                            <MythicTextField type={"Number"} onChange={onChangeValue} value={actionData.parent_task_id} name={"parent_task_id"}
+                            <MythicTextField onChange={onChangeValue} value={actionData.parent_task_id} name={"parent_task_id"}
                             />
                         </MythicStyledTableCell>
                     </TableRow>
@@ -1116,7 +1116,7 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
                                 </Typography>
                             </MythicStyledTableCell>
                             <MythicStyledTableCell >
-                                <MythicTextField type={"Number"} onChange={onChangeValue} value={actionData.interactive_task_type} name={"interactive_task_type"}
+                                <MythicTextField onChange={onChangeValue} value={actionData.interactive_task_type} name={"interactive_task_type"}
                                 />
                             </MythicStyledTableCell>
                         </TableRow>

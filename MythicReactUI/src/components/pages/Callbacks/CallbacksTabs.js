@@ -17,7 +17,8 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
     const [value, setValue] = React.useState(0);
     const handleChange = (event, newValue) => {
         setValue(newValue);
-        //console.log(newValue);
+        //console.log("clickedTab", newValue, openTabs[newValue]);
+        if(openTabs[newValue] === undefined){return}
         localStorage.setItem('clickedTab', openTabs[newValue].tabID);
         setClickedTabId(openTabs[newValue].tabID);
     };
@@ -31,7 +32,9 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
         if (index > 0) {
             setClickedTabId(openTabs[index-1].tabID);
             setValue(index - 1);
-        } else {
+            //console.log("closing index", index)
+        } else if(openTabs.length > 0) {
+            //console.log("closing index length > 0", index)
             setClickedTabId(openTabs[0].tabID);
             setValue(0);
         }
@@ -39,11 +42,13 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
     };
     useEffect(() => {
         //console.log(clickedTabId);
+        //console.log(clickedTabId, openTabs);
         for (let i = 0; i < openTabs.length; i++) {
             //console.log("openTabs[i]", i, openTabs[i]);
             if (openTabs[i].tabID === clickedTabId) {
-                //console.log("seting value", i);
+                //console.log("setting value", i);
                 setValue(i);
+                return;
             }
         }
     }, [clickedTabId, openTabs]);

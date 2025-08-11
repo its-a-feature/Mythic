@@ -256,7 +256,7 @@ export function App(props) {
         let millisecondsLeft = JWTTimeLeft();
         // if we have 30min left of our token, prompt the user to extend. 30 min is 1,800,000 milliseconds
         //console.log("jwt time left: ", millisecondsLeft)
-        if(millisecondsLeft <= 1800000 && !openRefreshDialog){
+        if(millisecondsLeft <= 1800000 && !openRefreshDialog && me.loggedIn){
             if(isJWTValid()){
                 setOpenRefreshDialog(true);
             }else{

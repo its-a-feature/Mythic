@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.67] - 2025-08-11
+
+### Changed
+
+- Updated the timer for checking jwt remaining time to only happen if you're logged in
+- Updated 
 ## [0.3.66] - 2025-08-04
 
 ### Changed

@@ -12,6 +12,7 @@ import (
 type MythicRPCTaskCreateMessage struct {
 	AgentCallbackID     string  `json:"agent_callback_id"`
 	CommandName         string  `json:"command_name"`
+	PayloadTypeName     *string `json:"payload_type_name"`
 	Params              string  `json:"params"`
 	ParameterGroupName  *string `json:"parameter_group_name,omitempty"`
 	Token               *int    `json:"token,omitempty"`
@@ -47,6 +48,7 @@ func MythicRPCTaskCreate(input MythicRPCTaskCreateMessage) MythicRPCTaskCreateMe
 		Token:              input.Token,
 		ParameterGroupName: input.ParameterGroupName,
 		TaskingLocation:    &taskingLocation,
+		PayloadType:        input.PayloadTypeName,
 	}
 	callback := databaseStructs.Callback{}
 	err := database.DB.Get(&callback, `SELECT 

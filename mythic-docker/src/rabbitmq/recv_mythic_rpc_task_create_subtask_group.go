@@ -19,6 +19,7 @@ type MythicRPCTaskCreateSubtaskGroupMessage struct {
 
 type MythicRPCTaskCreateSubtaskGroupTasks struct {
 	SubtaskCallbackFunction *string `json:"subtask_callback_function,omitempty"`
+	PayloadTypeName         *string `json:"payload_type_name,omitempty"`
 	CommandName             string  `json:"command_name"` // required
 	Params                  string  `json:"params"`       // required
 	ParameterGroupName      *string `json:"parameter_group_name,omitempty"`
@@ -76,6 +77,7 @@ func MythicRPCTaskCreateSubtaskGroup(input MythicRPCTaskCreateSubtaskGroupMessag
 			createTaskInput := CreateTaskInput{
 				ParentTaskID:            &input.TaskID,
 				CommandName:             task.CommandName,
+				PayloadType:             task.PayloadTypeName,
 				Params:                  task.Params,
 				Token:                   task.Token,
 				ParameterGroupName:      task.ParameterGroupName,
