@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -84,7 +85,27 @@ func CreateInviteLink(c *gin.Context) {
 		})
 		return
 	}
-	if !utils.MythicConfig.MythicServerAllowInviteLinks {
+	globalSetting := databaseStructs.GlobalSetting{}
+	err = database.DB.Get(&globalSetting, `SELECT setting FROM global_setting WHERE "name"=$1`, "server_config")
+	if err != nil {
+		logging.LogError(err, "Failed to get global setting")
+		c.JSON(http.StatusOK, CreateInviteLinkResponse{
+			Status: "error",
+			Error:  "Failed to get setting",
+		})
+		return
+	}
+	MythicServerConfig := databaseStructs.GlobalSettingServerConfig{}
+	err = mapstructure.Decode(globalSetting.Setting.StructValue(), &MythicServerConfig)
+	if err != nil {
+		logging.LogError(err, "Failed to unmarshal setting")
+		c.JSON(http.StatusOK, CreateInviteLinkResponse{
+			Status: "error",
+			Error:  "Failed to get setting",
+		})
+		return
+	}
+	if !MythicServerConfig.AllowInviteLinks {
 		c.JSON(http.StatusOK, CreateInviteLinkResponse{
 			Status: "error",
 			Error:  "Invite links disabled for this server",
