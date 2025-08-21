@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional checks were added to make removing files easier in case the file was deleted
 - Updated Eventing response intercept logic to cache existing workflows to reduce the overhead of fetching data for every response
 - Updated File Hosting tag process to only add tags after C2 Profile returned success for hosting the file
-- [UI Updates](/MythicReactUI/CHANGELOG.MD#0368---2025-08-12)
+- [UI Updates](/MythicReactUI/CHANGELOG.MD#0368---2025-08-21)
 
 ## [3.3.1-rc89] - 2025-08-11
 

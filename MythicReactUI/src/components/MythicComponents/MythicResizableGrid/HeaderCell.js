@@ -73,7 +73,7 @@ const HeaderCell = ({
                 </Typography>
                 {isFiltered && <FontAwesomeIcon icon={faFilter} />}
                 {sortIndicatorIndex === columnIndex && (sortDirection === 'ASC' ? <div>↑</div> : <div>↓</div>)}
-                <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
+                <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 40}}>
                   {({ TransitionProps, placement }) => (
                     <Grow
                       {...TransitionProps}
