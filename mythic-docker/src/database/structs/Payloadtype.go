@@ -27,7 +27,7 @@ type Payloadtype struct {
 	MessageUUIDLength                  int                  `db:"message_uuid_length"`
 	CommandAugmentSupportedAgents      MythicJSONArray      `db:"command_augment_supported_agents"`
 	UseDisplayParamsForCLIHistory      bool                 `db:"use_display_params_for_cli_history"`
-	Version                            int                  `db:"version"`
+	SemVer                             string               `db:"semver"`
 	SupportsMultipleC2InBuild          bool                 `db:"supports_multiple_c2_in_build"`
 	SupportsMultipleC2InstancesInBuild bool                 `db:"supports_multiple_c2_instances_in_build"`
 }

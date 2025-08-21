@@ -1,6 +1,8 @@
 package webcontroller
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -42,8 +44,7 @@ type inviteLinkData struct {
 	Name                       string    `json:"name"`
 }
 
-var inviteLinkCodes = make(map[string]*inviteLinkData)
-var inviteLinkCodesLock = sync.RWMutex{}
+var inviteUseMutex sync.Mutex
 
 func CreateInviteLink(c *gin.Context) {
 	var input CreateInviteLinkMessage
@@ -90,40 +91,52 @@ func CreateInviteLink(c *gin.Context) {
 		})
 		return
 	}
-	inviteLinkCode := utils.GenerateRandomAlphaNumericString(15)
+	inviteLinkCode := utils.GenerateRandomAlphaNumericString(20)
 	if input.Input.ShortCode != "" {
 		inviteLinkCode = input.Input.ShortCode
-		inviteLinkCodesLock.Lock()
-		_, ok := inviteLinkCodes[inviteLinkCode]
-		inviteLinkCodesLock.Unlock()
-		if ok {
+		invite := databaseStructs.InviteLink{}
+		err = database.DB.Get(&invite, `SELECT id FROM invite_link WHERE short_code=$1`, input.Input.ShortCode)
+		if !errors.Is(err, sql.ErrNoRows) {
+			logging.LogError(err, "short code for invite link already exists")
 			c.JSON(http.StatusOK, CreateInviteLinkResponse{
 				Status: "error",
-				Error:  "Code has been used before, leave blank or specify new name",
+				Error:  "Code has been used before, leave blank or specify new short code",
 			})
 			return
 		}
-
 	}
 	host := c.GetHeader("X-Forwarded-Origin")
 	if host == "" {
 		host = fmt.Sprintf("%s://%s", c.GetHeader("X-Forwarded-Proto"), c.GetHeader("X-Forwarded-Host"))
 	}
 	inviteLinkURI := fmt.Sprintf("%s/new/invite?code=%s", host, inviteLinkCode)
-	inviteLinkCodesLock.Lock()
-	inviteLinkCodes[inviteLinkCode] = &inviteLinkData{
-		GeneratingOperatorUsername: operator.Username,
-		GenerationTime:             time.Now().UTC(),
-		Valid:                      true,
-		Code:                       inviteLinkCode,
-		Link:                       inviteLinkURI,
-		OperationID:                input.Input.OperationID,
-		OperationRole:              input.Input.OperationRole,
-		TotalUsage:                 input.Input.TotalUsage,
-		UsedSoFar:                  0,
-		Name:                       input.Input.Name,
+	invite := databaseStructs.InviteLink{
+		ShortCode: inviteLinkCode,
+		TotalUsed: 0,
+		TotalUses: input.Input.TotalUsage,
+		Name:      input.Input.Name,
 	}
-	inviteLinkCodesLock.Unlock()
+	invite.OperatorID = operator.ID
+	if input.Input.OperationID > 0 {
+		invite.OperationID.Valid = true
+		invite.OperationID.Int64 = int64(input.Input.OperationID)
+	}
+	if input.Input.OperationRole != "" {
+		invite.OperationRole.Valid = true
+		invite.OperationRole.String = input.Input.OperationRole
+	}
+	_, err = database.DB.NamedExec(`INSERT INTO invite_link 
+		("name", operation_id, operation_role, operator_id, total_used, total_uses, short_code)
+		VALUES
+		(:name, :operation_id, :operation_role, :operator_id, :total_used, :total_uses, :short_code)`, invite)
+	if err != nil {
+		logging.LogError(err, "failed to insert invite link")
+		c.JSON(http.StatusOK, CreateInviteLinkResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
 	rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s generated a new invite link to this server: %s\n%s",
 		operator.Username, inviteLinkCode, inviteLinkURI), 0, "", database.MESSAGE_LEVEL_INFO)
 	c.JSON(http.StatusOK, CreateInviteLinkResponse{
@@ -144,17 +157,6 @@ type UseInviteLinkResponse struct {
 	Error  string `json:"error"`
 }
 
-func unUseInviteLink(inviteCode string) {
-	inviteLinkCodesLock.Lock()
-	_, ok := inviteLinkCodes[inviteCode]
-	if ok {
-		if inviteLinkCodes[inviteCode].UsedSoFar >= inviteLinkCodes[inviteCode].TotalUsage {
-			inviteLinkCodes[inviteCode].Valid = true
-		}
-		inviteLinkCodes[inviteCode].UsedSoFar -= 1
-	}
-	inviteLinkCodesLock.Unlock()
-}
 func UseInviteLink(c *gin.Context) {
 	var input UseInviteLinkInput
 	err := c.ShouldBindJSON(&input)
@@ -170,32 +172,27 @@ func UseInviteLink(c *gin.Context) {
 		})
 		return
 	}
-	valid := false
 	operationID := 0
 	operationRole := ""
-	inviteLinkCodesLock.Lock()
-	inviteCodeData, ok := inviteLinkCodes[input.InviteCode]
-	if ok {
-		valid = inviteLinkCodes[input.InviteCode].Valid
-		operationID = inviteLinkCodes[input.InviteCode].OperationID
-		operationRole = inviteLinkCodes[input.InviteCode].OperationRole
-		if valid {
-			inviteLinkCodes[input.InviteCode].UsedSoFar += 1
-			if inviteLinkCodes[input.InviteCode].UsedSoFar >= inviteLinkCodes[input.InviteCode].TotalUsage {
-				inviteLinkCodes[input.InviteCode].Valid = false
-			}
-		}
-	}
-	inviteLinkCodesLock.Unlock()
-	if !ok {
+	inviteUseMutex.Lock()
+	defer inviteUseMutex.Unlock()
+	invite := databaseStructs.InviteLink{}
+	err = database.DB.Get(&invite, `SELECT 
+    	short_code, created_at, operator_id, operation_id, "name", total_uses, total_used, operation_role, invite_link.id,
+    	operator.username "operator.username"
+		FROM invite_link 
+		JOIN operator ON operator.id = invite_link.operator_id
+		WHERE short_code=$1`, input.InviteCode)
+	if err != nil {
+		logging.LogError(err, "failed to find short code")
 		c.JSON(http.StatusOK, gin.H{"error": "Unknown invite code"})
 		return
 	}
-	if !valid {
-		c.JSON(http.StatusOK, gin.H{"error": "Invite code already used maximum number of times"})
+	if invite.TotalUsed >= invite.TotalUses {
+		c.JSON(http.StatusOK, gin.H{"error": "code already used max number of times"})
 		return
 	}
-
+	invite.TotalUsed += 1
 	// get the associated database information
 	salt := uuid.New().String()
 	newOperator := databaseStructs.Operator{
@@ -221,7 +218,6 @@ func UseInviteLink(c *gin.Context) {
 			Status: "error",
 			Error:  err.Error(),
 		})
-		unUseInviteLink(input.InviteCode)
 		return
 	}
 	err = statement.Get(&newOperator.ID, newOperator)
@@ -231,18 +227,22 @@ func UseInviteLink(c *gin.Context) {
 			Status: "error",
 			Error:  err.Error(),
 		})
-		unUseInviteLink(input.InviteCode)
 		return
+	}
+	_, err = database.DB.NamedExec(`UPDATE invite_link SET total_used=:total_used WHERE id=:id`, invite)
+	if err != nil {
+		logging.LogError(err, "Failed to update invite link counts")
 	}
 	go database.AssignNewOperatorAllBrowserScripts(newOperator.ID)
 	rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s's invite link, %s, was used for user: %s",
-		inviteCodeData.GeneratingOperatorUsername, input.InviteCode, newOperator.Username), 0, "", database.MESSAGE_LEVEL_INFO)
-	if operationID > 0 {
-		if operationRole == "" || operationRole == database.OPERATOR_OPERATION_VIEW_MODE_LEAD {
+		invite.Operator.Username, input.InviteCode, newOperator.Username), 0, "", database.MESSAGE_LEVEL_INFO)
+	if invite.OperationID.Int64 > 0 {
+		if invite.OperationRole.String == "" || invite.OperationRole.String == database.OPERATOR_OPERATION_VIEW_MODE_LEAD {
 			operationRole = database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR
-		} else if operationRole == database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR ||
-			operationRole == database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR {
-
+		} else if invite.OperationRole.String == database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR {
+			operationRole = database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR
+		} else if invite.OperationRole.String == database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR {
+			operationRole = database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR
 		} else {
 			operationRole = database.OPERATOR_OPERATION_VIEW_MODE_SPECTATOR
 		}
@@ -250,10 +250,10 @@ func UseInviteLink(c *gin.Context) {
 			(operator_id, operation_id, view_mode)
 			VALUES (:operator_id, :operation_id, :view_mode)`,
 			databaseStructs.Operatoroperation{
-				OperationID: operationID, OperatorID: newOperator.ID, ViewMode: operationRole,
+				OperationID: int(invite.OperationID.Int64), OperatorID: newOperator.ID, ViewMode: operationRole,
 			})
 		if err != nil {
-			logging.LogError(err, "Failed to insert operator operation", "operation", operationID)
+			logging.LogError(err, "Failed to insert operator operation", "operation", invite.OperationID.Int64)
 			c.JSON(http.StatusOK, UseInviteLinkResponse{
 				Status: "error",
 				Error:  err.Error(),
@@ -261,7 +261,7 @@ func UseInviteLink(c *gin.Context) {
 			return
 		}
 		newOperator.CurrentOperationID.Valid = true
-		newOperator.CurrentOperationID.Int64 = int64(operationID)
+		newOperator.CurrentOperationID.Int64 = invite.OperationID.Int64
 		_, err = database.DB.NamedExec(`UPDATE operator SET current_operation_id=:current_operation_id WHERE id=:id`,
 			newOperator)
 		if err != nil {
@@ -315,77 +315,42 @@ func GetOutstandingInviteLinks(c *gin.Context) {
 		})
 		return
 	}
-	inviteLinkCodesLock.RLock()
-	returnCodes := make([]inviteLinkData, len(inviteLinkCodes))
-	i := 0
-	for k, _ := range inviteLinkCodes {
-		returnCodes[i] = *inviteLinkCodes[k]
-		i++
+	invites := []databaseStructs.InviteLink{}
+	err = database.DB.Select(&invites, `SELECT
+    		short_code, created_at, operator_id, operation_id, "name", total_uses, total_used, operation_role, invite_link.id,
+    		operator.username "operator.username"
+    		FROM invite_link
+    		JOIN operator ON operator.id = invite_link.operator_id`)
+	if err != nil {
+		logging.LogError(err, "Failed to get invite links")
+		c.JSON(http.StatusOK, GetOutstandingInviteLinkResponse{
+			Status: "error",
+			Error:  "Failed to get invite links",
+		})
+		return
 	}
-	inviteLinkCodesLock.RUnlock()
+	host := c.GetHeader("X-Forwarded-Origin")
+	if host == "" {
+		host = fmt.Sprintf("%s://%s", c.GetHeader("X-Forwarded-Proto"), c.GetHeader("X-Forwarded-Host"))
+	}
+	returnCodes := make([]inviteLinkData, len(invites))
+	for k, _ := range invites {
+		returnCodes[k] = inviteLinkData{
+			Code:                       invites[k].ShortCode,
+			GeneratingOperatorUsername: invites[k].Operator.Username,
+			GenerationTime:             invites[k].CreatedAt,
+			OperationID:                int(invites[k].OperationID.Int64),
+			OperationRole:              invites[k].OperationRole.String,
+			TotalUsage:                 invites[k].TotalUses,
+			UsedSoFar:                  invites[k].TotalUsed,
+			Valid:                      invites[k].TotalUsed < invites[k].TotalUses,
+			Name:                       invites[k].Name,
+			Link:                       fmt.Sprintf("%s/new/invite?code=%s", host, invites[k].ShortCode),
+		}
+	}
 	c.JSON(http.StatusOK, GetOutstandingInviteLinkResponse{
 		Status: "success",
 		Links:  returnCodes,
-	})
-	return
-}
-
-type DeleteInviteLinkInput struct {
-	Input DeleteInviteLinkInputMessage `json:"input" binding:"required"`
-}
-type DeleteInviteLinkInputMessage struct {
-	Code string `json:"code" binding:"required"`
-}
-type DeleteInviteLinkResponse struct {
-	Status string `json:"status"`
-	Error  string `json:"error"`
-}
-
-func DeleteInviteLink(c *gin.Context) {
-	var input DeleteInviteLinkInput
-	err := c.ShouldBindJSON(&input)
-	if err != nil {
-		logging.LogError(err, "bad input")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	operatorID, err := GetUserIDFromGin(c)
-	if err != nil {
-		c.JSON(http.StatusOK, DeleteInviteLinkResponse{
-			Status: "error",
-			Error:  "Failed to get user information",
-		})
-		return
-	}
-	operator, err := database.GetUserFromID(operatorID)
-	if err != nil {
-		c.JSON(http.StatusOK, DeleteInviteLinkResponse{
-			Status: "error",
-			Error:  "Failed to get user information",
-		})
-		return
-	}
-	if !operator.Admin {
-		c.JSON(http.StatusOK, DeleteInviteLinkResponse{
-			Status: "error",
-			Error:  "You are not an administrator",
-		})
-		return
-	}
-	if operator.Deleted || !operator.Active {
-		c.JSON(http.StatusOK, DeleteInviteLinkResponse{
-			Status: "error",
-			Error:  "You are not an active operator",
-		})
-		return
-	}
-	inviteLinkCodesLock.Lock()
-	if _, ok := inviteLinkCodes[input.Input.Code]; ok {
-		inviteLinkCodes[input.Input.Code].Valid = !inviteLinkCodes[input.Input.Code].Valid
-	}
-	inviteLinkCodesLock.Unlock()
-	c.JSON(http.StatusOK, DeleteInviteLinkResponse{
-		Status: "success",
 	})
 	return
 }
@@ -440,19 +405,24 @@ func UpdateInviteLink(c *gin.Context) {
 		})
 		return
 	}
-	inviteLinkCodesLock.Lock()
-	if _, ok := inviteLinkCodes[input.Input.Code]; ok {
-		inviteLinkCodes[input.Input.Code].TotalUsage = input.Input.NewTotal
-		if inviteLinkCodes[input.Input.Code].TotalUsage < 0 {
-			inviteLinkCodes[input.Input.Code].TotalUsage = 0
-		}
-		if input.Input.NewTotal <= inviteLinkCodes[input.Input.Code].UsedSoFar {
-			inviteLinkCodes[input.Input.Code].Valid = false
-		} else {
-			inviteLinkCodes[input.Input.Code].Valid = true
-		}
+	invite := databaseStructs.InviteLink{}
+	err = database.DB.Get(&invite, `SELECT * FROM invite_link WHERE short_code=$1`, input.Input.Code)
+	if err != nil {
+		c.JSON(http.StatusOK, UpdateInviteLinkResponse{
+			Status: "error",
+			Error:  "Failed to get invite information",
+		})
+		return
 	}
-	inviteLinkCodesLock.Unlock()
+	invite.TotalUses = input.Input.NewTotal
+	_, err = database.DB.NamedExec(`UPDATE invite_link SET total_uses=:total_uses WHERE id=:id`, invite)
+	if err != nil {
+		c.JSON(http.StatusOK, UpdateInviteLinkResponse{
+			Status: "error",
+			Error:  "Failed to update invite information",
+		})
+		return
+	}
 	c.JSON(http.StatusOK, UpdateInviteLinkResponse{
 		Status: "success",
 	})

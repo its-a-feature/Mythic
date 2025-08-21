@@ -46,6 +46,27 @@ Use the host file button (blue globe) to then remove this file from being hosted
 	tagTypeHostedByC2Color = "#cb7a00"
 )
 
+func insertTag(tag *databaseStructs.Tag) {
+	statement, err := database.DB.PrepareNamed(`INSERT INTO tag (filemeta_id, operation_id, tagtype_id, source, data)
+			VALUES (:filemeta_id, :operation_id, :tagtype_id, :source, :data )
+			RETURNING id`)
+	if err != nil {
+		logging.LogError(err, "failed to create prepared named statement")
+		return
+	}
+	err = statement.Get(&tag.ID, tag)
+	if err != nil {
+		logging.LogError(err, "failed to execute prepared named statement")
+		return
+	}
+	go func() {
+		rabbitmq.EventingChannel <- rabbitmq.EventNotification{
+			Trigger:     eventing.TriggerTagCreate,
+			TagID:       tag.ID,
+			OperationID: tag.Operation,
+		}
+	}()
+}
 func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssignment string, tagData map[string]interface{}, c *gin.Context, remove bool) {
 	// create the tag type in general if needed
 	tagtype := databaseStructs.TagType{}
@@ -107,25 +128,13 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 		newTagData = tagData
 	default:
 	}
-
+	shouldAddTag := false
 	err = database.DB.Get(&tag, `SELECT * FROM tag WHERE filemeta_id=$1 AND operation_id=$2 AND tagtype_id=$3 AND source='mythic'`,
 		fileMetaID, operationID, tagtype.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		// we haven't tagged this file with this tagtype before, so create a new tag with initial data
 		tag.Data = rabbitmq.GetMythicJSONTextFromStruct(newTagData)
-		_, err = database.DB.NamedExec(`INSERT INTO tag (filemeta_id, operation_id, tagtype_id, source, data)
-			VALUES (:filemeta_id, :operation_id, :tagtype_id, :source, :data )`, tag)
-		if err != nil {
-			logging.LogError(err, "failed to insert tag")
-			return
-		}
-		go func() {
-			rabbitmq.EventingChannel <- rabbitmq.EventNotification{
-				Trigger:     eventing.TriggerTagCreate,
-				TagID:       tag.ID,
-				OperationID: tag.Operation,
-			}
-		}()
+		shouldAddTag = true
 	} else if err != nil {
 		logging.LogError(err, "failed to search for tags")
 		return
@@ -135,6 +144,10 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 	switch tagTypeAssignment {
 	case tagTypePreview:
 		updateTagData[operatorName] = newKey
+		if shouldAddTag {
+			// wait until here to add tags in case we fail to host
+			insertTag(&tag)
+		}
 	case tagTypeDownload:
 		if operatorName != "unknown" {
 			updateTagData[operatorName] = newKey
@@ -188,6 +201,10 @@ Target Host:   %s`,
 				alertLevel := database.MESSAGE_LEVEL_INFO
 				if hostedTagDataEntry["alert_on_download"].(bool) {
 					alertLevel = database.MESSAGE_LEVEL_WARNING
+				}
+				if shouldAddTag {
+					// wait until here to add tags in case we fail to host
+					insertTag(&tag)
 				}
 				go rabbitmq.SendAllOperationsMessage(downloadMessage, operationID, "", alertLevel)
 				break
@@ -250,16 +267,32 @@ Target Host:   %s`,
 						c2HostFileResponse.Error), operationID, "", database.MESSAGE_LEVEL_WARNING)
 					continue
 				}
+				if shouldAddTag {
+					// wait until here to add tags in case we fail to host
+					insertTag(&tag)
+					shouldAddTag = false
+				}
 				updateTagData[key] = val
 			}
+
 		}
 	default:
+	}
+	if tag.ID == 0 {
+		logging.LogInfo("tag id is 0, continuing on", "tag", tag)
+		return
 	}
 	if len(updateTagData) > 0 {
 		tag.Data = rabbitmq.GetMythicJSONTextFromStruct(updateTagData)
 		_, err = database.DB.NamedExec(`UPDATE tag SET data=:data WHERE id=:id`, tag)
+		if tagTypeAssignment == tagTypeHostedByC2 {
+			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Adjusted file hosting"), tag.Operation, "", database.MESSAGE_LEVEL_INFO)
+		}
 	} else {
 		_, err = database.DB.NamedExec(`DELETE FROM tag WHERE id=:id`, tag)
+		if tagTypeAssignment == tagTypeHostedByC2 {
+			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removed hosting tag"), tag.Operation, "", database.MESSAGE_LEVEL_INFO)
+		}
 	}
 
 	if err != nil {

@@ -215,3 +215,21 @@ func AssignNewOperatorAllBrowserScripts(userID int) {
 		}
 	}
 }
+
+func SetGlobalSetting(name string, setting interface{}, operatorID int) error {
+	newGlobalSetting := databaseStructs.GlobalSetting{Name: name}
+	newSetting := databaseStructs.MythicJSONText{}
+	err := newSetting.Scan(setting)
+	if err != nil {
+		logging.LogError(err, "Failed to marshal struct into databaseStructs.MythicJSONText")
+	}
+	newGlobalSetting.Setting = newSetting
+	if operatorID > 0 {
+		newGlobalSetting.OperatorID.Valid = true
+		newGlobalSetting.OperatorID.Int64 = int64(operatorID)
+	}
+	_, err = DB.NamedExec(`UPDATE global_setting 
+		SET setting=:setting, operator_id=:operator_id 
+		WHERE "name"=:name`, newGlobalSetting)
+	return err
+}

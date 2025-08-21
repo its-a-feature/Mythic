@@ -24,8 +24,9 @@ export function TableFilterDialog({filterOptions, onSubmit, onClose, selectedCol
   
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Filter {selectedColumn.name} Entries</DialogTitle>
-        <DialogContent dividers={true}>
+        <DialogTitle id="form-dialog-title">Filter "{selectedColumn.name}" Entries</DialogTitle>
+        <DialogContent style={{paddingBottom: 0}} dividers={true}>
+            Show only rows that include the following case insensitive text:
             <MythicTextField autoFocus onChange={onChange} value={description} onEnter={onCommitSubmit}/>
         </DialogContent>
         <DialogActions>

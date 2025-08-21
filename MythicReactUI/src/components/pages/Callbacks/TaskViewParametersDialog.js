@@ -10,6 +10,7 @@ query getParametersQuery ($task_id: Int!) {
   task_by_pk(id: $task_id) {
     display_params
     original_params
+    mythic_parsed_params
     params
     tasking_location
     parameter_group_name
@@ -37,6 +38,8 @@ export function TaskViewParametersDialog(props) {
         variables: {task_id: props.task_id},
         onCompleted: data => {
             let workingComment = "Original Parameters:\n" + data.task_by_pk.original_params;
+            workingComment += "\n\nMythic Parsed Parameters: \n\tUse this for eventing (create_task->action_data->params_dictionary) and scripting (mythic.issue_task->parameters)\n"
+            workingComment += data.task_by_pk.mythic_parsed_params;
             workingComment += "\n\nAgent Parameters:\n" + data.task_by_pk.params;
             workingComment += "\n\nDisplay Parameters:\n" + data.task_by_pk.display_params;
             workingComment += "\n\nTasking Location:\n" + data.task_by_pk.tasking_location;

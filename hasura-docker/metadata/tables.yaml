@@ -4353,6 +4353,171 @@
           operation_id:
             _eq: X-Hasura-current-operation-id
 - table:
+    name: global_setting
+    schema: public
+  object_relationships:
+    - name: operator
+      using:
+        foreign_key_constraint_on: operator_id
+  insert_permissions:
+    - role: mythic_admin
+      permission:
+        check: {}
+        set:
+          operator_id: x-hasura-User-Id
+        columns:
+          - name
+          - setting
+      comment: ""
+  select_permissions:
+    - role: developer
+      permission:
+        columns:
+          - id
+          - operator_id
+          - setting
+          - name
+        filter: {}
+      comment: ""
+    - role: mythic_admin
+      permission:
+        columns:
+          - id
+          - operator_id
+          - setting
+          - name
+        filter: {}
+      comment: ""
+    - role: operation_admin
+      permission:
+        columns:
+          - id
+          - operator_id
+          - setting
+          - name
+        filter: {}
+      comment: ""
+    - role: operator
+      permission:
+        columns:
+          - id
+          - operator_id
+          - setting
+          - name
+        filter: {}
+      comment: ""
+    - role: spectator
+      permission:
+        columns:
+          - id
+          - operator_id
+          - setting
+          - name
+        filter: {}
+      comment: ""
+  update_permissions:
+    - role: mythic_admin
+      permission:
+        columns:
+          - name
+          - setting
+        filter: {}
+        check: {}
+        set:
+          operator_id: x-hasura-User-Id
+      comment: ""
+- table:
+    name: invite_link
+    schema: public
+  object_relationships:
+    - name: created_by
+      using:
+        foreign_key_constraint_on: operator_id
+    - name: operation
+      using:
+        foreign_key_constraint_on: operation_id
+  select_permissions:
+    - role: developer
+      permission:
+        columns:
+          - id
+          - operation_id
+          - operator_id
+          - total_used
+          - total_uses
+          - name
+          - operation_role
+          - short_code
+          - created_at
+        filter:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+      comment: ""
+    - role: mythic_admin
+      permission:
+        columns:
+          - id
+          - operation_id
+          - operator_id
+          - total_used
+          - total_uses
+          - name
+          - operation_role
+          - short_code
+          - created_at
+        filter:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+      comment: ""
+    - role: operation_admin
+      permission:
+        columns:
+          - id
+          - operation_id
+          - operator_id
+          - total_used
+          - total_uses
+          - name
+          - operation_role
+          - short_code
+          - created_at
+        filter:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+      comment: ""
+    - role: operator
+      permission:
+        columns:
+          - id
+          - operation_id
+          - operator_id
+          - total_used
+          - total_uses
+          - name
+          - operation_role
+          - short_code
+          - created_at
+        filter:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+      comment: ""
+    - role: spectator
+      permission:
+        columns:
+          - id
+          - operation_id
+          - operator_id
+          - total_used
+          - total_uses
+          - name
+          - operation_role
+          - short_code
+          - created_at
+        filter:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+      comment: ""
+- table:
     name: keylog
     schema: public
   object_relationships:
@@ -5481,6 +5646,13 @@
           table:
             name: filemeta
             schema: public
+    - name: global_settings
+      using:
+        foreign_key_constraint_on:
+          column: operator_id
+          table:
+            name: global_setting
+            schema: public
     - name: loadedcommands
       using:
         foreign_key_constraint_on:
@@ -6580,127 +6752,122 @@
     - role: developer
       permission:
         columns:
+          - agent_type
+          - author
+          - command_augment_supported_agents
           - container_running
+          - creation_time
           - deleted
+          - file_extension
+          - id
+          - message_format
+          - message_uuid_length
           - mythic_encrypts
+          - name
+          - note
+          - supported_os
           - supports_dynamic_loading
           - supports_multiple_c2_in_build
           - supports_multiple_c2_instances_in_build
+          - translation_container_id
           - use_display_params_for_cli_history
           - wrapper
-          - id
-          - message_uuid_length
-          - translation_container_id
-          - version
-          - command_augment_supported_agents
-          - supported_os
-          - agent_type
-          - author
-          - file_extension
-          - message_format
-          - name
-          - note
-          - creation_time
         filter: {}
     - role: mythic_admin
       permission:
         columns:
+          - agent_type
+          - author
+          - command_augment_supported_agents
           - container_running
+          - creation_time
           - deleted
+          - file_extension
+          - id
+          - message_format
+          - message_uuid_length
           - mythic_encrypts
+          - name
+          - note
+          - supported_os
           - supports_dynamic_loading
           - supports_multiple_c2_in_build
           - supports_multiple_c2_instances_in_build
+          - translation_container_id
           - use_display_params_for_cli_history
           - wrapper
-          - id
-          - message_uuid_length
-          - translation_container_id
-          - version
-          - command_augment_supported_agents
-          - supported_os
-          - agent_type
-          - author
-          - file_extension
-          - message_format
-          - name
-          - note
-          - creation_time
         filter: {}
     - role: operation_admin
       permission:
         columns:
+          - agent_type
+          - author
+          - command_augment_supported_agents
           - container_running
+          - creation_time
           - deleted
+          - file_extension
+          - id
+          - message_format
+          - message_uuid_length
           - mythic_encrypts
+          - name
+          - note
+          - supported_os
           - supports_dynamic_loading
           - supports_multiple_c2_in_build
           - supports_multiple_c2_instances_in_build
+          - translation_container_id
           - use_display_params_for_cli_history
           - wrapper
-          - id
-          - message_uuid_length
-          - translation_container_id
-          - version
-          - command_augment_supported_agents
-          - supported_os
-          - agent_type
-          - author
-          - file_extension
-          - message_format
-          - name
-          - note
-          - creation_time
         filter: {}
     - role: operator
       permission:
         columns:
+          - agent_type
+          - author
+          - command_augment_supported_agents
           - container_running
+          - creation_time
           - deleted
+          - file_extension
+          - id
+          - message_format
+          - message_uuid_length
           - mythic_encrypts
+          - name
+          - note
+          - supported_os
           - supports_dynamic_loading
           - supports_multiple_c2_in_build
           - supports_multiple_c2_instances_in_build
+          - translation_container_id
           - use_display_params_for_cli_history
           - wrapper
-          - id
-          - message_uuid_length
-          - translation_container_id
-          - version
-          - command_augment_supported_agents
-          - supported_os
-          - agent_type
-          - author
-          - file_extension
-          - message_format
-          - name
-          - note
-          - creation_time
         filter: {}
     - role: spectator
       permission:
         columns:
+          - agent_type
+          - author
+          - command_augment_supported_agents
           - container_running
+          - creation_time
           - deleted
+          - file_extension
+          - id
+          - message_format
+          - message_uuid_length
           - mythic_encrypts
+          - name
+          - note
+          - supported_os
           - supports_dynamic_loading
           - supports_multiple_c2_in_build
           - supports_multiple_c2_instances_in_build
+          - translation_container_id
           - use_display_params_for_cli_history
           - wrapper
-          - id
-          - message_uuid_length
-          - translation_container_id
-          - version
-          - command_augment_supported_agents
-          - supported_os
-          - agent_type
-          - author
-          - file_extension
-          - message_format
-          - name
-          - note
-          - creation_time
         filter: {}
   update_permissions:
     - role: mythic_admin
@@ -7807,57 +7974,58 @@
     - role: developer
       permission:
         columns:
-          - completed
-          - completed_callback_function_completed
-          - group_callback_function_completed
-          - has_intercepted_response
-          - is_interactive_task
-          - opsec_post_blocked
-          - opsec_post_bypassed
-          - opsec_pre_blocked
-          - opsec_pre_bypassed
-          - process_at_original_command
-          - subtask_callback_function_completed
+          - agent_task_id
           - apitokens_id
           - callback_id
           - command_id
-          - comment_operator_id
-          - display_id
-          - eventstepinstance_id
-          - id
-          - interactive_task_type
-          - operation_id
-          - operator_id
-          - opsec_post_bypass_user_id
-          - opsec_pre_bypass_user_id
-          - parent_task_id
-          - response_count
-          - token_id
-          - agent_task_id
           - command_name
           - command_payload_type
           - comment
+          - comment_operator_id
+          - completed
           - completed_callback_function
+          - completed_callback_function_completed
+          - display_id
           - display_params
+          - eventstepinstance_id
           - group_callback_function
+          - group_callback_function_completed
+          - has_intercepted_response
+          - id
+          - interactive_task_type
+          - is_interactive_task
+          - mythic_parsed_params
+          - operation_id
+          - operator_id
+          - opsec_post_blocked
           - opsec_post_bypass_role
+          - opsec_post_bypass_user_id
+          - opsec_post_bypassed
           - opsec_post_message
+          - opsec_pre_blocked
           - opsec_pre_bypass_role
+          - opsec_pre_bypass_user_id
+          - opsec_pre_bypassed
           - opsec_pre_message
           - original_params
           - parameter_group_name
           - params
+          - parent_task_id
+          - process_at_original_command
+          - response_count
           - status
-          - stderr
-          - stdout
-          - subtask_callback_function
-          - subtask_group_name
-          - tasking_location
           - status_timestamp_preprocessing
           - status_timestamp_processed
           - status_timestamp_processing
           - status_timestamp_submitted
+          - stderr
+          - stdout
+          - subtask_callback_function
+          - subtask_callback_function_completed
+          - subtask_group_name
+          - tasking_location
           - timestamp
+          - token_id
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -7865,57 +8033,58 @@
     - role: mythic_admin
       permission:
         columns:
-          - completed
-          - completed_callback_function_completed
-          - group_callback_function_completed
-          - has_intercepted_response
-          - is_interactive_task
-          - opsec_post_blocked
-          - opsec_post_bypassed
-          - opsec_pre_blocked
-          - opsec_pre_bypassed
-          - process_at_original_command
-          - subtask_callback_function_completed
+          - agent_task_id
           - apitokens_id
           - callback_id
           - command_id
-          - comment_operator_id
-          - display_id
-          - eventstepinstance_id
-          - id
-          - interactive_task_type
-          - operation_id
-          - operator_id
-          - opsec_post_bypass_user_id
-          - opsec_pre_bypass_user_id
-          - parent_task_id
-          - response_count
-          - token_id
-          - agent_task_id
           - command_name
           - command_payload_type
           - comment
+          - comment_operator_id
+          - completed
           - completed_callback_function
+          - completed_callback_function_completed
+          - display_id
           - display_params
+          - eventstepinstance_id
           - group_callback_function
+          - group_callback_function_completed
+          - has_intercepted_response
+          - id
+          - interactive_task_type
+          - is_interactive_task
+          - mythic_parsed_params
+          - operation_id
+          - operator_id
+          - opsec_post_blocked
           - opsec_post_bypass_role
+          - opsec_post_bypass_user_id
+          - opsec_post_bypassed
           - opsec_post_message
+          - opsec_pre_blocked
           - opsec_pre_bypass_role
+          - opsec_pre_bypass_user_id
+          - opsec_pre_bypassed
           - opsec_pre_message
           - original_params
           - parameter_group_name
           - params
+          - parent_task_id
+          - process_at_original_command
+          - response_count
           - status
-          - stderr
-          - stdout
-          - subtask_callback_function
-          - subtask_group_name
-          - tasking_location
           - status_timestamp_preprocessing
           - status_timestamp_processed
           - status_timestamp_processing
           - status_timestamp_submitted
+          - stderr
+          - stdout
+          - subtask_callback_function
+          - subtask_callback_function_completed
+          - subtask_group_name
+          - tasking_location
           - timestamp
+          - token_id
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -7923,57 +8092,58 @@
     - role: operation_admin
       permission:
         columns:
-          - completed
-          - completed_callback_function_completed
-          - group_callback_function_completed
-          - has_intercepted_response
-          - is_interactive_task
-          - opsec_post_blocked
-          - opsec_post_bypassed
-          - opsec_pre_blocked
-          - opsec_pre_bypassed
-          - process_at_original_command
-          - subtask_callback_function_completed
+          - agent_task_id
           - apitokens_id
           - callback_id
           - command_id
-          - comment_operator_id
-          - display_id
-          - eventstepinstance_id
-          - id
-          - interactive_task_type
-          - operation_id
-          - operator_id
-          - opsec_post_bypass_user_id
-          - opsec_pre_bypass_user_id
-          - parent_task_id
-          - response_count
-          - token_id
-          - agent_task_id
           - command_name
           - command_payload_type
           - comment
+          - comment_operator_id
+          - completed
           - completed_callback_function
+          - completed_callback_function_completed
+          - display_id
           - display_params
+          - eventstepinstance_id
           - group_callback_function
+          - group_callback_function_completed
+          - has_intercepted_response
+          - id
+          - interactive_task_type
+          - is_interactive_task
+          - mythic_parsed_params
+          - operation_id
+          - operator_id
+          - opsec_post_blocked
           - opsec_post_bypass_role
+          - opsec_post_bypass_user_id
+          - opsec_post_bypassed
           - opsec_post_message
+          - opsec_pre_blocked
           - opsec_pre_bypass_role
+          - opsec_pre_bypass_user_id
+          - opsec_pre_bypassed
           - opsec_pre_message
           - original_params
           - parameter_group_name
           - params
+          - parent_task_id
+          - process_at_original_command
+          - response_count
           - status
-          - stderr
-          - stdout
-          - subtask_callback_function
-          - subtask_group_name
-          - tasking_location
           - status_timestamp_preprocessing
           - status_timestamp_processed
           - status_timestamp_processing
           - status_timestamp_submitted
+          - stderr
+          - stdout
+          - subtask_callback_function
+          - subtask_callback_function_completed
+          - subtask_group_name
+          - tasking_location
           - timestamp
+          - token_id
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -7981,57 +8151,58 @@
     - role: operator
       permission:
         columns:
-          - completed
-          - completed_callback_function_completed
-          - group_callback_function_completed
-          - has_intercepted_response
-          - is_interactive_task
-          - opsec_post_blocked
-          - opsec_post_bypassed
-          - opsec_pre_blocked
-          - opsec_pre_bypassed
-          - process_at_original_command
-          - subtask_callback_function_completed
+          - agent_task_id
           - apitokens_id
           - callback_id
           - command_id
-          - comment_operator_id
-          - display_id
-          - eventstepinstance_id
-          - id
-          - interactive_task_type
-          - operation_id
-          - operator_id
-          - opsec_post_bypass_user_id
-          - opsec_pre_bypass_user_id
-          - parent_task_id
-          - response_count
-          - token_id
-          - agent_task_id
           - command_name
           - command_payload_type
           - comment
+          - comment_operator_id
+          - completed
           - completed_callback_function
+          - completed_callback_function_completed
+          - display_id
           - display_params
+          - eventstepinstance_id
           - group_callback_function
+          - group_callback_function_completed
+          - has_intercepted_response
+          - id
+          - interactive_task_type
+          - is_interactive_task
+          - mythic_parsed_params
+          - operation_id
+          - operator_id
+          - opsec_post_blocked
           - opsec_post_bypass_role
+          - opsec_post_bypass_user_id
+          - opsec_post_bypassed
           - opsec_post_message
+          - opsec_pre_blocked
           - opsec_pre_bypass_role
+          - opsec_pre_bypass_user_id
+          - opsec_pre_bypassed
           - opsec_pre_message
           - original_params
           - parameter_group_name
           - params
+          - parent_task_id
+          - process_at_original_command
+          - response_count
           - status
-          - stderr
-          - stdout
-          - subtask_callback_function
-          - subtask_group_name
-          - tasking_location
           - status_timestamp_preprocessing
           - status_timestamp_processed
           - status_timestamp_processing
           - status_timestamp_submitted
+          - stderr
+          - stdout
+          - subtask_callback_function
+          - subtask_callback_function_completed
+          - subtask_group_name
+          - tasking_location
           - timestamp
+          - token_id
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -8039,57 +8210,58 @@
     - role: spectator
       permission:
         columns:
-          - completed
-          - completed_callback_function_completed
-          - group_callback_function_completed
-          - has_intercepted_response
-          - is_interactive_task
-          - opsec_post_blocked
-          - opsec_post_bypassed
-          - opsec_pre_blocked
-          - opsec_pre_bypassed
-          - process_at_original_command
-          - subtask_callback_function_completed
+          - agent_task_id
           - apitokens_id
           - callback_id
           - command_id
-          - comment_operator_id
-          - display_id
-          - eventstepinstance_id
-          - id
-          - interactive_task_type
-          - operation_id
-          - operator_id
-          - opsec_post_bypass_user_id
-          - opsec_pre_bypass_user_id
-          - parent_task_id
-          - response_count
-          - token_id
-          - agent_task_id
           - command_name
           - command_payload_type
           - comment
+          - comment_operator_id
+          - completed
           - completed_callback_function
+          - completed_callback_function_completed
+          - display_id
           - display_params
+          - eventstepinstance_id
           - group_callback_function
+          - group_callback_function_completed
+          - has_intercepted_response
+          - id
+          - interactive_task_type
+          - is_interactive_task
+          - mythic_parsed_params
+          - operation_id
+          - operator_id
+          - opsec_post_blocked
           - opsec_post_bypass_role
+          - opsec_post_bypass_user_id
+          - opsec_post_bypassed
           - opsec_post_message
+          - opsec_pre_blocked
           - opsec_pre_bypass_role
+          - opsec_pre_bypass_user_id
+          - opsec_pre_bypassed
           - opsec_pre_message
           - original_params
           - parameter_group_name
           - params
+          - parent_task_id
+          - process_at_original_command
+          - response_count
           - status
-          - stderr
-          - stdout
-          - subtask_callback_function
-          - subtask_group_name
-          - tasking_location
           - status_timestamp_preprocessing
           - status_timestamp_processed
           - status_timestamp_processing
           - status_timestamp_submitted
+          - stderr
+          - stdout
+          - subtask_callback_function
+          - subtask_callback_function_completed
+          - subtask_group_name
+          - tasking_location
           - timestamp
+          - token_id
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id

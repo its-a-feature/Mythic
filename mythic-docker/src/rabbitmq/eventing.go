@@ -143,7 +143,7 @@ func listenForCronEvents() {
 			nextTriggerDate, err := j.NextRun()
 			if err != nil {
 				logging.LogError(err, "failed to get next run")
-				SendAllOperationsMessage(fmt.Sprintf("Failed to get next chron job run\n%v", err),
+				SendAllOperationsMessage(fmt.Sprintf("Failed to get next cron job run\n%v", err),
 					event.OperationID, "eventing_cron_next", database.MESSAGE_LEVEL_WARNING)
 				continue
 			}
@@ -156,7 +156,7 @@ func listenForCronEvents() {
 				if jobs[i].Name() == triggeringName {
 					nextRun, err := jobs[i].NextRun()
 					if err != nil {
-						logging.LogError(err, "failed to get next run")
+						logging.LogError(err, "failed to get next cron job run")
 					}
 					EventingChannel <- EventNotification{
 						Trigger:         eventing.TriggerCron,
@@ -442,6 +442,49 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 					if !slices.Contains(triggerDataNewCallback.PayloadTypes,
 						payload.Payloadtype.Name) {
 						logging.LogInfo("Not triggering workflow due to payload type restrictions on payload")
+						continue
+					}
+				}
+			case eventing.TriggerTaskCreate:
+				fallthrough
+			case eventing.TriggerTaskStart:
+				fallthrough
+			case eventing.TriggerTaskFinish:
+				fallthrough
+			case eventing.TriggerTaskIntercept:
+				fallthrough
+			case eventing.TriggerTaskInterceptResponse:
+				triggerDataFilterTasks := TriggerDataFilterTasks{}
+				triggerData := possibleEventGroups[i].TriggerData.StructValue()
+				err = mapstructure.Decode(triggerData, &triggerDataFilterTasks)
+				if err != nil {
+					logging.LogError(err, "Failed to decode trigger data")
+				}
+				if len(triggerDataFilterTasks.PayloadTypeCommands) > 0 {
+					// we have some sort of restrictions by payload type and commands
+					task := databaseStructs.Task{}
+					err = database.DB.Get(&task, `SELECT
+						task.command_name,
+						payloadtype.name "callback.payload.payloadtype.name"
+					FROM task
+					JOIN callback ON task.callback_id = callback.id
+					JOIN payload ON callback.registered_payload_id = payload.id
+					JOIN payloadtype ON payload.payload_type_id = payloadtype.id
+					WHERE task.id=$1`, eventNotification.TaskID)
+					if err != nil {
+						logging.LogError(err, "Failed to query payload type from task for task-based trigger")
+						continue
+					}
+					if commands, ok := triggerDataFilterTasks.PayloadTypeCommands[task.Callback.Payload.Payloadtype.Name]; ok {
+						if commands != nil || len(commands) > 0 {
+							if !slices.Contains(commands, task.CommandName) {
+								// we have a list of commands, but the current one isn't in that list, so skip this workflow
+								continue
+							}
+						}
+						// if the payload type is listed, but no commands specified, execute for all commands
+					} else {
+						// PayloadTypeCommands is not empty, but this payload type isn't in the allow list
 						continue
 					}
 				}

@@ -155,6 +155,9 @@ func EventingTriggerUpdateWebhook(c *gin.Context) {
 		}
 
 	}
+	if eventGroup.Trigger == eventing.TriggerResponseIntercept {
+		go rabbitmq.UpdateCachedResponseIntercept()
+	}
 	response.Status = "success"
 	response.Active = eventGroup.Active
 	response.Deleted = eventGroup.Deleted

@@ -176,6 +176,9 @@ func EventingImportWebhook(c *gin.Context) {
 		Status:       "success",
 		EventGroupID: eventData.ID,
 	})
+	if eventData.Trigger == eventing.TriggerResponseIntercept {
+		go rabbitmq.UpdateCachedResponseIntercept()
+	}
 }
 
 type EventingImportAutomaticWebhookInput struct {
@@ -393,6 +396,9 @@ func EventingImportAutomaticWebhook(c *gin.Context) {
 		}
 
 	*/
+	if eventData.Trigger == eventing.TriggerTaskIntercept {
+		go rabbitmq.UpdateCachedResponseIntercept()
+	}
 	c.JSON(http.StatusOK, EventingImportWebhookResponse{
 		Status:       "success",
 		EventGroupID: eventData.ID,

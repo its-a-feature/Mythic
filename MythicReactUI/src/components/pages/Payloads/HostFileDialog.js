@@ -26,7 +26,7 @@ mutation hostFileMutation($c2_id: Int!, $file_uuid: String!, $host_url: String!,
 `;
 const getC2ProfilesQuery = gql`
 query getC2Profiles {
-    c2profile(where: {deleted: {_eq: false}, container_running: {_eq: true}, is_p2p: {_eq: false}}){
+    c2profile(where: {deleted: {_eq: false}, container_running: {_eq: true}, is_p2p: {_eq: false}}, order_by: {name: asc}){
         id
         name
     }
@@ -42,12 +42,7 @@ export function HostFileDialog(props) {
     const [hostFile] = useMutation(hostFileMutation, {
         onCompleted: (data) => {
             if(data.c2HostFile.status === "success"){
-                if (removing.current){
-                    snackActions.success("Successfully stop hosting file");
-                } else {
-                    snackActions.success("Successfully hosted file");
-                }
-
+                snackActions.info("Submitted host request...");
                 props.onClose();
             } else {
                 snackActions.error(data.c2HostFile.error);

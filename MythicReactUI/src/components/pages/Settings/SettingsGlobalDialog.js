@@ -13,6 +13,7 @@ import {useMutation, useQuery, gql} from '@apollo/client';
 import {snackActions} from "../../utilities/Snackbar";
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
+import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 
 export const GET_GLOBAL_SETTINGS = gql`
 query getGlobalSettings {
@@ -33,11 +34,16 @@ export function SettingsGlobalDialog(props) {
     const [debugAgentMessage, setDebugAgentMessage] = React.useState(false);
     const [allowInviteLinks, setAllowInviteLinks] = React.useState(false);
     const [serverName, setServerName] = React.useState(false);
+    const userPreferencesRef = React.useRef("{}");
     useQuery(GET_GLOBAL_SETTINGS, {fetchPolicy: "no-cache",
         onCompleted: (data) => {
-            setDebugAgentMessage(data.getGlobalSettings.settings["MYTHIC_DEBUG_AGENT_MESSAGE"]);
-            setAllowInviteLinks(data.getGlobalSettings.settings["MYTHIC_SERVER_ALLOW_INVITE_LINKS"]);
-            setServerName(data.getGlobalSettings.settings["MYTHIC_GLOBAL_SERVER_NAME"]);
+            setDebugAgentMessage(data.getGlobalSettings.settings["server_config"]["debug_agent_message"])
+            //setDebugAgentMessage(data.getGlobalSettings.settings["MYTHIC_DEBUG_AGENT_MESSAGE"]);
+            setAllowInviteLinks(data.getGlobalSettings.settings["server_config"]["allow_invite_links"]);
+            //setAllowInviteLinks(data.getGlobalSettings.settings["MYTHIC_SERVER_ALLOW_INVITE_LINKS"]);
+            setServerName(data.getGlobalSettings.settings["server_config"]["name"]);
+            //setServerName(data.getGlobalSettings.settings["MYTHIC_GLOBAL_SERVER_NAME"]);
+            userPreferencesRef.current = JSON.stringify(data.getGlobalSettings.settings["preferences"], null, 2);
         }
     });
     const [updateGlobalSettings] = useMutation(UpdateGlobalSettingsMutation, {
@@ -64,29 +70,28 @@ export function SettingsGlobalDialog(props) {
     const onAccept = () => {
       updateGlobalSettings({variables:{
           settings: {
-              "MYTHIC_DEBUG_AGENT_MESSAGE": debugAgentMessage,
-              "MYTHIC_SERVER_ALLOW_INVITE_LINKS": allowInviteLinks,
-              "MYTHIC_GLOBAL_SERVER_NAME": serverName,
+              "server_config": {
+                  "name": serverName,
+                  "allow_invite_links": allowInviteLinks,
+                  "debug_agent_message": debugAgentMessage,
+              },
+              "preferences": JSON.parse(userPreferencesRef.current)
           }
       }});
     }
     const onChangeServerName = (name, value, error) => {
         setServerName(value);
     }
+    const onChangePreferences = (newData) => {
+        userPreferencesRef.current = newData
+    }
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Configure Global Settings</DialogTitle>
-        <DialogContentText style={{marginLeft: "20px", marginBottom: "20px"}}>
-            <Typography component={"span"} style={{fontWeight: "600", display: "inline-block"}} color={"error"} >
-                Note:
-            </Typography>
-            {" Changes here do not persist after a Mythic reboot. If you want changes to persist please update the local .env file."}
-        </DialogContentText>
-            <TableContainer  className="mythicElement">
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                   <TableRow hover>
-                      <MythicStyledTableCell style={{width: "60%"}}>Adjust the local server name sent as part of webhooks. This can also be set by the GLOBAL_SERVER_NAME config variable.</MythicStyledTableCell>
+                      <MythicStyledTableCell style={{width: "40%"}}>Adjust the local server name sent as part of webhooks. This can also be configured initially by the GLOBAL_SERVER_NAME config variable before Mythic starts for the first time.</MythicStyledTableCell>
                       <MythicStyledTableCell>
                           <MythicTextField value={serverName} onChange={onChangeServerName} showLabel={false}
                                            name={"serverName"} autoFocus={true} onEnter={onAccept}
@@ -94,7 +99,7 @@ export function SettingsGlobalDialog(props) {
                       </MythicStyledTableCell>
                   </TableRow>
                 <TableRow hover>
-                  <MythicStyledTableCell style={{width: "60%"}}>Emit detailed agent message parsing information to the event logs. This is very noisy and can slow down the server. Also set by the MYTHIC_DEBUG_AGENT_MESSAGE config variable.</MythicStyledTableCell>
+                  <MythicStyledTableCell style={{width: "40%"}}>Emit detailed agent message parsing information to the event logs. This is very noisy and can slow down the server. Also set by the MYTHIC_DEBUG_AGENT_MESSAGE config variable before Mythic starts for the first time.</MythicStyledTableCell>
                   <MythicStyledTableCell>
                       <Switch
                           checked={debugAgentMessage}
@@ -105,7 +110,7 @@ export function SettingsGlobalDialog(props) {
                   </MythicStyledTableCell>
                 </TableRow>
               <TableRow hover>
-                  <MythicStyledTableCell style={{width: "60%"}}>Allow Admin users to create one-time-use links that allow user creation. This can also be set by the MYTHIC_SERVER_ALLOW_INVITE_LINKS config variable.</MythicStyledTableCell>
+                  <MythicStyledTableCell style={{width: "40%"}}>Allow Admin users to create one-time-use links that allow user creation. This can also be set by the MYTHIC_SERVER_ALLOW_INVITE_LINKS config variable before Mythic starts for the first time.</MythicStyledTableCell>
                   <MythicStyledTableCell>
                       <Switch
                           checked={allowInviteLinks}
@@ -115,9 +120,14 @@ export function SettingsGlobalDialog(props) {
                       />
                   </MythicStyledTableCell>
               </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell style={{width: "40%"}}>Configure user preferences for new users. This does NOT override existing user preferences, but only applies to new users created after this is updated.</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <ResponseDisplayPlaintext plaintext={userPreferencesRef.current} onChangeContent={onChangePreferences} initial_mode={"json"} autoFormat={true} />
+                      </MythicStyledTableCell>
+                  </TableRow>
               </TableBody>
             </Table>
-        </TableContainer>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">
             Cancel

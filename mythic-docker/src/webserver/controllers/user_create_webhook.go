@@ -1,6 +1,8 @@
 package webcontroller
 
 import (
+	"database/sql"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
@@ -114,9 +116,16 @@ func CreateOperatorWebhook(c *gin.Context) {
 		})
 		return
 	}
+	globalUserSetting := databaseStructs.GlobalSetting{}
+	err = database.DB.Get(&globalUserSetting, `SELECT * FROM global_setting WHERE "name"=$1`, "preferences")
+	if !errors.Is(err, sql.ErrNoRows) && err != nil {
+		logging.LogError(err, "Failed to get global user preferences settings")
+	} else {
+		newOperator.Preferences = globalUserSetting.Setting
+	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO operator 
-	(admin, username, salt, password, failed_login_count, active, account_type, email) 
-	VALUES (:admin, :username, :salt, :password, :failed_login_count, :active, :account_type, :email)
+	(admin, username, salt, password, failed_login_count, active, account_type, email, preferences) 
+	VALUES (:admin, :username, :salt, :password, :failed_login_count, :active, :account_type, :email, :preferences)
 	RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to create named statement for new operator")

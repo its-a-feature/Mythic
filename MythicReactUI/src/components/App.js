@@ -409,8 +409,6 @@ export function App(props) {
                                 </Routes>
                             </div>
                         </div>
-
-
                     </div>
 
             </ThemeProvider>

@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"log"
 	"net"
 	"os"
@@ -12,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const mythicServerVersion = "3.3.1-rc89"
+const mythicServerVersion = "3.3.1-rc90"
 
 type Config struct {
 	// server configuration
@@ -204,27 +203,4 @@ func fileExists(path string) bool {
 		}
 	}
 	return !info.IsDir()
-}
-
-func SetConfigValue(configKey string, configValue interface{}) error {
-	switch configKey {
-	case "MYTHIC_DEBUG_AGENT_MESSAGE":
-		MythicConfig.DebugAgentMessage = configValue.(bool)
-	case "MYTHIC_SERVER_ALLOW_INVITE_LINKS":
-		MythicConfig.MythicServerAllowInviteLinks = configValue.(bool)
-	case "MYTHIC_GLOBAL_SERVER_NAME":
-		MythicConfig.GlobalServerName = configValue.(string)
-	default:
-		return errors.New("unknown configKey to update")
-	}
-	return nil
-}
-
-func GetGlobalConfig() map[string]interface{} {
-	return map[string]interface{}{
-		"MYTHIC_DEBUG_AGENT_MESSAGE":       MythicConfig.DebugAgentMessage,
-		"MYTHIC_SERVER_ALLOW_INVITE_LINKS": MythicConfig.MythicServerAllowInviteLinks,
-		"MYTHIC_GLOBAL_SERVER_NAME":        MythicConfig.GlobalServerName,
-		"MYTHIC_SERVER_VERSION":            MythicConfig.ServerVersion,
-	}
 }

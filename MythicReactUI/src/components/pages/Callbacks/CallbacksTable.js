@@ -917,10 +917,10 @@ function CallbacksTablePreMemo(props){
                 onClickHeader={onClickHeader}
                 onDoubleClickRow={onRowDoubleClick}
                 contextMenuOptions={contextMenuOptions}
-              onRowContextMenuClick={onRowContextClick}
+                onRowContextMenuClick={onRowContextClick}
           />
           {openContextMenu &&
-              <MythicDialog fullWidth={true} maxWidth="xs" open={openContextMenu} 
+              <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
                   onClose={()=>{setOpenContextMenu(false);}} 
                   innerDialog={<TableFilterDialog 
                       selectedColumn={selectedColumn} 

@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/its-a-feature/Mythic/utils"
@@ -61,6 +62,7 @@ type agentMessagePostResponse struct {
 	Upload          *agentMessagePostResponseUpload           `json:"upload,omitempty" mapstructure:"upload,omitempty" xml:"upload,omitempty"`
 	Alerts          *[]agentMessagePostResponseAlert          `json:"alerts,omitempty" mapstructure:"alerts,omitempty" xml:"alerts,omitempty"`
 	Callback        *agentMessagePostResponseCallback         `json:"callback,omitempty" mapstructure:"callback,omitempty" xml:"callback,omitempty"`
+	Events          *[]agentMessagePostResponseTriggerEvent   `json:"events,omitempty" mapstructure:"events,omitempty" xml:"events,omitempty"`
 	Other           map[string]interface{}                    `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
 }
 
@@ -226,6 +228,10 @@ type agentMessagePostResponseCallback struct {
 	ImpersonationContext *string   `json:"impersonation_context,omitempty" mapstructure:"impersonation_context,omitempty" xml:"impersonation_context,omitempty"`
 	IPs                  *[]string `json:"ips" mapstructure:"ips" xml:"ips"`
 }
+type agentMessagePostResponseTriggerEvent struct {
+	Keyword string                 `json:"keyword" mapstructure:"keyword" xml:"keyword"`
+	Data    map[string]interface{} `json:"data" mapstructure:"data" xml:"data"`
+}
 
 // writeDownloadChunkToDiskChan is a blocking call intentionally
 type writeDownloadChunkToDisk struct {
@@ -247,51 +253,62 @@ type agentAgentMessagePostResponseChannelMessage struct {
 
 var asyncAgentMessagePostResponseChannel = make(chan agentAgentMessagePostResponseChannelMessage, 100)
 
+var responseInterceptMapOperationIDToEventGroupID = make(map[int]int)
+var responseInterceptMapLock = sync.RWMutex{}
+
+func UpdateCachedResponseIntercept() {
+	eventGroups := []databaseStructs.EventGroup{}
+	err := database.DB.Select(&eventGroups, `SELECT id, operation_id 
+		FROM eventgroup 
+		WHERE active=true AND deleted=false AND trigger=$1
+		ORDER BY id ASC`,
+		eventing.TriggerResponseIntercept)
+	responseInterceptMapLock.Lock()
+	defer responseInterceptMapLock.Unlock()
+	if errors.Is(err, sql.ErrNoRows) {
+		responseInterceptMapOperationIDToEventGroupID = make(map[int]int)
+		return
+	}
+	if err != nil {
+		logging.LogError(err, "failed to fetch eventgroups for UpdateCachedResponseIntercept")
+		responseInterceptMapOperationIDToEventGroupID = make(map[int]int)
+		return
+	}
+	for _, eventGroup := range eventGroups {
+		responseInterceptMapOperationIDToEventGroupID[eventGroup.OperationID] = eventGroup.ID
+	}
+}
 func listenForAsyncAgentMessagePostResponseContent() {
+	UpdateCachedResponseIntercept()
 	for {
 		msg := <-asyncAgentMessagePostResponseChannel
-
-		// this is coming from an agent and needs to check if there's a workflow to kick off
-		// might need to create a response ID
-		eventGroup := databaseStructs.EventGroup{}
-		err := database.DB.Get(&eventGroup, `SELECT id FROM eventgroup WHERE
-                              operation_id=$1 AND active=true AND deleted=false AND trigger=$2`,
-			msg.Task.OperationID, eventing.TriggerResponseIntercept)
-		if errors.Is(err, sql.ErrNoRows) {
-			handleAgentMessagePostResponseUserOutput(msg.Task, agentMessagePostResponse{
+		responseInterceptMapLock.RLock()
+		if eventGroupID, ok := responseInterceptMapOperationIDToEventGroupID[msg.Task.OperationID]; ok {
+			output := ""
+			responseID := handleAgentMessagePostResponseUserOutput(msg.Task, agentMessagePostResponse{
 				TaskID:         msg.Task.AgentTaskID,
-				UserOutput:     &msg.Response,
+				UserOutput:     &output,
 				SequenceNumber: msg.SequenceNum,
-			}, true)
-			continue
-		}
-		if err != nil {
-			logging.LogError(err, "failed to find event groups")
-			handleAgentMessagePostResponseUserOutput(msg.Task, agentMessagePostResponse{
-				TaskID:         msg.Task.AgentTaskID,
-				UserOutput:     &msg.Response,
-				SequenceNumber: msg.SequenceNum,
-			}, true)
-			continue
-		}
-
-		output := ""
-		responseID := handleAgentMessagePostResponseUserOutput(msg.Task, agentMessagePostResponse{
-			TaskID:         msg.Task.AgentTaskID,
-			UserOutput:     &output,
-			SequenceNumber: msg.SequenceNum,
-		}, false)
-		if responseID > 0 {
-			// we have an interception possibility, so send that off for processing
-			EventingChannel <- EventNotification{
-				Trigger:               eventing.TriggerResponseIntercept,
-				OperationID:           msg.Task.OperationID,
-				EventGroupID:          eventGroup.ID,
-				ResponseID:            responseID,
-				TaskID:                msg.Task.ID,
-				ResponseInterceptData: msg.Response,
+			}, false)
+			if responseID > 0 {
+				// we have an interception possibility, so send that off for processing
+				EventingChannel <- EventNotification{
+					Trigger:               eventing.TriggerResponseIntercept,
+					OperationID:           msg.Task.OperationID,
+					EventGroupID:          eventGroupID,
+					ResponseID:            responseID,
+					TaskID:                msg.Task.ID,
+					ResponseInterceptData: msg.Response,
+				}
 			}
+		} else {
+			handleAgentMessagePostResponseUserOutput(msg.Task, agentMessagePostResponse{
+				TaskID:         msg.Task.AgentTaskID,
+				UserOutput:     &msg.Response,
+				SequenceNumber: msg.SequenceNum,
+			}, true)
 		}
+		responseInterceptMapLock.RUnlock()
 	}
 }
 func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
@@ -337,12 +354,13 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		} else {
 			err = database.DB.Get(&currentTask, `SELECT
 			task.id, task.status, task.completed, task.status_timestamp_processed, task.operator_id, task.operation_id,
-			task.stdout, task.stderr,
+			task.stdout, task.stderr, task.display_id,
 			task.eventstepinstance_id, task.apitokens_id,
 			callback.host "callback.host",
 			callback.user "callback.user",
 			callback.id "callback.id",
 			callback.display_id "callback.display_id",
+			callback.agent_callback_id "callback.agent_callback_id",
 			callback.mythictree_groups "callback.mythictree_groups",
 			payload.payload_type_id "callback.payload.payload_type_id",
 			payload.os "callback.payload.os"
@@ -487,6 +505,9 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		}
 		if agentMessage.Responses[i].Callback != nil {
 			go handleAgentMessagePostResponseCallback(currentTask, agentMessage.Responses[i].Callback)
+		}
+		if agentMessage.Responses[i].Events != nil && len(*agentMessage.Responses[i].Events) > 0 {
+			go handleAgentMessagePostResponseEvent(currentTask, agentMessage.Responses[i].Events)
 		}
 		// this section always happens
 		reflectBackOtherKeys(&mythicResponse, &agentMessage.Responses[i].Other)
@@ -1059,6 +1080,27 @@ func handleAgentMessagePostResponseCallback(task databaseStructs.Task, callbackU
 		Cwd:                  callbackUpdate.Cwd,
 		ImpersonationContext: callbackUpdate.ImpersonationContext,
 	})
+}
+func handleAgentMessagePostResponseEvent(task databaseStructs.Task, eventingData *[]agentMessagePostResponseTriggerEvent) {
+	for _, event := range *eventingData {
+		eventKeywordData := event.Data
+		if eventKeywordData == nil {
+			eventKeywordData = make(map[string]interface{})
+		}
+		eventKeywordData["callback_id"] = task.Callback.ID
+		eventKeywordData["callback_display_id"] = task.Callback.DisplayID
+		eventKeywordData["callback_agent_id"] = task.Callback.AgentCallbackID
+		eventKeywordData["task_id"] = task.ID
+		eventKeywordData["task_display_id"] = task.DisplayID
+		eventKeywordData["triggered_by"] = "agent"
+		EventingChannel <- EventNotification{
+			OperationID:    task.OperationID,
+			OperatorID:     task.OperatorID,
+			Trigger:        eventing.TriggerKeyword,
+			Keyword:        event.Keyword,
+			KeywordEnvData: eventKeywordData,
+		}
+	}
 }
 
 type chunkWriterData struct {

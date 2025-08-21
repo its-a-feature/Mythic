@@ -43,7 +43,6 @@ export function SettingsOperatorTable(props){
         }
         if(username.length === 0){
             snackActions.error("Username must not be empty");
-            return
         }else{
             props.onNewOperator(username, passwordNew, email);
             setOpenNewDialog(false);
@@ -66,11 +65,11 @@ export function SettingsOperatorTable(props){
     const [getGlobalSettings] = useLazyQuery(GET_GLOBAL_SETTINGS, {fetchPolicy: "no-cache",
     });
     const closeGlobalSettingsDialog = () => {
-        getGlobalSettings().then(({data}) => setInviteLinksEnabled(data.getGlobalSettings.settings["MYTHIC_SERVER_ALLOW_INVITE_LINKS"]));
+        getGlobalSettings().then(({data}) => setInviteLinksEnabled(data.getGlobalSettings.settings["server_config"]["allow_invite_links"]));
         setOpenGlobalSettingsDialog(false);
     }
     React.useEffect( () => {
-        getGlobalSettings().then(({data}) => setInviteLinksEnabled(data.getGlobalSettings.settings["MYTHIC_SERVER_ALLOW_INVITE_LINKS"]));
+        getGlobalSettings().then(({data}) => setInviteLinksEnabled(data.getGlobalSettings.settings["server_config"]["allow_invite_links"]));
     }, []);
     return (
     <div style={{display: "flex", flexDirection: "column", height: "100%"}}>

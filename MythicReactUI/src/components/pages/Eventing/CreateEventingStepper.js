@@ -171,17 +171,50 @@ const triggerOptionsData = {
     },
     task_create: {
         description: "This workflow is triggered when a Task is first created and sent for preprocessing at the payloadtype container",
-        trigger_data: [],
+        trigger_data: [
+            {
+                name: "payload_types_commands",
+                parameter_type: "MapArray",
+                default_value: "{}",
+                value: {},
+                initialValue: {},
+                trackedValue: {},
+                error: false,
+                description: "a dictionary of payload type names to a list of all the command names where you want this workflow to trigger. If you specify a payload type name and no commands, then it will trigger for all commands for that payload type. Not specifying any payload types will trigger for all commands for all payload types."
+            }
+        ],
         env: taskFields,
     },
     task_start: {
         description: "This workflow is triggered when a Task is picked up by the agent to start executing",
-        trigger_data: [],
+        trigger_data: [
+            {
+                name: "payload_types_commands",
+                parameter_type: "MapArray",
+                default_value: "{}",
+                value: {},
+                initialValue: {},
+                trackedValue: {},
+                error: false,
+                description: "a dictionary of payload type names to a list of all the command names where you want this workflow to trigger. If you specify a payload type name and no commands, then it will trigger for all commands for that payload type. Not specifying any payload types will trigger for all commands for all payload types."
+            }
+        ],
         env: taskFields,
     },
     task_finish: {
         description: "This workflow is triggered when a Task finishes either successfully or via error",
-        trigger_data: [],
+        trigger_data: [
+            {
+                name: "payload_types_commands",
+                parameter_type: "MapArray",
+                default_value: "{}",
+                value: {},
+                initialValue: {},
+                trackedValue: {},
+                error: false,
+                description: "a dictionary of payload type names to a list of all the command names where you want this workflow to trigger. If you specify a payload type name and no commands, then it will trigger for all commands for that payload type. Not specifying any payload types will trigger for all commands for all payload types."
+            }
+        ],
         env: taskFields,
     },
     user_output: {
@@ -243,12 +276,24 @@ const triggerOptionsData = {
     },
     task_intercept: {
         description: "This workflow is triggered after a Task finishes its opsec_post check to allow one more chance for a task to be blocked.",
-        trigger_data: [],
+        trigger_data: [
+            {
+                name: "payload_types_commands",
+                parameter_type: "MapArray",
+                default_value: "{}",
+                value: {},
+                initialValue: {},
+                trackedValue: {},
+                error: false,
+                description: "a dictionary of payload type names to a list of all the command names where you want this workflow to trigger. If you specify a payload type name and no commands, then it will trigger for all commands for that payload type. Not specifying any payload types will trigger for all commands for all payload types."
+            }
+        ],
         env: taskFields,
     },
     response_intercept: {
         description: "This workflow is triggered when a Task returns new output in the user_output field for the user to see in the UI, but first passes that output to this workflow for modification before saving it in the database.",
-        trigger_data: [],
+        trigger_data: [
+        ],
         env: []
     },
     tag_create: {

@@ -643,8 +643,8 @@ export function TopAppBarVertical(props) {
   const [serverName, setServerName] = React.useState("...");
   useQuery(GET_SETTINGS, {fetchPolicy: "no-cache",
     onCompleted: (data) => {
-      setServerVersion(data.getGlobalSettings.settings["MYTHIC_SERVER_VERSION"]);
-      setServerName(data.getGlobalSettings.settings["MYTHIC_GLOBAL_SERVER_NAME"]);
+      setServerVersion(data.getGlobalSettings.settings["server_config"]["version"]);
+      setServerName(data.getGlobalSettings.settings["server_config"]["name"]);
     }
   });
   const toggleDrawerOpen = (e) => {

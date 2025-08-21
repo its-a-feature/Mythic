@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.68] - 2025-08-12
+
+### Changed
+
+- Updated browser script tables to have filter options again
+- Updated browser script tables to have option to copy out entire table as JSON, CSV, or TSV
+- Updated browser script tables to have option to copy out entire table as Pretty Printed Text
+- Updated task's "View All Parameters" option to show the new mythic_parsed_parameters field
+- Updated UI to support new map[string][]array format needed by new eventing trigger data
+- Updated eventing stepper UI wizard to support new trigger data
+- Updated file hosting dialog to sort available c2 profiles by name
+- Updated file search pages to remove entries completely if they're deleted
+- Updated invite links and global settings to use new database focused data
+
 ## [0.3.67] - 2025-08-11
 
 ### Changed

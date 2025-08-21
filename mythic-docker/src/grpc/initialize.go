@@ -130,7 +130,7 @@ func (t *translationContainerServer) GetGenerateKeysChannels(translationContaine
 			t.clients[translationContainerName].generateKeysMessageResponse,
 			nil
 	}
-	return nil, nil, errors.New("no translation container by that name currently connected")
+	return nil, nil, errors.New(fmt.Sprintf("no translation container \"%s\" currently connected", translationContainerName))
 }
 func (t *translationContainerServer) SetGenerateKeysChannelExited(translationContainerName string) {
 	t.RLock()
@@ -147,7 +147,7 @@ func (t *translationContainerServer) GetCustomToMythicChannels(translationContai
 			t.clients[translationContainerName].translateCustomToMythicFormatMessageResponse,
 			nil
 	}
-	return nil, nil, errors.New("no translation container by that name currently connected")
+	return nil, nil, errors.New(fmt.Sprintf("no translation container \"%s\" currently connected", translationContainerName))
 }
 func (t *translationContainerServer) SetCustomToMythicChannelExited(translationContainerName string) {
 	t.RLock()
@@ -164,7 +164,7 @@ func (t *translationContainerServer) GetMythicToCustomChannels(translationContai
 			t.clients[translationContainerName].translateMythicToCustomFormatMessageResponse,
 			nil
 	}
-	return nil, nil, errors.New("no translation container by that name currently connected")
+	return nil, nil, errors.New(fmt.Sprintf("no translation container \"%s\" currently connected", translationContainerName))
 }
 func (t *translationContainerServer) SetMythicToCustomChannelExited(translationContainerName string) {
 	t.RLock()

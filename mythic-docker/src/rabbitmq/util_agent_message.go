@@ -700,6 +700,8 @@ func ProcessAgentMessage(agentMessageInput *AgentMessageRawInput) ([]byte, error
 func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTime bool) (*cachedUUIDInfo, error) {
 	//logging.LogTrace("Looking up information for new message", "uuid", messageUUID)
 	//logging.LogDebug("Getting encryption data", "cachemap", cachedUUIDInfoMap)
+	newCache := cachedUUIDInfo{}
+
 	cachedUUIDInfoMapMutex.Lock()
 	defer cachedUUIDInfoMapMutex.Unlock()
 	if _, ok := cachedUUIDInfoMap[messageUUID+c2profile]; ok {
@@ -721,7 +723,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		}
 		return cachedUUIDInfoMap[messageUUID], nil
 	}
-	newCache := cachedUUIDInfo{}
+
 	// get the associated c2 profile
 	databaseC2Profile := databaseStructs.C2profile{}
 	if err := database.DB.Get(&databaseC2Profile, `SELECT id, "name", is_p2p FROM c2profile
@@ -732,6 +734,10 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		errorMessage += fmt.Sprintf("Potentially look into installing the c2 profile")
 		go SendAllOperationsMessage(errorMessage, 0, messageUUID, database.MESSAGE_LEVEL_WARNING)
 		return &newCache, err
+	}
+	if messageUUID == "00000000-0000-0000-0000-000000000000" {
+		errorMessage := fmt.Sprintf("[*] Detected Testing message!\nConnectivity to Mythic through C2 Profile %s confirmed", databaseC2Profile.Name)
+		return &newCache, errors.New(errorMessage)
 	}
 	newCache.C2ProfileID = databaseC2Profile.ID
 	newCache.C2ProfileName = databaseC2Profile.Name

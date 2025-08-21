@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"github.com/go-viper/mapstructure/v2"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,7 +14,7 @@ import (
 )
 
 var DB *sqlx.DB
-var currentMigrationVersion int64 = 3003011
+var currentMigrationVersion int64 = 3003012
 
 // initial structs made with './tables-to-go -u mythic_user -p [password here] -h [ip here] -v -d mythic_db -of output -pn database_structs'
 // package pulled from https://github.com/fraenky8/tables-to-go
@@ -140,6 +141,7 @@ func Initialize() {
 		CreateOperationBotForOperation(newOperation)
 	}
 	initializeMitreAttack()
+	setGlobalSettings()
 	logging.LogInfo("Database Initialized")
 }
 
@@ -174,6 +176,77 @@ func getNewDbConnection() *sqlx.DB {
 			conn.SetConnMaxLifetime(0)
 			conn.SetConnMaxIdleTime(0)
 			return conn
+		}
+	}
+}
+
+func setGlobalSettings() {
+	globalSetting := []databaseStructs.GlobalSetting{}
+	err := DB.Select(&globalSetting, `SELECT * FROM global_setting`)
+	if err != nil {
+		logging.LogError(err, "Failed to get global settings")
+		return
+	}
+	for defaultKey, _ := range databaseStructs.GlobalSettingDefaultsMap {
+		found := false
+		for i, _ := range globalSetting {
+			if globalSetting[i].Name == defaultKey {
+				found = true // don't change from the defaults, they've already been set or updated
+				// only one we want to make sure to update is the version
+				if defaultKey == "server_config" {
+					serverConfig := databaseStructs.GlobalSettingServerConfig{}
+					err = mapstructure.Decode(globalSetting[i].Setting.StructValue(), &serverConfig)
+					if err != nil {
+						logging.LogError(err, "Failed to parse saved server_config global setting")
+						break
+					}
+					serverConfig.Version = utils.MythicConfig.ServerVersion
+					newSetting := databaseStructs.MythicJSONText{}
+					err = newSetting.Scan(serverConfig)
+					if err != nil {
+						logging.LogError(err, "Failed to scan server_config global setting into MythicJSONText")
+					}
+					globalSetting[i].Setting = newSetting
+					_, err = DB.NamedExec(`UPDATE global_setting SET setting=:setting WHERE id=:id`, globalSetting)
+					if err != nil {
+						logging.LogError(err, "Failed to update global setting")
+					}
+				}
+				break
+			}
+		}
+		if !found {
+			newGlobalSetting := databaseStructs.GlobalSetting{
+				Name: defaultKey,
+			}
+			switch defaultKey {
+			case "server_config":
+				newSetting := databaseStructs.MythicJSONText{}
+				err = newSetting.Scan(databaseStructs.GlobalSettingServerConfig{
+					Name:              utils.MythicConfig.GlobalServerName,
+					DebugAgentMessage: utils.MythicConfig.DebugAgentMessage,
+					Version:           utils.MythicConfig.ServerVersion,
+					AllowInviteLinks:  utils.MythicConfig.MythicServerAllowInviteLinks,
+				})
+				if err != nil {
+					logging.LogError(err, "Failed to marshal struct into databaseStructs.MythicJSONText")
+				}
+				newGlobalSetting.Setting = newSetting
+			case "preferences":
+				newSetting := databaseStructs.MythicJSONText{}
+				err = newSetting.Scan(map[string]interface{}{})
+				if err != nil {
+					logging.LogError(err, "Failed to marshal struct into databaseStructs.MythicJSONText")
+				}
+				newGlobalSetting.Setting = newSetting
+			}
+			_, err = DB.NamedExec(`INSERT INTO global_setting 
+				("name", setting)
+				VALUES
+				(:name, :setting)`, newGlobalSetting)
+			if err != nil {
+				logging.LogError(err, "Failed to update global setting", "name", newGlobalSetting.Name, "setting", newGlobalSetting.Setting)
+			}
 		}
 	}
 }

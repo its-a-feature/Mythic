@@ -2,6 +2,7 @@ package webcontroller
 
 import (
 	"fmt"
+	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/utils"
 	"net/http"
 
@@ -53,7 +54,18 @@ func UpdateGlobalSettingsWebhook(c *gin.Context) {
 		return
 	}
 	for key, value := range input.Input.Settings {
-		err = utils.SetConfigValue(key, value)
+		switch key {
+		case "server_config":
+			mapValue, ok := value.(map[string]interface{})
+			if !ok {
+				logging.LogError(nil, "failed to get server config")
+				continue
+			}
+			mapValue["version"] = utils.MythicConfig.ServerVersion
+			err = database.SetGlobalSetting(key, mapValue, operatorOperation.CurrentOperator.ID)
+		default:
+			err = database.SetGlobalSetting(key, value, operatorOperation.CurrentOperator.ID)
+		}
 		if err != nil {
 			c.JSON(http.StatusOK, UpdateGlobalSettingsResponse{
 				Status: "error",

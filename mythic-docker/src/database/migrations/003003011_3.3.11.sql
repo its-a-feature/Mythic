@@ -5,8 +5,11 @@ alter table "public"."tag" add column IF NOT EXISTS "payload_id" integer;
 alter table "public"."payloadtype" add column IF NOT EXISTS "supports_multiple_c2_in_build" boolean not null default false;
 alter table "public"."payloadtype" add column IF NOT EXISTS "supports_multiple_c2_instances_in_build" boolean not null default false;
 
+alter table "public"."tag" drop constraint if exists "tag_callback_id_fkey";
 alter table "public"."tag" add constraint "tag_callback_id_fkey" FOREIGN KEY (callback_id) REFERENCES callback(id) ON UPDATE RESTRICT ON DELETE RESTRICT not valid;
 alter table "public"."tag" validate constraint "tag_callback_id_fkey";
+
+alter table "public"."tag" drop constraint if exists "tag_payload_id_fkey";
 alter table "public"."tag" add constraint "tag_payload_id_fkey" FOREIGN KEY (payload_id) REFERENCES payload(id) ON UPDATE RESTRICT ON DELETE RESTRICT not valid;
 alter table "public"."tag" validate constraint "tag_payload_id_fkey";
 

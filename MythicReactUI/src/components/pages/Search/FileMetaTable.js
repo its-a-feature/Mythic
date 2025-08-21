@@ -202,13 +202,12 @@ export function FileMetaDownloadTable(props){
         if(!file_ids){
             return;
         }
-        const updated = files.map( (file) => {
-            if(file_ids.includes(file.id)){
-                return {...file, deleted: true};
-            }else{
-                return {...file}
+        const updated = files.reduce( (prev, cur) => {
+            if(file_ids.includes(cur.id)){
+                return [...prev];
             }
-        });
+            return [...prev, cur];
+        }, []);
         let currentSelected = {...selected};
         file_ids.map(f => {
             currentSelected[f] = false;
@@ -246,10 +245,10 @@ export function FileMetaDownloadTable(props){
                     <ArchiveIcon/>Zip & Download Selected
                 </Button>
                 <Button size="small" onClick={onDeleteBulk} style={{width: "100%"}}
-                        color="primary" variant="contained"
+                        color="error" variant="contained"
                         disabled={disabled}
                 >
-                    <DeleteIcon color={disabled ? "" : "error"}/>Delete Selected
+                    <DeleteIcon />Delete Selected
                 </Button>
             </span>
             <div style={{height: "100%", overflowY: "auto"}}>
@@ -582,13 +581,12 @@ export function FileMetaUploadTable(props){
     }
     const onDelete = ({file_ids}) => {
         if(!file_ids){return}
-        const updated = files.map( (file) => {
-            if(file_ids.includes(file.id)){
-                return {...file, deleted: true};
-            }else{
-                return {...file}
+        const updated = files.reduce( (prev, cur) => {
+            if(file_ids.includes(cur.id)){
+                return [...prev];
             }
-        });
+            return [...prev, cur];
+        }, []);
         let currentSelected = {...selected};
         file_ids.map(f => {
             currentSelected[f] = false;
@@ -626,10 +624,10 @@ export function FileMetaUploadTable(props){
                     <ArchiveIcon/>Zip & Download Selected
                 </Button>
                 <Button size="small" onClick={onDeleteBulk} style={{width: "100%"}}
-                        color="primary" variant="contained"
+                        color="error" variant="contained"
                         disabled={disabled}
                 >
-                    <DeleteIcon color={disabled ? "" : "error"}/>Delete Selected
+                    <DeleteIcon />Delete Selected
                 </Button>
             </span>
             <div style={{height: "100%", overflowY: "auto"}}>
@@ -894,13 +892,12 @@ export function FileMetaScreenshotTable(props){
         setFiles(updated);
     }
     const onDelete = ({file_ids}) => {
-        const updated = files.map( (file) => {
-            if(file_ids.includes(file.id)){
-                return {...file, deleted: true};
-            }else{
-                return {...file}
+        const updated = files.reduce( (prev, cur) => {
+            if(file_ids.includes(cur.id)){
+                return [...prev];
             }
-        });
+            return [...prev, cur];
+        }, []);
         setFiles(updated);
     }
     const imageRefs = files.map( f => f.agent_file_id);
@@ -1162,13 +1159,12 @@ export function FileMetaEventingWorkflowsTable(props){
     }
     const onDelete = ({file_ids}) => {
         if(!file_ids){return}
-        const updated = files.map( (file) => {
-            if(file_ids.includes(file.id)){
-                return {...file, deleted: true};
-            }else{
-                return {...file}
+        const updated = files.reduce( (prev, cur) => {
+            if(file_ids.includes(cur.id)){
+                return [...prev];
             }
-        });
+            return [...prev, cur];
+        }, []);
         let currentSelected = {...selected};
         file_ids.map(f => {
             currentSelected[f] = false;
@@ -1206,10 +1202,10 @@ export function FileMetaEventingWorkflowsTable(props){
                     <ArchiveIcon/>Zip & Download Selected
                 </Button>
                 <Button size="small" onClick={onDeleteBulk} style={{width: "100%"}}
-                        color="primary" variant="contained"
+                        color="error" variant="contained"
                         disabled={disabled}
                 >
-                    <DeleteIcon color={disabled ? "" : "error"}/>Delete Selected
+                    <DeleteIcon />Delete Selected
                 </Button>
             </span>
             <div style={{height: "100%", overflowY: "auto"}}>
@@ -1306,11 +1302,11 @@ function FileMetaEventingWorkflowsTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
-                        <>
-                            <DeleteIcon color={"error"} fontSize={"large"} style={{height: "35px", cursor: "pointer"}}
+                        <div style={{display: "flex", alignItems: "center"}}>
+                            <DeleteIcon color={"error"} fontSize={"medium"} style={{height: "35px", cursor: "pointer"}}
                                         onClick={()=>{setOpenDelete(true);}}/>
                             <MythicStyledTooltip title={"Preview Media"}>
-                                <FontAwesomeIcon icon={faPhotoVideo} style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
+                                <FontAwesomeIcon icon={faPhotoVideo} style={{height: "20px",  position: "relative", cursor: "pointer", display: "inline-block"}}
                                                  onClick={onPreviewMedia} />
                             </MythicStyledTooltip>
                             {openPreviewMediaDialog &&
@@ -1322,7 +1318,7 @@ function FileMetaEventingWorkflowsTableRow(props){
                                                   onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
                                 />
                             }
-                        </>
+                        </div>
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>

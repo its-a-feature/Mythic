@@ -413,6 +413,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	task.OperatorID = createTaskInput.OperatorID
 	task.OperationID = createTaskInput.CurrentOperationID
 	task.Params = createTaskInput.Params
+	task.MythicParsedParams = createTaskInput.Params
 	task.OriginalParams = *createTaskInput.OriginalParams
 	task.DisplayParams = createTaskInput.Params
 	task.IsInteractiveTask = createTaskInput.IsInteractiveTask
@@ -569,12 +570,12 @@ func addTaskToDatabase(task *databaseStructs.Task) error {
 		original_params,display_params,status,tasking_location,parameter_group_name,
 		parent_task_id,subtask_callback_function,group_callback_function,subtask_group_name,operation_id,
 	    is_interactive_task, interactive_task_type, eventstepinstance_id, status_timestamp_submitted,
-	 command_payload_type)
+	 command_payload_type, mythic_parsed_params)
 		VALUES (:agent_task_id, :command_name, :callback_id, :operator_id, :command_id, :token_id, :params,
 			:original_params, :display_params, :status, :tasking_location, :parameter_group_name,
 			:parent_task_id, :subtask_callback_function, :group_callback_function, :subtask_group_name, :operation_id,
 		        :is_interactive_task, :interactive_task_type, :eventstepinstance_id, :status_timestamp_submitted,
-		        :command_payload_type)
+		        :command_payload_type, :mythic_parsed_params)
 			RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to make a prepared statement for new task creation")

@@ -20,6 +20,7 @@ import {faList, faTrashAlt, faSkullCrossbones, faCamera, faSyringe, faFolder, fa
   faFileImage, faCopy, faBoxOpen, faFileAlt, faCirclePlus, faCheck, faSquareXmark, faRotate } from '@fortawesome/free-solid-svg-icons';
 import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
 import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
+import {TableFilterDialog} from "./TableFilterDialog";
 
 const onCopyToClipboard = (data) => {
   let result = copyStringToClipboard(data);
@@ -462,12 +463,41 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const maxHeight = 375;
   const [dataHeight, setDataHeight] = React.useState(maxHeight);
   const [allData, setAllData] = React.useState([]);
+  const [selectedColumn, setSelectedColumn] = React.useState({});
+  const [filterOptions, setFilterOptions] = React.useState({});
+  const [openContextMenu, setOpenContextMenu] = React.useState(false);
+  const columns = React.useMemo(
+      () =>
+          table?.headers?.reduce( (prev, cur) => {
+            if(filterOptions[cur.plaintext] && String(filterOptions[cur.plaintext]).length > 0){
+              return [...prev, {...cur, filtered: true}];
+            }else{
+              return [...prev, {...cur}];
+            }
+          }, []) || []
+      , [filterOptions, table.headers]
+  );
   const [sortData, setSortData] = React.useState({sortKey: null, sortType: null, sortDirection: "ASC"})
-  const sortedData = React.useMemo(() => {
-    if (sortData.sortKey === null || sortData.sortType === null) {
-      return allData
+  const filterRow = (row) => {
+    for(const [key,value] of Object.entries(filterOptions)){
+      if(!String(row[key].plaintext).toLowerCase().includes(String(value).toLowerCase())){
+        return true;
+      }
     }
-    const tmpData = [...allData];
+    return false;
+  }
+  const sortedData = React.useMemo(() => {
+
+    const tmpData = [...allData].reduce( (prev, cur) => {
+      if(filterRow(cur)){
+        return [...prev];
+      }else{
+        return [...prev, cur];
+      }
+    }, []);
+    if (sortData.sortKey === null || sortData.sortType === null) {
+      return tmpData
+    }
     if(sortData.sortType === "number" || sortData.sortType === "size"){
       tmpData.sort((a, b) => {
         if(a[sortData.sortKey]["plaintext"] === b[sortData.sortKey]["plaintext"]){
@@ -526,7 +556,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
       tmpData.reverse();
     }
     return tmpData;
-  }, [allData, sortData]);
+  }, [allData, sortData, filterOptions]);
   const onClickHeader = (e, columnIndex) => {
     const column = table.headers[columnIndex];
 
@@ -553,6 +583,10 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
         });
     }, [sortedData, table?.headers, callback_id]
   );
+  const onSubmitFilterOptions = (newFilterOptions) => {
+    setFilterOptions(newFilterOptions);
+  }
+
   const filterOutButtonsFromRowData = (data) => {
     let rowData = {};
     for(const key of Object.keys(data)){
@@ -562,7 +596,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
     }
     return rowData;
   }
-  const contextMenuOptions = [
+  const rowContextMenuOptions = [
     {
         name: 'Copy Row as JSON', icon: null,
         click: ({event, columnIndex, rowIndex, data}) => {
@@ -592,7 +626,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
       },
       type: "item",
   },
-  {
+    {
     name: 'Copy Row as TSV', icon: null,
     click: ({event, columnIndex, rowIndex, data}) => {
       const filteredData = filterOutButtonsFromRowData(data);
@@ -614,7 +648,148 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
     },
     type: "item",
 },
+    {
+      name: 'Copy Cell', icon: null,
+      click: ({event, columnIndex, rowIndex, data}) => {
+        if(table.headers !== undefined && table.headers[columnIndex] !== undefined){
+          let field = table.headers[columnIndex];
+          if(field.plaintext !== undefined){ // column name
+            if(data[field.plaintext].plaintext !== undefined){
+              onCopyToClipboard(data[field.plaintext].plaintext);
+            }
+          }
+        }
+      }, type: "item"
+    },
 ];
+  const contextMenuOptions = [
+    {
+      name: 'Filter Column',
+      click: ({event, columnIndex}) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if(table.headers[columnIndex].disableFilterMenu){
+          snackActions.warning("Can't filter that column");
+          return;
+        }
+        setSelectedColumn({
+          "key": table.headers[columnIndex].plaintext,
+          "name": table.headers[columnIndex].plaintext
+        });
+        setOpenContextMenu(true);
+      }
+    },
+    {
+      name: "Copy Table as JSON",
+      click: ({event, columnIndex}) => {
+        event.preventDefault();
+        event.stopPropagation();
+        let tableData = sortedData.map(d => filterOutButtonsFromRowData(d))
+        onCopyToClipboard(JSON.stringify(tableData, null, 2));
+      }
+    },
+    {
+      name: "Copy Table as CSV",
+      click: ({event, columnIndex}) => {
+        event.preventDefault();
+        event.stopPropagation();
+        let tableData = sortedData.map(d => filterOutButtonsFromRowData(d));
+        if(tableData.length === 0){return}
+        let outputHeaders = "";
+        let allOutput = "";
+
+        for(let i = 0; i < tableData.length; i++){
+          let outputRow = "";
+          for(const key of Object.keys(tableData[i])){
+            if(i === 0){
+              if(outputHeaders === ""){
+                outputHeaders += key;
+              } else {
+                outputHeaders += "," + key;
+              }
+            }
+            if(outputRow === ""){
+              outputRow += tableData[i][key];
+            }else{
+              outputRow += "," + tableData[i][key];
+            }
+          }
+          allOutput += outputRow + "\n";
+        }
+        onCopyToClipboard(outputHeaders + "\n" + allOutput);
+      }
+    },
+    {
+      name: "Copy Table as TSV",
+      click: ({event, columnIndex}) => {
+        event.preventDefault();
+        event.stopPropagation();
+        let tableData = sortedData.map(d => filterOutButtonsFromRowData(d));
+        if(tableData.length === 0){return}
+        let outputHeaders = "";
+        let allOutput = "";
+
+        for(let i = 0; i < tableData.length; i++){
+          let outputRow = "";
+          for(const key of Object.keys(tableData[i])){
+            if(i === 0){
+              if(outputHeaders === ""){
+                outputHeaders += key;
+              } else {
+                outputHeaders += "\t" + key;
+              }
+            }
+            if(outputRow === ""){
+              outputRow += tableData[i][key];
+            }else{
+              outputRow += "\t" + tableData[i][key];
+            }
+          }
+          allOutput += outputRow + "\n";
+        }
+        onCopyToClipboard(outputHeaders + "\n" + allOutput);
+      }
+    },
+    {
+      name: "Copy Table as PrettyPrint Text",
+      click: ({event, columnIndex}) => {
+        event.preventDefault();
+        event.stopPropagation();
+        let tableData = sortedData.map(d => filterOutButtonsFromRowData(d));
+        if(tableData.length === 0){return}
+        let outputHeaders = Object.keys(tableData[0]);
+        let outputHeadersMaxLength = outputHeaders.reduce( (prev, cur) => {
+          return {...prev, [cur]: cur.length}
+        }, {});
+        tableData.map( cur => {
+          for(let i = 0; i < outputHeaders.length; i++){
+            if(outputHeadersMaxLength[outputHeaders[i]] < String(cur[outputHeaders[i]]).length){
+              outputHeadersMaxLength[outputHeaders[i]] = String(cur[outputHeaders[i]]).length;
+            }
+          }
+        });
+        let allOutput = "";
+        for(let i = 0; i < outputHeaders.length; i++){
+          let remainingSpace = Math.max(0, outputHeadersMaxLength[outputHeaders[i]] - outputHeaders[i].length);
+          allOutput += "  " + outputHeaders[i].toUpperCase() + " ".repeat(remainingSpace + 2);
+        }
+        allOutput += "\n";
+        for(let i = 0; i < outputHeaders.length; i++){
+          let remainingSpace = Math.max(0, outputHeadersMaxLength[outputHeaders[i]] - outputHeaders[i].length);
+          allOutput += "  " + "-".repeat(outputHeaders[i].length) + " ".repeat(remainingSpace + 2);
+        }
+        allOutput += "\n";
+        for(let i = 0; i < tableData.length; i++){
+          for(let j = 0; j < outputHeaders.length; j++){
+            let remainingSpace = Math.max(0, outputHeadersMaxLength[outputHeaders[j]] - String(tableData[i][outputHeaders[j]]).length);
+            allOutput += "| " + String(tableData[i][outputHeaders[j]]) + " ".repeat(remainingSpace) + "  ";
+          }
+          allOutput += " |\n"
+        }
+        onCopyToClipboard(allOutput);
+      }
+    },
+  ];
   
   useEffect( () => {
     setAllData([...table.rows]);
@@ -639,7 +814,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
 
           <div style={tableStyle}>
             <MythicResizableGrid
-                  columns={table.headers}
+                  columns={columns}
                   sortIndicatorIndex={sortColumn}
                   sortDirection={sortData.sortDirection}
                   items={gridData}
@@ -648,8 +823,19 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
                   onDoubleClickRow={doubleClickRow}
                   rowHeight={rowHeight}
                   onClickHeader={onClickHeader}
-                  rowContextMenuOptions={contextMenuOptions}
+                  contextMenuOptions={contextMenuOptions}
+                  rowContextMenuOptions={rowContextMenuOptions}
               />
+            {openContextMenu &&
+                <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
+                              onClose={()=>{setOpenContextMenu(false);}}
+                              innerDialog={<TableFilterDialog
+                                  selectedColumn={selectedColumn}
+                                  filterOptions={filterOptions}
+                                  onSubmit={onSubmitFilterOptions}
+                                  onClose={()=>{setOpenContextMenu(false);}} />}
+                />
+            }
           </div>
         </div>
     

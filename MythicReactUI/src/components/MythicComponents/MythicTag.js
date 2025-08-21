@@ -298,20 +298,20 @@ return (
                   <TableCell>{selectedTag?.tagtype?.description || ""}</TableCell>
                 </TableRow>
                 <TableRow hover>
-                  <TableCell>Source</TableCell>
-                  <TableCell>
+                  <MythicStyledTableCell>Source</MythicStyledTableCell>
+                  <MythicStyledTableCell>
                     {selectedTag?.source ||""}
-                  </TableCell>
+                  </MythicStyledTableCell>
                 </TableRow>
                 <TableRow hover>
-                  <TableCell>Reference URL</TableCell>
-                  <TableCell>
+                  <MythicStyledTableCell>Reference URL</MythicStyledTableCell>
+                  <MythicStyledTableCell>
                     {selectedTag?.url === "" ? (
                         "No reference link provided"
                     ) : (
                         <Link href={selectedTag?.url || "#"} color="textPrimary" target="_blank" referrerPolicy='no'>{selectedTag?.url ? "click here" : "No reference link provided"}</Link>
                     )}
-                  </TableCell>
+                  </MythicStyledTableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Data</TableCell>
@@ -322,31 +322,36 @@ return (
                           <TableBody>
                             {Object.keys(selectedTag.data).map( key => (
                               <TableRow key={key} hover>
-                                <TableCell>{key}</TableCell>
+                                <MythicStyledTableCell>{key}</MythicStyledTableCell>
                                 {typeof selectedTag.data[key] === "string" ? (
-                                    <TableCell style={{whiteSpace: "pre-wrap"}}>
+                                    <MythicStyledTableCell style={{whiteSpace: "pre-wrap"}}>
                                       <StringTagDataEntry name={key} value={String(selectedTag.data[key])} />
-                                    </TableCell>
+                                    </MythicStyledTableCell>
                                 ) : typeof selectedTag.data[key] === "object" ? (
                                     Array.isArray(selectedTag.data[key]) ? (
                                         <TableCell style={{whiteSpace: "pre-wrap"}}>{JSON.stringify(selectedTag.data[key], null, 2)}</TableCell>
                                     ) : (
-                                        <Table size={"small"} >
-                                          {Object.keys(selectedTag.data[key]).map(key2 => (
-                                              <TableRow key={key2} >
-                                                <TableCell>{key2}</TableCell>
-                                                <TableCell>
-                                                  <StringTagDataEntry name={key2} value={String(selectedTag.data[key][key2])} />
-                                                </TableCell>
-                                              </TableRow>
-                                          ))}
-                                        </Table>
+                                        <MythicStyledTableCell>
+                                          <Table size={"small"} >
+                                            <TableBody>
+                                              {Object.keys(selectedTag.data[key]).map(key2 => (
+                                                  <TableRow key={key2} >
+                                                    <MythicStyledTableCell>{key2}</MythicStyledTableCell>
+                                                    <MythicStyledTableCell>
+                                                      <StringTagDataEntry name={key2} value={String(selectedTag.data[key][key2])} />
+                                                    </MythicStyledTableCell>
+                                                  </TableRow>
+                                              ))}
+                                            </TableBody>
+
+                                          </Table>
+                                        </MythicStyledTableCell>
                                     )
                                 ) : typeof selectedTag.data[key] === "boolean" ? (
-                                    <TableCell>{selectedTag.data[key] ? "True" : "False"}</TableCell>
+                                    <MythicStyledTableCell>{selectedTag.data[key] ? "True" : "False"}</MythicStyledTableCell>
                                 ) :
                                 (
-                                    <TableCell>{String(selectedTag.data[key])}</TableCell>
+                                    <MythicStyledTableCell>{String(selectedTag.data[key])}</MythicStyledTableCell>
                                 )
                                 }
 

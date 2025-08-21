@@ -38,6 +38,46 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const [typedArrayValue, setTypedArrayValue] = React.useState([]);
     const [fileValue, setFileValue] = React.useState({name: ""});
     const [fileMultValue, setFileMultValue] = React.useState([]);
+    const [mapArray, setMapArray] = React.useState([]);
+    const arrayMapToMap = (val) => {
+        return val.reduce( ( prev, cur ) => {
+            return {...prev, [cur[0]]: cur[1]}
+        }, {})
+    }
+    const addMapArrayMap = () => {
+        let map = [...mapArray, ["", []]];
+        setMapArray(map);
+        onChange(name, arrayMapToMap(map), false);
+    }
+    const updateMapArrayMap = (i, val) => {
+        let map = [...mapArray];
+        map[i][0] = val;
+        setMapArray(map);
+        onChange(name, arrayMapToMap(map), false);
+    }
+    const removeMapArrayMap = (i) => {
+        let map = mapArray.toSpliced(i, 1)
+        setMapArray(map);
+        onChange(name, arrayMapToMap(map), false);
+    }
+    const addMapArray = (i) => {
+        let map = [...mapArray];
+        map[i][1].push("");
+        setMapArray(map);
+        onChange(name, arrayMapToMap(map), false);
+    }
+    const updateMapArray = (i, j, val) => {
+        let map = [...mapArray];
+        map[i][1][j] = val;
+        setMapArray(map);
+        onChange(name, arrayMapToMap(map), false);
+    }
+    const removeMapArray = (i, j, val) => {
+        let map = [...mapArray];
+        map[i][1].splice(j, 1);
+        setMapArray(map);
+        onChange(name, arrayMapToMap(map), false);
+    }
     const submitDictChange = (list) => {
         onChange(name, list, false);
     };
@@ -114,8 +154,14 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setValue( trackedValue );
         }else if(parameter_type === "Array") {
             setArrayValue(trackedValue);
-        }else if(parameter_type === "TypedArray"){
+        }else if(parameter_type === "TypedArray") {
             setTypedArrayValue(trackedValue);
+        }else if(parameter_type === "MapArray") {
+            let initial = [];
+            for(const [key, val] of Object.entries(trackedValue)){
+                initial.push([key, val]);
+            }
+            setMapArray(initial);
         }else{
             console.log("hit an unknown parameter type")
         }
@@ -521,6 +567,59 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         inputProps={{ 'aria-label': 'info checkbox' }}
                       />
                 );
+            case "MapArray":
+                return (
+                    <>
+                        <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", height: "100%", "overflow": "auto"}}>
+                            <TableBody>
+                            {mapArray.map( (val, i) => (
+                                <TableRow key={"payloadtype" + i}>
+                                    <MythicStyledTableCell style={{width: "2rem"}}>
+                                        <IconButton onClick={(e) => {removeMapArrayMap(i)}} color="error">
+                                            <DeleteIcon/>
+                                        </IconButton>
+                                    </MythicStyledTableCell>
+                                    <MythicStyledTableCell>
+                                        <MythicTextField autoFocus={true} name={"Payload Type Name"} onChange={(name, value) => updateMapArrayMap(i, value)} value={val[0]} />
+                                    </MythicStyledTableCell>
+                                    <MythicStyledTableCell>
+                                        <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", height: "100%", "overflow": "auto"}}>
+                                            <TableBody>
+                                                {val[1].map( (v, j) => (
+                                                    <TableRow key={"payloadtypevalue" + i + j}>
+                                                        <MythicStyledTableCell style={{width: "2rem"}}>
+                                                            <IconButton onClick={(e) => {removeMapArray(i, j)}} color="error">
+                                                                <DeleteIcon/>
+                                                            </IconButton>
+                                                        </MythicStyledTableCell>
+                                                        <MythicStyledTableCell>
+                                                            <MythicTextField autoFocus={true} name={"Command Name"} onChange={(name, value) => updateMapArray(i, j, value)} value={v}
+                                                                onEnter={() => addMapArray(i)}/>
+                                                        </MythicStyledTableCell>
+                                                    </TableRow>
+                                                ))}
+                                                <TableRow>
+                                                    <MythicStyledTableCell style={{width: "3rem"}}>
+                                                        <IconButton onClick={() => addMapArray(i)} size="large"> <AddCircleIcon color="success"  /> </IconButton>
+                                                    </MythicStyledTableCell>
+                                                    <MythicStyledTableCell/>
+                                                </TableRow>
+                                            </TableBody>
+                                        </Table>
+                                    </MythicStyledTableCell>
+                                </TableRow>
+                            ))}
+                                <TableRow>
+                                    <MythicStyledTableCell style={{width: "3rem"}}>
+                                        <IconButton onClick={addMapArrayMap} size="large"> <AddCircleIcon color="success"  /> </IconButton>
+                                    </MythicStyledTableCell>
+                                    <MythicStyledTableCell/>
+                                    <MythicStyledTableCell/>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </>
+                )
            default:
             return null
         }

@@ -36,14 +36,6 @@ query getOutstandingInviteLinks {
   }
 }
 `;
-const DeleteInviteLink = gql`
-mutation deleteInviteLink($code: String!) {
-    deleteInviteLink(code: $code){
-        status
-        error
-    }
-}
-`;
 const UpdateInviteLink = gql`
 mutation UpdateInviteLink($code: String!, $total: Int!) {
     updateInviteLink(code: $code, total: $total){
@@ -103,25 +95,6 @@ export function InviteLinksDialog(props) {
             props.onClose();
         }
     })
-    const [deleteInviteLink] = useMutation(DeleteInviteLink, {
-        onCompleted: (result) => {
-            if(result.deleteInviteLink.status === "success"){
-                getInviteLinks();
-            } else {
-                snackActions.error(result.deleteInviteLink.error);
-            }
-        },
-        onError: (err) => {
-            console.log(err);
-            snackActions.error("Unable to update global without Admin permissions");
-            props.onClose();
-        }
-    });
-    const deletingCode = React.useRef("");
-    const onDeleteInvite = (code) => {
-        deletingCode.current = code;
-        deleteInviteLink({variables: {code}});
-    }
     const [openInviteLinksDialog, setOpenInviteLinksDialog] = React.useState(false);
     const selectedInviteRef = React.useRef({});
     const createInviteRef = React.useRef(true);
@@ -153,9 +126,6 @@ export function InviteLinksDialog(props) {
                 </Button>
             </MythicStyledTooltip>
         </DialogTitle>
-        <DialogContentText>
-            <b style={{marginLeft: "10px"}}>{"Note:"}</b> Invite links are deleted if Mythic restarts
-        </DialogContentText>
         {openInviteLinksDialog &&
             <MythicDialog open={openInviteLinksDialog}
                           fullWidth={true}
@@ -181,20 +151,6 @@ export function InviteLinksDialog(props) {
                   {inviteLinks.map( l => (
                       <TableRow hover key={l.code}>
                           <TableCell>
-                              {l.valid &&
-                                  <MythicStyledTooltip title={"Delete the invite link so it can't be used'"}>
-                                      <IconButton size="small" disableFocusRipple={true}
-                                                  disableRipple={true} onClick={()=>{onDeleteInvite(l.code);}} color="error" variant="contained">
-                                          <DeleteIcon/></IconButton>
-                                  </MythicStyledTooltip>
-                              }
-                              {!l.valid &&
-                                  <MythicStyledTooltip title={"Restore the invite link so it can't be used'"}>
-                                      <IconButton size="small" disableFocusRipple={true}
-                                                  disableRipple={true} onClick={()=>{onDeleteInvite(l.code);}} color="success" variant="contained">
-                                          <RestoreFromTrashOutlinedIcon/></IconButton>
-                                  </MythicStyledTooltip>
-                              }
                               <Typography style={{textDecoration: l.valid ? "" : "line-through", display: "inline-block"}}>
                                   {l.code}
                               </Typography>

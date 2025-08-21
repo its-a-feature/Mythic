@@ -27,6 +27,9 @@ type TriggerDataFilterTagTypes struct {
 type TriggerDataCron struct {
 	Cron string `json:"cron" mapstructure:"cron"`
 }
+type TriggerDataFilterTasks struct {
+	PayloadTypeCommands map[string][]string `json:"payload_types_commands" mapstructure:"payload_types_commands"`
+}
 
 type EventActionDataConditionalCheck struct {
 	Steps []string `json:"steps" mapstructure:"steps"`

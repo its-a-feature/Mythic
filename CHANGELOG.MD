@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1-rc90] - 2025-08-21
+
+### Changed
+
+- Updated translation container errors to include missing translation container name
+- Added new global_setting table
+  - You can now add a default user preferences config that gets applied to all new users
+- Added new invite_link table
+  - invite links are now persistent across reboots
+  - removed ability to delete invite links
+- Added new `mythic_parsed_params` field to Task entries
+  - This shows how mythic parses the parameters from the UI
+  - This is viewable from a task, click to "view all parameters"
+- Fixed some hasura operations to scope down to current operation only 
+- Added new `semver` (semantic version) field to payload types
+  - This will be updated in a later version to fetch data from updated pypi/go packages
+- Added new TriggerData for the following triggers to allow scoping down to specific commands for specific agents
+  - TaskCreate, TaskStart, TaskFinish, TaskIntercept
+  - This takes a map[string][]string format (a dictionary of string arrays)
+    - The dictionary key is the name of the payload type, the array of strings are the specific commands to trigger on
+    - An empty array of strings means this applies for all commands for that payload type
+- Added a check in handling messages from agents to check for the all 0 UUID
+  - This is now reported back in the UI as a special error to indicate that the connectivity was a success
+  - This works in tandem with updated C2 Profiles' sample messages to use all 0 UUID values
+- A new keyword is added for responses, `events`, which is an array where you specify the `keyword` (string) and `data` (dictionary) for an eventing workflow you want to trigger
+- File Hosting now auto checks and adds `/` if it was somehow missed
+- Additional checks were added to make removing files easier in case the file was deleted
+- Updated Eventing response intercept logic to cache existing workflows to reduce the overhead of fetching data for every response
+- Updated File Hosting tag process to only add tags after C2 Profile returned success for hosting the file
+- [UI Updates](/MythicReactUI/CHANGELOG.MD#0368---2025-08-12)
+
 ## [3.3.1-rc89] - 2025-08-11
 
 ### Changed

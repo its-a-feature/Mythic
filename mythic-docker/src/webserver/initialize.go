@@ -322,7 +322,6 @@ func setRoutes(r *gin.Engine) {
 				// generating invite links, further limited to just admins
 				operationAdminsOnly.POST("create_invite_link_webhook", webcontroller.CreateInviteLink)
 				operationAdminsOnly.POST("get_invite_link_webhook", webcontroller.GetOutstandingInviteLinks)
-				operationAdminsOnly.POST("delete_invite_link_webhook", webcontroller.DeleteInviteLink)
 				operationAdminsOnly.POST("update_invite_link_webhook", webcontroller.UpdateInviteLink)
 			}
 		}

@@ -55,7 +55,9 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 		return
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
-
+	if input.Input.HostURL[0] != '/' {
+		input.Input.HostURL = "/" + input.Input.HostURL
+	}
 	c2Profile := databaseStructs.C2profile{ID: input.Input.C2ProfileID}
 	if err := database.DB.Get(&c2Profile, `SELECT "name" FROM c2profile WHERE id=$1`,
 		input.Input.C2ProfileID); err != nil {
@@ -76,7 +78,7 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 		})
 		return
 	}
-	if hostFile.Deleted {
+	if hostFile.Deleted && !input.Input.Remove {
 		c.JSON(http.StatusOK, C2HostFileMessageResponse{
 			Status: "error",
 			Error:  "File is deleted, can't be hosted",
