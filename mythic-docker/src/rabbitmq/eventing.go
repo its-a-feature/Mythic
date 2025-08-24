@@ -1115,19 +1115,34 @@ func replaceVariableInActionDataString(actionDataString string, key string, val 
 
 // starting a specific step action
 func convertMapStringToInt(actionDataMap map[string]interface{}, key string, required bool) error {
-	if _, ok := actionDataMap[key]; ok {
-		callbackDisplayID := actionDataMap[key].(string)
-		intCallbackDisplayID, err := strconv.Atoi(callbackDisplayID)
+	value, exists := actionDataMap[key]
+	if !exists {
+		if required {
+			err := fmt.Sprintf("%s is required", key)
+			logging.LogError(nil, err)
+			return errors.New(err)
+		}
+		return nil
+	}
+
+	var intValue int
+	switch v := value.(type) {
+	case string:
+		var err error
+		intValue, err = strconv.Atoi(v)
 		if err != nil {
-			logging.LogError(err, "failed to convert callback_display_id to int")
 			return err
 		}
-		actionDataMap[key] = intCallbackDisplayID
-	} else if required {
-		err := fmt.Sprintf("%s is required", key)
-		logging.LogError(nil, err)
-		return errors.New(err)
+	case float64:
+		intValue = int(v)
+	case int:
+		intValue = v
+	default:
+		err := fmt.Errorf("unsupported type for key '%s': %T", key, v)
+		logging.LogError(nil, err.Error())
+		return err
 	}
+	actionDataMap[key] = intValue
 	return nil
 }
 func startEventStepInstanceActionCreatePayload(eventStepInstance databaseStructs.EventStepInstance, actionDataMap map[string]interface{}) error {
