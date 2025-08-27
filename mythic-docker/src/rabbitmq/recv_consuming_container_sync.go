@@ -69,6 +69,7 @@ func processConsumingContainerSyncMessages(msg amqp.Delivery) interface{} {
 	} else {
 		// successfully synced
 		response.Success = true
+		go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(c2SyncMsg.ConsumingContainer.Name)
 	}
 	logging.LogDebug("Finished processing consuming container sync message")
 	return response
