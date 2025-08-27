@@ -207,7 +207,7 @@ func setGlobalSettings() {
 						logging.LogError(err, "Failed to scan server_config global setting into MythicJSONText")
 					}
 					globalSetting[i].Setting = newSetting
-					_, err = DB.NamedExec(`UPDATE global_setting SET setting=:setting WHERE id=:id`, globalSetting)
+					_, err = DB.NamedExec(`UPDATE global_setting SET setting=:setting WHERE id=:id`, globalSetting[i])
 					if err != nil {
 						logging.LogError(err, "Failed to update global setting")
 					}
