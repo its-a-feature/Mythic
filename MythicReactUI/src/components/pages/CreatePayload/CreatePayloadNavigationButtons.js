@@ -14,7 +14,7 @@ export function CreatePayloadNavigationButtons(props){
   const disabledButtons = (me?.user?.current_operation_id || 0) <= 0;
     return (
       
-        <div >
+        <div style={{position: "relative"}}>
             <Button
                 disabled={props.first}
                 color="primary"
