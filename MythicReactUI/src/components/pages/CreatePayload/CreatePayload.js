@@ -7,10 +7,11 @@ import {Step2SelectPayloadType} from './Step2SelectPayloadType';
 import {Step3SelectCommands} from './Step3SelectCommands';
 import {Step4C2Profiles} from './Step4C2Profiles';
 import {Step5Build} from './Step5Build';
+import Typography from '@mui/material/Typography';
 import { snackActions } from '../../utilities/Snackbar';
 
 function getSteps(){
-    return ['Select Target OS', 'Payload Type', 'Select Commands', 'Select C2 Profiles', 'Build']
+    return ['Select Target OS', 'Configure Payload', 'Select Commands', 'Select C2 Profiles', 'Build']
 }
 
 export function CreatePayload(props){
@@ -23,7 +24,7 @@ export function CreatePayload(props){
             case 0:
               return <Step1SelectOS buildOptions={payload} prevData={payload[0]} finished={handleStepData} canceled={cancelStep} first={true} last={false}/>;
             case 1:
-              return <Step2SelectPayloadType buildOptions={payload[0]} prevData={payload[1]} finished={handleStepData} canceled={cancelStep} first={false} last={false}/>;
+              return <Step1SelectOS buildOptions={payload} prevData={payload[0]} finished={handleStepData} canceled={cancelStep} first={false} last={false}/>;
             case 2:
               return <Step3SelectCommands buildOptions={payload[1]} prevData={payload[2]} finished={handleStepData} canceled={cancelStep} first={false} last={false} />;
             case 3:
@@ -61,35 +62,40 @@ export function CreatePayload(props){
 
     return (
         <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
-            <Stepper activeStep={activeStep} alternativeLabel style={{marginTop: "10px"}}>
-                {steps.map((label, index) => (
-                    <Step key={label}
-                          sx={{
-                              '& .MuiStepLabel-root .Mui-completed': {
-                                  color: 'success.main', // circle color (COMPLETED)
-                              },
-                              '& .MuiStepLabel-label.Mui-completed.MuiStepLabel-alternativeLabel':
-                                  {
-                                      color: 'grey.500', // Just text label (COMPLETED)
+            <div style={{display: "flex", flexDirection: "row", width: "100%", alignItems: "center"}}>
+                <Typography variant="h5" style={{marginLeft: "10px", width: "25%"}}>
+                    Payload Creation
+                </Typography>
+                <Stepper activeStep={activeStep} alternativeLabel style={{marginTop: "10px", width: "100%"}}>
+                    {steps.map((label, index) => (
+                        <Step key={label}
+                              sx={{
+                                  '& .MuiStepLabel-root .Mui-completed': {
+                                      color: 'success.main', // circle color (COMPLETED)
                                   },
-                              '& .MuiStepLabel-root .Mui-active': {
-                                  color: 'info.main', // circle color (ACTIVE)
-                              },
-                              '& .MuiStepLabel-label.Mui-active.MuiStepLabel-alternativeLabel':
-                                  {
-                                      fontWeight: "bold", // Just text label (ACTIVE)
-                                      color: ''
+                                  '& .MuiStepLabel-label.Mui-completed.MuiStepLabel-alternativeLabel':
+                                      {
+                                          color: 'grey.500', // Just text label (COMPLETED)
+                                      },
+                                  '& .MuiStepLabel-root .Mui-active': {
+                                      color: 'info.main', // circle color (ACTIVE)
                                   },
-                              '& .MuiStepLabel-root .Mui-active .MuiStepIcon-text': {
-                                  fill: 'black', // circle's number (ACTIVE)
-                              },
-                          }}>
-                        <StepLabel>{label}</StepLabel>
+                                  '& .MuiStepLabel-label.Mui-active.MuiStepLabel-alternativeLabel':
+                                      {
+                                          fontWeight: "bold", // Just text label (ACTIVE)
+                                          color: ''
+                                      },
+                                  '& .MuiStepLabel-root .Mui-active .MuiStepIcon-text': {
+                                      fill: 'black', // circle's number (ACTIVE)
+                                  },
+                              }}>
+                            <StepLabel>{label}</StepLabel>
 
-                    </Step>
-                ))}
-            </Stepper>
-            <div style={{display: "flex", flexDirection: "column", flexGrow: 1, overflowY: 'auto'}}>
+                        </Step>
+                    ))}
+                </Stepper>
+            </div>
+            <div style={{overflowY: 'auto', height: "100%"}}>
                 {getStepContent(activeStep)}
             </div>
         </div>

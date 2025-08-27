@@ -119,15 +119,16 @@ export function Step3SelectPayload(props){
     );
 }
 
-function PayloadSelect(props) {
+export function PayloadSelect(props) {
     const finished = (payload) => {
         props.finished(payload);
     }
     return (
-                <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+        <div style={{height: "100%", overflow: "auto"}}>
+            <Table stickyHeader size="small" style={{tableLayout:"fixed", maxWidth: "100%",}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "4rem"}}> Select</TableCell>
+                        <TableCell style={{width: "6rem"}}> Select</TableCell>
                         <TableCell style={{width: "15rem"}}>Timestamp</TableCell>
                         <TableCell>File</TableCell>
                         <TableCell>Description</TableCell>
@@ -135,16 +136,18 @@ function PayloadSelect(props) {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                
-                {props.payloadOptions.map( (op) => (
-                    <PayloadsTableRow
-                        onSelected={finished}
-                        key={"payload" + op.id}
-                        payload={op}
-                    />
-                ))}
+
+                    {props.payloadOptions?.map( (op) => (
+                        <PayloadsTableRow
+                            onSelected={finished}
+                            key={"payload" + op.id}
+                            payload={op}
+                        />
+                    ))}
                 </TableBody>
             </Table>
+        </div>
+
 );
 }
 
