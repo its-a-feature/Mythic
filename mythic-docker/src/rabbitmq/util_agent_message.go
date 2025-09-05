@@ -679,13 +679,14 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 	if instanceResponse.Err != nil {
 		return instanceResponse
 	}
-	responseBytes, err := EncryptMessage(uuidInfo, instanceResponse.OuterUuid, response, true)
-	if err != nil {
-		logging.LogError(err, "Failed to encrypt message in agent_message")
-		instanceResponse.Err = err
-		return instanceResponse
+	if instanceResponse.Message == nil {
+		instanceResponse.Message, err = EncryptMessage(uuidInfo, instanceResponse.OuterUuid, response, true)
+		if err != nil {
+			logging.LogError(err, "Failed to encrypt message in agent_message")
+			instanceResponse.Err = err
+			return instanceResponse
+		}
 	}
-	instanceResponse.Message = responseBytes
 	if uuidInfo.UUIDType == UUIDTYPESTAGING {
 		removeCachedEntry(uuidInfo)
 	}
