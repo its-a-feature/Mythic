@@ -265,7 +265,7 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 	}
 	// finalC2Profiles will look like {"http": {"callback_host": "val", "callback_port": val2}}
 	finalC2Profiles := make([]PayloadBuildC2Profile, 0)
-	for _, suppliedC2Profile := range *c2Profiles {
+	for count, suppliedC2Profile := range *c2Profiles {
 		databaseC2Profile := databaseStructs.C2profile{}
 		if err := database.DB.Get(&databaseC2Profile, "SELECT * FROM c2profile WHERE name=$1 and deleted=false", suppliedC2Profile.Name); err != nil {
 			logging.LogError(err, "Failed to find c2 profile")
@@ -339,6 +339,7 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 						C2ProfileID:           databaseC2Profile.ID,
 						C2ProfileParametersID: databaseC2ProfileParameter.ID,
 						Value:                 paramStringVal,
+						Count:                 count,
 					}
 					c2ParameterInstance.OperationID.Valid = true
 					c2ParameterInstance.OperationID.Int64 = int64(databasePayload.OperationID)
@@ -391,8 +392,8 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 						finalC2Profile.Parameters[databaseC2ProfileParameter.Name] = interfaceParam
 					}
 					if _, err := database.DB.NamedExec(`INSERT INTO
-							c2profileparametersinstance (payload_id, c2_profile_id, c2_profile_parameters_id, value, enc_key, dec_key, operation_id)
-							VALUES (:payload_id, :c2_profile_id, :c2_profile_parameters_id, :value, :enc_key, :dec_key, :operation_id)`,
+							c2profileparametersinstance (payload_id, c2_profile_id, c2_profile_parameters_id, value, enc_key, dec_key, operation_id, count)
+							VALUES (:payload_id, :c2_profile_id, :c2_profile_parameters_id, :value, :enc_key, :dec_key, :operation_id, :count)`,
 						c2ParameterInstance); err != nil {
 						logging.LogError(err, "Failed to save c2 profile parameter instance into database")
 						return nil, err

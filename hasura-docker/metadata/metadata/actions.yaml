@@ -306,13 +306,6 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: deleteInviteLink
-    definition:
-      kind: synchronous
-      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/delete_invite_link_webhook'
-      forward_client_headers: true
-    permissions:
-      - role: mythic_admin
   - name: deleteTagtype
     definition:
       kind: synchronous

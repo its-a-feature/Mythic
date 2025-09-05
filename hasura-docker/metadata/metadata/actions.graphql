@@ -236,12 +236,6 @@ type Mutation {
 }
 
 type Mutation {
-  deleteInviteLink(
-    code: String!
-  ): deleteInviteLinkOutput
-}
-
-type Mutation {
   deleteTagtype(
     id: Int!
   ): deleteTagtypeOutput

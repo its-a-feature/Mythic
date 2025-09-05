@@ -13,6 +13,7 @@ type C2profileparametersinstance struct {
 	Value                 string              `db:"value"`
 	EncKey                *[]byte             `db:"enc_key"`
 	DecKey                *[]byte             `db:"dec_key"`
+	Count                 int                 `db:"count"`
 	PayloadID             sql.NullInt64       `db:"payload_id"`
 	InstanceName          sql.NullString      `db:"instance_name"`
 	OperationID           sql.NullInt64       `db:"operation_id"`

@@ -1,6 +1,5 @@
 import React from 'react';
-import {useQuery, gql} from '@apollo/client';
-import CircularProgress from '@mui/material/CircularProgress';
+import {gql} from '@apollo/client';
 import Select from '@mui/material/Select';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
 import Typography from '@mui/material/Typography';
@@ -13,6 +12,9 @@ import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import {getDefaultChoices, getDefaultValueForType} from "./Step2SelectPayloadType";
 import {CreatePayloadBuildParametersTable} from "./CreatePayloadBuildParametersTable";
+import {ParseForDisplay} from "../Payloads/DetailedPayloadTable";
+import Paper from '@mui/material/Paper';
+import {useTheme} from '@mui/material/styles';
 
 
 const GET_Payload_Types = gql`
@@ -22,6 +24,12 @@ query getPayloadTypesQuery {
     supported_os
     name
     note
+    semver
+    payloadtypec2profiles{
+        c2profile{
+            name
+        }
+    }
   }
 }
  `;
@@ -49,7 +57,12 @@ query getPayloadTypesBuildParametersQuery($payloadtype: String!) {
     id
     file_extension
     agent_type
+    note
     supports_dynamic_loading
+    supports_multiple_c2_in_build
+    supports_multiple_c2_instances_in_build
+    c2_parameter_deviations
+    semver
     buildparameters(where: {deleted: {_eq: false} }, order_by: {description: asc}) {
         default_value
         description
@@ -61,6 +74,9 @@ query getPayloadTypesBuildParametersQuery($payloadtype: String!) {
         required
         verifier_regex
         choices
+        group_name
+        supported_os
+        hide_conditions
     }
   }
 }
@@ -70,53 +86,75 @@ export function Step1SelectOS(props){
     const [os, setOS] = React.useState('');
     const [payloadtypeData, setPayloadtypeData] = React.useState({});
     const [payloadtypesPerOS, setPayloadtypesPerOS] = React.useState({});
+    const [C2PerOS, setC2PerOS] = React.useState({});
     const [osOptions, setOSOptions] = React.useState([]);
     const [selectedPayloadType, setSelectedPayloadType] = React.useState('');
     const [payloadOptions, setPayloadOptions] = React.useState([]);
     const [selectedPayload, setSelectedPayload] = React.useState('');
-    const { loading } = useQuery(GET_Payload_Types, {fetchPolicy: "network-only",
-    onCompleted: (data) => {
-        let payloadTypeOS = {};
-        const payloadTypeData = data.payloadtype.reduce( (prev, cur) => {
-            return {...prev, [cur.name]: {...cur}};
-        }, {});
-        setPayloadtypeData(payloadTypeData);
-        const optionsReduced= data.payloadtype.reduce((currentOptions, payloadtype) => {
-            const adds = payloadtype.supported_os.reduce( (prev, os) => {
-                if(payloadTypeOS[os] === undefined){
-                    payloadTypeOS[os] = [payloadtype.name];
-                } else {
-                    payloadTypeOS[os].push(payloadtype.name);
-                    payloadTypeOS[os].sort();
-                }
-                if(!currentOptions.includes(os)){
-                    return [...prev, os];
-                }
-                return prev;
-            }, []);
-            return [...currentOptions, ...adds];
-        }, []);
-        const sortedOptions = optionsReduced.sort();
-        if(props.prevData !== undefined){
-            setOS(props.prevData.os);
-            setSelectedPayloadType(props.prevData.payloadtype);
-        }
-        else if(os === "" && sortedOptions.length > 0){
-            setOS(sortedOptions[0]);
-            setSelectedPayloadType(payloadTypeOS[sortedOptions[0]][0]);
-        } else if(sortedOptions.length === 0){
-            snackActions.error("No Payload Types installed");
-        }
-        setPayloadtypesPerOS(payloadTypeOS);
-        setOSOptions(sortedOptions);
-    },
-    onError: (data) => {
-        console.error(data);
-        snackActions.error(data.message)
-    }
+    const payloadConfigRef = React.useRef({});
+    const [prevDataPayloadConfig, setPrevDataPayloadConfig] = React.useState(undefined);
+    const getPayloadTypeAndPreviousData = useMythicLazyQuery(GET_Payload_Types, {fetchPolicy: "network-only",
     });
     const getPayloads = useMythicLazyQuery(GetPayloads, { fetchPolicy: "network-only",
     })
+    React.useEffect( () => {
+        getPayloadTypeAndPreviousData({})
+            .then(({data}) => {
+                let payloadTypeOS = {};
+                let C2OS = {};
+                const payloadTypeData = data.payloadtype.reduce( (prev, cur) => {
+                    return {...prev, [cur.name]: {...cur}};
+                }, {});
+                setPayloadtypeData(payloadTypeData);
+                const optionsReduced= data.payloadtype.reduce((currentOptions, payloadtype) => {
+                    const adds = payloadtype.supported_os.reduce( (prev, os) => {
+                        if(payloadTypeOS[os] === undefined){
+                            payloadTypeOS[os] = [payloadtype.name];
+                        } else {
+                            payloadTypeOS[os].push(payloadtype.name);
+                            payloadTypeOS[os].sort();
+                        }
+                        if(C2OS[os] === undefined){
+                            C2OS[os] = [...payloadtype.payloadtypec2profiles.map(c => c.c2profile.name)];
+                        } else {
+                            let newProfiles = payloadtype.payloadtypec2profiles.map(c => c.c2profile.name);
+                            C2OS[os] = C2OS[os].reduce( (prevC2, curC2) => {
+                                if(prevC2.includes(curC2)){
+                                    return [...prevC2];
+                                }
+                                return [...prevC2, curC2];
+                            }, [...newProfiles]).sort();
+                        }
+                        if(!currentOptions.includes(os)){
+                            return [...prev, os];
+                        }
+                        return prev;
+                    }, []);
+                    return [...currentOptions, ...adds];
+                }, []);
+                const sortedOptions = optionsReduced.sort();
+                if(props.prevData === undefined){
+                    setPrevDataPayloadConfig(undefined);
+                }
+                if(props.prevData !== undefined){
+                    setOS(props.prevData.os);
+                    setSelectedPayloadType(props.prevData.payload_type);
+                    if(!props.first){
+                        setPrevDataPayloadConfig(props.prevData)
+                    }
+                }
+                else if(os === "" && sortedOptions.length > 0){
+                    setOS(sortedOptions[0]);
+                    setSelectedPayloadType(payloadTypeOS[sortedOptions[0]][0]);
+                } else if(sortedOptions.length === 0){
+                    snackActions.error("No Payload Types installed");
+                }
+                setPayloadtypesPerOS(payloadTypeOS);
+                setC2PerOS(C2OS);
+                setOSOptions(sortedOptions);
+            })
+            .catch((data) => {console.log(data)})
+    }, [props.prevData, props.first])
     React.useEffect( () => {
         getPayloads({variables: {payloadType: selectedPayloadType, os}})
             .then(({data}) => {
@@ -124,16 +162,16 @@ export function Step1SelectOS(props){
             })
             .catch(({data}) => console.log(data));
     }, [selectedPayloadType, os]);
-    if (loading) {
-     return <div><CircularProgress /></div>;
-    }
-    const finished = () => {
+
+    const finished = (clearNextPrevious) => {
         if(props.first){
             props.finished({
                 "os": os,
-                "payloadtype": selectedPayloadType,
+                "payload_type": selectedPayloadType,
                 "payload": selectedPayload === "" ? undefined : selectedPayload
-            });
+            }, clearNextPrevious);
+        } else {
+            props.finished({...payloadConfigRef.current});
         }
     }
     const canceled = () => {
@@ -147,7 +185,10 @@ export function Step1SelectOS(props){
         setSelectedPayload(payload);
     }
     const onStartFresh = () => {
-        finished()
+        finished(true)
+    }
+    const onUpdatePayloadConfig = (payload) => {
+        payloadConfigRef.current = payload
     }
     return (
         <div style={{
@@ -168,8 +209,8 @@ export function Step1SelectOS(props){
                     display: "flex",
                     flexShrink: 0 // Don't shrink this section
                 }}>
-                    <div style={{width: "100%", margin: "10px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
-                        <Typography variant={"h6"} style={{fontWeight: 600}}>
+                    <div style={{width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
+                        <Typography variant={"p"} style={{fontWeight: 600}}>
                             1. Select Operating System
                         </Typography>
                         <Select
@@ -188,8 +229,12 @@ export function Step1SelectOS(props){
                             Compatible Payload Types
                         </Typography>
                         {payloadtypesPerOS[os]?.join(", ")}
+                        <Typography style={{fontWeight: 600}}>
+                            Compatible C2 Profiles
+                        </Typography>
+                        {C2PerOS[os]?.join(", ")}
                     </div>
-                    <div style={{width: "100%", margin: "10px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
+                    <div style={{width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
                         <div style={{width: "100%", display: "flex", alignItems: "flex-start", marginBottom: "10px", flexDirection: "column"}}>
                             <Typography style={{fontWeight: 600}} variant={"p"}>
                                 2. Select Payload Type
@@ -211,7 +256,9 @@ export function Step1SelectOS(props){
                         <div style={{display: "flex"}}>
                             <MythicAgentSVGIcon payload_type={selectedPayloadType} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
                             <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                                <b>Description: </b>{payloadtypeData[selectedPayloadType]?.note}
+                                <b>Version: </b>{payloadtypeData[selectedPayloadType]?.semver}<br/>
+                                <b>Description: </b>{payloadtypeData[selectedPayloadType]?.note}<br/>
+                                <b>C2: </b>{payloadtypeData[selectedPayloadType]?.payloadtypec2profiles.map(c => c.c2profile.name).join(", ")}
                             </Typography>
                         </div>
 
@@ -220,10 +267,10 @@ export function Step1SelectOS(props){
 
                 {/* Bottom section - scrollable table area */}
                 <div style={{
-                    margin: "10px",
+                    margin: "5px",
                     border: "1px solid grey",
                     borderRadius: "5px",
-                    padding: "10px",
+                    padding: "10px 5px 5px 10px",
                     display: "flex",
                     flexDirection: "column",
                     flexGrow: 1,
@@ -242,8 +289,8 @@ export function Step1SelectOS(props){
                     {!props.first &&
                         <ConfigureBuildParameters os={os} selectedPayloadType={selectedPayloadType}
                                                   selectedPayload={selectedPayload}
-                                                  finished={finished}
-                                                  canceled={canceled} />
+                                                  prevData={prevDataPayloadConfig}
+                                                  onUpdatePayloadConfig={onUpdatePayloadConfig} />
                     }
                 </div>
             </div>
@@ -269,8 +316,8 @@ const StartFromExistingPayloadOrStartFresh = (
         <>
             {/* Header section - fixed */}
             <div style={{flexShrink: 0}}>
-                <Typography variant={"h6"} style={{fontWeight: 600}}>
-                    3. Start from Existing Payload or
+                <Typography variant={"p"} style={{fontWeight: 600}}>
+                    3. Continue from Existing Payload or
                     <Button size="small" color={"primary"} variant={"contained"} style={{marginLeft: "10px", color: "white", marginBottom: "5px"}}
                             onClick={onStartFresh}
                             startIcon={<AddCircleIcon color={"success"} style={{backgroundColor: "white", borderRadius: "10px"}}/>} >
@@ -298,11 +345,9 @@ const StartFromExistingPayloadOrStartFresh = (
     )
 }
 const ConfigureBuildParameters = (
-    {os, canceled, finished, selectedPayloadType, selectedPayload}
+    {os, onUpdatePayloadConfig, selectedPayloadType, selectedPayload, prevData}
 ) => {
-    const [fileExtension, setFileExtension] = React.useState('');
-    const [supportsDynamicLoading, setSupportsDynamicLoading] = React.useState(false);
-    const [agentType, setAgentType] = React.useState("agent");
+    const [payloadTypeConfigPieces, setPayloadTypeConfigPieces] = React.useState({});
     const [payloadTypeParameters, setSelectedPayloadTypeParameters] = React.useState([]);
     const getPayloadTypeBuildParameters = useMythicLazyQuery(GetBuildParametersQuery, {fetchPolicy: "network-only"});
     const onChange = (name, value, error) => {
@@ -313,38 +358,88 @@ const ConfigureBuildParameters = (
             return {...param};
         });
         setSelectedPayloadTypeParameters(newParams);
+        onUpdatePayloadConfig({
+            "payload_type": selectedPayloadType,
+            "parameters": newParams,
+            ...payloadTypeConfigPieces,
+            "os": os});
     }
     React.useEffect( () => {
+        if(selectedPayloadType === ""){return}
         getPayloadTypeBuildParameters({variables: {payloadtype: selectedPayloadType}})
             .then(({data}) => {
-                setFileExtension(data.payloadtype[0].file_extension);
-                setAgentType(data.payloadtype[0].agent_type);
-                setSupportsDynamicLoading(data.payloadtype[0].supports_dynamic_loading);
-                const payloadtypedata = data.payloadtype.reduce( (prev, payloadtype) => {
-                    if(payloadtype.name === data.payloadtype[0].name){
-                        const params = payloadtype.buildparameters.map( (param) => {
-                            const initialValue = getDefaultValueForType(param);
-                            return {...param, error: false,
-                                value: initialValue,
-                                trackedValue: initialValue,
-                                initialValue: initialValue,
-                                choices: getDefaultChoices(param)}
-                        });
-                        return [...prev, ...params];
+                if(data.payloadtype.length === 0){
+                    return
+                }
+                let extraConfig = {
+                    "file_extension": data.payloadtype[0].file_extension,
+                    "agent_type": data.payloadtype[0].agent_type,
+                    "supports_dynamic_loading": data.payloadtype[0].supports_dynamic_loading,
+                    "description": data.payloadtype[0].note,
+                    "supports_multiple_c2_in_build": data.payloadtype[0].supports_multiple_c2_in_build,
+                    "supports_multiple_c2_instances_in_build": data.payloadtype[0].supports_multiple_c2_instances_in_build,
+                    "c2_parameter_deviations": data.payloadtype[0].c2_parameter_deviations
+                }
+                setPayloadTypeConfigPieces(extraConfig);
+                if (prevData) {
+                    const params = data.payloadtype[0].buildparameters.map((param) => {
+                        for (let p = 0; p < prevData.parameters.length; p++) {
+                            if (prevData.parameters[p]["name"] === param.name) {
+                                return {
+                                    ...param, error: false,
+                                    value: prevData.parameters[p]["value"],
+                                    trackedValue: prevData.parameters[p]["value"],
+                                    initialValue: getDefaultValueForType(param),
+                                    choices: getDefaultChoices(param)
+                                }
+                            }
+                        }
+                        const initialValue = getDefaultValueForType(param);
+                        return {
+                            ...param, error: false,
+                            value: initialValue,
+                            trackedValue: initialValue,
+                            initialValue: initialValue,
+                            choices: getDefaultChoices(param)
+                        }
+                    });
+                    params.sort((a, b) => -b.description.localeCompare(a.description));
+                    setSelectedPayloadTypeParameters(params);
+                    onUpdatePayloadConfig({
+                        "payload_type": selectedPayloadType,
+                        "parameters": prevData.parameters,
+                        ...extraConfig,
+                        "os": os
+                    });
+                    return;
+                }
+                const params = data.payloadtype[0].buildparameters.map((param) => {
+                    const initialValue = getDefaultValueForType(param);
+                    return {
+                        ...param, error: false,
+                        value: initialValue,
+                        trackedValue: initialValue,
+                        initialValue: initialValue,
+                        choices: getDefaultChoices(param)
                     }
-                    return [...prev];
-                }, []);
-                payloadtypedata.sort((a,b) => -b.description.localeCompare(a.description));
-                setSelectedPayloadTypeParameters(payloadtypedata);
+                });
+
+                params.sort((a,b) => -b.description.localeCompare(a.description));
+                setSelectedPayloadTypeParameters(params);
+                onUpdatePayloadConfig({
+                    "payload_type": selectedPayloadType,
+                    "parameters": params,
+                    ...extraConfig,
+                    "os": os});
             })
-            .catch(({data}) => console.log(data));
-    }, [selectedPayloadType]);
+            .catch((data) => console.log(data));
+    }, [selectedPayloadType, prevData]);
     return (
         <>
             {/* Header section - fixed */}
             <div style={{flexShrink: 0}}>
-                <Typography variant={"h6"} style={{fontWeight: 600}}>
-                    4. Configure Payload Build Parameters
+                <Typography variant={"p"} style={{fontWeight: 600}}>
+                    3.5. Configure {selectedPayload === '' ? "New" : "Old"} Payload Build Parameters
                 </Typography>
             </div>
             <div style={{
@@ -356,7 +451,7 @@ const ConfigureBuildParameters = (
             }}>
                 <div style={{
                     width: "30%",
-                    margin: "10px",
+                    margin: "5px",
                     border: "1px solid grey",
                     borderRadius: "5px",
                     padding: "10px",
@@ -364,49 +459,114 @@ const ConfigureBuildParameters = (
                     flexDirection: "column",
                     flexGrow: 1,
                     minHeight: 0, // Important for flex shrinking
-                    overflow: "hidden"
+                    overflow: "auto"
                 }}>
-                    <Typography variant={"h7"} style={{fontWeight: 600}}>
+                    <Typography textAlign="center" variant={"h7"} style={{fontWeight: 600, width: "100%"}}>
                         Configuration Summary
                     </Typography>
-                    <ConfigurationSummary buildParameters={payloadTypeParameters} />
+                    <ConfigurationSummary buildParameters={payloadTypeParameters} os={os} />
                 </div>
                 <div style={{
                     width: "100%",
-                    margin: "10px",
+                    margin: "5px",
                     border: "1px solid grey",
                     borderRadius: "5px",
-                    padding: "10px",
+                    padding: "0px",
                     display: "flex",
                     flexDirection: "column",
                     flexGrow: 1,
                     minHeight: 0, // Important for flex shrinking
                     overflow: "hidden"
                 }}>
-                    <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters} />
+                    <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters} os={os} />
                 </div>
             </div>
         </>
     )
 }
-const ConfigurationSummary = ({buildParameters}) => {
-    const [buildSummary, setBuildSummary] = React.useState([]);
-    React.useEffect( () => {
-        const summaryData = buildParameters.map( b => {
-            return {
-                name: b.name,
-                value: JSON.stringify(b.value),
+export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
+    let groups = buildParameters?.reduce( (prev, cur) => {
+        if(prev.includes(cur?.group_name)){return [...prev]}
+        return [...prev, cur.group_name];
+    }, []);
+    let groupedData = groups.map(g => {
+        return {name: g, parameters: []}
+    });
+    if(c2_name){
+        return [{name: c2_name, parameters: buildParameters}];
+    }
+    for(let i = 0; i < buildParameters.length; i++){
+        for(let j = 0; j < groupedData.length; j++){
+            if(buildParameters[i].group_name === groupedData[j].name){
+                // only add the parameter if it doesn't meet a hide_condition
+                let should_hide = false;
+                if(buildParameters[i]?.supported_os?.length || 0 > 0){
+                    if(!buildParameters[i]?.supported_os?.includes(os)){
+                        should_hide = true;
+                    }
+                }
+                for(let k = 0; k < buildParameters[i]?.hide_conditions?.length || 0; k++){
+                    for(let l = 0; l < buildParameters.length; l++){
+                        if(buildParameters[l].name === buildParameters[i].hide_conditions[k].name){
+                            switch(buildParameters[i].hide_conditions[k].operand){
+                                case "eq":
+                                    if(buildParameters[i].hide_conditions[k].value === buildParameters[l].value){
+                                        should_hide = true;
+                                    }
+                                    break;
+                                case "neq":
+                                    if(buildParameters[i].hide_conditions[k].value !== buildParameters[l].value){
+                                        should_hide = true;
+                                    }
+                                    break;
+                                case "in":
+                                    if(buildParameters[i].hide_conditions[k].value.includes(buildParameters[l].value)){
+                                        should_hide = true;
+                                    }
+                                    break;
+                            }
+                        }
+                    }
+                }
+                if(should_hide){
+                    break;
+                }
+                groupedData[j].parameters.push(buildParameters[i]);
+                break;
             }
-        });
-        setBuildSummary(summaryData);
-    }, [buildParameters]);
+        }
+    }
+    return groupedData;
+}
+export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
+    const theme = useTheme();
+    const [groupedParameters, setGroupedParameters] = React.useState([]);
+    React.useEffect( () => {
+        // grouped should be array of groupName
+        setGroupedParameters(GetGroupedParameters({buildParameters, os, c2_name}));
+    }, [buildParameters, c2_name]);
     return (
-        buildSummary.map(b => (
-            <div key={b.name}>
-                <Typography style={{fontWeight: 600}}>
-                    {b.name}
-                </Typography>
-                {b.value}
+        groupedParameters?.map(b => (
+            <div key={b.name} >
+                {b.name !== '' && b.name !== undefined && b.parameters.length > 0 &&
+                    <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", }} variant={"elevation"}>
+                        <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
+                            {b.name}
+                        </Typography>
+                    </Paper>
+                }
+                {b?.parameters?.map(p => (
+                    <div key={p.name} style={{marginLeft: b.name === '' ? '' : "20px"}}>
+                        <Typography style={{fontWeight: 600}} variant={"body2"}>
+                            {p.name}
+                        </Typography>
+                        <div style={{marginLeft: "20px", marginTop: "5px", marginBottom: "5px", whiteSpace: "pre"}}>
+                            <ParseForDisplay cmd={p} />
+                        </div>
+                    </div>
+                ))}
+
+
             </div>
         ))
     )

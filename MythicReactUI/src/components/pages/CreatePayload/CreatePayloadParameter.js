@@ -22,7 +22,7 @@ import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import {snackActions} from "../../utilities/Snackbar";
 import {useTheme} from '@mui/material/styles';
 
-export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id, description, initialValue, choices, trackedValue, returnAllDictValues}){
+export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id, description, initialValue, choices, trackedValue, instance_name}){
     const theme = useTheme();
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
@@ -165,7 +165,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         }else{
             console.log("hit an unknown parameter type")
         }
-    }, [default_value, parameter_type, name]);
+    }, [default_value, parameter_type, name, instance_name]);
     const onChangeTextChooseOneCustom = (name, newValue, error) => {
         setChooseOneCustomValue(newValue);
         if(newValue === ""){
@@ -381,7 +381,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                         </Button>
                         {fileValue.legacy &&
                             <MythicFileContext agent_file_id={fileValue.name}
-                                               extraStyles={{bottom: "-10px", position: "relative", marginLeft: "5px", marginRight: "5px"}} />
+                                               extraStyles={{ position: "relative", marginLeft: "5px", marginRight: "5px"}} />
                         }
                     </>
 
@@ -458,7 +458,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                         </MythicStyledTableCell>
                                         <MythicStyledTableCell>
                                             <MythicTextField requiredValue={required} fullWidth={true} placeholder={""} value={a} multiline={true}
-                                                onChange={(n,v,e) => onChangeArrayText(v, e, i)} display="inline-block" autoFocus={a === ""}
+                                                onChange={(n,v,e) => onChangeArrayText(v, e, i)} display="inline-block" autoFocus={i !== 0 && a === ""}
                                                 validate={testParameterValues} errorText={"Must match: " + verifier_regex} marginBottom={"0px"}
                                             />
                                         </MythicStyledTableCell>
