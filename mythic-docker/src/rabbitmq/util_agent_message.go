@@ -54,8 +54,9 @@ type cachedUUIDInfo struct {
 	TranslationContainerName     string
 	MythicEncrypts               bool
 	CryptoType                   string
-	C2EncKey                     *[]byte
-	C2DecKey                     *[]byte
+	C2CryptoType                 []string
+	C2EncKey                     []*[]byte
+	C2DecKey                     []*[]byte
 	PayloadEncKey                *[]byte
 	PayloadDecKey                *[]byte
 	CallbackEncKey               *[]byte
@@ -105,12 +106,14 @@ func (cache *cachedUUIDInfo) getAllKeys() []mythicCrypto.CryptoKeys {
 	case UUIDTYPEPAYLOAD:
 		options := []mythicCrypto.CryptoKeys{}
 		if cache.C2EncKey != nil {
-			options = append(options, mythicCrypto.CryptoKeys{
-				EncKey:   cache.C2EncKey,
-				DecKey:   cache.C2DecKey,
-				Value:    cache.CryptoType,
-				Location: CRYPTO_LOCATION_C2,
-			})
+			for k := range cache.C2EncKey {
+				options = append(options, mythicCrypto.CryptoKeys{
+					EncKey:   cache.C2EncKey[k],
+					DecKey:   cache.C2DecKey[k],
+					Value:    cache.C2CryptoType[k],
+					Location: CRYPTO_LOCATION_C2,
+				})
+			}
 		}
 		if cache.PayloadEncKey != nil {
 			options = append(options, mythicCrypto.CryptoKeys{
@@ -727,7 +730,9 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 
 	// get the associated c2 profile
 	databaseC2Profile := databaseStructs.C2profile{}
-	if err := database.DB.Get(&databaseC2Profile, `SELECT id, "name", is_p2p FROM c2profile
+	if err := database.DB.Get(&databaseC2Profile, `
+		SELECT id, "name", is_p2p 
+		FROM c2profile
 		WHERE "name"=$1`, c2profile); err != nil {
 		logging.LogError(err, "Failed to get c2 profile in LookupEncryptionData", "c2profile", c2profile, "uuid", messageUUID)
 		errorMessage := fmt.Sprintf("Failed to find agent's C2 profile: %s\n", c2profile)
@@ -813,8 +818,8 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		newCache.TriggerOnCheckinAfterTime = 0
 		// we also need to get the crypto keys from the c2 profile for this payload
 		foundCryptoParam := false
-		cryptoParam := databaseStructs.C2profileparametersinstance{}
-		if err = database.DB.Get(&cryptoParam, `SELECT
+		cryptoParam := []databaseStructs.C2profileparametersinstance{}
+		if err = database.DB.Select(&cryptoParam, `SELECT
 			c2profileparametersinstance.enc_key, 
 			c2profileparametersinstance.dec_key, 
 			c2profileparametersinstance.value,
@@ -822,7 +827,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 			FROM c2profileparametersinstance
 			JOIN c2profileparameters ON c2profileparametersinstance.c2_profile_parameters_id = c2profileparameters.id
 			WHERE c2profileparameters.crypto_type=true AND c2profileparametersinstance.payload_id=$1 AND
-			      c2profileparameters.c2_profile_id=$2`, payload.ID, databaseC2Profile.ID); err == sql.ErrNoRows {
+			      c2profileparameters.c2_profile_id=$2`, payload.ID, databaseC2Profile.ID); errors.Is(err, sql.ErrNoRows) {
 			logging.LogDebug("payload has no associated c2 profile parameter instance with a crypto type")
 			newCache.CryptoType = "none"
 		} else if err != nil {
@@ -830,9 +835,14 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 			return &newCache, err
 		} else {
 			foundCryptoParam = true
-			newCache.C2EncKey = cryptoParam.EncKey
-			newCache.C2DecKey = cryptoParam.DecKey
-			newCache.CryptoType = cryptoParam.Value
+			newCache.C2EncKey = make([]*[]byte, len(cryptoParam))
+			newCache.C2DecKey = make([]*[]byte, len(cryptoParam))
+			newCache.C2CryptoType = make([]string, len(cryptoParam))
+			for i := range cryptoParam {
+				newCache.C2EncKey[i] = cryptoParam[i].EncKey
+				newCache.C2DecKey[i] = cryptoParam[i].DecKey
+				newCache.C2CryptoType[i] = cryptoParam[i].Value
+			}
 		}
 		payloadCryptoParam := databaseStructs.Buildparameterinstance{}
 		if err = database.DB.Get(&payloadCryptoParam, `SELECT

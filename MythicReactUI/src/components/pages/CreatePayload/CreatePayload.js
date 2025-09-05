@@ -24,7 +24,7 @@ export function CreatePayload(props){
             case 0:
               return <Step1SelectOS buildOptions={payload} prevData={payload[0]} finished={handleStepData} canceled={cancelStep} first={true} last={false}/>;
             case 1:
-              return <Step1SelectOS buildOptions={payload} prevData={payload[0]} finished={handleStepData} canceled={cancelStep} first={false} last={false}/>;
+              return <Step1SelectOS buildOptions={payload} prevData={payload[1]} finished={handleStepData} canceled={cancelStep} first={false} last={false}/>;
             case 2:
               return <Step3SelectCommands buildOptions={payload[1]} prevData={payload[2]} finished={handleStepData} canceled={cancelStep} first={false} last={false} />;
             case 3:
@@ -35,8 +35,12 @@ export function CreatePayload(props){
               return 'Unknown step';
           }
         }
-      const handleStepData = (stepData) => {
-        setPayload({...payload, [activeStep]: stepData}); 
+      const handleStepData = (stepData, clearNextPreviousData) => {
+        let newPayload = {...payload, [activeStep]: stepData};
+        if(clearNextPreviousData){
+            newPayload[activeStep+1] = undefined;
+        }
+        setPayload(newPayload);
         handleNext();
       }
       const cancelStep = () => {

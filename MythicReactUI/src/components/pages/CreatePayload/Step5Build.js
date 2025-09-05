@@ -105,27 +105,44 @@ export function Step5Build(props){
             }
         }
         let c2Profiles = [];
-        for(let i = 0; i < props.buildOptions[3].length; i++){
-            if(props.buildOptions[3][i].selected){
-                let instanceParam = {};
-                for(let j = 0; j < props.buildOptions[3][i].c2profileparameters.length; j++){
-                    let param = props.buildOptions[3][i].c2profileparameters[j];
-                    if(param.parameter_type === "Dictionary"){
-                        const newDict = param.value.reduce( (prev, cur) => {
-                            if(cur.default_show){
-                                return {...prev, [cur.name]: cur.value};
+        for(let i = 0; i < props.buildOptions[3].c2.length; i++){
+            let instanceParam = {};
+            for(let j = 0; j < props.buildOptions[3].c2[i].c2profileparameters.length; j++){
+                let param = props.buildOptions[3].c2[i].c2profileparameters[j];
+                if(param.parameter_type === "Dictionary"){
+                    const newDict = param.value.reduce( (prev, cur) => {
+                        if(cur.default_show){
+                            return {...prev, [cur.name]: cur.value};
+                        }
+                        return {...prev}
+                    }, {});
+                    instanceParam = {...instanceParam, [param.name]: newDict};
+                } else if (param.parameter_type === "File") {
+                    if (typeof param.value === "string") {
+                        instanceParam = {...instanceParam, [param.name]: param.value};
+                    } else {
+                        const newUUID = await UploadTaskFile(param.value, "Uploaded as c2 parameter for " + filename);
+                        if (newUUID) {
+                            if (newUUID !== "Missing file in form") {
+                                instanceParam = {...instanceParam, [param.name]: newUUID};
+                            } else {
+                                snackActions.error("Failed to upload files, missing file")
                             }
-                            return {...prev}
-                        }, {});
-                        instanceParam = {...instanceParam, [param.name]: newDict};
-                    } else if (param.parameter_type === "File") {
-                        if (typeof param.value === "string") {
-                            instanceParam = {...instanceParam, [param.name]: param.value};
                         } else {
-                            const newUUID = await UploadTaskFile(param.value, "Uploaded as c2 parameter for " + filename);
+                            snackActions.error("Failed to upload files")
+                            return;
+                        }
+                    }
+                }else if(param.parameter_type === "FileMultiple"){
+                    let fileMultipleValues = [];
+                    for(let j = 0; j < param.value.length; j++){
+                        if (typeof param.value[j] === "string") {
+                            fileMultipleValues.push(param.value[j]);
+                        } else {
+                            const newUUID = await UploadTaskFile(param.value[j], "Uploaded as c2 parameter for " + filename);
                             if (newUUID) {
                                 if (newUUID !== "Missing file in form") {
-                                    instanceParam = {...instanceParam, [param.name]: newUUID};
+                                    fileMultipleValues.push(newUUID);
                                 } else {
                                     snackActions.error("Failed to upload files, missing file")
                                 }
@@ -134,40 +151,22 @@ export function Step5Build(props){
                                 return;
                             }
                         }
-                    }else if(param.parameter_type === "FileMultiple"){
-                        let fileMultipleValues = [];
-                        for(let j = 0; j < param.value.length; j++){
-                            if (typeof param.value[j] === "string") {
-                                fileMultipleValues.push(param.value[j]);
-                            } else {
-                                const newUUID = await UploadTaskFile(param.value[j], "Uploaded as c2 parameter for " + filename);
-                                if (newUUID) {
-                                    if (newUUID !== "Missing file in form") {
-                                        fileMultipleValues.push(newUUID);
-                                    } else {
-                                        snackActions.error("Failed to upload files, missing file")
-                                    }
-                                } else {
-                                    snackActions.error("Failed to upload files")
-                                    return;
-                                }
-                            }
-                        }
-                        instanceParam = {...instanceParam, [param.name]: fileMultipleValues};
-                    } else {
-                        instanceParam = {...instanceParam, [param.name]: param.value};
-                        //return {...prev, [param.name]: param.value}
                     }
+                    instanceParam = {...instanceParam, [param.name]: fileMultipleValues};
+                } else {
+                    instanceParam = {...instanceParam, [param.name]: param.value};
+                    //return {...prev, [param.name]: param.value}
                 }
-                c2Profiles.push({
-                    "c2_profile": props.buildOptions[3][i].name,
-                    "c2_profile_parameters": instanceParam,
-                })
             }
+            c2Profiles.push({
+                "c2_profile": props.buildOptions[3].c2[i].name,
+                "c2_profile_parameters": instanceParam,
+            })
+
         }
         const finishedPayload = {
-            "selected_os": props.buildOptions[0],
-            "payload_type": props.buildOptions[1]["payload_type"],
+            "selected_os": props.buildOptions[1].os,
+            "payload_type": props.buildOptions[1].payload_type,
             "filename": filename,
             "description": description,
             "commands": props.buildOptions[2],

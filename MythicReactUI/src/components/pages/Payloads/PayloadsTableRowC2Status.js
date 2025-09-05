@@ -9,8 +9,8 @@ export function PayloadsTableRowC2Status(props){
     return (
         <React.Fragment>
             {
-                props.payloadc2profiles.map( (c2) => (
-                    <Typography key={c2.c2profile.name + props.uuid} style={{display: "flex"}}>
+                props.payloadc2profiles.map( (c2, i) => (
+                    <Typography key={c2.c2profile.name + props.uuid + i} style={{display: "flex"}}>
                         {c2.c2profile.is_p2p ?
                             ( c2.c2profile.container_running ? 
                                 <MythicStyledTooltip title="C2 Container online">

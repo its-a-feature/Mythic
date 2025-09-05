@@ -934,86 +934,101 @@
     - role: developer
       permission:
         columns:
-          - choices
           - crypto_type
-          - default_value
           - deleted
-          - description
-          - format_string
-          - id
-          - name
-          - parameter_type
-          - payload_type_id
           - randomize
           - required
+          - id
+          - payload_type_id
+          - choices
+          - hide_conditions
+          - supported_os
+          - default_value
+          - description
+          - format_string
+          - group_name
+          - name
+          - parameter_type
           - verifier_regex
         filter: {}
     - role: mythic_admin
       permission:
         columns:
-          - choices
           - crypto_type
-          - default_value
           - deleted
-          - description
-          - format_string
-          - id
-          - name
-          - parameter_type
-          - payload_type_id
           - randomize
           - required
+          - id
+          - payload_type_id
+          - choices
+          - hide_conditions
+          - supported_os
+          - default_value
+          - description
+          - format_string
+          - group_name
+          - name
+          - parameter_type
           - verifier_regex
         filter: {}
     - role: operation_admin
       permission:
         columns:
-          - choices
           - crypto_type
-          - default_value
           - deleted
-          - description
-          - format_string
-          - id
-          - name
-          - parameter_type
-          - payload_type_id
           - randomize
           - required
+          - id
+          - payload_type_id
+          - choices
+          - hide_conditions
+          - supported_os
+          - default_value
+          - description
+          - format_string
+          - group_name
+          - name
+          - parameter_type
           - verifier_regex
         filter: {}
     - role: operator
       permission:
         columns:
-          - choices
           - crypto_type
-          - default_value
           - deleted
-          - description
-          - format_string
-          - id
-          - name
-          - parameter_type
-          - payload_type_id
           - randomize
           - required
+          - id
+          - payload_type_id
+          - choices
+          - hide_conditions
+          - supported_os
+          - default_value
+          - description
+          - format_string
+          - group_name
+          - name
+          - parameter_type
           - verifier_regex
         filter: {}
     - role: spectator
       permission:
         columns:
-          - choices
           - crypto_type
-          - default_value
           - deleted
-          - description
-          - format_string
-          - id
-          - name
-          - parameter_type
-          - payload_type_id
           - randomize
           - required
+          - id
+          - payload_type_id
+          - choices
+          - hide_conditions
+          - supported_os
+          - default_value
+          - description
+          - format_string
+          - group_name
+          - name
+          - parameter_type
           - verifier_regex
         filter: {}
 - table:
@@ -1377,16 +1392,17 @@
     - role: developer
       permission:
         columns:
-          - id
-          - c2_profile_parameters_id
-          - c2_profile_id
-          - value
-          - enc_key
           - dec_key
+          - enc_key
+          - c2_profile_id
+          - c2_profile_parameters_id
+          - callback_id
+          - count
+          - id
+          - operation_id
           - payload_id
           - instance_name
-          - operation_id
-          - callback_id
+          - value
         computed_fields:
           - dec_key_base64
           - enc_key_base64
@@ -1396,16 +1412,17 @@
     - role: mythic_admin
       permission:
         columns:
-          - id
-          - c2_profile_parameters_id
-          - c2_profile_id
-          - value
-          - enc_key
           - dec_key
+          - enc_key
+          - c2_profile_id
+          - c2_profile_parameters_id
+          - callback_id
+          - count
+          - id
+          - operation_id
           - payload_id
           - instance_name
-          - operation_id
-          - callback_id
+          - value
         computed_fields:
           - dec_key_base64
           - enc_key_base64
@@ -1415,16 +1432,17 @@
     - role: operation_admin
       permission:
         columns:
-          - id
-          - c2_profile_parameters_id
-          - c2_profile_id
-          - value
-          - enc_key
           - dec_key
+          - enc_key
+          - c2_profile_id
+          - c2_profile_parameters_id
+          - callback_id
+          - count
+          - id
+          - operation_id
           - payload_id
           - instance_name
-          - operation_id
-          - callback_id
+          - value
         computed_fields:
           - dec_key_base64
           - enc_key_base64
@@ -1434,16 +1452,17 @@
     - role: operator
       permission:
         columns:
-          - id
-          - c2_profile_parameters_id
-          - c2_profile_id
-          - value
-          - enc_key
           - dec_key
+          - enc_key
+          - c2_profile_id
+          - c2_profile_parameters_id
+          - callback_id
+          - count
+          - id
+          - operation_id
           - payload_id
           - instance_name
-          - operation_id
-          - callback_id
+          - value
         computed_fields:
           - dec_key_base64
           - enc_key_base64
@@ -1453,16 +1472,17 @@
     - role: spectator
       permission:
         columns:
-          - id
-          - c2_profile_parameters_id
-          - c2_profile_id
-          - value
-          - enc_key
           - dec_key
+          - enc_key
+          - c2_profile_id
+          - c2_profile_parameters_id
+          - callback_id
+          - count
+          - id
+          - operation_id
           - payload_id
           - instance_name
-          - operation_id
-          - callback_id
+          - value
         computed_fields:
           - dec_key_base64
           - enc_key_base64
@@ -6752,122 +6772,137 @@
     - role: developer
       permission:
         columns:
-          - agent_type
-          - author
-          - command_augment_supported_agents
           - container_running
-          - creation_time
           - deleted
-          - file_extension
-          - id
-          - message_format
-          - message_uuid_length
           - mythic_encrypts
-          - name
-          - note
-          - supported_os
           - supports_dynamic_loading
           - supports_multiple_c2_in_build
           - supports_multiple_c2_instances_in_build
-          - translation_container_id
           - use_display_params_for_cli_history
           - wrapper
+          - id
+          - message_uuid_length
+          - translation_container_id
+          - command_augment_supported_agents
+          - c2_parameter_deviations
+          - supported_c2
+          - supported_os
+          - agent_type
+          - author
+          - file_extension
+          - message_format
+          - name
+          - note
+          - semver
+          - creation_time
         filter: {}
     - role: mythic_admin
       permission:
         columns:
-          - agent_type
-          - author
-          - command_augment_supported_agents
           - container_running
-          - creation_time
           - deleted
-          - file_extension
-          - id
-          - message_format
-          - message_uuid_length
           - mythic_encrypts
-          - name
-          - note
-          - supported_os
           - supports_dynamic_loading
           - supports_multiple_c2_in_build
           - supports_multiple_c2_instances_in_build
-          - translation_container_id
           - use_display_params_for_cli_history
           - wrapper
+          - id
+          - message_uuid_length
+          - translation_container_id
+          - command_augment_supported_agents
+          - c2_parameter_deviations
+          - supported_c2
+          - supported_os
+          - agent_type
+          - author
+          - file_extension
+          - message_format
+          - name
+          - note
+          - semver
+          - creation_time
         filter: {}
     - role: operation_admin
       permission:
         columns:
-          - agent_type
-          - author
-          - command_augment_supported_agents
           - container_running
-          - creation_time
           - deleted
-          - file_extension
-          - id
-          - message_format
-          - message_uuid_length
           - mythic_encrypts
-          - name
-          - note
-          - supported_os
           - supports_dynamic_loading
           - supports_multiple_c2_in_build
           - supports_multiple_c2_instances_in_build
-          - translation_container_id
           - use_display_params_for_cli_history
           - wrapper
+          - id
+          - message_uuid_length
+          - translation_container_id
+          - command_augment_supported_agents
+          - c2_parameter_deviations
+          - supported_c2
+          - supported_os
+          - agent_type
+          - author
+          - file_extension
+          - message_format
+          - name
+          - note
+          - semver
+          - creation_time
         filter: {}
     - role: operator
       permission:
         columns:
-          - agent_type
-          - author
-          - command_augment_supported_agents
           - container_running
-          - creation_time
           - deleted
-          - file_extension
-          - id
-          - message_format
-          - message_uuid_length
           - mythic_encrypts
-          - name
-          - note
-          - supported_os
           - supports_dynamic_loading
           - supports_multiple_c2_in_build
           - supports_multiple_c2_instances_in_build
-          - translation_container_id
           - use_display_params_for_cli_history
           - wrapper
+          - id
+          - message_uuid_length
+          - translation_container_id
+          - command_augment_supported_agents
+          - c2_parameter_deviations
+          - supported_c2
+          - supported_os
+          - agent_type
+          - author
+          - file_extension
+          - message_format
+          - name
+          - note
+          - semver
+          - creation_time
         filter: {}
     - role: spectator
       permission:
         columns:
-          - agent_type
-          - author
-          - command_augment_supported_agents
           - container_running
-          - creation_time
           - deleted
-          - file_extension
-          - id
-          - message_format
-          - message_uuid_length
           - mythic_encrypts
-          - name
-          - note
-          - supported_os
           - supports_dynamic_loading
           - supports_multiple_c2_in_build
           - supports_multiple_c2_instances_in_build
-          - translation_container_id
           - use_display_params_for_cli_history
           - wrapper
+          - id
+          - message_uuid_length
+          - translation_container_id
+          - command_augment_supported_agents
+          - c2_parameter_deviations
+          - supported_c2
+          - supported_os
+          - agent_type
+          - author
+          - file_extension
+          - message_format
+          - name
+          - note
+          - semver
+          - creation_time
         filter: {}
   update_permissions:
     - role: mythic_admin

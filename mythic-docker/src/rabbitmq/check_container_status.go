@@ -3,7 +3,6 @@ package rabbitmq
 import (
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/grpc"
@@ -159,7 +158,7 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 			}
 		}
 		if apiToken.OperatorID == 0 {
-			logging.LogError(errors.New("Need a bot account assigned to this operation that's active and not deleted"), "operation", operation.ID)
+			logging.LogInfo("Need a bot account assigned to this operation that's active and not deleted", "operation", operation.ID)
 			continue
 		}
 		apiToken.TokenType = mythicjwt.AUTH_METHOD_GRAPHQL_SPECTATOR

@@ -14,6 +14,7 @@ export const getfileInformationQuery = gql`
 query getFileInformation($file_id: String!){
     filemeta(where: {agent_file_id: {_eq: $file_id}}){
         filename_text
+        agent_file_id
     }
 }
 `;
@@ -33,31 +34,40 @@ export const MythicFileContext = ({agent_file_id, display_link, filename, extraS
         setOpenPreviewMediaDialog(true);
     }
     const getFileInformationSuccess = (data) => {
-        setFileData( {...fileData, filename: b64DecodeUnicode(data.filemeta[0].filename_text)});
+        if(data.filemeta.length === 0){
+            return;
+        }
+        setFileData( {...fileData,
+            agent_file_id: data.filemeta[0].agent_file_id,
+            filename: b64DecodeUnicode(data.filemeta[0].filename_text)});
         if(display_link === "" || display_link === undefined){
             setFileData( {...fileData,
+                agent_file_id: data.filemeta[0].agent_file_id,
                 filename: b64DecodeUnicode(data.filemeta[0].filename_text),
                 display_link: b64DecodeUnicode(data.filemeta[0].filename_text)});
         }
     }
     const getFileInformationError = (data) => {
-        snackActions.error("Failed to fetch instance data: " + data);
+        snackActions.error("Failed to fetch file data: " + data);
         console.log(data);
     }
     const getFileInformation = useMythicLazyQuery(getfileInformationQuery, {
         fetchPolicy: "no-cache"
     })
     React.useEffect( () => {
-        if(filename === "" || filename === undefined){
-            getFileInformation({variables: {file_id: fileData.agent_file_id}})
-                .then(({data}) => getFileInformationSuccess(data)).catch(({data}) => getFileInformationError(data));
+        if(agent_file_id !== '' && agent_file_id !== undefined){
+            getFileInformation({variables: {file_id: agent_file_id}})
+                .then(({data}) => getFileInformationSuccess(data)).catch((data) => getFileInformationError(data));
         }
-    }, [filename]);
+    }, [filename, agent_file_id]);
+    if(agent_file_id === '' || agent_file_id === undefined){
+        return null
+    }
     return (
         <>
             <MythicStyledTooltip title={"Preview Media"} tooltipStyle={extraStyles ? extraStyles : {}}>
                 <FontAwesomeIcon icon={faPhotoVideo}
-                                 style={{height: "25px", bottom: "5px", position: "relative", cursor: "pointer", display: "inline-block"}}
+                                 style={{height: "20px", position: "relative", cursor: "pointer", display: "inline-block"}}
                                  onClick={onPreviewMedia} />
             </MythicStyledTooltip>
             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + fileData.agent_file_id}>

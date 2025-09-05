@@ -214,9 +214,9 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		logging.LogError(nil, "attempting to sync bad payload container version")
 		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
 	}
-	if err := database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE "name"=$1`, in.PayloadType.Name); err != nil {
+	if err := database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE "name"=$1`, in.PayloadType.Name); errors.Is(err, sql.ErrNoRows) {
 		// this means we don't have the payload, so we need to create it and all the associated components
-		//logging.LogDebug("Failed to find payload type, syncing new data", "payload", payloadtype)
+		logging.LogDebug("Failed to find payload type, syncing new data", "payload", payloadtype)
 		payloadtype.Name = in.PayloadType.Name
 		payloadtype.Author = in.PayloadType.Author
 		payloadtype.ContainerRunning = true
@@ -272,7 +272,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 				go reSyncPayloadTypes()
 			}
 		}
-	} else {
+	} else if err == nil {
 		// the payload exists in the database, so we need to go down the track of updating/adding/removing information
 		//logging.LogDebug("Found payload", "payload", payloadtype)
 		payloadtype.Name = in.PayloadType.Name
@@ -325,6 +325,9 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			logging.LogError(err, "Failed to update payloadtype in database")
 			return err
 		}
+	} else {
+		logging.LogError(err, "Failed to fetch payloadtype in database while syncing")
+		return err
 	}
 	err := updatePayloadTypeC2Profiles(in, payloadtype)
 	if err != nil {
@@ -587,8 +590,11 @@ func updatePayloadTypeC2Profiles(in PayloadTypeSyncMessage, payloadtype database
 	for _, name := range syncingC2Profiles {
 		c2profile := databaseStructs.C2profile{Name: name}
 		if err := database.DB.Get(&c2profile, "SELECT id FROM c2profile WHERE name=$1", name); err != nil {
-			logging.LogError(err, "Failed to get c2profile to associate with payloadtype", "c2profile", name, "c2profiles", syncingC2Profiles)
-
+			if errors.Is(err, sql.ErrNoRows) {
+				logging.LogError(nil, "Payload Type supports C2 Profile that's not yet installed", "c2profile", name, "payloadtype", payloadtype.Name)
+			} else {
+				logging.LogError(err, "Failed to get c2profile to associate with payloadtype", "c2profile", name, "c2profiles", syncingC2Profiles)
+			}
 		} else {
 			databaseC2Profile = databaseStructs.Payloadtypec2profile{C2ProfileID: c2profile.ID, PayloadTypeID: payloadtype.ID}
 			if _, err := database.DB.NamedExec(`INSERT INTO 
@@ -676,7 +682,11 @@ func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseSt
 	for _, name := range syncingWrappers {
 		targetWrapper := databaseStructs.Payloadtype{Name: name}
 		if err := database.DB.Get(&targetWrapper, "SELECT id FROM payloadtype WHERE name=$1", name); err != nil {
-			logging.LogError(err, "Failed to find payloadtype to associate for wrapping", "wrapper", name, "wrapped", payloadtype.Name)
+			if errors.Is(err, sql.ErrNoRows) {
+				logging.LogError(nil, "Payload Type supports wrapper that's not yet installed", "wrapper", name, "wrapped", payloadtype.Name)
+			} else {
+				logging.LogError(err, "Failed to find payloadtype to associate for wrapping", "wrapper", name, "wrapped", payloadtype.Name)
+			}
 		} else {
 			databaseWrapper = databaseStructs.Wrappedpayloadtypes{WrapperID: targetWrapper.ID, WrappedID: payloadtype.ID}
 			if payloadtype.Wrapper {

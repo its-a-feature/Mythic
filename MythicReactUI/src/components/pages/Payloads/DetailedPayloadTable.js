@@ -105,6 +105,7 @@ query GetPayloadDetails($payload_id: Int!) {
     os
     c2profileparametersinstances(order_by: {c2profile: {name: asc}}) {
       value
+      count
       c2profileparameter {
         description
         parameter_type
@@ -305,33 +306,60 @@ export function DetailedPayloadComparisonTable(props){
 export const ParseForDisplay = ({
     cmd, filename
 }) => {
-    const [renderObj, setRenderObj] = React.useState(cmd.value);
+    const [renderObj, setRenderObj] = React.useState('');
     const [fileMultipleValue, setFileMultipleValue] = React.useState([]);
     React.useEffect( () => {
         if(cmd.parameter_type === "Dictionary") {
             try{
-                let parsedValue = JSON.parse(cmd.value);
-                setRenderObj(JSON.stringify(parsedValue, null, 2));
+                if(typeof cmd.value === 'string'){
+                    let parsedValue = JSON.parse(cmd.value);
+                    setRenderObj(JSON.stringify(parsedValue, null, 2));
+                } else {
+                    const newDict = cmd.value.reduce((prev, cur) => {
+                        if (cur.default_show) {
+                            return {...prev, [cur.name]: cur.value};
+                        }
+                        return {...prev}
+                    }, {});
+                    setRenderObj(JSON.stringify(newDict, null, 2));
+                }
             }catch(error){
                 console.log("Failed to parse parameter value as dictionary", cmd.value, error)
                 return setRenderObj(cmd.value);
             }
         }else if(cmd.parameter_type === "Array" || cmd.parameter_type === "ChooseMultiple") {
             try {
-                let parsedValue = JSON.parse(cmd.value);
-                setRenderObj(parsedValue.map(c => c + "\n"));
+                if(typeof cmd.value === 'string'){
+                    let parsedValue = JSON.parse(cmd.value);
+                    setRenderObj(parsedValue.map(c => c + "\n"));
+                } else {
+                    setRenderObj(cmd.value.map(c => c + "\n"));
+                }
+
             } catch (error) {
                 console.log("Failed to parse parameter value as array or choose multiple", cmd.value, error)
                 setRenderObj(cmd.value);
             }
         } else if(cmd.parameter_type === "File") {
-        } else if(cmd.parameter_type === "FileMultiple"){
-            try{
-                let parsedValue = JSON.parse(cmd.value);
-                setFileMultipleValue(parsedValue);
-            }catch(error){
+        } else if(cmd.parameter_type === "FileMultiple") {
+            try {
+                if(typeof cmd.value === 'string'){
+                    let parsedValue = JSON.parse(cmd.value);
+                    setFileMultipleValue(parsedValue);
+                } else {
+                    setFileMultipleValue(cmd.value);
+                }
+
+            } catch (error) {
                 console.log("Failed to parse parameter value as file multiple", cmd.value, error);
             }
+        } else if(cmd.parameter_type === "Boolean"){
+            if(cmd.value){
+                setRenderObj("True");
+            } else {
+                setRenderObj("False");
+            }
+
         } else {
             setRenderObj(cmd.value);
         }
@@ -339,11 +367,12 @@ export const ParseForDisplay = ({
 
     return (
         cmd.parameter_type === "File" ? (
-            <MythicFileContext agent_file_id={cmd.value} display_link={""} />
+            <MythicFileContext agent_file_id={cmd.value.name === undefined ? cmd.value : cmd.value.name} display_link={""}
+            extraStyles={{marginRight: "5px"}}/>
         ) : cmd.parameter_type === "FileMultiple" ? (
             fileMultipleValue?.map(f => (
                 <React.Fragment key={f}>
-                    <MythicFileContext agent_file_id={f} display_link={""} /><br/>
+                    <MythicFileContext agent_file_id={f} display_link={""} extraStyles={{marginRight: "5px"}} /><br/>
                 </React.Fragment>
             ))
         ) : (renderObj)
@@ -389,20 +418,27 @@ function DetailedPayloadInnerTable(props){
             }).sort((a,b) => (a.description > b.description) ? 1: ((b.description > a.description) ? -1 : 0));
             setBuildParameters(buildParametersState);
             const c2Profiles = data.payload[0].c2profileparametersinstances.reduce( (prev, cur) => {
-                if( !(cur.c2profile.name in prev) ){
-                    return {...prev, [cur.c2profile.name]: [{description: cur.c2profileparameter.description, 
-                      value: cur.value, 
-                      enc_key: cur.enc_key_base64, 
-                      dec_key: cur.dec_key_base64,
-                      parameter_type: cur.c2profileparameter.parameter_type,
-                    }]}
+                let headerName = cur.c2profile.name + (cur.count > 0 ? " ( " + cur.count + " )" : "");
+                if( !(headerName in prev) ){
+                    return {...prev, [headerName]:
+                            [{description: cur.c2profileparameter.description,
+                              value: cur.value,
+                              count: cur.count,
+                              enc_key: cur.enc_key_base64,
+                              dec_key: cur.dec_key_base64,
+                              parameter_type: cur.c2profileparameter.parameter_type,
+                            }]
+                    }
                 }
-                return {...prev, [cur.c2profile.name]: [...prev[cur.c2profile.name], {description: cur.c2profileparameter.description, 
-                  value: cur.value, 
-                  enc_key: cur.enc_key_base64, 
-                  dec_key: cur.dec_key_base64,
-                  parameter_type: cur.c2profileparameter.parameter_type,
-                }]}
+                return {...prev, [headerName]: [...prev[headerName],
+                        {description: cur.c2profileparameter.description,
+                          value: cur.value,
+                          count: cur.count,
+                          enc_key: cur.enc_key_base64,
+                          dec_key: cur.dec_key_base64,
+                          parameter_type: cur.c2profileparameter.parameter_type,
+                        }]
+                }
             }, {});
             const c2ProfilesState = Object.keys(c2Profiles).reduce( (prev, cur) => {
                 return [...prev, {
