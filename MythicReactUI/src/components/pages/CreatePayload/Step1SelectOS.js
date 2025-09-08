@@ -10,11 +10,12 @@ import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {PayloadSelect} from "../CreateWrapper/Step3SelectPayload";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import {getDefaultChoices, getDefaultValueForType} from "./Step2SelectPayloadType";
+import {getDefaultChoices, getDefaultValueForType, getSavedToType} from "./Step2SelectPayloadType";
 import {CreatePayloadBuildParametersTable} from "./CreatePayloadBuildParametersTable";
 import {ParseForDisplay} from "../Payloads/DetailedPayloadTable";
 import Paper from '@mui/material/Paper';
 import {useTheme} from '@mui/material/styles';
+import {getModifiedC2Params} from "./Step4C2Profiles";
 
 
 const GET_Payload_Types = gql`
@@ -34,7 +35,7 @@ query getPayloadTypesQuery {
 }
  `;
 
-const GetPayloads = gql`
+export const GetPayloads = gql`
 query payloads($payloadType: String!, $os: String!) {
   payload(where: {auto_generated: {_eq: false}, os: {_eq: $os}, payloadtype: {name: {_eq: $payloadType}}, build_phase: {_eq: "success"}, deleted: {_eq: false}}, order_by: {id: desc}) {
       id
@@ -50,7 +51,7 @@ query payloads($payloadType: String!, $os: String!) {
 }
  `;
 
-const GetBuildParametersQuery = gql`
+export const GetBuildParametersQuery = gql`
 query getPayloadTypesBuildParametersQuery($payloadtype: String!) {
   payloadtype(where: {name: {_eq: $payloadtype}}) {
     name
@@ -81,6 +82,74 @@ query getPayloadTypesBuildParametersQuery($payloadtype: String!) {
   }
 }
  `;
+const GetPayloadBuildQuery = gql`
+query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
+  payload_by_pk(id: $payload_id) {
+    buildparameterinstances {
+        build_parameter_id
+        value
+    }
+    payloadcommands {
+      command {
+        cmd
+      }
+    }
+    payloadtype {
+        name
+        id
+        file_extension
+        agent_type
+        note
+        supports_dynamic_loading
+        supports_multiple_c2_in_build
+        supports_multiple_c2_instances_in_build
+        c2_parameter_deviations
+        semver
+        buildparameters(where: {deleted: {_eq: false} }, order_by: {description: asc}) {
+            default_value
+            description
+            format_string
+            id
+            name
+            parameter_type
+            randomize
+            required
+            verifier_regex
+            choices
+            group_name
+            supported_os
+            hide_conditions
+        }
+    }
+    c2profileparametersinstances{
+        c2profileparameter {
+          default_value
+          description
+          format_string
+          id
+          name
+          parameter_type
+          randomize
+          required
+          verifier_regex
+          choices
+          c2profile {
+              name
+              id
+              is_p2p
+              c2profileparametersinstances(where: {instance_name: {_is_null: false}}, distinct_on: instance_name, order_by: {instance_name: asc}){
+                    instance_name
+                    id
+                }
+          }
+        }
+        id
+        value
+        count
+      }
+    }
+}
+ `;
 
 export function Step1SelectOS(props){
     const [os, setOS] = React.useState('');
@@ -90,12 +159,12 @@ export function Step1SelectOS(props){
     const [osOptions, setOSOptions] = React.useState([]);
     const [selectedPayloadType, setSelectedPayloadType] = React.useState('');
     const [payloadOptions, setPayloadOptions] = React.useState([]);
-    const [selectedPayload, setSelectedPayload] = React.useState('');
     const payloadConfigRef = React.useRef({});
-    const [prevDataPayloadConfig, setPrevDataPayloadConfig] = React.useState(undefined);
     const getPayloadTypeAndPreviousData = useMythicLazyQuery(GET_Payload_Types, {fetchPolicy: "network-only",
     });
     const getPayloads = useMythicLazyQuery(GetPayloads, { fetchPolicy: "network-only",
+    })
+    const getPayloadConfig = useMythicLazyQuery(GetPayloadBuildQuery, { fetchPolicy: "network-only",
     })
     React.useEffect( () => {
         getPayloadTypeAndPreviousData({})
@@ -133,15 +202,9 @@ export function Step1SelectOS(props){
                     return [...currentOptions, ...adds];
                 }, []);
                 const sortedOptions = optionsReduced.sort();
-                if(props.prevData === undefined){
-                    setPrevDataPayloadConfig(undefined);
-                }
                 if(props.prevData !== undefined){
                     setOS(props.prevData.os);
                     setSelectedPayloadType(props.prevData.payload_type);
-                    if(!props.first){
-                        setPrevDataPayloadConfig(props.prevData)
-                    }
                 }
                 else if(os === "" && sortedOptions.length > 0){
                     setOS(sortedOptions[0]);
@@ -167,8 +230,7 @@ export function Step1SelectOS(props){
         if(props.first){
             props.finished({
                 "os": os,
-                "payload_type": selectedPayloadType,
-                "payload": selectedPayload === "" ? undefined : selectedPayload
+                "payload_type": selectedPayloadType
             }, clearNextPrevious);
         } else {
             props.finished({...payloadConfigRef.current});
@@ -182,7 +244,104 @@ export function Step1SelectOS(props){
         setSelectedPayloadType(payloadtypesPerOS[e.target.value][0]);
     }
     const onSelectedPayload = (payload) => {
-        setSelectedPayload(payload);
+        let newConfig = {
+            0: {
+                "os": os,
+                "payload_type": selectedPayloadType,
+                "payload": payload.id,
+            },
+        };
+        getPayloadConfig({variables: {payload_id: payload.id}})
+            .then(({data}) => {
+                newConfig[1] = {
+                    os: os,
+                    payload: payload.id,
+                    payload_type: selectedPayloadType,
+                    agent_type: data.payload_by_pk.payloadtype.agent_type,
+                    description: data.payload_by_pk.payloadtype.note,
+                    file_extension: data.payload_by_pk.payloadtype.file_extension,
+                    supports_dynamic_loading: data.payload_by_pk.payloadtype.supports_dynamic_loading,
+                    supports_multiple_c2_in_build: data.payload_by_pk.payloadtype.supports_multiple_c2_in_build,
+                    supports_multiple_c2_instances_in_build: data.payload_by_pk.payloadtype.supports_multiple_c2_instances_in_build,
+                    c2_parameter_deviations: data.payload_by_pk.payloadtype.c2_parameter_deviations,
+                };
+                const params = data.payload_by_pk.payloadtype.buildparameters.map((param) => {
+                    for (let p = 0; p < data.payload_by_pk.buildparameterinstances.length; p++) {
+                        if (data.payload_by_pk.buildparameterinstances[p]["build_parameter_id"] === param.id) {
+                            let value = {
+                                ...param, error: false,
+                                value: data.payload_by_pk.buildparameterinstances[p]["value"],
+                                trackedValue: data.payload_by_pk.buildparameterinstances[p]["value"],
+                                initialValue:  data.payload_by_pk.buildparameterinstances[p]["value"],
+                                choices: getDefaultChoices(param)
+                            };
+                            let newValue = getSavedToType(value);
+                            return {
+                                ...param, error: false,
+                                value: newValue,
+                                trackedValue: newValue,
+                                initialValue: newValue,
+                                choices: getDefaultChoices(param)
+                            }
+                        }
+                    }
+                    const initialValue = getDefaultValueForType(param);
+                    return {
+                        ...param, error: false,
+                        value: initialValue,
+                        trackedValue: initialValue,
+                        initialValue: initialValue,
+                        choices: getDefaultChoices(param)
+                    }
+                });
+                params.sort((a, b) => -b.description.localeCompare(a.description));
+                newConfig[1].parameters = params;
+                newConfig[2] = data.payload_by_pk.payloadcommands.map( c => c.command.cmd);
+                newConfig[3] = {
+                    payload_type: selectedPayloadType,
+                }
+                const c2 = data.payload_by_pk.c2profileparametersinstances.reduce( (prev, cur) => {
+                    let savedValue = getSavedToType({...cur.c2profileparameter, trackedValue: cur.value});
+                    for(let i = 0; i < prev.length; i++){
+                        if(prev[i].name === cur.c2profileparameter.c2profile.name && prev[i].count === cur.count){
+                            prev[i].c2profileparameters.push({
+                                ...cur.c2profileparameter,
+                                value: savedValue,
+                                initialValue: savedValue,
+                                trackedValue: savedValue,
+                            });
+                            return [...prev];
+                        }
+                    }
+                    return [...prev, {
+                        id: cur.c2profileparameter.c2profile.id,
+                        is_p2p: cur.c2profileparameter.c2profile.is_p2p,
+                        name: cur.c2profileparameter.c2profile.name,
+                        count: cur.count,
+                        selected_instance: "None",
+                        c2profileparameters: [{
+                            ...cur.c2profileparameter,
+                            value: savedValue,
+                            initialValue: savedValue,
+                            trackedValue: savedValue,
+                        }],
+                        c2profileparametersinstances: [...cur.c2profileparameter.c2profile.c2profileparametersinstances]
+                    }]
+                }, []);
+                //console.log("before getModifiedC2Params", c2);
+
+                const profiles = c2.map( (profile) => {
+                    const parameters = getModifiedC2Params(profile, profile.c2profileparameters, newConfig[1], true);
+                    parameters.sort((a,b) => -b.description.localeCompare(a.description));
+                    return {...profile, c2profileparameters: parameters, "selected_instance": "None"};
+                });
+                newConfig[3].c2 = profiles;
+
+                //console.log("newConfig", newConfig);
+                props.setAllData(newConfig);
+            })
+            .catch((data) => console.log(data));
+
     }
     const onStartFresh = () => {
         finished(true)
@@ -268,7 +427,7 @@ export function Step1SelectOS(props){
                 {/* Bottom section - scrollable table area */}
                 <div style={{
                     margin: "5px",
-                    border: "1px solid grey",
+                    border: props.first ? "1px solid grey" : '',
                     borderRadius: "5px",
                     padding: "10px 5px 5px 10px",
                     display: "flex",
@@ -288,8 +447,7 @@ export function Step1SelectOS(props){
                     }
                     {!props.first &&
                         <ConfigureBuildParameters os={os} selectedPayloadType={selectedPayloadType}
-                                                  selectedPayload={selectedPayload}
-                                                  prevData={prevDataPayloadConfig}
+                                                  prevData={props.prevData}
                                                   onUpdatePayloadConfig={onUpdatePayloadConfig} />
                     }
                 </div>
@@ -309,7 +467,7 @@ export function Step1SelectOS(props){
     );
 }
 
-const StartFromExistingPayloadOrStartFresh = (
+export const StartFromExistingPayloadOrStartFresh = (
     {first, last, canceled, onSelectedPayload, payloadOptions, onStartFresh}
 ) => {
     return (
@@ -344,8 +502,8 @@ const StartFromExistingPayloadOrStartFresh = (
         </>
     )
 }
-const ConfigureBuildParameters = (
-    {os, onUpdatePayloadConfig, selectedPayloadType, selectedPayload, prevData}
+export const ConfigureBuildParameters = (
+    {os, onUpdatePayloadConfig, selectedPayloadType, prevData}
 ) => {
     const [payloadTypeConfigPieces, setPayloadTypeConfigPieces] = React.useState({});
     const [payloadTypeParameters, setSelectedPayloadTypeParameters] = React.useState([]);
@@ -378,7 +536,9 @@ const ConfigureBuildParameters = (
                     "description": data.payloadtype[0].note,
                     "supports_multiple_c2_in_build": data.payloadtype[0].supports_multiple_c2_in_build,
                     "supports_multiple_c2_instances_in_build": data.payloadtype[0].supports_multiple_c2_instances_in_build,
-                    "c2_parameter_deviations": data.payloadtype[0].c2_parameter_deviations
+                    "c2_parameter_deviations": data.payloadtype[0].c2_parameter_deviations,
+                    "payload": prevData?.payload,
+                    "payload_type_id": data.payloadtype[0].id,
                 }
                 setPayloadTypeConfigPieces(extraConfig);
                 if (prevData) {
@@ -423,7 +583,6 @@ const ConfigureBuildParameters = (
                         choices: getDefaultChoices(param)
                     }
                 });
-
                 params.sort((a,b) => -b.description.localeCompare(a.description));
                 setSelectedPayloadTypeParameters(params);
                 onUpdatePayloadConfig({
@@ -433,13 +592,13 @@ const ConfigureBuildParameters = (
                     "os": os});
             })
             .catch((data) => console.log(data));
-    }, [selectedPayloadType, prevData]);
+    }, [selectedPayloadType, prevData?.payload]);
     return (
         <>
             {/* Header section - fixed */}
             <div style={{flexShrink: 0}}>
                 <Typography variant={"p"} style={{fontWeight: 600}}>
-                    3.5. Configure {selectedPayload === '' ? "New" : "Old"} Payload Build Parameters
+                    3.5. Configure Payload Build Parameters
                 </Typography>
             </div>
             <div style={{
@@ -546,7 +705,7 @@ export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
         setGroupedParameters(GetGroupedParameters({buildParameters, os, c2_name}));
     }, [buildParameters, c2_name]);
     return (
-        groupedParameters?.map(b => (
+        groupedParameters?.map((b,i) => (
             <div key={b.name} >
                 {b.name !== '' && b.name !== undefined && b.parameters.length > 0 &&
                     <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", }} variant={"elevation"}>
@@ -555,8 +714,8 @@ export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
                         </Typography>
                     </Paper>
                 }
-                {b?.parameters?.map(p => (
-                    <div key={p.name} style={{marginLeft: b.name === '' ? '' : "20px"}}>
+                {b?.parameters?.map( (p,i) => (
+                    <div key={p.name} style={{marginLeft: b.name === '' ? '' : "20px"}} className={i%2 > 0 ? 'alternateRow' : ''}>
                         <Typography style={{fontWeight: 600}} variant={"body2"}>
                             {p.name}
                         </Typography>

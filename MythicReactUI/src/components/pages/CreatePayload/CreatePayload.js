@@ -3,7 +3,6 @@ import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import {Step1SelectOS} from './Step1SelectOS';
-import {Step2SelectPayloadType} from './Step2SelectPayloadType';
 import {Step3SelectCommands} from './Step3SelectCommands';
 import {Step4C2Profiles} from './Step4C2Profiles';
 import {Step5Build} from './Step5Build';
@@ -22,7 +21,7 @@ export function CreatePayload(props){
     const getStepContent = (step) => {
           switch (step) {
             case 0:
-              return <Step1SelectOS buildOptions={payload} prevData={payload[0]} finished={handleStepData} canceled={cancelStep} first={true} last={false}/>;
+              return <Step1SelectOS buildOptions={payload} prevData={payload[0]} setAllData={setAllData} finished={handleStepData} canceled={cancelStep} first={true} last={false}/>;
             case 1:
               return <Step1SelectOS buildOptions={payload} prevData={payload[1]} finished={handleStepData} canceled={cancelStep} first={false} last={false}/>;
             case 2:
@@ -30,17 +29,22 @@ export function CreatePayload(props){
             case 3:
               return <Step4C2Profiles buildOptions={payload[1]} prevData={payload[3]} finished={handleStepData} canceled={cancelStep} first={false} last={false} />;
             case 4:
-              return <Step5Build me={me} buildOptions={payload} canceled={cancelStep} first={false} last={true} startOver={startOver} />;
+              return <Step5Build me={me} buildOptions={payload} moveToStep={moveToStep} canceled={cancelStep} first={false} last={true} startOver={startOver} />;
             default:
               return 'Unknown step';
           }
         }
+      const setAllData = (stepData) => {
+        setPayload(stepData);
+        handleNext();
+      }
       const handleStepData = (stepData, clearNextPreviousData) => {
         let newPayload = {...payload, [activeStep]: stepData};
         if(clearNextPreviousData){
             newPayload[activeStep+1] = undefined;
         }
         setPayload(newPayload);
+        //console.log(activeStep, newPayload);
         handleNext();
       }
       const cancelStep = () => {
@@ -57,6 +61,9 @@ export function CreatePayload(props){
       };
       const startOver = () => {
         setActiveStep(0);
+      }
+      const moveToStep = (step) => {
+          setActiveStep(step);
       }
       React.useEffect( () => {
         if(noOperation){
@@ -99,7 +106,7 @@ export function CreatePayload(props){
                     ))}
                 </Stepper>
             </div>
-            <div style={{overflowY: 'auto', height: "100%"}}>
+            <div style={{display: "flex", flexDirection: "column", flexGrow: 1, overflowY: 'auto'}}>
                 {getStepContent(activeStep)}
             </div>
         </div>

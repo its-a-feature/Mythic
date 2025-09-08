@@ -20,20 +20,22 @@ type RequestOpsecBypass struct {
 // this function called from webhook_endpoint through the UI or scripting
 func RequestOpsecBypassWebhook(c *gin.Context) {
 	var input RequestOpsecBypassInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to get JSON parameters for RequestOpsecBypassWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
-	} else if ginOperatorOperation, ok := c.Get("operatorOperation"); !ok {
+	}
+	ginOperatorOperation, ok := c.Get("operatorOperation")
+	if !ok {
 		logging.LogError(err, "Failed to get operatorOperation information for RequestOpsecBypassWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
 		return
-	} else {
-		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
-		c.JSON(http.StatusOK, rabbitmq.RequestOpsecBypass(rabbitmq.RequestOpsecBypassMessage{
-			TaskID:            input.Input.TaskID,
-			OperatorOperation: operatorOperation,
-		}))
-		return
 	}
+	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+	c.JSON(http.StatusOK, rabbitmq.RequestOpsecBypass(rabbitmq.RequestOpsecBypassMessage{
+		TaskID:            input.Input.TaskID,
+		OperatorOperation: operatorOperation,
+	}))
+	return
 }

@@ -157,7 +157,7 @@ export function Step3SelectCommands(props){
             }}>
                 {/* Left section - fixed height */}
                 <div style={{
-                    padding: "10px",
+                    padding: "5px",
                     display: "flex",
                     width: "60%",
                     flexDirection: "column",
@@ -170,10 +170,14 @@ export function Step3SelectCommands(props){
                             <b>Description: </b>{props.buildOptions.description}
                         </Typography>
                     </div>
-                    <div style={{width: "100%",  border: "1px solid grey", flexDirection: "column",
-                        borderRadius: "5px", padding: "10px", flexGrow: 1, minHeight: 0, display: "flex"}}>
+                    <div style={{width: "100%",
+                        //border: "1px solid grey",
+                        flexDirection: "column",
+                        borderRadius: "5px",
+                        //padding: "10px",
+                        flexGrow: 1, minHeight: 0, display: "flex"}}>
                         <Typography variant={"p"} style={{fontWeight: 600}}>
-                            {"Select Commands to Include in the Payload"}
+                            {"1. Select Commands to Include in the Payload"}
                         </Typography>
                         <div style={{flexGrow: 1, minHeight: 0, overflow: "hidden", display: "flex"}}>
                             <CommandTransferSelect commands={commandOptions}
@@ -189,7 +193,7 @@ export function Step3SelectCommands(props){
                 {/* Bottom section - scrollable table area */}
                 <div style={{
                     width: "40%",
-                    padding: "10px",
+                    padding: "5px",
                     borderRadius: "5px",
                     display: "flex",
                     flexDirection: "column",
@@ -274,9 +278,7 @@ export function Step3SelectCommands(props){
                                 </Typography>
                             </>}
                     </div>
-                    <div style={{width: "100%", flexGrow: 1, border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
 
-                    </div>
                 </div>
             </div>
             {openConfirmDialog &&
@@ -471,7 +473,7 @@ function CommandTransferSelect(props) {
                         &lt;&lt;
                     </StyledButton>
             </div>
-            {customList("Commands Included", commands.filter(c => c.right), rightFilter, updateRightFilter)}
+            {customList("Commands in Payload", commands.filter(c => c.right), rightFilter, updateRightFilter)}
         </div>
     );
 }

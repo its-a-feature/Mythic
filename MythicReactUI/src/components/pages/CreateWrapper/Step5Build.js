@@ -7,6 +7,11 @@ import MythicTextField from '../../MythicComponents/MythicTextField';
 import {snackActions} from '../../utilities/Snackbar';
 import {UploadTaskFile} from "../../MythicComponents/MythicFileUpload";
 import {getSkewedNow} from "../../utilities/Time";
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {ConfigurationSummary} from "../CreatePayload/Step1SelectOS";
+import IconButton from '@mui/material/IconButton';
+import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
 
  const create_payload = gql`
  mutation createPayloadMutation($payload: String!) {
@@ -103,7 +108,7 @@ export function Step5Build(props){
             }
         }
         const finishedPayload = {
-            "selected_os": props.buildOptions[0],
+            "selected_os": props.buildOptions[1].os,
             "payload_type": props.buildOptions[1]["payload_type"],
             "filename": filename,
             "description": description,
@@ -120,21 +125,101 @@ export function Step5Build(props){
     }
 
     return (
-        <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
-            <Typography variant="h3" align="left" id="selectc2profiles" component="div" 
-                style={{"marginLeft": "10px"}}>
-                  Payload Review
-            </Typography>
-            <br/>
-            <div style={{display: "flex", flexDirection: "column", flexGrow: 1}}>
-                <MythicTextField onEnter={finished} autoFocus={true} required={false} placeholder={"Filename"} value={filename} multiline={false} onChange={onChangeFilename} display="inline-block"/>
-                <MythicTextField onEnter={finished} required={false} placeholder={"description"} value={description} multiline={false} onChange={onChangeDescription} display="inline-block"/>
+        <div style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column"
+        }}>
+            {/* Content area that can grow */}
+            <div style={{
+                flexGrow: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0 // Important for flex shrinking
+            }}>
+                {/* Top section - fixed height */}
+                <div style={{
+                    display: "flex",
+                    flexShrink: 0 // Don't shrink this section
+                }}>
+                    <div style={{width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px", display: "flex"}}>
+                        <MythicAgentSVGIcon payload_type={props.buildOptions[1].payload_type} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
+                        <div>
+                            <Typography variant={"p"} style={{}}>
+                                <b>OS: </b>{props.buildOptions[1].os}
+                                <MythicStyledTooltip title={"Edit OS / Payload Type"}>
+                                    <IconButton color={"primary"} onClick={() => props.moveToStep(0)}>
+                                        <DriveFileRenameOutlineIcon />
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                            </Typography><br/>
+                            <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
+                                <b>Description: </b>{props.buildOptions[1].description}
+                            </Typography>
+                        </div>
+                    </div>
+                    <div style={{width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
+                        <Typography variant={"p"} style={{fontWeight: 600}}>
+                            1. Provide Payload Name and Description
+                        </Typography>
+                        <div style={{width: "100%", display: "flex", alignItems: "flex-start", marginBottom: "10px", flexDirection: "column"}}>
+                            <MythicTextField onEnter={finished} autoFocus={true} required={false} placeholder={"Filename"}
+                                             value={filename} multiline={false} onChange={onChangeFilename} display="inline-block"/>
+                            <MythicTextField onEnter={finished} required={false} placeholder={"description"} value={description}
+                                             multiline={false} onChange={onChangeDescription} display="inline-block"/>
+                        </div>
+                    </div>
+                </div>
 
+                {/* Bottom section - scrollable table area */}
+                <div style={{
+                    margin: "5px",
+                    // border: "1px solid grey",
+                    borderRadius: "5px",
+                    //padding: "10px 5px 5px 10px",
+                    display: "flex",
+                    flexGrow: 1,
+                    minHeight: 0, // Important for flex shrinking
+                    overflow: "hidden"
+                }}>
+                    <div style={{
+                        width: "30%",
+                        margin: "5px",
+                        border: "1px solid grey",
+                        borderRadius: "5px",
+                        padding: "5px",
+                        display: "flex",
+                        flexDirection: "column",
+                        flexGrow: 1,
+                        minHeight: 0, // Important for flex shrinking
+                        overflow: "auto"
+                    }}>
+                        <Typography textAlign="center" variant={"h7"} style={{fontWeight: 600, width: "100%"}}>
+                            2. Build Parameter Configuration
+                            <MythicStyledTooltip title={"Edit Build Parameters"}>
+                                <IconButton color={"primary"} onClick={() => props.moveToStep(1)}>
+                                    <DriveFileRenameOutlineIcon />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        </Typography>
+                        <ConfigurationSummary buildParameters={props.buildOptions[1].parameters} os={props.buildOptions[1].os} />
+                    </div>
+                </div>
             </div>
-            <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={canceled}
-                                            finished={finished} startOver={props.startOver} showExtraOptions={showExtraOptions} />
-            <br/><br/>
-            {startSubscription && <PayloadSubscriptionNotification me={props.me} subscriptionID={subscriptionID} fromNow={fromNow}/>}
+
+            {/* Navigation buttons - always at bottom */}
+            <div style={{flexShrink: 0}}>
+                <CreatePayloadNavigationButtons
+                    first={props.first}
+                    last={props.last}
+                    canceled={canceled}
+                    finished={finished}
+                />
+                <br/><br/>
+            </div>
+            {startSubscription &&
+                <PayloadSubscriptionNotification me={props.me} subscriptionID={subscriptionID} fromNow={fromNow}/>}
         </div>
     );
 } 

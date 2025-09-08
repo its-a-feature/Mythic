@@ -107,13 +107,13 @@ function ProcessTableRow(props){
                             <b>Callback: </b>{
                                 <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                                       href={"/new/callbacks/" + props.callback.display_id}>
-                                    {props.callback.display_id}
+                                    C-{props.callback.display_id}
                                 </Link>
                             }<br/>
                             <b>Task: </b>{
                             <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank"
                                   href={"/new/task/" + props.task.display_id}>
-                                {props.task.display_id}
+                                T-{props.task.display_id}
                             </Link>
                         }
                         </Typography>

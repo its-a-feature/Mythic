@@ -18,6 +18,9 @@ import { toLocalTime } from '../../utilities/Time';
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import IconButton from '@mui/material/IconButton';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import {ConfigureBuildParameters, StartFromExistingPayloadOrStartFresh} from "../CreatePayload/Step1SelectOS";
+import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 
 const PREFIX = 'Step3SelectPayload';
 
@@ -101,16 +104,66 @@ export function Step3SelectPayload(props){
         props.canceled();
     }
     return (
-        <div style={{height: "100%", display: "flex", flexDirection: "column", width: '100%'}}>
-            <Typography variant="h3" align="left" id="selectcommands" component="div"
-                        style={{"marginLeft": "10px"}}>
-                Wrap Agent Into New Payload
-            </Typography> <br/>
-            <div style={{flexGrow: 1, overflowY: "auto"}}>
-                <PayloadSelect payloadOptions={payloadOptions} first={props.first} last={props.last}
-                               canceled={canceled} finished={finished}/>
+        <div style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column"
+        }}>
+            {/* Content area that can grow */}
+            <div style={{
+                flexGrow: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0 // Important for flex shrinking
+            }}>
+                {/* Top section - fixed height */}
+                <div style={{
+                    display: "flex",
+                    flexShrink: 0 // Don't shrink this section
+                }}>
+                    <div style={{display: "flex", width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
+                        <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
+                        <div>
+                            <Typography variant={"p"} style={{}}>
+                                <b>OS: </b>{props.buildOptions.os}
+                            </Typography><br/>
+                            <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
+                                <b>Description: </b>{props.buildOptions.description}
+                            </Typography>
+                        </div>
+                    </div>
+                    <div style={{width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
+                        <div style={{width: "100%", display: "flex", alignItems: "flex-start", marginBottom: "10px", flexDirection: "column"}}>
+
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom section - scrollable table area */}
+                <div style={{
+                    margin: "5px",
+                    border: props.first ? "1px solid grey" : '',
+                    borderRadius: "5px",
+                    padding: "10px 5px 5px 10px",
+                    display: "flex",
+                    flexDirection: "column",
+                    flexGrow: 1,
+                    minHeight: 0, // Important for flex shrinking
+                    overflow: "hidden"
+                }}>
+                    <Typography variant={"p"} style={{fontWeight: 600}}>
+                        1. Select Payload to Include
+                    </Typography>
+                    <div style={{flexGrow: 1, overflowY: "auto"}}>
+                        <PayloadSelect payloadOptions={payloadOptions} first={props.first} last={props.last}
+                                       canceled={canceled} finished={finished}/>
+                    </div>
+                </div>
             </div>
-            <div style={{paddingTop: "20px"}}>
+
+            {/* Navigation buttons - always at bottom */}
+            <div style={{flexShrink: 0}}>
                 <CreatePayloadNavigationButtons disableNext first={props.first} last={props.last}
                                                 canceled={props.canceled} finished={finished}/>
                 <br/><br/>

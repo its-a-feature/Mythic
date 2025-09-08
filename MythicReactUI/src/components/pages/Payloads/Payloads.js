@@ -12,17 +12,10 @@ fragment payloadData on payload {
   callback_alert
   callback_allowed
   id
-  operator {
-    id
-    username
-  }
   uuid
   description
   deleted
   auto_generated
-  task {
-    display_id
-  }
   payloadtype {
     id
     name

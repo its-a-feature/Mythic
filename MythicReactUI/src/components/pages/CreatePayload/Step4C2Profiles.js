@@ -90,35 +90,28 @@ query getDefaultC2ProfileParameters($c2profile_id: Int!) {
     }
   }
 `;
-const getModifiedC2Params = (c2, c2profileparameters, buildOptions) => {
+export const getModifiedC2Params = (c2, c2profileparameters, buildOptions, use_supplied_values) => {
     return c2profileparameters.reduce( (prev, param) => {
         const initialValue = getDefaultValueForType(param);
-        if(buildOptions.c2_parameter_deviations[c2.name] === undefined){
-            return [...prev, {...param,
-                error: false,
-                value: initialValue,
-                trackedValue: initialValue,
-                initialValue: initialValue,
-                choices: getDefaultChoices(param)}];
-        }
-        if(buildOptions.c2_parameter_deviations[c2.name][param.name] === undefined){
-            return [...prev, {...param,
-                error: false,
-                value: initialValue,
-                trackedValue: initialValue,
-                initialValue: initialValue,
-                choices: getDefaultChoices(param)}];
-        }
-        let c2Config = buildOptions.c2_parameter_deviations[c2.name][param.name];
-        if(c2Config.supported === false){
-            return [...prev];
-        }
         let configuredParam = {...param,
             error: false,
             value: initialValue,
             trackedValue: initialValue,
             initialValue: initialValue,
             choices: getDefaultChoices(param)}
+        if(use_supplied_values){
+            configuredParam = {...param}
+        }
+        if(buildOptions.c2_parameter_deviations[c2.name] === undefined){
+            return [...prev, {...configuredParam}];
+        }
+        if(buildOptions.c2_parameter_deviations[c2.name][param.name] === undefined){
+            return [...prev, {...configuredParam}];
+        }
+        let c2Config = buildOptions.c2_parameter_deviations[c2.name][param.name];
+        if(c2Config.supported === false){
+            return [...prev];
+        }
         if(c2Config.default_value !== undefined){
             configuredParam.value = c2Config.default_value;
             configuredParam.trackedValue = c2Config.default_value;
@@ -148,7 +141,7 @@ export function Step4C2Profiles(props){
     useQuery(GET_Payload_Types, {variables:{payloadType: props.buildOptions["payload_type"], operation_id: me?.user?.current_operation_id || 0},
         onCompleted: data => {
             const profiles = data.c2profile.map( (c2) => {
-                const parameters = getModifiedC2Params(c2, c2.c2profileparameters, props.buildOptions);
+                const parameters = getModifiedC2Params(c2, c2.c2profileparameters, props.buildOptions, false);
                 parameters.sort((a,b) => -b.description.localeCompare(a.description));
                 return {...c2, c2profileparameters: parameters, "selected_instance": "None"};
             });
@@ -165,8 +158,8 @@ export function Step4C2Profiles(props){
                         // only keep prevData that matches up with the current available c2 profiles for this payload type
                         for(let i = 0; i < profiles.length; i++){
                             if(cur.name === profiles[i].name){
-                                cur.c2profileparameters = getModifiedC2Params(cur, cur.c2profileparameters, props.buildOptions);
-                                return [...prev, cur];
+                                cur.c2profileparameters = getModifiedC2Params(cur, cur.c2profileparameters, props.buildOptions, true);
+                                return [...prev, {...cur}];
                             }
                         }
                         return [...prev];
@@ -283,7 +276,7 @@ export function Step4C2Profiles(props){
                         }
                         return inst;
                     });
-                    updates = getModifiedC2Params(c2, updates, props.buildOptions);
+                    updates = getModifiedC2Params(c2, updates, props.buildOptions, true);
                     updates.sort( (a, b) => a.description < b.description ? -1 : 1);
                     const updatedc2 = includedC2Profiles.map( (curc2, indx) => {
                         if(index === indx){
@@ -308,7 +301,7 @@ export function Step4C2Profiles(props){
                             initialValue: initialValue,
                             choices: getDefaultChoices(param)};
                     });
-                    updates = getModifiedC2Params(c2, updates, props.buildOptions);
+                    updates = getModifiedC2Params(c2, updates, props.buildOptions, false);
                     updates.sort( (a, b) => a.description < b.description ? -1 : 1);
                     const updatedc2 = includedC2Profiles.map( (curc2, indx) => {
                         if(index === indx){
@@ -381,7 +374,10 @@ export function Step4C2Profiles(props){
                             </Typography>
                         </div>
                     </div>
-                    <div style={{width: "60%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
+                    <div style={{width: "60%",
+                        margin: "5px",
+                        border: "1px solid grey",
+                        borderRadius: "5px", padding: "10px"}}>
                         <Typography variant={"p"} style={{fontWeight: 600}}>
                             1. Select C2 Profiles to Include
                         </Typography>
@@ -412,9 +408,9 @@ export function Step4C2Profiles(props){
                 {/* Bottom section - scrollable table area */}
                 <div style={{
                     margin: "5px",
-                    border: "1px solid grey",
+                    //border: "1px solid grey",
                     borderRadius: "5px",
-                    padding: "10px",
+                    //padding: "10px",
                     display: "flex",
                     flexDirection: "column",
                     flexGrow: 1,
