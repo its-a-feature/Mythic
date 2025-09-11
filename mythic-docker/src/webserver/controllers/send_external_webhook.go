@@ -90,7 +90,7 @@ func SendExternalWebhookWebhook(c *gin.Context) {
 		switch input.Input.WebhookType {
 		case rabbitmq.WEBHOOK_TYPE_NEW_CALLBACK:
 		case rabbitmq.WEBHOOK_TYPE_NEW_FEEDBACK:
-		case "new_custom":
+		case rabbitmq.WEBHOOK_TYPE_CUSTOM:
 			fallthrough
 		case "":
 			webhookMessage.Action = rabbitmq.WEBHOOK_TYPE_CUSTOM

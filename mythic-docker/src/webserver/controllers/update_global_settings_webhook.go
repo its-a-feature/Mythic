@@ -62,6 +62,15 @@ func UpdateGlobalSettingsWebhook(c *gin.Context) {
 				continue
 			}
 			mapValue["version"] = utils.MythicConfig.ServerVersion
+			if _, ok := mapValue["allow_invite_links"]; ok {
+				utils.MythicConfig.MythicServerAllowInviteLinks = mapValue["allow_invite_links"].(bool)
+			}
+			if _, ok := mapValue["allow_webhooks_on_new_callbacks"]; ok {
+				utils.MythicConfig.MythicServerAllowWebhooksOnNewCallbacks = mapValue["allow_webhooks_on_new_callbacks"].(bool)
+			}
+			if _, ok := mapValue["debug_agent_message"]; ok {
+				utils.MythicConfig.DebugAgentMessage = mapValue["debug_agent_message"].(bool)
+			}
 			err = database.SetGlobalSetting(key, mapValue, operatorOperation.CurrentOperator.ID)
 		default:
 			err = database.SetGlobalSetting(key, value, operatorOperation.CurrentOperator.ID)
