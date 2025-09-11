@@ -14,11 +14,13 @@ export function CreatePayloadNavigationButtons(props){
   const disabledButtons = (me?.user?.current_operation_id || 0) <= 0;
     return (
       
-        <div style={{position: "relative"}}>
+        <div style={{marginLeft: "20px"}}>
             <Button
                 disabled={props.first}
-                color="primary"
+                color="info"
+                variant={"outlined"}
                 onClick={props.canceled}
+                style={{marginRight: "10px"}}
               >
                 Back
               </Button>

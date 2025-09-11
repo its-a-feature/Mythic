@@ -149,6 +149,16 @@ const triggerOptionsData = {
                 trackedValue: [],
                 error: false,
                 description: "a list of all the payload types where you want this to trigger. If you don't specify any, then it will trigger for all payload types."
+            },
+            {
+                name: "selected_os",
+                parameter_type: "Array",
+                default_value: "[]",
+                value: [],
+                initialValue: [],
+                trackedValue: [],
+                error: false,
+                description: "a list of all the selected os values you want this to trigger on. If you don't specify any, then it will trigger for all OS types."
             }
         ],
         env: payloadFields,
@@ -165,6 +175,16 @@ const triggerOptionsData = {
                 trackedValue: [],
                 error: false,
                 description: "a list of all the payload types where you want this to trigger. If you don't specify any, then it will trigger for all payload types."
+            },
+            {
+                name: "selected_os",
+                parameter_type: "Array",
+                default_value: "[]",
+                value: [],
+                initialValue: [],
+                trackedValue: [],
+                error: false,
+                description: "a list of all the selected os values you want this to trigger on. If you don't specify any, then it will trigger for all OS types."
             }
         ],
         env: payloadFields,
@@ -254,6 +274,16 @@ const triggerOptionsData = {
                 trackedValue: [],
                 error: false,
                 description: "a list of all the payload types where you want this to trigger. If you don't specify any, then it will trigger for all payload types."
+            },
+            {
+                name: "selected_os",
+                parameter_type: "Array",
+                default_value: "[]",
+                value: [],
+                initialValue: [],
+                trackedValue: [],
+                error: false,
+                description: "a list of all the selected os values you want this to trigger on. If you don't specify any, then it will trigger for all OS types."
             }
         ],
         env: callbackFields,
@@ -270,6 +300,16 @@ const triggerOptionsData = {
                 trackedValue: [],
                 error: false,
                 description: "a list of all the payload types where you want this to trigger. If you don't specify any, then it will trigger for all payload types."
+            },
+            {
+                name: "selected_os",
+                parameter_type: "Array",
+                default_value: "[]",
+                value: [],
+                initialValue: [],
+                trackedValue: [],
+                error: false,
+                description: "a list of all the selected os values you want this to trigger on. If you don't specify any, then it will trigger for all OS types."
             }
         ],
         env: [...callbackFields, "previous_checkin", "checkin_difference"],

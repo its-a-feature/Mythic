@@ -9,6 +9,7 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 import SnoozeIcon from '@mui/icons-material/Snooze';
 import {Dropdown, DropdownMenuItem} from "../MythicComponents/MythicNestedMenus";
 import {getSkewedNow} from "./Time";
+import {MythicStyledTooltip} from "../MythicComponents/MythicStyledTooltip";
 
 export const CloseButton = ({ closeToast }) => {
   const dropdownAnchorRef = React.useRef(null);
@@ -59,20 +60,22 @@ export const CloseButton = ({ closeToast }) => {
   };
   const [dnd, setDnd] = React.useState(stillDoNotDisturb());
   return (
-      <div style={{flexGrow: 1}} >
+      <div  >
         {!dnd &&
             <>
-            <ButtonGroup ref={dropdownAnchorRef} aria-label="split button"
-                         style={{marginRight: "10px", marginTop:"10px", float: "right"}}>
+            <ButtonGroup ref={dropdownAnchorRef} aria-label="split button" size={"small"}
+                         style={{ float: "right", width: "70px"}}>
               <Button  aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                       aria-expanded={dropdownOpen ? 'true' : undefined}
-                      aria-haspopup="menu"
+                      aria-haspopup="menu" size={"small"}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         setDropdownOpen(!dropdownOpen)
                       }}>
-                <NotificationsPausedIcon color={"error"} /> <ArrowDropDownIcon />
+                <MythicStyledTooltip title={"Snooze Info and Warning messages for a period of time. Revert this at any time in your settings"}>
+                  <NotificationsPausedIcon color={"error"} /> <ArrowDropDownIcon />
+                </MythicStyledTooltip>
               </Button>
             </ButtonGroup>
               {dropdownOpen &&
@@ -125,10 +128,11 @@ const stillDoNotDisturb = () => {
   }));
   return false; // disturb now!
 }
-const ToastComponent = ({msg}) => {
+const ToastComponent = ({msg, closeButton}) => {
   return (
-      <div style={{display: "flex"}}>
+      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
         {msg}
+        {closeButton}
       </div>
   )
 }
@@ -142,14 +146,14 @@ export const snackActions = {
     if(stillDoNotDisturb()){
       return;
     }
-    toast(msg, {position: "top-center", type: "warning", onClick: this.dismiss, closeButton: CloseButton, ...options});
+    toast(<ToastComponent msg={msg} closeButton={<CloseButton/>}/>, {position: "top-center", type: "warning", onClick: this.dismiss, ...options});
   },
   info(msg, options) {
     if(document.hidden){return}
     if(stillDoNotDisturb()){
       return;
     }
-    toast(msg, {position: "top-center", type: "info", onClick: this.dismiss, closeButton: CloseButton, ...options});
+    toast(<ToastComponent msg={msg} closeButton={<CloseButton/>}/>, {position: "top-center", type: "info", onClick: this.dismiss, ...options});
   },
   error(msg, options) {
     if(document.hidden){return}

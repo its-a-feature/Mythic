@@ -429,19 +429,23 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 				if err != nil {
 					logging.LogError(err, "Failed to decode trigger data")
 				}
-				if len(triggerDataNewCallback.PayloadTypes) > 0 {
+				if len(triggerDataNewCallback.PayloadTypes) > 0 || len(triggerDataNewCallback.SelectedOS) > 0 {
 					payload := databaseStructs.Payload{}
 					err = database.DB.Get(&payload, `SELECT 
-    					payloadtype.name "payloadtype.name"
+    					payloadtype.name "payloadtype.name",
+    					payload.os
 						FROM payload
 						JOIN payloadtype ON payload.payload_type_id = payloadtype.id
 						WHERE payload.id=$1`, eventNotification.PayloadID)
 					if err != nil {
 						logging.LogError(err, "Failed to query callback payload")
 					}
-					if !slices.Contains(triggerDataNewCallback.PayloadTypes,
-						payload.Payloadtype.Name) {
+					if len(triggerDataNewCallback.PayloadTypes) > 0 && !slices.Contains(triggerDataNewCallback.PayloadTypes, payload.Payloadtype.Name) {
 						logging.LogInfo("Not triggering workflow due to payload type restrictions on payload")
+						continue
+					}
+					if len(triggerDataNewCallback.SelectedOS) > 0 && !slices.Contains(triggerDataNewCallback.SelectedOS, payload.Os) {
+						logging.LogInfo("Not triggering workflow due to payload type restrictions on payload OS")
 						continue
 					}
 				}
@@ -497,20 +501,23 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 				if err != nil {
 					logging.LogError(err, "Failed to decode trigger data")
 				}
-				if len(triggerDataNewCallback.PayloadTypes) > 0 {
-					callback := databaseStructs.Callback{}
-					err = database.DB.Get(&callback, `SELECT 
-    					payloadtype.name "payload.payloadtype.name"
-						FROM callback
-						JOIN payload ON callback.registered_payload_id = payload.id
+				if len(triggerDataNewCallback.PayloadTypes) > 0 || len(triggerDataNewCallback.SelectedOS) > 0 {
+					payload := databaseStructs.Payload{}
+					err = database.DB.Get(&payload, `SELECT 
+    					payloadtype.name "payloadtype.name",
+    					payload.os
+						FROM payload
 						JOIN payloadtype ON payload.payload_type_id = payloadtype.id
-						WHERE callback.id=$1`, eventNotification.CallbackID)
+						WHERE payload.id=$1`, eventNotification.PayloadID)
 					if err != nil {
 						logging.LogError(err, "Failed to query callback payload")
 					}
-					if !slices.Contains(triggerDataNewCallback.PayloadTypes,
-						callback.Payload.Payloadtype.Name) {
-						logging.LogInfo("Not triggering workflow due to payload type restrictions on new callback")
+					if len(triggerDataNewCallback.PayloadTypes) > 0 && !slices.Contains(triggerDataNewCallback.PayloadTypes, payload.Payloadtype.Name) {
+						logging.LogInfo("Not triggering workflow due to payload type restrictions on payload")
+						continue
+					}
+					if len(triggerDataNewCallback.SelectedOS) > 0 && !slices.Contains(triggerDataNewCallback.SelectedOS, payload.Os) {
+						logging.LogInfo("Not triggering workflow due to payload type restrictions on payload OS")
 						continue
 					}
 				}

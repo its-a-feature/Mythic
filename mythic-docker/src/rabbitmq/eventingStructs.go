@@ -20,6 +20,7 @@ type EventActionDataCreateTask struct {
 type TriggerDataFilterPayloadTypes struct {
 	// only trigger for certain payload types if you don't want it for all payload types
 	PayloadTypes []string `json:"payload_types" mapstructure:"payload_types"`
+	SelectedOS   []string `json:"selected_os" mapstructure:"selected_os"`
 }
 type TriggerDataFilterTagTypes struct {
 	TagTypeNames []string `json:"tag_types" mapstructure:"tag_types"`

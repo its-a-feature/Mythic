@@ -301,7 +301,7 @@ export function App(props) {
                                 hideProgressBar={true}
                                 newestOnTop={true}
                                 stacked={false}
-                                style={{maxWidth: "100%", minWidth: "40%", width: "40%", display: "flex", flexWrap: "wrap",
+                                style={{maxWidth: "100%", minWidth: "40%", display: "flex", flexWrap: "wrap",
                                 wordBreak: "break-all", flexDirection: "column", justifyContent: "center",}}
                                 pauseOnFocusLoss={false} />
                     <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'row', maxWidth: "100%", width:"100%",

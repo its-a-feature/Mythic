@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import { gql, useMutation} from '@apollo/client';
+import { gql, useMutation, useQuery} from '@apollo/client';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
 import Typography from '@mui/material/Typography';
 import {PayloadSubscriptionNotification} from '../CreatePayload/PayloadSubscriptionNotification';
@@ -12,6 +12,13 @@ import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {ConfigurationSummary} from "../CreatePayload/Step1SelectOS";
 import IconButton from '@mui/material/IconButton';
 import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
+import {exportPayloadConfigQuery} from "../Payloads/PayloadsTableRow";
+import AceEditor from 'react-ace';
+import "ace-builds/src-noconflict/mode-json";
+import "ace-builds/src-noconflict/theme-github";
+import "ace-builds/src-noconflict/theme-monokai";
+import "ace-builds/src-noconflict/ext-searchbox";
+import {useTheme} from '@mui/material/styles';
 
  const create_payload = gql`
  mutation createPayloadMutation($payload: String!) {
@@ -25,6 +32,7 @@ import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutli
 
 
 export function Step5Build(props){
+    const theme = useTheme();
     const [fromNow, setFromNow] = React.useState( (getSkewedNow().toISOString()));
     const [filename, setFilename] = React.useState("");
     const [description, setDescription] = React.useState("");
@@ -45,6 +53,23 @@ export function Step5Build(props){
             }
         }
     });
+    const [payloadConfig, setPayloadConfig] = React.useState("");
+    useQuery(exportPayloadConfigQuery, {
+        variables: {uuid: props.buildOptions[2]},
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            //console.log(data)
+            if(data.exportPayloadConfig.status === "success"){
+                setPayloadConfig(data.exportPayloadConfig.config);
+            }else{
+                snackActions.error("Failed to get configuration: " + data.exportPayloadConfig.error);
+            }
+        },
+        onError: (data) => {
+            console.log(data);
+            snackActions.error("Failed to get configuration: " + data.message)
+        }
+    })
     useEffect( () => {
         if(props.buildOptions[1]["file_extension"] !== ""){
             setFilename(props.buildOptions[1]["payload_type"] + "." + props.buildOptions[1]["file_extension"]);
@@ -205,7 +230,45 @@ export function Step5Build(props){
                         </Typography>
                         <ConfigurationSummary buildParameters={props.buildOptions[1].parameters} os={props.buildOptions[1].os} />
                     </div>
+                    <div style={{
+                        width: "70%",
+                        margin: "5px",
+                        border: "1px solid grey",
+                        borderRadius: "5px",
+                        padding: "5px",
+                        display: "flex",
+                        flexDirection: "column",
+                        flexGrow: 1,
+                        minHeight: 0, // Important for flex shrinking
+                        overflow: "auto"
+                    }}>
+                        <Typography textAlign="center" variant={"h7"} style={{fontWeight: 600, width: "100%"}}>
+                            3. Embedded Payload Configuration
+                            <MythicStyledTooltip title={"Edit Selected Payload"}>
+                                <IconButton color={"primary"} onClick={() => props.moveToStep(2)}>
+                                    <DriveFileRenameOutlineIcon />
+                                </IconButton>
+                            </MythicStyledTooltip>
+                        </Typography>
+                        <div style={{height: "100%", }}>
+                            <AceEditor
+                                mode="json"
+                                theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
+                                width="100%"
+                                height={"100%"}
+                                showPrintMargin={false}
+                                wrapEnabled={true}
+                                readOnly={true}
+                                minLines={10}
+                                value={payloadConfig}
+                                setOptions={{
+                                    useWorker: false
+                                }}
+                            />
+                        </div>
+                    </div>
                 </div>
+
             </div>
 
             {/* Navigation buttons - always at bottom */}

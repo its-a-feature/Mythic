@@ -867,6 +867,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		staginginfo.id, staginginfo.enc_key, staginginfo.dec_key, staginginfo.crypto_type,
 		payload.id "payload.id",
 		payload.operation_id "payload.operation_id",
+		payload.callback_allowed "payload.callback_allowed",
 		payloadtype.id "payload.payloadtype.id", 
 		payloadtype.name "payload.payloadtype.name", 
 		payloadtype.mythic_encrypts "payload.payloadtype.mythic_encrypts",
@@ -879,7 +880,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		WHERE staginginfo.staging_uuid=$1`, messageUUID); err == nil {
 		// we're looking at a staging message
 		newCache.UUID = messageUUID
-		newCache.CallbackAllowedFromPayload = true
+		newCache.CallbackAllowedFromPayload = stager.Payload.CallbackAllowed
 		newCache.UUIDType = UUIDTYPESTAGING
 		newCache.StagingEncKey = stager.EncKey
 		newCache.StagingDecKey = stager.DecKey

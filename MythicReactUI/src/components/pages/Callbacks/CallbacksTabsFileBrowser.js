@@ -369,7 +369,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         onData: ({data}) => {
             for(let i = 0; i < data.data.task_stream.length; i++){
                 if(data.data.task_stream[i].status.toLowerCase().includes("error") && data.data.task_stream[i].completed){
-                    snackActions.warning(<RenderSingleTask task_id={data.data.task_stream[i].id} />,
+                    snackActions.error(<RenderSingleTask task_id={data.data.task_stream[i].id} />,
                         {toastId: data.data.task_stream[i].id, autoClose: false, closeOnClick: false});
                 }
             }
