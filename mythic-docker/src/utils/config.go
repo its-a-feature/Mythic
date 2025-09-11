@@ -15,23 +15,24 @@ const mythicServerVersion = "3.3.1-rc94"
 
 type Config struct {
 	// server configuration
-	AdminUser                           string
-	AdminPassword                       string
-	DefaultOperationName                string
-	DefaultOperationWebhook             string
-	DefaultOperationChannel             string
-	AllowedIPBlocks                     []*net.IPNet
-	DebugAgentMessage                   bool
-	DebugLevel                          string
-	ServerPort                          uint
-	ServerBindLocalhostOnly             bool
-	ServerDynamicPorts                  []uint32
-	ServerDynamicPortsBindLocalhostOnly bool
-	ServerDockerNetworking              string
-	ServerGRPCPort                      uint
-	GlobalServerName                    string
-	MythicServerAllowInviteLinks        bool
-	ServerVersion                       string
+	AdminUser                               string
+	AdminPassword                           string
+	DefaultOperationName                    string
+	DefaultOperationWebhook                 string
+	DefaultOperationChannel                 string
+	AllowedIPBlocks                         []*net.IPNet
+	DebugAgentMessage                       bool
+	DebugLevel                              string
+	ServerPort                              uint
+	ServerBindLocalhostOnly                 bool
+	ServerDynamicPorts                      []uint32
+	ServerDynamicPortsBindLocalhostOnly     bool
+	ServerDockerNetworking                  string
+	ServerGRPCPort                          uint
+	GlobalServerName                        string
+	MythicServerAllowInviteLinks            bool
+	ServerVersion                           string
+	MythicServerAllowWebhooksOnNewCallbacks bool
 
 	// rabbitmq configuration
 	RabbitmqHost     string
@@ -69,7 +70,8 @@ func Initialize() {
 	mythicEnv.SetDefault("mythic_admin_password", "mythic_password")
 	mythicEnv.SetDefault("allowed_ip_blocks", "0.0.0.0/0")
 	mythicEnv.SetDefault("debug_level", "warning")
-	mythicEnv.SetDefault("mythic_server_allow_invite_links", "false")
+	mythicEnv.SetDefault("mythic_server_allow_invite_links", false)
+	mythicEnv.SetDefault("mythic_server_allow_webhooks_on_new_callbacks", true)
 	// postgres configuration
 	mythicEnv.SetDefault("postgres_host", "mythic_postgres")
 	mythicEnv.SetDefault("postgres_port", 5432)
@@ -117,6 +119,7 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 	MythicConfig.ServerPort = mythicEnv.GetUint("mythic_server_port")
 	MythicConfig.ServerBindLocalhostOnly = mythicEnv.GetBool("mythic_server_bind_localhost_only")
 	MythicConfig.ServerGRPCPort = mythicEnv.GetUint("mythic_server_grpc_port")
+	MythicConfig.MythicServerAllowWebhooksOnNewCallbacks = mythicEnv.GetBool("mythic_server_allow_webhooks_on_new_callbacks")
 	dynamicPorts := mythicEnv.GetString("mythic_server_dynamic_ports")
 	for _, port := range strings.Split(dynamicPorts, ",") {
 		if strings.Contains(port, "-") {
