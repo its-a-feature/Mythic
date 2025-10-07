@@ -11,7 +11,7 @@ import { CallbacksTabsProcessBrowserLabel, CallbacksTabsProcessBrowserPanel } fr
 import { CallbacksTabsTaskingSplitLabel, CallbacksTabsTaskingSplitPanel} from "./CallbacksTabsTaskingSplit";
 import {CallbacksTabsTaskingConsoleLabel, CallbacksTabsTaskingConsolePanel} from "./CallbacksTabsTaskingConsole";
 
-export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clickedTabId, setClickedTabId, onEditTabDescription, contextMenuOptions, me}) {
+export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clickedTabId, setClickedTabId, onEditTabDescription, contextMenuOptions, me, newDataForTab, setNewDataForTab}) {
 
     const mountedRef = React.useRef(true);
     const [value, setValue] = React.useState(0);
@@ -75,94 +75,103 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                 <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId="callback-tabs-list" direction={"horizontal"}>
                         {(provided) => (
-                            <Tabs
-                                ref={provided.innerRef} {...provided.droppableProps}
-                                value={value}
-                                onChange={handleChange}
-                                indicatorColor='primary'
-                                textColor='primary'
-                                variant='fullWidth'
-                                scrollButtons={true}
-                                style={{ }}
-                                TabIndicatorProps={{style: {display: "none"}}}
-                                aria-label='scrollable tabs'>
-                                {openTabs.map((tab, index) => {
-                                    switch (tab.tabType) {
-                                        case 'interact':
-                                            return (
-                                                <CallbacksTabsTaskingLabel
-                                                    onEditTabDescription={onEditTabDescription}
-                                                    onCloseTab={onCloseTabLocal}
-                                                    key={'tablabel' + tab.tabID + tab.tabType}
-                                                    tabInfo={tab}
-                                                    index={index}
-                                                    me={me}
-                                                    selectedIndex={value}
-                                                    onDragTab={onDragTab}
-                                                    contextMenuOptions={modifiedInteractContextMenuOptions}
-                                                />
-                                            );
-                                        case 'interactSplit':
-                                            return (
-                                                <CallbacksTabsTaskingSplitLabel
-                                                    onEditTabDescription={onEditTabDescription}
-                                                    onCloseTab={onCloseTabLocal}
-                                                    key={'tablabel' + tab.tabID + tab.tabType}
-                                                    tabInfo={tab}
-                                                    index={index}
-                                                    me={me}
-                                                    selectedIndex={value}
-                                                    onDragTab={onDragTab}
-                                                    contextMenuOptions={contextMenuOptions}
-                                                />
-                                            )
-                                        case 'interactConsole':
-                                            return (
-                                                <CallbacksTabsTaskingConsoleLabel
-                                                    onEditTabDescription={onEditTabDescription}
-                                                    onCloseTab={onCloseTabLocal}
-                                                    key={'tablabel' + tab.tabID + tab.tabType}
-                                                    tabInfo={tab}
-                                                    index={index}
-                                                    me={me}
-                                                    selectedIndex={value}
-                                                    onDragTab={onDragTab}
-                                                    contextMenuOptions={contextMenuOptions}
-                                                />
-                                            )
-                                        case 'fileBrowser':
-                                            return (
-                                                <CallbacksTabsFileBrowserLabel
-                                                    onEditTabDescription={onEditTabDescription}
-                                                    onCloseTab={onCloseTabLocal}
-                                                    key={'tablabel' + tab.tabID + tab.tabType}
-                                                    tabInfo={tab}
-                                                    index={index}
-                                                    me={me}
-                                                    selectedIndex={value}
-                                                    onDragTab={onDragTab}
-                                                    contextMenuOptions={contextMenuOptions}
-                                                />
-                                            );
-                                        case 'processBrowser':
-                                            return (
-                                                <CallbacksTabsProcessBrowserLabel
-                                                    onEditTabDescription={onEditTabDescription}
-                                                    onCloseTab={onCloseTabLocal}
-                                                    key={'tablabel' + tab.tabID + tab.tabType}
-                                                    tabInfo={tab}
-                                                    index={index}
-                                                    me={me}
-                                                    selectedIndex={value}
-                                                    onDragTab={onDragTab}
-                                                    contextMenuOptions={contextMenuOptions}
-                                                />
-                                            );
-                                        default:
-                                            return null;
-                                    }
-                                })}
-                            </Tabs>
+                            <>
+                                <Tabs
+                                    ref={provided.innerRef} {...provided.droppableProps}
+                                    value={value}
+                                    onChange={handleChange}
+                                    indicatorColor='primary'
+                                    textColor='primary'
+                                    variant='fullWidth'
+                                    scrollButtons={true}
+                                    style={{ }}
+                                    TabIndicatorProps={{style: {display: "none"}}}
+                                    aria-label='scrollable tabs'>
+                                    {openTabs.map((tab, index) => {
+                                        switch (tab.tabType) {
+                                            case 'interact':
+                                                return (
+                                                    <CallbacksTabsTaskingLabel
+                                                        onEditTabDescription={onEditTabDescription}
+                                                        onCloseTab={onCloseTabLocal}
+                                                        key={'tablabel' + tab.tabID + tab.tabType}
+                                                        tabInfo={tab}
+                                                        index={index}
+                                                        me={me}
+                                                        newDataForTab={newDataForTab}
+                                                        selectedIndex={value}
+                                                        onDragTab={onDragTab}
+                                                        contextMenuOptions={modifiedInteractContextMenuOptions}
+                                                    />
+                                                );
+                                            case 'interactSplit':
+                                                return (
+                                                    <CallbacksTabsTaskingSplitLabel
+                                                        onEditTabDescription={onEditTabDescription}
+                                                        onCloseTab={onCloseTabLocal}
+                                                        key={'tablabel' + tab.tabID + tab.tabType}
+                                                        tabInfo={tab}
+                                                        index={index}
+                                                        me={me}
+                                                        newDataForTab={newDataForTab}
+                                                        selectedIndex={value}
+                                                        onDragTab={onDragTab}
+                                                        contextMenuOptions={contextMenuOptions}
+                                                    />
+                                                )
+                                            case 'interactConsole':
+                                                return (
+                                                    <CallbacksTabsTaskingConsoleLabel
+                                                        onEditTabDescription={onEditTabDescription}
+                                                        onCloseTab={onCloseTabLocal}
+                                                        key={'tablabel' + tab.tabID + tab.tabType}
+                                                        tabInfo={tab}
+                                                        index={index}
+                                                        me={me}
+                                                        newDataForTab={newDataForTab}
+                                                        selectedIndex={value}
+                                                        onDragTab={onDragTab}
+                                                        contextMenuOptions={contextMenuOptions}
+                                                    />
+                                                )
+                                            case 'fileBrowser':
+                                                return (
+                                                    <CallbacksTabsFileBrowserLabel
+                                                        onEditTabDescription={onEditTabDescription}
+                                                        onCloseTab={onCloseTabLocal}
+                                                        key={'tablabel' + tab.tabID + tab.tabType}
+                                                        tabInfo={tab}
+                                                        index={index}
+                                                        me={me}
+                                                        newDataForTab={newDataForTab}
+                                                        selectedIndex={value}
+                                                        onDragTab={onDragTab}
+                                                        contextMenuOptions={contextMenuOptions}
+                                                    />
+                                                );
+                                            case 'processBrowser':
+                                                return (
+                                                    <CallbacksTabsProcessBrowserLabel
+                                                        onEditTabDescription={onEditTabDescription}
+                                                        onCloseTab={onCloseTabLocal}
+                                                        key={'tablabel' + tab.tabID + tab.tabType}
+                                                        tabInfo={tab}
+                                                        index={index}
+                                                        me={me}
+                                                        newDataForTab={newDataForTab}
+                                                        selectedIndex={value}
+                                                        onDragTab={onDragTab}
+                                                        contextMenuOptions={contextMenuOptions}
+                                                    />
+                                                );
+                                            default:
+                                                return null;
+                                        }
+                                    })}
+                                    {provided.placeholder}
+                                </Tabs>
+                            </>
+
                         )}
                     </Droppable>
                 </DragDropContext>
@@ -182,6 +191,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                                 key={'tabpanel' + tab.tabID + tab.tabType}
                                 onCloseTab={onCloseTabLocal}
                                 tabInfo={tab}
+                                setNewDataForTab={setNewDataForTab}
                                 value={value}
                                 index={index}
                                 me={me}
@@ -201,6 +211,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                                 key={'tabpanel' + tab.tabID + tab.tabType}
                                 onCloseTab={onCloseTabLocal}
                                 tabInfo={tab}
+                                setNewDataForTab={setNewDataForTab}
                                 value={value}
                                 index={index}
                                 me={me}
@@ -219,6 +230,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                                 key={'tabpanel' + tab.tabID + tab.tabType}
                                 onCloseTab={onCloseTabLocal}
                                 tabInfo={tab}
+                                setNewDataForTab={setNewDataForTab}
                                 value={value}
                                 index={index}
                                 me={me}
@@ -237,6 +249,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                                 onCloseTab={onCloseTabLocal}
                                 key={'tabpanel' + tab.tabID + tab.tabType}
                                 tabInfo={tab}
+                                setNewDataForTab={setNewDataForTab}
                                 value={value}
                                 index={index}
                                 me={me}
@@ -255,6 +268,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                                 onCloseTab={onCloseTabLocal}
                                 key={'tabpanel' + tab.tabID + tab.tabType}
                                 tabInfo={tab}
+                                setNewDataForTab={setNewDataForTab}
                                 value={value}
                                 index={index}
                                 me={me}

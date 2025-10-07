@@ -45,6 +45,12 @@ const (
 	BUILD_PARAMETER_TYPE_TYPED_ARRAY                          = "TypedArray"
 )
 
+type HideCondition struct {
+	Name    string      `json:"name"`
+	Operand string      `json:"operand"` // eq, neq, in, nin
+	Value   interface{} `json:"value"`
+	Choices []string    `json:"choices"`
+}
 type BuildParameter struct {
 	Name              string                `json:"name"`
 	Description       string                `json:"description"`
@@ -57,33 +63,47 @@ type BuildParameter struct {
 	IsCryptoType      bool                  `json:"crypto_type"`
 	Choices           []string              `json:"choices"`
 	DictionaryChoices []ParameterDictionary `json:"dictionary_choices"`
+	GroupName         string                `json:"group_name"`
+	SupportedOS       []string              `json:"supported_os"`
+	HideConditions    []HideCondition       `json:"hide_conditions"`
 }
 type BuildStep struct {
 	StepName        string `json:"step_name"`
 	StepDescription string `json:"step_description"`
 }
 
+type C2ParameterDeviation struct {
+	Supported         bool                  `json:"supported" mapstructure:"supported"`
+	Choices           []string              `json:"choices" mapstructure:"choices"`
+	DefaultValue      interface{}           `json:"default_value" mapstructure:"default_value"`
+	DictionaryChoices []ParameterDictionary `json:"dictionary_choices" mapstructure:"dictionary_choices"`
+}
 type PayloadType struct {
-	Name                          string           `json:"name"`
-	FileExtension                 string           `json:"file_extension"`
-	Author                        string           `json:"author"`
-	SupportedOS                   []string         `json:"supported_os"`
-	Wrapper                       bool             `json:"wrapper"`
-	SupportedWrapperPayloadTypes  []string         `json:"supported_wrapper_payload_types"`
-	SupportsDynamicLoading        bool             `json:"supports_dynamic_load"`
-	Description                   string           `json:"description"`
-	SupportedC2Profiles           []string         `json:"supported_c2_profiles"`
-	TranslationContainerName      string           `json:"translation_container_name"`
-	MythicEncryptsData            bool             `json:"mythic_encrypts"`
-	BuildParameters               []BuildParameter `json:"build_parameters"`
-	BuildSteps                    []BuildStep      `json:"build_steps"`
-	AgentIcon                     *[]byte          `json:"agent_icon,omitempty"`
-	DarkModeAgentIcon             *[]byte          `json:"dark_mode_agent_icon,omitempty"`
-	MessageFormat                 string           `json:"message_format"`
-	AgentType                     string           `json:"agent_type"`
-	MessageUUIDLength             int              `json:"message_uuid_length"`
-	CommandAugmentSupportedAgents []string         `json:"command_augment_supported_agents"`
-	UseDisplayParamsForCLIHistory bool             `json:"use_display_params_for_cli_history"`
+	Name                               string                                     `json:"name"`
+	FileExtension                      string                                     `json:"file_extension"`
+	Author                             string                                     `json:"author"`
+	SupportedOS                        []string                                   `json:"supported_os"`
+	Wrapper                            bool                                       `json:"wrapper"`
+	SupportedWrapperPayloadTypes       []string                                   `json:"supported_wrapper_payload_types"`
+	SupportsDynamicLoading             bool                                       `json:"supports_dynamic_load"`
+	Description                        string                                     `json:"description"`
+	SupportedC2Profiles                []string                                   `json:"supported_c2_profiles"`
+	TranslationContainerName           string                                     `json:"translation_container_name"`
+	MythicEncryptsData                 bool                                       `json:"mythic_encrypts"`
+	BuildParameters                    []BuildParameter                           `json:"build_parameters"`
+	BuildSteps                         []BuildStep                                `json:"build_steps"`
+	AgentIcon                          *[]byte                                    `json:"agent_icon,omitempty"`
+	DarkModeAgentIcon                  *[]byte                                    `json:"dark_mode_agent_icon,omitempty"`
+	MessageFormat                      string                                     `json:"message_format"`
+	AgentType                          string                                     `json:"agent_type"`
+	MessageUUIDLength                  int                                        `json:"message_uuid_length"`
+	CommandAugmentSupportedAgents      []string                                   `json:"command_augment_supported_agents"`
+	UseDisplayParamsForCLIHistory      bool                                       `json:"use_display_params_for_cli_history"`
+	SupportsMultipleC2InBuild          bool                                       `json:"supports_multiple_c2_in_build"`
+	SupportsMultipleC2InstancesInBuild bool                                       `json:"supports_multiple_c2_instances_in_build"`
+	SemVer                             string                                     `json:"semver"`
+	C2ParameterDeviations              map[string]map[string]C2ParameterDeviation `json:"c2_parameter_deviations"`
+	CommandHelpFunction                string                                     `json:"command_help_function"`
 }
 
 type Command struct {
@@ -179,7 +199,7 @@ func processPayloadSyncMessages(msg amqp.Delivery) interface{} {
 	if err := json.Unmarshal(msg.Body, &payloadSyncMsg); err != nil {
 		logging.LogError(err, "Failed to process payload sync message")
 		response.Error = err.Error()
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync payload type container - %s", err.Error()), 0, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync payload type container - %s", err.Error()), 0, "", database.MESSAGE_LEVEL_INFO, true)
 	} else {
 
 		if err := payloadTypeSync(payloadSyncMsg); err != nil {
@@ -187,7 +207,7 @@ func processPayloadSyncMessages(msg amqp.Delivery) interface{} {
 			logging.LogError(err, "Failed to fully sync payload type")
 			response.Success = false
 			response.Error = fmt.Sprintf("Error: %v", err)
-			go SendAllOperationsMessage(response.Error, 0, payloadSyncMsg.PayloadType.Name, database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(response.Error, 0, payloadSyncMsg.PayloadType.Name, database.MESSAGE_LEVEL_INFO, true)
 		} else {
 			// successfully synced
 			response.Success = true
@@ -214,9 +234,9 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		logging.LogError(nil, "attempting to sync bad payload container version")
 		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
 	}
-	if err := database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE "name"=$1`, in.PayloadType.Name); err != nil {
+	if err := database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE "name"=$1`, in.PayloadType.Name); errors.Is(err, sql.ErrNoRows) {
 		// this means we don't have the payload, so we need to create it and all the associated components
-		//logging.LogDebug("Failed to find payload type, syncing new data", "payload", payloadtype)
+		logging.LogDebug("Failed to find payload type, syncing new data", "payload", payloadtype)
 		payloadtype.Name = in.PayloadType.Name
 		payloadtype.Author = in.PayloadType.Author
 		payloadtype.ContainerRunning = true
@@ -255,9 +275,17 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			logging.LogError(nil, "Unknown message UUID length", "MessageUUIDLength", in.PayloadType.MessageUUIDLength)
 			payloadtype.MessageUUIDLength = 36
 		}
+		payloadtype.C2ParameterDeviations = GetMythicJSONTextFromStruct(in.PayloadType.C2ParameterDeviations)
+		payloadtype.CommandHelpFunction = in.PayloadType.CommandHelpFunction
+		payloadtype.SemVer = in.PayloadType.SemVer
+		payloadtype.SupportedC2 = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedC2Profiles)
+		payloadtype.SupportsMultipleC2InBuild = in.PayloadType.SupportsMultipleC2InBuild
+		payloadtype.SupportsMultipleC2InstancesInBuild = in.PayloadType.SupportsMultipleC2InstancesInBuild
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO payloadtype 
-			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper,agent_type,message_format,command_augment_supported_agents,message_uuid_length,use_display_params_for_cli_history) 
-			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper,:agent_type, :message_format, :command_augment_supported_agents, :message_uuid_length, :use_display_params_for_cli_history) 
+			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper,agent_type,message_format,command_augment_supported_agents,message_uuid_length,use_display_params_for_cli_history,
+			 c2_parameter_deviations, command_help_function, supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build, supported_c2, semver) 
+			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper,:agent_type, :message_format, :command_augment_supported_agents, :message_uuid_length, :use_display_params_for_cli_history,
+			        :c2_parameter_deviations, :command_help_function, :supports_multiple_c2_in_build, :supports_multiple_c2_instances_in_build, :supported_c2, :semver) 
 			RETURNING id`,
 		); err != nil {
 			logging.LogError(err, "Failed to create new payloadtype statement")
@@ -272,7 +300,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 				go reSyncPayloadTypes()
 			}
 		}
-	} else {
+	} else if err == nil {
 		// the payload exists in the database, so we need to go down the track of updating/adding/removing information
 		//logging.LogDebug("Found payload", "payload", payloadtype)
 		payloadtype.Name = in.PayloadType.Name
@@ -314,17 +342,29 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			payloadtype.MessageUUIDLength = 36
 		}
 		payloadtype.CommandAugmentSupportedAgents = GetMythicJSONArrayFromStruct(in.PayloadType.CommandAugmentSupportedAgents)
+		payloadtype.C2ParameterDeviations = GetMythicJSONTextFromStruct(in.PayloadType.C2ParameterDeviations)
+		payloadtype.CommandHelpFunction = in.PayloadType.CommandHelpFunction
+		payloadtype.SemVer = in.PayloadType.SemVer
+		payloadtype.SupportedC2 = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedC2Profiles)
+		payloadtype.SupportsMultipleC2InBuild = in.PayloadType.SupportsMultipleC2InBuild
+		payloadtype.SupportsMultipleC2InstancesInBuild = in.PayloadType.SupportsMultipleC2InstancesInBuild
 		_, err = database.DB.NamedExec(`UPDATE payloadtype SET 
 			author=:author, container_running=:container_running, file_extension=:file_extension, mythic_encrypts=:mythic_encrypts,
 			note=:note, supported_os=:supported_os, supports_dynamic_loading=:supports_dynamic_loading, wrapper=:wrapper, deleted=:deleted,
 			agent_type=:agent_type, message_format=:message_format, command_augment_supported_agents=:command_augment_supported_agents,
-			message_uuid_length=:message_uuid_length, use_display_params_for_cli_history=:use_display_params_for_cli_history
+			message_uuid_length=:message_uuid_length, use_display_params_for_cli_history=:use_display_params_for_cli_history,
+			c2_parameter_deviations=:c2_parameter_deviations, command_help_function=:command_help_function, 
+			supports_multiple_c2_in_build=:supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build=:supports_multiple_c2_instances_in_build, 
+			supported_c2=:supported_c2, semver=:semver
 			WHERE id=:id`, payloadtype,
 		)
 		if err != nil {
 			logging.LogError(err, "Failed to update payloadtype in database")
 			return err
 		}
+	} else {
+		logging.LogError(err, "Failed to fetch payloadtype in database while syncing")
+		return err
 	}
 	err := updatePayloadTypeC2Profiles(in, payloadtype)
 	if err != nil {
@@ -387,7 +427,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		}
 		if err := database.DB.Get(&translationContainer, `SELECT id FROM translationcontainer WHERE "name"=$1`, translationContainer.Name); err != nil {
 			logging.LogError(err, "Failed to find corresponding translation container for payload type")
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to find translation container, %s, for %s", translationContainer.Name, payloadtype.Name), 0, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to find translation container, %s, for %s", translationContainer.Name, payloadtype.Name), 0, "", database.MESSAGE_LEVEL_INFO, true)
 		} else if _, err = database.DB.Exec(`UPDATE payloadtype SET translation_container_id=$1 WHERE id=$2`, translationContainer.ID, payloadtype.ID); err != nil {
 			logging.LogError(err, "Failed to associate translation container with payload type")
 		} else {
@@ -400,7 +440,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		// translation container information potentially changed, invalidate all the caches and re-do them with the updates
 		InvalidateAllCachedUUIDInfo()
 	}
-	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG)
+	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
 	go database.ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
 	checkContainerStatusAddPtChannel <- payloadtype
 	if !in.ForcedSync {
@@ -449,33 +489,32 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 						databaseParameter.Required = newParameter.Required
 						databaseParameter.VerifierRegex = newParameter.VerifierRegex
 						databaseParameter.Deleted = false
+						databaseParameter.GroupName = newParameter.GroupName
+						databaseParameter.SupportedOS = GetMythicJSONArrayFromStruct(newParameter.SupportedOS)
+						databaseParameter.HideConditions = GetMythicJSONArrayFromStruct(newParameter.HideConditions)
 						databaseParameter.IsCryptoType = newParameter.IsCryptoType
-						if defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices); err != nil {
+						defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices)
+						if err != nil {
 							logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for updating build parameter")
 							return err
-						} else {
-							databaseParameter.DefaultValue = defaultVal
 						}
-						if choices, err := getSyncToDatabaseValueForChoices(newParameter.ParameterType, newParameter.Choices, newParameter.DictionaryChoices); err != nil {
+						databaseParameter.DefaultValue = defaultVal
+						choices, err := getSyncToDatabaseValueForChoices(newParameter.ParameterType, newParameter.Choices, newParameter.DictionaryChoices)
+						if err != nil {
 							logging.LogError(err, "Failed to call getSyncToDatabaseValueForChoices")
 							return err
-						} else {
-							databaseParameter.Choices = choices
 						}
-						if err == nil {
-							_, err = database.DB.NamedExec(`UPDATE buildparameter SET 
+						databaseParameter.Choices = choices
+						_, err = database.DB.NamedExec(`UPDATE buildparameter SET 
 								description=:description, default_value=:default_value, choices=:choices,
 								parameter_type=:parameter_type, required=:required, randomize=:randomize,
 								verifier_regex=:verifier_regex, deleted=:deleted, format_string=:format_string,
-								crypto_type=:crypto_type
+								crypto_type=:crypto_type, group_name=:group_name, supported_os=:supported_os,
+								hide_conditions=:hide_conditions
 								WHERE id=:id`, databaseParameter,
-							)
-							if err != nil {
-								logging.LogError(err, "Failed to update build parameter in database", "build_parameter", databaseParameter)
-								return err
-							}
-						} else {
-							logging.LogError(err, "Failed to get string representation of default value for build parameter", "build_parameter", newParameter)
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to update build parameter in database", "build_parameter", databaseParameter)
 							return err
 						}
 					}
@@ -511,37 +550,40 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 				Required:      newParameter.Required,
 				ParameterType: newParameter.ParameterType,
 				PayloadTypeID: payloadtype.ID,
+				GroupName:     newParameter.GroupName,
 			}
-			if defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices); err != nil {
+			defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices)
+			if err != nil {
 				logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for brand new build parameter")
 				return err
-			} else {
-				databaseParameter.DefaultValue = defaultVal
 			}
-			if choices, err := getSyncToDatabaseValueForChoices(newParameter.ParameterType, newParameter.Choices, newParameter.DictionaryChoices); err != nil {
+			databaseParameter.DefaultValue = defaultVal
+			choices, err := getSyncToDatabaseValueForChoices(newParameter.ParameterType, newParameter.Choices, newParameter.DictionaryChoices)
+			if err != nil {
 				logging.LogError(err, "Failed to call getSyncToDatabaseValueForChoices")
 				return err
-			} else {
-				databaseParameter.Choices = choices
 			}
-			if statement, err := database.DB.PrepareNamed(`INSERT INTO buildparameter 
+			databaseParameter.Choices = choices
+			databaseParameter.SupportedOS = GetMythicJSONArrayFromStruct(newParameter.SupportedOS)
+			databaseParameter.HideConditions = GetMythicJSONArrayFromStruct(newParameter.HideConditions)
+			statement, err := database.DB.PrepareNamed(`INSERT INTO buildparameter 
 				(name,description,default_value,verifier_regex,deleted,
-					required,parameter_type,payload_type_id, choices, crypto_type, randomize, format_string) 
+					required,parameter_type,payload_type_id, choices, crypto_type, randomize, format_string,
+				 group_name, supported_os, hide_conditions) 
 				VALUES (:name, :description, :default_value, :verifier_regex, :deleted,
-				:required, :parameter_type, :payload_type_id, :choices, :crypto_type, :randomize, :format_string) 
+				:required, :parameter_type, :payload_type_id, :choices, :crypto_type, :randomize, :format_string,
+				        :group_name, :supported_os, :hide_conditions) 
 				RETURNING id`,
-			); err != nil {
+			)
+			if err != nil {
 				logging.LogError(err, "Failed to create new buildparameter statement when importing payloadtype")
 				return err
-			} else {
-				if err = statement.Get(&databaseParameter.ID, databaseParameter); err != nil {
-					logging.LogError(err, "Failed to create new build parameter")
-					return err
-				} else {
-					//logging.LogDebug("New build parameter", "build_parameter", databaseParameter)
-				}
 			}
-
+			err = statement.Get(&databaseParameter.ID, databaseParameter)
+			if err != nil {
+				logging.LogError(err, "Failed to create new build parameter")
+				return err
+			}
 		}
 	}
 	return nil
@@ -587,8 +629,11 @@ func updatePayloadTypeC2Profiles(in PayloadTypeSyncMessage, payloadtype database
 	for _, name := range syncingC2Profiles {
 		c2profile := databaseStructs.C2profile{Name: name}
 		if err := database.DB.Get(&c2profile, "SELECT id FROM c2profile WHERE name=$1", name); err != nil {
-			logging.LogError(err, "Failed to get c2profile to associate with payloadtype", "c2profile", name, "c2profiles", syncingC2Profiles)
-
+			if errors.Is(err, sql.ErrNoRows) {
+				logging.LogError(nil, "Payload Type supports C2 Profile that's not yet installed", "c2profile", name, "payloadtype", payloadtype.Name)
+			} else {
+				logging.LogError(err, "Failed to get c2profile to associate with payloadtype", "c2profile", name, "c2profiles", syncingC2Profiles)
+			}
 		} else {
 			databaseC2Profile = databaseStructs.Payloadtypec2profile{C2ProfileID: c2profile.ID, PayloadTypeID: payloadtype.ID}
 			if _, err := database.DB.NamedExec(`INSERT INTO 
@@ -676,7 +721,11 @@ func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseSt
 	for _, name := range syncingWrappers {
 		targetWrapper := databaseStructs.Payloadtype{Name: name}
 		if err := database.DB.Get(&targetWrapper, "SELECT id FROM payloadtype WHERE name=$1", name); err != nil {
-			logging.LogError(err, "Failed to find payloadtype to associate for wrapping", "wrapper", name, "wrapped", payloadtype.Name)
+			if errors.Is(err, sql.ErrNoRows) {
+				logging.LogError(nil, "Payload Type supports wrapper that's not yet installed", "wrapper", name, "wrapped", payloadtype.Name)
+			} else {
+				logging.LogError(err, "Failed to find payloadtype to associate for wrapping", "wrapper", name, "wrapped", payloadtype.Name)
+			}
 		} else {
 			databaseWrapper = databaseStructs.Wrappedpayloadtypes{WrapperID: targetWrapper.ID, WrappedID: payloadtype.ID}
 			if payloadtype.Wrapper {
@@ -1236,7 +1285,7 @@ func updatePayloadTypeCommandMitreAttack(in PayloadTypeSyncMessage, syncCommand 
 				logging.LogError(err, "Failed to find ATT&CK TNum", "t_num", newMitreAttack)
 				SendAllOperationsMessage(
 					fmt.Sprintf("%s:%s - Failed to find ATT&CK TNum: %s", in.PayloadType.Name, syncCommand.Name, newMitreAttack),
-					0, "", database.MESSAGE_LEVEL_WARNING)
+					0, "", database.MESSAGE_LEVEL_INFO, true)
 			} else {
 				if _, err := database.DB.NamedExec(`INSERT INTO
 					attackcommand (attack_id, command_id)

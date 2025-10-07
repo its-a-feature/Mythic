@@ -48,7 +48,7 @@ export function CallbacksTabsTaskingLabel(props){
     ]);
     return (
         <>
-            <MythicTabLabel label={description} onDragTab={props.onDragTab} me={props.me} {...props} contextMenuOptions={contextMenuOptions}/>
+            <MythicTabLabel highlight={props.newDataForTab[props.tabInfo.tabID]} label={description} onDragTab={props.onDragTab} me={props.me} {...props} contextMenuOptions={contextMenuOptions}/>
             {openEditDescriptionDialog &&
                 <MythicDialog fullWidth={true} open={openEditDescriptionDialog}  onClose={() => {setOpenEditDescriptionDialog(false);}}
                     innerDialog={
@@ -82,7 +82,7 @@ query getBatchTasking($callback_id: Int!, $offset: Int!, $fetchLimit: Int!){
     }
 }
 `;
-export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, parentMountedRef, me, collapseTaskRequest}) =>{
+export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, parentMountedRef, me, collapseTaskRequest, setNewDataForTab}) =>{
     const [taskLimit, setTaskLimit] = React.useState(20);
     const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
@@ -174,6 +174,9 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         }
         if(!fetched){
             setFetched(true);
+        }
+        if(index !== value && fetched){
+            setNewDataForTab((prev) => {return {...prev, [tabInfo.tabID]: true}});
         }
         //console.log("new subscription data in CallbacksTabsTasking", subscriptionData);
         const oldLength = taskingDataRef.current.task.length;

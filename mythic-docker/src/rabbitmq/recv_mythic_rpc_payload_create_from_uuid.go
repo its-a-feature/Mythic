@@ -265,9 +265,20 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 	}
 	// finalC2Profiles will look like {"http": {"callback_host": "val", "callback_port": val2}}
 	finalC2Profiles := make([]PayloadBuildC2Profile, 0)
-	for _, suppliedC2Profile := range *c2Profiles {
+	payloadType := databasePayload.Payloadtype
+	err := database.DB.Get(&payloadType, `SELECT c2_parameter_deviations FROM payloadtype WHERE id=$1`, databasePayload.PayloadTypeID)
+	if err != nil {
+		return nil, err
+	}
+	deviations := make(map[string]map[string]C2ParameterDeviation)
+	err = mapstructure.Decode(payloadType.C2ParameterDeviations.StructValue(), &deviations)
+	if err != nil {
+		return nil, err
+	}
+	for count, suppliedC2Profile := range *c2Profiles {
 		databaseC2Profile := databaseStructs.C2profile{}
-		if err := database.DB.Get(&databaseC2Profile, "SELECT * FROM c2profile WHERE name=$1 and deleted=false", suppliedC2Profile.Name); err != nil {
+		err = database.DB.Get(&databaseC2Profile, "SELECT * FROM c2profile WHERE name=$1 and deleted=false", suppliedC2Profile.Name)
+		if err != nil {
 			logging.LogError(err, "Failed to find c2 profile")
 			return nil, err
 		}
@@ -277,18 +288,6 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 			ID:         databaseC2Profile.ID,
 			Parameters: map[string]interface{}{},
 		}
-		/*
-				if !databaseC2Profile.ContainerRunning {
-					err := errors.New("C2 Profile container isn't running, can't task configuration checks")
-					logging.LogError(err, "C2 Profile container isn't running, can't task configuration checks")
-					return nil, err
-				}
-
-			if !databaseC2Profile.Running && !databaseC2Profile.IsP2p {
-				// the profile isn't running, and it's not a P2P container, so issue the start task
-				go autoStartC2Profile(databaseC2Profile)
-			}
-		*/
 		databaseC2ProfileParameter := databaseStructs.C2profileparameters{}
 		if rows, err := database.DB.NamedQuery(`SELECT
 			*
@@ -309,36 +308,61 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 						if suppliedParameterName == databaseC2ProfileParameter.Name {
 							// we have a supplied parameter that matches the one we're looking at from the database for this c2 profile
 							found = true
-							if strippedValue, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(
+							strippedValue, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(
 								databaseC2ProfileParameter.ParameterType, suppliedParameterValue,
-							); err != nil {
-								//if strippedValue, err := GetStrippedValueForC2Parameter(databaseC2ProfileParameter, suppliedParameterValue); err != nil {
+							)
+							if err != nil {
 								logging.LogError(err, "Failed to get stripped c2 profile parameter", "value", suppliedParameterValue)
 								return nil, err
-							} else {
-								paramStringVal = strippedValue
 							}
+							paramStringVal = strippedValue
 							break
 						}
 					}
-					if !found {
-						if strippedValue, err := getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(
-							databaseC2ProfileParameter.ParameterType, databaseC2ProfileParameter.DefaultValue,
-							databaseC2ProfileParameter.Choices.StructValue(),
-							databaseC2ProfileParameter.Randomize, databaseC2ProfileParameter.FormatString); err != nil {
-							//if strippedValue, err := GetDefaultValueForC2Parameter(databaseC2ProfileParameter); err != nil {
-							logging.LogError(err, "Failed to get default c2 profile parameter", "parameter", databaseC2ProfileParameter)
-							return nil, err
-						} else {
-							paramStringVal = strippedValue
+					if _, ok := deviations[suppliedC2Profile.Name]; ok {
+						if _, ok = deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name]; ok {
+							if !deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].Supported {
+								continue
+							}
+							updateStringParam := false
+							if len(deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].Choices) > 0 {
+								if !slices.Contains(deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].Choices, paramStringVal) {
+									updateStringParam = true
+								}
+							} else if !found {
+								updateStringParam = true
+							}
+							found = true
+							if updateStringParam {
+								strippedValue, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(
+									databaseC2ProfileParameter.ParameterType,
+									deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].DefaultValue,
+								)
+								if err != nil {
+									logging.LogError(err, "Failed to get stripped c2 profile parameter", "value", deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].DefaultValue)
+									return nil, err
+								}
+								paramStringVal = strippedValue
+							}
 						}
 					}
-
+					if !found {
+						strippedValue, err := getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(
+							databaseC2ProfileParameter.ParameterType, databaseC2ProfileParameter.DefaultValue,
+							databaseC2ProfileParameter.Choices.StructValue(),
+							databaseC2ProfileParameter.Randomize, databaseC2ProfileParameter.FormatString)
+						if err != nil {
+							logging.LogError(err, "Failed to get default c2 profile parameter", "parameter", databaseC2ProfileParameter)
+							return nil, err
+						}
+						paramStringVal = strippedValue
+					}
 					c2ParameterInstance := databaseStructs.C2profileparametersinstance{
 						PayloadID:             sql.NullInt64{Valid: true, Int64: int64(databasePayload.ID)},
 						C2ProfileID:           databaseC2Profile.ID,
 						C2ProfileParametersID: databaseC2ProfileParameter.ID,
 						Value:                 paramStringVal,
+						Count:                 count,
 					}
 					c2ParameterInstance.OperationID.Valid = true
 					c2ParameterInstance.OperationID.Int64 = int64(databasePayload.OperationID)
@@ -391,8 +415,8 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 						finalC2Profile.Parameters[databaseC2ProfileParameter.Name] = interfaceParam
 					}
 					if _, err := database.DB.NamedExec(`INSERT INTO
-							c2profileparametersinstance (payload_id, c2_profile_id, c2_profile_parameters_id, value, enc_key, dec_key, operation_id)
-							VALUES (:payload_id, :c2_profile_id, :c2_profile_parameters_id, :value, :enc_key, :dec_key, :operation_id)`,
+							c2profileparametersinstance (payload_id, c2_profile_id, c2_profile_parameters_id, value, enc_key, dec_key, operation_id, count)
+							VALUES (:payload_id, :c2_profile_id, :c2_profile_parameters_id, :value, :enc_key, :dec_key, :operation_id, :count)`,
 						c2ParameterInstance); err != nil {
 						logging.LogError(err, "Failed to save c2 profile parameter instance into database")
 						return nil, err

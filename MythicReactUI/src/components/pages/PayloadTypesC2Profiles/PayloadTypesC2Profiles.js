@@ -12,7 +12,7 @@ import {TranslationContainerRow} from "./TranslationContainerCard";
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
 import {MythicSearchTabLabel, MythicTabPanel} from "../../MythicComponents/MythicTabPanel";
-import {ConsumingServicesTableRow} from '../ConsumingServices/ConsumingServicesTable';
+import {ConsumingServicesTableRow} from './ConsumingServicesTable';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -33,6 +33,7 @@ const SUB_Payload_Types = gql`
     supported_os
     wrapper
     agent_type
+    semver
     translationcontainer {
         id
         name
@@ -58,6 +59,8 @@ subscription getPayloadTypesSubscription {
    name
    running
    deleted
+   semver
+   has_logo
    payloadtypec2profiles(order_by: {payloadtype: {name: asc}}) {
      payloadtype {
        name

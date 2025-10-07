@@ -36,7 +36,7 @@ export const operatorSettingDefaults =  {
     autoTaskLsOnEmptyDirectories: false,
     hideBrowserTasking: false,
     hideTaskingContext: false,
-    taskingContextFields: ["impersonation_context", "cwd", "extra_info"],
+    taskingContextFields: ["impersonation_context", "cwd"],
     ["experiment-responseStreamLimit"]: 50,
     palette: {
         primary: {

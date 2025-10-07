@@ -75,7 +75,7 @@ func CreateTaskWebhook(c *gin.Context) {
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	if len(callbacks) > 1 {
 		rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Starting to task %d callbacks with \"%s\"", len(callbacks), input.Input.Command),
-			operatorOperation.CurrentOperation.ID, "mass_tasking", database.MESSAGE_LEVEL_INFO)
+			operatorOperation.CurrentOperation.ID, "mass_tasking", database.MESSAGE_LEVEL_INFO, false)
 	}
 	createTaskInput := rabbitmq.CreateTaskInput{
 		CallbackDisplayID:   callbacks[0],
@@ -137,5 +137,5 @@ func issueMassTasking(input CreateTaskInput, callbacks []int, operatorOperation 
 		rabbitmq.CreateTask(createTaskInput)
 	}
 	rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Finished tasking %d callbacks with \"%s\"", len(callbacks)+1, input.Input.Command),
-		operatorOperation.CurrentOperation.ID, "mass_tasking", database.MESSAGE_LEVEL_INFO)
+		operatorOperation.CurrentOperation.ID, "mass_tasking", database.MESSAGE_LEVEL_INFO, false)
 }

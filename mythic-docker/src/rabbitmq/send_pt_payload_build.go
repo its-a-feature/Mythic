@@ -312,7 +312,7 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 		// one or more opsec checks failed, we need to bail out of building the payload
 		logging.LogError(nil, "One or more c2 profiles errored out for an opsec check")
 		SendAllOperationsMessage(fmt.Sprintf("C2 Profile aborted build process due to OPSEC or Configuration error"), databasePayload.OperationID,
-			"mythic_payload_build", database.MESSAGE_LEVEL_WARNING)
+			"mythic_payload_build", database.MESSAGE_LEVEL_INFO, true)
 		database.UpdatePayloadWithError(databasePayload, errors.New(buildOutput))
 		EventingChannel <- EventNotification{
 			Trigger:             eventing.TriggerPayloadBuildFinish,

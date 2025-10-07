@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.70] - 2025-09
+
+### Changed
+
+- Updated the Payload and Wrapper creation pages
+- Added support for PayloadType new fields: 
+  - c2_parameter_deviations: ability to set choices, default_value for c2-specific fields
+  - supports_multiple_c2_in_build: ability to signify if more than one c2 is allowed or not
+  - supports_multiple_c2_instances_in_build: ability to signify if more than one instance of a specific 2 is allowed or not (i.e. 2 HTTPX profiles)
+  - semver: display a semantic version for Payload Types if set
+  
 ## [0.3.69] - 2025-08-21
 
 - Fixed an issue with browser script tables getting hidden by the container

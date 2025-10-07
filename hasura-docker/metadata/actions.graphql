@@ -304,7 +304,17 @@ type Mutation {
 type Mutation {
   eventingTriggerManual(
     eventgroup_id: Int!
+    env_data: jsonb
   ): eventingTriggerManualOutput
+}
+
+type Mutation {
+  eventingTriggerManualBulk(
+    eventgroup_id: Int!
+    env_data: jsonb
+    trigger_context_type: String!
+    trigger_context_ids: [Int!]!
+  ): eventingTriggerManualBulkOutput
 }
 
 type Mutation {
@@ -1234,5 +1244,10 @@ type updatePayloadOutput {
   deleted: Boolean
   id: Int
   payload_uuid: String
+}
+
+type eventingTriggerManualBulkOutput {
+  status: String!
+  error: String
 }
 

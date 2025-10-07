@@ -17,8 +17,7 @@ import {
 } from "./EventStepRender";
 import OpenInNewTwoToneIcon from '@mui/icons-material/OpenInNewTwoTone';
 import PermMediaTwoToneIcon from '@mui/icons-material/PermMediaTwoTone';
-import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
-import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -34,7 +33,7 @@ import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwo
 import RuleTwoToneIcon from '@mui/icons-material/RuleTwoTone';
 import ChecklistRtlTwoToneIcon from '@mui/icons-material/ChecklistRtlTwoTone';
 import {EventGroupTableRunAsDialog} from "./EventApprovalDialog";
-import AttachmentIcon from '@mui/icons-material/Attachment';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import Badge from '@mui/material/Badge';
 import {EventFileManageDialog} from "./EventFileManageDialog";
 import SpellcheckIcon from '@mui/icons-material/Spellcheck';
@@ -67,7 +66,7 @@ mutation eventingManualTrigger($eventgroup_id: Int!){
     }
 }
 `)
-export function EventGroupTable({selectedEventGroup, me}) {
+export function EventGroupTable({selectedEventGroup, me, showInstances, showGraph}) {
     const [openEventStepRender, setOpenEventStepRender] = React.useState(false);
     const [openEnvView, setOpenEnvView] = React.useState(false);
     const [openTriggerDataView, setOpenTriggerDataView] = React.useState(false);
@@ -302,12 +301,12 @@ export function EventGroupTable({selectedEventGroup, me}) {
                                          <OpenInNewTwoToneIcon color={"info"} style={{cursor: "pointer", marginRight: "5px"}}/>
                                      </IconButton>
                                  </MythicStyledTooltip>
-                                 <MythicStyledTooltip title={"View Original File"}>
+                                 <MythicStyledTooltip title={"Create New Workflow From This One"}>
                                      <IconButton onClick={() => {
                                          setOpenFileView(true);
                                      }} size={"small"} color={"secondary"} style={{}}>
                                          <PermMediaTwoToneIcon color={"info"} style={{cursor: "pointer", marginRight: "5px"}}/>
-
+                                         <AddCircleIcon color={"success"} style={{marginLeft: "-8px", marginTop: "7px", backgroundColor: "white", borderRadius: "10px"}} fontSize={"small"} />
                                      </IconButton>
                                  </MythicStyledTooltip>
                                  <MythicStyledTooltip title={"Manage Associated Files"}>
@@ -315,7 +314,7 @@ export function EventGroupTable({selectedEventGroup, me}) {
                                          setOpenFileManageView(true);
                                      }} size={"small"} variant={"outlined"} color={"secondary"} style={{}}>
                                          <Badge badgeContent={selectedEventGroup.filemeta.length}  color="secondary">
-                                             <AttachmentIcon color={"info"} style={{cursor: "pointer", marginRight: "5px"}}/>
+                                             <AttachFileIcon color={"info"} style={{cursor: "pointer", marginRight: "5px"}}/>
                                          </Badge>
                                      </IconButton>
                                  </MythicStyledTooltip>
@@ -347,11 +346,11 @@ export function EventGroupTable({selectedEventGroup, me}) {
 
              </div>
          }
-         <RenderSteps selectedInstanceID={selectedInstanceID} selectedEventGroup={selectedEventGroup} />
-         <EventGroupInstances setSelectedInstance={setSelectedInstanceID}
+         {showGraph && <RenderSteps selectedInstanceID={selectedInstanceID} selectedEventGroup={selectedEventGroup} />}
+         {showInstances && <EventGroupInstances setSelectedInstance={setSelectedInstanceID}
                               selectedInstanceID={selectedInstanceID}
                               foundQueryInstanceRef={foundQueryInstanceRef}
-                              selectedEventGroup={selectedEventGroup} me={me}/>
+                              selectedEventGroup={selectedEventGroup} me={me}/>}
          {openEventStepRender &&
              <MythicDialog fullWidth={true} maxWidth="xl" open={openEventStepRender}
                            onClose={() => {
@@ -374,19 +373,16 @@ export function EventGroupTable({selectedEventGroup, me}) {
              />
          }
          {openFileView &&
-             <MythicDialog fullWidth={true} maxWidth="xl" open={openFileView}
-                           onClose={(e) => {
+             <MythicDialog fullWidth={true} maxWidth="lg" open={openFileView}
+                           onClose={() => {
                                setOpenFileView(false);
                            }}
-                           innerDialog={<PreviewFileMediaDialog
-                               agent_file_id={selectedEventGroup.filemetum.agent_file_id}
-                               filename={b64DecodeUnicode(selectedEventGroup.filemetum.filename_text)}
-                               onClose={(e) => {
-                                   setOpenFileView(false);
-                               }}/>}
+                           innerDialog={<EventGroupTableEditDialog onClose={() => {
+                               setOpenFileView(false);
+                           }} me={me} selectedEventGroup={selectedEventGroup} includeSteps={true} />}
              />
          }
-         {openEnvView && <MythicDialog fullWidth={true} maxWidth="md" open={openEnvView}
+         {openEnvView && <MythicDialog fullWidth={true} maxWidth="lg" open={openEnvView}
                                        onClose={() => {
                                            setOpenEnvView(false);
                                        }}
@@ -398,7 +394,7 @@ export function EventGroupTable({selectedEventGroup, me}) {
                                            }}/>}
          />
          }
-         {openTriggerDataView && <MythicDialog fullWidth={true} maxWidth="md" open={openTriggerDataView}
+         {openTriggerDataView && <MythicDialog fullWidth={true} maxWidth="lg" open={openTriggerDataView}
                                        onClose={() => {
                                            setOpenTriggerDataView(false);
                                        }}
@@ -412,7 +408,7 @@ export function EventGroupTable({selectedEventGroup, me}) {
          />
          }
          {openFileManageView &&
-             <MythicDialog fullWidth={true} maxWidth="md" open={openFileManageView}
+             <MythicDialog fullWidth={true} maxWidth="lg" open={openFileManageView}
                            onClose={() => {
                                setOpenFileManageView(false);
                            }}
@@ -432,7 +428,7 @@ export function EventGroupTable({selectedEventGroup, me}) {
              />
          }
          {openConsumingContainerDialog &&
-             <MythicDialog fullWidth={true} maxWidth="md" open={openConsumingContainerDialog}
+             <MythicDialog fullWidth={true} maxWidth="lg" open={openConsumingContainerDialog}
                            onClose={() => {
                                setOpenConsumingContainerDialog(false);
                            }}

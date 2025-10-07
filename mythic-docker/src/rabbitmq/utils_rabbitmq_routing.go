@@ -50,6 +50,9 @@ func GetPtTaskCompletionHandlerRoutingKey(container string) string {
 func GetPtTaskProcessResponseRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_TASK_PROCESS_RESPONSE)
 }
+func GetPtCommandHelpRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, PT_COMMAND_HELP_FUNCTION)
+}
 
 // c2 rpc routing key functions
 func GetC2RPCOpsecChecksRoutingKey(container string) string {

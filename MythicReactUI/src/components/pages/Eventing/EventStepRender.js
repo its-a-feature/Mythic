@@ -1089,10 +1089,10 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                 </div>
 
             </DialogTitle>
-            <DialogContent dividers={true} style={{height: "calc(75vh)"}}>
-                <Typography style={{width: "100%", padding: "10px",
+            <DialogContent dividers={true} style={{height: "calc(75vh)", padding: "5px"}}>
+                <Typography style={{width: "100%", padding: "0px", paddingLeft: "10px",
                     backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}}
-                            variant={'h5'} component={Paper} >
+                            variant={'h6'} component={Paper} >
                     Action: <b>{data.eventstepinstance_by_pk.eventstep.action}</b>
                 </Typography>
                 <Paper style={{marginTop: "5px"}}>
@@ -1100,10 +1100,8 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                         TransitionProps={{ unmountOnExit: true }} defaultExpanded={false}
                         onChange={() => {setExpandStepTable(!expandStepTable)}} expanded={expandStepTable}
                     >
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            aria-controls={`panel1c-stdout`}
-                        >Original and Instance Metadata
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls={`panel1c-stdout`}>
+                            Original and Instance Metadata
                         </AccordionSummary>
                         <AccordionDetails style={{cursor: "default"}}>
                             <Table style={{width: "100%", overflow: "auto", tableLayout: "fixed", }}>
@@ -1170,6 +1168,7 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                         </AccordionDetails>
                     </Accordion>
                 </Paper>
+                { data.eventstepinstance_by_pk.stdout !== "" &&
                 <Paper style={{marginTop: "5px"}}>
                     <Accordion TransitionProps={{unmountOnExit: true}} defaultExpanded={false}
                                onChange={() => {
@@ -1201,6 +1200,8 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                         </AccordionDetails>
                     </Accordion>
                 </Paper>
+                }
+                {data.eventstepinstance_by_pk.stderr !== "" &&
                 <Paper style={{marginTop: "5px"}}>
                     <Accordion TransitionProps={{ unmountOnExit: true }} defaultExpanded={false}
                                onChange={() => {setExpandStderr(!expandStderr)}} expanded={expandStderr}
@@ -1230,7 +1231,7 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                         </AccordionDetails>
                     </Accordion>
                 </Paper>
-
+                }
                 {data.eventstepinstance_by_pk.callbacks.length > 0 &&
                 <>
                     <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>

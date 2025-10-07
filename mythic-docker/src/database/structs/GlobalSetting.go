@@ -13,10 +13,11 @@ type GlobalSetting struct {
 }
 
 type GlobalSettingServerConfig struct {
-	Name              string `json:"name" mapstructure:"name"`
-	Version           string `json:"version" mapstructure:"version"`
-	DebugAgentMessage bool   `json:"debug_agent_message" mapstructure:"debug_agent_message"`
-	AllowInviteLinks  bool   `json:"allow_invite_links" mapstructure:"allow_invite_links"`
+	Name                        string `json:"name" mapstructure:"name"`
+	Version                     string `json:"version" mapstructure:"version"`
+	DebugAgentMessage           bool   `json:"debug_agent_message" mapstructure:"debug_agent_message"`
+	AllowInviteLinks            bool   `json:"allow_invite_links" mapstructure:"allow_invite_links"`
+	AllowWebhooksOnNewCallbacks bool   `json:"allow_webhooks_on_new_callbacks" mapstructure:"allow_webhooks_on_new_callbacks"`
 }
 
 var GlobalSettingDefaultsMap = map[string]interface{}{

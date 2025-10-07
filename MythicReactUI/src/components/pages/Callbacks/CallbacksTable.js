@@ -20,7 +20,7 @@ import {
 } from './CallbacksTableRow';
 import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
 import {TableFilterDialog} from './TableFilterDialog';
-import {CallbacksTabsHideMultipleDialog} from "./CallbacksTabsHideMultipleDialog";
+import {CallbacksTabsHideMultipleDialog, CallbacksTabsSelectMultipleDialog} from "./CallbacksTabsHideMultipleDialog";
 import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog";
 import ip6 from 'ip6';
 import {CallbacksContext, OnOpenTabContext, OnOpenTabsContext} from "./CallbacksTop";
@@ -53,6 +53,9 @@ import NotificationsActiveTwoToneIcon from '@mui/icons-material/NotificationsAct
 import NotificationsOffTwoToneIcon from '@mui/icons-material/NotificationsOffTwoTone';
 import {CallbacksTableEditTriggerOnCheckinDialog} from "./CallbacksTableEditTriggerOnCheckinDialog";
 import {CallbacksTableColumnsReorderDialog} from "./CallbacksTableColumnsReorderDialog";
+import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
+import Typography from '@mui/material/Typography';
+import {EventTriggerContextSelectDialog} from "../Eventing/EventTriggerContextSelect";
 
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
@@ -316,6 +319,9 @@ function CallbacksTablePreMemo(props){
     })
     const taskingData = React.useRef({"parameters": "", "ui_feature": "callback_table:exit"});
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
+    const eventingDataRef = React.useRef({});
+    const [openEventingDialog, setOpenEventingDialog] = React.useState(false);
+    const [openEventingMultipleDialog, setOpenEventingMultipleDialog] = React.useState(false);
     const [updateSetting] = useSetMythicSetting();
     const onUpdateTrigger = (newTriggerValue) => {
         updateTrigger({variables: {callback_display_id: openTriggerDialog.display_id, trigger_on_checkin_after_time: newTriggerValue}})
@@ -331,7 +337,14 @@ function CallbacksTablePreMemo(props){
         }
         return  [
             {
-                name: "Callback: " + rowDataStatic.display_id,
+                name: <div style={{display: "flex", flexDirection: "column"}}>
+                        <Typography>
+                            {"Callback: " + rowDataStatic.display_id}
+                        </Typography>
+                        <Typography style={{fontSize: theme?.typography.pxToRem(12),}}>
+                            {rowDataStatic.user + "@" + rowDataStatic.host}
+                        </Typography>
+                    </div>,
                 icon: null, click: ({event}) => {},
                 type: "item",
                 disabled: true
@@ -400,6 +413,21 @@ function CallbacksTablePreMemo(props){
                 }
             },
             {
+                name: "Eventing", icon: <PlayCircleFilledTwoToneIcon />, click: (event) => {}, type: "menu",
+                menuItems: [
+                    {
+                        name: "Start Eventing Workflow", icon: <PlayCircleFilledTwoToneIcon style={{paddingRight: "5px"}} />,
+                        click: ({event}) => {
+                            eventingDataRef.current = {
+                                name: "callback_id",
+                                value: rowDataStatic.id
+                            };
+                            setOpenEventingDialog(true);
+                        }
+                    }
+                ]
+            },
+            {
                 name: "Browsers", icon: null, click: () => {}, type: "menu",
                 menuItems: [
                     {
@@ -445,6 +473,12 @@ function CallbacksTablePreMemo(props){
                             setOpenTaskMultipleDialog({open: true, data: rowDataStatic});
                         }
                     },
+                    {
+                        name: "Start Multiple Eventing Workflows", icon: <PlayCircleFilledTwoToneIcon style={{paddingRight: "5px"}}/>,
+                        click: ({event}) => {
+                            setOpenEventingMultipleDialog(true);
+                        }
+                    }
                 ]
             },
             {
@@ -904,6 +938,13 @@ function CallbacksTablePreMemo(props){
     const onResetColumnReorder = () => {
         onSubmitColumnReorder(callbackTableInitialColumns);
     }
+    const onSubmitSelectMultiple = (callbacks) => {
+        eventingDataRef.current = {
+            trigger_context_type: "callback_id",
+            trigger_context_ids: callbacks.map(c => c.id)
+        };
+        setOpenEventingDialog(true);
+    }
     return (
         <div style={{width: '100%', height: '100%', position: "relative",}}>
             <MythicResizableGrid
@@ -1078,6 +1119,31 @@ function CallbacksTablePreMemo(props){
                         <CallbacksTabsTaskMultipleDialog callback={openTaskMultipleDialog.data}
                                                          onClose={() => {setOpenTaskMultipleDialog({open: false, data: {}});}}
                                                          me={props.me}/>
+                    }
+                />
+            }
+            {openEventingDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="xl"
+                    open={openEventingDialog}
+                    onClose={() => {setOpenEventingDialog(false);}}
+                    innerDialog={
+                        <EventTriggerContextSelectDialog onClose={() => {setOpenEventingDialog(false);}}
+                                                         triggerContext={eventingDataRef.current}
+                        />
+                    }
+                />
+            }
+            {openEventingMultipleDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="xl"
+                    open={openEventingMultipleDialog}
+                    onClose={() => {setOpenEventingMultipleDialog(false);}}
+                    innerDialog={
+                        <CallbacksTabsSelectMultipleDialog onClose={() => {setOpenEventingMultipleDialog(false);}}
+                        onSubmit={onSubmitSelectMultiple}/>
                     }
                 />
             }

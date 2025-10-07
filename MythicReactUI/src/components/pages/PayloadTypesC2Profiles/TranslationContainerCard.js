@@ -102,7 +102,6 @@ export function TranslationContainerRow({service, showDeleted}) {
             <MythicTableCell>
                 <MythicStyledTooltip title={"Documentation"}>
                     <IconButton
-                        color={"secondary"}
                         href={"/docs/c2-profiles/" + service.name.toLowerCase()}
                         target="_blank"
                         size="medium">
@@ -111,7 +110,6 @@ export function TranslationContainerRow({service, showDeleted}) {
                 </MythicStyledTooltip>
                 <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
                     <IconButton
-                        color={"secondary"}
                         disabled={!service.container_running}
                         onClick={()=>{setOpenListFilesDialog(true);}}
                         size="medium">

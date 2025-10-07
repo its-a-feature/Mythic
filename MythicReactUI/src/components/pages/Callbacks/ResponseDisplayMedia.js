@@ -536,7 +536,7 @@ const DisplayText = ({agent_file_id, expand, filename, preview, fileMetaData}) =
                     </>
                 }
             </div>
-            <div style={{display: "flex", flexGrow: 1, height: "100%"}}>
+            <div style={{display: "flex", flexGrow: 1, height: "100%", minHeight: "375px"}}>
                 <AceEditor
                     ref={currentContentRef}
                     mode={mode}

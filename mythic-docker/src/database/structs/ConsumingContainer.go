@@ -12,4 +12,5 @@ type ConsumingContainer struct {
 	ContainerRunning bool            `db:"container_running" json:"container_running" toml:"container_running" yaml:"container_running"`
 	UpdatedAt        time.Time       `db:"updated_at" json:"updated_at"`
 	CreatedAt        time.Time       `db:"created_at" json:"created_at"`
+	SemVer           string          `json:"semver" toml:"semver" yaml:"semver"`
 }

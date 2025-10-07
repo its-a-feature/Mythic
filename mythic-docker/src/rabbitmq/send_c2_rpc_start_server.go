@@ -28,10 +28,10 @@ func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
 		c2Profile := databaseStructs.C2profile{Name: c2ProfileName}
 		err := database.DB.Get(&c2Profile, `SELECT id FROM c2profile WHERE name=$1`, c2ProfileName)
 		if err != nil {
-			go SendAllOperationsMessage("Failed to find C2 Profile", 0, "host_file", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage("Failed to find C2 Profile", 0, "host_file", database.MESSAGE_LEVEL_INFO, true)
 		}
 		if sendNotifications {
-			go SendAllOperationsMessage("Stopping C2 Profile after hosting new file...", 0, "host_file", database.MESSAGE_LEVEL_INFO)
+			go SendAllOperationsMessage("Stopping C2 Profile after hosting new file...", 0, "host_file", database.MESSAGE_LEVEL_INFO, false)
 		}
 		stopC2ProfileResponse, err := RabbitMQConnection.SendC2RPCStopServer(C2StopServerMessage{
 			Name: c2ProfileName,
@@ -40,20 +40,20 @@ func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
 		if err != nil {
 			logging.LogError(err, "Failed to send RPC call to c2 profile in C2HostFileMessageWebhook", "c2_profile", c2ProfileName)
 			if sendNotifications {
-				go SendAllOperationsMessage("Failed to stop c2 profile after hosting file", 0, "host_file", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage("Failed to stop c2 profile after hosting file", 0, "host_file", database.MESSAGE_LEVEL_INFO, true)
 			}
 			return
 		}
 		if !stopC2ProfileResponse.Success {
 			if stopC2ProfileResponse.Error != "Server not running" {
 				if sendNotifications {
-					go SendAllOperationsMessage(stopC2ProfileResponse.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(stopC2ProfileResponse.Error, 0, "", database.MESSAGE_LEVEL_INFO, true)
 				}
 				return
 			}
 		}
 		if sendNotifications {
-			go SendAllOperationsMessage("Starting C2 Profile after hosting new file...", 0, "host_file", database.MESSAGE_LEVEL_INFO)
+			go SendAllOperationsMessage("Starting C2 Profile after hosting new file...", 0, "host_file", database.MESSAGE_LEVEL_INFO, false)
 		}
 		startC2ProfileResponse, err := RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{
 			Name: c2ProfileName,
@@ -62,18 +62,18 @@ func RestartC2ServerAfterUpdate(c2ProfileName string, sendNotifications bool) {
 		if err != nil {
 			logging.LogError(err, "Failed to send RPC call to c2 profile in C2HostFileMessageWebhook", "c2_profile", c2ProfileName)
 			if sendNotifications {
-				go SendAllOperationsMessage("Failed to start c2 profile after hosting file", 0, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage("Failed to start c2 profile after hosting file", 0, "", database.MESSAGE_LEVEL_INFO, true)
 			}
 			return
 		}
 		if !startC2ProfileResponse.Success {
 			if sendNotifications {
-				go SendAllOperationsMessage(startC2ProfileResponse.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(startC2ProfileResponse.Error, 0, "", database.MESSAGE_LEVEL_INFO, true)
 			}
 			return
 		}
 		if sendNotifications {
-			go SendAllOperationsMessage("Successfully restarted C2 Profile after hosting a file", 0, "host_file", database.MESSAGE_LEVEL_INFO)
+			go SendAllOperationsMessage("Successfully restarted C2 Profile after hosting a file", 0, "host_file", database.MESSAGE_LEVEL_INFO, false)
 		}
 	}()
 }

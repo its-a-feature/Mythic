@@ -59,7 +59,7 @@ func IPBlockMiddleware() gin.HandlerFunc {
 
 		logging.LogError(nil, "Client IP not in allowed IP blocks", "client_ip", ipAddr)
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Client IP, %s, not in allowed IP blocks: %v", ipAddr.String(), utils.MythicConfig.AllowedIPBlocks),
-			0, ipAddr.String(), database.MESSAGE_LEVEL_WARNING)
+			0, ipAddr.String(), database.MESSAGE_LEVEL_AUTH, true)
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		c.Abort()
 	}

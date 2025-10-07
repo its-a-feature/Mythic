@@ -33,6 +33,7 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import TableRow from '@mui/material/TableRow';
 import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 
 
 const toggleDeleteStatus = gql`
@@ -162,11 +163,17 @@ export function C2ProfilesRow({service, showDeleted}) {
                     )}
                 </MythicTableCell>
                 <MythicTableCell>
-                    {service.is_p2p ?
-                        (<FontAwesomeIcon icon={faLink}  style={{width: "80px", height: "80px", padding: "10px"}} />)
-                        :
-                        (<WifiIcon style={{width: "80px", height: "80px", padding: "10px"}}/>)
-                    }
+                    {service.has_logo ? (
+                        <>
+                            <MythicAgentSVGIcon payload_type={service.name} is_p2p={service.is_p2p} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
+                        </>
+                    ) : (
+                        service.is_p2p ?
+                            (<FontAwesomeIcon icon={faLink}  style={{width: "80px", height: "80px", padding: "10px"}} />)
+                            :
+                            (<WifiIcon style={{width: "80px", height: "80px", padding: "10px"}}/>)
+                    )}
+
                 </MythicTableCell>
                 <MythicTableCell>
                     {service.name}
@@ -176,6 +183,11 @@ export function C2ProfilesRow({service, showDeleted}) {
                     <Typography variant="body1" component="p">
                         <b>Author:</b> {service.author}
                     </Typography>
+                    {service.semver !== "" &&
+                        <Typography variant="body1" component="p">
+                            <b>Version:</b> {service.semver}
+                        </Typography>
+                    }
                     <Typography variant="body1" component="p">
                         <b>Supported Agents:</b> {service.payloadtypec2profiles.filter( (pt) => !pt.payloadtype.deleted ).map(c => c.payloadtype.name).join(", ")}
                     </Typography>
@@ -264,7 +276,6 @@ export function C2ProfilesRow({service, showDeleted}) {
                     <br/>
                     <MythicStyledTooltip title={"Documentation"}>
                         <IconButton
-                            color={"secondary"}
                             href={"/docs/c2-profiles/" + service.name.toLowerCase()}
                             target="_blank"
                             size="medium">
@@ -273,7 +284,6 @@ export function C2ProfilesRow({service, showDeleted}) {
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={"Build Parameters"}>
                         <IconButton
-                            color={"secondary"}
                             onClick={()=>{setOpenBuildingDialog(true);}}
                             size="medium">
                             <BuildIcon />
@@ -282,14 +292,12 @@ export function C2ProfilesRow({service, showDeleted}) {
                     <MythicStyledTooltip title={"Save/Edit Instances for Building"}>
                         <IconButton
                             onClick={() => {setOpenProfileSavedInstancesDialog(true);}}
-                            color={"secondary"}
                             size="medium">
                             <SaveIcon />
                         </IconButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
                         <IconButton
-                            color={"secondary"}
                             disabled={!service.container_running}
                             onClick={()=>{setOpenListFilesDialog(true);}}
                             size="medium">

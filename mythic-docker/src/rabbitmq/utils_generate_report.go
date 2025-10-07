@@ -116,7 +116,7 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 		logging.LogError(err, "Failed to save file to disk")
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to create report file on disk: %v", err),
 			reportConfig.OperatorOperation.CurrentOperation.ID, "generated_report",
-			database.MESSAGE_LEVEL_WARNING)
+			database.MESSAGE_LEVEL_INFO, true)
 		return
 	} else {
 		newFileMeta.Path = newPath
@@ -136,25 +136,25 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 			logging.LogError(err, "Failed to get absolute path to file on disk")
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to get absolute path to file on disk: %v", err),
 				reportConfig.OperatorOperation.CurrentOperation.ID, "generated_report",
-				database.MESSAGE_LEVEL_WARNING)
+				database.MESSAGE_LEVEL_INFO, true)
 			return
 		} else if jsonFile, err := os.OpenFile(absPath, os.O_APPEND|os.O_WRONLY, os.ModeAppend); err != nil {
 			logging.LogError(err, "failed to create report file")
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to create file on disk: %v", err),
 				reportConfig.OperatorOperation.CurrentOperation.ID, "generated_report",
-				database.MESSAGE_LEVEL_WARNING)
+				database.MESSAGE_LEVEL_INFO, true)
 			return
 		} else {
 			defer jsonFile.Close()
 			if fileBytes, err = json.MarshalIndent(report, "", "  "); err != nil {
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to marshal dictionary to bytes: %v", err),
 					reportConfig.OperatorOperation.CurrentOperation.ID, "generated_report",
-					database.MESSAGE_LEVEL_WARNING)
+					database.MESSAGE_LEVEL_INFO, true)
 				return
 			} else if _, err := jsonFile.Write(fileBytes); err != nil {
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to write report to disk: %v", err),
 					reportConfig.OperatorOperation.CurrentOperation.ID, "generated_report",
-					database.MESSAGE_LEVEL_WARNING)
+					database.MESSAGE_LEVEL_INFO, true)
 				return
 			}
 		}
@@ -232,13 +232,13 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 			logging.LogError(err, "Failed to get absolute path to file on disk")
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to get absolute path to report on disk: %v", err),
 				reportConfig.OperatorOperation.CurrentOperation.ID, "generated_report",
-				database.MESSAGE_LEVEL_WARNING)
+				database.MESSAGE_LEVEL_INFO, true)
 			return
 		} else if xmlFile, err := os.OpenFile(absPath, os.O_APPEND|os.O_WRONLY, os.ModeAppend); err != nil {
 			logging.LogError(err, "failed to create report file")
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to create report file disk: %v", err),
 				reportConfig.OperatorOperation.CurrentOperation.ID, "generated_report",
-				database.MESSAGE_LEVEL_WARNING)
+				database.MESSAGE_LEVEL_INFO, true)
 			return
 		} else {
 			defer xmlFile.Close()
@@ -249,20 +249,20 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 				logging.LogError(err, "failed to encode xml data to file")
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to create report on disk: %v", err),
 					reportConfig.OperatorOperation.CurrentOperation.ID, "generated_report",
-					database.MESSAGE_LEVEL_WARNING)
+					database.MESSAGE_LEVEL_INFO, true)
 				return
 			} else if fileBytes, err = os.ReadFile(newFileMeta.Path); err != nil {
 				logging.LogError(err, "Failed to open file to read to generate hashes")
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to read html report from disk: %v", err),
 					reportConfig.OperatorOperation.CurrentOperation.ID, "generated_report",
-					database.MESSAGE_LEVEL_WARNING)
+					database.MESSAGE_LEVEL_INFO, true)
 				return
 			}
 		}
 	} else {
 		go SendAllOperationsMessage("Failed to create report, unknown output format",
 			reportConfig.OperatorOperation.CurrentOperation.ID, "generated_report",
-			database.MESSAGE_LEVEL_WARNING)
+			database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
 	sha1Sum := sha1.Sum(fileBytes)
@@ -280,9 +280,9 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 				VALUES (:agent_file_id, :path, :operation_id, :operator_id, :sha1, :md5, :complete, :filename, :comment, :chunk_size, :total_chunks, :chunks_received, :size)`,
 		newFileMeta); err != nil {
 		logging.LogError(err, "Failed to create new filemeta data")
-		go SendAllOperationsMessage("Failed to create report", newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage("Failed to create report", newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_INFO, true)
 	} else {
-		go SendAllOperationsMessage("created report:"+newFileMeta.AgentFileID, newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_INFO)
+		go SendAllOperationsMessage("created report:"+newFileMeta.AgentFileID, newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_INFO, false)
 	}
 
 }
@@ -574,7 +574,8 @@ func getCallbacksTaskingMitre(reportConfig GenerateReportMessage) []interface{} 
 				if err := database.DB.Select(&tasks, `SELECT
 					status_timestamp_processing, "timestamp", command_name, display_params, id, display_id
 					FROM task
-					WHERE callback_id=$1`, callback.ID); err != nil {
+					WHERE callback_id=$1 
+					ORDER BY task.id ASC`, callback.ID); err != nil {
 					logging.LogError(err, "Failed to get tasks for callback", "callback id", callback.ID)
 				} else {
 					switch reportConfig.OutputFormat {

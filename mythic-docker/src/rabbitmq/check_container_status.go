@@ -3,7 +3,6 @@ package rabbitmq
 import (
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/grpc"
@@ -159,7 +158,7 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 			}
 		}
 		if apiToken.OperatorID == 0 {
-			logging.LogError(errors.New("Need a bot account assigned to this operation that's active and not deleted"), "operation", operation.ID)
+			logging.LogInfo("Need a bot account assigned to this operation that's active and not deleted", "operation", operation.ID)
 			continue
 		}
 		apiToken.TokenType = mythicjwt.AUTH_METHOD_GRAPHQL_SPECTATOR
@@ -277,7 +276,7 @@ func checkContainerStatus() {
 					if !running {
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
-							0, fmt.Sprintf("%s_container_down", container), "warning")
+							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 						go updateDownContainerBuildingPayloads(container)
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
@@ -310,7 +309,7 @@ func checkContainerStatus() {
 						UpdateC2ProfileRunningStatus(c2profilesToCheck[container], false)
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
-							0, fmt.Sprintf("%s_container_down", container), "warning")
+							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
@@ -341,7 +340,7 @@ func checkContainerStatus() {
 					if !running {
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
-							0, fmt.Sprintf("%s_container_down", container), "warning")
+							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
@@ -373,7 +372,7 @@ func checkContainerStatus() {
 					if !running {
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
-							0, fmt.Sprintf("%s_container_down", container), "warning")
+							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)

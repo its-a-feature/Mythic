@@ -30,4 +30,7 @@ type Payloadtype struct {
 	SemVer                             string               `db:"semver"`
 	SupportsMultipleC2InBuild          bool                 `db:"supports_multiple_c2_in_build"`
 	SupportsMultipleC2InstancesInBuild bool                 `db:"supports_multiple_c2_instances_in_build"`
+	C2ParameterDeviations              MythicJSONText       `db:"c2_parameter_deviations"`
+	SupportedC2                        MythicJSONArray      `db:"supported_c2"`
+	CommandHelpFunction                string               `db:"command_help_function"`
 }

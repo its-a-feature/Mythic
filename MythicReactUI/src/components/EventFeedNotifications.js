@@ -17,6 +17,7 @@ const subscribe_payloads = gql`
      level
      resolved
      source
+     warning
    }
  }
   `;
@@ -33,7 +34,10 @@ export function EventFeedNotifications(props) {
         },
         onData: ({data}) => {
             if (data.data.operationeventlog_stream.length > 0){
-                if(data.data.operationeventlog_stream[0].level === "api" || data.data.operationeventlog_stream[0].level === "debug" ){
+                if(data.data.operationeventlog_stream[0].level === "api" ||
+                    data.data.operationeventlog_stream[0].level === "debug" ||
+                    data.data.operationeventlog_stream[0].level === "agent_message"
+                ){
                     return;
                 }
                 if(data.data.operationeventlog_stream[0].resolved){
@@ -41,14 +45,14 @@ export function EventFeedNotifications(props) {
                 }
                 if(data.data.operationeventlog_stream[0].operator){
                     const message = data.data.operationeventlog_stream[0].operator.username + ":\n" + data.data.operationeventlog_stream[0].message;
-                    if (data.data.operationeventlog_stream[0].level === "warning") {
+                    if (data.data.operationeventlog_stream[0].warning) {
                         snackActions.warning(message, { autoClose: 2000});
                     } else {
                         snackActions.info(message, { autoClose: 2000});
                     }
 
                 }else {
-                    if (data.data.operationeventlog_stream[0].level === "warning") {
+                    if (data.data.operationeventlog_stream[0].warning) {
                         snackActions.warning(data.data.operationeventlog_stream[0].message, {autoClose: 3000});
                     } else {
                         snackActions.info(

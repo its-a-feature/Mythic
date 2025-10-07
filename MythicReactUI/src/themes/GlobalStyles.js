@@ -37,6 +37,9 @@ html, body, #root {
 tr:nth-child(even) {
   background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "0D" : props.theme.tableHover + "80"};
 }
+.alternateRow {
+    background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "0D" : props.theme.tableHover + "80"};
+}
 .MythicResizableGridRowHighlight {
   background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "0D" : props.theme.tableHover + "80"};
 } 

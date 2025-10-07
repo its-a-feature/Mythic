@@ -488,7 +488,18 @@ func UninstallService(services []string) {
 		}
 
 		if found {
-			log.Printf("[+] Successfully Uninstalled %s\n", service)
+			log.Printf("[*] Removing associated .ENV settings...\n", service)
+			err := config.RemoveConfigStrings([]string{
+				fmt.Sprintf("%s_remote_image", service),
+				fmt.Sprintf("%s_use_volume", service),
+				fmt.Sprintf("%s_use_build_context", service),
+				fmt.Sprintf("%s_install_location", service),
+			})
+			if err != nil {
+				log.Printf("[-] Failed to remove .ENV settings: %v\n", err)
+			} else {
+				log.Printf("[+] Successfully Uninstalled %s\n", service)
+			}
 			if manager.GetManager().IsServiceRunning("mythic_documentation") {
 				log.Printf("[*] Restarting mythic_documentation container to pull in changes\n")
 				ServiceStop([]string{"mythic_documentation"}, true)

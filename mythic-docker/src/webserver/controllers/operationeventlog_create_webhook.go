@@ -17,6 +17,7 @@ type CreateOperationEventLogData struct {
 	Level   string `json:"level"`
 	Message string `json:"message" binding:"required"`
 	Source  string `json:"source"`
+	Warning bool   `json:"warning"`
 }
 
 type CreateOperationEventLogDataResponse struct {
@@ -55,7 +56,7 @@ func CreateOperationEventLog(c *gin.Context) {
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	go rabbitmq.SendAllOperationsMessage(input.Input.Message, operatorOperation.CurrentOperation.ID,
-		source, level)
+		source, level, input.Input.Warning)
 	c.JSON(http.StatusOK, SendExternalWebhookResponse{
 		Status: "success",
 	})

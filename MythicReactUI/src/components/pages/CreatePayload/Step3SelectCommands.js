@@ -3,16 +3,18 @@ import {useQuery, gql} from '@apollo/client';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
 import Typography from '@mui/material/Typography';
 import { MythicConfirmDialog } from '../../MythicComponents/MythicConfirmDialog';
-import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
-import Paper from '@mui/material/Paper';
-import Button from '@mui/material/Button';
-import CardHeader from '@mui/material/CardHeader';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import IconButton from '@mui/material/IconButton';
 import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import MythicTextField from "../../MythicComponents/MythicTextField";
+import SearchIcon from '@mui/icons-material/Search';
+import InputAdornment from '@mui/material/InputAdornment';
 
 const GET_Payload_Types = gql`
 query getCommands($payloadType: String!) {
@@ -30,7 +32,9 @@ query getCommands($payloadType: String!) {
 
 export function Step3SelectCommands(props){
     const confirmDialogCommands = React.useRef([]);
+    const [hoveredCommand, setHoveredCommand] = React.useState({});
     const [commandOptions, setCommandOptions] = React.useState([]);
+    const selectedCommands = React.useRef([]);
     const [openConfirmDialog, setOpenConfirmDialog] = React.useState(false);
     useQuery(GET_Payload_Types, {fetchPolicy: "network-only", variables: {payloadType: props.buildOptions["payload_type"]},
         onCompleted: ( data ) => {
@@ -107,23 +111,23 @@ export function Step3SelectCommands(props){
             }
           }
     });
-    const finished = (selectedCommands) => {
+    const finished = () => {
         let foundExit = false;
-        for(let i = 0; i < selectedCommands.length; i++){
-            if(selectedCommands[i]["supported_ui_features"].includes("callback_table:exit")){
+        for(let i = 0; i < selectedCommands.current.length; i++){
+            if(selectedCommands.current[i]["supported_ui_features"].includes("callback_table:exit")){
               foundExit = true;
               break;
             }
         }
         if(foundExit){
-          const cmdNames = selectedCommands.map( c => c.cmd);
+          const cmdNames = selectedCommands.current.map( c => c.cmd);
           props.finished(cmdNames);
         }else if(props.buildOptions["agent_type"] === "agent") {
             // only alert for agent types, not service types
-            confirmDialogCommands.current = selectedCommands;
+            confirmDialogCommands.current = selectedCommands.current;
             setOpenConfirmDialog(true);
         }else{
-            const cmdNames = selectedCommands.map( c => c.cmd);
+            const cmdNames = selectedCommands.current.map( c => c.cmd);
             props.finished(cmdNames);
         }
     }
@@ -134,10 +138,149 @@ export function Step3SelectCommands(props){
     const canceled = () => {
         props.canceled();
     }
+    const updateSelectedCommands = (commands) => {
+        selectedCommands.current = commands;
+    }
     return (
-        <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%", marginTop: "20px"}}>
-            <CommandTransferSelect commands={commandOptions} payload_type={props.buildOptions["payload_type"]} first={props.first} last={props.last}
-              canceled={canceled} finished={finished}/>
+        <div style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+        }}>
+            {/* Content area that can grow */}
+            <div style={{
+                flexGrow: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "row",
+                minHeight: 0 // Important for flex shrinking
+            }}>
+                {/* Left section - fixed height */}
+                <div style={{
+                    padding: "5px",
+                    display: "flex",
+                    width: "60%",
+                    flexDirection: "column",
+                    minHeight: 0,
+                    overflow: "hidden" // Don't shrink this section
+                }}>
+                    <div style={{width: "100%", marginBottom: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px", display: "flex", flexShrink: 0}}>
+                        <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
+                        <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
+                            <b>Description: </b>{props.buildOptions.description}
+                        </Typography>
+                    </div>
+                    <div style={{width: "100%",
+                        //border: "1px solid grey",
+                        flexDirection: "column",
+                        borderRadius: "5px",
+                        //padding: "10px",
+                        flexGrow: 1, minHeight: 0, display: "flex"}}>
+                        <Typography variant={"p"} style={{fontWeight: 600}}>
+                            {"1. Select Commands to Include in the Payload"}
+                        </Typography>
+                        <div style={{flexGrow: 1, minHeight: 0, overflow: "hidden", display: "flex"}}>
+                            <CommandTransferSelect commands={commandOptions}
+                                                   payload_type={props.buildOptions["payload_type"]}
+                                                   first={props.first} last={props.last}
+                                                   updateSelectedCommands={updateSelectedCommands}
+                                                   setHoveredCommand={setHoveredCommand}/>
+                        </div>
+
+                    </div>
+                </div>
+
+                {/* Bottom section - scrollable table area */}
+                <div style={{
+                    width: "40%",
+                    padding: "5px",
+                    borderRadius: "5px",
+                    display: "flex",
+                    flexDirection: "column",
+                    flexGrow: 1,
+                    minHeight: 0, // Important for flex shrinking
+                    overflow: "hidden"
+                }}>
+                    <div style={{width: "100%", flexGrow: 1, marginBottom: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px",
+                                height: "40%"}}>
+                        <Typography variant={"p"} style={{fontWeight: 600}}>
+                            {"Hovered Command Details"}
+                        </Typography><br/>
+                            {hoveredCommand["cmd"] !== undefined &&
+                                <>
+                                    {hoveredCommand["cmd"]}
+                                    <StyledDivider classes={{root: classes.divider}}/>
+                                    <Typography style={{}}>
+                                        <b>Description: </b>
+                                    </Typography>
+                                    <Typography style={{marginLeft: "20px"}}>
+                                        {hoveredCommand["description"]}
+                                    </Typography><br/>
+                                </>
+                            }
+
+                    </div>
+                    <div style={{width: "100%", flexGrow: 1,  marginBottom: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px",
+                                height: "20%", overflow: "scroll"}}>
+                        {hoveredCommand["reason"] !== "" ? (
+                            <>
+                                <Typography style={{}}>
+                                    <b>{hoveredCommand["disabled"] ? ("Cannot be moved: ") : ("Information: ")} </b>
+                                </Typography>
+                                <Typography style={{marginLeft: "20px"}}>
+                                    {hoveredCommand["reason"]}
+                                </Typography>
+                            </>
+                        ) : (
+                            <>
+                                <Typography style={{}}>
+                                    <b>{"Information: "} </b>
+                                </Typography>
+                                <Typography style={{marginLeft: "20px"}}>
+                                    {"This command can be included or removed as needed"}
+                                </Typography>
+                            </>
+                        )}
+                        <Typography style={{}}>
+                            <b>Command line Help: </b>
+                        </Typography>
+                        <Typography style={{marginLeft: "20px"}}>
+                            {hoveredCommand["help_cmd"]}
+                        </Typography>
+                        <Typography style={{}}>
+                            <b>Needs Admin Permissions: </b>
+                        </Typography>
+                        <Typography style={{marginLeft: "20px"}}>
+                            {hoveredCommand["needs_admin"] ? "True" : "False"}
+                        </Typography>
+                        <Typography style={{}}>
+                            <b>Supported UI Features: </b>
+                        </Typography>
+                        <Typography style={{marginLeft: "20px"}}>
+                            {hoveredCommand?.supported_ui_features?.join(", ")}
+                        </Typography>
+                        {hoveredCommand?.attributes?.dependencies && hoveredCommand?.attributes?.dependencies.length > 0 &&
+                            <>
+                                <Typography style={{}}>
+                                    <b>Dependencies: </b>
+                                </Typography>
+                                <Typography style={{marginLeft: "20px"}}>
+                                    {hoveredCommand?.attributes?.dependencies.join(", ")}
+                                </Typography>
+                            </>}
+                        {hoveredCommand?.attributes?.alias !== undefined &&
+                            <>
+                                <Typography style={{}}>
+                                    <b>Alias: </b>
+                                </Typography>
+                                <Typography style={{marginLeft: "20px"}}>
+                                    {hoveredCommand?.attributes?.alias ? "True":"False"}
+                                </Typography>
+                            </>}
+                    </div>
+
+                </div>
+            </div>
             {openConfirmDialog &&
                 <MythicConfirmDialog open={openConfirmDialog}
                                      title={"No exit command selected, continue?"}
@@ -145,139 +288,137 @@ export function Step3SelectCommands(props){
                                      acceptText="Accept"
                                      onSubmit={acceptConfirm} />
             }
+            {/* Navigation buttons - always at bottom */}
+            <div style={{flexShrink: 0}}>
+                <CreatePayloadNavigationButtons
+                    first={props.first}
+                    last={props.last}
+                    canceled={canceled}
+                    finished={finished}
+                />
+                <br/><br/>
+            </div>
         </div>
     );
 }
-
 function CommandTransferSelect(props) {
-
-  const [checked, setChecked] = React.useState([]);
-  const [left, setLeft] = React.useState([]);
-  const [right, setRight] = React.useState([]);
-  const leftChecked = intersection(checked, left);
-  const rightChecked = intersection(checked, right);
-  const [hoveredCommand, setHoveredCommnad] = React.useState({});
-  function not(a, b) {
-      return a.filter( (value) => b.find( (element) => element["cmd"] === value["cmd"] && !element["disabled"] ) === undefined)
-  }
-  function intersection(a, b) {
-      return a.filter( (value) => b.find( (element) => element["cmd"] === value["cmd"] && !element["disabled"] ) !== undefined)
-  }
+  const [commands, setCommands] = React.useState([]);
+  const [leftFilter, setLeftFilter] = React.useState("");
+  const [rightFilter, setRightFilter] = React.useState("");
   const handleToggle = (value) => () => {
       if(value.disabled){
           return;
       }
-    let currentIndex = -1;
-    if(props.itemKey){
-      currentIndex = checked.findIndex( (element) => element[props.itemKey] === value[props.itemKey]);
-    }else{
-      currentIndex = checked.indexOf(value);
-    }
-    
-    const newChecked = [...checked];
-
-    if (currentIndex === -1) {
-      newChecked.push(value);
-    } else {
-      newChecked.splice(currentIndex, 1);
-    }
-
-    setChecked(newChecked);
+      const newCommands = commands.map( c => {
+          if(c.cmd === value.cmd){
+              return {...c, selected: !c.selected};
+          }
+          return {...c};
+      });
+      setCommands(newCommands);
   };
   const handleAllRight = () => {
-    const initialLeft = props.commands.reduce( (prev, cur) => {
-      if(cur.disabled && !cur.selected){
-        return [...prev, {...cur}];
-      }else{
-        return [...prev];
-      }
-    }, [])
-    const initialRight = props.commands.reduce( (prev, cur) => {
-      if(!(cur.disabled && !cur.selected)){
-        return [...prev, {...cur}];
-      }else{
-        return [...prev];
-      }
-    }, [])
-    setLeft(initialLeft);
-    setRight(initialRight);
+      const newCommands = commands.map( c => {
+          if(c.disabled){return {...c}}
+          return {...c, left: false, right: true};
+      });
+      setCommands(newCommands);
   };
   const handleCheckedRight = () => {
-    setRight(right.concat(leftChecked));
-    setLeft(not(left, leftChecked));
-    setChecked(not(checked, leftChecked));
+    const newCommands = commands.map( c => {
+        if(c.selected && c.left){
+            return {...c, selected: false, left: false, right: true};
+        }
+        return {...c}
+    });
+    setCommands(newCommands);
   };
   const handleCheckedLeft = () => {
-    setLeft(left.concat(rightChecked));
-    setRight(not(right, rightChecked));
-    setChecked(not(checked, rightChecked));
+      const newCommands = commands.map( c => {
+          if(c.selected && c.right){
+              return {...c, selected: false, left: true, right: false};
+          }
+          return {...c}
+      });
+      setCommands(newCommands);
   };
   const handleAllLeft = () => {
-    const initialLeft = props.commands.reduce( (prev, cur) => {
-      if(!(cur.disabled && cur.selected)){
-        return [...prev, {...cur}];
-      }else{
-        return [...prev];
-      }
-    }, [])
-    const initialRight = props.commands.reduce( (prev, cur) => {
-      if((cur.disabled && cur.selected)){
-        return [...prev, {...cur}];
-      }else{
-        return [...prev];
-      }
-    }, [])
-    setLeft(initialLeft);
-    setRight(initialRight);
+      const newCommands = commands.map( c => {
+          if(c.disabled){return {...c}}
+          return {...c, left: true, right: false};
+      });
+      setCommands(newCommands);
   };
   useEffect( () => {
-    const initialLeft = props.commands.reduce( (prev, cur) => {
-        if(!cur.selected){
-          return [...prev, {...cur}];
-        }else{
-          return [...prev];
-        }
-    }, []);
-    const initialRight = props.commands.reduce( (prev, cur) => {
-      if(cur.selected){
-        return [...prev, {...cur}];
-      }else{
-        return [...prev];
-      }
-    }, []);
-    setLeft(initialLeft);
-    setRight(initialRight);
+      const newCommands = props.commands.map( c => {
+          if(c.selected){
+              return {...c, selected: false, left: false, right: true};
+          }
+          return {...c, selected: false, left: true, right: false};
+      });
+      setCommands(newCommands);
   }, [props.commands]);
+  useEffect( () => {
+      props.updateSelectedCommands(commands.filter(c => c.right));
+  }, [commands]);
   const setHoveredData = (event) => {
     const cmd = props.commands.filter( c => c.cmd === event.target.innerText );
     if(cmd.length > 0){
-      setHoveredCommnad(cmd[0]);
+        props.setHoveredCommand(cmd[0]);
     }
   }
-  const customList = (title, items) => (
-    <div style={{width:"100%", height: "calc(40vh)", display: "flex", flexDirection: "column", overflowY: "auto"}} >
-          <CardHeader title={title} />
-          <StyledDivider className={classes.divider}/>
-        <div style={{display: "flex", flexGrow: 1, overflowY: "auto", width: "100%"}}>
-            <List dense component="div" role="list" style={{padding:0, width: "100%", overflow: "auto", backgroundColor: "unset"}}>
+  const updateLeftFilter = (name, value, error) => {
+      setLeftFilter(value);
+  }
+  const updateRightFilter = (name, value, error) => {
+      setRightFilter(value);
+  }
+  const customList = (title, items, filter, setFilter) => (
+    <div style={{width:"100%", flexGrow: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden", padding: "5px", }} >
+        <Typography style={{fontWeight: 600}} variant={"h5"}>
+            {title}
+        </Typography>
+        <MythicTextField value={filter} onChange={setFilter} name={"Search Commands"} width={"100%"}
+                         marginBottom={"0px"}
+                        InputProps={{startAdornment: (
+                            <InputAdornment position={"start"}>
+                                <SearchIcon />
+                            </InputAdornment>
+                            )}}
+        />
+        <StyledDivider className={classes.divider}/>
+        <div style={{display: "flex", flexGrow: 1, width: "100%", overflow: "hidden", minHeight: 0, }}>
+            <List dense component="div" role="list" style={{
+                flexGrow: 1, // Subtract header height
+                padding:0, width: "100%", overflow: "auto", backgroundColor: "unset", maxHeight: "100%"}}>
                 {items.map((valueObj) => {
                     const value = valueObj["cmd"];
                     const labelId = `transfer-list-item-${value}-label`;
+                    if(filter !== "" && !value.includes(filter.toLowerCase())){return null}
                     return (
                         <div onMouseEnter={setHoveredData} key={'commandtransfer' + value}>
-                            <ListItem style={{padding:0}} disabled={valueObj["disabled"]}
-                                      key={value} role="listitem" button onClick={handleToggle(valueObj)}
+                            <ListItem style={{padding:0}} disabled={valueObj.disabled}
+                                      key={value} role="listitem" onClick={handleToggle(valueObj)}
                             >
                                 <ListItemIcon>
                                     <Checkbox
-                                        disabled={valueObj["disabled"]}
-                                        checked={checked.findIndex( (element) => element["cmd"] === value) !== -1}
+                                        disabled={valueObj.disabled}
+                                        checked={valueObj.selected}
                                         tabIndex={-1}
                                         disableRipple
                                         inputProps={{ 'aria-labelledby': labelId }}
                                     />
                                 </ListItemIcon>
-                                <ListItemText id={labelId} primary={value} />
+                                <ListItemText id={labelId} primary={
+                                    <div style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
+                                        {value}
+                                        <IconButton variant="contained" onClick={(e) => e.stopPropagation()}
+                                                href={"/docs/agents/" + props.payload_type + "/commands/" + value}
+                                                style={{marginLeft: "10px", float: "right"}} target="_blank">
+                                            <MenuBookIcon/>
+                                        </IconButton>
+                                    </div>
+                                } />
                             </ListItem>
                         </div>
                     );
@@ -287,24 +428,16 @@ function CommandTransferSelect(props) {
         </div>
     </div>
   );
-  const finished = () => {
-    props.finished(right);
-  }
-return (
-  <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
-    <div style={{flexGrow: 1}}>
-        <Grid container spacing={2} justifyContent="center" alignItems="center" className={classes.root}>
-            <Grid size={5}>
-                {customList("Available Commands", left)}
-            </Grid>
-            <Grid>
-                <Grid container direction="column" alignItems="center">
+  return (
+        <div style={{flexGrow: 1, width: "100%", display: "flex", minHeight: 0, alignItems: "stretch"}} className={classes.root}>
+            {customList("Commands Available", commands.filter(c => c.left), leftFilter, updateLeftFilter)}
+            <div style={{display: "flex", flexDirection: "column", flexShrink: 0, justifyContent: "center"}}>
                     <StyledButton
                         variant="contained"
                         size="small"
                         className={classes.button}
                         onClick={handleAllRight}
-                        disabled={left.length === 0}
+                        disabled={commands.filter(c => c.left && !c.disabled).length === 0}
                         aria-label="move all right"
                     >
                         &gt;&gt;
@@ -314,7 +447,7 @@ return (
                         size="small"
                         className={classes.button}
                         onClick={handleCheckedRight}
-                        disabled={leftChecked.length === 0}
+                        disabled={commands.filter(c => c.left && c.selected).length === 0}
                         aria-label="move selected right"
                     >
                         &gt;
@@ -324,7 +457,7 @@ return (
                         size="small"
                         className={classes.button}
                         onClick={handleCheckedLeft}
-                        disabled={rightChecked.length === 0}
+                        disabled={commands.filter( c => c.right && c.selected).length === 0}
                         aria-label="move selected left"
                     >
                         &lt;
@@ -334,60 +467,21 @@ return (
                         size="small"
                         className={classes.button}
                         onClick={handleAllLeft}
-                        disabled={right.length === 0}
+                        disabled={commands.filter(c => c.right && !c.disabled).length === 0}
                         aria-label="move all left"
                     >
                         &lt;&lt;
                     </StyledButton>
-                </Grid>
-            </Grid>
-            <Grid size={5}>
-                {customList("Commands Included", right)}
-            </Grid>
-        </Grid>
-        <Grid container justifyContent="center" alignItems="flex-start" className={classes.root}>
-            <Grid style={{height: "100%", marginBottom: "10px"}} size={12}>
-                {hoveredCommand["cmd"] !== undefined &&
-                    <Paper className={classes.paper} style={{width: "100%"}} elevation={5}>
-
-                        <CardHeader
-                            title={
-                                <React.Fragment>
-                                    {hoveredCommand["cmd"]}
-                                    <Button variant="contained" color="primary"
-                                            href={"/docs/agents/" + props.payload_type + "/commands/" + hoveredCommand["cmd"]}
-                                            style={{marginLeft: "10px", float: "right"}} target="_blank">Documentation
-                                    </Button>
-                                </React.Fragment>
-                            }
-                        />
-                        <StyledDivider classes={{root: classes.divider}}/>
-                        {hoveredCommand["reason"] !== "" ? (
-                            <Typography variant="body1" align="left" component="div"
-                                        style={{"marginLeft": "10px"}}><b>{hoveredCommand["disabled"] ? ("Disabled Reason: ") : ("Information: ")} </b>{hoveredCommand["reason"]}
-                            </Typography>
-                        ) : null}
-                        <br/>
-                        <Typography align="left" component="div"
-                                    style={{"marginLeft": "10px"}}><b>Commandline
-                            Help: </b>{hoveredCommand["help_cmd"]}
-                        </Typography>
-                        <Typography align="left" component="div"
-                                    style={{"marginLeft": "10px"}}><b>Needs Admin
-                            Permissions: </b>{hoveredCommand["needs_admin"] ? "True" : "False"}
-                        </Typography>
-                        <Typography align="left" component="div"
-                                    style={{"marginLeft": "10px"}}><b>Description: </b>{hoveredCommand["description"]}
-                        </Typography>
-                    </Paper>
-                }
-
-            </Grid>
-        </Grid>
-    </div>
-    <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={props.canceled}
-                                    finished={finished}/>
-    <br/><br/>
-  </div>
-);
+            </div>
+            {customList("Commands in Payload", commands.filter(c => c.right), rightFilter, updateRightFilter)}
+        </div>
+    );
 }
+
+/*
+<div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%", marginTop: "20px"}}>
+            <CommandTransferSelect commands={commandOptions} payload_type={props.buildOptions["payload_type"]} first={props.first} last={props.last}
+              canceled={canceled} finished={finished}/>
+
+        </div>
+ */

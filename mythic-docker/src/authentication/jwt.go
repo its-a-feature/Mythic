@@ -83,7 +83,7 @@ func TokenValid(c *gin.Context) error {
 				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Deactivated APIToken, %s, for user %s (%s) attempted to be used",
 					token.Name, token.Operator.Username, token.Operator.AccountType),
 					int(token.Operator.CurrentOperationID.Int64), "apitoken usage",
-					database.MESSAGE_LEVEL_WARNING)
+					database.MESSAGE_LEVEL_API, true)
 			}(databaseApiToken)
 			return errors.New("Deactivated APIToken attempted to be used")
 		}
@@ -92,7 +92,7 @@ func TokenValid(c *gin.Context) error {
 				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Deleted APIToken, \"%s\", for user %s (%s) attempted to be used",
 					token.Name, token.Operator.Username, token.Operator.AccountType),
 					int(token.Operator.CurrentOperationID.Int64), token.Name+fmt.Sprintf("%d", token.ID)+token.Operator.Username,
-					database.MESSAGE_LEVEL_WARNING)
+					database.MESSAGE_LEVEL_API, true)
 			}(databaseApiToken)
 			return errors.New("Deleted APIToken attempted to be used")
 		}

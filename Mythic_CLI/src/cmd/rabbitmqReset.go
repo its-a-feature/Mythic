@@ -16,7 +16,6 @@ var rabbitmqResetCmd = &cobra.Command{
 var startAgain bool
 
 func init() {
-	rabbitmqCmd.AddCommand(rabbitmqResetCmd)
 	rabbitmqResetCmd.Flags().BoolVarP(
 		&force,
 		"force",
@@ -28,9 +27,10 @@ func init() {
 		&startAgain,
 		"start-again",
 		"s",
-		true,
+		false,
 		`Start the container again after making changes`,
 	)
+	rabbitmqCmd.AddCommand(rabbitmqResetCmd)
 }
 
 func rabbitmqReset(cmd *cobra.Command, args []string) {

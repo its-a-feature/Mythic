@@ -18,6 +18,11 @@ import { toLocalTime } from '../../utilities/Time';
 import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import IconButton from '@mui/material/IconButton';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
+import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import { Backdrop, CircularProgress } from '@mui/material';
+import {PayloadsTableRowBuildStatus} from "../Payloads/PayloadsTableRowBuildStatus";
+import {PayloadsTableRowBuildProgress} from "../Payloads/PayloadsTableRowBuildProgress";
+
 
 const PREFIX = 'Step3SelectPayload';
 
@@ -60,6 +65,18 @@ query getWrappablePayloads($payloadType: Int!) {
           description
           uuid
           creation_time
+          build_phase
+          payload_build_steps(order_by: {step_number: asc}) {
+            step_name
+            step_number
+            step_success
+            step_skip
+            start_time
+            end_time
+            step_stdout
+            step_stderr
+            id
+          }
           filemetum {
             agent_file_id
             filename_text
@@ -74,6 +91,7 @@ query getWrappablePayloads($payloadType: Int!) {
 
 export function Step3SelectPayload(props){
     const [payloadOptions, setPayloadOptions] = React.useState([]);
+    const [openBackdrop, setOpenBackdrop] = React.useState(true);
     useQuery(GET_Payload_Types, {fetchPolicy: "network-only", variables: {payloadType: props.buildOptions["payload_type_id"]},
         onCompleted: (data) => {
           if(data.payloadtype_by_pk.wrap_these_payload_types.length > 0){
@@ -84,6 +102,7 @@ export function Step3SelectPayload(props){
               }
             }
             setPayloadOptions(options);
+            setOpenBackdrop(false);
           }else{
             snackActions.warning("No supported payload for that wrapper");
           }
@@ -101,16 +120,71 @@ export function Step3SelectPayload(props){
         props.canceled();
     }
     return (
-        <div style={{height: "100%", display: "flex", flexDirection: "column", width: '100%'}}>
-            <Typography variant="h3" align="left" id="selectcommands" component="div"
-                        style={{"marginLeft": "10px"}}>
-                Wrap Agent Into New Payload
-            </Typography> <br/>
-            <div style={{flexGrow: 1, overflowY: "auto"}}>
-                <PayloadSelect payloadOptions={payloadOptions} first={props.first} last={props.last}
-                               canceled={canceled} finished={finished}/>
+        <div style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column"
+        }}>
+            {/* Content area that can grow */}
+            <div style={{
+                flexGrow: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0 // Important for flex shrinking
+            }}>
+                {/* Top section - fixed height */}
+                <div style={{
+                    display: "flex",
+                    flexShrink: 0 // Don't shrink this section
+                }}>
+                    <div style={{display: "flex", width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
+                        <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
+                        <div>
+                            <Typography variant={"p"} style={{}}>
+                                <b>OS: </b>{props.buildOptions.os}
+                            </Typography><br/>
+                            <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
+                                <b>Description: </b>{props.buildOptions.description}
+                            </Typography>
+                        </div>
+                    </div>
+                    <div style={{width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
+                        <div style={{width: "100%", display: "flex", alignItems: "flex-start", marginBottom: "10px", flexDirection: "column"}}>
+
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom section - scrollable table area */}
+                <div style={{
+                    margin: "5px",
+                    border: props.first ? "1px solid grey" : '',
+                    borderRadius: "5px",
+                    padding: "10px 5px 5px 10px",
+                    display: "flex",
+                    flexDirection: "column",
+                    flexGrow: 1,
+                    minHeight: 0, // Important for flex shrinking
+                    overflow: "hidden"
+                }}>
+                    <Typography variant={"p"} style={{fontWeight: 600}}>
+                        1. Select Payload to Include
+                    </Typography>
+                    <div style={{flexGrow: 1, overflowY: "auto", position: "relative"}}>
+                        {openBackdrop &&
+                            <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2000, position: "absolute"}}>
+                                <CircularProgress color="inherit" disableShrink  />
+                            </Backdrop>
+                        }
+                        <PayloadSelect payloadOptions={payloadOptions} first={props.first} last={props.last}
+                                       canceled={canceled} finished={finished}/>
+                    </div>
+                </div>
             </div>
-            <div style={{paddingTop: "20px"}}>
+
+            {/* Navigation buttons - always at bottom */}
+            <div style={{flexShrink: 0}}>
                 <CreatePayloadNavigationButtons disableNext first={props.first} last={props.last}
                                                 canceled={props.canceled} finished={finished}/>
                 <br/><br/>
@@ -119,32 +193,36 @@ export function Step3SelectPayload(props){
     );
 }
 
-function PayloadSelect(props) {
+export function PayloadSelect(props) {
     const finished = (payload) => {
         props.finished(payload);
     }
     return (
-                <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+        <div style={{height: "100%", overflow: "auto"}}>
+            <Table stickyHeader size="small" style={{tableLayout:"fixed", maxWidth: "100%",}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "4rem"}}> Select</TableCell>
+                        <TableCell style={{width: "6rem"}}> Select</TableCell>
                         <TableCell style={{width: "15rem"}}>Timestamp</TableCell>
                         <TableCell>File</TableCell>
+                        <TableCell>Status</TableCell>
                         <TableCell>Description</TableCell>
                         <TableCell style={{width: "5rem"}}>Details</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                
-                {props.payloadOptions.map( (op) => (
-                    <PayloadsTableRow
-                        onSelected={finished}
-                        key={"payload" + op.id}
-                        payload={op}
-                    />
-                ))}
+
+                    {props.payloadOptions?.map( (op) => (
+                        <PayloadsTableRow
+                            onSelected={finished}
+                            key={"payload" + op.id}
+                            payload={op}
+                        />
+                    ))}
                 </TableBody>
             </Table>
+        </div>
+
 );
 }
 
@@ -162,6 +240,10 @@ export function PayloadsTableRow(props){
               </TableCell>
               <TableCell>{toLocalTime(props.payload.creation_time, me.user.view_utc_time)}</TableCell>
               <TableCell>{b64DecodeUnicode(props.payload.filemetum.filename_text)}</TableCell>
+              <TableCell>
+                      <PayloadsTableRowBuildStatus {...props.payload} />
+                      <PayloadsTableRowBuildProgress {...props.payload} />
+              </TableCell>
               <TableCell>{props.payload.description}</TableCell>
               <TableCell>
                   <IconButton size="small" color="info" onClick={() => setOpenDetailedView(true)}>

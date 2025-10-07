@@ -497,6 +497,10 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collap
       if(window.getSelection().toString() !== ""){
         return;
       }
+      if(event){
+        event.stopPropagation();
+        event.preventDefault();
+      }
       setDropdownOpen(!dropdownOpen);
     }, [dropdownOpen]);
     const toggleDisplayChildren = React.useCallback( (event, expanded) => {

@@ -21,6 +21,8 @@ import {TestEventGroupFileDialog} from "./CreateEventWorkflowDialog";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Split from 'react-split';
 import Paper from '@mui/material/Paper';
+import {CreateEventingStepper} from "./CreateEventingStepper";
+import CategoryIcon from '@mui/icons-material/Category';
 
 const get_eventgroups = gql`
 query GetEventGroups {
@@ -165,6 +167,7 @@ steps:
 export function Eventing({me}){
     const theme = useTheme();
     const [openTestModal, setOpenTestModal] = React.useState(false);
+    const [openCreateEventingStepper, setOpenCreateEventingStepper] = React.useState(false);
     const [eventgroups, setEventgroups] = React.useState([]);
     const [showDeleted, setShowDeleted] = React.useState(false);
     const [selectedEventGroup, setSelectedEventGroup] = React.useState({id: 0});
@@ -233,6 +236,11 @@ export function Eventing({me}){
         }
         evt.target.value = null;
     }
+    const onCloseStepper = (e, success) => {
+        if(success === true){
+            setOpenCreateEventingStepper(false);
+        }
+    }
     React.useEffect( () => {
         if( !foundQueryEvent.current ){
             let queryParams = new URLSearchParams(window.location.search);
@@ -267,9 +275,18 @@ export function Eventing({me}){
                                     <Button size={"small"}  color={"success"}
                                             style={{display: "inline-flex", marginRight: "10px", marginLeft: "10px", marginTop: "5px"}}
                                             onClick={()=>setOpenTestModal(true)}
-                                            startIcon={<AddCircleIcon  />}
+                                            startIcon={<AddCircleIcon style={{backgroundColor: "white", borderRadius: "10px"}}  />}
                                     >
-                                        Create New
+                                        Text
+                                    </Button>
+                                </MythicStyledTooltip>
+                                <MythicStyledTooltip title={"Create Workflow with GUI Wizard"} tooltipStyle={{}} >
+                                    <Button size={"small"}  color={"success"}
+                                            style={{display: "inline-flex", marginRight: "10px", marginLeft: "10px", marginTop: "5px"}}
+                                            onClick={()=>setOpenCreateEventingStepper(true)}
+                                            startIcon={<CategoryIcon  />}
+                                    >
+                                        Wizard
                                     </Button>
                                 </MythicStyledTooltip>
                             </Paper>
@@ -284,6 +301,12 @@ export function Eventing({me}){
                                                   onClose={(e) => {
                                                       setOpenTestModal(false);
                                                   }}/>}
+                                />
+                            }
+                            {openCreateEventingStepper &&
+                                <MythicDialog fullWidth={true} maxWidth="xl" open={openCreateEventingStepper}
+                                              onClose={() => setOpenCreateEventingStepper(false)}
+                                              innerDialog={<CreateEventingStepper onClose={onCloseStepper} />}
                                 />
                             }
                             <ListItem onClick={() => setSelectedEventGroup({id: 0})}
@@ -330,7 +353,7 @@ export function Eventing({me}){
                     </div>
                     <div className="bg-gray-light" style={{display: "inline-flex"}}>
                         <div style={{width: "100%", height: "100%"}}>
-                            <EventGroupTable selectedEventGroup={selectedEventGroup} me={me} />
+                            <EventGroupTable selectedEventGroup={selectedEventGroup} me={me} showInstances={true} showGraph={true} />
                         </div>
                     </div>
                 </Split>

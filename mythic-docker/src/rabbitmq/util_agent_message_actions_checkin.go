@@ -46,41 +46,45 @@ func handleAgentMessageCheckin(incoming *map[string]interface{}, UUIDInfo *cache
 	}
 	agentMessage := agentMessageCheckin{}
 	mythicRPCCallbackCreateMessage := MythicRPCCallbackCreateMessage{}
-	if err := mapstructure.Decode(incoming, &agentMessage); err != nil {
+	err := mapstructure.Decode(incoming, &agentMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to decode agent message into struct")
 		return nil, errors.New(fmt.Sprintf("Failed to decode agent message into agentMessageCheckin struct: %s", err.Error()))
-	} else if err := mapstructure.Decode(incoming, &mythicRPCCallbackCreateMessage); err != nil {
+	}
+	err = mapstructure.Decode(incoming, &mythicRPCCallbackCreateMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to decode agent message into MythicRPCCallbackCreateMessage")
 		return nil, errors.New(fmt.Sprintf("Failed to decode agent message into MythicRPCCallbackCreateMessage struct: %s", err.Error()))
-	} else {
-		mythicRPCCallbackCreateMessage.C2ProfileName = UUIDInfo.C2ProfileName
-		mythicRPCCallbackCreateMessage.CryptoType = UUIDInfo.CryptoType
-		newCryptoKeys := UUIDInfo.getAllKeys()
-		if len(newCryptoKeys) > 0 {
-			if agentMessage.EncKey == nil {
-				mythicRPCCallbackCreateMessage.EncryptionKey = newCryptoKeys[0].EncKey
-			}
-			if agentMessage.DecKey == nil {
-				mythicRPCCallbackCreateMessage.DecryptionKey = newCryptoKeys[0].DecKey
-			}
-		}
-		if mythicRPCCallbackCreateMessage.ExternalIP == "" {
-			mythicRPCCallbackCreateMessage.ExternalIP = remoteIP
-		}
-		//logging.LogDebug("about to create a new callback with data", "callback", mythicRPCCallbackCreateMessage)
-		mythicRPCCallbackCreateMessageResponse := MythicRPCCallbackCreate(mythicRPCCallbackCreateMessage)
-		if !mythicRPCCallbackCreateMessageResponse.Success {
-			errorString := fmt.Sprintf("Failed to create new callback in MythicRPCCallbackCreate: %s", mythicRPCCallbackCreateMessageResponse.Error)
-			logging.LogError(nil, errorString)
-			return nil, errors.New(errorString)
-		}
-		response := map[string]interface{}{}
-		response["id"] = mythicRPCCallbackCreateMessageResponse.CallbackUUID
-		response["status"] = "success"
-		reflectBackOtherKeys(&response, &agentMessage.Other)
-		UUIDInfo.CallbackID = mythicRPCCallbackCreateMessageResponse.CallbackID
-		UUIDInfo.CallbackDisplayID = mythicRPCCallbackCreateMessageResponse.CallbackDisplayID
-		return response, nil
-
 	}
+	mythicRPCCallbackCreateMessage.C2ProfileName = UUIDInfo.C2ProfileName
+	newCryptoKeys := UUIDInfo.getAllKeys()
+	if len(newCryptoKeys) > 0 {
+		if agentMessage.EncKey == nil {
+			mythicRPCCallbackCreateMessage.EncryptionKey = newCryptoKeys[0].EncKey
+			mythicRPCCallbackCreateMessage.CryptoType = newCryptoKeys[0].Value
+		}
+		if agentMessage.DecKey == nil {
+			mythicRPCCallbackCreateMessage.DecryptionKey = newCryptoKeys[0].DecKey
+			mythicRPCCallbackCreateMessage.CryptoType = newCryptoKeys[0].Value
+		}
+	}
+	if mythicRPCCallbackCreateMessage.ExternalIP == "" {
+		mythicRPCCallbackCreateMessage.ExternalIP = remoteIP
+	}
+	//logging.LogDebug("about to create a new callback with data", "callback", mythicRPCCallbackCreateMessage)
+	mythicRPCCallbackCreateMessageResponse := MythicRPCCallbackCreate(mythicRPCCallbackCreateMessage)
+	if !mythicRPCCallbackCreateMessageResponse.Success {
+		errorString := fmt.Sprintf("Failed to create new callback in MythicRPCCallbackCreate: %s", mythicRPCCallbackCreateMessageResponse.Error)
+		logging.LogError(nil, errorString)
+		return nil, errors.New(errorString)
+	}
+	response := map[string]interface{}{}
+	response["id"] = mythicRPCCallbackCreateMessageResponse.CallbackUUID
+	response["status"] = "success"
+	reflectBackOtherKeys(&response, &agentMessage.Other)
+	UUIDInfo.CallbackID = mythicRPCCallbackCreateMessageResponse.CallbackID
+	UUIDInfo.CallbackDisplayID = mythicRPCCallbackCreateMessageResponse.CallbackDisplayID
+	UUIDInfo.CryptoType = mythicRPCCallbackCreateMessage.CryptoType
+	return response, nil
+
 }

@@ -29,6 +29,7 @@ type ConsumingContainerDefinition struct {
 	Description   string   `json:"description"`
 	Type          string   `json:"type"`
 	Subscriptions []string `json:"subscriptions"`
+	SemVer        string   `json:"semver"`
 }
 
 const (
@@ -55,7 +56,7 @@ func processConsumingContainerSyncMessages(msg amqp.Delivery) interface{} {
 	if err != nil {
 		logging.LogError(err, "Failed to process consuming container sync message")
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync consuming container profile %s", err.Error()),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_INFO, true)
 		return ConsumingContainerSyncMessageResponse{Success: false, Error: err.Error()}
 	}
 	response := ConsumingContainerSyncMessageResponse{}
@@ -65,7 +66,7 @@ func processConsumingContainerSyncMessages(msg amqp.Delivery) interface{} {
 		response.Error = fmt.Sprintf("Error: %v", err)
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync %s - %s",
 			c2SyncMsg.ConsumingContainer.Name, err.Error()), 0, c2SyncMsg.ConsumingContainer.Name,
-			database.MESSAGE_LEVEL_WARNING)
+			database.MESSAGE_LEVEL_INFO, true)
 	} else {
 		// successfully synced
 		response.Success = true
@@ -94,10 +95,11 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 		consumingContainer.Description = in.ConsumingContainer.Description
 		consumingContainer.Deleted = false
 		consumingContainer.Type = in.ConsumingContainer.Type
+		consumingContainer.SemVer = in.ConsumingContainer.SemVer
 		consumingContainer.Subscriptions = GetMythicJSONArrayFromStruct(in.ConsumingContainer.Subscriptions)
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO consuming_container 
-			("name",container_running,description,deleted,type,subscriptions) 
-			VALUES (:name, :container_running, :description, :deleted, :type, :subscriptions) 
+			("name",container_running,description,deleted,type,subscriptions, semver) 
+			VALUES (:name, :container_running, :description, :deleted, :type, :subscriptions, :semver) 
 			RETURNING id`,
 		); err != nil {
 			logging.LogError(err, "Failed to create new consuming_container statement")
@@ -117,10 +119,11 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 		consumingContainer.Description = in.ConsumingContainer.Description
 		consumingContainer.Deleted = false
 		consumingContainer.Type = in.ConsumingContainer.Type
+		consumingContainer.SemVer = in.ConsumingContainer.SemVer
 		consumingContainer.Subscriptions = GetMythicJSONArrayFromStruct(in.ConsumingContainer.Subscriptions)
 		_, err = database.DB.NamedExec(`UPDATE consuming_container SET 
 			container_running=:container_running, description=:description, deleted=:deleted,
-			type=:type, subscriptions=:subscriptions
+			type=:type, subscriptions=:subscriptions, semver=:semver
 			WHERE id=:id`, consumingContainer,
 		)
 		if err != nil {
@@ -129,7 +132,7 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 		}
 	}
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s",
-		consumingContainer.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG)
+		consumingContainer.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
 	go database.ResolveAllOperationsMessage(getDownContainerMessage(consumingContainer.Name), 0)
 	checkContainerStatusAddConsumingContainerChannel <- consumingContainer
 	// update eventgroup consumingcontainer mappings

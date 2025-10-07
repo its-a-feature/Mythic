@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2025-10-07
+
+### Changed
+
+- Added "selected_os" array option to some eventing triggers to additionally limit not just on payload type but OS as well
+  - this is the "os" you select when you build a payload
+- Modified the UI to allow creating new eventing workflows based on existing ones with a single button
+- Added group_name, supported_os, and hide_conditions to build parameters for more dynamic build experiences
+- Added supports_multiple_c2_in_build, supports_multiple_c2_instances, c2_parameter_deviations to payload types
+  - This allows payload types to slightly tweak c2 profile configurations they support and indicating how many c2s are allowed per build
+  - c2 parameter deviations allow indicating parameters are not supported at all, that they have a different set of choices, and that the default value can be something else
+- Added semver option for payload types to more accurately convey their current version outside of their description
+- Updated the payload build workflow in the UI
+- Added an option for payload types to hook into the `help` function and provide their own as part of their payload type definition
+- Added a notification to callback tabs if there's new task changes while you're not on the tab
+- Updated delegate tasks for the same target callback to be grouped together into a single message instead of a separate message per task
+- Fixed a bug with MythicRPCCallbackSearch where all the timestamps would be 0
+- Added support for C2 Profiles to include their own agent icons for the UI
+- Added support for C2 Profiles to report their own SemVer as well
+- Added support for TranslationContainers to report back their own SemVer
+- Added support for all consuming containers (eventing, auth, logging, webhook) to report back their own SemVer
+- Fixed bug in reporting where tasks weren't in order
+- Updated the CredentialCreateWebhook to support empty credentials
+- Added callback context menu option for triggering eventing workflows
+  - Also added option to bulk issue eventing workflows from callbacks
+- Edited workflows so that all can be triggered manually
+  - Edited the server so manul execution can still provide arbitrary extra data, not just keyword execution
+- Updated operationeventlog to have a dedicated `warning` field that's separate from the level
+
 ## [3.3.1-rc94] - 2025-09-05
 
 ### Changed

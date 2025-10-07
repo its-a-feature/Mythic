@@ -120,7 +120,7 @@ jobs:
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: postgres-docker
-          file: postgres-docker/.docker/Dockerfile
+          file: postgres-docker/Dockerfile
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_POSTGRES_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_POSTGRES_IMAGE_NAME }}:latest
@@ -162,7 +162,7 @@ jobs:
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: rabbitmq-docker
-          file: rabbitmq-docker/.docker/Dockerfile
+          file: rabbitmq-docker/Dockerfile
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_RABBITMQ_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_RABBITMQ_IMAGE_NAME }}:latest
@@ -204,7 +204,7 @@ jobs:
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: documentation-docker
-          file: documentation-docker/.docker/Dockerfile
+          file: documentation-docker/Dockerfile
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_DOCUMENTATION_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_DOCUMENTATION_IMAGE_NAME }}:latest
@@ -248,7 +248,7 @@ jobs:
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: jupyter-docker
-          file: jupyter-docker/.docker/Dockerfile
+          file: jupyter-docker/Dockerfile
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_JUPYTER_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_JUPYTER_IMAGE_NAME }}:latest
@@ -292,7 +292,7 @@ jobs:
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: hasura-docker
-          file: hasura-docker/.docker/Dockerfile
+          file: hasura-docker/Dockerfile
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_GRAPHQL_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_GRAPHQL_IMAGE_NAME }}:latest
@@ -336,7 +336,7 @@ jobs:
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: nginx-docker
-          file: nginx-docker/.docker/Dockerfile
+          file: nginx-docker/Dockerfile
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_NGINX_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_NGINX_IMAGE_NAME }}:latest
@@ -382,7 +382,7 @@ jobs:
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: mythic-react-docker
-          file: mythic-react-docker/.docker/Dockerfile
+          file: mythic-react-docker/Dockerfile
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_REACT_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_REACT_IMAGE_NAME }}:latest
@@ -440,7 +440,7 @@ jobs:
         uses: docker/build-push-action@v5 # ref: https://github.com/marketplace/actions/build-and-push-docker-images
         with:
           context: Mythic_CLI
-          file: Mythic_CLI/.docker/Dockerfile
+          file: Mythic_CLI/Dockerfile
           tags: |
             ${{ env.REGISTRY }}/${{ env.MYTHIC_CLI_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.MYTHIC_CLI_IMAGE_NAME }}:latest
@@ -552,7 +552,7 @@ jobs:
         uses: EndBug/add-and-commit@v9 # ref: https://github.com/marketplace/actions/add-commit
         with:
           # Only add the Dockerfile changes. Nothing else should have been modified
-          add: "['mythic-docker/Dockerfile', 'Mythic_CLI/Dockerfile', 'Mythic_CLI/Makefile', 'Mythic_CLI/src/cmd/config/constants.go', 'postgres-docker/Dockerfile', 'rabbitmq-docker/Dockerfile', 'documentation-docker/Dockerfile', 'jupyter-docker/Dockerfile', 'hasura-docker/Dockerfile', 'nginx-docker/Dockerfile', 'mythic-react-docker/Dockerfile']"
+          add: "['Mythic_CLI/Makefile', 'Mythic_CLI/src/cmd/config/constants.go']"
           # Use the Github actions bot for the commit author
           default_author: github_actions
           committer_email: github-actions[bot]@users.noreply.github.com

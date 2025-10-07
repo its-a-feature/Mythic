@@ -121,23 +121,27 @@ func getDelegateTaskMessages(callbackID int, agentUUIDLength int, updateCheckinT
 				logging.LogDebug("task exists for callback we can route to")
 				currentTasks := []databaseStructs.Task{}
 				if taskIDs := submittedTasksAwaitingFetching.getTasksForCallbackId(targetCallbackId); len(taskIDs) > 0 {
-					if query, args, err := sqlx.Named(`SELECT 
+					query, args, err := sqlx.Named(`SELECT 
 						agent_task_id, "timestamp", command_name, params, id, token_id
 						FROM task WHERE id IN (:ids) ORDER BY id ASC`, map[string]interface{}{
 						"ids": taskIDs,
-					}); err != nil {
+					})
+					if err != nil {
 						logging.LogError(err, "Failed to make named statement when searching for tasks")
 						continue
-					} else if query, args, err := sqlx.In(query, args...); err != nil {
+					}
+					query, args, err = sqlx.In(query, args...)
+					if err != nil {
 						logging.LogError(err, "Failed to do sqlx.In")
 						continue
-					} else {
-						query = database.DB.Rebind(query)
-						if err := database.DB.Select(&currentTasks, query, args...); err != nil {
-							logging.LogError(err, "Failed to exec sqlx.IN modified statement")
-							continue
-						}
 					}
+					query = database.DB.Rebind(query)
+					err = database.DB.Select(&currentTasks, query, args...)
+					if err != nil {
+						logging.LogError(err, "Failed to exec sqlx.IN modified statement")
+						continue
+					}
+					tasks := []agentMessageGetTaskingTask{}
 					for i := 0; i < len(currentTasks); i++ {
 						// now that we have a path, need to recursively encrypt and wrap
 						var tokenID int
@@ -146,36 +150,40 @@ func getDelegateTaskMessages(callbackID int, agentUUIDLength int, updateCheckinT
 								logging.LogError(err, "failed to get token information")
 							}
 						}
+						newTask := agentMessageGetTaskingTask{
+							Command:    currentTasks[i].CommandName,
+							Parameters: currentTasks[i].Params,
+							ID:         currentTasks[i].AgentTaskID,
+							Timestamp:  currentTasks[i].Timestamp.Unix(),
+							Token:      &tokenID,
+						}
+						_, err := database.DB.Exec(`UPDATE task SET
+							status=$2, status_timestamp_processing=$3
+							WHERE id=$1`, currentTasks[i].ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC())
+						if err != nil {
+							logging.LogError(err, "Failed to update task status to processing")
+							continue
+						}
+						tasks = append(tasks, newTask)
+						submittedTasksAwaitingFetching.removeTask(currentTasks[i].ID)
+						go addMitreAttackTaskMapping(currentTasks[i].ID)
+					}
+					if len(tasks) > 0 {
 						newTask := map[string]interface{}{
 							"action": "get_tasking",
-							"tasks": []agentMessageGetTaskingTask{
-								{
-									Command:    currentTasks[i].CommandName,
-									Parameters: currentTasks[i].Params,
-									ID:         currentTasks[i].AgentTaskID,
-									Timestamp:  currentTasks[i].Timestamp.Unix(),
-									Token:      &tokenID,
-								},
-							},
+							"tasks":  tasks,
 						}
-
-						if _, err := database.DB.Exec(`UPDATE task SET
-							status=$2, status_timestamp_processing=$3
-							WHERE id=$1`, currentTasks[i].ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC()); err != nil {
-							logging.LogError(err, "Failed to update task status to processing")
-						} else if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime); err != nil {
+						wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, updateCheckinTime)
+						if err != nil {
 							logging.LogError(err, "Failed to recursively encrypt message")
-						} else {
-							submittedTasksAwaitingFetching.removeTask(currentTasks[i].ID)
-							go addMitreAttackTaskMapping(currentTasks[i].ID)
-							delegateMessages = append(delegateMessages, delegateMessageResponse{
-								Message:       string(wrappedMessage),
-								SuppliedUuid:  routablePath[len(routablePath)-1].DestinationAgentId,
-								C2ProfileName: routablePath[len(routablePath)-1].C2ProfileName,
-							})
+							continue
 						}
+						delegateMessages = append(delegateMessages, delegateMessageResponse{
+							Message:       string(wrappedMessage),
+							SuppliedUuid:  routablePath[len(routablePath)-1].DestinationAgentId,
+							C2ProfileName: routablePath[len(routablePath)-1].C2ProfileName,
+						})
 					}
-
 				}
 			}
 		}

@@ -126,6 +126,8 @@ export function EventTriggerKeywordDialog({onClose, selectedEventGroup}) {
                             <TableCell style={{width: "50%"}}>Key</TableCell>
                             <TableCell>Value</TableCell>
                         </TableRow>
+                    </TableHead>
+                    <TableBody>
                         {dictionaryData.map( (e, index) => (
                             <TableRow key={"dictionarydata" + index}>
                                 <MythicStyledTableCell style={{display: "flex"}} >
@@ -154,8 +156,6 @@ export function EventTriggerKeywordDialog({onClose, selectedEventGroup}) {
                                 </MythicStyledTableCell>
                             </TableRow>
                         ))}
-                    </TableHead>
-                    <TableBody>
                         <TableRow>
                             <MythicStyledTableCell>
                                 <Button onClick={addRow} color={"success"}>

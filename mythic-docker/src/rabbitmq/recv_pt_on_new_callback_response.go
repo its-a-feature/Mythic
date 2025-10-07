@@ -49,6 +49,6 @@ func processOnNewCallbackResponse(msg amqp.Delivery) {
 			return
 		}
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to handle onNewCallback processing for callback %d\n%s", databaseCallback.DisplayID, newCallbackResponse.Error),
-			databaseCallback.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			databaseCallback.OperationID, "", database.MESSAGE_LEVEL_INFO, true)
 	}
 }

@@ -195,12 +195,23 @@ func setGlobalSettings() {
 				// only one we want to make sure to update is the version
 				if defaultKey == "server_config" {
 					serverConfig := databaseStructs.GlobalSettingServerConfig{}
-					err = mapstructure.Decode(globalSetting[i].Setting.StructValue(), &serverConfig)
+					savedStructValue := globalSetting[i].Setting.StructValue()
+					err = mapstructure.Decode(savedStructValue, &serverConfig)
 					if err != nil {
 						logging.LogError(err, "Failed to parse saved server_config global setting")
 						break
 					}
 					serverConfig.Version = utils.MythicConfig.ServerVersion
+					// set default values if they weren't in the database version
+					if _, ok := savedStructValue["debug_agent_message"]; !ok {
+						serverConfig.DebugAgentMessage = utils.MythicConfig.DebugAgentMessage
+					}
+					if _, ok := savedStructValue["allow_invite_links"]; !ok {
+						serverConfig.DebugAgentMessage = utils.MythicConfig.MythicServerAllowInviteLinks
+					}
+					if _, ok := savedStructValue["allow_webhooks_on_new_callbacks"]; !ok {
+						serverConfig.DebugAgentMessage = utils.MythicConfig.MythicServerAllowWebhooksOnNewCallbacks
+					}
 					newSetting := databaseStructs.MythicJSONText{}
 					err = newSetting.Scan(serverConfig)
 					if err != nil {
@@ -223,10 +234,11 @@ func setGlobalSettings() {
 			case "server_config":
 				newSetting := databaseStructs.MythicJSONText{}
 				err = newSetting.Scan(databaseStructs.GlobalSettingServerConfig{
-					Name:              utils.MythicConfig.GlobalServerName,
-					DebugAgentMessage: utils.MythicConfig.DebugAgentMessage,
-					Version:           utils.MythicConfig.ServerVersion,
-					AllowInviteLinks:  utils.MythicConfig.MythicServerAllowInviteLinks,
+					Name:                        utils.MythicConfig.GlobalServerName,
+					DebugAgentMessage:           utils.MythicConfig.DebugAgentMessage,
+					Version:                     utils.MythicConfig.ServerVersion,
+					AllowInviteLinks:            utils.MythicConfig.MythicServerAllowInviteLinks,
+					AllowWebhooksOnNewCallbacks: utils.MythicConfig.MythicServerAllowWebhooksOnNewCallbacks,
 				})
 				if err != nil {
 					logging.LogError(err, "Failed to marshal struct into databaseStructs.MythicJSONText")

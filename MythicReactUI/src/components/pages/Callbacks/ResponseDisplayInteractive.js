@@ -298,13 +298,14 @@ export const ResponseDisplayInteractive = (props) =>{
             if(page.current === currentPage){
                 const pageCount = Math.max(1, Math.ceil(allData.length / pageSize.current));
                 if(page.current === pageCount -1){
-                    console.log("updating pageSize");
-                    // we just streamed more data and we're on the latest page, increase pageSize
-                    //pageSize.current += Math.abs(allData.length - totalCount);
                     currentPage += 1;
                 }
             }
-            setAllOutput(allData.slice((currentPage-1)*pageSize.current, currentPage*pageSize.current));
+            if(props.selectAllOutput){
+                setAllOutput(allData);
+            } else {
+                setAllOutput(allData.slice((currentPage-1)*pageSize.current, currentPage*pageSize.current));
+            }
             setTotalCount(allData.length);
         }else{
             let allData = [...rawResponses, ...taskData];
@@ -337,6 +338,9 @@ export const ResponseDisplayInteractive = (props) =>{
     React.useEffect( () => {
         onSubmitPageChange(1);
     }, [search]);
+    React.useEffect( () => {
+        onSubmitPageChange(1);
+    }, [props.selectAllOutput]);
     const onSubmitSearch = React.useCallback( (newSearch) => {
         setSearch(newSearch);
     }, []);
@@ -431,7 +435,7 @@ export const ResponseDisplayInteractive = (props) =>{
 
           <InteractivePaginationBar totalCount={totalCount} currentPage={page.current}
                                     onSubmitPageChange={onSubmitPageChange} expand={props.expand}
-                                    pageSize={pageSize.current}/>
+                                    pageSize={pageSize.current} selectAllOutput={props.selectAllOutput}/>
       </div>
   )
 
@@ -633,12 +637,12 @@ const InteractiveTaskingBar = ({
         </div>
     )
 }
-const InteractivePaginationBar = ({totalCount, currentPage, onSubmitPageChange, pageSize, expand}) => {
+const InteractivePaginationBar = ({totalCount, currentPage, onSubmitPageChange, pageSize, selectAllOutput}) => {
     const onChangePage =  (event, value) => {
         onSubmitPageChange(value);
     };
     const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
-    if(pageCount < 2){
+    if(pageCount < 2 || selectAllOutput){
         return null;
     }
     return (

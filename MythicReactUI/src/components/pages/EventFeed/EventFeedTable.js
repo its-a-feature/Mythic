@@ -32,7 +32,7 @@ export function EventFeedTable(props){
     const [search, setSearch] = React.useState("");
     const [level, setLevel] = React.useState("info");
     const levelOptions = [
-        "All Levels", "warning (unresolved)", "warning (resolved)", "info", "debug", "api"
+        "All Levels", "warning (unresolved)", "warning (resolved)", "info", "debug", "api", "auth", "agent_message"
     ];
 
     const handleSearchValueChange = (name, value, error) => {

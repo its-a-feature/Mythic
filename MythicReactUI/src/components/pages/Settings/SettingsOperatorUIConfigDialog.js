@@ -425,12 +425,7 @@ export function SettingsOperatorUIConfigDialog(props) {
         <TableContainer className="mythicElement" style={{paddingLeft: "10px", paddingRight: "10px"}}>
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
-                  <TableRow hover>
-                      <MythicStyledTableCell style={{width: "30%"}}>Font Size</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                        <MythicTextField type="number" value={fontSize} onChange={onChangeFontSize} showLabel={false} />
-                      </MythicStyledTableCell>
-                  </TableRow>
+                  
                   <TableRow hover>
                       <MythicStyledTableCell>Font Family</MythicStyledTableCell>
                       <MythicStyledTableCell>

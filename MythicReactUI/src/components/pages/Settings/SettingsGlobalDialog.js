@@ -33,6 +33,7 @@ mutation updateGlobalSettings($settings: jsonb!) {
 export function SettingsGlobalDialog(props) {
     const [debugAgentMessage, setDebugAgentMessage] = React.useState(false);
     const [allowInviteLinks, setAllowInviteLinks] = React.useState(false);
+    const [allowWebhooksOnNewCallbacks, setAllowWebhooksOnNewCallbacks] = React.useState(true);
     const [serverName, setServerName] = React.useState(false);
     const userPreferencesRef = React.useRef("{}");
     useQuery(GET_GLOBAL_SETTINGS, {fetchPolicy: "no-cache",
@@ -43,6 +44,7 @@ export function SettingsGlobalDialog(props) {
             //setAllowInviteLinks(data.getGlobalSettings.settings["MYTHIC_SERVER_ALLOW_INVITE_LINKS"]);
             setServerName(data.getGlobalSettings.settings["server_config"]["name"]);
             //setServerName(data.getGlobalSettings.settings["MYTHIC_GLOBAL_SERVER_NAME"]);
+            setAllowWebhooksOnNewCallbacks(data.getGlobalSettings.settings["server_config"]["allow_webhooks_on_new_callbacks"]);
             userPreferencesRef.current = JSON.stringify(data.getGlobalSettings.settings["preferences"], null, 2);
         }
     });
@@ -67,6 +69,9 @@ export function SettingsGlobalDialog(props) {
     const onInviteLinkChange = (evt) => {
         setAllowInviteLinks(!allowInviteLinks);
     }
+    const onAllowWebhooksOnNewCallbacksChange = (evt) => {
+        setAllowWebhooksOnNewCallbacks(!allowWebhooksOnNewCallbacks);
+    }
     const onAccept = () => {
       updateGlobalSettings({variables:{
           settings: {
@@ -74,6 +79,7 @@ export function SettingsGlobalDialog(props) {
                   "name": serverName,
                   "allow_invite_links": allowInviteLinks,
                   "debug_agent_message": debugAgentMessage,
+                  "allow_webhooks_on_new_callbacks": allowWebhooksOnNewCallbacks,
               },
               "preferences": JSON.parse(userPreferencesRef.current)
           }
@@ -120,6 +126,17 @@ export function SettingsGlobalDialog(props) {
                       />
                   </MythicStyledTableCell>
               </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell style={{width: "40%"}}>Allow Mythic to send webhook notifications on new callbacks. This can also be set by the MYTHIC_SERVER_ALLOW_WEBHOOKS_ON_NEW_CALLBACKS config variable before Mythic starts for the first time.</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <Switch
+                              checked={allowWebhooksOnNewCallbacks}
+                              onChange={onAllowWebhooksOnNewCallbacksChange}
+                              color="info"
+                              inputProps={{ 'aria-label': 'primary checkbox' }}
+                          />
+                      </MythicStyledTableCell>
+                  </TableRow>
                   <TableRow hover>
                       <MythicStyledTableCell style={{width: "40%"}}>Configure user preferences for new users. This does NOT override existing user preferences, but only applies to new users created after this is updated.</MythicStyledTableCell>
                       <MythicStyledTableCell>

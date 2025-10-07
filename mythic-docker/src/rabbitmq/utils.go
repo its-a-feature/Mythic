@@ -118,9 +118,9 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 				return "false", nil
 			}
 		case string:
-			if strings.ToLower(v) == "false" {
+			if strings.ToLower(v) == "false" || strings.ToLower(v) == "f" {
 				return "false", nil
-			} else if strings.ToLower(v) == "true" {
+			} else if strings.ToLower(v) == "true" || strings.ToLower(v) == "t" {
 				return "true", nil
 			} else {
 				tmpErr := errors.New("Boolean value not true or false")
@@ -294,9 +294,9 @@ func GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(parameterType s
 				return "false", nil
 			}
 		case string:
-			if strings.ToLower(v) == "false" {
+			if strings.ToLower(v) == "false" || strings.ToLower(v) == "f" {
 				return "false", nil
-			} else if strings.ToLower(v) == "true" {
+			} else if strings.ToLower(v) == "true" || strings.ToLower(v) == "t" {
 				return "true", nil
 			} else {
 				logging.LogError(nil, "boolean was supplied a string not 'true' or 'false'", "value", userSuppliedValue)
@@ -407,12 +407,12 @@ func GetMythicJSONArrayFromStruct(input interface{}) databaseStructs.MythicJSONA
 }
 func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterType string, defaultValue string, choices []interface{}, randomize bool, formatString string) (string, error) {
 	if randomize {
-		if random, err := utils.Generate(formatString, 10); err != nil {
+		random, err := utils.Generate(formatString, 10)
+		if err != nil {
 			logging.LogError(err, "Failed to generate new randomized string", "randomizer", formatString)
 			return "", err
-		} else {
-			return random, nil
 		}
+		return random, nil
 	}
 	switch parameterType {
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM:
@@ -431,15 +431,14 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 			}
 			if utils.SliceContains(stringChoices, defaultValue) {
 				return defaultValue, nil
-			} else if len(stringChoices) > 0 {
-				return stringChoices[0], nil
-			} else {
-				logging.LogError(nil, "Trying to get default value for ChooseOne for instance creation, but no choices and no value supplied")
-				return defaultValue, nil
 			}
-		} else {
-			return strings.TrimSpace(defaultValue), nil
+			if len(stringChoices) > 0 {
+				return stringChoices[0], nil
+			}
+			logging.LogError(nil, "Trying to get default value for ChooseOne for instance creation, but no choices and no value supplied")
+			return defaultValue, nil
 		}
+		return strings.TrimSpace(defaultValue), nil
 	case BUILD_PARAMETER_TYPE_FILE:
 		fallthrough
 	case BUILD_PARAMETER_TYPE_STRING:
@@ -461,11 +460,14 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 		var dictionaryChoices []ParameterDictionary
 		if defaultValue == "" {
 			// use choices
-			if err := mapstructure.Decode(choices, &dictionaryChoices); err != nil {
+			err := mapstructure.Decode(choices, &dictionaryChoices)
+			if err != nil {
 				logging.LogError(err, "Failed to decode mapstructure of base dictionary choices")
 				return "", err
 			}
-		} else if err := json.Unmarshal([]byte(defaultValue), &dictionaryChoices); err != nil {
+		}
+		err := json.Unmarshal([]byte(defaultValue), &dictionaryChoices)
+		if err != nil {
 			logging.LogError(err, "Failed to unmarshal dictionary choices")
 			return "", err
 		}
@@ -475,22 +477,22 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 				dictionary[opt.Name] = opt.DefaultValue
 			}
 		}
-		if dictionaryBytes, err := json.Marshal(dictionary); err != nil {
+		dictionaryBytes, err := json.Marshal(dictionary)
+		if err != nil {
 			logging.LogError(err, "Failed to convert default dictionary to string")
 			return "", err
-		} else {
-			return string(dictionaryBytes), nil
 		}
+		return string(dictionaryBytes), nil
 
 	case BUILD_PARAMETER_TYPE_DATE:
 		// date number is stored as the default value, so convert to new string
-		if number, err := strconv.Atoi(defaultValue); err != nil {
+		number, err := strconv.Atoi(defaultValue)
+		if err != nil {
 			logging.LogError(err, "Failed to get default value for date")
 			return "", err
-		} else {
-			newTime := time.Now().UTC().AddDate(0, 0, number).Format(TIME_FORMAT_STRING_YYYY_MM_DD)
-			return newTime, nil
 		}
+		newTime := time.Now().UTC().AddDate(0, 0, number).Format(TIME_FORMAT_STRING_YYYY_MM_DD)
+		return newTime, nil
 	default:
 		logging.LogError(nil, "unknown parameter type", "type", parameterType)
 		return "", errors.New("Unknown parameter type")
@@ -505,9 +507,9 @@ func GetInterfaceValueForContainer(parameterType string, finalString string, enc
 				"enc_key": encKey,
 				"dec_key": decKey,
 			}, nil
-		} else {
-			return strings.TrimSpace(finalString), nil
 		}
+		return strings.TrimSpace(finalString), nil
+
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE_CUSTOM:
 		fallthrough
 	case BUILD_PARAMETER_TYPE_STRING:
@@ -518,45 +520,49 @@ func GetInterfaceValueForContainer(parameterType string, finalString string, enc
 		fallthrough
 	case BUILD_PARAMETER_TYPE_ARRAY:
 		var arrayValues []interface{}
-		if err := json.Unmarshal([]byte(finalString), &arrayValues); err != nil {
+		err := json.Unmarshal([]byte(finalString), &arrayValues)
+		if err != nil {
 			logging.LogError(err, "Failed to convert final string back to array for container")
 			return "[]", err
-		} else {
-			return arrayValues, nil
 		}
+		return arrayValues, nil
+
 	case BUILD_PARAMETER_TYPE_TYPED_ARRAY:
 		var arrayValues [][]interface{}
-		if err := json.Unmarshal([]byte(finalString), &arrayValues); err != nil {
+		err := json.Unmarshal([]byte(finalString), &arrayValues)
+		if err != nil {
 			logging.LogError(err, "Failed to convert final string back to an array of tuples for container")
 			return "[]", err
-		} else {
-			return arrayValues, nil
 		}
+		return arrayValues, nil
+
 	case BUILD_PARAMETER_TYPE_BOOLEAN:
-		if strings.ToLower(finalString) == "false" {
+		if strings.ToLower(finalString) == "false" || strings.ToLower(finalString) == "f" {
 			return false, nil
-		} else if strings.ToLower(finalString) == "true" {
+		} else if strings.ToLower(finalString) == "true" || strings.ToLower(finalString) == "t" {
 			return true, nil
 		} else {
-			logging.LogError(nil, "Failed to convert boolean string to boolean")
+			logging.LogError(nil, "Failed to convert boolean string to boolean", "value", finalString)
 			return false, errors.New("bad boolean value")
 		}
 	case BUILD_PARAMETER_TYPE_NUMBER:
-		if value, err := strconv.Atoi(finalString); err != nil {
+		value, err := strconv.Atoi(finalString)
+		if err != nil {
 			logging.LogError(err, "Failed to convert number string back to int")
 			return 0, err
-		} else {
-			return value, nil
 		}
+		return value, nil
+
 	case BUILD_PARAMETER_TYPE_DICTIONARY:
 		// need to generate the base dictionary from the dictionary array choices and create a string
 		var dictionary map[string]interface{}
-		if err := json.Unmarshal([]byte(finalString), &dictionary); err != nil {
+		err := json.Unmarshal([]byte(finalString), &dictionary)
+		if err != nil {
 			logging.LogError(err, "Failed to convert dictionary string to map")
 			return "", err
-		} else {
-			return dictionary, nil
 		}
+		return dictionary, nil
+
 	case BUILD_PARAMETER_TYPE_DATE:
 		return strings.TrimSpace(finalString), nil
 	case BUILD_PARAMETER_TYPE_FILE:
@@ -1229,18 +1235,41 @@ func GetSaveFilePath() (string, string, error) {
 	}
 	return "", "", errors.New("Failed to create file on disk")
 }
-func SendAllOperationsMessage(message string, operationID int, source string, messageLevel database.MESSAGE_LEVEL) {
-	/*
-		Send a message to all operation's event logs if operationID is 0, otherwise just send it to the specific operation.
-		if messageLevel == "error", first check to see if there's an unresolved message of type `source` first.
-			if so, increment the counter
-			if not, create the message
-	*/
+
+var operationsMap = make(map[int]databaseStructs.Operation)
+var operationsMapMutex sync.RWMutex
+
+func InvalidateOperationEventLogCacheMap() {
+	operationsMapMutex.Lock()
+	defer operationsMapMutex.Unlock()
+	operationsMap = make(map[int]databaseStructs.Operation)
 	var operations []databaseStructs.Operation
-	if err := database.DB.Select(&operations, `SELECT id, "name", webhook, channel FROM operation WHERE complete=false`); err != nil {
-		logging.LogError(err, "Failed to get operations for SendAllOperationsMessage", "message", message)
+	err := database.DB.Select(&operations, `SELECT id, "name", webhook, channel FROM operation WHERE complete=false`)
+	if err != nil {
+		logging.LogError(err, "Failed to get operations for InvalidateOperationEventLogCacheMap")
 		return
 	}
+	for _, operation := range operations {
+		operationsMap[operation.ID] = operation
+	}
+}
+func SendAllOperationsMessage(message string, operationID int, source string, messageLevel database.MESSAGE_TYPE, warning bool) {
+	var operations []databaseStructs.Operation
+	operationsMapMutex.RLock()
+	if operationID == 0 {
+		for _, operation := range operationsMap {
+			operations = append(operations, operation)
+		}
+	} else {
+		operation, ok := operationsMap[operationID]
+		if !ok {
+			operationsMapMutex.RUnlock()
+			logging.LogError(nil, "unknown operation id, can't send message", "operation_id", operationID)
+			return
+		}
+		operations = append(operations, operation)
+	}
+	operationsMapMutex.RUnlock()
 	sourceString := source
 	if sourceString == "" {
 		sourceString = uuid.NewString()
@@ -1248,94 +1277,99 @@ func SendAllOperationsMessage(message string, operationID int, source string, me
 	for _, operation := range operations {
 		if operationID == 0 || operation.ID == operationID {
 			// this is the operation we're interested in
-			if messageLevel == database.MESSAGE_LEVEL_WARNING {
+			if messageLevel == "warning" || warning {
 				existingMessage := databaseStructs.Operationeventlog{}
-				if err := database.DB.Get(&existingMessage, `
-				SELECT id, count, "message", source FROM operationeventlog WHERE
-				level='warning' and source=$1 and operation_id=$2 and resolved=false and deleted=false
-				`, sourceString, operation.ID); err != nil {
-					if !errors.Is(err, sql.ErrNoRows) {
-						logging.LogError(err, "Failed to query existing event log message")
-					} else if errors.Is(err, sql.ErrNoRows) {
-						newMessage := databaseStructs.Operationeventlog{
-							Source:      sourceString,
-							Level:       messageLevel,
-							Message:     message,
-							OperationID: operation.ID,
-							Count:       0,
-						}
-						if _, err := database.DB.NamedExec(`INSERT INTO operationeventlog 
-						(source, "level", "message", operation_id, count) 
-						VALUES 
-						(:source, :level, :message, :operation_id, :count)`, newMessage); err != nil {
-							logging.LogError(err, "Failed to create new operationeventlog message")
-						} else {
-							go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
-								OperationID:      operation.ID,
-								OperationName:    operation.Name,
-								OperationWebhook: operation.Webhook,
-								OperationChannel: operation.Channel,
-								OperatorUsername: "",
-								Action:           WEBHOOK_TYPE_ALERT,
-								Data: map[string]interface{}{
-									"message":   newMessage.Message,
-									"source":    newMessage.Source,
-									"count":     newMessage.Count,
-									"timestamp": time.Now().UTC(),
-								},
-							})
-							EventingChannel <- EventNotification{
-								Trigger:     eventing.TriggerAlert,
-								OperationID: operation.ID,
-								Outputs: map[string]interface{}{
-									"alert": newMessage.Message,
-								},
-							}
-
-						}
-					}
-				} else {
-					// err was nil, so we did get a matching existing message
-					existingMessage.Count += 1
-					if _, err := database.DB.NamedExec(`UPDATE operationeventlog SET 
-					"count"=:count 
-					WHERE id=:id`, existingMessage); err != nil {
-						logging.LogError(err, "Failed to increase count on operationeventlog")
-					} else {
-
-						go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
-							OperationID:      operation.ID,
-							OperationName:    operation.Name,
-							OperationWebhook: operation.Webhook,
-							OperationChannel: operation.Channel,
-							OperatorUsername: "",
-							Action:           WEBHOOK_TYPE_ALERT,
-							Data: map[string]interface{}{
-								"message":   existingMessage.Message,
-								"source":    existingMessage.Source,
-								"count":     existingMessage.Count,
-								"timestamp": time.Now().UTC(),
-							},
-						})
-
-					}
+				err := database.DB.Get(&existingMessage, `
+				SELECT id, count, "message", source, "level" FROM operationeventlog WHERE
+				warning=true and source=$1 and operation_id=$2 and resolved=false and deleted=false and "level"=$3
+				`, sourceString, operation.ID, messageLevel)
+				if !errors.Is(err, sql.ErrNoRows) {
+					logging.LogError(err, "Failed to query existing event log message")
+					continue
 				}
+				if errors.Is(err, sql.ErrNoRows) {
+					if messageLevel == "warning" {
+						messageLevel = database.MESSAGE_LEVEL_INFO
+					}
+					newMessage := databaseStructs.Operationeventlog{
+						Source:      sourceString,
+						Level:       messageLevel,
+						Warning:     warning,
+						Message:     message,
+						OperationID: operation.ID,
+						Count:       0,
+					}
+					_, err = database.DB.NamedExec(`INSERT INTO operationeventlog 
+						(source, "level", "message", operation_id, count, warning) 
+						VALUES 
+						(:source, :level, :message, :operation_id, :count, :warning)`, newMessage)
+					if err != nil {
+						logging.LogError(err, "Failed to create new operationeventlog message")
+						continue
+					}
+					go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
+						OperationID:      operation.ID,
+						OperationName:    operation.Name,
+						OperationWebhook: operation.Webhook,
+						OperationChannel: operation.Channel,
+						OperatorUsername: "",
+						Action:           WEBHOOK_TYPE_ALERT,
+						Data: map[string]interface{}{
+							"message":   newMessage.Message,
+							"source":    newMessage.Source,
+							"count":     newMessage.Count,
+							"timestamp": time.Now().UTC(),
+						},
+					})
+					EventingChannel <- EventNotification{
+						Trigger:     eventing.TriggerAlert,
+						OperationID: operation.ID,
+						Outputs: map[string]interface{}{
+							"alert": newMessage.Message,
+						},
+					}
+					continue
+				}
+				// err was nil, so we did get a matching existing message
+				existingMessage.Count += 1
+				_, err = database.DB.NamedExec(`UPDATE operationeventlog SET 
+					"count"=:count 
+					WHERE id=:id`, existingMessage)
+				if err != nil {
+					logging.LogError(err, "Failed to increase count on operationeventlog")
+					continue
+				}
+
+				go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
+					OperationID:      operation.ID,
+					OperationName:    operation.Name,
+					OperationWebhook: operation.Webhook,
+					OperationChannel: operation.Channel,
+					OperatorUsername: "",
+					Action:           WEBHOOK_TYPE_ALERT,
+					Data: map[string]interface{}{
+						"message":   existingMessage.Message,
+						"source":    existingMessage.Source,
+						"count":     existingMessage.Count,
+						"timestamp": time.Now().UTC(),
+					},
+				})
 			} else {
 				newMessage := databaseStructs.Operationeventlog{
 					Source:      sourceString,
 					Level:       messageLevel,
+					Warning:     warning,
 					Message:     message,
 					OperationID: operation.ID,
 					Count:       0,
 				}
 				if _, err := database.DB.NamedExec(`INSERT INTO operationeventlog 
-				(source, "level", "message", operation_id, count) 
+				(source, "level", "message", operation_id, count, warning) 
 				VALUES 
-				(:source, :level, :message, :operation_id, :count)`, newMessage); err != nil {
+				(:source, :level, :message, :operation_id, :count, :warning)`, newMessage); err != nil {
 					logging.LogError(err, "Failed to create new operationeventlog message")
 				}
 			}
-
 		}
 	}
 }

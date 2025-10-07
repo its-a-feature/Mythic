@@ -30,6 +30,7 @@ export const getCallbackIdFromClickedTab = (tabId) => {
 export function Callbacks({me}) {
     const [openCallbackImport, setOpenCallbackImport] = React.useState(false);
     const [topDisplay, setTopDisplay] = React.useState('table');
+    const [newDataForTab, setNewDataForTab] = React.useState({});
     const [openTabs, setOpenTabs] = React.useState([]);
     const [clickedTabId, setClickedTabIdValue] = React.useState('');
     const openTabRef = React.useRef([]);
@@ -46,6 +47,7 @@ export function Callbacks({me}) {
             }
         }
         setClickedTabIdValue(tabID);
+        setNewDataForTab((prev) => {return {...prev, [tabID]: false}});
     }
     useEffect(() => {
         const oldTabs = localStorage.getItem('openTabs');
@@ -257,87 +259,11 @@ export function Callbacks({me}) {
                         me={me}
                         onDragEnd={onDragEnd}
                         contextMenuOptions={contextMenuOptions}
+                        newDataForTab={newDataForTab}
+                        setNewDataForTab={setNewDataForTab}
                     />
                 </div>
             </Split>
         </>
     );
 }
-/*
-function SpeedDialWrapperPreMemo({ setTopDisplay }) {
-    const [open, setOpen] = React.useState(false);
-    const [openCallbackImport, setOpenCallbackImport] = React.useState(false);
-    const actions = React.useMemo(
-        () => [
-            {
-                icon: <TocIcon />,
-                name: 'Table layout',
-                onClick: () => {
-                    setTopDisplay('table');
-                },
-            },
-            {
-                icon: <AssessmentIcon />,
-                name: 'Graph layout',
-                onClick: () => {
-                    setTopDisplay('graph');
-                },
-            },
-            {
-                icon: <PhoneForwardedIcon />,
-                name: "Import Callback",
-                onClick: () => {
-                    setOpenCallbackImport(true);
-                }
-            }
-        ],
-        [] // eslint-disable-line react-hooks/exhaustive-deps
-    );
-    return (
-        <React.Fragment>
-            {openCallbackImport &&
-                <MythicDialog fullWidth={true} maxWidth="sm" open={openCallbackImport}
-                              onClose={()=>{setOpenCallbackImport(false);}}
-                              innerDialog={<ImportCallbackConfigDialog onClose={()=>{setOpenCallbackImport(false);}} />}
-                />
-            }
-            <StyledSpeedDial
-                ariaLabel='SpeedDial example'
-                className={classes.speedDial}
-                icon={<SpeedDialIcon />}
-                onClose={() => {
-                    setOpen(false);
-                }}
-                onOpen={() => {
-                    setOpen(true);
-                }}
-                FabProps={{
-                    color: 'info', size: "small", variant: "extended",
-                    sx: {
-                        height: "25px", minWidth: "unset", width: "25px"
-                    }
-                }}
-                open={open}
-                style={{ marginTop:"10px", marginRight: "20px"}}
-                direction='down'>
-                {actions.map((action) => (
-                    <SpeedDialAction
-                        arrow
-                        className={classes.speedDialAction}
-                        key={action.name}
-                        TooltipClasses={{
-                            ".MuiTooltip-tooltip": classes.tooltip,
-                            ".MuiTooltip-tooltipArrow": classes.arrow,
-                        }}
-                        icon={action.icon}
-                        tooltipTitle={action.name}
-                        onClick={action.onClick}
-                    />
-                ))}
-            </StyledSpeedDial>
-        </React.Fragment>
-    );
-}
-const SpeedDialWrapper = React.memo(SpeedDialWrapperPreMemo);
-
- */

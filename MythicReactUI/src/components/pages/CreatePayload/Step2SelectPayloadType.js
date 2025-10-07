@@ -31,6 +31,14 @@ query getPayloadTypesBuildParametersQuery($os: jsonb!) {
   }
 }
  `;
+export const getSavedToType = (parameter) => {
+    let temp = {...parameter};
+    temp.default_value = parameter.trackedValue;
+    if(parameter.parameter_type === 'Date'){
+        return temp.default_value;
+    }
+    return getDefaultValueForType(temp);
+}
 export const getDefaultValueForType = (parameter) => {
     // all default values will be strings, so convert them
     if(parameter.randomize && parameter.format_string !== ""){

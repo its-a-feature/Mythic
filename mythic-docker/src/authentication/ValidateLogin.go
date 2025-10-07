@@ -23,7 +23,7 @@ func ValidateLogin(username string, password string, scriptingVersion string, fr
 		FROM operator
 		WHERE username=$1`, username)
 	if err != nil {
-		logging.LogError(err, "Failed to find username", "username", user.Username)
+		logging.LogError(err, "Failed to find username", "username", username)
 		return "", "", 0, err
 	}
 	if user.AccountType != databaseStructs.AccountTypeUser {
@@ -33,14 +33,14 @@ func ValidateLogin(username string, password string, scriptingVersion string, fr
 		err = errors.New("attempted log in with a deleted user")
 		logging.LogError(err, "username", user.Username)
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Attempted to log in with deleted user, %s, from %s", user.Username, fromIP),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_AUTH, true)
 		return "", "", 0, err
 	}
 	if !user.Active {
 		err = errors.New("Attempted log in with an inactive user")
 		logging.LogError(err, "username", user.Username)
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Attempted to log in with inactive user, %s, from %s", user.Username, fromIP),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_AUTH, true)
 		return "", "", 0, err
 	}
 	if user.ID == 1 &&
@@ -49,7 +49,7 @@ func ValidateLogin(username string, password string, scriptingVersion string, fr
 		err = errors.New("Throttling login attempts of default account")
 		logging.LogError(err, "Throttling login attempts of default account", "username", user.Username)
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Throttling login attempts of account, %s, from %s", user.Username, fromIP),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_AUTH, true)
 		return "", "", 0, err
 	}
 	if !database.CheckUserPassword(user, password) {
@@ -62,7 +62,7 @@ func ValidateLogin(username string, password string, scriptingVersion string, fr
 				user.Active = false
 				logging.LogError(nil, "Deactivating user over too many failed login attempts", "username", user.Username)
 				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Deactivating account due to failed attempts, %s, from %s", user.Username, fromIP),
-					0, "", database.MESSAGE_LEVEL_WARNING)
+					0, "", database.MESSAGE_LEVEL_AUTH, true)
 			}
 		}
 		updateUserLoginStatus(user)
@@ -73,9 +73,9 @@ func ValidateLogin(username string, password string, scriptingVersion string, fr
 	user.FailedLoginCount = 0
 	updateUserLoginStatus(user)
 	if scriptingVersion == "" {
-		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s logged in from %s", user.Username, fromIP), 0, "", database.MESSAGE_LEVEL_DEBUG)
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s logged in from %s", user.Username, fromIP), 0, "", database.MESSAGE_LEVEL_AUTH, false)
 	} else {
-		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s connected via Mythic Scripting (v%s) from %s", user.Username, scriptingVersion, fromIP), 0, "", database.MESSAGE_LEVEL_DEBUG)
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s connected via Mythic Scripting (v%s) from %s", user.Username, scriptingVersion, fromIP), 0, "", database.MESSAGE_LEVEL_AUTH, false)
 	}
 	return mythicjwt.GenerateJWT(user, mythicjwt.AUTH_METHOD_USER, 0, 0)
 
@@ -97,14 +97,14 @@ func ValidateCustomAuthProviderLogin(email string, authError string, validLogin 
 		err = errors.New("attempted log in with a deleted user")
 		logging.LogError(err, "username", user.Username)
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Attempted to log in with deleted user, %s, from %s", user.Username, fromIP),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_AUTH, true)
 		return "", "", 0, err
 	}
 	if !user.Active {
 		err = errors.New("Attempted log in with an inactive user")
 		logging.LogError(err, "username", user.Username)
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Attempted to log in with inactive user, %s, from %s", user.Username, fromIP),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_AUTH, true)
 		return "", "", 0, err
 	}
 	if user.ID == 1 &&
@@ -113,7 +113,7 @@ func ValidateCustomAuthProviderLogin(email string, authError string, validLogin 
 		err = errors.New("Throttling login attempts of default account")
 		logging.LogError(err, "Throttling login attempts of default account", "username", user.Username)
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Throttling login attempts of account, %s, from %s", user.Username, fromIP),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_AUTH, true)
 		return "", "", 0, err
 	}
 	if !validLogin {
@@ -126,7 +126,7 @@ func ValidateCustomAuthProviderLogin(email string, authError string, validLogin 
 				user.Active = false
 				logging.LogError(nil, "Deactivating user over too many failed login attempts", "username", user.Username)
 				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Deactivating account due to failed attempts, %s, from %s", user.Username, fromIP),
-					0, "", database.MESSAGE_LEVEL_WARNING)
+					0, "", database.MESSAGE_LEVEL_AUTH, true)
 			}
 		}
 		updateUserLoginStatus(user)
@@ -136,7 +136,7 @@ func ValidateCustomAuthProviderLogin(email string, authError string, validLogin 
 	user.LastLogin = sql.NullTime{Valid: true, Time: time.Now().UTC()}
 	user.FailedLoginCount = 0
 	updateUserLoginStatus(user)
-	go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s logged in from %s via %s's %s", user.Username, fromIP, containerName, IDPName), 0, "", database.MESSAGE_LEVEL_DEBUG)
+	go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s logged in from %s via %s's %s", user.Username, fromIP, containerName, IDPName), 0, "", database.MESSAGE_LEVEL_AUTH, false)
 	return mythicjwt.GenerateJWT(user, mythicjwt.AUTH_METHOD_USER, 0, 0)
 
 }

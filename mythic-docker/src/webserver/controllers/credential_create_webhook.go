@@ -20,7 +20,7 @@ type CreateCredentialInput struct {
 type CreateCredential struct {
 	Realm          string `json:"realm"`
 	Account        string `json:"account"`
-	Credential     string `json:"credential" binding:"required"`
+	Credential     string `json:"credential"`
 	Comment        string `json:"comment"`
 	CredentialType string `json:"credential_type"`
 }
@@ -71,6 +71,13 @@ func CreateCredentialWebhook(c *gin.Context) {
 			databaseCred.APITokensID.Valid = true
 			databaseCred.APITokensID.Int64 = int64(APITokenID.(int))
 		}
+	}
+	if input.Input.Realm == "" && input.Input.Account == "" {
+		c.JSON(http.StatusOK, CreateCredentialResponse{
+			Status: "error",
+			Error:  "Must supply an account name or a realm",
+		})
+		return
 	}
 	// check if the cred already exists. If it does, move on. If it doesn't, create it
 	err = database.DB.Get(&databaseCred, `SELECT * FROM credential WHERE

@@ -21,6 +21,7 @@ import {faList, faTrashAlt, faSkullCrossbones, faCamera, faSyringe, faFolder, fa
 import {Dropdown, DropdownMenuItem} from "../../MythicComponents/MythicNestedMenus";
 import {GetComputedFontSize} from "../../MythicComponents/MythicSavedUserSetting";
 import {TableFilterDialog} from "./TableFilterDialog";
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 const onCopyToClipboard = (data) => {
   let result = copyStringToClipboard(data);
@@ -407,11 +408,12 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
                                                                               table={taskingData?.value || {}} callback_id={callback_id} onClose={finishedViewingData} />}
                   />
               }
-              <Button size="small" variant={"contained"} color={"info"} ref={dropdownAnchorRef}
+              <Button size="small" variant={"contained"} ref={dropdownAnchorRef}
                       onClick={() => setOpenDropdownButton(true)} disabled={cellData?.button?.disabled || false}
                       startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : null}
                       style={{...actionCellButtonStyle}}
-              >{cellData?.button?.name || " "}</Button>
+              >{cellData?.button?.name || " "} <ArrowDropDownIcon />
+              </Button>
               <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
                 <Dropdown
                     isOpen={dropdownAnchorRef.current}

@@ -88,9 +88,12 @@ func getFormattedEventingFile(eventGroup *databaseStructs.EventGroup, includeSte
 		Environment: eventGroup.Environment.StructValue(),
 		Keywords:    eventGroup.Keywords.StructStringValue(),
 		RunAs:       eventGroup.RunAs,
-		Steps:       make([]eventing.EventStep, 0),
 	}
 	if includeSteps {
+		err := database.DB.Select(&eventGroup.Steps, `SELECT * FROM eventstep WHERE eventgroup_id=$1`, eventGroup.ID)
+		if err != nil {
+			logging.LogError(err, "failed to get eventgroup steps")
+		}
 		for _, step := range eventGroup.Steps {
 			exportedEventGroup.Steps = append(exportedEventGroup.Steps, eventing.EventStep{
 				Name:            step.Name,

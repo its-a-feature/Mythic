@@ -125,7 +125,7 @@ function CallbackSearchTableRow(props){
                 <MythicStyledTableCell>
                 <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
                         href={"/new/callbacks/" + props.display_id}>
-                            {props.display_id}
+                            C-{props.display_id}
                     </Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>

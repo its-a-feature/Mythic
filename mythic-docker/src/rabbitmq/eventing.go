@@ -137,14 +137,14 @@ func listenForCronEvents() {
 			if err != nil {
 				logging.LogError(err, "failed to create new cron job")
 				SendAllOperationsMessage(fmt.Sprintf("Failed to create new cron job\n%v", err),
-					event.OperationID, "eventing_cron_listen", database.MESSAGE_LEVEL_WARNING)
+					event.OperationID, "eventing_cron_listen", database.MESSAGE_LEVEL_INFO, true)
 				continue
 			}
 			nextTriggerDate, err := j.NextRun()
 			if err != nil {
 				logging.LogError(err, "failed to get next run")
 				SendAllOperationsMessage(fmt.Sprintf("Failed to get next cron job run\n%v", err),
-					event.OperationID, "eventing_cron_next", database.MESSAGE_LEVEL_WARNING)
+					event.OperationID, "eventing_cron_next", database.MESSAGE_LEVEL_INFO, true)
 				continue
 			}
 			_, err = database.DB.Exec(`UPDATE eventgroup SET next_scheduled_run=$1 WHERE id=$2`,
@@ -193,7 +193,7 @@ func listenForEvents() {
 		case eventing.TriggerManual:
 			// somebody manually triggered an event group to run
 			eventgroupinstanceID, err := eventing.CreateEventGroupInstance(event.EventGroupID,
-				eventing.TriggerManual, event.OperatorID, map[string]interface{}{})
+				eventing.TriggerManual, event.OperatorID, event.KeywordEnvData)
 			if err != nil {
 				logging.LogError(err, "Failed to create new event group instance")
 				errMsg := err.Error()
@@ -206,7 +206,7 @@ func listenForEvents() {
 					logging.LogError(err, "Failed to get event group information")
 				}
 				go SendAllOperationsMessage(fmt.Sprintf("Error triggering manual workflow: %s", errMsg),
-					event.OperationID, source, database.MESSAGE_LEVEL_WARNING)
+					event.OperationID, source, database.MESSAGE_LEVEL_INFO, true)
 				continue
 			}
 			// still need to do something to start processing steps
@@ -229,7 +229,7 @@ func listenForEvents() {
 					logging.LogError(err, "Failed to get event group information")
 				}
 				go SendAllOperationsMessage(fmt.Sprintf("Error retriggering workflow: %s", errMsg),
-					event.OperationID, source, database.MESSAGE_LEVEL_WARNING)
+					event.OperationID, source, database.MESSAGE_LEVEL_INFO, true)
 				continue
 			}
 		case eventing.TriggerRetryFromStep:
@@ -260,7 +260,7 @@ func listenForEvents() {
 					logging.LogError(err, "Failed to get event group information")
 				}
 				go SendAllOperationsMessage(fmt.Sprintf("Error triggering cron workflow: %s", errMsg),
-					event.OperationID, source, database.MESSAGE_LEVEL_WARNING)
+					event.OperationID, source, database.MESSAGE_LEVEL_INFO, true)
 				continue
 			}
 			_, err = database.DB.Exec(`UPDATE eventgroup SET next_scheduled_run=$1 WHERE id=$2`,
@@ -285,7 +285,7 @@ func listenForEvents() {
 					source = fmt.Sprintf("Cancel Event Group Trigger: %s", eventGroup.EventGroup.Name)
 				}
 				go SendAllOperationsMessage(fmt.Sprintf("Error cancelling workflow: %s", err.Error()),
-					event.OperationID, source, database.MESSAGE_LEVEL_WARNING)
+					event.OperationID, source, database.MESSAGE_LEVEL_INFO, true)
 			}
 		// payload starting to build triggers new things to start
 		case eventing.TriggerPayloadBuildStart:
@@ -412,7 +412,7 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 					source := fmt.Sprintf("Keyword Event Group Trigger: %s", eventNotification.Trigger)
 					go SendAllOperationsMessage(fmt.Sprintf("Error triggering keyword workflow for %s: %s",
 						possibleEventGroups[i].Name, err.Error()),
-						eventNotification.OperationID, source, database.MESSAGE_LEVEL_WARNING)
+						eventNotification.OperationID, source, database.MESSAGE_LEVEL_INFO, true)
 					continue
 				}
 				// still need to do something to start processing steps
@@ -429,19 +429,23 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 				if err != nil {
 					logging.LogError(err, "Failed to decode trigger data")
 				}
-				if len(triggerDataNewCallback.PayloadTypes) > 0 {
+				if len(triggerDataNewCallback.PayloadTypes) > 0 || len(triggerDataNewCallback.SelectedOS) > 0 {
 					payload := databaseStructs.Payload{}
 					err = database.DB.Get(&payload, `SELECT 
-    					payloadtype.name "payloadtype.name"
+    					payloadtype.name "payloadtype.name",
+    					payload.os
 						FROM payload
 						JOIN payloadtype ON payload.payload_type_id = payloadtype.id
 						WHERE payload.id=$1`, eventNotification.PayloadID)
 					if err != nil {
 						logging.LogError(err, "Failed to query callback payload")
 					}
-					if !slices.Contains(triggerDataNewCallback.PayloadTypes,
-						payload.Payloadtype.Name) {
+					if len(triggerDataNewCallback.PayloadTypes) > 0 && !slices.Contains(triggerDataNewCallback.PayloadTypes, payload.Payloadtype.Name) {
 						logging.LogInfo("Not triggering workflow due to payload type restrictions on payload")
+						continue
+					}
+					if len(triggerDataNewCallback.SelectedOS) > 0 && !slices.Contains(triggerDataNewCallback.SelectedOS, payload.Os) {
+						logging.LogInfo("Not triggering workflow due to payload type restrictions on payload OS")
 						continue
 					}
 				}
@@ -497,20 +501,23 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 				if err != nil {
 					logging.LogError(err, "Failed to decode trigger data")
 				}
-				if len(triggerDataNewCallback.PayloadTypes) > 0 {
-					callback := databaseStructs.Callback{}
-					err = database.DB.Get(&callback, `SELECT 
-    					payloadtype.name "payload.payloadtype.name"
-						FROM callback
-						JOIN payload ON callback.registered_payload_id = payload.id
+				if len(triggerDataNewCallback.PayloadTypes) > 0 || len(triggerDataNewCallback.SelectedOS) > 0 {
+					payload := databaseStructs.Payload{}
+					err = database.DB.Get(&payload, `SELECT 
+    					payloadtype.name "payloadtype.name",
+    					payload.os
+						FROM payload
 						JOIN payloadtype ON payload.payload_type_id = payloadtype.id
-						WHERE callback.id=$1`, eventNotification.CallbackID)
+						WHERE payload.id=$1`, eventNotification.PayloadID)
 					if err != nil {
 						logging.LogError(err, "Failed to query callback payload")
 					}
-					if !slices.Contains(triggerDataNewCallback.PayloadTypes,
-						callback.Payload.Payloadtype.Name) {
-						logging.LogInfo("Not triggering workflow due to payload type restrictions on new callback")
+					if len(triggerDataNewCallback.PayloadTypes) > 0 && !slices.Contains(triggerDataNewCallback.PayloadTypes, payload.Payloadtype.Name) {
+						logging.LogInfo("Not triggering workflow due to payload type restrictions on payload")
+						continue
+					}
+					if len(triggerDataNewCallback.SelectedOS) > 0 && !slices.Contains(triggerDataNewCallback.SelectedOS, payload.Os) {
+						logging.LogInfo("Not triggering workflow due to payload type restrictions on payload OS")
 						continue
 					}
 				}
@@ -545,7 +552,7 @@ func findEventGroupsToStart(eventNotification EventNotification) {
 				source := fmt.Sprintf("Event Group Trigger: %s", eventNotification.Trigger)
 				go SendAllOperationsMessage(fmt.Sprintf("Error triggering workflow for %s: %s",
 					possibleEventGroups[i].Name, err.Error()),
-					eventNotification.OperationID, source, database.MESSAGE_LEVEL_WARNING)
+					eventNotification.OperationID, source, database.MESSAGE_LEVEL_INFO, true)
 				continue
 			}
 			// still need to do something to start processing steps
@@ -797,7 +804,7 @@ func startProcessingRunAgainGroupInstanceSteps(oldEventGroupInstanceID int, newO
 		source := fmt.Sprintf("RunAgain Event Group Trigger: %s", oldEventGroupInstance.EventGroup.Name)
 		go SendAllOperationsMessage(fmt.Sprintf("Error triggering keyword workflow for %s: %s",
 			oldEventGroupInstance.EventGroup.Name, err.Error()),
-			oldEventGroupInstance.OperationID, source, database.MESSAGE_LEVEL_WARNING)
+			oldEventGroupInstance.OperationID, source, database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
 	oldEventGroupInstance.ID = eventgroupinstanceID
@@ -1257,7 +1264,12 @@ func startEventStepInstanceActionCreateAlert(eventStepInstance databaseStructs.E
 		logging.LogError(err, "failed to decode action data")
 		return err
 	}
-	go SendAllOperationsMessage(eventData.Alert, eventStepInstance.OperationID, eventData.Source, eventData.Level)
+	warning := false
+	if eventData.Level == "warning" {
+		warning = true
+		eventData.Level = database.MESSAGE_LEVEL_INFO
+	}
+	go SendAllOperationsMessage(eventData.Alert, eventStepInstance.OperationID, eventData.Source, eventData.Level, warning)
 	if eventData.SendWebhook {
 		databaseOperation := databaseStructs.Operation{ID: eventStepInstance.OperationID}
 		err = database.DB.Get(&databaseOperation, `SELECT "name", "webhook", "channel" FROM operation WHERE id=$1`, databaseOperation.ID)

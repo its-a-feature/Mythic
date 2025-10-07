@@ -24,6 +24,7 @@ type TrSyncMessage struct {
 	Description      string `json:"description"`
 	Author           string `json:"author"`
 	ContainerVersion string `json:"container_version"`
+	SemVer           string `json:"semver"`
 }
 
 func init() {
@@ -39,22 +40,24 @@ func processTrSyncMessages(msg amqp.Delivery) interface{} {
 	//logging.LogInfo("got message", "routingKey", msg.RoutingKey, "data", msg)
 	trSyncMsg := TrSyncMessage{}
 	response := TrSyncMessageResponse{Success: false}
-	if err := json.Unmarshal(msg.Body, &trSyncMsg); err != nil {
+	err := json.Unmarshal(msg.Body, &trSyncMsg)
+	if err != nil {
 		logging.LogError(err, "Failed to process tr sync message")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync translation container - %s", err.Error()), 0, trSyncMsg.Name, database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync translation container - %s", err.Error()), 0, trSyncMsg.Name, database.MESSAGE_LEVEL_INFO, true)
+		return response
+	}
+	err = trSync(trSyncMsg)
+	if err != nil {
+		// failed to sync message
+		response.Success = false
+		response.Error = fmt.Sprintf("Error: %v", err)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync %s - %s", trSyncMsg.Name, err.Error()), 0, trSyncMsg.Name, database.MESSAGE_LEVEL_INFO, true)
 	} else {
-		if err := trSync(trSyncMsg); err != nil {
-			// failed to sync message
-			response.Success = false
-			response.Error = fmt.Sprintf("Error: %v", err)
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to sync %s - %s", trSyncMsg.Name, err.Error()), 0, trSyncMsg.Name, database.MESSAGE_LEVEL_WARNING)
-		} else {
-			// successfully synced
-			response.Success = true
-			go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", trSyncMsg.Name, trSyncMsg.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG)
-			go database.ResolveAllOperationsMessage(getDownContainerMessage(trSyncMsg.Name), 0)
-			logging.LogDebug("Successfully synced", "service", trSyncMsg.Name)
-		}
+		// successfully synced
+		response.Success = true
+		go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", trSyncMsg.Name, trSyncMsg.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
+		go database.ResolveAllOperationsMessage(getDownContainerMessage(trSyncMsg.Name), 0)
+		logging.LogDebug("Successfully synced", "service", trSyncMsg.Name)
 	}
 	return response
 }
@@ -68,6 +71,7 @@ func trSync(in TrSyncMessage) error {
 		ContainerRunning: true,
 		Description:      in.Description,
 		Author:           in.Author,
+		SemVer:           in.SemVer,
 	}
 	if in.Name == "" {
 		logging.LogError(nil, "Can't have translation container with empty name - bad sync")
@@ -84,8 +88,8 @@ func trSync(in TrSyncMessage) error {
 		newTranslationContainer = true
 	}
 	_, err = database.DB.NamedExec(`INSERT INTO translationcontainer 
-    	("name", deleted, container_running, description, author) VALUES (:name, :deleted, :container_running, :description, :author)
-    	ON CONFLICT ("name") DO UPDATE SET deleted=false, container_running=true, description=:description, author=:author`, translationDatabase)
+    	("name", deleted, container_running, description, author, semver) VALUES (:name, :deleted, :container_running, :description, :author, :semver)
+    	ON CONFLICT ("name") DO UPDATE SET deleted=false, container_running=true, description=:description, author=:author, semver=:semver`, translationDatabase)
 	if err != nil {
 		logging.LogError(err, "Failed to sync translation container")
 		return err

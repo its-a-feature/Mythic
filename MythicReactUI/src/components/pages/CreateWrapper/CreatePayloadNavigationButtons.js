@@ -13,10 +13,12 @@ export function CreatePayloadNavigationButtons(props){
     const me = useReactiveVar(meState);
     const disabledButtons = (me?.user?.current_operation_id || 0) > 0 ? false : true;
     return (
-        <div >
+        <div style={{marginLeft: "20px"}}>
             <Button
                 disabled={props.first}
-                color="secondary"
+                color="info"
+                variant={"outlined"}
+                style={{marginRight: "10px"}}
                 onClick={props.canceled}
               >
                 Back

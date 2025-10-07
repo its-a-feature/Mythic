@@ -201,6 +201,9 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 		result.RegisteredPayloadUUID = searchResults.Payload.UuID
 		result.LockedOperatorID = int(searchResults.LockedOperatorID.Int64)
 		result.PayloadType = searchResults.Payload.Payloadtype.Name
+		result.InitCallback = searchResults.InitCallback
+		result.Timestamp = searchResults.Timestamp
+		result.LastCheckin = searchResults.LastCheckin
 		response.Results = append(response.Results, result)
 
 	}

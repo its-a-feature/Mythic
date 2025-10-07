@@ -117,7 +117,7 @@ func InitializeGinLogger() gin.HandlerFunc {
 					go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("APIToken, %s, for user %s (%s) just used %s",
 						token.Name, token.Operator.Username, token.Operator.AccountType, graphQLOperationName),
 						int(token.Operator.CurrentOperationID.Int64), token.TokenValue,
-						database.MESSAGE_LEVEL_API)
+						database.MESSAGE_LEVEL_API, false)
 				}
 			}
 			logging.LogInfo("WebServer Logging",
@@ -307,6 +307,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("eventing_trigger_update_webhook", webcontroller.EventingTriggerUpdateWebhook)
 				noSpectators.POST("eventing_test_file_webhook", webcontroller.EventingTestFileWebhook)
 				noSpectators.POST("eventing_export_webhook", webcontroller.EventingExportWebhook)
+				noSpectators.POST("eventing_trigger_manual_bulk_webhook", webcontroller.EventingTriggerManualBulkWebhook)
 				// keylogs
 				noSpectators.POST("keylog_create_webhook", webcontroller.CreateKeylogWebhook)
 			}

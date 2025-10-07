@@ -207,7 +207,7 @@ func UpdateOperationWebhook(c *gin.Context) {
 				logging.LogError(err, "Failed to lookup operator username")
 			} else {
 				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to lead", newUser.Username),
-					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
+					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 			}
 		} else if err != nil {
 			logging.LogError(err, "Failed to check for new admin's existence in current operation")
@@ -222,7 +222,7 @@ func UpdateOperationWebhook(c *gin.Context) {
 				logging.LogError(err, "Failed to lookup operator username")
 			} else {
 				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to lead", newUser.Username),
-					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
+					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 			}
 		}
 	}
@@ -268,5 +268,6 @@ func UpdateOperationWebhook(c *gin.Context) {
 		BannerText:  currentOperation.BannerText,
 		BannerColor: currentOperation.BannerColor,
 	})
+	go rabbitmq.InvalidateOperationEventLogCacheMap()
 	return
 }

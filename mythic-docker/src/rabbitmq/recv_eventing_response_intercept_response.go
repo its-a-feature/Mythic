@@ -36,7 +36,7 @@ func processEventingResponseInterceptResponse(msg amqp.Delivery) {
 	if err != nil {
 		logging.LogError(err, "Failed to process eventing response intercept response message")
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to process eventing response intercept response %s", err.Error()),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
 	_, err = database.DB.Exec(`UPDATE response SET response=$1, eventstepinstance_id=$2, timestamp=$4 WHERE id=$3`,
@@ -44,7 +44,7 @@ func processEventingResponseInterceptResponse(msg amqp.Delivery) {
 	if err != nil {
 		logging.LogError(err, "Failed to process eventing response intercept response message")
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to process eventing response intercept response %s", err.Error()),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_INFO, true)
 	}
 	taskID := 0
 	err = database.DB.Get(&taskID, `SELECT task.id 
