@@ -49,7 +49,7 @@ func TestMythicConnection() {
 		if err != nil {
 			log.Printf("[-] Failed to make connection to host, retrying in %ds\n", sleepTime)
 			log.Printf("%v\n", err)
-		} else {
+		} else if resp != nil {
 			resp.Body.Close()
 			if resp.StatusCode == 200 || resp.StatusCode == 403 || resp.StatusCode == 404 {
 				if resp.StatusCode == 403 {
@@ -65,11 +65,11 @@ func TestMythicConnection() {
 						log.Printf("[-] Failed to make connection to host, retrying in %ds\n", sleepTime)
 						log.Printf("%v\n", err)
 					}
-					if resp.StatusCode == 200 || resp.StatusCode == 403 {
+					if resp != nil && (resp.StatusCode == 200 || resp.StatusCode == 403) {
 						log.Printf("[+] Successfully queried the GraphQL Server, everything should be ready!")
 						return
 					}
-					if resp.StatusCode >= 500 {
+					if resp != nil && resp.StatusCode >= 500 {
 						log.Printf("[-] Mythic Web UI is up, but GraphQL isn't ready, retrying in %ds\n", sleepTime)
 					}
 					time.Sleep(time.Duration(sleepTime) * time.Second)
