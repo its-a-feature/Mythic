@@ -12,6 +12,7 @@ alter table "public"."c2profile" add column IF NOT EXISTS "semver" text not null
 alter table "public"."c2profile" add column IF NOT EXISTS "has_logo" boolean not null default false;
 alter table "public"."consuming_container" add column IF NOT EXISTS "semver" text not null default ''::text;
 alter table "public"."operationeventlog" add column IF NOT EXISTS "warning" boolean not null default false;
+alter table "public"."translationcontainer" add column IF NOT EXISTS "semver" text not null default ''::text;
 drop index if exists "public"."c2profileparametersinstance_c2_profile_parameters_id_ins_93bb57";
 drop index if exists "public"."c2profileparametersinstance_c2_profile_parameters_id_payload_id";
 
