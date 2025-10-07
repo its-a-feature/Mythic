@@ -30,6 +30,7 @@ export const getCallbackIdFromClickedTab = (tabId) => {
 export function Callbacks({me}) {
     const [openCallbackImport, setOpenCallbackImport] = React.useState(false);
     const [topDisplay, setTopDisplay] = React.useState('table');
+    const [newDataForTab, setNewDataForTab] = React.useState({});
     const [openTabs, setOpenTabs] = React.useState([]);
     const [clickedTabId, setClickedTabIdValue] = React.useState('');
     const openTabRef = React.useRef([]);
@@ -46,6 +47,7 @@ export function Callbacks({me}) {
             }
         }
         setClickedTabIdValue(tabID);
+        setNewDataForTab((prev) => {return {...prev, [tabID]: false}});
     }
     useEffect(() => {
         const oldTabs = localStorage.getItem('openTabs');
@@ -257,6 +259,8 @@ export function Callbacks({me}) {
                         me={me}
                         onDragEnd={onDragEnd}
                         contextMenuOptions={contextMenuOptions}
+                        newDataForTab={newDataForTab}
+                        setNewDataForTab={setNewDataForTab}
                     />
                 </div>
             </Split>

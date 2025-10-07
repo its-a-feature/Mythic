@@ -85,6 +85,17 @@ query getCredential($id: Int!){
 }
 `;
 
+const arraysAreDifferent = (a, b) => {
+    if(a.length !== b.length){
+        return true
+    }
+    for(let i = 0; i < a.length; i++){
+        if(a[i] !== b[i]){
+            return true;
+        }
+    }
+    return false;
+}
 export function TaskParametersDialogRow(props){
     const [value, setValue] = React.useState('');
     const theme = useTheme();
@@ -364,7 +375,7 @@ export function TaskParametersDialogRow(props){
            }
        }
        else if(props.type === "LinkInfo"){
-           if(props.choices.length > 0){
+           if(props.choices.length > 0 && value === ''){
                setChoiceOptions([...props.choices]);
                onChangeLinkInfo(0);
            }
@@ -378,19 +389,29 @@ export function TaskParametersDialogRow(props){
                 }else{
                     setAgentConnectHost(0);
                 }
-                setAgentConnectHostOptions(props.choices);
+                if(arraysAreDifferent(props.choices, agentConnectHostOptions)){
+                    setAgentConnectHostOptions(props.choices);
+                }
                 let payloadNum = 0;
                 if(agentConnectPayload < props.choices[hostNum]["payloads"].length){
                     payloadNum = agentConnectPayload;
                 }
-                setAgentConnectPayload(payloadNum);
-                setAgentConnectPayloadOptions(props.choices[hostNum]["payloads"]);
+                if(agentConnectPayload !== payloadNum){
+                    setAgentConnectPayload(payloadNum);
+                }
+                if(arraysAreDifferent(props.choices[hostNum]['payloads'], agentConnectPayloadOptions)){
+                    setAgentConnectPayloadOptions(props.choices[hostNum]["payloads"]);
+                }
                 if(props.choices[hostNum]["payloads"].length > 0){
                     //setAgentConnectPayload(0);  
                     if(props.choices[hostNum]["payloads"][payloadNum]["c2info"].length > 0){
-                        setAgentConnectC2ProfileOptions(props.choices[hostNum]["payloads"][payloadNum]["c2info"]);
+                        if(arraysAreDifferent(props.choices[hostNum]["payloads"][payloadNum]["c2info"], agentConnectC2ProfileOptions)){
+                            setAgentConnectC2ProfileOptions(props.choices[hostNum]["payloads"][payloadNum]["c2info"]);
+                        }
                         //setAgentConnectC2Profile(0);
-                        onChangeAgentConnect(agentConnectHost, payloadNum, 0);
+                        if(agentConnectHost !== hostNum || agentConnectPayload !== payloadNum){
+                            onChangeAgentConnect(hostNum, payloadNum, 0);
+                        }
                     }
                 }else{
                     snackActions.warning("Mythic knows of no host with a P2P payload. Please add one.");
@@ -441,7 +462,9 @@ export function TaskParametersDialogRow(props){
                }
            }
        }
-    }, [props.choices, props.default_value, props.type, props.value, setBoolValue, value]);
+    }, [props.choices, props.default_value, props.type, props.value, setBoolValue,
+        value, agentConnectHost, agentConnectPayload, agentConnectPayloadOptions, agentConnectHostOptions,
+    agentConnectC2ProfileOptions]);
     const onChangeAgentConnect = (host_index, payload_index, c2_index) => {
         const c2profileparameters = props.choices[host_index]["payloads"][payload_index]["c2info"][c2_index].parameters.reduce( (prev, opt) => {
             return {...prev, [opt.name]: opt.value}
@@ -1007,7 +1030,7 @@ export function TaskParametersDialogRow(props){
                                         </MythicStyledTableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <MythicStyledTableCell>Payload</MythicStyledTableCell>
+                                        <MythicStyledTableCell>Payload / Callback</MythicStyledTableCell>
                                         <MythicStyledTableCell>
                                             <FormControl style={{width: "100%"}}>
                                                 <Select

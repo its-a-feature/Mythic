@@ -159,7 +159,7 @@ func CreateInviteLink(c *gin.Context) {
 		return
 	}
 	rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s generated a new invite link to this server: %s\n%s",
-		operator.Username, inviteLinkCode, inviteLinkURI), 0, "", database.MESSAGE_LEVEL_INFO)
+		operator.Username, inviteLinkCode, inviteLinkURI), 0, "", database.MESSAGE_LEVEL_AUTH, false)
 	c.JSON(http.StatusOK, CreateInviteLinkResponse{
 		Status: "success",
 		Link:   inviteLinkURI,
@@ -256,7 +256,7 @@ func UseInviteLink(c *gin.Context) {
 	}
 	go database.AssignNewOperatorAllBrowserScripts(newOperator.ID)
 	rabbitmq.SendAllOperationsMessage(fmt.Sprintf("%s's invite link, %s, was used for user: %s",
-		invite.Operator.Username, input.InviteCode, newOperator.Username), 0, "", database.MESSAGE_LEVEL_INFO)
+		invite.Operator.Username, input.InviteCode, newOperator.Username), 0, "", database.MESSAGE_LEVEL_AUTH, false)
 	if invite.OperationID.Int64 > 0 {
 		if invite.OperationRole.String == "" || invite.OperationRole.String == database.OPERATOR_OPERATION_VIEW_MODE_LEAD {
 			operationRole = database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR

@@ -29,13 +29,13 @@ func processPtTaskOPSECPreMessages(msg amqp.Delivery) {
 		task.ID = payloadMsg.TaskID
 		if task.ID <= 0 {
 			// we ran into an error and couldn't even get the task information out
-			go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_INFO, true)
 			return
 		}
 		err = database.DB.Get(&task, `SELECT status, operation_id, eventstepinstance_id FROM task WHERE id=$1`, task.ID)
 		if err != nil {
 			logging.LogError(err, "Failed to find task from create_tasking")
-			go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_INFO, true)
 			return
 		}
 		_, err = database.DB.Exec(`UPDATE apitokens SET deleted=true AND active=false WHERE task_id=$1`, task.ID)

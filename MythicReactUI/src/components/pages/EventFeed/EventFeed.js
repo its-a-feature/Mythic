@@ -4,9 +4,9 @@ import {EventFeedTable} from './EventFeedTable';
 import {snackActions} from '../../utilities/Snackbar';
 import {alertCount} from "../../../cache";
 
-const GET_Event_Feed = gql`
+const GET_Event_Feed_Warnings = gql`
 query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $level: String!, $resolved: Boolean!) {
-  operationeventlog(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}, resolved: {_eq: $resolved}}, order_by: {id: desc}, limit: $limit, offset: $offset) {
+  operationeventlog(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}, resolved: {_eq: $resolved}, warning: {_eq: true}}, order_by: {id: desc}, limit: $limit, offset: $offset) {
     id
     level
     message
@@ -14,17 +14,18 @@ query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $leve
     timestamp
     count
     source
+    warning
   }
-  operationeventlog_aggregate(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}, resolved: {_eq: $resolved}}) {
+  operationeventlog_aggregate(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}, resolved: {_eq: $resolved}, warning: {_eq: true}}) {
     aggregate {
       count
     }
   }
 }
  `;
-const GET_Event_Feed_No_Resolved = gql`
+const GET_Event_Feed_No_Warnings = gql`
 query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $level: String!) {
-  operationeventlog(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}}, order_by: {id: desc}, limit: $limit, offset: $offset) {
+  operationeventlog(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_ilike: $level}}, order_by: {id: desc}, limit: $limit, offset: $offset) {
     id
     level
     message
@@ -32,8 +33,9 @@ query GetOperationEventLogs($offset: Int!, $limit: Int!, $search: String!, $leve
     timestamp
     count
     source
+    warning
   }
-  operationeventlog_aggregate(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_like: $level}}) {
+  operationeventlog_aggregate(where: {deleted: {_eq: false}, message: {_ilike: $search}, level: {_ilike: $level}}) {
     aggregate {
       count
     }
@@ -50,6 +52,7 @@ subscription GetOperationEventLogs($fromNow: timestamp!) {
     timestamp
     count
     source
+    warning
   }
 }
  `;
@@ -63,15 +66,16 @@ mutation UpdateResolutionOperationEventLog($id: Int!, $resolved: Boolean!) {
  `;
  const Update_Level = gql`
 mutation UpdateLevelOperationEventLog($id: Int!) {
-  update_operationeventlog_by_pk(pk_columns: {id: $id}, _set: {level: "warning"}) {
+  update_operationeventlog_by_pk(pk_columns: {id: $id}, _set: {warning: true, resolved: false}) {
     id
-    level
+    warning
+    resolved
   }
 }
  `;
  const Update_ResolveViewableErrors = gql`
  mutation UpdateResolveViewableErrorsOperationEventLog($ids: [Int]!) {
-   update_operationeventlog(where:{id: {_in: $ids}}, _set: {resolved: true}) {
+   update_operationeventlog(where:{id: {_in: $ids}, warning: {_eq: true}}, _set: {resolved: true}) {
      returning{
          id
          resolved
@@ -81,7 +85,7 @@ mutation UpdateLevelOperationEventLog($id: Int!) {
   `;
  const Update_ResolveAllErrors = gql`
   mutation UpdateResolveAllErrorsOperationEventLog {
-    update_operationeventlog(where: {level: {_eq: "warning"}, resolved: {_eq: false}}, _set: {resolved: true}) {
+    update_operationeventlog(where: {resolved: {_eq: false}, warning: {_eq: true}}, _set: {resolved: true}) {
       returning{
           id
           resolved
@@ -115,11 +119,11 @@ export function EventFeed({}){
     }
   });
 
-  const [getMoreTasking] = useLazyQuery(GET_Event_Feed, {
+  const [getMoreEventFeedWithWarning] = useLazyQuery(GET_Event_Feed_Warnings, {
       onError: data => {
           console.error(data)
       },
-      fetchPolicy: "network-only",
+      fetchPolicy: "no-cache",
       onCompleted: (data) => {
         snackActions.dismiss();
         let tempPageData = {...pageData};
@@ -130,11 +134,11 @@ export function EventFeed({}){
         setOperationEventLog(newEventLog);
       }
   });
-  const [getMoreTaskingNoResolved] = useLazyQuery(GET_Event_Feed_No_Resolved, {
+  const [getMoreEventFeed] = useLazyQuery(GET_Event_Feed_No_Warnings, {
     onError: data => {
       console.error(data)
     },
-    fetchPolicy: "network-only",
+    fetchPolicy: "no-cache",
     onCompleted: (data) => {
       snackActions.dismiss();
       let tempPageData = {...pageData};
@@ -162,7 +166,7 @@ export function EventFeed({}){
       const updatedMessage = data.update_operationeventlog_by_pk;
       const updatedMessages = operationeventlog.map( (log) => {
         if(log.id === updatedMessage.id){
-          return {...log, level: updatedMessage.level};
+          return {...log, warning: updatedMessage.warning, resolved: updatedMessage.resolved};
         }
         return log;
       });
@@ -230,19 +234,19 @@ export function EventFeed({}){
       localLevel = "%_%";
     } else if(localLevel === "warning (unresolved)"){
       localResolved = false;
-      localLevel = "warning";
+      localLevel = "%_%";
     } else if(localLevel === "warning (resolved)"){
       localResolved = true;
-      localLevel = "warning";
+      localLevel = "%_%";
     }
     if(localResolved === undefined){
-      getMoreTaskingNoResolved({variables: {offset: (value - 1) * pageData.fetchLimit,
+      getMoreEventFeed({variables: {offset: (value - 1) * pageData.fetchLimit,
           limit: pageData.fetchLimit,
           search: localSearch,
           level: localLevel
         }})
     } else {
-      getMoreTasking({variables: {offset: (value - 1) * pageData.fetchLimit,
+      getMoreEventFeedWithWarning({variables: {offset: (value - 1) * pageData.fetchLimit,
           limit: pageData.fetchLimit,
           search: localSearch,
           level: localLevel,
@@ -252,13 +256,9 @@ export function EventFeed({}){
 
   }
   React.useEffect( () => {
-    if( alertCount() > 0){
-    } else {
-      getMoreTaskingNoResolved({variables: {offset: 0,
-          limit: pageData.fetchLimit, search: "%_%", level: "%_%"
-        }});
+    if( alertCount() === 0){
+      getMoreEventFeed({variables: {offset: 0, limit: pageData.fetchLimit, search: "%_%", level: "%_%"}});
     }
-
   }, [])
   const resolveViewableErrors = useCallback( () => {
     snackActions.info("Resolving Errors...");

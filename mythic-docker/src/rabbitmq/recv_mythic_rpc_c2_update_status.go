@@ -44,10 +44,10 @@ func MythicRPCC2UpdateStatus(input MythicRPCC2UpdateStatusMessage) MythicRPCC2Up
 	if input.Error != "" {
 		if strings.HasPrefix(input.Error, "Server already") {
 			go SendAllOperationsMessage(fmt.Sprintf("Update from C2 Profile %s:\n%s\n", input.C2Profile, input.Error),
-				0, fmt.Sprintf("%s_error", input.C2Profile), database.MESSAGE_LEVEL_DEBUG)
+				0, fmt.Sprintf("%s_error", input.C2Profile), database.MESSAGE_LEVEL_DEBUG, false)
 		} else {
 			go SendAllOperationsMessage(fmt.Sprintf("Error from C2 Profile %s:\n%s\n", input.C2Profile, input.Error),
-				0, fmt.Sprintf("%s_error", input.C2Profile), database.MESSAGE_LEVEL_WARNING)
+				0, fmt.Sprintf("%s_error", input.C2Profile), database.MESSAGE_LEVEL_INFO, true)
 		}
 	}
 	return response

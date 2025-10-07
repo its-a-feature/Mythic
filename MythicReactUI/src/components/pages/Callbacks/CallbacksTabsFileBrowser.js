@@ -173,7 +173,7 @@ export function CallbacksTabsFileBrowserLabel(props) {
     ]);
     return (
         <React.Fragment>
-            <MythicTabLabel label={description} onDragTab={props.onDragTab}  {...props} contextMenuOptions={contextMenuOptions} />
+            <MythicTabLabel label={description} highlight={props.newDataForTab[props.tabInfo.tabID]} onDragTab={props.onDragTab}  {...props} contextMenuOptions={contextMenuOptions} />
             {openEditDescriptionDialog && (
                 <MythicDialog
                     fullWidth={true}
@@ -196,7 +196,7 @@ export function CallbacksTabsFileBrowserLabel(props) {
         </React.Fragment>
     );
 }
-export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => {
+export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNewDataForTab }) => {
     const fromNow = React.useRef(getSkewedNow());
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const treeRootDataRef = React.useRef({}); // hold all of the actual data
@@ -360,7 +360,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
                 return prev;
             }, {...treeAdjMtx});
             setTreeAdjMtx(newMatrix);
-            
+            if(index !== value){
+                setNewDataForTab((prev) => {return {...prev, [tabInfo.tabID]: true}});
+            }
         }
     })
     useSubscription(fileBrowserTaskSub, {

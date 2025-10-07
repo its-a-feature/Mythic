@@ -79,7 +79,6 @@ export function PayloadTypeCommandDialog({service, payload_name, onClose}) {
                                     <TableCell>{param.needs_admin ? "True" : "False"}</TableCell>
                                     <TableCell>
                                         <IconButton
-                                            color="secondary"
                                             href={service.wrapper ? "/docs/wrappers/" + service.name : "/docs/agents/" + service.name}
                                             target="_blank"
                                             size="large">

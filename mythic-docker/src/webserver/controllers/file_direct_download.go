@@ -49,7 +49,7 @@ func FileDirectDownloadWebhook(c *gin.Context) {
 		if err != nil {
 			logging.LogError(err, "Failed to get file data from database")
 			message := fmt.Sprintf("Attempt to download unknown file: %s", agentFileID)
-			go rabbitmq.SendAllOperationsMessage(message, 0, "", database.MESSAGE_LEVEL_WARNING)
+			go rabbitmq.SendAllOperationsMessage(message, 0, "", database.MESSAGE_LEVEL_INFO, true)
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}

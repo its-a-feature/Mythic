@@ -32,9 +32,9 @@ export function EventFeedTableEventsActions(props){
             </IconButton>
                 <Menu elevation={5} id={"eventmenu" + props.id} anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose} >
                     {
-                        props.level === "warning" && props.resolved ? (
+                        props.warning && props.resolved ? (
                             <MenuItem onClick={onUpdateResolution}>Unresolve</MenuItem>
-                        ) : ( props.level === "warning" && !props.resolved ? (
+                        ) : ( props.warning && !props.resolved ? (
                             <MenuItem onClick={onUpdateResolution}>Resolve</MenuItem>
                             ) : (
                             <MenuItem onClick={onUpdateLevel}>Make Warning</MenuItem>

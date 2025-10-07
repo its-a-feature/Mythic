@@ -9,6 +9,7 @@ import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
+import {UploadEventFile} from "../../MythicComponents/MythicFileUpload";
 
 const updateEventGroupMutation = gql(`
 mutation updateEventGroupMutation($eventgroup_id: Int!, $updated_config: String) {
@@ -28,7 +29,7 @@ query exportWorkflow($eventgroup_id: Int!, $include_steps: Boolean!, $output_for
 }
 `)
 const outputFormatOptions = ["yaml", "json", "toml"];
-export function EventGroupTableEditDialog({onClose, selectedEventGroup}) {
+export function EventGroupTableEditDialog({onClose, selectedEventGroup, includeSteps = false}) {
     const workflowRef = React.useRef("");
     const [outputFormat, setOutputFormat] = React.useState("yaml");
     const [fetchedData, setFetchedData] = React.useState(false);
@@ -47,6 +48,18 @@ export function EventGroupTableEditDialog({onClose, selectedEventGroup}) {
             snackActions.error("Failed to update");
         }
     });
+    const submitAsFile = async (evt) => {
+        let blob = new Blob([workflowRef.current], { type: 'text/plain' });
+        let file = new File([blob], "manual_eventing.yaml", {type: "text/plain"});
+        let uploadStatus = await UploadEventFile(file, "New Manual Eventing Workflow");
+        if(!uploadStatus){
+            snackActions.error("Failed to upload file");
+        }
+        if(uploadStatus.status === "error"){
+            snackActions.error(uploadStatus.error);
+        }
+        onClose();
+    }
     const [getExportedWorkflow] = useLazyQuery(getExportWorkflow, {
         fetchPolicy: "no-cache",
         onCompleted: (data) => {
@@ -66,9 +79,9 @@ export function EventGroupTableEditDialog({onClose, selectedEventGroup}) {
     React.useEffect( () => {
         getExportedWorkflow({variables: {
             eventgroup_id: selectedEventGroup.id,
-            include_steps: false,
+            include_steps: includeSteps,
             output_format: outputFormat}})
-    }, [outputFormat, selectedEventGroup.id]);
+    }, [outputFormat, selectedEventGroup.id, includeSteps]);
     const onUpdateClick = () => {
         UpdateEventGroupMutation({variables: {eventgroup_id: selectedEventGroup.id, updated_config: workflowRef.current}})
     }
@@ -104,8 +117,8 @@ export function EventGroupTableEditDialog({onClose, selectedEventGroup}) {
                 <Button onClick={onClose} variant="contained" color="primary">
                     Close
                 </Button>
-                <Button onClick={onUpdateClick} variant="contained" color="success">
-                    Update
+                <Button onClick={includeSteps ? submitAsFile : onUpdateClick} variant="contained" color="success">
+                    {includeSteps ? "Create New Workflow": "Update"}
                 </Button>
             </DialogActions>
         </React.Fragment>

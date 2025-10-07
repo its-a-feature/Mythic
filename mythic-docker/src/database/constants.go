@@ -14,11 +14,13 @@ var (
 	OPERATOR_OPERATION_VIEW_MODE_OPERATOR  = "operator"
 )
 
-type MESSAGE_LEVEL = string
+type MESSAGE_TYPE = string
 
 const (
-	MESSAGE_LEVEL_INFO    MESSAGE_LEVEL = "info"
-	MESSAGE_LEVEL_WARNING               = "warning"
-	MESSAGE_LEVEL_DEBUG                 = "debug"
-	MESSAGE_LEVEL_API                   = "api"
+	MESSAGE_LEVEL_INFO           MESSAGE_TYPE = "info"
+	MESSAGE_LEVEL_AUTH                        = "auth"
+	MESSAGE_LEVEL_DEBUG                       = "debug"
+	MESSAGE_LEVEL_API                         = "api"
+	MESSAGE_LEVEL_AGENT_MESSGAGE              = "agent"
+	MESSAGE_LEVEL_CHAT                        = "chat"
 )

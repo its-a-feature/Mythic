@@ -276,7 +276,7 @@ func checkContainerStatus() {
 					if !running {
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
-							0, fmt.Sprintf("%s_container_down", container), "warning")
+							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 						go updateDownContainerBuildingPayloads(container)
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
@@ -309,7 +309,7 @@ func checkContainerStatus() {
 						UpdateC2ProfileRunningStatus(c2profilesToCheck[container], false)
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
-							0, fmt.Sprintf("%s_container_down", container), "warning")
+							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
@@ -340,7 +340,7 @@ func checkContainerStatus() {
 					if !running {
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
-							0, fmt.Sprintf("%s_container_down", container), "warning")
+							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
@@ -372,7 +372,7 @@ func checkContainerStatus() {
 					if !running {
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
-							0, fmt.Sprintf("%s_container_down", container), "warning")
+							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)

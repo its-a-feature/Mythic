@@ -19,8 +19,10 @@ import InfoIconOutline from '@mui/icons-material/InfoOutlined';
 import IconButton from '@mui/material/IconButton';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
-import {ConfigureBuildParameters, StartFromExistingPayloadOrStartFresh} from "../CreatePayload/Step1SelectOS";
-import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import { Backdrop, CircularProgress } from '@mui/material';
+import {PayloadsTableRowBuildStatus} from "../Payloads/PayloadsTableRowBuildStatus";
+import {PayloadsTableRowBuildProgress} from "../Payloads/PayloadsTableRowBuildProgress";
+
 
 const PREFIX = 'Step3SelectPayload';
 
@@ -63,6 +65,18 @@ query getWrappablePayloads($payloadType: Int!) {
           description
           uuid
           creation_time
+          build_phase
+          payload_build_steps(order_by: {step_number: asc}) {
+            step_name
+            step_number
+            step_success
+            step_skip
+            start_time
+            end_time
+            step_stdout
+            step_stderr
+            id
+          }
           filemetum {
             agent_file_id
             filename_text
@@ -77,6 +91,7 @@ query getWrappablePayloads($payloadType: Int!) {
 
 export function Step3SelectPayload(props){
     const [payloadOptions, setPayloadOptions] = React.useState([]);
+    const [openBackdrop, setOpenBackdrop] = React.useState(true);
     useQuery(GET_Payload_Types, {fetchPolicy: "network-only", variables: {payloadType: props.buildOptions["payload_type_id"]},
         onCompleted: (data) => {
           if(data.payloadtype_by_pk.wrap_these_payload_types.length > 0){
@@ -87,6 +102,7 @@ export function Step3SelectPayload(props){
               }
             }
             setPayloadOptions(options);
+            setOpenBackdrop(false);
           }else{
             snackActions.warning("No supported payload for that wrapper");
           }
@@ -155,7 +171,12 @@ export function Step3SelectPayload(props){
                     <Typography variant={"p"} style={{fontWeight: 600}}>
                         1. Select Payload to Include
                     </Typography>
-                    <div style={{flexGrow: 1, overflowY: "auto"}}>
+                    <div style={{flexGrow: 1, overflowY: "auto", position: "relative"}}>
+                        {openBackdrop &&
+                            <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2000, position: "absolute"}}>
+                                <CircularProgress color="inherit" disableShrink  />
+                            </Backdrop>
+                        }
                         <PayloadSelect payloadOptions={payloadOptions} first={props.first} last={props.last}
                                        canceled={canceled} finished={finished}/>
                     </div>
@@ -184,6 +205,7 @@ export function PayloadSelect(props) {
                         <TableCell style={{width: "6rem"}}> Select</TableCell>
                         <TableCell style={{width: "15rem"}}>Timestamp</TableCell>
                         <TableCell>File</TableCell>
+                        <TableCell>Status</TableCell>
                         <TableCell>Description</TableCell>
                         <TableCell style={{width: "5rem"}}>Details</TableCell>
                     </TableRow>
@@ -218,6 +240,10 @@ export function PayloadsTableRow(props){
               </TableCell>
               <TableCell>{toLocalTime(props.payload.creation_time, me.user.view_utc_time)}</TableCell>
               <TableCell>{b64DecodeUnicode(props.payload.filemetum.filename_text)}</TableCell>
+              <TableCell>
+                      <PayloadsTableRowBuildStatus {...props.payload} />
+                      <PayloadsTableRowBuildProgress {...props.payload} />
+              </TableCell>
               <TableCell>{props.payload.description}</TableCell>
               <TableCell>
                   <IconButton size="small" color="info" onClick={() => setOpenDetailedView(true)}>

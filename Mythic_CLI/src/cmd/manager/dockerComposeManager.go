@@ -936,11 +936,14 @@ func (d *DockerComposeManager) ResetRabbitmq(useVolume bool) {
 	if !useVolume {
 		workingPath := utils.GetCwdFromExe()
 		err := os.RemoveAll(filepath.Join(workingPath, "rabbitmq-docker", "storage"))
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			log.Fatalf("[-] Failed to remove rabbitmq storage files\n%v\n", err)
-		} else {
-			log.Printf("[+] Successfully reset rabbitmq storage files\n")
 		}
+		err = os.Remove(filepath.Join(workingPath, "rabbitmq-docker", "storage"))
+		if err != nil && !os.IsNotExist(err) {
+			log.Fatalf("[-] Failed to remove rabbitmq storage files\n%v\n", err)
+		}
+		log.Printf("[+] Successfully reset rabbitmq storage files\n")
 	} else {
 		_ = d.RemoveContainers([]string{"mythic_rabbitmq"}, false)
 		err := d.RemoveVolume("mythic_rabbitmq_volume")

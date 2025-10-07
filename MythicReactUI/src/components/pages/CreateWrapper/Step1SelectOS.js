@@ -1,6 +1,5 @@
 import React from 'react';
 import {useQuery, gql} from '@apollo/client';
-import CircularProgress from '@mui/material/CircularProgress';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
@@ -8,7 +7,7 @@ import Typography from '@mui/material/Typography';
 import {snackActions} from '../../utilities/Snackbar';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {getDefaultChoices, getDefaultValueForType, getSavedToType} from "../CreatePayload/Step2SelectPayloadType";
-import {getModifiedC2Params} from "../CreatePayload/Step4C2Profiles";
+import { Backdrop, CircularProgress } from '@mui/material';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {
     ConfigureBuildParameters,
@@ -73,6 +72,7 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
 
 export function Step1SelectOS(props){
     const [os, setOS] = React.useState('');
+    const [openBackdrop, setOpenBackdrop] = React.useState(true);
     const [payloadtypeData, setPayloadtypeData] = React.useState({});
     const [payloadtypesPerOS, setPayloadtypesPerOS] = React.useState({});
     const [osOptions, setOSOptions] = React.useState([]);
@@ -125,11 +125,16 @@ export function Step1SelectOS(props){
             .catch((data) => {console.log(data)})
     }, [props.prevData, props.first])
     React.useEffect( () => {
+        setOpenBackdrop(true);
         getPayloads({variables: {payloadType: selectedPayloadType, os}})
             .then(({data}) => {
                 setPayloadOptions(data.payload);
+                setOpenBackdrop(false);
             })
-            .catch(({data}) => console.log(data));
+            .catch(({data}) => {
+                console.log(data);
+                setOpenBackdrop(false);
+            });
     }, [selectedPayloadType, os]);
 
     const finished = (clearNextPrevious) => {
@@ -296,13 +301,21 @@ export function Step1SelectOS(props){
                     overflow: "hidden"
                 }}>
                     {props.first &&
-                        <StartFromExistingPayloadOrStartFresh first={props.first}
-                                                              last={props.last}
-                                                              canceled={canceled}
-                                                              onSelectedPayload={onSelectedPayload}
-                                                              payloadOptions={payloadOptions}
-                                                              onStartFresh={onStartFresh}
-                        />
+                        <div style={{flexGrow: 1, overflowY: "auto", position: "relative"}}>
+                            {openBackdrop &&
+                                <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2000, position: "absolute"}}>
+                                    <CircularProgress color="inherit" disableShrink  />
+                                </Backdrop>
+                            }
+                            <StartFromExistingPayloadOrStartFresh first={props.first}
+                                                                  last={props.last}
+                                                                  canceled={canceled}
+                                                                  onSelectedPayload={onSelectedPayload}
+                                                                  payloadOptions={payloadOptions}
+                                                                  onStartFresh={onStartFresh}
+                            />
+                        </div>
+
                     }
                     {!props.first &&
                         <ConfigureBuildParameters os={os} selectedPayloadType={selectedPayloadType}

@@ -100,7 +100,7 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 			logging.LogError(err, "Failed to lookup operator username")
 		} else {
 			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Adding %s to operation", newUser.Username),
-				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
+				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 			err = database.DB.Get(&newUser, `SELECT current_operation_id FROM operator WHERE id=$1`, newUser.ID)
 			if err != nil {
 				logging.LogError(err, "Failed to lookup operator username")
@@ -128,7 +128,7 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 			logging.LogError(err, "Failed to lookup operator username")
 		} else {
 			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removing %s from operation", newUser.Username),
-				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
+				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 			// now that a user was removed from the op, see if they have any other's available and update
 			err = database.DB.Get(&newUser, `SELECT current_operation_id FROM operator WHERE id=$1`, newUser.ID)
 			if err != nil {
@@ -158,7 +158,7 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 			logging.LogError(err, "Failed to lookup operator username")
 		} else {
 			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to operator", newUser.Username),
-				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
+				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 		}
 	}
 	// change view_mode to spectator for specified users
@@ -173,7 +173,7 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 			logging.LogError(err, "Failed to lookup operator username")
 		} else {
 			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s to spectator", newUser.Username),
-				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
+				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 		}
 	}
 	// update disabled command profiles
@@ -194,11 +194,11 @@ func UpdateOperatorOperationWebhook(c *gin.Context) {
 				logging.LogError(err, "Failed to get disabled commands profile name")
 			} else {
 				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Updated %s's disabled commands profile to '%s' ", newUser.Username, profileName),
-					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
+					currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 			}
 		} else {
 			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removed %s's disabled commands profile ", newUser.Username),
-				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
+				currentOperation.ID, "", database.MESSAGE_LEVEL_INFO, false)
 		}
 
 	}

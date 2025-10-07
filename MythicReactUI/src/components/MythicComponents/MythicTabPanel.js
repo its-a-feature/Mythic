@@ -8,6 +8,7 @@ import MenuItem from '@mui/material/MenuItem';
 import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Paper from '@mui/material/Paper';
+import Badge from '@mui/material/Badge';
 import {
     Draggable,
 } from "@hello-pangea/dnd";
@@ -60,6 +61,8 @@ export function MythicTabLabel(props) {
         getCallbackData,
         onDragTab,
         selectedIndex,
+        highlight,
+        newDataForTab,
         ...other
     } = props;
     const onClick = (e) => {
@@ -87,7 +90,7 @@ export function MythicTabLabel(props) {
         setOpenContextMenu(false);
       };
     return (
-        <Draggable draggableId={`callbacks-tab-${label}`} index={index} disableInteractiveElementBlocking={true}>
+        <Draggable draggableId={`callbacks-tab-${tabInfo.tabID}`} index={index} disableInteractiveElementBlocking={true}>
             {(provided, snapshot) => (
                 <div ref={provided.innerRef}
                     {...provided.draggableProps}>
@@ -95,7 +98,9 @@ export function MythicTabLabel(props) {
                         className={selectedIndex === index || snapshot.isDragging ? "selectedCallback" : "" }
                         label={
                             <span onContextMenu={handleContextClick} style={{}} ref={dropdownAnchorRef}>
-                                {label}
+                                <Badge color="success" variant="dot" invisible={!highlight} >
+                                    {label}
+                                </Badge>
                                 <IconButton component='div' size='small' onClick={onClick} {...other}>
                                     <CloseIcon />
                                 </IconButton>

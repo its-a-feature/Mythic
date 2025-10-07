@@ -55,9 +55,6 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 		return
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
-	if input.Input.HostURL[0] != '/' {
-		input.Input.HostURL = "/" + input.Input.HostURL
-	}
 	c2Profile := databaseStructs.C2profile{ID: input.Input.C2ProfileID}
 	if err := database.DB.Get(&c2Profile, `SELECT "name" FROM c2profile WHERE id=$1`,
 		input.Input.C2ProfileID); err != nil {
@@ -85,6 +82,9 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 		})
 		return
 	}
+	if !input.Input.Remove && (len(input.Input.HostURL) == 0 || input.Input.HostURL[0] != '/') {
+		input.Input.HostURL = "/" + input.Input.HostURL
+	}
 	go tagFileAs(hostFile.ID, operatorOperation.CurrentOperator.Username, hostFile.OperationID, tagTypeHostedByC2, map[string]interface{}{
 		c2Profile.Name + "; " + input.Input.HostURL: map[string]interface{}{
 			"c2_profile":        c2Profile.Name,
@@ -95,7 +95,6 @@ func C2HostFileMessageWebhook(c *gin.Context) {
 		},
 	}, c, input.Input.Remove)
 
-	//go rabbitmq.RestartC2ServerAfterUpdate(c2Profile.Name, true)
 	c.JSON(http.StatusOK, C2HostFileMessageResponse{
 		Status: "success",
 		Error:  "",

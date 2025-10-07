@@ -238,14 +238,14 @@ export function FileMetaDownloadTable(props){
     return (
         <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
             <span style={{width: "100%", display: "flex"}}>
-                <Button size="small" onClick={onDownloadBulk} style={{float: "right", width: "100%"}}
-                        color="primary" variant="contained"
+                <Button size="small" onClick={onDownloadBulk} style={{float: "right", width: "100%", marginLeft: "10px", marginRight: "10px"}}
+                        color="primary" variant={disabled ? 'outlined': "contained"}
                         disabled={disabled}
                 >
                     <ArchiveIcon/>Zip & Download Selected
                 </Button>
-                <Button size="small" onClick={onDeleteBulk} style={{width: "100%"}}
-                        color="error" variant="contained"
+                <Button size="small" onClick={onDeleteBulk} style={{width: "100%", marginLeft: "10px", marginRight: "10px"}}
+                        color="error" variant={disabled ? 'outlined': "contained"}
                         disabled={disabled}
                 >
                     <DeleteIcon />Delete Selected
@@ -617,14 +617,14 @@ export function FileMetaUploadTable(props){
     return (
         <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
             <span style={{width: "100%", display: "flex"}}>
-                <Button size="small" onClick={onDownloadBulk} style={{float: "right", width: "100%"}}
-                        color="primary" variant="contained"
+                <Button size="small" onClick={onDownloadBulk} style={{float: "right", width: "100%", marginLeft: "10px", marginRight: "10px"}}
+                        color="primary" variant={disabled ? 'outlined': "contained"}
                         disabled={disabled}
                 >
                     <ArchiveIcon/>Zip & Download Selected
                 </Button>
-                <Button size="small" onClick={onDeleteBulk} style={{width: "100%"}}
-                        color="error" variant="contained"
+                <Button size="small" onClick={onDeleteBulk} style={{width: "100%", marginLeft: "10px", marginRight: "10px"}}
+                        color="error" variant={disabled ? 'outlined': "contained"}
                         disabled={disabled}
                 >
                     <DeleteIcon />Delete Selected
@@ -1195,14 +1195,14 @@ export function FileMetaEventingWorkflowsTable(props){
     return (
         <TableContainer className="mythicElement" style={{display: "flex", flexDirection: "column", height: "100%"}} >
             <span style={{width: "100%", display: "flex"}}>
-                <Button size="small" onClick={onDownloadBulk} style={{float: "right", width: "100%"}}
-                        color="primary" variant="contained"
+                <Button size="small" onClick={onDownloadBulk} style={{float: "right", width: "100%", marginLeft: "10px", marginRight: "10px"}}
+                        color="primary" variant={disabled ? 'outlined': "contained"}
                         disabled={disabled}
                 >
                     <ArchiveIcon/>Zip & Download Selected
                 </Button>
-                <Button size="small" onClick={onDeleteBulk} style={{width: "100%"}}
-                        color="error" variant="contained"
+                <Button size="small" onClick={onDeleteBulk} style={{width: "100%", marginLeft: "10px", marginRight: "10px"}}
+                        color="error" variant={disabled ? 'outlined': "contained"}
                         disabled={disabled}
                 >
                     <DeleteIcon />Delete Selected

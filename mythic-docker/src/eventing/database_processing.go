@@ -290,7 +290,7 @@ func CreateEventGroupInstance(eventGroupId int, trigger string, triggeringOperat
 		return 0, errors.New(fmt.Sprintf("event group \"%s\" is deactivated and will not be triggered", eventGroup.Name))
 	}
 	if trigger != TriggerKeyword {
-		if eventGroup.Trigger != trigger {
+		if eventGroup.Trigger != trigger && trigger != TriggerManual {
 			return 0, errors.New(fmt.Sprintf("event group \"%s\" doesn't have \"%s\" as a trigger", eventGroup.Name, trigger))
 		}
 	} else {

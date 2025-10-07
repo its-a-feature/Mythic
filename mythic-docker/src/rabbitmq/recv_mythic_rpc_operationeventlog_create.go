@@ -16,8 +16,9 @@ type MythicRPCOperationEventLogCreateMessage struct {
 	CallbackAgentId *string `json:"callback_agent_id"`
 	OperationId     *int    `json:"operation_id"`
 	// the data to store
-	Message      string                 `json:"message"`
-	MessageLevel database.MESSAGE_LEVEL `json:"level"` //info or warning
+	Message      string                `json:"message"`
+	MessageLevel database.MESSAGE_TYPE `json:"level"` //info or warning
+	Warning      bool                  `json:"warning"`
 }
 type MythicRPCOperationEventLogCreateMessageResponse struct {
 	Success bool   `json:"success"`
@@ -69,7 +70,11 @@ func MythicRPCOperationEventLogCreate(input MythicRPCOperationEventLogCreateMess
 	} else if input.OperationId != nil {
 		operationId = *input.OperationId
 	}
-	SendAllOperationsMessage(input.Message, operationId, "", input.MessageLevel)
+	if input.MessageLevel == "warning" {
+		input.MessageLevel = database.MESSAGE_LEVEL_INFO
+		input.Warning = true
+	}
+	SendAllOperationsMessage(input.Message, operationId, "", input.MessageLevel, input.Warning)
 	response.Success = true
 	return response
 }

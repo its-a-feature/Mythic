@@ -8,7 +8,7 @@ type EventGroup struct {
 	Environment map[string]interface{} `db:"environment" json:"environment" toml:"environment" yaml:"environment"`
 	Keywords    []string               `db:"keywords" json:"keywords" toml:"keywords" yaml:"keywords"`
 	RunAs       string                 `db:"run_as" json:"run_as" toml:"run_as" yaml:"run_as"`
-	Steps       []EventStep            `db:"eventstep" json:"steps" toml:"steps" yaml:"steps"`
+	Steps       []EventStep            `db:"eventstep" json:"steps,omitempty" toml:"steps,omitempty" yaml:"steps,omitempty"`
 }
 
 type EventStep struct {
@@ -20,6 +20,6 @@ type EventStep struct {
 	Environment     map[string]interface{} `db:"environment" json:"environment" toml:"environment" yaml:"environment"`
 	Inputs          map[string]interface{} `db:"inputs" json:"inputs" toml:"inputs" yaml:"inputs"`
 	Outputs         map[string]interface{} `db:"outputs" json:"outputs" toml:"outputs" yaml:"outputs"`
-	Order           int                    `db:"order" json:"order" toml:"order" yaml:"order"`
+	Order           int                    `db:"order" json:"-" toml:"-" yaml:"-"`
 	ContinueOnError bool                   `db:"continue_on_error" json:"continue_on_error" toml:"continue_on_error" yaml:"continue_on_error"`
 }

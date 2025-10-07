@@ -331,11 +331,11 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		badMessageString, err2 := json.MarshalIndent(incoming, "", "    ")
 		if err2 != nil {
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to process agent message: \n%s\n%s\n", err2.Error(), err.Error()),
-				uUIDInfo.OperationID, "agent_message_bad_post_response", database.MESSAGE_LEVEL_WARNING)
+				uUIDInfo.OperationID, "agent_message_bad_post_response", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		} else {
 			badMessage := fmt.Sprintf("Failed to process agent message:\n%s\n%s\n", err.Error(), string(badMessageString))
 			go SendAllOperationsMessage(badMessage,
-				uUIDInfo.OperationID, "agent_message_bad_post_response", database.MESSAGE_LEVEL_WARNING)
+				uUIDInfo.OperationID, "agent_message_bad_post_response", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		}
 		return map[string]interface{}{}, nil
 	}
@@ -1378,7 +1378,7 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 			FROM filemeta
 			WHERE agent_file_id=$1 AND operation_id=$2`, *agentResponse.Upload.FileID, task.OperationID)
 	if err != nil {
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to find fileID in agent upload request: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to find fileID in agent upload request: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		logging.LogError(err, "Failed to find fileID in agent upload request", "file_id", *agentResponse.Upload.FileID)
 		return uploadResponse, err
 	}
@@ -1391,18 +1391,18 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 	}
 	if !fileMeta.Complete {
 		logging.LogError(nil, "Trying to upload a file to an agent that isn't fully on Mythic's server yet")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - not completely uploaded to Mythic yet: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - not completely uploaded to Mythic yet: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return uploadResponse, errors.New("trying to upload a file to an agent that isn't fully on Mythic's server yet")
 	}
 	if fileMeta.Deleted {
 		logging.LogError(nil, "Trying to upload a file to an agent that is deleted")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was deleted from Mythic: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was deleted from Mythic: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return uploadResponse, errors.New("trying to upload a file to an agent that is deleted")
 	}
 	fileStat, err := os.Stat(fileMeta.Path)
 	if err != nil {
 		logging.LogError(err, "Failed to find file on disk")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was not found on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was not found on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return uploadResponse, errors.New("trying to upload a file to an agent that was not found on disk")
 	}
 	totalChunks := int(math.Ceil(float64(fileStat.Size()) / chunkSize))
@@ -1414,26 +1414,26 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 	}
 	if chunkNum >= totalChunks {
 		logging.LogError(nil, "Requested chunk number greater than number of available chunks for file")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Requested chunk number greater than number of available chunks for file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Requested chunk number greater than number of available chunks for file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return uploadResponse, errors.New("requested chunk number greater than number of available chunks for file")
 	}
 	file, err := os.Open(fileMeta.Path)
 	if err != nil {
 		logging.LogError(err, "Failed to open file to get chunk for agent upload")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to open file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to open file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return uploadResponse, errors.New("failed to open file to get chunk for agent upload")
 	}
 	_, err = file.Seek(int64(chunkNum*int(chunkSize)), 0)
 	if err != nil {
 		logging.LogError(err, "Failed to seek file to get chunk for agent upload")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to seek file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to seek file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return uploadResponse, errors.New("failed to seek file to get chunk for agent upload")
 	}
 	bytesRead, err := file.Read(chunkData)
 	if err != nil {
 		file.Close()
 		logging.LogError(err, "Failed to read file to get chunk for agent upload")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to read file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - Failed to read file on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return uploadResponse, errors.New("failed to read file to get chunk for agent upload")
 	}
 	file.Close()
@@ -1470,7 +1470,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 	fileStat, err := os.Stat(fileMeta.Path)
 	if err != nil {
 		logging.LogError(err, "Failed to find file on disk")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was not found on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to transfer file to agent - file was not found on disk: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return
 	}
 	chunkSize := float64(512000)
@@ -1500,10 +1500,10 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			        :host, :size, :is_payload)
 			RETURNING id`); err != nil {
 				logging.LogError(err, "Failed to insert new filemeta data for a separate task pulling down an already uploaded file")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			} else if err = statement.Get(&newFileMeta, newFileMeta); err != nil {
 				logging.LogError(err, "Failed to insert net filemeta data for a separate task")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			} else {
 				go EmitFileLog(newFileMeta.ID)
 			}
@@ -1531,7 +1531,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 	if agentResponse.Upload.FullPath != nil && *agentResponse.Upload.FullPath != "" {
 		if filePieces, err := utils.SplitFilePathGetHost(*agentResponse.Upload.FullPath, "", []string{}); err != nil {
 			logging.LogError(err, "Failed to parse out the full path returned by the agent for an upload")
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to parse out the full path returned by the agent for an upload: %v\n", err), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to parse out the full path returned by the agent for an upload: %v\n", err), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			return
 		} else {
 			if filePieces.Host == "" {
@@ -1567,7 +1567,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 					SET full_remote_path=:full_remote_path, filename=:filename, host=:host
 					WHERE id=:id`, fileMeta); err != nil {
 					logging.LogError(err, "Failed to update filemeta path/filename/host ")
-					go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+					go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 				} else {
 					go EmitFileLog(fileMeta.ID)
 					go associateFileMetaWithMythicTree(filePieces, fileMeta, task)
@@ -1582,10 +1582,10 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			fileMeta.Deleted = true
 			if _, err := database.DB.NamedExec(`UPDATE filemeta SET deleted=:deleted WHERE id=:id`, fileMeta); err != nil {
 				logging.LogError(err, "Failed to mark file as deleted after successful fetch")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to mark file as deleted after successful fetch: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to mark file as deleted after successful fetch: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			} else if err := os.RemoveAll(fileMeta.Path); err != nil {
 				logging.LogError(err, "Failed to delete file after successful fetch")
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to delete file after successful fetch: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to delete file after successful fetch: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			}
 		}
 	}
@@ -1629,7 +1629,7 @@ func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta datab
 	_, err := database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, fileMeta)
 	if err != nil {
 		logging.LogError(err, "Failed to associate filemeta with mythictree ")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to associate file with file browser: %s\n", fileMeta.AgentFileID), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to associate file with file browser: %s\n", fileMeta.AgentFileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return
 	}
 	_, err = database.DB.Exec(`UPDATE mythictree SET "timestamp"=now() WHERE id=$1`, newTree.ID)
@@ -1695,7 +1695,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 	pathData, err := utils.SplitFilePathGetHost(fileBrowser.ParentPath, fileBrowser.Name, []string{})
 	if err != nil {
 		logging.LogError(err, "Failed to add data for file browser due to path issue")
-		go SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return err
 	}
 	if pathData.Host == "" {
@@ -2298,7 +2298,7 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 		newFile.OperationID, newFile.FullRemotePath, task.Callback.ID); err == sql.ErrNoRows {
 		if pathData, err := utils.SplitFilePathGetHost(string(newFile.FullRemotePath), "", []string{}); err != nil {
 			logging.LogError(err, "Failed to add data for file browser due to path issue")
-			go SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		} else {
 			if pathData.Host == "" {
 				pathData.Host = strings.ToUpper(task.Callback.Host)
@@ -2363,21 +2363,13 @@ func handleAgentMessagePostResponseAlerts(operationID int, callbackID int, displ
 		if alert.Source != nil {
 			source = *alert.Source
 		}
-		level := database.MESSAGE_LEVEL_WARNING
-		if alert.Level != nil {
-			switch *alert.Level {
-			case database.MESSAGE_LEVEL_INFO:
-				level = database.MESSAGE_LEVEL_INFO
-			case database.MESSAGE_LEVEL_WARNING:
-				level = database.MESSAGE_LEVEL_WARNING
-			case database.MESSAGE_LEVEL_DEBUG:
-				level = database.MESSAGE_LEVEL_DEBUG
-			default:
-
-			}
+		level := database.MESSAGE_LEVEL_AGENT_MESSGAGE
+		warning := true
+		if alert.Level != nil && *alert.Level != "warning" {
+			warning = false
 		}
-		go SendAllOperationsMessage(alert.Alert, operationID, source, level)
-		if level != database.MESSAGE_LEVEL_WARNING && alert.SendWebhook {
+		go SendAllOperationsMessage(alert.Alert, operationID, source, level, warning)
+		if alert.Level != nil && *alert.Level != "warning" && alert.SendWebhook {
 			// send this as a custom webhook message
 			go submitAgentAlertToWebhook(operationID, callbackID, displayID, alert)
 		}

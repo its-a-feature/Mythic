@@ -31,17 +31,17 @@ func processContainerOnStartMessageResponse(msg amqp.Delivery) {
 	if err != nil {
 		logging.LogError(err, "Failed to process container on start response message")
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to process container on start response:\n %s", err.Error()),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
 	if containerStartResponse.Stderr != "" {
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to process %s on start response:\n %s",
 			containerStartResponse.ContainerName, containerStartResponse.Stderr),
-			0, fmt.Sprintf("%s_on_start", containerStartResponse.ContainerName), database.MESSAGE_LEVEL_WARNING)
+			0, fmt.Sprintf("%s_on_start", containerStartResponse.ContainerName), database.MESSAGE_LEVEL_INFO, true)
 	}
 	if containerStartResponse.Stdout != "" {
 		go SendAllOperationsMessage(fmt.Sprintf("Container %s on start response:\n %s",
 			containerStartResponse.ContainerName, containerStartResponse.Stdout),
-			0, fmt.Sprintf("%s_on_start", containerStartResponse.ContainerName), database.MESSAGE_LEVEL_INFO)
+			0, fmt.Sprintf("%s_on_start", containerStartResponse.ContainerName), database.MESSAGE_LEVEL_INFO, false)
 	}
 }

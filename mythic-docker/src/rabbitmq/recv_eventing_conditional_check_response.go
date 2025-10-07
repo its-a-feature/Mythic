@@ -35,7 +35,7 @@ func processEventingConditionalCheckResponse(msg amqp.Delivery) {
 	if err != nil {
 		logging.LogError(err, "Failed to process eventing custom function response message")
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to process eventing conditional check response %s", err.Error()),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
 	eventingConditionalCheckProcess(c2SyncMsg)

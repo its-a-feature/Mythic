@@ -175,7 +175,7 @@ func (cache *cachedUUIDInfo) IterateAndAct(agentMessage *[]byte, action string) 
 		case "none":
 			return modified, nil
 		default:
-			err = errors.New(fmt.Sprintf("Unknown action for IterateAndAct: %s", action))
+			err = errors.New(fmt.Sprintf("Unknown action for IterateAndAct: %s with value: %s", action, keyOpt.Value))
 			logging.LogError(err, "Failed to determine type of crypto")
 			return nil, err
 		}
@@ -312,7 +312,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 			logging.LogDebug("Parsing agent message", "step 3", decryptedMessage)
 			SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 3 (decrypted and parsed JSON): \n%s",
 				string(stringMsg)),
-				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_DEBUG)
+				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, false)
 		}
 	}
 	delegateResponses := []delegateMessageResponse{}
@@ -342,7 +342,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 	case "upload":
 		{
 			go SendAllOperationsMessage(fmt.Sprintf("Agent %s is using deprecated method of file transfer with the 'upload' action.", uuidInfo.PayloadTypeName),
-				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_DEBUG)
+				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, false)
 			logging.LogError(nil, "deprecated form of upload detected, please update agent code to use new method")
 			response, err = handleAgentMessagePostResponse(&map[string]interface{}{
 				"action": "post_response",
@@ -429,7 +429,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 				if utils.MythicConfig.DebugAgentMessage {
 					logging.LogDebug("Parsing agent message", "step 7", delegate)
 					SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 7 (delegate messages): \n%v", delegate),
-						uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_DEBUG)
+						uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, false)
 				}
 				currentDelegateMessage := AgentMessageRawInput{
 					C2Profile: delegate.C2ProfileName,
@@ -537,7 +537,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 			logging.LogDebug("Parsing agent message", "step final", response)
 			SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step final (Response JSON): \n%s",
 				string(stringMsg)),
-				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_DEBUG)
+				uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, false)
 		}
 	}
 	if err != nil {
@@ -559,11 +559,11 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		if agentMessageInput.Base64Message != nil {
 			SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 1 (get data): \n%s",
 				string(*agentMessageInput.Base64Message)),
-				0, "debug", database.MESSAGE_LEVEL_DEBUG)
+				0, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, false)
 		} else {
 			SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 1 (get data): \n%s",
 				base64.StdEncoding.EncodeToString(*agentMessageInput.RawMessage)),
-				0, "debug", database.MESSAGE_LEVEL_DEBUG)
+				0, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, false)
 		}
 
 	}
@@ -577,7 +577,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 				errorMessage += fmt.Sprintf("message: %s\n", string(*agentMessageInput.Base64Message))
 				errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
 				logging.LogError(err, "Failed to base64 decode agent message")
-				go SendAllOperationsMessage(errorMessage, 0, "agent_message_base64", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(errorMessage, 0, "agent_message_base64", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 				instanceResponse.Err = err
 				return instanceResponse
 			}
@@ -588,7 +588,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		errorMessage := fmt.Sprintf("Failed to get message from %s profile\n", agentMessageInput.C2Profile)
 		errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
 		logging.LogError(err, "Failed to get agent message")
-		go SendAllOperationsMessage(errorMessage, 0, "agent_message_base64", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(errorMessage, 0, "agent_message_base64", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		instanceResponse.Err = err
 		return instanceResponse
 	}
@@ -602,7 +602,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 			errorMessage := fmt.Sprintf("Message length too short\n")
 			errorMessage += fmt.Sprintf("Message: %s\n", string(base64DecodedMessage))
 			errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
-			go SendAllOperationsMessage(errorMessage, 0, "agent_message_length", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(errorMessage, 0, "agent_message_length", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			logging.LogError(nil, "Message length too short")
 			instanceResponse.Err = errors.New("message too short")
 			return instanceResponse
@@ -613,7 +613,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 			errorMessage := fmt.Sprintf("Failed to parse a valid UUID from the beginning of an agent message\nMessage: %s\n", string(base64DecodedMessage))
 			errorMessage += "This likely happens if somme sort of traffic came through your C2 profile (ports too open) that isn't actually an agent message\n"
 			errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
-			go SendAllOperationsMessage(errorMessage, 0, "agent_message_uuid", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(errorMessage, 0, "agent_message_uuid", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			instanceResponse.Err = err
 			return instanceResponse
 		} else {
@@ -626,7 +626,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 			errorMessage := fmt.Sprintf("Failed to parse a valid UUID from the beginning of an agent message\nMessage: %s\n", string(base64DecodedMessage))
 			errorMessage += "This likely happens if somme sort of traffic came through your C2 profile (ports too open) that isn't actually an agent message\n"
 			errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
-			go SendAllOperationsMessage(errorMessage, 0, "agent_message_uuid", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(errorMessage, 0, "agent_message_uuid", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			instanceResponse.Err = err
 			return instanceResponse
 		} else {
@@ -637,7 +637,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		logging.LogDebug("Processing agent message", "step 2", messageUUID.String())
 		SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 2 (get uuid): \n%s",
 			messageUUID.String()),
-			0, "debug", database.MESSAGE_LEVEL_DEBUG)
+			0, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, false)
 	}
 	instanceResponse.AgentUUIDSize = agentUUIDLength
 	// 4. look up c2 profile and information about UUID
@@ -645,7 +645,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 	if err != nil {
 		errorMessage := err.Error() + "\n"
 		errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
-		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		logging.LogError(err, errorMessage)
 		instanceResponse.Err = errors.New(errorMessage)
 		return instanceResponse
@@ -661,8 +661,8 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		errorMessage := fmt.Sprintf("Payload (%s) - %s\n", string(payload.Filemeta.Filename), payload.Description)
 		errorMessage += fmt.Sprintf("Registered as not allowing new callbacks, so messages are blocked. If this isn't intended, allow this from the payloads page.\n")
 		errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
-		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
-		instanceResponse.Err = err
+		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+		instanceResponse.Err = errors.New("can't generate callback from payload")
 		return instanceResponse
 	}
 	decryptBytes := base64DecodedMessage[agentUUIDLength:totalBase64Bytes]
@@ -672,7 +672,7 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 		errorMessage := fmt.Sprintf("Failed to decrypt message due to: %s\n", err.Error())
 		errorMessage += fmt.Sprintf("Message: %s\n", string(base64DecodedMessage[agentUUIDLength:totalBase64Bytes]))
 		errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
-		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(errorMessage, uuidInfo.OperationID, messageUUID.String(), database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		instanceResponse.Err = err
 		return instanceResponse
 	}
@@ -738,7 +738,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		errorMessage := fmt.Sprintf("Failed to find agent's C2 profile: %s\n", c2profile)
 		errorMessage += fmt.Sprintf("This could be from a C2 Profile forwarding traffic to Mythic that Mythic isn't tracking.\n")
 		errorMessage += fmt.Sprintf("Potentially look into installing the c2 profile")
-		go SendAllOperationsMessage(errorMessage, 0, messageUUID, database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(errorMessage, 0, messageUUID, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		return &newCache, err
 	}
 	if messageUUID == "00000000-0000-0000-0000-000000000000" {
@@ -957,7 +957,7 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage *[]byte) (map[string]
 			} else if !convertedResponse.Success {
 				logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process custom message from agent")
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, convertedResponse.Error), uuidInfo.OperationID,
-					"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+					"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 				return nil, errors.New(convertedResponse.Error)
 			} else {
 				return convertedResponse.Message, nil
@@ -992,7 +992,7 @@ func DecryptMessage(uuidInfo *cachedUUIDInfo, agentMessage *[]byte) (map[string]
 			} else if !convertedResponse.Success {
 				logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process custom message from agent")
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message: %s\n%s", uuidInfo.TranslationContainerName, convertedResponse.Error), uuidInfo.OperationID,
-					"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+					"c2_to_mythic_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 				return nil, errors.New(convertedResponse.Error)
 			} else {
 				return convertedResponse.Message, nil
@@ -1047,7 +1047,7 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 		if !convertedResponse.Success {
 			logging.LogError(errors.New(convertedResponse.Error), "Failed to have translation container process message from Mythic->Custom C2")
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to have translation container process message from Mythic->Custom C2: %s\n%s", uuidInfo.TranslationContainerName, convertedResponse.Error), uuidInfo.OperationID,
-				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			return nil, errors.New(convertedResponse.Error)
 		}
 		if len(convertedResponse.Message) == 0 {
@@ -1058,14 +1058,14 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 		if err != nil {
 			logging.LogError(err, "Failed to encrypt bytes")
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to encrypt bytes:\n%s", err.Error()), uuidInfo.OperationID,
-				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			return nil, err
 		}
 		uuidBytes, err := GetUUIDBytes(outerUUID, uuidInfo.PayloadTypeMessageUUIDLength)
 		if err != nil {
 			logging.LogError(err, "Failed to generate UUID for final message")
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to generate UUID for final bytes:\n%s", err.Error()), uuidInfo.OperationID,
-				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			return nil, err
 		}
 		finalBytes := append(uuidBytes, *encryptedBytes...)
@@ -1110,7 +1110,7 @@ func EncryptMessage(uuidInfo *cachedUUIDInfo, outerUUID string, agentMessage map
 		}
 		if !convertedResponse.Success {
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to send agent message response to translation container:\n%s", convertedResponse.Error), uuidInfo.OperationID,
-				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_WARNING)
+				"mythic_to_c2_"+uuidInfo.TranslationContainerName, database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			return nil, errors.New(convertedResponse.Error)
 		}
 		return convertedResponse.Message, nil
@@ -1187,6 +1187,7 @@ func reflectBackOtherKeys(response *map[string]interface{}, other *map[string]in
 		"integrity_level": 1,
 		"uuid":            1,
 		"interactive":     1,
+		"file_id":         1,
 	}
 	//logging.LogInfo("other keys", "other", *other)
 	for key, val := range *other {

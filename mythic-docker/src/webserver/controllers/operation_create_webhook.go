@@ -5,6 +5,7 @@ import (
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
 )
 
@@ -121,5 +122,6 @@ func CreateOperationWebhook(c *gin.Context) {
 		OperationID:   newOperation.ID,
 		OperationName: newOperation.Name,
 	})
+	go rabbitmq.InvalidateOperationEventLogCacheMap()
 	return
 }

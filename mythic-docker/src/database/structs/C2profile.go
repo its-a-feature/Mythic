@@ -15,4 +15,6 @@ type C2profile struct {
 	IsP2p            bool      `db:"is_p2p"`
 	IsServerRouted   bool      `db:"is_server_routed"`
 	Deleted          bool      `db:"deleted"`
+	SemVer           string    `db:"semver"`
+	HasLogo          bool      `db:"has_logo"`
 }

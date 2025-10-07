@@ -199,14 +199,15 @@ Target Host:   %s`,
 					remoteIP, remoteURL, remoteUserAgent, remoteHost)
 				updateTagData[newKey] = downloadMessage
 				alertLevel := database.MESSAGE_LEVEL_INFO
+				warning := false
 				if hostedTagDataEntry["alert_on_download"].(bool) {
-					alertLevel = database.MESSAGE_LEVEL_WARNING
+					warning = true
 				}
 				if shouldAddTag {
 					// wait until here to add tags in case we fail to host
 					insertTag(&tag)
 				}
-				go rabbitmq.SendAllOperationsMessage(downloadMessage, operationID, "", alertLevel)
+				go rabbitmq.SendAllOperationsMessage(downloadMessage, operationID, "", alertLevel, warning)
 				break
 			}
 		}
@@ -230,14 +231,14 @@ Target Host:   %s`,
 							logging.LogError(err, "failed to send message to container to stop hosting it")
 							go rabbitmq.SendAllOperationsMessage(fmt.Sprintf(
 								"%s failed to stop hosting file:\n%s", newTagMap["c2_profile"].(string),
-								err.Error()), operationID, "", database.MESSAGE_LEVEL_WARNING)
+								err.Error()), operationID, "", database.MESSAGE_LEVEL_INFO, true)
 							continue
 						}
 						if !c2HostFileResponse.Success {
 							logging.LogError(err, "c2 profile failed to stop hosting file")
 							go rabbitmq.SendAllOperationsMessage(fmt.Sprintf(
 								"%s failed to stop hosting file:\n%s", newTagMap["c2_profile"].(string),
-								c2HostFileResponse.Error), operationID, "", database.MESSAGE_LEVEL_WARNING)
+								c2HostFileResponse.Error), operationID, "", database.MESSAGE_LEVEL_INFO, true)
 							continue
 						}
 						delete(updateTagData, key)
@@ -257,14 +258,14 @@ Target Host:   %s`,
 					logging.LogError(err, "failed to send host file message to c2 profile")
 					go rabbitmq.SendAllOperationsMessage(fmt.Sprintf(
 						"%s failed to start hosting file:\n%s", newTagMap["c2_profile"].(string),
-						err.Error()), operationID, "", database.MESSAGE_LEVEL_WARNING)
+						err.Error()), operationID, "", database.MESSAGE_LEVEL_INFO, true)
 					continue
 				}
 				if !c2HostFileResponse.Success {
 					logging.LogError(err, "c2 profile failed to start hosting file")
 					go rabbitmq.SendAllOperationsMessage(fmt.Sprintf(
 						"%s failed to start hosting file:\n%s", newTagMap["c2_profile"].(string),
-						c2HostFileResponse.Error), operationID, "", database.MESSAGE_LEVEL_WARNING)
+						c2HostFileResponse.Error), operationID, "", database.MESSAGE_LEVEL_INFO, true)
 					continue
 				}
 				if shouldAddTag {
@@ -286,12 +287,12 @@ Target Host:   %s`,
 		tag.Data = rabbitmq.GetMythicJSONTextFromStruct(updateTagData)
 		_, err = database.DB.NamedExec(`UPDATE tag SET data=:data WHERE id=:id`, tag)
 		if tagTypeAssignment == tagTypeHostedByC2 {
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Adjusted file hosting"), tag.Operation, "", database.MESSAGE_LEVEL_INFO)
+			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Adjusted file hosting"), tag.Operation, "", database.MESSAGE_LEVEL_INFO, false)
 		}
 	} else {
 		_, err = database.DB.NamedExec(`DELETE FROM tag WHERE id=:id`, tag)
 		if tagTypeAssignment == tagTypeHostedByC2 {
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removed hosting tag"), tag.Operation, "", database.MESSAGE_LEVEL_INFO)
+			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removed hosting tag"), tag.Operation, "", database.MESSAGE_LEVEL_INFO, false)
 		}
 	}
 

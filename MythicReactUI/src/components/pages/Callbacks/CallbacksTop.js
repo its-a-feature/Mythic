@@ -168,6 +168,8 @@ callback(where: {active: {_eq: true}}) {
       callbackc2profiles {
         c2profile {
           name
+          has_logo
+          is_p2p
         }
       }
     }
@@ -201,6 +203,8 @@ callback(where: {active: {_eq: true}}) {
       callbackc2profiles {
         c2profile {
           name
+          has_logo
+          is_p2p
         }
       }
     }
@@ -208,6 +212,7 @@ callback(where: {active: {_eq: true}}) {
       id
       is_p2p
       name
+      has_logo
     }
   }
 }
@@ -248,6 +253,8 @@ callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $
       callbackc2profiles {
         c2profile {
           name
+          has_logo
+          is_p2p
         }
       }
     }
@@ -282,6 +289,8 @@ callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $
       callbackc2profiles {
         c2profile {
           name
+          has_logo
+          is_p2p
         }
       }
     }
@@ -289,6 +298,7 @@ callbackgraphedge_stream(batch_size: 100, cursor: {initial_value: {updated_at: $
       id
       is_p2p
       name
+      has_logo
     }
   }
 }

@@ -406,6 +406,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: eventingTriggerManualBulk
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/eventing_trigger_manual_bulk_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: eventingTriggerRetry
     definition:
       kind: synchronous
@@ -934,4 +944,5 @@ custom_types:
     - name: dynamicQueryOutputChoice
     - name: createArtifactOutput
     - name: updatePayloadOutput
+    - name: eventingTriggerManualBulkOutput
   scalars: []

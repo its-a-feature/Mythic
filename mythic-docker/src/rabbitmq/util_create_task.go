@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
@@ -309,7 +310,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		return response
 	}
 	err = database.DB.Get(&callback.Payload.Payloadtype, `SELECT
-			"name", id
+			"name", id, command_help_function
 			FROM payloadtype
 			WHERE id=$1`, callback.Payload.PayloadTypeID)
 	if err != nil {
@@ -697,6 +698,9 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 	}
 	output.TaskID = task.ID
 	output.TaskDisplayID = task.DisplayID
+	if callback.Payload.Payloadtype.CommandHelpFunction == "" {
+
+	}
 	loadedCommands := []databaseStructs.Loadedcommands{}
 	err := database.DB.Select(&loadedCommands, `SELECT
 		command.cmd "command.cmd",
@@ -715,6 +719,32 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		go addErrToTask(task.ID, fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error()))
 		output.Error = fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error())
 		return output
+	}
+	if callback.Payload.Payloadtype.CommandHelpFunction != "" {
+		commandNames := []string{}
+		for _, cmd := range loadedCommands {
+			matched, _ := regexp.MatchString(task.Params, cmd.Command.Cmd)
+			if !matched {
+				continue
+			}
+			commandNames = append(commandNames, cmd.Command.Cmd)
+		}
+		resp, err := RabbitMQConnection.SendPtRPCCommandHelp(CommandHelpMessage{
+			PayloadType:  callback.Payload.Payloadtype.Name,
+			CommandNames: commandNames,
+		})
+		if err == nil {
+			if resp.Success {
+				go updateTaskStatus(task.ID, "success", true)
+				go addOutputToTask(task.ID, resp.Output, task.OperationID)
+				output.Error = ""
+				output.Status = "success"
+				return output
+			}
+			logging.LogError(errors.New(resp.Error), "failed to have container successfully process help command")
+		} else {
+			logging.LogError(err, "failed to run help command from payload type")
+		}
 	}
 	if task.Params == "" {
 		// looking for help about all loaded commands

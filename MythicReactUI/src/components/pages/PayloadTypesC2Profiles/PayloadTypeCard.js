@@ -97,6 +97,11 @@ export function PayloadTypeRow({service, showDeleted}){
                     <Typography variant="body1" component="p">
                         <b>Supported Operating Systems:</b> {supportedOS}
                     </Typography>
+                    {service.semver !== "" &&
+                        <Typography variant="body1" component="p">
+                            <b>Version:</b> {service.semver}
+                        </Typography>
+                    }
                     {service.wrap_these_payload_types.length === 0 ? null : (
                         <Typography variant="body1" component="p">
                             <b>Wrapped Payload Types:</b> {wrappedPayloads}
@@ -114,7 +119,6 @@ export function PayloadTypeRow({service, showDeleted}){
                 <MythicTableCell>
                     <MythicStyledTooltip title={"Documentation"}>
                         <IconButton
-                            color="secondary"
                             href={service.wrapper ? "/docs/wrappers/" + service.name : "/docs/agents/" + service.name}
                             target="_blank"
                             size="medium">
@@ -124,7 +128,6 @@ export function PayloadTypeRow({service, showDeleted}){
                     <MythicStyledTooltip title={"Build Parameters"}>
                         <IconButton
                             onClick={()=>{setOpenBuildingDialog(true);}}
-                            color="secondary"
                             size="medium">
                             <BuildIcon />
                         </IconButton>
@@ -132,14 +135,12 @@ export function PayloadTypeRow({service, showDeleted}){
                     <MythicStyledTooltip title={"Commands"}>
                         <IconButton
                             onClick={()=>{setOpenCommandsDialog(true)}}
-                            color={"secondary"}
                             size={"medium"}>
                             <SendTwoToneIcon />
                         </IconButton>
                     </MythicStyledTooltip>
                     <MythicStyledTooltip title={service.container_running ? "View Files" : "Unable to view files because container is offline"}>
                         <IconButton
-                            color={"secondary"}
                             disabled={!service.container_running}
                             onClick={()=>{setOpenListFilesDialog(true);}}
                             size="medium">

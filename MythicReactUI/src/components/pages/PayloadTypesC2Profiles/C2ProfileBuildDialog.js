@@ -17,7 +17,7 @@ import { getDefaultValueForType } from '../CreatePayload/Step2SelectPayloadType'
 const GET_C2_Details = gql`
 query GetPC2Details($payload_name: String!) {
   c2profile(where: {name: {_eq: $payload_name}}) {
-    c2profileparameters(where: {deleted: {_eq: false}}) {
+    c2profileparameters(where: {deleted: {_eq: false}}, order_by: {name: asc}) {
       default_value
       description
       format_string

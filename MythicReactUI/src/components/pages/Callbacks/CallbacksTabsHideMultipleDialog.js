@@ -92,7 +92,7 @@ const columns = [
         flex: 0.5,
     }
 ];
-const CustomSelectTable = ({initialData, selectedData}) => {
+const CustomSelectTable = ({initialData, selectedData, sortModel}) => {
     const [data, setData] = React.useState([]);
     const [rowSelectionModel, setRowSelectionModel] = React.useState({
         type: 'include',
@@ -120,7 +120,7 @@ const CustomSelectTable = ({initialData, selectedData}) => {
                         },
                     },
                     sorting: {
-                        sortModel: [{ field: 'last_checkin', sort: 'asc' }],
+                        sortModel: [sortModel],
                     },
                 }}
                 autoPageSize
@@ -176,7 +176,9 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Hide Multiple Callbacks at Once</DialogTitle>
             <CustomSelectTable initialData={initialData}
-                               selectedData={selectedData}  />
+                               selectedData={selectedData}
+                               sortModel={{ field: 'last_checkin', sort: 'asc' }}
+            />
         <DialogActions>
           <Button onClick={onClose} variant="contained" color="primary">
             Close
@@ -187,5 +189,47 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
         </DialogActions>
   </React.Fragment>
   );
+}
+export function CallbacksTabsSelectMultipleDialog({onClose, onSubmit}) {
+
+    const selectedData = React.useRef([]);
+    const [initialData, setInitialData] = React.useState([]);
+    useQuery(callbacksAndFeaturesQuery,{
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            const callbackData = data.callback.map( c => {
+                // for each callback, get a unique set of supported features
+                const display = `${c.display_id} - ${c.user}@${c.host} (${c.pid}) - ${c.description}`;
+                return {...c, display};
+            });
+            setInitialData(callbackData);
+        }
+    });
+    const submitTasking = () => {
+        if(selectedData.current.length === 0){
+            onClose();
+            return;
+        }
+        onSubmit(selectedData.current);
+    }
+
+
+    return (
+        <React.Fragment>
+            <DialogTitle id="form-dialog-title">Select Multiple Callbacks</DialogTitle>
+            <CustomSelectTable initialData={initialData}
+                               selectedData={selectedData}
+                               sortModel={{ field: 'display_id', sort: 'desc' }}
+            />
+            <DialogActions>
+                <Button onClick={onClose} variant="contained" color="primary">
+                    Close
+                </Button>
+                <Button onClick={submitTasking} variant="contained" color="warning">
+                    Use Selection
+                </Button>
+            </DialogActions>
+        </React.Fragment>
+    );
 }
 

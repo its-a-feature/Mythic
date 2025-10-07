@@ -18,4 +18,5 @@ type Operationeventlog struct {
 	Source      string            `db:"source"`
 	Count       int               `db:"count"`
 	APITokensID structs.NullInt64 `db:"apitokens_id" json:"api_tokens_id" mapstructure:"apitokens_id"`
+	Warning     bool              `db:"warning"`
 }

@@ -17,7 +17,7 @@ import { getDefaultValueForType } from '../CreatePayload/Step2SelectPayloadType'
 const GET_Payload_Details = gql`
 query GetPayloadDetails($payload_name: String!) {
   payloadtype(where: {name: {_eq: $payload_name}}) {
-    buildparameters (where: {deleted: {_eq: false} } ){
+    buildparameters (where: {deleted: {_eq: false}}, order_by: {name: asc} ){
       description
       name
       id

@@ -589,10 +589,10 @@ func (c *callbackPortsInUse) Test(callbackId int, portType CallbackPortType, loc
 		go func() {
 			if !canReachRemoteHost(remoteIP, remotePort) {
 				err := errors.New(fmt.Sprintf("Testing remote connection for rpfwd:\nfailed to reach remote host, %s:%d", remoteIP, remotePort))
-				go SendAllOperationsMessage(err.Error(), operationId, "", database.MESSAGE_LEVEL_INFO)
+				go SendAllOperationsMessage(err.Error(), operationId, "", database.MESSAGE_LEVEL_INFO, false)
 			} else {
 				go SendAllOperationsMessage(fmt.Sprintf("Testing remote connection for rpfwd:\nsuccessfully connected to remote host, %s:%d", remoteIP, remotePort),
-					operationId, "", database.MESSAGE_LEVEL_INFO)
+					operationId, "", database.MESSAGE_LEVEL_INFO, false)
 			}
 		}()
 	default:
@@ -671,18 +671,18 @@ func (p *callbackPortUsage) Start() error {
 			l, err := net.Listen("tcp4", addr)
 			if err != nil {
 				logging.LogError(err, "Failed to start listening on new port")
-				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_INFO, true)
 				return err
 			}
 			p.listener = &l
 			go p.handleSocksConnections()
 			go p.manageConnections()
 			go SendAllOperationsMessage(fmt.Sprintf("Opened port %d for %s", p.LocalPort, p.PortType),
-				p.OperationID, "", database.MESSAGE_LEVEL_INFO)
+				p.OperationID, "", database.MESSAGE_LEVEL_INFO, false)
 		} else {
 			err := errors.New(fmt.Sprintf("Failed to start listening on port %d, it's not exposed through docker", p.LocalPort))
 			logging.LogError(err, "Can't start listening")
-			go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_INFO, true)
 			return err
 		}
 	case CALLBACK_PORT_TYPE_RPORTFWD:
@@ -697,19 +697,19 @@ func (p *callbackPortUsage) Start() error {
 			l, err := net.Listen("tcp4", addr)
 			if err != nil {
 				logging.LogError(err, "Failed to start listening on new port")
-				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_INFO, true)
 				return err
 			}
 			p.listener = &l
 			go p.handleInteractiveConnections()
 			go p.manageConnections()
 			go SendAllOperationsMessage(fmt.Sprintf("Opened port %d for %s", p.LocalPort, "interactive tasking"),
-				p.OperationID, "", database.MESSAGE_LEVEL_INFO)
+				p.OperationID, "", database.MESSAGE_LEVEL_INFO, false)
 
 		} else {
 			err := errors.New(fmt.Sprintf("Failed to start listening on port %d, it's not exposed through docker", p.LocalPort))
 			logging.LogError(err, "Can't start listening")
-			go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_INFO, true)
 			return err
 		}
 	default:
@@ -943,7 +943,7 @@ func (p *callbackPortUsage) manageConnections() {
 							ProxyType:       p.PortType,
 						}
 						go SendAllOperationsMessage(fmt.Sprintf("Failed to connect to %s:%d for new rpfwd message", p.RemoteIP, p.RemotePort),
-							p.OperationID, "rpfwd", database.MESSAGE_LEVEL_WARNING)
+							p.OperationID, "rpfwd", database.MESSAGE_LEVEL_INFO, true)
 					} else {
 						// we have a valid connection to the remote server
 						// Handle connections in a new goroutine
@@ -1045,7 +1045,7 @@ func (p *callbackPortUsage) socksUsernamePasswordAuthCheck(conn net.Conn) bool {
 			fmt.Sprintf("failed username (%s) auth to socks port %d from %s",
 				string(clientUsername), p.LocalPort, conn.RemoteAddr().String()),
 			p.OperationID, fmt.Sprintf("%d_%s_%s", p.LocalPort, p.PortType, string(clientUsername)),
-			database.MESSAGE_LEVEL_WARNING)
+			database.MESSAGE_LEVEL_AUTH, true)
 		if err != nil {
 			//logging.LogError(err, "Failed to send the \\x01\\x01 bad-auth bytes for new socks connection")
 			return false
@@ -1059,7 +1059,7 @@ func (p *callbackPortUsage) socksUsernamePasswordAuthCheck(conn net.Conn) bool {
 			fmt.Sprintf("failed password (%s) auth to socks port %d from %s",
 				string(clientPassword), p.LocalPort, conn.RemoteAddr().String()),
 			p.OperationID, fmt.Sprintf("%d_%s_%s", p.LocalPort, p.PortType, string(clientUsername)),
-			database.MESSAGE_LEVEL_WARNING)
+			database.MESSAGE_LEVEL_AUTH, true)
 		if err != nil {
 			//logging.LogError(err, "Failed to send the \\x01\\x01 bad-auth bytes for new socks connection")
 			return false
@@ -1368,7 +1368,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 									p.removeConnectionsChannel <- &newConnection
 									go SendAllOperationsMessage(
 										fmt.Sprintf("UDP Associate SOCKS5 connections only avaiable with 'host' networking. Currently in 'bridge' networking."),
-										p.OperationID, "udp_associate", database.MESSAGE_LEVEL_WARNING)
+										p.OperationID, "udp_associate", database.MESSAGE_LEVEL_INFO, true)
 									return
 								}
 								// buf[2] is reserved to be \x00
@@ -1398,7 +1398,7 @@ func (p *callbackPortUsage) handleSocksConnections() {
 									udpListener, err := net.ListenUDP("udp", addr)
 									if err != nil {
 										logging.LogError(err, "Failed to start listening on new port for UDP associate")
-										go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_WARNING)
+										go SendAllOperationsMessage(err.Error(), p.OperationID, "", database.MESSAGE_LEVEL_INFO, true)
 										p.removeConnectionsChannel <- &newConnection
 										return
 									}

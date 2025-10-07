@@ -11,7 +11,7 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import { Typography } from '@mui/material';
 import { ReactFlow,
-    applyEdgeChanges,
+    EdgeLabelRenderer,getBezierPath, BaseEdge,
     Handle, Position, useReactFlow, ReactFlowProvider, Panel,
     MiniMap, Controls, ControlButton, useUpdateNodeInternals,
     getConnectedEdges, useNodesState, useEdgesState
@@ -37,6 +37,7 @@ import SendIcon from '@mui/icons-material/Send';
 import {getIconName} from "./ResponseDisplayTable";
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import { MythicAgentSVGIconNoTooltip} from "../../MythicComponents/MythicAgentSVGIcon";
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -459,6 +460,41 @@ export function GroupNode({data}) {
 }
 const nodeTypes = { "agentNode": AgentNode, "groupNode": GroupNode, "taskNode": TaskNode, "browserscriptNode": BrowserscriptNode };
 
+export function C2LabelEdge({  id,  sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data,
+                                labelStyle, markerStart, markerEnd, labelShowBg, labelBgStyle, style, label,
+                                interactionWidth
+                            }){
+    const [edgePath, labelX, labelY] = getBezierPath({
+        sourceX,
+        sourceY,
+        sourcePosition,
+        targetX,
+        targetY,
+        targetPosition,
+    });
+    return (
+        <>
+            <BaseEdge id={id} path={edgePath} labelStyle={labelStyle} markerEnd={markerEnd} markerStart={markerStart}
+            labelShowBg={labelShowBg} labelBgStyle={labelBgStyle}  style={style} label={label}
+            interactionWidth={interactionWidth} labelX={labelX} labelY={labelY}/>
+            <EdgeLabelRenderer>
+                <div
+                    style={{
+                        transform: `translate(-1%, -50%) translate(${labelX}px,${labelY}px)`,
+                    }}
+                    className="nodrag nopan"
+                >
+                    {data.has_logo && <MythicAgentSVGIconNoTooltip payload_type={label}
+                                                                   is_p2p={data.is_p2p}
+                                                                   className={"circleImageNode"}/>}
+                </div>
+            </EdgeLabelRenderer>
+        </>
+    )
+}
+const edgeTypes = {
+    C2IconEdge: C2LabelEdge
+};
 const elk = new ELK();
 const getWidth = (node) => {
     if(node.type === "taskNode"){
@@ -854,9 +890,12 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                         mythic_id: edge.id,
                         source: `${edge.source.id}`,
                         target: "Mythic",
-                        label: edge.c2profile.name,
+                        type: "C2IconEdge",
                         animated: true,
+                        label: edge.c2profile.name,
                         data: {
+                            has_logo: edge.c2profile.has_logo,
+                            is_p2p: edge.c2profile.is_p2p,
                             source: {...edge.source, parentId: getGroupBy(edge.source, view_config)},
                             target: {parentId: "Mythic"},
                             end_timestamp: edge.end_timestamp,
@@ -970,8 +1009,11 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                                 target: `${edge.source.id}`,
                                 label: edge.c2profile.name,
                                 animated: true,
+                                type: "C2IconEdge",
                                 data: {
                                     end_timestamp: edge.end_timestamp,
+                                    has_logo: edge.c2profile.has_logo,
+                                    is_p2p: edge.c2profile.is_p2p,
                                     source: {...edge.destination, parentId: getGroupBy(edge.destination, view_config)},
                                     target: {...edge.source, parentId: getGroupBy(edge.source, view_config)},
                                 }
@@ -1004,8 +1046,11 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                                 target: `${edge.destination.id}`,
                                 label: edge.c2profile.name,
                                 animated: true,
+                                type: "C2IconEdge",
                                 data: {
                                     end_timestamp: edge.end_timestamp,
+                                    has_logo: edge.c2profile.has_logo,
+                                    is_p2p: edge.c2profile.is_p2p,
                                     source: {...edge.source, parentId: getGroupBy(edge.source, view_config)},
                                     target: {...edge.target, parentId: getGroupBy(edge.target, view_config)},
                                 }
@@ -1040,8 +1085,11 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                             target: `${edge.destination.id}`,
                             label: edge.c2profile.name,
                             animated: true,
+                            type: "C2IconEdge",
                             data: {
                                 end_timestamp: edge.end_timestamp,
+                                has_logo: edge.c2profile.has_logo,
+                                is_p2p: edge.c2profile.is_p2p,
                                 source: {...edge.source, parentId: getGroupBy(edge.source, view_config)},
                                 target: {...edge.target, parentId: getGroupBy(edge.destination, view_config)},
                             }
@@ -1239,7 +1287,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
             tempEdges[i].markerEnd.type = "arrowclosed"
             tempEdges[i].labelBgStyle = {
                 fill: theme.tableHover,
-                fillOpacity: 0.6,
+                fillOpacity: 0.8,
             }
             tempEdges[i].labelStyle = {
                 fill: theme.palette.background.contrast,
@@ -1270,6 +1318,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                                     target: tempEdges[j].data.target.parentId,
                                     label: "",
                                     hidden: true,
+                                    type: "C2IconEdge",
                                     data: {
                                         source: {parentId: parentIds[i].id},
                                         target: tempEdges[j].data.target,
@@ -1289,6 +1338,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                                         target: tempEdges[j].data.target.parentId,
                                         label: "",
                                         hidden: true,
+                                        type: "C2IconEdge",
                                         data: {
                                             source: {parentId: parentIds[i].id},
                                             target: tempEdges[j].data.target,
@@ -1368,6 +1418,7 @@ export const DrawC2PathElementsFlow = ({edges, panel, view_config, contextMenu, 
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     nodeTypes={nodeTypes}
+                    edgeTypes={edgeTypes}
                     onPaneClick={onPaneClick}
                     onNodeContextMenu={onNodeContextMenu}
                     onNodeClick={onNodeSelected}

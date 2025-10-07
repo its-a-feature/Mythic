@@ -46,6 +46,7 @@ mutation createAPITokenMutation($operator_id: Int, $name: String){
     operator_id
     name
     created_by
+    creation_time
   }
 }
 `;
@@ -70,9 +71,10 @@ mutation toggleAPITokenActiveMutation($id: Int!, $active: Boolean!){
 `;
 const GetAPITokens = gql`
     query getUserAPITokens($operator_id: Int!){
-        apitokens(where: {operator_id: {_eq: $operator_id}}) {
+        apitokens(where: {operator_id: {_eq: $operator_id}}, order_by: {id: desc}) {
           token_value
           token_type
+          creation_time
           active
           name
           deleted
@@ -227,7 +229,7 @@ export function SettingsOperatorTableRow(props){
                       <MythicDialog open={openDelete} 
                       onClose={()=>{setOpenDeleteDialog(false);}} 
                       innerDialog={<SettingsOperatorDeleteDialog onClose={()=>{setOpenDeleteDialog(false);}}  onAccept={onAcceptDelete} {...props} />}
-                  />
+                        />
                   }
                   
                 </MythicStyledTableCell>
@@ -353,44 +355,43 @@ export function SettingsOperatorTableRow(props){
                     
                 </MythicStyledTableCell>
             </TableRow>
-            <TableRow>
-              {((props.id === me.user.id) || (props.userIsAdmin && props.account_type === "bot")) &&
-                <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
-                  <Collapse in={open} timeout="auto" unmountOnExit>
-                    <Box margin={1}>
-                      <Typography variant="h6" gutterBottom component="div" style={{display: "inline-block"}}>
-                        API Tokens
-                      </Typography>
-                        {showDeleted ? (
-                            <MythicStyledTooltip title={"Hide API Tokens"} tooltipStyle={{float: "right"}}>
-                                <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
-                            </MythicStyledTooltip>
+              {((props.id === me.user.id) || (props.userIsAdmin && props.account_type === "bot")) && open &&
+                  <TableRow>
+                    <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
+                      <Collapse in={open} timeout="auto" unmountOnExit>
+                        <Box margin={1}>
+                          <Typography variant="h6" gutterBottom component="div" style={{display: "inline-block"}}>
+                            API Tokens
+                          </Typography>
+                            {showDeleted ? (
+                                <MythicStyledTooltip title={"Hide API Tokens"} tooltipStyle={{float: "right"}}>
+                                    <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
+                                </MythicStyledTooltip>
 
-                        ) : (
-                            <MythicStyledTooltip title={"Show Deleted API Tokens"} tooltipStyle={{float: "right"}}>
-                                <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
-                            </MythicStyledTooltip>
-                        )}
+                            ) : (
+                                <MythicStyledTooltip title={"Show Deleted API Tokens"} tooltipStyle={{float: "right"}}>
+                                    <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
+                                </MythicStyledTooltip>
+                            )}
 
-                      <Button size="small" onClick={() => {setOpenNewAPIToken(true)}} style={{marginRight: "20px", float: "right"}}
-                              variant={"contained"}
-                              startIcon={<AddCircleOutlineOutlinedIcon color="success" />} >
-                          API Token
-                      </Button>
-                        {openNewAPIToken &&
-                            <MythicDialog open={openNewAPIToken}
-                                          fullWidth={true}
-                                          onClose={()=>{setOpenNewAPIToken(false);}}
-                                          innerDialog={<SettingsAPITokenDialog title="New API Token Name" onAccept={onSubmitNewAPIToken} handleClose={()=>{setOpenNewAPIToken(false);}}  {...props}/>}
-                            />
-                        }
-                        <APITokens apiTokens={apiTokens} onDeleteAPIToken={onDeleteAPIToken} onToggleActive={onToggleActive} showDeleted={showDeleted} />
-                    </Box>
-                  </Collapse>
-                </MythicStyledTableCell>
+                          <Button size="small" onClick={() => {setOpenNewAPIToken(true)}} style={{marginRight: "20px", float: "right"}}
+                                  variant={"contained"}
+                                  startIcon={<AddCircleOutlineOutlinedIcon color="success" />} >
+                              API Token
+                          </Button>
+                            {openNewAPIToken &&
+                                <MythicDialog open={openNewAPIToken}
+                                              fullWidth={true}
+                                              onClose={()=>{setOpenNewAPIToken(false);}}
+                                              innerDialog={<SettingsAPITokenDialog title="New API Token Name" onAccept={onSubmitNewAPIToken} handleClose={()=>{setOpenNewAPIToken(false);}}  {...props}/>}
+                                />
+                            }
+                            <APITokens me={me} apiTokens={apiTokens} onDeleteAPIToken={onDeleteAPIToken} onToggleActive={onToggleActive} showDeleted={showDeleted} />
+                        </Box>
+                      </Collapse>
+                    </MythicStyledTableCell>
+                  </TableRow>
               }
-            
-          </TableRow>
         </React.Fragment>
         )
 }
@@ -429,6 +430,16 @@ const columns = [
         headerName: 'Created By',
         flex: 1,
         valueGetter: (value, row) => row.created_by_operator?.username,
+        renderCell: (params) => (
+            <>
+                <Typography>
+                    {params.row?.created_by_operator?.username}
+                </Typography>
+                <Typography style={{fontSize: params.row?.theme?.typography.pxToRem(12),}}>
+                    Created at: {toLocalTime(params.row?.creation_time, params.row.me?.user?.view_utc_time )}
+                </Typography>
+            </>
+        )
     },
     {
         field: 'token',
@@ -479,7 +490,7 @@ const columns = [
         }
     },
 ];
-const APITokens = ({apiTokens, onDeleteAPIToken, onToggleActive, showDeleted}) => {
+const APITokens = ({apiTokens, onDeleteAPIToken, onToggleActive, showDeleted, me}) => {
     const onCopyTokenValue = (token_value) => {
         let success = copyStringToClipboard(token_value);
         if(success){
@@ -488,12 +499,14 @@ const APITokens = ({apiTokens, onDeleteAPIToken, onToggleActive, showDeleted}) =
             snackActions.error("failed to copy token to clipboard");
         }
     }
+    const theme = useTheme();
     const [data, setData] = React.useState([]);
     React.useEffect( () => {
         setData(apiTokens.reduce( (prev, c) => {
             if(showDeleted || (!showDeleted && !c.deleted)){
                 return [...prev, {...c, onCopyTokenValue: onCopyTokenValue,
                     onDeleteAPIToken: onDeleteAPIToken, onToggleActive: onToggleActive,
+                    me: me, theme: theme
                 }];
             }
             return [...prev];

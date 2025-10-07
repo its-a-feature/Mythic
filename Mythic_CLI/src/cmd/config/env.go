@@ -356,7 +356,7 @@ Setting this to "true" means that the local Mythic/hasura-docker/Dockerfile is u
 
 	mythicEnv.SetDefault("COMPOSE_BAKE", true)
 	mythicEnvInfo["COMPOSE_BAKE"] = `This is a newer option in Docker Compose to delegate builds to bake for better build performance`
-	
+
 	mythicEnv.SetDefault("REBUILD_ON_START", false)
 	mythicEnvInfo["rebuild_on_start"] = `This identifies if a container's backing image should be re-built (or re-fetched) each time you start the container. 
 This can cause agent and c2 profile containers to have their volumes wiped on each start (and thus deleting any changes). 
@@ -537,7 +537,11 @@ func writeMythicEnvironmentVariables() {
 		if len(mythicEnv.GetString(key)) == 0 {
 			_, err = f.WriteString(fmt.Sprintf("%s=\n", strings.ToUpper(key)))
 		} else {
-			_, err = f.WriteString(fmt.Sprintf("%s=\"%s\"\n", strings.ToUpper(key), mythicEnv.GetString(key)))
+			value := mythicEnv.GetString(key)
+			value = strings.ReplaceAll(value, "\\", "\\\\")
+			value = strings.ReplaceAll(value, "'", "\\'")
+			value = strings.ReplaceAll(value, "\"", "\\\"")
+			_, err = f.WriteString(fmt.Sprintf("%s=\"%s\"\n", strings.ToUpper(key), value))
 		}
 
 		if err != nil {
@@ -574,6 +578,27 @@ func GetConfigStrings(args []string) map[string]string {
 		}
 	}
 	return resultMap
+}
+func RemoveConfigStrings(args []string) error {
+	allSettings := mythicEnv.AllKeys()
+	mythicStruct := mythicEnv.AllSettings()
+	for i := 0; i < len(args[0:]); i++ {
+		searchRegex, err := regexp.Compile(args[i])
+		if err != nil {
+			log.Fatalf("[!] bad regex: %v", err)
+		}
+		for _, setting := range allSettings {
+			if searchRegex.MatchString(strings.ToUpper(setting)) || searchRegex.MatchString(strings.ToLower(setting)) {
+				mythicStruct[setting] = nil
+			}
+		}
+	}
+	err := mythicEnv.MergeConfigMap(mythicStruct)
+	if err != nil {
+		return err
+	}
+	writeMythicEnvironmentVariables()
+	return nil
 }
 func SetConfigStrings(key string, value string) {
 	allSettings := mythicEnv.AllKeys()

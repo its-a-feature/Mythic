@@ -1,6 +1,10 @@
-#FROM rabbitmq:3-alpine
-#FROM rabbitmq:3-management-alpine
-#ADD rabbitmq.conf /etc/rabbitmq/rabbitmq.conf
+FROM rabbitmq:3-management-alpine
+ADD rabbitmq.conf /etc/rabbitmq/rabbitmq.conf
+ADD generate_config.sh /generate_config.sh
+ADD rabbitmq.conf /tmp/base_rabbitmq.conf
 
-FROM ghcr.io/its-a-feature/mythic_rabbitmq:v3.3.0.136
+HEALTHCHECK --interval=60s --timeout=30s --retries=5 --start-period=20s \
+  CMD rabbitmq-diagnostics -q check_port_connectivity || exit 1
+
+CMD /bin/sh -c  "chmod +x /generate_config.sh && /generate_config.sh && rabbitmq-server"
 

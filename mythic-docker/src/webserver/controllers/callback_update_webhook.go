@@ -277,12 +277,12 @@ func updateCallbackActiveStatus(callback databaseStructs.Callback, active bool) 
 		switch grpc.PushC2Server.CheckClientConnected(callback.ID) {
 		case PushC2Connections.ConnectedOneToOne:
 			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Not hiding callback %d, it has an active PushC2 connection", callback.DisplayID),
-				callback.OperationID, "", database.MESSAGE_LEVEL_INFO)
+				callback.OperationID, "", database.MESSAGE_LEVEL_INFO, false)
 			return nil
 		case PushC2Connections.ConnectedOneToMany:
 			if !callback.Dead {
 				go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Callback %d uses a PushC2OneToMany connection, it might not be dead, but won't check in.", callback.DisplayID),
-					callback.OperationID, "", database.MESSAGE_LEVEL_INFO)
+					callback.OperationID, "", database.MESSAGE_LEVEL_INFO, false)
 			}
 		default:
 		}

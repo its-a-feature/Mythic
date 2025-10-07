@@ -7,4 +7,5 @@ type Translationcontainer struct {
 	Author           string `db:"author"`
 	Deleted          bool   `db:"deleted"`
 	ContainerRunning bool   `db:"container_running"`
+	SemVer           string `db:"semver"`
 }

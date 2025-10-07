@@ -9,6 +9,8 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -27,11 +29,14 @@ type C2SyncMessage struct {
 }
 
 type C2Profile struct {
-	Name           string `json:"name"`
-	Description    string `json:"description"`
-	Author         string `json:"author"`
-	IsP2p          bool   `json:"is_p2p"`
-	IsServerRouted bool   `json:"is_server_routed"`
+	Name              string  `json:"name"`
+	Description       string  `json:"description"`
+	Author            string  `json:"author"`
+	IsP2p             bool    `json:"is_p2p"`
+	IsServerRouted    bool    `json:"is_server_routed"`
+	SemVer            string  `json:"semver"`
+	AgentIcon         *[]byte `json:"agent_icon,omitempty"`
+	DarkModeAgentIcon *[]byte `json:"dark_mode_agent_icon,omitempty"`
 }
 
 const (
@@ -90,7 +95,7 @@ func processC2SyncMessages(msg amqp.Delivery) interface{} {
 
 	if err := json.Unmarshal(msg.Body, &c2SyncMsg); err != nil {
 		logging.LogError(err, "Failed to process c2 sync message")
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync c2 profile %s", err.Error()), 0, "", database.MESSAGE_LEVEL_WARNING)
+		go SendAllOperationsMessage(fmt.Sprintf("Failed to sync c2 profile %s", err.Error()), 0, "", database.MESSAGE_LEVEL_INFO, true)
 		return C2SyncMessageResponse{Success: false, Error: err.Error()}
 	} else {
 		response := C2SyncMessageResponse{}
@@ -98,7 +103,7 @@ func processC2SyncMessages(msg amqp.Delivery) interface{} {
 			// failed to sync message
 			response.Success = false
 			response.Error = fmt.Sprintf("Error: %v", err)
-			go SendAllOperationsMessage(fmt.Sprintf("Failed to sync %s - %s", c2SyncMsg.Profile.Name, err.Error()), 0, c2SyncMsg.Profile.Name, database.MESSAGE_LEVEL_WARNING)
+			go SendAllOperationsMessage(fmt.Sprintf("Failed to sync %s - %s", c2SyncMsg.Profile.Name, err.Error()), 0, c2SyncMsg.Profile.Name, database.MESSAGE_LEVEL_INFO, true)
 		} else {
 			// successfully synced
 			response.Success = true
@@ -131,9 +136,13 @@ func c2Sync(in C2SyncMessage) error {
 		c2Profile.IsServerRouted = in.Profile.IsServerRouted
 		c2Profile.Description = in.Profile.Description
 		c2Profile.Deleted = false
+		c2Profile.SemVer = in.Profile.SemVer
+		if in.Profile.AgentIcon != nil || in.Profile.DarkModeAgentIcon != nil {
+			c2Profile.HasLogo = true
+		}
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO c2profile 
-			("name",author,container_running,is_p2p,is_server_routed,description, running, deleted) 
-			VALUES (:name, :author, :container_running, :is_p2p, :is_server_routed, :description, :running, :deleted) 
+			("name",author,container_running,is_p2p,is_server_routed,description, running, deleted, has_logo, semver) 
+			VALUES (:name, :author, :container_running, :is_p2p, :is_server_routed, :description, :running, :deleted, :has_logo, :semver) 
 			RETURNING id`,
 		); err != nil {
 			logging.LogError(err, "Failed to create new c2 profile statement")
@@ -156,9 +165,15 @@ func c2Sync(in C2SyncMessage) error {
 		c2Profile.IsServerRouted = in.Profile.IsServerRouted
 		c2Profile.Description = in.Profile.Description
 		c2Profile.Deleted = false
+		c2Profile.SemVer = in.Profile.SemVer
+		if in.Profile.AgentIcon != nil || in.Profile.DarkModeAgentIcon != nil {
+			c2Profile.HasLogo = true
+		} else {
+			c2Profile.HasLogo = false
+		}
 		_, err = database.DB.NamedExec(`UPDATE c2profile SET 
 			author=:author, container_running=:container_running, is_p2p=:is_p2p, is_server_routed=:is_server_routed, 
-			description=:description, running=:running, deleted=:deleted 
+			description=:description, running=:running, deleted=:deleted, has_logo=:has_logo, semver=:semver
 			WHERE id=:id`, c2Profile,
 		)
 		if err != nil {
@@ -170,7 +185,7 @@ func c2Sync(in C2SyncMessage) error {
 		logging.LogError(err, "Failed to sync C2 profile")
 		return err
 	}
-	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", c2Profile.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG)
+	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", c2Profile.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
 	go database.ResolveAllOperationsMessage(getDownContainerMessage(c2Profile.Name), 0)
 	go autoStartC2Profile(c2Profile)
 	if newProfile {
@@ -178,6 +193,41 @@ func c2Sync(in C2SyncMessage) error {
 	}
 	checkContainerStatusAddC2Channel <- c2Profile
 	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(c2Profile.Name)
+	absPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_light.svg", in.Profile.Name)))
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(absPath)
+	if err != nil {
+		return err
+	}
+	if in.Profile.AgentIcon != nil {
+		if _, err = file.Write(*in.Profile.AgentIcon); err != nil {
+			return err
+		}
+	}
+	file.Close()
+	darkModeAbsPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_dark.svg", in.Profile.Name)))
+	if err != nil {
+		return err
+	}
+	darkModeFile, err := os.Create(darkModeAbsPath)
+	if err != nil {
+		return err
+	}
+	if in.Profile.DarkModeAgentIcon != nil {
+		if _, err = darkModeFile.Write(*in.Profile.DarkModeAgentIcon); err != nil {
+			return err
+		}
+	} else {
+		if in.Profile.AgentIcon != nil {
+			if _, err = darkModeFile.Write(*in.Profile.AgentIcon); err != nil {
+				return err
+			}
+		}
+
+	}
+	darkModeFile.Close()
 	return nil
 }
 
@@ -316,7 +366,7 @@ func autoStartC2Profile(c2Profile databaseStructs.C2profile) *C2StartServerMessa
 		} else {
 			UpdateC2ProfileRunningStatus(c2Profile, c2StartResp.InternalServerRunning)
 			if !c2StartResp.InternalServerRunning {
-				go SendAllOperationsMessage(fmt.Sprintf("Failed to start c2 profile %s:\n%s", c2Profile.Name, c2StartResp.Error), 0, "", database.MESSAGE_LEVEL_WARNING)
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to start c2 profile %s:\n%s", c2Profile.Name, c2StartResp.Error), 0, "", database.MESSAGE_LEVEL_INFO, true)
 			}
 		}
 	}
@@ -354,14 +404,14 @@ func autoReHostFiles(c2Profile databaseStructs.C2profile) {
 					logging.LogError(err, "failed to send host file message to c2 profile")
 					go SendAllOperationsMessage(fmt.Sprintf(
 						"%s failed to start hosting file:\n%s", newTagMap["c2_profile"].(string),
-						err.Error()), tag.Operation, "", database.MESSAGE_LEVEL_WARNING)
+						err.Error()), tag.Operation, "", database.MESSAGE_LEVEL_INFO, true)
 					continue
 				}
 				if !c2HostFileResponse.Success {
 					logging.LogError(err, "c2 profile failed to start hosting file")
 					go SendAllOperationsMessage(fmt.Sprintf(
 						"%s failed to start hosting file:\n%s", newTagMap["c2_profile"].(string),
-						c2HostFileResponse.Error), tag.Operation, "", database.MESSAGE_LEVEL_WARNING)
+						c2HostFileResponse.Error), tag.Operation, "", database.MESSAGE_LEVEL_INFO, true)
 					continue
 				}
 			}

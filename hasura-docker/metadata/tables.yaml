@@ -1185,6 +1185,7 @@
         columns:
           - container_running
           - deleted
+          - has_logo
           - is_p2p
           - is_server_routed
           - running
@@ -1192,27 +1193,31 @@
           - author
           - description
           - name
+          - semver
           - creation_time
         filter: {}
     - role: mythic_admin
       permission:
         columns:
-          - id
-          - name
-          - description
-          - creation_time
-          - running
           - container_running
-          - author
+          - deleted
+          - has_logo
           - is_p2p
           - is_server_routed
-          - deleted
+          - running
+          - id
+          - author
+          - description
+          - name
+          - semver
+          - creation_time
         filter: {}
     - role: operation_admin
       permission:
         columns:
           - container_running
           - deleted
+          - has_logo
           - is_p2p
           - is_server_routed
           - running
@@ -1220,6 +1225,7 @@
           - author
           - description
           - name
+          - semver
           - creation_time
         filter: {}
     - role: operator
@@ -1227,6 +1233,7 @@
         columns:
           - container_running
           - deleted
+          - has_logo
           - is_p2p
           - is_server_routed
           - running
@@ -1234,6 +1241,7 @@
           - author
           - description
           - name
+          - semver
           - creation_time
         filter: {}
     - role: spectator
@@ -1241,6 +1249,7 @@
         columns:
           - container_running
           - deleted
+          - has_logo
           - is_p2p
           - is_server_routed
           - running
@@ -1248,6 +1257,7 @@
           - author
           - description
           - name
+          - semver
           - creation_time
         filter: {}
   update_permissions:
@@ -2751,6 +2761,7 @@
           - subscriptions
           - description
           - name
+          - semver
           - type
           - created_at
           - updated_at
@@ -2765,6 +2776,7 @@
           - subscriptions
           - description
           - name
+          - semver
           - type
           - created_at
           - updated_at
@@ -2779,6 +2791,7 @@
           - subscriptions
           - description
           - name
+          - semver
           - type
           - created_at
           - updated_at
@@ -2793,6 +2806,7 @@
           - subscriptions
           - description
           - name
+          - semver
           - type
           - created_at
           - updated_at
@@ -2807,6 +2821,7 @@
           - subscriptions
           - description
           - name
+          - semver
           - type
           - created_at
           - updated_at
@@ -5383,6 +5398,7 @@
           - operator_id
           - resolved
           - source
+          - warning
       comment: ""
     - role: mythic_admin
       permission:
@@ -5399,6 +5415,7 @@
           - operator_id
           - resolved
           - source
+          - warning
       comment: ""
     - role: operation_admin
       permission:
@@ -5415,6 +5432,7 @@
           - operator_id
           - resolved
           - source
+          - warning
       comment: ""
     - role: operator
       permission:
@@ -5431,22 +5449,33 @@
           - operator_id
           - resolved
           - source
+          - warning
+      comment: ""
+    - role: spectator
+      permission:
+        check: {}
+        set:
+          operation_id: x-hasura-current-operation-id
+          operator_id: x-hasura-user-id
+        columns:
+          - message
       comment: ""
   select_permissions:
     - role: developer
       permission:
         columns:
-          - deleted
-          - resolved
           - apitokens_id
           - count
+          - deleted
           - id
-          - operation_id
-          - operator_id
           - level
           - message
+          - operation_id
+          - operator_id
+          - resolved
           - source
           - timestamp
+          - warning
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
@@ -5456,6 +5485,7 @@
         columns:
           - deleted
           - resolved
+          - warning
           - apitokens_id
           - count
           - id
@@ -5474,6 +5504,7 @@
         columns:
           - deleted
           - resolved
+          - warning
           - apitokens_id
           - count
           - id
@@ -5492,6 +5523,7 @@
         columns:
           - deleted
           - resolved
+          - warning
           - apitokens_id
           - count
           - id
@@ -5510,6 +5542,7 @@
         columns:
           - deleted
           - resolved
+          - warning
           - apitokens_id
           - count
           - id
@@ -5530,6 +5563,7 @@
           - deleted
           - level
           - resolved
+          - warning
         filter:
           operation_id:
             _in: x-hasura-operations
@@ -5540,6 +5574,7 @@
           - deleted
           - level
           - resolved
+          - warning
         filter:
           operation_id:
             _in: x-hasura-operations
@@ -5550,6 +5585,7 @@
           - deleted
           - level
           - resolved
+          - warning
         filter:
           operation_id:
             _in: x-hasura-operations
@@ -5560,6 +5596,7 @@
           - deleted
           - level
           - resolved
+          - warning
         filter:
           operation_id:
             _in: x-hasura-operations
@@ -8998,52 +9035,57 @@
     - role: developer
       permission:
         columns:
+          - author
+          - container_running
+          - deleted
+          - description
           - id
           - name
-          - deleted
-          - container_running
-          - description
-          - author
+          - semver
         filter: {}
     - role: mythic_admin
       permission:
         columns:
+          - author
+          - container_running
+          - deleted
+          - description
           - id
           - name
-          - deleted
-          - container_running
-          - description
-          - author
+          - semver
         filter: {}
     - role: operation_admin
       permission:
         columns:
+          - author
+          - container_running
+          - deleted
+          - description
           - id
           - name
-          - deleted
-          - container_running
-          - description
-          - author
+          - semver
         filter: {}
     - role: operator
       permission:
         columns:
+          - author
+          - container_running
+          - deleted
+          - description
           - id
           - name
-          - deleted
-          - container_running
-          - description
-          - author
+          - semver
         filter: {}
     - role: spectator
       permission:
         columns:
+          - author
+          - container_running
+          - deleted
+          - description
           - id
           - name
-          - deleted
-          - container_running
-          - description
-          - author
+          - semver
         filter: {}
   update_permissions:
     - role: developer

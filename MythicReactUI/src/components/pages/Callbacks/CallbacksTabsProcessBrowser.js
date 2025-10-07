@@ -132,7 +132,7 @@ export function CallbacksTabsProcessBrowserLabel(props){
     }
     return (
         <React.Fragment>
-            <MythicTabLabel label={description} onDragTab={props.onDragTab}  {...props} contextMenuOptions={contextMenuOptions}/>
+            <MythicTabLabel label={description} highlight={props.newDataForTab[props.tabInfo.tabID]} onDragTab={props.onDragTab}  {...props} contextMenuOptions={contextMenuOptions}/>
             {openEditDescriptionDialog &&
                 <MythicDialog fullWidth={true} open={openEditDescriptionDialog}  onClose={() => {setOpenEditDescriptionDialog(false);}}
                     innerDialog={
@@ -143,7 +143,7 @@ export function CallbacksTabsProcessBrowserLabel(props){
         </React.Fragment>  
     )
 }
-export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>{
+export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, setNewDataForTab}) =>{
     const fromNow = React.useRef((new Date()));
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const [expandOrCollapseAll, setExpandOrCollapseAll] = React.useState(false);
@@ -290,6 +290,9 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
             }
             const newMatrix = getNewMatrix();
             setTreeAdjMtx(newMatrix);
+            if(index !== value){
+                setNewDataForTab((prev) => {return {...prev, [tabInfo.tabID]: true}});
+            }
         }
     });
     const getHostProcessesQuerySuccess = (data) => {

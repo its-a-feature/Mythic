@@ -39,7 +39,7 @@ func processEventingTaskInterceptResponse(msg amqp.Delivery) {
 	if err != nil {
 		logging.LogError(err, "Failed to process eventing task intercept response message")
 		go SendAllOperationsMessage(fmt.Sprintf("Failed to process eventing task intercept response %s", err.Error()),
-			0, "", database.MESSAGE_LEVEL_WARNING)
+			0, "", database.MESSAGE_LEVEL_INFO, true)
 		return
 	}
 	task := databaseStructs.Task{ID: input.TaskID}

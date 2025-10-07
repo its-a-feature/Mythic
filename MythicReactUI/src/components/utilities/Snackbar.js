@@ -130,7 +130,7 @@ const stillDoNotDisturb = () => {
 }
 const ToastComponent = ({msg, closeButton}) => {
   return (
-      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%"}}>
         {msg}
         {closeButton}
       </div>

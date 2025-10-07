@@ -33,7 +33,7 @@ const StyledListItem = styled(ListItem)((
 const GetPreAdornment = ({message}) => {
     const theme = useTheme();
     const getColor = React.useCallback(() => {
-        if(message.level === "warning"){
+        if(message.warning){
             if(message.resolved){
                 return theme.palette.success.main;
             } else {
@@ -41,9 +41,9 @@ const GetPreAdornment = ({message}) => {
             }
         }
         return theme.palette.info.main;
-    }, [theme, message.level, message.resolved]);
+    }, [theme, message.level, message.resolved, message.warning]);
     const getSymbol = React.useCallback(() => {
-        if(message.level === "warning"){
+        if(message.warning){
             if(message.resolved){
                 return "+";
             } else {
@@ -51,7 +51,7 @@ const GetPreAdornment = ({message}) => {
             }
         }
         return "*";
-    }, [theme, message.level, message.resolved]);
+    }, [theme, message.level, message.resolved, message.warning]);
     return (
         <>
             <p style={{display: "inline-block", fontWeight: "bold", color: getColor(), margin: "0 0 0 0"}}>[</p>
@@ -97,7 +97,7 @@ export function EventFeedTableEvents(props){
                 </div>
                 }
             />
-            <EventFeedTableEventsActions id={props.id} level={props.level}
+            <EventFeedTableEventsActions id={props.id} level={props.level} warning={props.warning}
               onUpdateResolution={props.onUpdateResolution}
               onUpdateLevel={props.onUpdateLevel}
               resolved={props.resolved}/>

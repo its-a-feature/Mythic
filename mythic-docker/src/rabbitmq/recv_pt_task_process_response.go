@@ -30,7 +30,7 @@ func processPtTaskProcessResponseMessages(msg amqp.Delivery) {
 		}
 		if !payloadMsg.Success {
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to process response message for task %d:\n%s", payloadMsg.TaskID, payloadMsg.Error),
-				0, "", database.MESSAGE_LEVEL_WARNING)
+				0, "", database.MESSAGE_LEVEL_INFO, true)
 		} else {
 			logging.LogDebug("Successfully processed process response for task", "task_id", payloadMsg.TaskID)
 		}

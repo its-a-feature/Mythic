@@ -16,6 +16,7 @@ import {ParseForDisplay} from "../Payloads/DetailedPayloadTable";
 import Paper from '@mui/material/Paper';
 import {useTheme} from '@mui/material/styles';
 import {getModifiedC2Params} from "./Step4C2Profiles";
+import { Backdrop, CircularProgress } from '@mui/material';
 
 
 const GET_Payload_Types = gql`
@@ -37,11 +38,23 @@ query getPayloadTypesQuery {
 
 export const GetPayloads = gql`
 query payloads($payloadType: String!, $os: String!) {
-  payload(where: {auto_generated: {_eq: false}, os: {_eq: $os}, payloadtype: {name: {_eq: $payloadType}}, build_phase: {_eq: "success"}, deleted: {_eq: false}}, order_by: {id: desc}) {
+  payload(where: {auto_generated: {_eq: false}, os: {_eq: $os}, payloadtype: {name: {_eq: $payloadType}}, deleted: {_eq: false}}, order_by: {id: desc}) {
       id
       description
       uuid
       creation_time
+      build_phase
+      payload_build_steps(order_by: {step_number: asc}) {
+        step_name
+        step_number
+        step_success
+        step_skip
+        start_time
+        end_time
+        step_stdout
+        step_stderr
+        id
+      }
       filemetum {
         agent_file_id
         filename_text
@@ -153,6 +166,7 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
 
 export function Step1SelectOS(props){
     const [os, setOS] = React.useState('');
+    const [openBackdrop, setOpenBackdrop] = React.useState(true);
     const [payloadtypeData, setPayloadtypeData] = React.useState({});
     const [payloadtypesPerOS, setPayloadtypesPerOS] = React.useState({});
     const [C2PerOS, setC2PerOS] = React.useState({});
@@ -219,11 +233,16 @@ export function Step1SelectOS(props){
             .catch((data) => {console.log(data)})
     }, [props.prevData, props.first])
     React.useEffect( () => {
+        setOpenBackdrop(true);
         getPayloads({variables: {payloadType: selectedPayloadType, os}})
             .then(({data}) => {
                 setPayloadOptions(data.payload);
+                setOpenBackdrop(false);
             })
-            .catch(({data}) => console.log(data));
+            .catch(({data}) => {
+                console.log(data);
+                setOpenBackdrop(false);
+            });
     }, [selectedPayloadType, os]);
 
     const finished = (clearNextPrevious) => {
@@ -437,13 +456,21 @@ export function Step1SelectOS(props){
                     overflow: "hidden"
                 }}>
                     {props.first &&
-                        <StartFromExistingPayloadOrStartFresh first={props.first}
-                                                              last={props.last}
-                                                              canceled={canceled}
-                                                              onSelectedPayload={onSelectedPayload}
-                                                              payloadOptions={payloadOptions}
-                                                              onStartFresh={onStartFresh}
-                        />
+                        <div style={{flexGrow: 1, overflowY: "auto", position: "relative"}}>
+                            {openBackdrop &&
+                                <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2000, position: "absolute"}}>
+                                    <CircularProgress color="inherit" disableShrink  />
+                                </Backdrop>
+                            }
+                            <StartFromExistingPayloadOrStartFresh first={props.first}
+                                                                  last={props.last}
+                                                                  canceled={canceled}
+                                                                  onSelectedPayload={onSelectedPayload}
+                                                                  payloadOptions={payloadOptions}
+                                                                  onStartFresh={onStartFresh}
+                            />
+                        </div>
+
                     }
                     {!props.first &&
                         <ConfigureBuildParameters os={os} selectedPayloadType={selectedPayloadType}
@@ -659,7 +686,7 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
             if(buildParameters[i].group_name === groupedData[j].name){
                 // only add the parameter if it doesn't meet a hide_condition
                 let should_hide = false;
-                if(buildParameters[i]?.supported_os?.length || 0 > 0){
+                if((buildParameters[i]?.supported_os?.length || 0) > 0){
                     if(!buildParameters[i]?.supported_os?.includes(os)){
                         should_hide = true;
                     }
@@ -669,17 +696,22 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
                         if(buildParameters[l].name === buildParameters[i].hide_conditions[k].name){
                             switch(buildParameters[i].hide_conditions[k].operand){
                                 case "eq":
-                                    if(buildParameters[i].hide_conditions[k].value === buildParameters[l].value){
+                                    if(String(buildParameters[i].hide_conditions[k].value) === String(buildParameters[l].value)){
                                         should_hide = true;
                                     }
                                     break;
                                 case "neq":
-                                    if(buildParameters[i].hide_conditions[k].value !== buildParameters[l].value){
+                                    if(String(buildParameters[i].hide_conditions[k].value) !== String(buildParameters[l].value)){
                                         should_hide = true;
                                     }
                                     break;
                                 case "in":
-                                    if(buildParameters[i].hide_conditions[k].value.includes(buildParameters[l].value)){
+                                    if(buildParameters[i].hide_conditions[k].choices.includes(buildParameters[l].value)){
+                                        should_hide = true;
+                                    }
+                                    break;
+                                case "nin":
+                                    if(!buildParameters[i].hide_conditions[k].choices.includes(buildParameters[l].value)){
                                         should_hide = true;
                                     }
                                     break;
