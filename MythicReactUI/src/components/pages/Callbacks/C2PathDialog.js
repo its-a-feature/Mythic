@@ -479,8 +479,8 @@ export function C2LabelEdge({  id,  sourceX, sourceY, targetX, targetY, sourcePo
             interactionWidth={interactionWidth} labelX={labelX} labelY={labelY}/>
             <EdgeLabelRenderer>
                 <div
-                    style={{
-                        transform: `translate(-1%, -50%) translate(${labelX}px,${labelY}px)`,
+                    style={{ position: "absolute",
+                        transform: `translate(-40%, -50%) translate(${labelX}px,${labelY}px)`,
                     }}
                     className="nodrag nopan"
                 >

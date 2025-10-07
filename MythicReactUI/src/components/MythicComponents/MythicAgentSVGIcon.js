@@ -41,7 +41,7 @@ export const MythicAgentSVGIconNoTooltip = ({payload_type, is_p2p, className}) =
                     backgroundColor: theme.palette.primary.main, color: "white" }} />
             }
             {is_p2p === true &&
-                <FontAwesomeIcon icon={faLink} style={{width: "20px", height: "20px", marginLeft: "-20px", marginBottom: "5px",
+                <FontAwesomeIcon icon={faLink} style={{width: "10px", height: "10px", marginLeft: "-5px", marginBottom: "0px",
                     borderRadius: "10px",  border: "1px solid",
                     backgroundColor: theme.palette.primary.main, color: "white"}} />
             }
