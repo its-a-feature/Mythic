@@ -367,8 +367,9 @@ export const ParseForDisplay = ({
 
     return (
         cmd.parameter_type === "File" ? (
-            <MythicFileContext agent_file_id={cmd.value.name === undefined ? cmd.value : cmd.value.name} display_link={""}
-            extraStyles={{marginRight: "5px"}}/>
+            <MythicFileContext agent_file_id={cmd.value.name === undefined ? cmd.value : cmd.value.name}
+                               display_link={""}
+                               extraStyles={{marginRight: "5px"}}/>
         ) : cmd.parameter_type === "FileMultiple" ? (
             fileMultipleValue?.map(f => (
                 <React.Fragment key={f}>

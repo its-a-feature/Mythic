@@ -36,6 +36,8 @@ export const getSavedToType = (parameter) => {
     temp.default_value = parameter.trackedValue;
     if(parameter.parameter_type === 'Date'){
         return temp.default_value;
+    } else if(parameter.parameter_type === 'File'){
+        return {name: temp.trackedValue}
     }
     return getDefaultValueForType(temp);
 }
@@ -78,7 +80,7 @@ export const getDefaultValueForType = (parameter) => {
         case "FileMultiple":
             return [];
         case "File":
-            return {name: ""};
+            return {name: parameter.default_value};
         case "Date":
             // date default_value is a string of a number representing the day offset
             var tmpDate = new Date();

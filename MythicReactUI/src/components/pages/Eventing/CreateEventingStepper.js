@@ -2541,11 +2541,11 @@ export function CreateEventingStepper(props){
       const getStepContent = (step) => {
           switch (step) {
             case 0:
-              return <CreateEventingStep1 prevData={payload[0]} finished={handleStepData} back={cancelStep} first={true} last={false} cancel={props.onClose}/>;
+              return <CreateEventingStep1 prevData={payload[0]} finished={handleStepData} back={cancelStep} first={true} last={false} cancel={() => props.onClose(null, true)}/>;
             case 1:
-              return <CreateEventingStep2 prevData={payload[1]} step1Data={payload[0]} finished={handleStepData} back={cancelStep} first={false} last={false} cancel={props.onClose}/>;
+              return <CreateEventingStep2 prevData={payload[1]} step1Data={payload[0]} finished={handleStepData} back={cancelStep} first={false} last={false} cancel={() => props.onClose(null, true)}/>;
           case 2:
-              return <CreateEventingStep3 prevData={payload[2]} step1Data={payload[0]} step2Data={payload[1]} finished={finished} back={cancelStep} first={false} last={true} cancel={props.onClose}/>;
+              return <CreateEventingStep3 prevData={payload[2]} step1Data={payload[0]} step2Data={payload[1]} finished={finished} back={cancelStep} first={false} last={true} cancel={() => props.onClose(null, true)}/>;
           default:
               return "unknown step";
           }

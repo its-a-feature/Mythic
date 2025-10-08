@@ -63,6 +63,9 @@ export const MythicFileContext = ({agent_file_id, display_link, filename, extraS
     if(agent_file_id === '' || agent_file_id === undefined){
         return null
     }
+    if(fileData.agent_file_id === '' || fileData.filename === undefined){
+        return agent_file_id
+    }
     return (
         <>
             <MythicStyledTooltip title={"Preview Media"} tooltipStyle={extraStyles ? extraStyles : {}}>

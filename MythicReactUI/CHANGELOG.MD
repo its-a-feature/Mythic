@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.72] - 2025-10-08
+
+### Changed
+
+- Fixed a "cancel" button not closing a modal for eventing wizard
+- Fixed an issue with `File` types showing links for files not uploaded yet when building payloads
+
 ## [0.3.71] - 2025-10-07
 
 ### Changed
