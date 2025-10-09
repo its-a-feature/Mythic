@@ -19,7 +19,7 @@ export
 
 build:
 	go mod tidy
-	CGO_ENABLED=0 go build -o ${BINARY_NAME} -tags="nomsgpack" .
+	GOEXPERIMENT=jsonv2 CGO_ENABLED=0 go build -o ${BINARY_NAME} -tags="nomsgpack" .
 copy_to_final:
 	cp ${BINARY_NAME} /
 copy_from_final:

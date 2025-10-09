@@ -11,6 +11,7 @@ import (
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
+	"sync"
 	"time"
 )
 
@@ -67,8 +68,14 @@ func insertTag(tag *databaseStructs.Tag) {
 		}
 	}()
 }
+
+var tagFileAsLock sync.Mutex
+
 func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssignment string, tagData map[string]interface{}, c *gin.Context, remove bool) {
 	// create the tag type in general if needed
+	// use a lock to prevent accidental double tag creations
+	tagFileAsLock.Lock()
+	defer tagFileAsLock.Unlock()
 	tagtype := databaseStructs.TagType{}
 	err := database.DB.Get(&tagtype, `SELECT * FROM tagtype WHERE name=$1 AND operation_id=$2`,
 		tagTypeAssignment, operationID)
@@ -144,10 +151,6 @@ func tagFileAs(fileMetaID int, operatorName string, operationID int, tagTypeAssi
 	switch tagTypeAssignment {
 	case tagTypePreview:
 		updateTagData[operatorName] = newKey
-		if shouldAddTag {
-			// wait until here to add tags in case we fail to host
-			insertTag(&tag)
-		}
 	case tagTypeDownload:
 		if operatorName != "unknown" {
 			updateTagData[operatorName] = newKey
@@ -279,27 +282,37 @@ Target Host:   %s`,
 		}
 	default:
 	}
-	if tag.ID == 0 {
-		logging.LogInfo("tag id is 0, continuing on", "tag", tag)
-		return
-	}
-	if len(updateTagData) > 0 {
-		tag.Data = rabbitmq.GetMythicJSONTextFromStruct(updateTagData)
-		_, err = database.DB.NamedExec(`UPDATE tag SET data=:data WHERE id=:id`, tag)
-		if tagTypeAssignment == tagTypeHostedByC2 {
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Adjusted file hosting"), tag.Operation, "", database.MESSAGE_LEVEL_INFO, false)
+	switch tagTypeAssignment {
+	case tagTypePreview:
+		fallthrough
+	case tagTypeDownload:
+		if shouldAddTag {
+			insertTag(&tag)
+		} else {
+			if len(updateTagData) > 0 {
+				tag.Data = rabbitmq.GetMythicJSONTextFromStruct(updateTagData)
+				_, err = database.DB.NamedExec(`UPDATE tag SET data=:data WHERE id=:id`, tag)
+				if err != nil {
+					logging.LogError(err, "failed to update tag")
+					return
+				}
+			}
 		}
-	} else {
-		_, err = database.DB.NamedExec(`DELETE FROM tag WHERE id=:id`, tag)
-		if tagTypeAssignment == tagTypeHostedByC2 {
+	case tagTypeHostedByC2:
+		if tag.ID == 0 {
+			logging.LogInfo("tag id is 0, continuing on", "tag", tag)
+			return
+		}
+		if len(updateTagData) > 0 {
+			tag.Data = rabbitmq.GetMythicJSONTextFromStruct(updateTagData)
+			_, err = database.DB.NamedExec(`UPDATE tag SET data=:data WHERE id=:id`, tag)
+			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Adjusted file hosting"), tag.Operation, "", database.MESSAGE_LEVEL_INFO, false)
+		} else {
+			_, err = database.DB.NamedExec(`DELETE FROM tag WHERE id=:id`, tag)
 			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Removed hosting tag"), tag.Operation, "", database.MESSAGE_LEVEL_INFO, false)
 		}
 	}
 
-	if err != nil {
-		logging.LogError(err, "failed to update tag")
-		return
-	}
 	_, err = database.DB.Exec(`UPDATE filemeta SET timestamp=now() WHERE id=$1`, fileMetaID)
 	if err != nil {
 		logging.LogError(err, "failed to update file timestamp")

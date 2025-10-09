@@ -44,66 +44,69 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, callbackID i
 	agentMessage := agentMessageGetTasking{}
 	currentTasks := []databaseStructs.Task{}
 	if taskIDs := submittedTasksAwaitingFetching.getTasksForCallbackId(callbackID); len(taskIDs) > 0 {
-		if query, args, err := sqlx.Named(`SELECT 
+		query, args, err := sqlx.Named(`SELECT 
     		agent_task_id, "timestamp", command_name, params, id, token_id
 			FROM task WHERE id IN (:ids) ORDER BY id ASC`, map[string]interface{}{
 			"ids": taskIDs,
-		}); err != nil {
+		})
+		if err != nil {
 			logging.LogError(err, "Failed to make named statement when searching for tasks")
 			return nil, errors.New("failed to make statement to search for tasks")
-		} else if query, args, err := sqlx.In(query, args...); err != nil {
+		}
+		query, args, err = sqlx.In(query, args...)
+		if err != nil {
 			logging.LogError(err, "Failed to do sqlx.In")
 			return nil, errors.New("failed to make query to search for tasks")
-		} else {
-			query = database.DB.Rebind(query)
-			if err := database.DB.Select(&currentTasks, query, args...); err != nil {
-				logging.LogError(err, "Failed to exec sqlx.IN modified statement")
-				return nil, errors.New("failed to search for tasks")
-			}
+		}
+		query = database.DB.Rebind(query)
+		err = database.DB.Select(&currentTasks, query, args...)
+		if err != nil {
+			logging.LogError(err, "Failed to exec sqlx.IN modified statement")
+			return nil, errors.New("failed to search for tasks")
 		}
 	}
 
-	if err := mapstructure.Decode(incoming, &agentMessage); err != nil {
+	err := mapstructure.Decode(incoming, &agentMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to decode agent message into struct")
 		return nil, errors.New(fmt.Sprintf("Failed to decode agent message into agentMessageGetTasking struct: %s", err.Error()))
-	} else {
-		tasksToIssue := []agentMessageGetTaskingTask{}
-		currentTaskCount := 0
-		for _, task := range currentTasks {
-			if currentTaskCount < agentMessage.TaskingSize || agentMessage.TaskingSize < 0 {
-				newTask := agentMessageGetTaskingTask{
-					Command:    task.CommandName,
-					Parameters: task.Params,
-					ID:         task.AgentTaskID,
-					Timestamp:  task.Timestamp.Unix(),
+	}
+	tasksToIssue := []agentMessageGetTaskingTask{}
+	currentTaskCount := 0
+	for _, task := range currentTasks {
+		if currentTaskCount < agentMessage.TaskingSize || agentMessage.TaskingSize < 0 {
+			newTask := agentMessageGetTaskingTask{
+				Command:    task.CommandName,
+				Parameters: task.Params,
+				ID:         task.AgentTaskID,
+				Timestamp:  task.Timestamp.Unix(),
+			}
+			if task.TokenID.Valid {
+				var tokenID int
+				if err := database.DB.Get(&tokenID, `SELECT token_id FROM token WHERE id=$1`, task.TokenID.Int64); err != nil {
+					logging.LogError(err, "failed to get token information")
+				} else {
+					newTask.Token = &tokenID
 				}
-				if task.TokenID.Valid {
-					var tokenID int
-					if err := database.DB.Get(&tokenID, `SELECT token_id FROM token WHERE id=$1`, task.TokenID.Int64); err != nil {
-						logging.LogError(err, "failed to get token information")
-					} else {
-						newTask.Token = &tokenID
-					}
-				}
-				tasksToIssue = append(tasksToIssue, newTask)
-				if _, err := database.DB.Exec(`UPDATE task SET
+			}
+			tasksToIssue = append(tasksToIssue, newTask)
+			if _, err := database.DB.Exec(`UPDATE task SET
 					status=$2, status_timestamp_processing=$3
 					WHERE id=$1`, task.ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC()); err != nil {
-					logging.LogError(err, "Failed to update task status to processing")
-				} else {
-					submittedTasksAwaitingFetching.removeTask(task.ID)
-					go addMitreAttackTaskMapping(task.ID)
-				}
-				currentTaskCount += 1
+				logging.LogError(err, "Failed to update task status to processing")
+			} else {
+				submittedTasksAwaitingFetching.removeTask(task.ID)
+				go addMitreAttackTaskMapping(task.ID)
 			}
+			currentTaskCount += 1
 		}
-		response := map[string]interface{}{}
-		response["tasks"] = tasksToIssue
-		delete(*incoming, "tasking_size")
-		reflectBackOtherKeys(&response, &agentMessage.Other)
-		//logging.LogDebug("agent asked for tasking", "tasks", response)
-		return response, nil
 	}
+	response := map[string]interface{}{}
+	response["tasks"] = tasksToIssue
+	delete(*incoming, "tasking_size")
+	reflectBackOtherKeys(&response, &agentMessage.Other)
+	//logging.LogDebug("agent asked for tasking", "tasks", response)
+	return response, nil
 }
 
 func getDelegateTaskMessages(callbackID int, agentUUIDLength int, updateCheckinTime bool) []delegateMessageResponse {

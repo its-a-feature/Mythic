@@ -294,6 +294,8 @@ export function TaskParametersDialogRow(props){
         }
     });
     const [treatNewlinesAsNewEntries, setTreatNewlinesAsNewEntries] = React.useState(false);
+    const setAlarmAboutNoP2pRef = React.useRef(false);
+    const locallySubmenuOpenPreventTaskingRef = React.useRef(false);
     const reIssueDynamicQueryFunction = () => {
         setBackdropOpen(true);
         snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
@@ -307,7 +309,7 @@ export function TaskParametersDialogRow(props){
         usingDynamicParamChoices.current = true;
     }
     useEffect( () => {
-        if(props.dynamic_query_function !== ""){
+       if(props.dynamic_query_function !== ""){
             if(!usingDynamicParamChoices.current){
                 setBackdropOpen(true);
                 snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
@@ -383,6 +385,7 @@ export function TaskParametersDialogRow(props){
        else if(props.type === "AgentConnect"){
             if(props.choices.length > 0){
                 //setAgentConnectHost(0);
+                let shouldUpdateMythicTrackingBecauseChoicesChanged = false;
                 let hostNum = 0;
                 if(agentConnectHost < props.choices.length){
                     hostNum = agentConnectHost;
@@ -391,6 +394,7 @@ export function TaskParametersDialogRow(props){
                 }
                 if(arraysAreDifferent(props.choices, agentConnectHostOptions)){
                     setAgentConnectHostOptions(props.choices);
+                    shouldUpdateMythicTrackingBecauseChoicesChanged = true;
                 }
                 let payloadNum = 0;
                 if(agentConnectPayload < props.choices[hostNum]["payloads"].length){
@@ -401,28 +405,49 @@ export function TaskParametersDialogRow(props){
                 }
                 if(arraysAreDifferent(props.choices[hostNum]['payloads'], agentConnectPayloadOptions)){
                     setAgentConnectPayloadOptions(props.choices[hostNum]["payloads"]);
+                    shouldUpdateMythicTrackingBecauseChoicesChanged = true;
                 }
                 if(props.choices[hostNum]["payloads"].length > 0){
                     //setAgentConnectPayload(0);  
                     if(props.choices[hostNum]["payloads"][payloadNum]["c2info"].length > 0){
                         if(arraysAreDifferent(props.choices[hostNum]["payloads"][payloadNum]["c2info"], agentConnectC2ProfileOptions)){
                             setAgentConnectC2ProfileOptions(props.choices[hostNum]["payloads"][payloadNum]["c2info"]);
+                            shouldUpdateMythicTrackingBecauseChoicesChanged = true;
                         }
                         //setAgentConnectC2Profile(0);
-                        if(agentConnectHost !== hostNum || agentConnectPayload !== payloadNum){
+                        if(agentConnectHost !== hostNum || agentConnectPayload !== payloadNum || shouldUpdateMythicTrackingBecauseChoicesChanged){
                             onChangeAgentConnect(hostNum, payloadNum, 0);
                         }
                     }
+                    if(locallySubmenuOpenPreventTaskingRef.current){
+                        props.setSubmenuOpenPreventTasking(false);
+                        locallySubmenuOpenPreventTaskingRef.current = false;
+                    }
                 }else{
-                    snackActions.warning("Mythic knows of no host with a P2P payload. Please add one.");
-                    props.setSubmenuOpenPreventTasking(true);
+                    if(!setAlarmAboutNoP2pRef.current){
+                        setAlarmAboutNoP2pRef.current = true;
+                        snackActions.warning("Mythic knows of no host with a P2P payload. Please add one.");
+                        props.setSubmenuOpenPreventTasking(true);
+                        locallySubmenuOpenPreventTaskingRef.current = true;
+                    }
+
                 }
             }else{
-                setAgentConnectHostOptions([]);
-                setAgentConnectPayloadOptions([]);
-                setAgentConnectC2ProfileOptions([]);
-                snackActions.warning("Mythic knows of no host with a P2P payload. Please add one.");
-                props.setSubmenuOpenPreventTasking(true);
+                if(agentConnectHostOptions.length > 0){
+                    setAgentConnectHostOptions([]);
+                }
+                if(agentConnectPayloadOptions.length > 0){
+                    setAgentConnectPayloadOptions([]);
+                }
+                if(agentConnectC2ProfileOptions.length > 0){
+                    setAgentConnectC2ProfileOptions([]);
+                }
+                if(!setAlarmAboutNoP2pRef.current){
+                    setAlarmAboutNoP2pRef.current = true;
+                    snackActions.warning("Mythic knows of no host with a P2P payload. Please add one.");
+                    props.setSubmenuOpenPreventTasking(true);
+                    locallySubmenuOpenPreventTaskingRef.current = true;
+                }
             }
        }else{
            if(value === ""){
@@ -586,6 +611,7 @@ export function TaskParametersDialogRow(props){
             return;
         }
         props.setSubmenuOpenPreventTasking(false);
+        locallySubmenuOpenPreventTaskingRef.current = false;
         props.onAgentConnectAddNewPayloadOnHost(agentConnectNewHost.toUpperCase(), props.payload_choices[agentConnectNewPayload].id);
         setOpenAdditionalPayloadOnHostmenu(false);
     }
@@ -979,7 +1005,7 @@ export function TaskParametersDialogRow(props){
                                         <MythicStyledTableCell>
                                             <FormControl style={{width: "100%"}}>
                                                 <Select
-                                                  value={agentConnectNewPayload}
+                                                  value={props.payload_choices.length > 0 ? agentConnectNewPayload : ''}
                                                   onChange={onChangeAgentConnectNewPayload}
                                                   input={<Input />}
                                                 >
@@ -1004,6 +1030,7 @@ export function TaskParametersDialogRow(props){
                                             <Button component="span" style={{color: theme.palette.warning.main, padding: 0}} onClick={() =>{
                                                 setOpenAdditionalPayloadOnHostmenu(false);
                                                 props.setSubmenuOpenPreventTasking(false);
+                                                locallySubmenuOpenPreventTaskingRef.current = false;
                                             }}><CancelIcon />Cancel</Button>
                                         </MythicStyledTableCell>
                                     </TableRow>
@@ -1016,7 +1043,7 @@ export function TaskParametersDialogRow(props){
                                         <MythicStyledTableCell>
                                             <FormControl style={{width: "100%"}}>
                                                 <Select
-                                                value={agentConnectHost}
+                                                value={agentConnectHostOptions.length > 0 ? agentConnectHost : ''}
                                                 onChange={onChangeAgentConnectHost}
                                                 input={<Input />}
                                                 >
@@ -1034,7 +1061,7 @@ export function TaskParametersDialogRow(props){
                                         <MythicStyledTableCell>
                                             <FormControl style={{width: "100%"}}>
                                                 <Select
-                                                value={agentConnectPayload}
+                                                value={agentConnectPayloadOptions.length > 0 ? agentConnectPayload : ''}
                                                 onChange={onChangeAgentConnectPayload}
                                                 input={<Input />}
                                                 >
@@ -1058,6 +1085,7 @@ export function TaskParametersDialogRow(props){
                                                 <Button component="span" style={{color: theme.palette.success.main, padding: 0}} onClick={() =>{
                                                     setOpenAdditionalPayloadOnHostmenu(true);
                                                     props.setSubmenuOpenPreventTasking(true);
+                                                    locallySubmenuOpenPreventTaskingRef.current = true;
                                                 }}><AddCircleIcon />Register New</Button>
                                             </MythicStyledTooltip>
 
@@ -1074,7 +1102,7 @@ export function TaskParametersDialogRow(props){
                                         <MythicStyledTableCell>
                                             <FormControl style={{width: "100%"}}>
                                                     <Select
-                                                    value={agentConnectC2Profile}
+                                                    value={agentConnectC2ProfileOptions.length > 0 ? agentConnectC2Profile : ''}
                                                     onChange={onChangeAgentConnectC2Profile}
                                                     input={<Input />}
                                                     >

@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"database/sql"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/json/v2"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -306,7 +306,8 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		return response
 	}
 	if utils.MythicConfig.DebugAgentMessage {
-		if stringMsg, err := json.MarshalIndent(decryptedMessage, "", "  "); err != nil {
+		stringMsg, err := json.Marshal(decryptedMessage)
+		if err != nil {
 			logging.LogError(err, "Failed to convert JSON to string for debug printing")
 		} else {
 			logging.LogDebug("Parsing agent message", "step 3", decryptedMessage)
@@ -531,7 +532,8 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		instanceResponse.OuterUuidIsCallback = true
 	}
 	if utils.MythicConfig.DebugAgentMessage {
-		if stringMsg, err := json.MarshalIndent(response, "", "  "); err != nil {
+		stringMsg, err := json.Marshal(response)
+		if err != nil {
 			logging.LogError(err, "Failed to convert JSON to string for debug printing")
 		} else {
 			logging.LogDebug("Parsing agent message", "step final", response)
@@ -1122,7 +1124,7 @@ func RecursivelyEncryptMessage(path []cbGraphAdjMatrixEntry, message map[string]
 	// recursively craft all the delegate messages and encrypt them except for the last one
 	// for a path of 1 -> 2 -> 4, where we're 1 and the task is for 4, we should encrypt for 4 and 2
 	currentMessage := message
-	logging.LogDebug("recursively encrypting message", "path", path)
+	//logging.LogDebug("recursively encrypting message", "path", path)
 	for i := 0; i < len(path)-1; i++ {
 		logging.LogDebug("Recursively encrypting and prepping tasks for delegates", "target_id", path[i].DestinationId, "c2", path[i].C2ProfileName)
 		if targetUuidInfo, err := LookupEncryptionData(path[i].C2ProfileName, path[i].DestinationAgentId, true); err != nil {
@@ -1197,6 +1199,45 @@ func reflectBackOtherKeys(response *map[string]interface{}, other *map[string]in
 	}
 }
 
+var updateCheckinTimeChannel = make(chan *cachedUUIDInfo, 200)
+
+func updateCheckinTimeEverySecond() {
+	callbackIDMap := make(map[int]*cachedUUIDInfo)
+	shouldUpdateChan := make(chan bool)
+	go func() {
+		for {
+			select {
+			case uuidInfo := <-updateCheckinTimeChannel:
+				callbackIDMap[uuidInfo.CallbackID] = uuidInfo
+			case <-shouldUpdateChan:
+				if len(callbackIDMap) == 0 {
+					continue
+				}
+				callbackIDs := make([]int, len(callbackIDMap))
+				i := 0
+				for _, callbackInfo := range callbackIDMap {
+					callbackIDs[i] = callbackInfo.CallbackID
+					callbackStruct := databaseStructs.Callback{
+						AgentCallbackID: callbackInfo.UUID,
+						ID:              callbackInfo.CallbackID,
+						OperationID:     callbackInfo.OperationID,
+						LastCheckin:     time.Now().UTC(),
+					}
+					callbackGraph.Add(callbackStruct, callbackStruct, callbackInfo.C2ProfileName, false)
+					i++
+				}
+				updateTimes(time.Now().UTC(), callbackIDs)
+				callbackIDMap = make(map[int]*cachedUUIDInfo)
+			}
+		}
+	}()
+	for {
+		select {
+		case <-time.After(time.Second):
+			shouldUpdateChan <- true
+		}
+	}
+}
 func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 	callback := databaseStructs.Callback{
 		AgentCallbackID: uuidInfo.UUID,
@@ -1206,65 +1247,73 @@ func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 	}
 	// only bother updating the last checkin time if it's been more than one second
 	if callback.LastCheckin.Sub(uuidInfo.LastCheckinTime).Seconds() > 1 {
-		if _, err := database.DB.NamedExec(`UPDATE callback SET
-			last_checkin=:last_checkin, dead=false
-			WHERE id=:id`, callback); err != nil {
-			logging.LogError(err, "Failed to update last_checkin time", "callback", uuidInfo.UUID)
-		} else {
+		updateCheckinTimeChannel <- uuidInfo
+		/*
+			_, err := database.DB.NamedExec(`UPDATE callback SET
+				last_checkin=:last_checkin, dead=false
+				WHERE id=:id`, callback)
+			if err != nil {
+				logging.LogError(err, "Failed to update last_checkin time", "callback", uuidInfo.UUID)
+				return
+			}
 			callbackGraph.Add(callback, callback, uuidInfo.C2ProfileName, false)
-			//callbackGraph.AddByAgentIds(callback.AgentCallbackID, callback.AgentCallbackID, uuidInfo.C2ProfileName)
-			if uuidInfo.EdgeId == 0 {
-				if err := database.DB.Get(&uuidInfo.EdgeId, `SELECT id FROM callbackgraphedge
+
+		*/
+		//callbackGraph.AddByAgentIds(callback.AgentCallbackID, callback.AgentCallbackID, uuidInfo.C2ProfileName)
+		if uuidInfo.EdgeId == 0 {
+			err := database.DB.Get(&uuidInfo.EdgeId, `SELECT id FROM callbackgraphedge
 						WHERE source_id=$1 AND destination_id=$2 AND c2_profile_id=$3 AND operation_id=$4`,
-					uuidInfo.CallbackID, uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID); err == sql.ErrNoRows {
-					if !uuidInfo.IsP2P {
-						if _, err := database.DB.Exec(`INSERT INTO callbackgraphedge
+				uuidInfo.CallbackID, uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID)
+			if errors.Is(err, sql.ErrNoRows) {
+				if !uuidInfo.IsP2P {
+					_, err = database.DB.Exec(`INSERT INTO callbackgraphedge
 						(source_id, destination_id, c2_profile_id, operation_id)
 						VALUES ($1, $1, $2, $3)`,
-							uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID); err != nil {
-							logging.LogError(err, "Failed to add callback graph edge id for callback checking in",
-								"c2 id", uuidInfo.C2ProfileID, "callback id", uuidInfo.CallbackID)
-						} else {
-							logging.LogInfo("Added new callbackgraph edge when updating edges and checkin times", "c2", uuidInfo.C2ProfileID, "name", uuidInfo.C2ProfileName, "callback", uuidInfo.CallbackID)
-						}
+						uuidInfo.CallbackID, uuidInfo.C2ProfileID, uuidInfo.OperationID)
+					if err != nil {
+						logging.LogError(err, "Failed to add callback graph edge id for callback checking in",
+							"c2 id", uuidInfo.C2ProfileID, "callback id", uuidInfo.CallbackID)
+					} else {
+						logging.LogInfo("Added new callbackgraph edge when updating edges and checkin times", "c2", uuidInfo.C2ProfileID, "name", uuidInfo.C2ProfileName, "callback", uuidInfo.CallbackID)
 					}
-				} else if err != nil {
-					logging.LogError(err, "Failed to fetch callback graph edge id for callback checking in",
-						"c2 id", uuidInfo.C2ProfileID, "callback id", uuidInfo.CallbackID)
 				}
+			} else if err != nil {
+				logging.LogError(err, "Failed to fetch callback graph edge id for callback checking in",
+					"c2 id", uuidInfo.C2ProfileID, "callback id", uuidInfo.CallbackID)
 			}
-			if !uuidInfo.Active {
-				uuidInfo.Active = true
-				if _, err := database.DB.NamedExec(`UPDATE callback SET
+		}
+		if !uuidInfo.Active {
+			uuidInfo.Active = true
+			_, err := database.DB.NamedExec(`UPDATE callback SET
 					active=true
-					WHERE id=:id`, callback); err != nil {
-					logging.LogError(err, "Failed to update active time", "callback", uuidInfo.UUID)
-				}
-				if uuidInfo.EdgeId > 0 {
-					if _, err := database.DB.Exec(`UPDATE callbackgraphedge SET
-					end_timestamp=NULL
-					WHERE id=$1`, uuidInfo.EdgeId); err != nil {
-						logging.LogError(err, "Failed to callbackgraph edges time", "callback", uuidInfo.UUID)
-					}
-				}
-
+					WHERE id=:id`, callback)
+			if err != nil {
+				logging.LogError(err, "Failed to update active time", "callback", uuidInfo.UUID)
 			}
-			if uuidInfo.TriggerOnCheckinAfterTime > 0 {
-				checkinDifference := int(callback.LastCheckin.Sub(uuidInfo.LastCheckinTime).Minutes())
-				if checkinDifference >= uuidInfo.TriggerOnCheckinAfterTime {
-					// we want to trigger a workflow that the callback is checking in again after sleeping for > some time
-					go func(triggerData databaseStructs.Callback, oldCheckin time.Time, difference int) {
-						EventingChannel <- EventNotification{
-							Trigger:     eventing.TriggerCallbackCheckin,
-							OperationID: triggerData.OperationID,
-							CallbackID:  triggerData.ID,
-							Outputs: map[string]interface{}{
-								"previous_checkin":   oldCheckin,
-								"checkin_difference": difference,
-							},
-						}
-					}(callback, uuidInfo.LastCheckinTime, checkinDifference)
+			if uuidInfo.EdgeId > 0 {
+				_, err = database.DB.Exec(`UPDATE callbackgraphedge SET
+					end_timestamp=NULL
+					WHERE id=$1`, uuidInfo.EdgeId)
+				if err != nil {
+					logging.LogError(err, "Failed to callbackgraph edges time", "callback", uuidInfo.UUID)
 				}
+			}
+		}
+		if uuidInfo.TriggerOnCheckinAfterTime > 0 {
+			checkinDifference := int(callback.LastCheckin.Sub(uuidInfo.LastCheckinTime).Minutes())
+			if checkinDifference >= uuidInfo.TriggerOnCheckinAfterTime {
+				// we want to trigger a workflow that the callback is checking in again after sleeping for > some time
+				go func(triggerData databaseStructs.Callback, oldCheckin time.Time, difference int) {
+					EventingChannel <- EventNotification{
+						Trigger:     eventing.TriggerCallbackCheckin,
+						OperationID: triggerData.OperationID,
+						CallbackID:  triggerData.ID,
+						Outputs: map[string]interface{}{
+							"previous_checkin":   oldCheckin,
+							"checkin_difference": difference,
+						},
+					}
+				}(callback, uuidInfo.LastCheckinTime, checkinDifference)
 			}
 		}
 		uuidInfo.LastCheckinTime = callback.LastCheckin

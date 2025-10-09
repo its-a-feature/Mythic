@@ -89,6 +89,7 @@ func Initialize() {
 	go InvalidateOperationEventLogCacheMap()
 	go listenForWriteDownloadChunkToLocalDisk()
 	go listenForAsyncAgentMessagePostResponseContent()
+	go updateCheckinTimeEverySecond()
 	for {
 		if _, err := RabbitMQConnection.GetConnection(); err == nil {
 			// periodically check to make sure containers are online

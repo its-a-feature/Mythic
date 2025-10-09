@@ -249,36 +249,37 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 			SourceAgentId:      source.AgentCallbackID,
 			C2ProfileName:      c2profileName,
 		})
-
-	} else {
-		for _, dest := range g.adjMatrix[source.ID] {
-			if dest.DestinationId == destination.ID && dest.C2ProfileName == c2profileName {
-				g.lock.Unlock()
-				//logging.LogDebug("Found existing connection, not adding new one to memory", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName)
-				if initializing {
-					// don't update callback times when initializing, this is when the Mythic server starts up
-					return
-				}
-				updateTime := time.Now().UTC()
-				if isCallbackStreaming(source.ID) {
-					updateTime = time.UnixMicro(0)
-				}
-				callbackIDs := g.getAllChildIDs(source.ID)
-				if len(callbackIDs) > 0 {
-					updateTimes(updateTime, callbackIDs)
-				}
+		g.lock.Unlock()
+		return
+	}
+	for _, dest := range g.adjMatrix[source.ID] {
+		if dest.DestinationId == destination.ID && dest.C2ProfileName == c2profileName {
+			g.lock.Unlock()
+			//logging.LogDebug("Found existing connection, not adding new one to memory", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName)
+			if initializing {
+				// don't update callback times when initializing, this is when the Mythic server starts up
 				return
 			}
+			updateTime := time.Now().UTC()
+			if isCallbackStreaming(source.ID) {
+				updateTime = time.UnixMicro(0)
+			}
+			callbackIDs := g.getAllChildIDs(source.ID)
+			if len(callbackIDs) > 0 {
+				updateTimes(updateTime, callbackIDs)
+			}
+			return
 		}
-		//logging.LogInfo("adding new adjMatrix connection", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName)
-		g.adjMatrix[source.ID] = append(g.adjMatrix[source.ID], cbGraphAdjMatrixEntry{
-			DestinationId:      destination.ID,
-			DestinationAgentId: destination.AgentCallbackID,
-			SourceId:           source.ID,
-			SourceAgentId:      source.AgentCallbackID,
-			C2ProfileName:      c2profileName,
-		})
 	}
+	//logging.LogInfo("adding new adjMatrix connection", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName)
+	g.adjMatrix[source.ID] = append(g.adjMatrix[source.ID], cbGraphAdjMatrixEntry{
+		DestinationId:      destination.ID,
+		DestinationAgentId: destination.AgentCallbackID,
+		SourceId:           source.ID,
+		SourceAgentId:      source.AgentCallbackID,
+		C2ProfileName:      c2profileName,
+	})
+
 	g.lock.Unlock()
 	return
 }
@@ -383,11 +384,11 @@ func (g *cbGraph) Remove(sourceId int, destinationId int, c2profileName string) 
 	}
 }
 func (g *cbGraph) CanHaveDelegates(sourceId int) bool {
-	if immediateChildren, exists := g.adjMatrix[sourceId]; !exists {
+	immediateChildren, exists := g.adjMatrix[sourceId]
+	if !exists {
 		return false
-	} else {
-		return len(immediateChildren) > 0
 	}
+	return len(immediateChildren) > 0
 }
 func (g *cbGraph) GetBFSPath(sourceId int, destinationId int) []cbGraphAdjMatrixEntry {
 	// breadth-first search from g.adjMatrix[sourceId] ->
@@ -511,8 +512,11 @@ func getC2ProfileIdForName(c2profileName string) int {
 	c2profile := databaseStructs.C2profile{}
 	err := database.DB.Get(&c2profile, `SELECT id, is_p2p FROM c2profile WHERE "name"=$1 AND deleted=false`,
 		c2profileName)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0
+	}
 	if err != nil {
-		logging.LogError(err, "Failed to find c2 profile", "c2profile", c2profileName)
+		logging.LogError(err, "Failed to query c2 profile", "c2profile", c2profileName)
 		return 0
 	}
 	c2profileNameToIdMap[c2profileName] = c2profile
@@ -526,8 +530,11 @@ func getC2ProfileForName(c2profileName string) databaseStructs.C2profile {
 	c2profile := databaseStructs.C2profile{}
 	err := database.DB.Get(&c2profile, `SELECT id, is_p2p FROM c2profile WHERE "name"=$1 AND deleted=false`,
 		c2profileName)
+	if errors.Is(err, sql.ErrNoRows) {
+		return databaseStructs.C2profile{}
+	}
 	if err != nil {
-		logging.LogError(err, "Failed to find c2 profile", "c2profile", c2profileName)
+		logging.LogError(err, "Failed to query c2 profile", "c2profile", c2profileName)
 		return databaseStructs.C2profile{}
 	}
 	c2profileNameToIdMap[c2profileName] = c2profile
