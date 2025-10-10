@@ -142,117 +142,117 @@ func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload
 	finalBuildParameters := map[string]string{}
 	returnBuildParameters := map[string]interface{}{}
 	databaseBuildParameter := databaseStructs.Buildparameter{}
-	if rows, err := database.DB.NamedQuery(`SELECT
+	rows, err := database.DB.NamedQuery(`SELECT
 		*
 		FROM buildparameter
 		WHERE payload_type_id=:payload_type_id and deleted=false
-	`, databasePayload); err != nil {
+	`, databasePayload)
+	if err != nil {
 		logging.LogError(err, "Failed to get build parameters from database when trying to build payload")
 		return nil, err
-	} else {
-		for rows.Next() {
-			if err = rows.StructScan(&databaseBuildParameter); err != nil {
-				logging.LogError(err, "Failed to get row from buildparameter when trying to build payload")
-				return nil, err
-			} else {
-				logging.LogDebug("Got row from buildparameter", "row", databaseBuildParameter)
-				// if we didn't get a value for something, use the default value
-				found := false
-				for _, suppliedBuildParam := range *buildParameters {
-					if suppliedBuildParam.Name == databaseBuildParameter.Name {
-						if suppliedBuildParam.Value == nil {
-							// the value isn't good, so take the default one instead
-							break
-						} else {
-							found = true
-							// the user supplied an explicit value for this build parameter, so use it
-							if val, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(databaseBuildParameter.ParameterType, suppliedBuildParam.Value); err != nil {
-								//if val, err := GetStrippedValueForBuildParameter(databaseBuildParameter, suppliedBuildParam.Value); err != nil {
-								logging.LogError(err, "Failed to strip value of build parameter", "value", suppliedBuildParam.Value, "build_parameter", databaseBuildParameter)
-								return nil, err
-							} else {
-								finalBuildParameters[databaseBuildParameter.Name] = val
-							}
-							break
-						}
-					}
-				}
-				if !found {
-					// the user didn't supply a value, so we'll take the default value
-					if val, err := getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(
-						databaseBuildParameter.ParameterType, databaseBuildParameter.DefaultValue,
-						databaseBuildParameter.Choices.StructValue(),
-						databaseBuildParameter.Randomize, databaseBuildParameter.FormatString,
-					); err != nil {
-						//if val, err := GetDefaultValueForBuildParameter(databaseBuildParameter); err != nil {
-						logging.LogError(err, "Failed to get default value for build parameter", "build_parameter", databaseBuildParameter)
-						return nil, err
-					} else {
-						finalBuildParameters[databaseBuildParameter.Name] = val
-					}
-				}
-				// create a buildparameterinstance entry to link this specific value to this payload for future reference
-				databaseBuildParameterInstance := databaseStructs.Buildparameterinstance{
-					PayloadID:        databasePayload.ID,
-					BuildParameterID: databaseBuildParameter.ID,
-					Value:            finalBuildParameters[databaseBuildParameter.Name],
-				}
-				if databaseBuildParameter.IsCryptoType {
-					if databasePayload.Payloadtype.TranslationContainerID.Valid && !databasePayload.Payloadtype.MythicEncrypts {
-						if cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
-							TranslationContainerName: databasePayload.Payloadtype.Translationcontainer.Name,
-							C2Name:                   "",
-							CryptoParamValue:         finalBuildParameters[databaseBuildParameter.Name],
-							CryptoParamName:          databaseBuildParameter.Name,
-						}); err != nil {
-							logging.LogError(err, "Failed to contact translation container to generate crypto keys")
-							return nil, errors.New(fmt.Sprintf("failed to contact translation container, %s, to generate encryption keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, err.Error()))
-						} else if !cryptoKeysResponse.Success {
-							logging.LogError(errors.New(cryptoKeysResponse.Error), "Failed to have translation container successfully generate keys")
-							return nil, errors.New(fmt.Sprintf("failed to have translation container, %s, to successfully generate keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, cryptoKeysResponse.Error))
-						} else {
-							if cryptoKeysResponse.EncryptionKey != nil {
-								databaseBuildParameterInstance.EncKey = cryptoKeysResponse.EncryptionKey
-							}
-							if cryptoKeysResponse.DecryptionKey != nil {
-								databaseBuildParameterInstance.DecKey = cryptoKeysResponse.DecryptionKey
-							}
-						}
-					} else {
-						if cryptoKeys, err := mythicCrypto.GenerateKeysForPayload(finalBuildParameters[databaseBuildParameter.Name]); err != nil {
-							logging.LogError(err, "Failed to generate crypto keys for payload")
-							return nil, err
-						} else {
-							if cryptoKeys.EncKey != nil {
-								databaseBuildParameterInstance.EncKey = cryptoKeys.EncKey
-							}
-							if cryptoKeys.DecKey != nil {
-								databaseBuildParameterInstance.DecKey = cryptoKeys.DecKey
-							}
-						}
-					}
-				}
-				if interfaceParam, err := GetInterfaceValueForContainer(
-					databaseBuildParameter.ParameterType,
-					finalBuildParameters[databaseBuildParameter.Name],
-					databaseBuildParameterInstance.EncKey,
-					databaseBuildParameterInstance.DecKey,
-					databaseBuildParameter.IsCryptoType); err != nil {
-					logging.LogError(err, "Failed to convert build parameter into interface")
-					return nil, err
+	}
+	for rows.Next() {
+		err = rows.StructScan(&databaseBuildParameter)
+		if err != nil {
+			logging.LogError(err, "Failed to get row from buildparameter when trying to build payload")
+			return nil, err
+		}
+		logging.LogDebug("Got row from buildparameter", "row", databaseBuildParameter)
+		// if we didn't get a value for something, use the default value
+		found := false
+		for _, suppliedBuildParam := range *buildParameters {
+			if suppliedBuildParam.Name == databaseBuildParameter.Name {
+				if suppliedBuildParam.Value == nil {
+					// the value isn't good, so take the default one instead
+					break
 				} else {
-					returnBuildParameters[databaseBuildParameter.Name] = interfaceParam
-				}
-
-				if _, err := database.DB.NamedExec(`INSERT INTO 
-				buildparameterinstance (payload_id, value, build_parameter_id, enc_key, dec_key)
-				VALUES (:payload_id, :value, :build_parameter_id, :enc_key, :dec_key)`,
-					databaseBuildParameterInstance); err != nil {
-					logging.LogError(err, "Failed to create new buildparameter instance mapping")
-					return nil, err
+					found = true
+					// the user supplied an explicit value for this build parameter, so use it
+					val, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(databaseBuildParameter.ParameterType, suppliedBuildParam.Value)
+					if err != nil {
+						//if val, err := GetStrippedValueForBuildParameter(databaseBuildParameter, suppliedBuildParam.Value); err != nil {
+						logging.LogError(err, "Failed to strip value of build parameter", "value", suppliedBuildParam.Value, "build_parameter", databaseBuildParameter)
+						return nil, err
+					}
+					finalBuildParameters[databaseBuildParameter.Name] = val
+					break
 				}
 			}
+		}
+		if !found {
+			// the user didn't supply a value, so we'll take the default value
+			val, err := getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(
+				databaseBuildParameter.ParameterType, databaseBuildParameter.DefaultValue,
+				databaseBuildParameter.Choices.StructValue(),
+				databaseBuildParameter.Randomize, databaseBuildParameter.FormatString,
+			)
+			if err != nil {
+				//if val, err := GetDefaultValueForBuildParameter(databaseBuildParameter); err != nil {
+				logging.LogError(err, "Failed to get default value for build parameter", "build_parameter", databaseBuildParameter)
+				return nil, err
+			}
+			finalBuildParameters[databaseBuildParameter.Name] = val
+		}
+		// create a buildparameterinstance entry to link this specific value to this payload for future reference
+		databaseBuildParameterInstance := databaseStructs.Buildparameterinstance{
+			PayloadID:        databasePayload.ID,
+			BuildParameterID: databaseBuildParameter.ID,
+			Value:            finalBuildParameters[databaseBuildParameter.Name],
+		}
+		if databaseBuildParameter.IsCryptoType {
+			if databasePayload.Payloadtype.TranslationContainerID.Valid && !databasePayload.Payloadtype.MythicEncrypts {
+				if cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
+					TranslationContainerName: databasePayload.Payloadtype.Translationcontainer.Name,
+					C2Name:                   "",
+					CryptoParamValue:         finalBuildParameters[databaseBuildParameter.Name],
+					CryptoParamName:          databaseBuildParameter.Name,
+				}); err != nil {
+					logging.LogError(err, "Failed to contact translation container to generate crypto keys")
+					return nil, errors.New(fmt.Sprintf("failed to contact translation container, %s, to generate encryption keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, err.Error()))
+				} else if !cryptoKeysResponse.Success {
+					logging.LogError(errors.New(cryptoKeysResponse.Error), "Failed to have translation container successfully generate keys")
+					return nil, errors.New(fmt.Sprintf("failed to have translation container, %s, to successfully generate keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, cryptoKeysResponse.Error))
+				} else {
+					if cryptoKeysResponse.EncryptionKey != nil {
+						databaseBuildParameterInstance.EncKey = cryptoKeysResponse.EncryptionKey
+					}
+					if cryptoKeysResponse.DecryptionKey != nil {
+						databaseBuildParameterInstance.DecKey = cryptoKeysResponse.DecryptionKey
+					}
+				}
+			} else {
+				if cryptoKeys, err := mythicCrypto.GenerateKeysForPayload(finalBuildParameters[databaseBuildParameter.Name]); err != nil {
+					logging.LogError(err, "Failed to generate crypto keys for payload")
+					return nil, err
+				} else {
+					if cryptoKeys.EncKey != nil {
+						databaseBuildParameterInstance.EncKey = cryptoKeys.EncKey
+					}
+					if cryptoKeys.DecKey != nil {
+						databaseBuildParameterInstance.DecKey = cryptoKeys.DecKey
+					}
+				}
+			}
+		}
+		interfaceParam, err := GetInterfaceValueForContainer(
+			databaseBuildParameter.ParameterType,
+			finalBuildParameters[databaseBuildParameter.Name],
+			databaseBuildParameterInstance.EncKey,
+			databaseBuildParameterInstance.DecKey,
+			databaseBuildParameter.IsCryptoType)
+		if err != nil {
+			logging.LogError(err, "Failed to convert build parameter into interface")
+			return nil, err
+		}
+		returnBuildParameters[databaseBuildParameter.Name] = interfaceParam
 
+		_, err = database.DB.NamedExec(`INSERT INTO 
+				buildparameterinstance (payload_id, value, build_parameter_id, enc_key, dec_key)
+				VALUES (:payload_id, :value, :build_parameter_id, :enc_key, :dec_key)`,
+			databaseBuildParameterInstance)
+		if err != nil {
+			logging.LogError(err, "Failed to create new buildparameter instance mapping")
+			return nil, err
 		}
 	}
 	return returnBuildParameters, nil
@@ -482,6 +482,7 @@ func associateCommandsWithPayload(databasePayload databaseStructs.Payload, comma
 			}
 			if commandAttributes.CommandCanOnlyBeLoadedLater {
 				// can't be built in now, can only be loaded later
+				//logging.LogInfo("excluding command, can only be loaded", "command", databaseCommand.Cmd)
 				deniedCommandNames = append(deniedCommandNames, databaseCommand.Cmd)
 				continue
 			}
@@ -494,6 +495,7 @@ func associateCommandsWithPayload(databasePayload databaseStructs.Payload, comma
 						// make sure that the build parameter value matches what the command required
 						if value != buildParamValue {
 							// if there's a mismatch, don't include the command
+							logging.LogInfo("excluded command by build parameter", "value", value, "buildParamValue", buildParamValue)
 							includeCommand = false
 						}
 					}
@@ -507,6 +509,7 @@ func associateCommandsWithPayload(databasePayload databaseStructs.Payload, comma
 					finalCommands = append(finalCommands, databaseCommand)
 					finalCommandNames = append(finalCommandNames, databaseCommand.Cmd)
 				} else {
+					//logging.LogInfo("excluded command", "includeCommand", includeCommand, "command", databaseCommand.Cmd, "len(commands)", len(commands), "suggested", commandAttributes.CommandIsSuggested)
 					deniedCommandNames = append(deniedCommandNames, databaseCommand.Cmd)
 				}
 				continue
@@ -590,6 +593,6 @@ func associateCommandsWithPayload(databasePayload databaseStructs.Payload, comma
 			finalCommandNames = append(finalCommandNames, command.Cmd)
 		}
 	}
-
+	logging.LogInfo("commands not included", "commands", deniedCommandNames)
 	return finalCommandNames, nil
 }

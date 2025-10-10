@@ -457,6 +457,7 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 		return strings.TrimSpace(defaultValue), nil
 	case BUILD_PARAMETER_TYPE_DICTIONARY:
 		// need to generate the base dictionary from the dictionary array choices and create a string
+		//logging.LogInfo("default dictionary choices", "default_value", defaultValue, "choices", choices)
 		var dictionaryChoices []ParameterDictionary
 		if defaultValue == "" {
 			// use choices
@@ -465,11 +466,12 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 				logging.LogError(err, "Failed to decode mapstructure of base dictionary choices")
 				return "", err
 			}
-		}
-		err := json.Unmarshal([]byte(defaultValue), &dictionaryChoices)
-		if err != nil {
-			logging.LogError(err, "Failed to unmarshal dictionary choices")
-			return "", err
+		} else {
+			err := json.Unmarshal([]byte(defaultValue), &dictionaryChoices)
+			if err != nil {
+				logging.LogError(err, "Failed to unmarshal dictionary choices")
+				return "", err
+			}
 		}
 		dictionary := make(map[string]interface{})
 		for _, opt := range dictionaryChoices {

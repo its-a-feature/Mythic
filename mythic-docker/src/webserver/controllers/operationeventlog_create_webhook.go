@@ -47,16 +47,19 @@ func CreateOperationEventLog(c *gin.Context) {
 		return
 	}
 	level := "info"
+	warning := input.Input.Warning
 	if input.Input.Level == "warning" {
-		level = "warning"
+		warning = true
 	}
 	source := input.Input.Source
 	if input.Input.Source == "" {
 		source = mythicCrypto.HashMD5([]byte(input.Input.Message))
+	} else if input.Input.Source == "mythic_sync" {
+		level = "api"
 	}
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	go rabbitmq.SendAllOperationsMessage(input.Input.Message, operatorOperation.CurrentOperation.ID,
-		source, level, input.Input.Warning)
+		source, level, warning)
 	c.JSON(http.StatusOK, SendExternalWebhookResponse{
 		Status: "success",
 	})

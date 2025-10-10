@@ -147,7 +147,7 @@ func getDelegateTaskMessages(callbackID int, agentUUIDLength int, updateCheckinT
 					tasks := []agentMessageGetTaskingTask{}
 					for i := 0; i < len(currentTasks); i++ {
 						// now that we have a path, need to recursively encrypt and wrap
-						var tokenID int
+						tokenID := 0
 						if currentTasks[i].TokenID.Valid {
 							if err := database.DB.Get(&tokenID, `SELECT token_id FROM token WHERE id=$1`, currentTasks[i].TokenID.Int64); err != nil {
 								logging.LogError(err, "failed to get token information")
@@ -158,7 +158,9 @@ func getDelegateTaskMessages(callbackID int, agentUUIDLength int, updateCheckinT
 							Parameters: currentTasks[i].Params,
 							ID:         currentTasks[i].AgentTaskID,
 							Timestamp:  currentTasks[i].Timestamp.Unix(),
-							Token:      &tokenID,
+						}
+						if tokenID != 0 {
+							newTask.Token = &tokenID
 						}
 						_, err := database.DB.Exec(`UPDATE task SET
 							status=$2, status_timestamp_processing=$3
