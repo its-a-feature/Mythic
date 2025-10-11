@@ -354,7 +354,8 @@ export const ParseForDisplay = ({
                 console.log("Failed to parse parameter value as file multiple", cmd.value, error);
             }
         } else if(cmd.parameter_type === "Boolean"){
-            if(cmd.value){
+            let val = String(cmd.value).toLowerCase();
+            if(val === 'true' || val === 't'){
                 setRenderObj("True");
             } else {
                 setRenderObj("False");
@@ -367,7 +368,7 @@ export const ParseForDisplay = ({
 
     return (
         cmd.parameter_type === "File" ? (
-            <MythicFileContext agent_file_id={cmd.value.name === undefined ? cmd.value : cmd.value.name}
+            <MythicFileContext agent_file_id={cmd?.value?.name === undefined ? cmd.value : cmd?.value?.name}
                                display_link={""}
                                extraStyles={{marginRight: "5px"}}/>
         ) : cmd.parameter_type === "FileMultiple" ? (

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.74] - 2025-10-11
+
+### Changed
+
+- Fixed an issue with displayed boolean values always showing true for payload configs
+- Fixed an issue with files from pre-configured payloads when generating new payloads
+
 ## [0.3.73] - 2025-10-09
 
 ### Changed

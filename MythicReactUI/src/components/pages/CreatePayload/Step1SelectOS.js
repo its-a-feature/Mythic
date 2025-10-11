@@ -320,14 +320,56 @@ export function Step1SelectOS(props){
                     payload_type: selectedPayloadType,
                 }
                 const c2 = data.payload_by_pk.c2profileparametersinstances.reduce( (prev, cur) => {
-                    let savedValue = getSavedToType({...cur.c2profileparameter, trackedValue: cur.value});
+                    let inst = {...cur, ...cur.c2profileparameter};
+                    if(inst.parameter_type === "Array" || inst.parameter_type === "ChooseMultiple" || inst.parameter_type === "TypedArray" || inst.parameter_type === "FileMultiple"){
+                        try{
+                            inst["value"] = JSON.parse(inst["value"]);
+                        }catch(error){
+                            inst["value"] = inst["value"];
+                        }
+                        try{
+                            inst["trackedValue"] = JSON.parse(inst["value"]);
+                        }catch(error){
+                            inst["trackedValue"] = inst["value"];
+                        }
+                        inst["initialValue"] = getDefaultValueForType(inst);
+                        inst["choices"] = getDefaultChoices(inst);
+                    } else if(inst.parameter_type === "Dictionary"){
+                        //
+                        let choices = getDefaultChoices(inst);
+                        let finalDict = JSON.parse(inst["value"]); // this is a dictionary instead of an array, so fix it back
+                        let finalDictKeys = Object.keys(finalDict);
+                        let finalArray = [];
+                        for(let i = 0; i < finalDictKeys.length; i++){
+                            let newDict = {
+                                name: finalDictKeys[i],
+                                value: finalDict[finalDictKeys[i]],
+                                default_show: true
+                            };
+                            for(let j = 0; j < choices.length; j++){
+                                if(choices[j].name === finalDictKeys[i]){
+                                    newDict["default_value"] = choices[j]["default_value"]
+                                }
+                            }
+                            finalArray.push(newDict);
+                        }
+
+                        choices = choices.map(c => {return {...c, default_show: false}});
+                        let initialValue = getDefaultValueForType(inst);
+                        return {...inst, value: finalArray, choices: choices, trackedValue: finalArray, initialValue: initialValue, default_value: initialValue};
+                    } else if(inst.parameter_type === "File") {
+                        inst["choices"] = getDefaultChoices(inst);
+                        inst["trackedValue"] = {name: inst["value"], legacy: true};
+                        inst["initialValue"] = getDefaultValueForType(inst);
+                    } else {
+                        inst["choices"] = getDefaultChoices(inst);
+                        inst["trackedValue"] = inst["value"];
+                        inst["initialValue"] = getDefaultValueForType(inst);
+                    }
                     for(let i = 0; i < prev.length; i++){
                         if(prev[i].name === cur.c2profileparameter.c2profile.name && prev[i].count === cur.count){
                             prev[i].c2profileparameters.push({
-                                ...cur.c2profileparameter,
-                                value: savedValue,
-                                initialValue: savedValue,
-                                trackedValue: savedValue,
+                                ...inst
                             });
                             return [...prev];
                         }
@@ -339,10 +381,7 @@ export function Step1SelectOS(props){
                         count: cur.count,
                         selected_instance: "None",
                         c2profileparameters: [{
-                            ...cur.c2profileparameter,
-                            value: savedValue,
-                            initialValue: savedValue,
-                            trackedValue: savedValue,
+                            ...inst
                         }],
                         c2profileparametersinstances: [...cur.c2profileparameter.c2profile.c2profileparametersinstances]
                     }]

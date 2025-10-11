@@ -35,6 +35,11 @@ export const MythicFileContext = ({agent_file_id, display_link, filename, extraS
     }
     const getFileInformationSuccess = (data) => {
         if(data.filemeta.length === 0){
+            setFileData({
+                filename: undefined,
+                display_link: "",
+                agent_file_id: agent_file_id,
+            })
             return;
         }
         setFileData( {...fileData,
