@@ -121,7 +121,7 @@ export const getModifiedC2Params = (c2, c2profileparameters, buildOptions, use_s
             configuredParam.initialValue = c2Config.default_value;
         }
         if(c2Config.dictionary_choices !== undefined){
-            configuredParam.choices = c2Config.dictionary_choices;
+            configuredParam.choices = c2Config.dictionary_choices.map(c => {return  {...c, value: c.default_value}});
             configuredParam.value = configuredParam.choices;
             configuredParam.trackedValue = configuredParam.choices;
             configuredParam.initialValue = configuredParam.choices;

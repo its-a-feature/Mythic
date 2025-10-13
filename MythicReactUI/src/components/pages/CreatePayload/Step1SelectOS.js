@@ -766,6 +766,7 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
             }
         }
     }
+    groupedData.sort((a,b) => -b.name.localeCompare(a.name));
     return groupedData;
 }
 export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
