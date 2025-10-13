@@ -2,7 +2,6 @@ package rabbitmq
 
 import (
 	"encoding/json"
-	"github.com/mitchellh/mapstructure"
 	"time"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -47,10 +46,12 @@ func MythicRPCCallbackEdgeSearch(input MythicRPCCallbackEdgeSearchMessage) Mythi
 	}
 
 	searchString := `SELECT 
-    		callbackgraphedge.*
+    		callbackgraphedge.*,
+    		c2.name "c2profile.name"
 			FROM callbackgraphedge
 			JOIN callback s on callbackgraphedge.source_id = s.id
 			JOIN callback d on callbackgraphedge.destination_id = d.id
+			JOIN c2profile c2 on callbackgraphedge.c2_profile_id = c2.id
 			WHERE s.id != d.id AND (s.agent_callback_id=:agent_callback_id OR s.id=:id OR 
 			      d.agent_callback_id=:agent_callback_id OR d.id=:id)`
 
@@ -79,13 +80,20 @@ func MythicRPCCallbackEdgeSearch(input MythicRPCCallbackEdgeSearchMessage) Mythi
 			// looking for a specific c2 profile edge and this isn't it
 			continue
 		}
-		err = mapstructure.Decode(searchResults, &result)
-		if err != nil {
-			logging.LogError(err, "Failed to map callback search results into array")
-			response.Error = err.Error()
-			return response
-		}
 		result.C2Profile = searchResults.C2Profile.Name
+		result.ID = searchResults.ID
+		result.EndTimestamp = searchResults.EndTimestamp.Time
+		result.StartTimestamp = searchResults.StartTimestamp
+		err = database.DB.Get(&result.Destination,
+			`SELECT * FROM callback WHERE id=$1`, searchResults.DestinationID)
+		if err != nil {
+			logging.LogError(err, "Failed to get callback edge information")
+		}
+		err = database.DB.Get(&result.Source,
+			`SELECT * FROM callback WHERE id=$1`, searchResults.SourceID)
+		if err != nil {
+			logging.LogError(err, "Failed to get callback edge information")
+		}
 		response.Results = append(response.Results, result)
 	}
 	response.Success = true

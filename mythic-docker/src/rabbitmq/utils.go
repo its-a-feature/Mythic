@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/its-a-feature/Mythic/eventing"
-	"github.com/mitchellh/mapstructure"
 	"math"
 	"os"
 	"path/filepath"
@@ -14,6 +12,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/its-a-feature/Mythic/eventing"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
@@ -1285,11 +1286,11 @@ func SendAllOperationsMessage(message string, operationID int, source string, me
 				SELECT id, count, "message", source, "level" FROM operationeventlog WHERE
 				warning=true and source=$1 and operation_id=$2 and resolved=false and deleted=false and "level"=$3
 				`, sourceString, operation.ID, messageLevel)
-				if !errors.Is(err, sql.ErrNoRows) {
+				if !errors.Is(err, sql.ErrNoRows) && err != nil {
 					logging.LogError(err, "Failed to query existing event log message")
 					continue
 				}
-				if errors.Is(err, sql.ErrNoRows) {
+				if errors.Is(err, sql.ErrNoRows) && err == nil {
 					if messageLevel == "warning" {
 						messageLevel = database.MESSAGE_LEVEL_INFO
 					}
