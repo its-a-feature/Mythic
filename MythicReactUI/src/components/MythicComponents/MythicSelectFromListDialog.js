@@ -14,6 +14,7 @@ import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import Paper from '@mui/material/Paper';
+import MythicStyledTableCell from "./MythicTableCell";
 
 export function MythicSelectFromListDialog(props) {
     const [options, setOptions] = React.useState([]);
@@ -89,20 +90,22 @@ export function MythicSelectFromRawListDialog(props) {
 return (
   <React.Fragment>
       <DialogTitle >{props.title}</DialogTitle>
-      <TableContainer component={Paper} className="mythicElement">
-                <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
-                    <TableBody style={{whiteSpace: "pre"}}> 
-                      {options.map( choice => (
-                        <TableRow hover key={choice}>
-                            <TableCell style={{width: "5rem"}}>
-                              <Button onClick={() => handleSubmit(choice)} variant="contained" color="primary">Select</Button>
-                            </TableCell>
-                            <TableCell>{choice}</TableCell>
-                        </TableRow>
+      <div style={{height: "100%", display: "flex"}}>
+          <TableContainer component={Paper} className="mythicElement" style={{flexGrow: 1, overflowY: "auto"}}>
+              <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+                  <TableBody style={{whiteSpace: "pre"}}>
+                      {options.map( (choice, i) => (
+                          <TableRow hover key={choice + i}>
+                              <MythicStyledTableCell style={{width: "5rem"}}>
+                                  <Button onClick={() => handleSubmit(choice)} variant="contained" color="primary">Select</Button>
+                              </MythicStyledTableCell>
+                              <MythicStyledTableCell>{choice}</MythicStyledTableCell>
+                          </TableRow>
                       ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                  </TableBody>
+              </Table>
+          </TableContainer>
+      </div>
       <DialogActions>
         <Button onClick={props.onClose} variant="contained" color="primary">
           Close

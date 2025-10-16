@@ -386,10 +386,6 @@ export function TaskParametersDialog(props) {
     const removedCredential = (credential) => {
         getAllCredentials({variables: {operation_id: props.operation_id}});
     }
-    const intersect = (a, b) => {
-      let setB = new Set(b);
-      return [...new Set(a)].filter(x => setB.has(x));
-    }
     const setSubmenuOpenPreventTasking = (open) => {
         setSubmenuOpenPreventTask(open);
     }

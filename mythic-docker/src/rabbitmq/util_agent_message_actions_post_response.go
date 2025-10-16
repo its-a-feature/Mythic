@@ -10,11 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
-	"github.com/its-a-feature/Mythic/eventing"
-	"github.com/jmoiron/sqlx"
-	"github.com/mitchellh/mapstructure"
 	"io"
 	"math"
 	"os"
@@ -23,6 +18,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
+	"github.com/its-a-feature/Mythic/eventing"
+	"github.com/jmoiron/sqlx"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/its-a-feature/Mythic/utils"
 
@@ -1643,36 +1644,45 @@ func addFilePermissions(fileBrowser *agentMessagePostResponseFileBrowser) map[st
 		"modify_time":  fileBrowser.ModifyTime,
 		"size":         fileBrowser.Size,
 		"has_children": !fileBrowser.IsFile,
+		"permissions":  fileBrowser.Permissions,
 	}
-	switch x := fileBrowser.Permissions.(type) {
-	case []interface{}:
-		fileMetaData["permissions"] = x
-	case map[string]interface{}:
-		fileMetaData["permissions"] = []interface{}{x}
-	case nil:
-		fileMetaData["permissions"] = []interface{}{}
-	default:
-		fileMetaData["permissions"] = []interface{}{}
-		logging.LogError(nil, "Unknown permissions type", "data", fileBrowser.Permissions)
-	}
+	/*
+		switch x := fileBrowser.Permissions.(type) {
+		case []interface{}:
+			fileMetaData["permissions"] = x
+		case map[string]interface{}:
+			fileMetaData["permissions"] = []interface{}{x}
+		case nil:
+			fileMetaData["permissions"] = []interface{}{}
+		default:
+			fileMetaData["permissions"] = []interface{}{}
+			logging.LogError(nil, "Unknown permissions type", "data", fileBrowser.Permissions)
+		}
+
+	*/
 	return fileMetaData
 }
 func addChildFilePermissions(fileBrowser *agentMessagePostResponseFileBrowserChildren) map[string]interface{} {
 	fileMetaData := map[string]interface{}{
-		"access_time": fileBrowser.AccessTime,
-		"modify_time": fileBrowser.ModifyTime,
-		"size":        fileBrowser.Size,
+		"access_time":  fileBrowser.AccessTime,
+		"modify_time":  fileBrowser.ModifyTime,
+		"size":         fileBrowser.Size,
+		"has_children": !fileBrowser.IsFile,
+		"permissions":  fileBrowser.Permissions,
 	}
-	switch x := fileBrowser.Permissions.(type) {
-	case []interface{}:
-		fileMetaData["permissions"] = x
-	case map[string]interface{}:
-		fileMetaData["permissions"] = []interface{}{x}
-	case nil:
-		fileMetaData["permissions"] = []interface{}{}
-	default:
-		logging.LogError(nil, "Unknown permissions type", "data", fileBrowser.Permissions)
-	}
+	/*
+		switch x := fileBrowser.Permissions.(type) {
+		case []interface{}:
+			fileMetaData["permissions"] = x
+		case map[string]interface{}:
+			fileMetaData["permissions"] = []interface{}{x}
+		case nil:
+			fileMetaData["permissions"] = []interface{}{}
+		default:
+			logging.LogError(nil, "Unknown permissions type", "data", fileBrowser.Permissions)
+		}
+
+	*/
 	return fileMetaData
 }
 func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBrowser *agentMessagePostResponseFileBrowser,
@@ -2263,6 +2273,7 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 		logging.LogError(nil, "Can't create file browser entry with empty name", "tree", treeNode)
 		return
 	}
+
 	statement, err := database.DB.PrepareNamed(`INSERT INTO mythictree
 		(host, task_id, operation_id, "name", full_path, parent_path, tree_type, can_have_children, success, metadata, os, callback_id, apitokens_id) 
 		VALUES 
@@ -2273,13 +2284,14 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false
 		    RETURNING id`)
 	if err != nil {
-		logging.LogError(err, "Failed to create new mythictree statement")
+		logging.LogError(err, "Failed to create or update mythictree statement")
 		return
 	}
 	err = statement.Get(&treeNode.ID, treeNode)
 	if err != nil {
-		logging.LogError(err, "Failed to create new mythictree entry")
+		logging.LogError(err, "Failed to create or update mythictree entry")
 	}
+	//logging.LogInfo("updating tree", "id", treeNode.ID, "permissions", treeNode.Metadata.StructValue())
 	if treeNode.Success.Valid {
 		_, err = database.DB.NamedExec(`UPDATE mythictree SET success=:success WHERE id=:id`, treeNode)
 		if err != nil {
@@ -2293,35 +2305,37 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 		logging.LogError(nil, "Trying to addFileMeta to Mythic's Tree, but no FullRemotePath provided")
 		return
 	}
-	if err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
+	err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
 		operation_id=$1 AND full_path=$2 AND tree_type='file' AND callback_id=$3`,
-		newFile.OperationID, newFile.FullRemotePath, task.Callback.ID); err == sql.ErrNoRows {
-		if pathData, err := utils.SplitFilePathGetHost(string(newFile.FullRemotePath), "", []string{}); err != nil {
+		newFile.OperationID, newFile.FullRemotePath, task.Callback.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		pathData, err := utils.SplitFilePathGetHost(string(newFile.FullRemotePath), "", []string{})
+		if err != nil {
 			logging.LogError(err, "Failed to add data for file browser due to path issue")
 			go SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
-		} else {
-			if pathData.Host == "" {
-				pathData.Host = strings.ToUpper(task.Callback.Host)
-			}
-			associateFileMetaWithMythicTree(pathData, newFile, task)
-			/*
-				resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
-				if err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
-					operation_id=$1 AND full_path=$2 AND tree_type='file' AND host=$3 AND callback_id=$4`,
-					newFile.OperationID, newFile.FullRemotePath, newFile.Host, task.Callback.ID); err != nil {
-					logging.LogError(err, "Failed to find, create, and then fine mythic tree data for newly downloaded file")
-				} else {
-					newFile.MythicTreeID.Int64 = int64(fileBrowser.ID)
-					newFile.MythicTreeID.Valid = true
-					if _, err := database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, newFile); err != nil {
-						logging.LogError(err, "Failed to update file meta with mythic tree id")
-					} else if _, err := database.DB.Exec(`UPDATE mythictree SET can_have_children=false WHERE id=$1`, fileBrowser.ID); err != nil {
-						logging.LogError(err, "Failed to update browser object to file instead of folder")
-					}
-				}
-
-			*/
+			return
 		}
+		if pathData.Host == "" {
+			pathData.Host = strings.ToUpper(task.Callback.Host)
+		}
+		associateFileMetaWithMythicTree(pathData, newFile, task)
+		/*
+			resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
+			if err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
+				operation_id=$1 AND full_path=$2 AND tree_type='file' AND host=$3 AND callback_id=$4`,
+				newFile.OperationID, newFile.FullRemotePath, newFile.Host, task.Callback.ID); err != nil {
+				logging.LogError(err, "Failed to find, create, and then fine mythic tree data for newly downloaded file")
+			} else {
+				newFile.MythicTreeID.Int64 = int64(fileBrowser.ID)
+				newFile.MythicTreeID.Valid = true
+				if _, err := database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, newFile); err != nil {
+					logging.LogError(err, "Failed to update file meta with mythic tree id")
+				} else if _, err := database.DB.Exec(`UPDATE mythictree SET can_have_children=false WHERE id=$1`, fileBrowser.ID); err != nil {
+					logging.LogError(err, "Failed to update browser object to file instead of folder")
+				}
+			}
+
+		*/
 	} else if err == nil {
 		newFile.MythicTreeID.Int64 = int64(fileBrowser.ID)
 		newFile.MythicTreeID.Valid = true
@@ -2334,7 +2348,6 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 		if err != nil {
 			logging.LogError(err, "failed to update timestamp on mythictree to indicate new file association happened")
 		}
-
 	} else {
 		logging.LogError(err, "failed to search for file browser data")
 	}

@@ -795,7 +795,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                     return;
                 } else {
                     backslash = false;
-                    buffer += "\\\\"
+                    buffer += "\\"
                     return;
                 }
                 

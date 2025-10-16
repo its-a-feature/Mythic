@@ -249,7 +249,7 @@ export const CallbacksTableIPCell = React.memo(({cellData, rowData}) => {
                 {displayIP}
             </div>
             {openPickIP && 
-                <MythicDialog fullWidth={true} open={openPickIP}  onClose={() => {setOpenPickIP(false);}}
+                <MythicDialog fullWidth={true} open={openPickIP} onClose={() => {setOpenPickIP(false);}}
                 innerDialog={
                     <MythicSelectFromRawListDialog 
                         onClose={() => {setOpenPickIP(false);}} 

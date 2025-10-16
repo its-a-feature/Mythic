@@ -327,7 +327,16 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                         if(!existingData.metadata.has_children){
                             existingData.metadata.has_children = data.data.mythictree_stream[i].metadata.has_children;
                         }
-                        existingData.metadata.permissions = {...existingData.metadata.permissions, ...data.data.mythictree_stream[i].metadata.permissions};
+                        if(data.data.mythictree_stream[i].metadata.permissions !== undefined && data.data.mythictree_stream[i].metadata.permissions !== null){
+                            if(Array.isArray(existingData.metadata.permissions) && Array.isArray(data.data.mythictree_stream[i].metadata.permissions)){
+                                existingData.metadata.permissions = [...existingData.metadata.permissions, ...data.data.mythictree_stream[i].metadata.permissions];
+                            } else if(Array.isArray(existingData.metadata.permissions) !== Array.isArray(data.data.mythictree_stream[i].metadata.permissions)) {
+                                // had array/dict and got mismatched array/dict, so just take newer one
+                                existingData.metadata.permissions = data.data.mythictree_stream[i].metadata.permissions;
+                            } else {
+                                existingData.metadata.permissions = {...existingData.metadata.permissions, ...data.data.mythictree_stream[i].metadata.permissions};
+                            }
+                        }
                         let newfileData = data.data.mythictree_stream[i].filemeta.map(f => {
                             return {...f, filename_text: b64DecodeUnicode(f.filename_text)};
                         })
@@ -458,7 +467,17 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                         if(!existingData.metadata.has_children){
                             existingData.metadata.has_children = mythictree[i].metadata.has_children;
                         }
-                        existingData.metadata.permissions = {...existingData.metadata.permissions, ...mythictree[i].metadata.permissions};
+                        //console.log("updating permissions", "existing", existingData.metadata.permissions, "new", mythictree[i].metadata)
+                        if(mythictree[i].metadata.permissions !== undefined && mythictree[i].metadata.permissions !== null){
+                            if(Array.isArray(existingData.metadata.permissions) && Array.isArray(mythictree[i].metadata.permissions)){
+                                existingData.metadata.permissions = [...existingData.metadata.permissions, ...mythictree[i].metadata.permissions];
+                            } else if(Array.isArray(existingData.metadata.permissions) !== Array.isArray(mythictree[i].metadata.permissions)) {
+                                // had array/dict and got mismatched array/dict, so just take newer one
+                                existingData.metadata.permissions = mythictree[i].metadata.permissions;
+                            } else {
+                                existingData.metadata.permissions = {...existingData.metadata.permissions, ...mythictree[i].metadata.permissions};
+                            }
+                        }
                         let newfileData = mythictree[i].filemeta.map(f => {
                             return {...f, filename_text: b64DecodeUnicode(f.filename_text)};
                         })
