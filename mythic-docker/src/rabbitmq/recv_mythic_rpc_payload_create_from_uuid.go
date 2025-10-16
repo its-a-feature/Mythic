@@ -289,51 +289,49 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 			Parameters: map[string]interface{}{},
 		}
 		databaseC2ProfileParameter := databaseStructs.C2profileparameters{}
-		if rows, err := database.DB.NamedQuery(`SELECT
+		rows, err := database.DB.NamedQuery(`SELECT
 			*
 			FROM c2profileparameters
 			WHERE c2_profile_id = :id and deleted=false
-		`, databaseC2Profile); err != nil {
+		`, databaseC2Profile)
+		if err != nil {
 			logging.LogError(err, "Failed to get c2 parameters from database when trying to build payload")
 			return nil, err
-		} else {
-			for rows.Next() {
-				if err = rows.StructScan(&databaseC2ProfileParameter); err != nil {
-					logging.LogError(err, "Failed to get row from c2profileparameters when trying to build payload")
-					return nil, err
-				} else {
-					found := false
-					paramStringVal := ""
-					for suppliedParameterName, suppliedParameterValue := range suppliedC2Profile.Parameters {
-						if suppliedParameterName == databaseC2ProfileParameter.Name {
-							// we have a supplied parameter that matches the one we're looking at from the database for this c2 profile
-							found = true
-							strippedValue, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(
-								databaseC2ProfileParameter.ParameterType, suppliedParameterValue,
-							)
-							if err != nil {
-								logging.LogError(err, "Failed to get stripped c2 profile parameter", "value", suppliedParameterValue)
-								return nil, err
-							}
-							paramStringVal = strippedValue
-							break
-						}
+		}
+		for rows.Next() {
+			err = rows.StructScan(&databaseC2ProfileParameter)
+			if err != nil {
+				logging.LogError(err, "Failed to get row from c2profileparameters when trying to build payload")
+				return nil, err
+			}
+			found := false
+			paramStringVal := ""
+			for suppliedParameterName, suppliedParameterValue := range suppliedC2Profile.Parameters {
+				if suppliedParameterName == databaseC2ProfileParameter.Name {
+					// we have a supplied parameter that matches the one we're looking at from the database for this c2 profile
+					found = true
+					strippedValue, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(
+						databaseC2ProfileParameter.ParameterType, suppliedParameterValue,
+					)
+					if err != nil {
+						logging.LogError(err, "Failed to get stripped c2 profile parameter", "value", suppliedParameterValue)
+						return nil, err
 					}
-					if _, ok := deviations[suppliedC2Profile.Name]; ok {
-						if _, ok = deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name]; ok {
-							if !deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].Supported {
-								continue
-							}
-							updateStringParam := false
-							if len(deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].Choices) > 0 {
-								if !slices.Contains(deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].Choices, paramStringVal) {
-									updateStringParam = true
-								}
-							} else if !found {
-								updateStringParam = true
-							}
-							found = true
-							if updateStringParam {
+					paramStringVal = strippedValue
+					break
+				}
+			}
+			if _, ok := deviations[suppliedC2Profile.Name]; ok {
+				if _, ok = deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name]; ok {
+					if !deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].Supported {
+						// regardless of if the user provided a value, if it's not supported, skip it
+						continue
+					}
+					if !found {
+						// the user didn't provide a value, so see if we can get a default one from the deviations
+						if len(deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].Choices) > 0 {
+							if !slices.Contains(deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].Choices, paramStringVal) {
+								// the user provided a value, but it wasn't a valid choice
 								strippedValue, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(
 									databaseC2ProfileParameter.ParameterType,
 									deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].DefaultValue,
@@ -344,85 +342,112 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 								}
 								paramStringVal = strippedValue
 							}
-						}
-					}
-					if !found {
-						strippedValue, err := getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(
-							databaseC2ProfileParameter.ParameterType, databaseC2ProfileParameter.DefaultValue,
-							databaseC2ProfileParameter.Choices.StructValue(),
-							databaseC2ProfileParameter.Randomize, databaseC2ProfileParameter.FormatString)
-						if err != nil {
-							logging.LogError(err, "Failed to get default c2 profile parameter", "parameter", databaseC2ProfileParameter)
-							return nil, err
-						}
-						paramStringVal = strippedValue
-					}
-					c2ParameterInstance := databaseStructs.C2profileparametersinstance{
-						PayloadID:             sql.NullInt64{Valid: true, Int64: int64(databasePayload.ID)},
-						C2ProfileID:           databaseC2Profile.ID,
-						C2ProfileParametersID: databaseC2ProfileParameter.ID,
-						Value:                 paramStringVal,
-						Count:                 count,
-					}
-					c2ParameterInstance.OperationID.Valid = true
-					c2ParameterInstance.OperationID.Int64 = int64(databasePayload.OperationID)
-					if databaseC2ProfileParameter.IsCryptoType {
-						if databasePayload.Payloadtype.TranslationContainerID.Valid && !databasePayload.Payloadtype.MythicEncrypts {
-							if cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
-								TranslationContainerName: databasePayload.Payloadtype.Translationcontainer.Name,
-								C2Name:                   "",
-								CryptoParamValue:         paramStringVal,
-								CryptoParamName:          databaseC2ProfileParameter.Name,
-							}); err != nil {
-								logging.LogError(err, "Failed to contact translation container to generate crypto keys")
-								return nil, errors.New(fmt.Sprintf("failed to contact translation container, %s, to generate encryption keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, err.Error()))
-							} else if !cryptoKeysResponse.Success {
-								logging.LogError(errors.New(cryptoKeysResponse.Error), "Failed to have translation container successfully generate keys")
-								return nil, errors.New(fmt.Sprintf("failed to have translation container, %s, to successfully generate keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, cryptoKeysResponse.Error))
-							} else {
-								if cryptoKeysResponse.EncryptionKey != nil {
-									c2ParameterInstance.EncKey = cryptoKeysResponse.EncryptionKey
-								}
-								if cryptoKeysResponse.DecryptionKey != nil {
-									c2ParameterInstance.DecKey = cryptoKeysResponse.DecryptionKey
+						} else if len(deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].DictionaryChoices) > 0 {
+							defaultMap := make(map[string]interface{})
+							for _, choice := range deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].DictionaryChoices {
+								if choice.DefaultShow {
+									defaultMap[choice.Name] = choice.DefaultValue
 								}
 							}
-						} else {
-							if cryptoKeys, err := mythicCrypto.GenerateKeysForPayload(paramStringVal); err != nil {
-								logging.LogError(err, "Failed to generate crypto keys for payload")
+							strippedValue, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(
+								databaseC2ProfileParameter.ParameterType,
+								defaultMap,
+							)
+							if err != nil {
+								logging.LogError(err, "Failed to get stripped c2 profile parameter", "value", deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].DefaultValue)
 								return nil, err
-							} else {
-								if cryptoKeys.EncKey != nil {
-									c2ParameterInstance.EncKey = cryptoKeys.EncKey
-								}
-								if cryptoKeys.DecKey != nil {
-									c2ParameterInstance.DecKey = cryptoKeys.DecKey
-								}
 							}
+							paramStringVal = strippedValue
+						} else {
+							strippedValue, err := GetFinalStringForDatabaseInstanceValueFromUserSuppliedValue(
+								databaseC2ProfileParameter.ParameterType,
+								deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].DefaultValue,
+							)
+							if err != nil {
+								logging.LogError(err, "Failed to get stripped c2 profile parameter", "value", deviations[suppliedC2Profile.Name][databaseC2ProfileParameter.Name].DefaultValue)
+								return nil, err
+							}
+							paramStringVal = strippedValue
 						}
-
+						found = true
 					}
-					if interfaceParam, err := GetInterfaceValueForContainer(
-						databaseC2ProfileParameter.ParameterType,
-						paramStringVal,
-						c2ParameterInstance.EncKey,
-						c2ParameterInstance.DecKey,
-						databaseC2ProfileParameter.IsCryptoType,
-					); err != nil {
-						logging.LogError(err, "Failed to convert c2 parameter to interface")
+				}
+			}
+			if !found {
+				strippedValue, err := getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(
+					databaseC2ProfileParameter.ParameterType, databaseC2ProfileParameter.DefaultValue,
+					databaseC2ProfileParameter.Choices.StructValue(),
+					databaseC2ProfileParameter.Randomize, databaseC2ProfileParameter.FormatString)
+				if err != nil {
+					logging.LogError(err, "Failed to get default c2 profile parameter", "parameter", databaseC2ProfileParameter)
+					return nil, err
+				}
+				paramStringVal = strippedValue
+			}
+			c2ParameterInstance := databaseStructs.C2profileparametersinstance{
+				PayloadID:             sql.NullInt64{Valid: true, Int64: int64(databasePayload.ID)},
+				C2ProfileID:           databaseC2Profile.ID,
+				C2ProfileParametersID: databaseC2ProfileParameter.ID,
+				Value:                 paramStringVal,
+				Count:                 count,
+			}
+			c2ParameterInstance.OperationID.Valid = true
+			c2ParameterInstance.OperationID.Int64 = int64(databasePayload.OperationID)
+			if databaseC2ProfileParameter.IsCryptoType {
+				if databasePayload.Payloadtype.TranslationContainerID.Valid && !databasePayload.Payloadtype.MythicEncrypts {
+					if cryptoKeysResponse, err := RabbitMQConnection.SendTrRPCGenerateEncryptionKeys(TrGenerateEncryptionKeysMessage{
+						TranslationContainerName: databasePayload.Payloadtype.Translationcontainer.Name,
+						C2Name:                   "",
+						CryptoParamValue:         paramStringVal,
+						CryptoParamName:          databaseC2ProfileParameter.Name,
+					}); err != nil {
+						logging.LogError(err, "Failed to contact translation container to generate crypto keys")
+						return nil, errors.New(fmt.Sprintf("failed to contact translation container, %s, to generate encryption keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, err.Error()))
+					} else if !cryptoKeysResponse.Success {
+						logging.LogError(errors.New(cryptoKeysResponse.Error), "Failed to have translation container successfully generate keys")
+						return nil, errors.New(fmt.Sprintf("failed to have translation container, %s, to successfully generate keys:\n %s", databasePayload.Payloadtype.Translationcontainer.Name, cryptoKeysResponse.Error))
+					} else {
+						if cryptoKeysResponse.EncryptionKey != nil {
+							c2ParameterInstance.EncKey = cryptoKeysResponse.EncryptionKey
+						}
+						if cryptoKeysResponse.DecryptionKey != nil {
+							c2ParameterInstance.DecKey = cryptoKeysResponse.DecryptionKey
+						}
+					}
+				} else {
+					if cryptoKeys, err := mythicCrypto.GenerateKeysForPayload(paramStringVal); err != nil {
+						logging.LogError(err, "Failed to generate crypto keys for payload")
 						return nil, err
 					} else {
-						finalC2Profile.Parameters[databaseC2ProfileParameter.Name] = interfaceParam
+						if cryptoKeys.EncKey != nil {
+							c2ParameterInstance.EncKey = cryptoKeys.EncKey
+						}
+						if cryptoKeys.DecKey != nil {
+							c2ParameterInstance.DecKey = cryptoKeys.DecKey
+						}
 					}
-					if _, err := database.DB.NamedExec(`INSERT INTO
+				}
+
+			}
+			interfaceParam, err := GetInterfaceValueForContainer(
+				databaseC2ProfileParameter.ParameterType,
+				paramStringVal,
+				c2ParameterInstance.EncKey,
+				c2ParameterInstance.DecKey,
+				databaseC2ProfileParameter.IsCryptoType,
+			)
+			if err != nil {
+				logging.LogError(err, "Failed to convert c2 parameter to interface")
+				return nil, err
+			}
+			finalC2Profile.Parameters[databaseC2ProfileParameter.Name] = interfaceParam
+			_, err = database.DB.NamedExec(`INSERT INTO
 							c2profileparametersinstance (payload_id, c2_profile_id, c2_profile_parameters_id, value, enc_key, dec_key, operation_id, count)
 							VALUES (:payload_id, :c2_profile_id, :c2_profile_parameters_id, :value, :enc_key, :dec_key, :operation_id, :count)`,
-						c2ParameterInstance); err != nil {
-						logging.LogError(err, "Failed to save c2 profile parameter instance into database")
-						return nil, err
-					}
-
-				}
+				c2ParameterInstance)
+			if err != nil {
+				logging.LogError(err, "Failed to save c2 profile parameter instance into database")
+				return nil, err
 			}
 		}
 		// now map the c2 profile to the payload
@@ -430,10 +455,11 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 			PayloadID:   databasePayload.ID,
 			C2ProfileID: databaseC2Profile.ID,
 		}
-		if _, err := database.DB.NamedExec(`INSERT INTO
+		_, err = database.DB.NamedExec(`INSERT INTO
 		payloadc2profiles (payload_id, c2_profile_id)
 		VALUES (:payload_id, :c2_profile_id)`,
-			payloadC2Profile); err != nil {
+			payloadC2Profile)
+		if err != nil {
 			logging.LogError(err, "Failed to save c2 profile payload mapping into database")
 			return nil, err
 		}
