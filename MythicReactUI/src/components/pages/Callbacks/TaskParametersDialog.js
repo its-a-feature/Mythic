@@ -519,8 +519,16 @@ export function TaskParametersDialog(props) {
                                 let match = true;
                                 let cmd_attributes = c.attributes;
                                 for(const [key, value] of Object.entries(filter)){
-                                    if(key === "supported_os" && value.length > 0){
-                                        if(intersect(value, cmd_attributes[key]).length === 0){
+                                    if(cmd_attributes[key] === undefined){continue}
+                                    if(Array.isArray(cmd_attributes[key])){
+                                        if(key === 'supported_os' && cmd_attributes[key].length === 0){
+                                            continue;
+                                        }
+                                        if(!cmd_attributes[key].includes(value)){
+                                            match = false;
+                                        }
+                                    } else {
+                                        if(cmd_attributes[key] !== value){
                                             match = false;
                                         }
                                     }
@@ -543,8 +551,16 @@ export function TaskParametersDialog(props) {
                                 let match = true;
                                 let cmd_attributes = c.command.attributes;
                                 for(const [key, value] of Object.entries(filter)){
-                                    if(key === "supported_os" && value.length > 0){
-                                        if(intersect(value, cmd_attributes[key]).length === 0){
+                                    if(cmd_attributes[key] === undefined){continue}
+                                    if(Array.isArray(cmd_attributes[key])){
+                                        if(key === 'supported_os' && cmd_attributes[key].length === 0){
+                                            continue;
+                                        }
+                                        if(!cmd_attributes[key].includes(value)){
+                                            match = false;
+                                        }
+                                    } else {
+                                        if(cmd_attributes[key] !== value){
                                             match = false;
                                         }
                                     }
