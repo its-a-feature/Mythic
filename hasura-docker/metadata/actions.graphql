@@ -671,6 +671,7 @@ type createAPITokenResponse {
   name: String
   created_by: Int
   token_type: String
+  creation_time: String!
 }
 
 type OperatorOutput {

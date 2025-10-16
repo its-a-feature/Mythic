@@ -2,8 +2,10 @@ package webcontroller
 
 import (
 	"fmt"
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"net/http"
+	"time"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
@@ -22,14 +24,15 @@ type GenerateAPIToken struct {
 }
 
 type GenerateAPITokenResponse struct {
-	Status     string `json:"status"`
-	TokenValue string `json:"token_value"`
-	Error      string `json:"error"`
-	ID         int    `json:"id"`
-	OperatorID int    `json:"operator_id"`
-	Name       string `json:"name"`
-	CreatedBy  int    `json:"created_by"`
-	TokenType  string `json:"token_type"`
+	Status       string    `json:"status"`
+	TokenValue   string    `json:"token_value"`
+	Error        string    `json:"error"`
+	ID           int       `json:"id"`
+	OperatorID   int       `json:"operator_id"`
+	Name         string    `json:"name"`
+	CreatedBy    int       `json:"created_by"`
+	TokenType    string    `json:"token_type"`
+	CreationTime time.Time `json:"creation_time"`
 }
 
 func GenerateAPITokenWebhook(c *gin.Context) {
@@ -151,12 +154,13 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, GenerateAPITokenResponse{
-		Status:     "success",
-		TokenValue: access_token,
-		OperatorID: userID,
-		ID:         apiToken.ID,
-		Name:       apiToken.Name,
-		CreatedBy:  apiToken.CreatedBy,
-		TokenType:  apiToken.TokenType,
+		Status:       "success",
+		TokenValue:   access_token,
+		OperatorID:   userID,
+		ID:           apiToken.ID,
+		Name:         apiToken.Name,
+		CreatedBy:    apiToken.CreatedBy,
+		TokenType:    apiToken.TokenType,
+		CreationTime: apiToken.CreationTime,
 	})
 }
