@@ -305,7 +305,7 @@ func checkAgentVersions(agents []string, allAgents bool) error {
 			agentUpdateMessages += fmt.Sprintf("[-] No tracked install location for %s, install again to start tracking location\n", agent)
 			continue
 		}
-		if strings.HasPrefix(installLocation, "http") {
+		if strings.HasPrefix(installLocation, "http") || strings.HasPrefix(installLocation, "git@") {
 			// check a remote location
 			targetInfoPieces := strings.Split(installLocation, ";")
 			if len(targetInfoPieces) != 2 {
