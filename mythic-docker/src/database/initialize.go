@@ -2,8 +2,9 @@ package database
 
 import (
 	"fmt"
-	"github.com/go-viper/mapstructure/v2"
 	"time"
+
+	"github.com/go-viper/mapstructure/v2"
 
 	"github.com/google/uuid"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -14,7 +15,7 @@ import (
 )
 
 var DB *sqlx.DB
-var currentMigrationVersion int64 = 3003013
+var currentMigrationVersion int64 = 3003014
 
 // initial structs made with './tables-to-go -u mythic_user -p [password here] -h [ip here] -v -d mythic_db -of output -pn database_structs'
 // package pulled from https://github.com/fraenky8/tables-to-go

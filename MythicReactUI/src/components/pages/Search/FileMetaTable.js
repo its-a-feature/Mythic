@@ -144,11 +144,10 @@ export function FileMetaDownloadTable(props){
             snackActions.dismiss();
             if(data.download_bulk.status === "success"){
                 snackActions.success(<SnackMessage
-                    file_id={data.download_bulk.file_id} 
+                    file_id={data.download_bulk.file_id}
                     />, {toastId: data.download_bulk.file_id, autoClose: false, closeOnClick: false});
-                //snackActions.success("", {persist: true, content: key => <MythicSnackDownload id={key} title="Download Zip File" innerText="Filenames are random UUIDs, so a JSON file is included with a mapping of UUID to real filename" downloadLink={window.location.origin + "/api/v1.4/files/download/" + data.download_bulk.file_id} />});
             }else{
-                snackActions.error(data.error);
+                snackActions.error(data.download_bulk.error);
             }
         },
         onError: (data) => {
@@ -518,7 +517,13 @@ export function FileMetaUploadTable(props){
             return {...prev, [file.id]: false}
         }, {})  || [];
         const initialFiles = props.files?.reduce( (prev, file) => {
-            return [...prev, {...file, filename_text: b64DecodeUnicode(file.filename_text), full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text)}]
+            if(file.copy_of_file !== undefined && file.copy_of_file !== null){
+                file.copy_of_file.filename_text = b64DecodeUnicode(file.copy_of_file.filename_text);
+                file.copy_of_file.full_remote_path_text = b64DecodeUnicode(file.copy_of_file.full_remote_path_text)
+            }
+            return [...prev,
+                {...file, filename_text: b64DecodeUnicode(file.filename_text),
+                    full_remote_path_text: b64DecodeUnicode(file.full_remote_path_text)}]
         }, []) || [];
         setSelected(initialSelected);
         setFiles(initialFiles);
@@ -669,6 +674,7 @@ export function FileMetaUploadTable(props){
     )
 }
 function FileMetaUploadTableRow(props){
+    const theme = useTheme();
     const [openDelete, setOpenDelete] = React.useState(false);
     const [openDetails, setOpenDetails] = React.useState(false);
     const [editCommentDialogOpen, setEditCommentDialogOpen] = React.useState(false);
@@ -864,6 +870,70 @@ function FileMetaUploadTableRow(props){
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
+                                    {props.copy_of_file &&
+                                        <Box margin={1} style={{border: `2px dashed ${theme.palette.info.main}`}}>
+                                            <Typography variant="body2" style={{wordBreak: "break-all", fontWeight: "600", textAlign: "center"}}>
+                                                {props.filename_text + " is a copy of the following file: "}
+                                            </Typography>
+                                            <TableContainer className="mythicElement" elevation={3}>
+                                                <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
+                                                    <TableHead>
+                                                        <TableRow>
+                                                            <TableCell style={{width: "25rem"}}>Identifiers</TableCell>
+                                                            <TableCell>Destination</TableCell>
+                                                            <TableCell style={{width: "8rem"}}>Task</TableCell>
+                                                            <TableCell>Timestamp</TableCell>
+                                                            <TableCell>Command</TableCell>
+                                                        </TableRow>
+                                                    </TableHead>
+                                                    <TableBody>
+                                                        <TableRow>
+                                                            <MythicStyledTableCell>
+                                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>MD5: {props.copy_of_file.md5}</Typography>
+                                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>SHA1: {props.copy_of_file.sha1}</Typography>
+                                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>UUID: {props.copy_of_file.agent_file_id}</Typography>
+                                                            </MythicStyledTableCell>
+                                                            <MythicStyledTableCell  style={{wordBreak: "break-all"}}>
+                                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>
+                                                                    {props.copy_of_file.host !== "" ? (
+                                                                        <><b>Host: </b>{props.copy_of_file.host}</>
+                                                                    ) : null}
+                                                                </Typography>
+                                                                <MythicCallbackGroupsDisplay groups={props.copy_of_file?.task?.callback.mythictree_groups} />
+                                                                {props.copy_of_file.deleted ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.copy_of_file.full_remote_path_text}</Typography>) : (
+                                                                    props.copy_of_file.complete ? (
+                                                                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" +  props.copy_of_file.agent_file_id}>{props.copy_of_file.full_remote_path_text}</Link>
+                                                                    ) : (
+                                                                        <React.Fragment>
+                                                                            <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.copy_of_file.full_remote_path_text}</Typography> <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.copy_of_file.chunks_received} / {props.copy_of_file.total_chunks} Chunks Received</Typography>
+                                                                        </React.Fragment>
+                                                                    )
+                                                                )}
+                                                            </MythicStyledTableCell>
+                                                            <MythicStyledTableCell>
+                                                                {props.copy_of_file.task === null ? null : (
+                                                                    <>
+                                                                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/callbacks/" + props.copy_of_file.task.callback.display_id}>C-{props.copy_of_file.task.callback.display_id}</Link><br/>
+                                                                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/new/task/" + props.copy_of_file.task.display_id}>T-{props.copy_of_file.task.display_id}</Link><br/>
+                                                                        <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.copy_of_file.task.comment}</Typography>
+                                                                    </>
+                                                                )}
+
+                                                            </MythicStyledTableCell>
+                                                            <MythicStyledTableCell>
+                                                                <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.copy_of_file.timestamp, me.user.view_utc_time)}</Typography>
+                                                            </MythicStyledTableCell>
+                                                            <MythicStyledTableCell>
+                                                                {props.task === null ? null : (
+                                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.copy_of_file.task.command.cmd}</Typography>
+                                                                )}
+                                                            </MythicStyledTableCell>
+                                                        </TableRow>
+                                                    </TableBody>
+                                                </Table>
+                                            </TableContainer>
+                                        </Box>
+                                    }
                                 </Box>
                             </Collapse>
                         </MythicStyledTableCell>
@@ -1107,7 +1177,7 @@ export function FileMetaEventingWorkflowsTable(props){
             if(data.download_bulk.status === "success"){
                 snackActions.success(<MythicSnackDownload title="Download Zip File" file_id={data.download_bulk.file_id} />, {toastId: data.download_bulk.file_id, autoClose: false, closeOnClick: false});
             }else{
-                snackActions.error(data.error);
+                snackActions.error(data.download_bulk.error);
             }
         },
         onError: (data) => {

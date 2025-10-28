@@ -37,7 +37,9 @@ export function CreatePayloadBuildParametersTable(props){
                             </TableHead>
                             <TableBody>
                                 {b.parameters.map( (op) => (
-                                    <CreatePayloadParameter key={"buildparamtablerow" + op.id} instance_name={props.instance_name} onChange={props.onChange} {...op} />
+                                    <CreatePayloadParameter selected_os={props.os} key={"buildparamtablerow" + op.id}
+                                                            payload_type={props.payload_type}
+                                                            instance_name={props.instance_name} onChange={props.onChange} {...op} />
                                 ))}
                             </TableBody>
                         </Table>

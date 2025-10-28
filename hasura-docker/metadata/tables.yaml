@@ -940,11 +940,13 @@
           - required
           - id
           - payload_type_id
+          - ui_position
           - choices
           - hide_conditions
           - supported_os
           - default_value
           - description
+          - dynamic_query_function
           - format_string
           - group_name
           - name
@@ -960,11 +962,13 @@
           - required
           - id
           - payload_type_id
+          - ui_position
           - choices
           - hide_conditions
           - supported_os
           - default_value
           - description
+          - dynamic_query_function
           - format_string
           - group_name
           - name
@@ -980,11 +984,13 @@
           - required
           - id
           - payload_type_id
+          - ui_position
           - choices
           - hide_conditions
           - supported_os
           - default_value
           - description
+          - dynamic_query_function
           - format_string
           - group_name
           - name
@@ -1000,11 +1006,13 @@
           - required
           - id
           - payload_type_id
+          - ui_position
           - choices
           - hide_conditions
           - supported_os
           - default_value
           - description
+          - dynamic_query_function
           - format_string
           - group_name
           - name
@@ -1020,11 +1028,13 @@
           - required
           - id
           - payload_type_id
+          - ui_position
           - choices
           - hide_conditions
           - supported_os
           - default_value
           - description
+          - dynamic_query_function
           - format_string
           - group_name
           - name
@@ -1292,6 +1302,7 @@
           - required
           - c2_profile_id
           - id
+          - ui_position
           - choices
           - default_value
           - description
@@ -1309,6 +1320,7 @@
           - required
           - c2_profile_id
           - id
+          - ui_position
           - choices
           - default_value
           - description
@@ -1326,6 +1338,7 @@
           - required
           - c2_profile_id
           - id
+          - ui_position
           - choices
           - default_value
           - description
@@ -1343,6 +1356,7 @@
           - required
           - c2_profile_id
           - id
+          - ui_position
           - choices
           - default_value
           - description
@@ -1360,6 +1374,7 @@
           - required
           - c2_profile_id
           - id
+          - ui_position
           - choices
           - default_value
           - description
@@ -4079,6 +4094,9 @@
     - name: apitoken
       using:
         foreign_key_constraint_on: apitokens_id
+    - name: copy_of_file
+      using:
+        foreign_key_constraint_on: copy_of_file_id
     - name: eventgroup
       using:
         foreign_key_constraint_on: eventgroup_id
@@ -4098,6 +4116,13 @@
       using:
         foreign_key_constraint_on: task_id
   array_relationships:
+    - name: copies_of_file
+      using:
+        foreign_key_constraint_on:
+          column: copy_of_file_id
+          table:
+            name: filemeta
+            schema: public
     - name: eventgroups
       using:
         foreign_key_constraint_on:
@@ -4146,6 +4171,7 @@
     - role: developer
       permission:
         columns:
+          - size
           - complete
           - delete_after_fetch
           - deleted
@@ -4157,13 +4183,13 @@
           - apitokens_id
           - chunk_size
           - chunks_received
+          - copy_of_file_id
           - eventgroup_id
           - eventstepinstance_id
           - id
           - mythictree_id
           - operation_id
           - operator_id
-          - size
           - task_id
           - total_chunks
           - agent_file_id
@@ -4185,6 +4211,7 @@
     - role: mythic_admin
       permission:
         columns:
+          - size
           - complete
           - delete_after_fetch
           - deleted
@@ -4196,13 +4223,13 @@
           - apitokens_id
           - chunk_size
           - chunks_received
+          - copy_of_file_id
           - eventgroup_id
           - eventstepinstance_id
           - id
           - mythictree_id
           - operation_id
           - operator_id
-          - size
           - task_id
           - total_chunks
           - agent_file_id
@@ -4224,6 +4251,7 @@
     - role: operation_admin
       permission:
         columns:
+          - size
           - complete
           - delete_after_fetch
           - deleted
@@ -4235,13 +4263,13 @@
           - apitokens_id
           - chunk_size
           - chunks_received
+          - copy_of_file_id
           - eventgroup_id
           - eventstepinstance_id
           - id
           - mythictree_id
           - operation_id
           - operator_id
-          - size
           - task_id
           - total_chunks
           - agent_file_id
@@ -4263,6 +4291,7 @@
     - role: operator
       permission:
         columns:
+          - size
           - complete
           - delete_after_fetch
           - deleted
@@ -4274,13 +4303,13 @@
           - apitokens_id
           - chunk_size
           - chunks_received
+          - copy_of_file_id
           - eventgroup_id
           - eventstepinstance_id
           - id
           - mythictree_id
           - operation_id
           - operator_id
-          - size
           - task_id
           - total_chunks
           - agent_file_id
@@ -4302,6 +4331,7 @@
     - role: spectator
       permission:
         columns:
+          - size
           - complete
           - delete_after_fetch
           - deleted
@@ -4313,13 +4343,13 @@
           - apitokens_id
           - chunk_size
           - chunks_received
+          - copy_of_file_id
           - eventgroup_id
           - eventstepinstance_id
           - id
           - mythictree_id
           - operation_id
           - operator_id
-          - size
           - task_id
           - total_chunks
           - agent_file_id

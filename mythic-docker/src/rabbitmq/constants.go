@@ -99,6 +99,8 @@ const (
 	//
 	PT_RPC_COMMAND_DYNAMIC_QUERY_FUNCTION = "pt_command_dynamic_query_function"
 	//
+	PT_RPC_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION = "pt_build_parameter_dynamic_query_function"
+	//
 	PT_RPC_COMMAND_TYPEDARRAY_PARSE = "pt_command_typedarray_parse"
 	//
 	PT_TASK_COMPLETION_FUNCTION = "pt_task_completion_function"

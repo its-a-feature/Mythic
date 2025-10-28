@@ -76,6 +76,40 @@ fragment filemetaData on filemeta{
       name
       id
     }
+    copy_of_file {
+        agent_file_id
+        size
+        chunks_received
+        complete
+        deleted
+        filename_text
+        full_remote_path_text
+        host
+        md5
+        operator {
+            id
+            username
+        }
+        comment
+        sha1
+        md5
+        timestamp
+        total_chunks
+        task {
+            id
+            display_id
+            comment
+            callback {
+                id
+                display_id
+                mythictree_groups
+            }
+            command {
+                cmd
+                id
+            }
+        }
+    }
 }
 `;
 const mythictreeFragment = gql`

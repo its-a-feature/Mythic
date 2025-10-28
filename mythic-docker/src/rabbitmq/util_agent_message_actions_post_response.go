@@ -1478,12 +1478,16 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 	if agentResponse.Upload.ChunkSize != nil {
 		chunkSize = float64(*agentResponse.Upload.ChunkSize)
 	}
+	newFileMeta := databaseStructs.Filemeta{}
 	totalChunks := int(math.Ceil(float64(fileStat.Size()) / chunkSize))
+	// !fileMeta.TaskID.Valid means it was a manual upload
+	// fileMeta.TaskID.Int64 != int64(task.ID) means this file was uploaded by a different task initially
 	if !fileMeta.TaskID.Valid || fileMeta.TaskID.Int64 != int64(task.ID) {
+		// if this is the first chunk, make a new copy to track for this task
 		if agentResponse.Upload.ChunkNum-1 == 0 {
 			// this was uploaded manually through the file hosting and not part of a task or was uploaded as part of a different task
 			// either way, we need to make a new fileMeta tracker for it
-			newFileMeta := fileMeta
+			newFileMeta = fileMeta
 			newFileMeta.TaskID.Int64 = int64(task.ID)
 			newFileMeta.TaskID.Valid = true
 			newFileMeta.TotalChunks = totalChunks
@@ -1492,13 +1496,15 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			newFileMeta.ChunkSize = int(chunkSize)
 			newFileMeta.Comment = fmt.Sprintf("Newly tracked copy of file: %s", string(fileMeta.Filename))
 			newFileMeta.AgentFileID = uuid.NewString()
+			newFileMeta.CopyOfFileID.Int64 = int64(fileMeta.ID)
+			newFileMeta.CopyOfFileID.Valid = true
 			if statement, err := database.DB.PrepareNamed(`INSERT INTO filemeta 
 			(filename,total_chunks,chunks_received,chunk_size,"path",operation_id,complete,comment,operator_id,
 			 delete_after_fetch,md5,sha1,agent_file_id,full_remote_path,task_id,is_download_from_agent,is_screenshot,
-			 host,size,is_payload)
+			 host,size,is_payload,copy_of_file_id)
 			VALUES (:filename, :total_chunks, :chunks_received, :chunk_size, :path, :operation_id, :complete, :comment, :operator_id, 
 			        :delete_after_fetch, :md5, :sha1, :agent_file_id, :full_remote_path, :task_id, :is_download_from_agent, :is_screenshot, 
-			        :host, :size, :is_payload)
+			        :host, :size, :is_payload, :copy_of_file_id)
 			RETURNING id`); err != nil {
 				logging.LogError(err, "Failed to insert new filemeta data for a separate task pulling down an already uploaded file")
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
@@ -1509,9 +1515,12 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 				go EmitFileLog(newFileMeta.ID)
 			}
 		} else {
-			newFileMeta := databaseStructs.Filemeta{AgentFileID: fileMeta.AgentFileID}
-			err = database.DB.Get(&newFileMeta, `SELECT id, total_chunks, complete FROM filemeta WHERE
-                                          task_id=$1 AND path=$2`, task.ID, fileMeta.Path)
+			newFileMeta = databaseStructs.Filemeta{}
+			err = database.DB.Get(&newFileMeta, `SELECT id, total_chunks, complete, copy_of_file_id 
+				FROM filemeta 
+				WHERE task_id=$1 AND path=$2 AND copy_of_file_id=$3
+				ORDER BY id DESC
+				`, task.ID, fileMeta.Path, fileMeta.ID)
 			if err != nil {
 				logging.LogError(err, "failed to find new filemeta data for task to update chunk count")
 			} else {
@@ -1527,52 +1536,51 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 				}
 			}
 		}
-
 	}
 	if agentResponse.Upload.FullPath != nil && *agentResponse.Upload.FullPath != "" {
-		if filePieces, err := utils.SplitFilePathGetHost(*agentResponse.Upload.FullPath, "", []string{}); err != nil {
+		filePieces, err := utils.SplitFilePathGetHost(*agentResponse.Upload.FullPath, "", []string{})
+		if err != nil {
 			logging.LogError(err, "Failed to parse out the full path returned by the agent for an upload")
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to parse out the full path returned by the agent for an upload: %v\n", err), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			return
-		} else {
-			if filePieces.Host == "" {
-				if agentResponse.Upload.Host != nil {
-					filePieces.Host = strings.ToUpper(*agentResponse.Upload.Host)
-				} else {
-					filePieces.Host = task.Callback.Host
-				}
-			}
-			if !fileMeta.TaskID.Valid || fileMeta.TaskID.Int64 != int64(task.ID) {
-				// this was uploaded manually through the file hosting and not part of a task or was uploaded as part of a different task
-				// either way, we need to make a new fileMeta tracker for it
-				newFileMeta := fileMeta
-				newFileMeta.TaskID.Valid = true
-				newFileMeta.TaskID.Int64 = int64(task.ID)
-				newFileMeta.FullRemotePath = []byte(*agentResponse.Upload.FullPath)
-				//newFileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
-				_, err = database.DB.NamedExec(`UPDATE filemeta 
-					SET full_remote_path=:full_remote_path, host=:host
-         			WHERE task_id=:task_id AND md5=:md5 AND sha1=:sha1`, newFileMeta)
-				if err != nil {
-					logging.LogError(err, "failed to find file_id for updating file path on task that didn't upload the file originally")
-					return
-				}
-				go associateFileMetaWithMythicTree(filePieces, newFileMeta, task)
-				go EmitFileLog(newFileMeta.ID)
+		}
+		if filePieces.Host == "" {
+			if agentResponse.Upload.Host != nil {
+				filePieces.Host = strings.ToUpper(*agentResponse.Upload.Host)
 			} else {
-				// this might be a new full path for the current file meta that we need to update
-				fileMeta.FullRemotePath = []byte(*agentResponse.Upload.FullPath)
-				fileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
-				fileMeta.Host = filePieces.Host
-				if _, err := database.DB.NamedExec(`UPDATE filemeta 
+				filePieces.Host = task.Callback.Host
+			}
+		}
+		if newFileMeta.ID != 0 {
+			// this was uploaded manually through the file hosting and not part of a task or was uploaded as part of a different task
+			// either way, we need to make a new fileMeta tracker for it
+			newFileMeta.FullRemotePath = []byte(*agentResponse.Upload.FullPath)
+			newFileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
+			newFileMeta.Host = filePieces.Host
+			//newFileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
+			_, err = database.DB.NamedExec(`UPDATE filemeta 
+					SET full_remote_path=:full_remote_path, host=:host, filename=:filename
+         			WHERE id=:id`, newFileMeta)
+			if err != nil {
+				logging.LogError(err, "failed to find file_id for updating file path on task that didn't upload the file originally")
+				return
+			}
+			go associateFileMetaWithMythicTree(filePieces, newFileMeta, task)
+			go EmitFileLog(newFileMeta.ID)
+		} else {
+			// this might be a new full path for the current file meta that we need to update
+			fileMeta.FullRemotePath = []byte(*agentResponse.Upload.FullPath)
+			fileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
+			fileMeta.Host = filePieces.Host
+			_, err := database.DB.NamedExec(`UPDATE filemeta 
 					SET full_remote_path=:full_remote_path, filename=:filename, host=:host
-					WHERE id=:id`, fileMeta); err != nil {
-					logging.LogError(err, "Failed to update filemeta path/filename/host ")
-					go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
-				} else {
-					go EmitFileLog(fileMeta.ID)
-					go associateFileMetaWithMythicTree(filePieces, fileMeta, task)
-				}
+					WHERE id=:id`, fileMeta)
+			if err != nil {
+				logging.LogError(err, "Failed to update filemeta path/filename/host ")
+				go SendAllOperationsMessage(fmt.Sprintf("Failed to insert new filemeta data for a separate task pulling down an already uploaded file: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+			} else {
+				go EmitFileLog(fileMeta.ID)
+				go associateFileMetaWithMythicTree(filePieces, fileMeta, task)
 			}
 		}
 	}
@@ -1581,10 +1589,15 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 		if uploadResponse.TotalChunks-1 == uploadResponse.ChunkNum {
 			// we need to delete the file from the server and mark it as such
 			fileMeta.Deleted = true
-			if _, err := database.DB.NamedExec(`UPDATE filemeta SET deleted=:deleted WHERE id=:id`, fileMeta); err != nil {
+			_, err = database.DB.NamedExec(`UPDATE filemeta 
+				SET deleted=:deleted 
+				WHERE id=:id OR copy_of_file_id=:id`, fileMeta)
+			if err != nil {
 				logging.LogError(err, "Failed to mark file as deleted after successful fetch")
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to mark file as deleted after successful fetch: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
-			} else if err := os.RemoveAll(fileMeta.Path); err != nil {
+			}
+			err = os.RemoveAll(fileMeta.Path)
+			if err != nil {
 				logging.LogError(err, "Failed to delete file after successful fetch")
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to delete file after successful fetch: %s\n", *agentResponse.Upload.FileID), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			}

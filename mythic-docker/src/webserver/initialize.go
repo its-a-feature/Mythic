@@ -2,11 +2,12 @@ package webserver
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
@@ -248,6 +249,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("task_upload_file_webhook", webcontroller.TaskUploadFileWebhook)
 				noSpectators.POST("create_task_webhook", webcontroller.CreateTaskWebhook)
 				noSpectators.POST("dynamic_query_webhook", webcontroller.PayloadTypeDynamicQueryFunctionWebhook)
+				noSpectators.POST("dynamic_query_build_parameter_webhook", webcontroller.PayloadTypeDynamicQueryBuildParameterFunctionWebhook)
 				noSpectators.POST("typedarray_parse_webhook", webcontroller.PayloadTypeDynamicTypedArrayParseWebhook)
 				noSpectators.POST("add_attack_to_task_webhook", webcontroller.AddAttackToTaskWebhook)
 				noSpectators.POST("reissue_task_webhook", blank)

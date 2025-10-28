@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"strings"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"net"
-	"strings"
-	"time"
 )
 
 // payload routing key functions
@@ -40,6 +41,9 @@ func GetPtTaskOpsecPostCheckRoutingKey(container string) string {
 }
 func GetPtRPCDynamicQueryFunctionRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_RPC_COMMAND_DYNAMIC_QUERY_FUNCTION)
+}
+func GetPtRPCDynamicQueryBuildParameterFunctionRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, PT_RPC_DYNAMIC_QUERY_BUILD_PARAMETER_FUNCTION)
 }
 func GetPtRPCTypedArrayParseRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, PT_RPC_COMMAND_TYPEDARRAY_PARSE)

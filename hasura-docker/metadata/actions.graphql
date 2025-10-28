@@ -117,9 +117,9 @@ type Mutation {
   createCredential(
     realm: String
     account: String
-    credential: String!
+    credential: String
     comment: String
-    credential_type: String!
+    credential_type: String
   ): createCredentialOutput
 }
 
@@ -144,6 +144,7 @@ type Mutation {
     level: String!
     message: String!
     source: String
+    warning: Boolean
   ): createOperationEventLogOutput
 }
 
@@ -252,6 +253,14 @@ type Mutation {
   download_bulk(
     files: [String!]!
   ): BulkDownloadOutput
+}
+
+type Mutation {
+  dynamicQueryBuildParameterFunction(
+    parameter_name: String!
+    payload_type: String!
+    selected_os: String!
+  ): dynamicQueryBuildParameterOutput
 }
 
 type Mutation {
@@ -1250,5 +1259,12 @@ type updatePayloadOutput {
 type eventingTriggerManualBulkOutput {
   status: String!
   error: String
+}
+
+type dynamicQueryBuildParameterOutput {
+  status: String!
+  error: String
+  parameter_name: String!
+  choices: [String]
 }
 

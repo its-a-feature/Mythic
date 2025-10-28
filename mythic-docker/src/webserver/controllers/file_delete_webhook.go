@@ -1,10 +1,11 @@
 package webcontroller
 
 import (
-	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
@@ -87,11 +88,12 @@ func DeleteFilesHelper(fileIDsToProcess []int, operatorOperation *databaseStruct
 			logging.LogError(err, "Failed to get file data from database", "file_id", fileID)
 			return err, deletedFileIDs, deletedPayloadIDs
 		}
-		if err := os.Remove(filemeta.Path); err != nil {
-			logging.LogError(err, "Failed to remove file")
-		} else {
-			deletedFileIDs = append(deletedFileIDs, filemeta.ID)
+		err = os.Remove(filemeta.Path)
+		if err != nil {
+			logging.LogError(err, "Failed to remove file data from disk", "file_id", fileID)
+			return err, deletedFileIDs, deletedPayloadIDs
 		}
+		deletedFileIDs = append(deletedFileIDs, filemeta.ID)
 		if filemeta.IsPayload {
 			payload := databaseStructs.Payload{}
 			if err := database.DB.Get(&payload, `SELECT id, uuid FROM payload WHERE file_id=$1`, filemeta.ID); err != nil {
@@ -121,7 +123,7 @@ func DeleteFilesHelper(fileIDsToProcess []int, operatorOperation *databaseStruct
 			id, path, is_payload
 			FROM filemeta
 			WHERE
-			path=$1`, filemeta.Path); err != nil {
+			path=$1 OR copy_of_file_id=$2`, filemeta.Path, filemeta.ID); err != nil {
 			logging.LogError(err, "Failed to select related files with the same path", "path", filemeta.Path)
 		} else {
 			for _, file := range linkedFiles {

@@ -1584,9 +1584,8 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                 snackActions.success(<SnackMessage
                     file_id={data.download_bulk.file_id}
                 />, {toastId: data.download_bulk.file_id, autoClose: false, closeOnClick: false});
-                //snackActions.success("", {persist: true, content: key => <MythicSnackDownload id={key} title="Download Zip File" innerText="Filenames are random UUIDs, so a JSON file is included with a mapping of UUID to real filename" downloadLink={window.location.origin + "/api/v1.4/files/download/" + data.download_bulk.file_id} />});
             }else{
-                snackActions.error(data.error);
+                snackActions.error(data.download_bulk.error);
             }
         },
         onError: (data) => {
@@ -1724,9 +1723,8 @@ function EventDetailsFilesTable({files}){
                 snackActions.success(<SnackMessage
                     file_id={data.download_bulk.file_id}
                 />, {toastId: data.download_bulk.file_id, autoClose: false, closeOnClick: false});
-                //snackActions.success("", {persist: true, content: key => <MythicSnackDownload id={key} title="Download Zip File" innerText="Filenames are random UUIDs, so a JSON file is included with a mapping of UUID to real filename" downloadLink={window.location.origin + "/api/v1.4/files/download/" + data.download_bulk.file_id} />});
             }else{
-                snackActions.error(data.error);
+                snackActions.error(data.download_bulk.error);
             }
         },
         onError: (data) => {

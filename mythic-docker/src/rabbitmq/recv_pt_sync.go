@@ -52,20 +52,22 @@ type HideCondition struct {
 	Choices []string    `json:"choices"`
 }
 type BuildParameter struct {
-	Name              string                `json:"name"`
-	Description       string                `json:"description"`
-	Required          bool                  `json:"required"`
-	VerifierRegex     string                `json:"verifier_regex"`
-	DefaultValue      interface{}           `json:"default_value"`
-	ParameterType     BuildParameterType    `json:"parameter_type"`
-	FormatString      string                `json:"format_string"`
-	Randomize         bool                  `json:"randomize"`
-	IsCryptoType      bool                  `json:"crypto_type"`
-	Choices           []string              `json:"choices"`
-	DictionaryChoices []ParameterDictionary `json:"dictionary_choices"`
-	GroupName         string                `json:"group_name"`
-	SupportedOS       []string              `json:"supported_os"`
-	HideConditions    []HideCondition       `json:"hide_conditions"`
+	Name                 string                `json:"name"`
+	Description          string                `json:"description"`
+	Required             bool                  `json:"required"`
+	VerifierRegex        string                `json:"verifier_regex"`
+	DefaultValue         interface{}           `json:"default_value"`
+	ParameterType        BuildParameterType    `json:"parameter_type"`
+	FormatString         string                `json:"format_string"`
+	Randomize            bool                  `json:"randomize"`
+	IsCryptoType         bool                  `json:"crypto_type"`
+	Choices              []string              `json:"choices"`
+	DictionaryChoices    []ParameterDictionary `json:"dictionary_choices"`
+	GroupName            string                `json:"group_name"`
+	SupportedOS          []string              `json:"supported_os"`
+	HideConditions       []HideCondition       `json:"hide_conditions"`
+	UiPosition           int                   `json:"ui_position"`
+	DynamicQueryFunction string                `json:"dynamic_query_function"`
 }
 type BuildStep struct {
 	StepName        string `json:"step_name"`
@@ -493,6 +495,8 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 						databaseParameter.SupportedOS = GetMythicJSONArrayFromStruct(newParameter.SupportedOS)
 						databaseParameter.HideConditions = GetMythicJSONArrayFromStruct(newParameter.HideConditions)
 						databaseParameter.IsCryptoType = newParameter.IsCryptoType
+						databaseParameter.UiPosition = newParameter.UiPosition
+						databaseParameter.DynamicQueryFunction = newParameter.DynamicQueryFunction
 						defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices)
 						if err != nil {
 							logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for updating build parameter")
@@ -510,7 +514,7 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 								parameter_type=:parameter_type, required=:required, randomize=:randomize,
 								verifier_regex=:verifier_regex, deleted=:deleted, format_string=:format_string,
 								crypto_type=:crypto_type, group_name=:group_name, supported_os=:supported_os,
-								hide_conditions=:hide_conditions
+								hide_conditions=:hide_conditions, ui_position=:ui_position, dynamic_query_function=:dynamic_query_function 
 								WHERE id=:id`, databaseParameter,
 						)
 						if err != nil {
@@ -540,17 +544,19 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 		} else {
 			// we have a new parameter group / command parameter to add in
 			databaseParameter = databaseStructs.Buildparameter{
-				Name:          newParameter.Name,
-				Description:   newParameter.Description,
-				Randomize:     newParameter.Randomize,
-				FormatString:  newParameter.FormatString,
-				VerifierRegex: newParameter.VerifierRegex,
-				Deleted:       false,
-				IsCryptoType:  newParameter.IsCryptoType,
-				Required:      newParameter.Required,
-				ParameterType: newParameter.ParameterType,
-				PayloadTypeID: payloadtype.ID,
-				GroupName:     newParameter.GroupName,
+				Name:                 newParameter.Name,
+				Description:          newParameter.Description,
+				Randomize:            newParameter.Randomize,
+				FormatString:         newParameter.FormatString,
+				VerifierRegex:        newParameter.VerifierRegex,
+				Deleted:              false,
+				IsCryptoType:         newParameter.IsCryptoType,
+				Required:             newParameter.Required,
+				ParameterType:        newParameter.ParameterType,
+				PayloadTypeID:        payloadtype.ID,
+				GroupName:            newParameter.GroupName,
+				UiPosition:           newParameter.UiPosition,
+				DynamicQueryFunction: newParameter.DynamicQueryFunction,
 			}
 			defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices)
 			if err != nil {
@@ -569,10 +575,10 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 			statement, err := database.DB.PrepareNamed(`INSERT INTO buildparameter 
 				(name,description,default_value,verifier_regex,deleted,
 					required,parameter_type,payload_type_id, choices, crypto_type, randomize, format_string,
-				 group_name, supported_os, hide_conditions) 
+				 group_name, supported_os, hide_conditions, ui_position, dynamic_query_function) 
 				VALUES (:name, :description, :default_value, :verifier_regex, :deleted,
 				:required, :parameter_type, :payload_type_id, :choices, :crypto_type, :randomize, :format_string,
-				        :group_name, :supported_os, :hide_conditions) 
+				        :group_name, :supported_os, :hide_conditions, :ui_position, :dynamic_query_function) 
 				RETURNING id`,
 			)
 			if err != nil {

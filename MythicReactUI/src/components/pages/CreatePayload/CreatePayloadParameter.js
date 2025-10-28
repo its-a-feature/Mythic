@@ -2,7 +2,6 @@ import React, {useEffect} from 'react';
 import Table from '@mui/material/Table';
 import TableContainer from '@mui/material/TableContainer';
 import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
@@ -21,24 +20,119 @@ import {Typography} from '@mui/material';
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import {snackActions} from "../../utilities/Snackbar";
 import {useTheme} from '@mui/material/styles';
+import {gql, useMutation} from '@apollo/client';
+import { Backdrop } from '@mui/material';
+import {CircularProgress} from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import InputLabel from '@mui/material/InputLabel';
+import { FormControlLabel } from '@mui/material';
 
-export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id, description, initialValue, choices, trackedValue, instance_name}){
+export const getDynamicQueryBuildParameterParams = gql`
+mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: String!, $selected_os: String!){
+    dynamicQueryBuildParameterFunction(payload_type: $payload_type, parameter_name: $parameter_name, selected_os: $selected_os){
+        status
+        error
+        choices
+        parameter_name
+    }
+}
+`;
+
+export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
+                                           description, initialValue, choices, trackedValue, instance_name,
+                                           payload_type, selected_os, dynamic_query_function}){
     const theme = useTheme();
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
     const [multiValue, setMultiValue] = React.useState([]);
+    const [ChoiceOptions, setChoiceOptions] = React.useState([]);
     const [chooseOneCustomValue, setChooseOneCustomValue] = React.useState("");
     const [dictValue, setDictValue] = React.useState([]);
     const [dictOptions, setDictOptions] = React.useState([]);
     const [dictSelectOptions, setDictSelectOptions] = React.useState([]);
     const [dictSelectOptionsChoice, setDictSelectOptionsChoice] = React.useState("");
-    const [chooseOptions, setChooseOptions] = React.useState([]);
     const [dateValue, setDateValue] = React.useState(dayjs(new Date()));
     const [arrayValue, setArrayValue] = React.useState([""]);
     const [typedArrayValue, setTypedArrayValue] = React.useState([]);
     const [fileValue, setFileValue] = React.useState({name: ""});
     const [fileMultValue, setFileMultValue] = React.useState([]);
     const [mapArray, setMapArray] = React.useState([]);
+    const [backdropOpen, setBackdropOpen] = React.useState(false);
+    const usingDynamicParamChoices = React.useRef(false);
+    const [getDynamicParams] = useMutation(getDynamicQueryBuildParameterParams, {
+        onCompleted: (data) => {
+            if(data.dynamicQueryBuildParameterFunction.status === "success"){
+                try{
+                    let choicesInUse = [];
+                    usingDynamicParamChoices.current = true;
+                    setChoiceOptions([...data.dynamicQueryBuildParameterFunction.choices]);
+                    choicesInUse = [...data.dynamicQueryBuildParameterFunction.choices];
+                    if(parameter_type === "ChooseOne"){
+                        if(choicesInUse.length > 0){
+                            if(value !== "") {
+                                setValue(value);
+                                onChange(name, value, false);
+                            } else if(choicesInUse.includes(default_value)) {
+                                setValue(default_value);
+                                onChange(name, default_value, false);
+                            } else {
+                                setValue(choicesInUse[0]);
+                                onChange(name, choicesInUse[0], false);
+                            }
+                        }
+                    } else if(parameter_type === "ChooseOneCustom"){
+                        let newStandardValue = default_value;
+                        if(choicesInUse.includes(default_value) && value !== "") {
+                            setValue(default_value);
+                        } else {
+                            setValue(choicesInUse[0]);
+                            newStandardValue = choicesInUse[0];
+                        }
+                        if(!choicesInUse.includes(value) && value !== "" ){
+                            setChooseOneCustomValue(value);
+                            newStandardValue = value;
+                        }
+                        onChange(name, newStandardValue, false);
+                    } else if(parameter_type === "ChooseMultiple"){
+                        if(choicesInUse.length > 0){
+                            if(multiValue.length > 0) {
+                                setMultiValue(multiValue);
+                                onChange(name, multiValue, false);
+                            } else if(choicesInUse.includes(default_value)) {
+                                setMultiValue(default_value);
+                                onChange(name, default_value, false);
+                            } else {
+                                setMultiValue([choicesInUse[0]]);
+                                onChange(name, [choicesInUse[0]], false);
+                            }
+                        }
+                    }
+                }catch(error){
+                    setBackdropOpen(false);
+                    snackActions.warning("Failed to parse dynamic parameter results");
+                }
+
+            }else{
+                snackActions.warning(data.dynamicQueryBuildParameterFunction.error);
+            }
+            setBackdropOpen(false);
+        },
+        onError: (data) => {
+            snackActions.warning("Failed to perform dynamic parameter query");
+            console.log(data);
+            setBackdropOpen(false);
+        }
+    });
+    const reIssueDynamicQueryFunction = () => {
+        setBackdropOpen(true);
+        snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
+        getDynamicParams({variables:{
+                parameter_name: name,
+                selected_os: selected_os,
+                payload_type: payload_type,
+            }})
+        usingDynamicParamChoices.current = true;
+    }
     const arrayMapToMap = (val) => {
         return val.reduce( ( prev, cur ) => {
             return {...prev, [cur[0]]: cur[1]}
@@ -90,11 +184,15 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         onChange(name, [...evt.target.files]);
     }
     useEffect( () => {
-        if(parameter_type === "ChooseOne" || parameter_type === "ChooseOneCustom"){
-            setChooseOptions(choices);
+        if( parameter_type === "ChooseOne" || parameter_type === "ChooseOneCustom" ){
+            setChoiceOptions(choices);
             if(!choices.includes(trackedValue)){
                 setChooseOneCustomValue(trackedValue);
-                setValue(default_value);
+                if(dynamic_query_function !== ""){
+                    setValue(trackedValue);
+                } else {
+                    setValue(default_value);
+                }
             } else {
                 setValue(trackedValue);
                 setChooseOneCustomValue("");
@@ -105,7 +203,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setValue(trackedValue);
         }else if(parameter_type === "ChooseMultiple") {
             setMultiValue(trackedValue);
-            setChooseOptions(choices);
+            setChoiceOptions(choices);
         }else if(parameter_type === "File") {
             if (typeof trackedValue === "string") {
                 setFileValue({name: trackedValue, legacy: trackedValue !== ""});
@@ -164,6 +262,18 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setMapArray(initial);
         }else{
             console.log("hit an unknown parameter type")
+        }
+        if(dynamic_query_function !== "" && dynamic_query_function !== undefined){
+            if(!usingDynamicParamChoices.current){
+                setBackdropOpen(true);
+                snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
+                getDynamicParams({variables:{
+                        parameter_name: name,
+                        payload_type: payload_type,
+                        selected_os: selected_os
+                    }})
+            }
+            usingDynamicParamChoices.current = true;
         }
     }, [default_value, parameter_type, name, instance_name]);
     const onChangeTextChooseOneCustom = (name, newValue, error) => {
@@ -255,7 +365,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     }
     const removeDictEntry = (i) => {
         const newValues = dictValue.filter( (opt, index) => {
-            if(i === index){return false};
+            if(i === index){return false}
             return true;
         });
         setDictValue(newValues);
@@ -388,22 +498,40 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 )
             case "ChooseOne":
                 return (
-                    <FormControl>
-                        <Select
-                          value={value}
-                          onChange={onChangeValue}
-                        >
-                        {
-                            chooseOptions.map((opt, i) => (
-                                <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
-                            ))
+                    <div style={{position: "relative", display: "flex", alignItems: "center", overflow: "hidden"}}>
+                        <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+                            <CircularProgress color="inherit" />
+                        </Backdrop>
+                        <FormControl style={{width: "100%"}}>
+                            {ChoiceOptions.length === 0 &&
+                                <InputLabel>{"No Options Available"}</InputLabel>
+                            }
+                            <Select
+                              value={value}
+                              onChange={onChangeValue}
+                            >
+                            {
+                                ChoiceOptions.map((opt, i) => (
+                                    <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
+                                ))
+                            }
+                            </Select>
+                        </FormControl>
+                        {dynamic_query_function !== "" && dynamic_query_function !== undefined &&
+                            <MythicStyledTooltip title={"ReIssue Dynamic Query Function"} tooltipStyle={{display: "inline-block"}}>
+                                <IconButton onClick={reIssueDynamicQueryFunction}>
+                                    <RefreshIcon />
+                                </IconButton>
+                            </MythicStyledTooltip>
                         }
-                        </Select>
-                    </FormControl>
+                    </div>
                 );
             case "ChooseOneCustom":
                 return (
-                    <React.Fragment>
+                    <div style={{position: "relative"}}>
+                        <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+                            <CircularProgress color="inherit" />
+                        </Backdrop>
                         <div style={{width: "100%", display: "flex", alignItems: "center"}}>
                             <FormControl style={{width: "20%"}}>
                                 <Select
@@ -414,7 +542,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                     input={<Input />}
                                 >
                                     {
-                                        chooseOptions.map((opt, i) => (
+                                        ChoiceOptions.map((opt, i) => (
                                             <MenuItem key={name + i} value={opt}>{opt}</MenuItem>
                                         ))
                                     }
@@ -424,25 +552,48 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             <MythicTextField name={name} requiredValue={required} placeholder={"Custom Value"} value={chooseOneCustomValue} multiline={true} maxRows={5}
                                              onChange={onChangeTextChooseOneCustom} display="inline-block"
                             />
+                            {dynamic_query_function !== "" && dynamic_query_function !== undefined &&
+                                <MythicStyledTooltip title={"ReIssue Dynamic Query Function"} tooltipStyle={{display: "inline-block"}}>
+                                    <IconButton onClick={reIssueDynamicQueryFunction}>
+                                        <RefreshIcon />
+                                    </IconButton>
+                                </MythicStyledTooltip>
+                            }
                         </div>
 
-                    </React.Fragment>
+                    </div>
                 )
             case "ChooseMultiple":
                 return (
-                    <FormControl>
-                        <Select
-                            value={multiValue}
-                            multiple={true}
-                            onChange={onChangeMultValue}
-                        >
-                        {
-                            chooseOptions.map((opt, i) => (
-                                <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
-                            ))
+                    <div style={{position: "relative", display: "flex", alignItems: "center", overflow: "hidden"}}>
+                        <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
+                            <CircularProgress color="inherit" />
+                        </Backdrop>
+                        <FormControl style={{width: "100%"}}>
+                            <InputLabel id={name + "select"} style={{paddingTop: "15px"}}>{"Select Multiple"}</InputLabel>
+                            {ChoiceOptions.length === 0 &&
+                                <InputLabel>{"No Options Available"}</InputLabel>
+                            }
+                            <Select
+                                value={multiValue}
+                                multiple={true}
+                                onChange={onChangeMultValue}
+                            >
+                            {
+                                ChoiceOptions.map((opt, i) => (
+                                    <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
+                                ))
+                            }
+                            </Select>
+                        </FormControl>
+                        {dynamic_query_function !== "" && dynamic_query_function !== undefined &&
+                            <MythicStyledTooltip title={"ReIssue Dynamic Query Function"} tooltipStyle={{display: "inline-block"}}>
+                                <IconButton onClick={reIssueDynamicQueryFunction}>
+                                    <RefreshIcon />
+                                </IconButton>
+                            </MythicStyledTooltip>
                         }
-                        </Select>
-                    </FormControl>
+                    </div>
                 );
             case "Array":
                 return (

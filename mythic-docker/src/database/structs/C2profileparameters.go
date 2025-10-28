@@ -14,4 +14,5 @@ type C2profileparameters struct {
 	Deleted       bool            `db:"deleted"`
 	IsCryptoType  bool            `db:"crypto_type"`
 	Choices       MythicJSONArray `db:"choices"`
+	UiPosition    int             `db:"ui_position"`
 }

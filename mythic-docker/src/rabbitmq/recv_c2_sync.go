@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 // C2_SYNC STRUCTS
@@ -66,6 +67,7 @@ type C2Parameter struct {
 	IsCryptoType      bool                  `json:"crypto_type"`
 	Choices           []string              `json:"choices"`
 	DictionaryChoices []ParameterDictionary `json:"dictionary_choices"`
+	UIPosition        int                   `json:"ui_position"`
 }
 
 type ParameterDictionary struct {
@@ -269,6 +271,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 						databaseParameter.VerifierRegex = newParameter.VerifierRegex
 						databaseParameter.Deleted = false
 						databaseParameter.IsCryptoType = newParameter.IsCryptoType
+						databaseParameter.UiPosition = newParameter.UIPosition
 						if defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices); err != nil {
 							return err
 						} else {
@@ -284,7 +287,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 							description=:description, default_value=:default_value, randomize=:randomize, format_string=:format_string,
 							parameter_type=:parameter_type, required=:required, choices=:choices,
 							verifier_regex=:verifier_regex, deleted=:deleted, 
-							crypto_type=:crypto_type 
+							crypto_type=:crypto_type, ui_position=:ui_position 
 							WHERE id=:id`, databaseParameter,
 						); err != nil {
 							logging.LogError(err, "Failed to update c2 parameter in database", "c2_parameter", databaseParameter)
@@ -321,6 +324,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 				Required:      newParameter.Required,
 				ParameterType: newParameter.ParameterType,
 				C2ProfileID:   c2Profile.ID,
+				UiPosition:    newParameter.UIPosition,
 			}
 			if defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices); err != nil {
 				return err
@@ -334,9 +338,10 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 				databaseParameter.Choices = choices
 			}
 			if statement, err := database.DB.PrepareNamed(`INSERT INTO c2profileparameters 
-				("name",description,default_value,randomize,format_string,verifier_regex,deleted,crypto_type,required,parameter_type,c2_profile_id,choices) 
+				("name",description,default_value,randomize,format_string,verifier_regex,deleted,
+				 crypto_type,required,parameter_type,c2_profile_id,choices, ui_position) 
 				VALUES (:name, :description, :default_value, :randomize, :format_string, :verifier_regex, :deleted,
-				:crypto_type, :required, :parameter_type, :c2_profile_id, :choices) 
+				:crypto_type, :required, :parameter_type, :c2_profile_id, :choices, :ui_position) 
 				RETURNING id`,
 			); err != nil {
 				logging.LogError(err, "Failed to create new c2 profile parameters statement when importing c2 profile")

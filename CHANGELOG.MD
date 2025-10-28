@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.7] - 2025-10-28
+
+### Changed
+
+- Added "ui_position" fields to BuildParameters and C2 Profile Parameters for display ordering when building payloads
+- Added "dynamic_query_function" option to BuildParameters to allow dynamic execution and choice creation during build process
+- Added "copy_of_file_id" to FileMeta to better tracking when Mythic creates copies of files 
+  - When uploading fileA to callback1, Mythic tracks this association so it can record things like upload location
+  - If fileA (by same UUID) is uploaded again (callback1 with a different task or callback2), Mythic creates a copy of the file meta and tracks it
+    - This allows Mythic to track the new upload location separate from the first upload
+    - Both of these files are backed by the same file on disk, so deleting one deletes all copies
+    - This is now better represented in the UI on the file search page
+
 ## [3.4.6] - 2025-10-16
 
 ### Changed

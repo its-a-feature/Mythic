@@ -172,18 +172,22 @@ func getSyncToDatabaseValueForDefaultValue(parameterType string, defaultValue in
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE:
 		switch v := defaultValue.(type) {
 		case string:
-			if len(choices) == 0 {
-				tmpErr := errors.New("parameter type choose one has no choices available")
-				logging.LogError(tmpErr, "default value not in choices because choices for *_PARAMETER_TYPE_CHOOSE_ONE is empty")
-				return "", tmpErr
-			} else if !utils.SliceContains(choices, v) {
-				tmpErr := errors.New(fmt.Sprintf("Parameter type choose one has a default value not in the choices: %v, %s", choices, v))
-				logging.LogError(tmpErr, "default value for parameter type *_PARAMETER_TYPE_CHOOSE_ONE isn't in choices")
-				return "", tmpErr
-			} else {
-				return v, nil
+			if len(v) > 0 {
+				// if the dev supplied an actual string default value that's not a choice, that's an issue
+				if len(choices) == 0 {
+					tmpErr := errors.New("parameter type choose one has no choices available")
+					logging.LogError(tmpErr, "default value not in choices because choices for *_PARAMETER_TYPE_CHOOSE_ONE is empty")
+					return "", tmpErr
+				} else if !utils.SliceContains(choices, v) {
+					tmpErr := errors.New(fmt.Sprintf("Parameter type choose one has a default value not in the choices: %v, %s", choices, v))
+					logging.LogError(tmpErr, "default value for parameter type *_PARAMETER_TYPE_CHOOSE_ONE isn't in choices")
+					return "", tmpErr
+				} else {
+					return v, nil
+				}
 			}
-
+			// an empty string is fine though
+			return "", nil
 		case nil:
 			if len(choices) > 0 {
 				return choices[0], nil

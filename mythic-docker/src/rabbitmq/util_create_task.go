@@ -4,6 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+	"sync"
+	"text/tabwriter"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
@@ -15,12 +22,6 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	"github.com/mitchellh/mapstructure"
-	"regexp"
-	"strconv"
-	"strings"
-	"sync"
-	"text/tabwriter"
-	"time"
 )
 
 var (
@@ -698,9 +699,6 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 	}
 	output.TaskID = task.ID
 	output.TaskDisplayID = task.DisplayID
-	if callback.Payload.Payloadtype.CommandHelpFunction == "" {
-
-	}
 	loadedCommands := []databaseStructs.Loadedcommands{}
 	err := database.DB.Select(&loadedCommands, `SELECT
 		command.cmd "command.cmd",

@@ -9,6 +9,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Adds the specified MITRE ATT&CK Technique to the task specified by this display id
   - name: c2GetIOC
     definition:
       kind: ""
@@ -20,6 +21,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Using the UUID of a payload, ask's that payload's C2 Profiles to generate a list of IOCs
   - name: c2HostFile
     definition:
       kind: synchronous
@@ -30,6 +32,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Using the file specified by its UUID, asks the C2 Profile specified by its ID to either host or stop hosting at a specific URL
   - name: c2SampleMessage
     definition:
       kind: ""
@@ -41,6 +44,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Using the UUID of a payload, ask's that payload's C2 Profiles to generate a sample message of what traffic would look like
   - name: callbackgraphedge_add
     definition:
       kind: synchronous
@@ -51,6 +55,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Adds an active graph edge between the two callbacks specified by their ID via the C2 Profile specified by its Name
   - name: callbackgraphedge_remove
     definition:
       kind: synchronous
@@ -61,6 +66,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Removes an active graph edge specified by its ID
   - name: config_check
     definition:
       kind: ""
@@ -72,6 +78,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Using the UUID of a payload, ask's that payload's C2 Profiles to check if the Payload's configuration matches with the configuration for the profile itself.
   - name: consumingServicesTestLog
     definition:
       kind: synchronous
@@ -82,6 +89,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: This sends a test logging message to logging containers of a specific type
   - name: consumingServicesTestWebhook
     definition:
       kind: synchronous
@@ -92,6 +100,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: This sends a test webhook message to webhook containers of a specific type
   - name: containerDownloadFile
     definition:
       kind: ""
@@ -102,6 +111,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: This downloads a file from within an Installed Service
   - name: containerListFiles
     definition:
       kind: ""
@@ -112,6 +122,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: This lists the files from within an Installed Service Container
   - name: containerRemoveFile
     definition:
       kind: synchronous
@@ -122,6 +133,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: This removes a file from within an Installed Service Container
   - name: containerWriteFile
     definition:
       kind: synchronous
@@ -132,6 +144,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: This writes a file within an Installed Service Container
   - name: createAPIToken
     definition:
       kind: synchronous
@@ -143,6 +156,7 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
+    comment: Generate an apitoken of a specified type (typically 'User'), optionally for a specific bot account and with a specific name
   - name: createArtifact
     definition:
       kind: synchronous
@@ -154,6 +168,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Generate an artifact and optionally associate it with a specific task by its task ID
   - name: createCallback
     definition:
       kind: synchronous
@@ -164,6 +179,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Create a new callback within Mythic automatically without needing an actual payload to phone home
   - name: createCredential
     definition:
       kind: synchronous
@@ -174,6 +190,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Create a new credential within Mythic's credential store
   - name: createInviteLink
     definition:
       kind: synchronous
@@ -181,6 +198,7 @@ actions:
       forward_client_headers: true
     permissions:
       - role: mythic_admin
+    comment: Create a new invite link
   - name: createOperation
     definition:
       kind: synchronous
@@ -192,6 +210,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Creates a new operation
   - name: createOperationEventLog
     definition:
       kind: synchronous
@@ -203,6 +222,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Creates a new operational event log message
   - name: createOperator
     definition:
       kind: synchronous
@@ -214,6 +234,7 @@ actions:
       - role: operator
       - role: operation_admin
       - role: mythic_admin
+    comment: Create a new operator account
   - name: createPayload
     definition:
       kind: synchronous
@@ -224,6 +245,7 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
+    comment: Trigger a new payload creation based on a payload definition
   - name: createRandom
     definition:
       kind: synchronous
@@ -235,6 +257,7 @@ actions:
       - role: operation_admin
       - role: operator
       - role: spectator
+    comment: Creates a random value based on the given format string (regex)
   - name: createTag
     definition:
       kind: synchronous
@@ -245,6 +268,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Creates a new tag based on the specified tag type and associates it with another object
   - name: createTask
     definition:
       kind: synchronous
@@ -255,6 +279,7 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
+    comment: Creates a new task in Mythic for the specified callback_id or callback_ids (display ids)
   - name: create_c2_instance
     definition:
       kind: synchronous
@@ -265,6 +290,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Creates a new saved instance of a C2 Profile with a given name
   - name: deleteAPIToken
     definition:
       kind: synchronous
@@ -276,6 +302,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Update a given apitoken to be marked as deleted
   - name: deleteBlockList
     definition:
       kind: synchronous
@@ -286,6 +313,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Delete the specified block list by name
   - name: deleteBlockListEntry
     definition:
       kind: synchronous
@@ -296,6 +324,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Remove the specified commands by their IDs from the specified block list by name
   - name: deleteFile
     definition:
       kind: synchronous
@@ -306,6 +335,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Deletes the specified file or files by their IDs
   - name: deleteTagtype
     definition:
       kind: synchronous
@@ -324,10 +354,22 @@ actions:
       forward_client_headers: true
     permissions:
       - role: mythic_admin
+    comment: Delete the specified tasks and callbacks by their display IDs
   - name: download_bulk
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/download_bulk_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Zip and host a group of files specified by their file UUIDs. Use the resulting file_id to download the zip
+  - name: dynamicQueryBuildParameterFunction
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/dynamic_query_build_parameter_webhook'
       forward_client_headers: true
     permissions:
       - role: operator
@@ -345,6 +387,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Call a command parameter's dynamic query function
   - name: eventingExportWorkflow
     definition:
       kind: ""
@@ -355,6 +398,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Export an eventing workflow's configuration file
   - name: eventingImportContainerWorkflow
     definition:
       kind: synchronous
@@ -366,6 +410,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Import a workflow from a container automatically
   - name: eventingTestFile
     definition:
       kind: ""
@@ -376,6 +421,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Given an eventing file, convert it to a specified output format (json, yaml, toml)
   - name: eventingTriggerCancel
     definition:
       kind: synchronous
@@ -386,6 +432,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Cancel the specified running event group instance by ID
   - name: eventingTriggerKeyword
     definition:
       kind: synchronous
@@ -396,6 +443,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Trigger eventing workflows by keyword string and JSON dictionary data
   - name: eventingTriggerManual
     definition:
       kind: synchronous
@@ -406,6 +454,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Trigger eventing workflow manually by eventgroup id and JSON dictionary data
   - name: eventingTriggerManualBulk
     definition:
       kind: synchronous
@@ -416,6 +465,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Trigger multiple eventing workflow manually by eventgroup id and JSON dictionary data for specified contexts. Context type can be callback_id or task_id and those IDs should be in the context ids array
   - name: eventingTriggerRetry
     definition:
       kind: synchronous
@@ -426,6 +476,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Manually retry a specified eventgroup instance by ID
   - name: eventingTriggerRetryFromStep
     definition:
       kind: synchronous
@@ -436,6 +487,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Manually retry an eventgroup instance from a specific instance step by ID
   - name: eventingTriggerRunAgain
     definition:
       kind: synchronous
@@ -446,6 +498,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Manually run an eventgroup again with the same data
   - name: eventingTriggerUpdate
     definition:
       kind: synchronous
@@ -456,6 +509,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+    comment: Update an event group
   - name: exportCallbackConfig
     definition:
       kind: ""
@@ -945,4 +999,5 @@ custom_types:
     - name: createArtifactOutput
     - name: updatePayloadOutput
     - name: eventingTriggerManualBulkOutput
+    - name: dynamicQueryBuildParameterOutput
   scalars: []

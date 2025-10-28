@@ -91,6 +91,8 @@ query getPayloadTypesBuildParametersQuery($payloadtype: String!) {
         group_name
         supported_os
         hide_conditions
+        ui_position
+        dynamic_query_function
     }
   }
 }
@@ -132,6 +134,8 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
             group_name
             supported_os
             hide_conditions
+            ui_position
+            dynamic_query_function
         }
     }
     c2profileparametersinstances{
@@ -146,6 +150,7 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
           required
           verifier_regex
           choices
+          ui_position
           c2profile {
               name
               id
@@ -313,7 +318,8 @@ export function Step1SelectOS(props){
                         choices: getDefaultChoices(param)
                     }
                 });
-                params.sort((a, b) => -b.description.localeCompare(a.description));
+                //params.sort((a, b) => -b.description.localeCompare(a.description));
+                params.sort(sortByUiPositionThenName);
                 newConfig[1].parameters = params;
                 newConfig[2] = data.payload_by_pk.payloadcommands.map( c => c.command.cmd);
                 newConfig[3] = {
@@ -389,7 +395,8 @@ export function Step1SelectOS(props){
 
                 const profiles = c2.map( (profile) => {
                     const parameters = getModifiedC2Params(profile, profile.c2profileparameters, newConfig[1], true);
-                    parameters.sort((a,b) => -b.description.localeCompare(a.description));
+                    //parameters.sort((a,b) => -b.description.localeCompare(a.description));
+                    parameters.sort(sortByUiPositionThenName);
                     return {...profile, c2profileparameters: parameters, "selected_instance": "None"};
                 });
                 newConfig[3].c2 = profiles;
@@ -628,7 +635,8 @@ export const ConfigureBuildParameters = (
                             choices: getDefaultChoices(param)
                         }
                     });
-                    params.sort((a, b) => -b.description.localeCompare(a.description));
+                    //params.sort((a, b) => -b.description.localeCompare(a.description));
+                    params.sort(sortByUiPositionThenName);
                     setSelectedPayloadTypeParameters(params);
                     onUpdatePayloadConfig({
                         "payload_type": selectedPayloadType,
@@ -641,14 +649,17 @@ export const ConfigureBuildParameters = (
                 const params = data.payloadtype[0].buildparameters.map((param) => {
                     const initialValue = getDefaultValueForType(param);
                     return {
-                        ...param, error: false,
+                        ...param,
+                        error: false,
+                        default_value:initialValue,
                         value: initialValue,
                         trackedValue: initialValue,
                         initialValue: initialValue,
                         choices: getDefaultChoices(param)
                     }
                 });
-                params.sort((a,b) => -b.description.localeCompare(a.description));
+                //params.sort((a,b) => -b.description.localeCompare(a.description));
+                params.sort(sortByUiPositionThenName);
                 setSelectedPayloadTypeParameters(params);
                 onUpdatePayloadConfig({
                     "payload_type": selectedPayloadType,
@@ -702,11 +713,22 @@ export const ConfigureBuildParameters = (
                     minHeight: 0, // Important for flex shrinking
                     overflow: "hidden"
                 }}>
-                    <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters} os={os} />
+                    <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters} os={os}
+                    payload_type={selectedPayloadType}/>
                 </div>
             </div>
         </>
     )
+}
+export const sortByUiPositionThenName = (a, b) => {
+    if(a.ui_position === b.ui_position){
+        return -b.name.localeCompare(a.name);
+    }else if(a.ui_position < b.ui_position){
+        return -1;
+    }else if(a.ui_position > b.ui_position){
+        return 1;
+    }
+    return 0;
 }
 export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
     let groups = buildParameters?.reduce( (prev, cur) => {
@@ -717,6 +739,7 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
         return {name: g, parameters: []}
     });
     if(c2_name){
+        buildParameters.sort(sortByUiPositionThenName);
         return [{name: c2_name, parameters: buildParameters}];
     }
     for(let i = 0; i < buildParameters.length; i++){
@@ -761,11 +784,13 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
                     break;
                 }
                 groupedData[j].parameters.push(buildParameters[i]);
+                groupedData[j].parameters.sort(sortByUiPositionThenName);
                 break;
             }
         }
     }
-    groupedData.sort((a,b) => -b.name.localeCompare(a.name));
+    groupedData.sort(sortByUiPositionThenName)
+    //groupedData.sort((a,b) => -b.name.localeCompare(a.name));
     return groupedData;
 }
 export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
