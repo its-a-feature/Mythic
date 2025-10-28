@@ -8,7 +8,7 @@ import {snackActions} from '../../utilities/Snackbar';
 import {UploadTaskFile} from "../../MythicComponents/MythicFileUpload";
 import {getSkewedNow} from "../../utilities/Time";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
-import {ConfigurationSummary} from "./Step1SelectOS";
+import {ConfigurationSummary, GetGroupedParameters} from "./Step1SelectOS";
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import IconButton from '@mui/material/IconButton';
 import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
@@ -29,7 +29,6 @@ export function Step5Build(props){
     const [description, setDescription] = React.useState("");
     const [startSubscription, setStartSubscription] = React.useState(false);
     const [subscriptionID, setSubscriptionID] = React.useState("");
-    const [showExtraOptions, setShowExtraOptions] = React.useState(false);
     const [createPayloadMutation] = useMutation(create_payload, {
         update: (cache, {data}) => {
             setSubscriptionID(data.createPayload.uuid);
@@ -38,7 +37,6 @@ export function Step5Build(props){
                 if(!startSubscription){
                     setStartSubscription(true);
                 }
-                setShowExtraOptions(true);
             }else{
                 snackActions.error(data.createPayload.error);
             }
@@ -64,8 +62,14 @@ export function Step5Build(props){
     }
     const finished = async () => {
         let buildParameters = [];
-        for(let i = 0; i < props.buildOptions[1]["parameters"].length; i++){
-            let param = props.buildOptions[1]["parameters"][i];
+        let params = GetGroupedParameters({
+            buildParameters: props.buildOptions[1]["parameters"],
+            os: props.buildOptions[1].os,
+            c2_name: undefined}).reduce( (prev, cur) => {
+               return [...prev, ...cur.parameters];
+        }, []);
+        for(let i = 0; i < params.length; i++){
+            let param = params[i];
             if (param.parameter_type === "Dictionary") {
                 const newDict = param.value.reduce((prev, cur) => {
                     if (cur.default_show) {
@@ -113,8 +117,14 @@ export function Step5Build(props){
         let c2Profiles = [];
         for(let i = 0; i < props.buildOptions[3].c2.length; i++){
             let instanceParam = {};
-            for(let j = 0; j < props.buildOptions[3].c2[i].c2profileparameters.length; j++){
-                let param = props.buildOptions[3].c2[i].c2profileparameters[j];
+            let c2params = GetGroupedParameters({
+                buildParameters: props.buildOptions[3].c2[i].c2profileparameters,
+                os: props.buildOptions[1].os,
+                c2_name: props.buildOptions[3].c2[i].name}).reduce( (prev, cur) => {
+                return [...prev, ...cur.parameters];
+            }, []);
+            for(let j = 0; j < c2params.length; j++){
+                let param = c2params[j];
                 if(param.parameter_type === "Dictionary"){
                     const newDict = param.value.reduce( (prev, cur) => {
                         if(cur.default_show){

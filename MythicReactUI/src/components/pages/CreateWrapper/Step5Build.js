@@ -9,7 +9,7 @@ import {UploadTaskFile} from "../../MythicComponents/MythicFileUpload";
 import {getSkewedNow} from "../../utilities/Time";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
-import {ConfigurationSummary} from "../CreatePayload/Step1SelectOS";
+import {ConfigurationSummary, GetGroupedParameters} from "../CreatePayload/Step1SelectOS";
 import IconButton from '@mui/material/IconButton';
 import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
 import {exportPayloadConfigQuery} from "../Payloads/PayloadsTableRow";
@@ -38,7 +38,6 @@ export function Step5Build(props){
     const [description, setDescription] = React.useState("");
     const [startSubscription, setStartSubscription] = React.useState(false);
     const [subscriptionID, setSubscriptionID] = React.useState("");
-    const [showExtraOptions, setShowExtraOptions] = React.useState(false);
     const [createPayloadMutation] = useMutation(create_payload, {
         update: (cache, {data}) => {
             if(data.createPayload.status === "success"){
@@ -46,7 +45,6 @@ export function Step5Build(props){
                 if(!startSubscription){
                     setStartSubscription(true);
                 }
-                setShowExtraOptions(true);
                 snackActions.info("Submitted payload to build pipeline", {autoClose: 1000});
             }else{
                 snackActions.error(data.createPayload.error);
@@ -86,8 +84,14 @@ export function Step5Build(props){
     }
     const finished = async () => {
         let buildParameters = [];
-        for(let i = 0; i < props.buildOptions[1]["parameters"].length; i++){
-            let param = props.buildOptions[1]["parameters"][i];
+        let params = GetGroupedParameters({
+            buildParameters: props.buildOptions[1]["parameters"],
+            os: props.buildOptions[1].os,
+            c2_name: undefined}).reduce( (prev, cur) => {
+            return [...prev, ...cur.parameters];
+        }, []);
+        for(let i = 0; i < params.length; i++){
+            let param = params[i];
             if (param.parameter_type === "Dictionary") {
                 const newDict = param.value.reduce((prev, cur) => {
                     if (cur.default_show) {
@@ -110,7 +114,7 @@ export function Step5Build(props){
                         return;
                     }
                 }
-            } else if(param.parameter_type === "FileMultiple") {
+            }else if(param.parameter_type === "FileMultiple"){
                 let fileMultipleValues = [];
                 for(let j = 0; j < param.value.length; j++){
                     if (typeof param.value[j] === "string") {
