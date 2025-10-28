@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.3.20] - 2025-10-28
+
+### Changed
+
+- Merged PR from Norton1999 allowing git@ prefix in addition to http for remote git tracking
+
 ## 0.3.18 - 2025-09-29
 
 ### Changed
