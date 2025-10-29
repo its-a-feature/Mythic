@@ -238,6 +238,8 @@ export function EventFeed({}){
     } else if(localLevel === "warning (resolved)"){
       localResolved = true;
       localLevel = "%_%";
+    } else {
+        localLevel = "%" + localLevel + "%";
     }
     if(localResolved === undefined){
       getMoreEventFeed({variables: {offset: (value - 1) * pageData.fetchLimit,
@@ -256,8 +258,8 @@ export function EventFeed({}){
 
   }
   React.useEffect( () => {
-    if( alertCount() === 0){
-      getMoreEventFeed({variables: {offset: 0, limit: pageData.fetchLimit, search: "%_%", level: "%_%"}});
+    if( alertCount() === 0 ){
+      getMoreEventFeed({variables: {offset: 0, limit: pageData.fetchLimit, search: "%_%", level: "%info%"}});
     }
   }, [])
   const resolveViewableErrors = useCallback( () => {

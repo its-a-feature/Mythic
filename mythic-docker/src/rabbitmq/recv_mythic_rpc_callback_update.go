@@ -3,9 +3,10 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/its-a-feature/Mythic/utils"
 	"strings"
 	"time"
+
+	"github.com/its-a-feature/Mythic/utils"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -14,7 +15,7 @@ import (
 )
 
 type MythicRPCCallbackUpdateMessage struct {
-	AgentCallbackUUID                 *string   `json:"agent_callback_id"` // required
+	AgentCallbackID                   *string   `json:"agent_callback_id"` // required
 	CallbackID                        *int      `json:"callback_id"`
 	TaskID                            *int      `json:"task_id"`
 	EncryptionKey                     *[]byte   `json:"encryption_key,omitempty"`
@@ -59,11 +60,11 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 		Success: false,
 	}
 	callback := databaseStructs.Callback{}
-	if input.AgentCallbackUUID != nil {
+	if input.AgentCallbackID != nil {
 		if err := database.DB.Get(&callback, `SELECT
 			*
 			FROM callback
-			WHERE agent_callback_id=$1`, input.AgentCallbackUUID); err != nil {
+			WHERE agent_callback_id=$1`, input.AgentCallbackID); err != nil {
 			logging.LogError(err, "Failed to find callback UUID")
 			response.Error = err.Error()
 			return response

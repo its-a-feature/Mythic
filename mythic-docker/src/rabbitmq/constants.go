@@ -187,6 +187,7 @@ const (
 	MYTHIC_RPC_CALLBACK_CREATE                    = "mythic_rpc_callback_create"
 	MYTHIC_RPC_CALLBACK_SEARCH                    = "mythic_rpc_callback_search"
 	MYTHIC_RPC_CALLBACK_EDGE_SEARCH               = "mythic_rpc_callback_edge_search"
+	MYTHIC_RPC_CALLBACK_EDGE_REMOVE               = "mythic_rpc_callback_edge_remove"
 	MYTHIC_RPC_CALLBACK_DISPLAY_TO_REAL_ID_SEARCH = "mythic_rpc_callback_display_to_real_id_search"
 	MYTHIC_RPC_CALLBACK_NEXT_CHECKIN_RANGE        = "mythic_rpc_callback_next_checkin_range"
 	MYTHIC_RPC_CALLBACK_ADD_COMMAND               = "mythic_rpc_callback_add_command"
@@ -238,7 +239,7 @@ const (
 	//
 	MYTHIC_RPC_APITOKEN_CREATE = "mythic_rpc_apitoken_create"
 	// Agent Message
-	MYTHIC_RPC_HANDLE_AGENT_JSON = "mythic_rpc_handle_agent_json"
+	MYTHIC_RPC_HANDLE_AGENT_JSON = "mythic_rpc_handle_agent_message_json"
 	// MYTHIC_RPC_BLANK blank
 	MYTHIC_RPC_BLANK = "mythic_rpc_blank"
 )

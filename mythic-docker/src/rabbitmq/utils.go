@@ -1294,7 +1294,7 @@ func SendAllOperationsMessage(message string, operationID int, source string, me
 					logging.LogError(err, "Failed to query existing event log message")
 					continue
 				}
-				if errors.Is(err, sql.ErrNoRows) && err == nil {
+				if errors.Is(err, sql.ErrNoRows) {
 					if messageLevel == "warning" {
 						messageLevel = database.MESSAGE_LEVEL_INFO
 					}
@@ -1304,7 +1304,7 @@ func SendAllOperationsMessage(message string, operationID int, source string, me
 						Warning:     warning,
 						Message:     message,
 						OperationID: operation.ID,
-						Count:       0,
+						Count:       1,
 					}
 					_, err = database.DB.NamedExec(`INSERT INTO operationeventlog 
 						(source, "level", "message", operation_id, count, warning) 
@@ -1368,7 +1368,7 @@ func SendAllOperationsMessage(message string, operationID int, source string, me
 					Warning:     warning,
 					Message:     message,
 					OperationID: operation.ID,
-					Count:       0,
+					Count:       1,
 				}
 				if _, err := database.DB.NamedExec(`INSERT INTO operationeventlog 
 				(source, "level", "message", operation_id, count, warning) 

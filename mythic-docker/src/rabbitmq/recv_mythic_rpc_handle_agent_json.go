@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"fmt"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 
@@ -10,11 +12,10 @@ import (
 )
 
 type MythicRPCHandleAgentJsonMessage struct {
-	CallbackID      *string                `json:"callback_id"`
-	AgentCallbackID *string                `json:"agent_callback_id"`
-	C2Profile       string                 `json:"c2_profile"`
-	PayloadType     string                 `json:"payload_type"`
-	AgentMessage    map[string]interface{} `json:"message"`
+	CallbackID        *int                   `json:"callback_id"`
+	AgentCallbackID   *string                `json:"agent_callback_id"`
+	AgentMessage      map[string]interface{} `json:"agent_message"`
+	UpdateCheckinTime bool                   `json:"update_checkin_time"`
 }
 type MythicRPCHandleAgentJsonMessageResponse struct {
 	Success       bool                   `json:"success"`
@@ -39,7 +40,7 @@ func MythicRPCHandleAgentJson(input MythicRPCHandleAgentJsonMessage) MythicRPCHa
 	callback := databaseStructs.Callback{}
 	if input.CallbackID != nil {
 		err := database.DB.Get(&callback, `SELECT 
-    		* 
+    		operation_id, id, display_id, agent_callback_id 
 			FROM callback 
 			WHERE id=$1`, *input.CallbackID)
 		if err != nil {
@@ -49,7 +50,7 @@ func MythicRPCHandleAgentJson(input MythicRPCHandleAgentJsonMessage) MythicRPCHa
 		}
 	} else if input.AgentCallbackID != nil {
 		err := database.DB.Get(&callback, `SELECT 
-			* 
+			operation_id, id, display_id, agent_callback_id 
 			FROM callback 
 			WHERE agent_callback_id=$1`, *input.AgentCallbackID)
 		if err != nil {
@@ -62,17 +63,12 @@ func MythicRPCHandleAgentJson(input MythicRPCHandleAgentJsonMessage) MythicRPCHa
 		response.Success = false
 		return response
 	}
-	if input.C2Profile == "" {
-		response.Error = "Need to supply c2_profile"
-		response.Success = false
-		return response
-	}
 	uUIDInfo := cachedUUIDInfo{
 		OperationID:       callback.OperationID,
 		CallbackID:        callback.ID,
 		CallbackDisplayID: callback.DisplayID,
 		UUID:              callback.AgentCallbackID,
-		UUIDType:          "callback",
+		UUIDType:          UUIDTYPECALLBACK,
 	}
 	processedResponse := recursiveProcessAgentMessageResponse{
 		TrackingID:    "",
@@ -80,10 +76,10 @@ func MythicRPCHandleAgentJson(input MythicRPCHandleAgentJsonMessage) MythicRPCHa
 		OuterUuid:     callback.AgentCallbackID,
 	}
 	responseMsg := processAgentMessageContent(&AgentMessageRawInput{
-		C2Profile:         input.C2Profile,
-		RemoteIP:          input.PayloadType,
+		C2Profile:         "MythicRPC",
+		RemoteIP:          fmt.Sprintf("Callback %d", callback.DisplayID),
 		Base64Response:    false,
-		UpdateCheckinTime: true,
+		UpdateCheckinTime: input.UpdateCheckinTime,
 		TrackingID:        "",
 	}, &uUIDInfo, input.AgentMessage, &processedResponse)
 	if processedResponse.Err != nil {

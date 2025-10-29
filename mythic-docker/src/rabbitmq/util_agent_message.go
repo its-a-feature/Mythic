@@ -7,11 +7,12 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/its-a-feature/Mythic/eventing"
-	"github.com/mitchellh/mapstructure"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/its-a-feature/Mythic/eventing"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/google/uuid"
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
@@ -325,6 +326,8 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 			if err == nil {
 				instanceResponse.NewCallbackUUID = response["id"].(string)
 				instanceResponse.OuterUuid = uuidInfo.UUID
+			} else {
+				go SendAllOperationsMessage(err.Error(), uuidInfo.OperationID, "agent_message_bad_checkin", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 			}
 		}
 	case "get_tasking":
@@ -339,6 +342,9 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 				getDelegateMessages = false
 			}
 			delete(decryptedMessage, "get_delegate_tasks")
+			if err != nil {
+				go SendAllOperationsMessage(err.Error(), uuidInfo.OperationID, "agent_message_bad_get_tasking", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+			}
 		}
 	case "upload":
 		{
@@ -366,10 +372,16 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		{
 			response, err = handleAgentMessageUpdateInfo(&decryptedMessage, uuidInfo, agentMessageInput.RemoteIP)
 			instanceResponse.OuterUuid = uuidInfo.UUID // this is what our message UUID was coming into this parsing
+			if err != nil {
+				go SendAllOperationsMessage(err.Error(), uuidInfo.OperationID, "agent_message_bad_update_info", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+			}
 		}
 	case "staging_rsa":
 		{
 			response, err = handleAgentMessageStagingRSA(&decryptedMessage, uuidInfo)
+			if err != nil {
+				go SendAllOperationsMessage(err.Error(), uuidInfo.OperationID, "agent_message_bad_staging", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+			}
 			/*
 				if err == nil {
 					outerUUID = response["uuid"].(string)
@@ -381,6 +393,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 			finalBytes, err := handleAgentMessageStagingTranslation(&decryptedMessage, uuidInfo)
 			if err != nil {
 				logging.LogError(err, "Failed to handle translation staging function")
+				go SendAllOperationsMessage(err.Error(), uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 				instanceResponse.Err = err
 				return response
 			}
@@ -392,9 +405,10 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		{
 			logging.LogError(nil, "Unknown action in message from agent", "action", decryptedMessage["action"])
 			err = errors.New("unknown action in message from agent")
+			go SendAllOperationsMessage(err.Error(), uuidInfo.OperationID, "agent_message_bad_staging", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		}
 	}
-	if err != nil {
+	if err != nil && agentMessageInput.C2Profile == "MythicRPC" {
 		logging.LogError(err, "Failed to process message from Mythic")
 		instanceResponse.Err = err
 		return response
@@ -403,7 +417,7 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 	if _, ok := decryptedMessage[CALLBACK_MESSAGE_KEY_RESPONSES]; ok {
 		// this means we got response data outside the post_response key, so handle it
 		if postResponseMap, postResponseMapErr := handleAgentMessagePostResponse(&decryptedMessage, uuidInfo); postResponseMapErr != nil {
-			logging.LogError(err, "Failed to process 'responses' key in non-standard action")
+			logging.LogError(postResponseMapErr, "Failed to process 'responses' key in non-standard action")
 			response["status"] = "error"
 		} else {
 			for key, val := range postResponseMap {

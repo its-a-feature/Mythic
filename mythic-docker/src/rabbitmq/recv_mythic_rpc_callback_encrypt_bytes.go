@@ -4,12 +4,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type MythicRPCCallbackEncryptBytesMessage struct {
-	AgentCallbackUUID   string `json:"agent_callback_id"` //required
+	AgentCallbackID     string `json:"agent_callback_id"` //required
 	Message             []byte `json:"message"`           // required
 	IncludeUUID         bool   `json:"include_uuid"`
 	Base64ReturnMessage bool   `json:"base64_message"`
@@ -45,7 +46,7 @@ func MythicRPCCallbackEncryptBytes(input MythicRPCCallbackEncryptBytesMessage) M
 	}
 }
 func CallbackEncryptMessage(input MythicRPCCallbackEncryptBytesMessage) ([]byte, error) {
-	cachedInfo, err := LookupEncryptionData(input.C2Profile, input.AgentCallbackUUID, false)
+	cachedInfo, err := LookupEncryptionData(input.C2Profile, input.AgentCallbackID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func CallbackEncryptMessage(input MythicRPCCallbackEncryptBytesMessage) ([]byte,
 		}
 		//logging.LogDebug("CallbackEncryptMessage", "encrypted", cipherText)
 		if input.IncludeUUID {
-			uuidBytes, err := GetUUIDBytes(input.AgentCallbackUUID, cachedInfo.PayloadTypeMessageUUIDLength)
+			uuidBytes, err := GetUUIDBytes(input.AgentCallbackID, cachedInfo.PayloadTypeMessageUUIDLength)
 			if err != nil {
 				return nil, err
 			}

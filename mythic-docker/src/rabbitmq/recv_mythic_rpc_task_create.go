@@ -10,7 +10,8 @@ import (
 )
 
 type MythicRPCTaskCreateMessage struct {
-	AgentCallbackID     string  `json:"agent_callback_id"`
+	AgentCallbackID     *string `json:"agent_callback_id"`
+	CallbackID          *int    `json:"callback_id"`
 	CommandName         string  `json:"command_name"`
 	PayloadTypeName     *string `json:"payload_type_name"`
 	Params              string  `json:"params"`
@@ -52,13 +53,13 @@ func MythicRPCTaskCreate(input MythicRPCTaskCreateMessage) MythicRPCTaskCreateMe
 	}
 	callback := databaseStructs.Callback{}
 	err := database.DB.Get(&callback, `SELECT 
-		callback.id,
+		callback.id, callback.agent_callback_id,
 		callback.display_id,
 		callback.operation_id,
 		operator.id "operator.id"
 		FROM callback
 		JOIN operator ON callback.operator_id = operator.id
-		WHERE callback.agent_callback_id=$1`, input.AgentCallbackID)
+		WHERE callback.agent_callback_id=$1 OR callback.id=$2`, input.AgentCallbackID, input.CallbackID)
 	if err != nil {
 		response.Error = err.Error()
 		logging.LogError(err, "Failed to fetch task/callback information when creating subtask")

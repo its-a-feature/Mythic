@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -11,10 +12,10 @@ import (
 
 type MythicRPCOperationEventLogCreateMessage struct {
 	// three optional ways to specify the operation
-	TaskId          *int    `json:"task_id"`
-	CallbackId      *int    `json:"callback_id"`
-	CallbackAgentId *string `json:"callback_agent_id"`
-	OperationId     *int    `json:"operation_id"`
+	TaskID          *int    `json:"task_id"`
+	CallbackID      *int    `json:"callback_id"`
+	AgentCallbackID *string `json:"callback_agent_id"`
+	OperationID     *int    `json:"operation_id"`
 	// the data to store
 	Message      string                `json:"message"`
 	MessageLevel database.MESSAGE_TYPE `json:"level"` //info or warning
@@ -40,35 +41,35 @@ func MythicRPCOperationEventLogCreate(input MythicRPCOperationEventLogCreateMess
 		Success: false,
 	}
 	operationId := 0
-	if input.TaskId != nil {
+	if input.TaskID != nil {
 		task := databaseStructs.Task{}
-		if err := database.DB.Get(&task, `SELECT operation_id FROM task WHERE id=$1`, input.TaskId); err != nil {
+		if err := database.DB.Get(&task, `SELECT operation_id FROM task WHERE id=$1`, input.TaskID); err != nil {
 			logging.LogError(err, "Failed to find task for creating operation event log")
 			response.Error = err.Error()
 			return response
 		} else {
 			operationId = task.OperationID
 		}
-	} else if input.CallbackId != nil {
+	} else if input.CallbackID != nil {
 		callback := databaseStructs.Callback{}
-		if err := database.DB.Get(&callback, `SELECT operation_id FROM callback WHERE id=$1`, input.CallbackId); err != nil {
+		if err := database.DB.Get(&callback, `SELECT operation_id FROM callback WHERE id=$1`, input.CallbackID); err != nil {
 			logging.LogError(err, "Failed to find callback for creating operation event log")
 			response.Error = err.Error()
 			return response
 		} else {
 			operationId = callback.OperationID
 		}
-	} else if input.CallbackAgentId != nil {
+	} else if input.AgentCallbackID != nil {
 		callback := databaseStructs.Callback{}
-		if err := database.DB.Get(&callback, `SELECT operation_id FROM callback WHERE agent_callback_id=$1`, input.CallbackAgentId); err != nil {
+		if err := database.DB.Get(&callback, `SELECT operation_id FROM callback WHERE agent_callback_id=$1`, input.AgentCallbackID); err != nil {
 			logging.LogError(err, "Failed to find callback for creating operation event log")
 			response.Error = err.Error()
 			return response
 		} else {
 			operationId = callback.OperationID
 		}
-	} else if input.OperationId != nil {
-		operationId = *input.OperationId
+	} else if input.OperationID != nil {
+		operationId = *input.OperationID
 	}
 	if input.MessageLevel == "warning" {
 		input.MessageLevel = database.MESSAGE_LEVEL_INFO

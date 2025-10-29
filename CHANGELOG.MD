@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.8] - 2025-10-29
+
+### Changed
+
+- Added support for a new MythicRPCCallbackEdgeRemove RPC call to allow developers to selectively remove edges
+- Added support for a new MythicRPCHandleAgentJson RPC call to allow developers to submit standard Mythic JSON messages here for processing after using a translation container instead of hitting a bunch of various other RPC calls to create their needed objects
+- Updating MythicRPCCallbackEdgeSearch to also return self edges - i.e. an egress' edge to Mythic
+  - This is a change where before it would only return P2P edges in the graph
+- Updated MythicRPCTaskCreate to take in either AgentCallbackID or CallbackID
+- Added a few more spots in agent message processing to emit error information to the operation event log
+  
 ## [3.4.7] - 2025-10-28
 
 ### Changed

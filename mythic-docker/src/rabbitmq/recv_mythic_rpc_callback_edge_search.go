@@ -43,6 +43,7 @@ func init() {
 func MythicRPCCallbackEdgeSearch(input MythicRPCCallbackEdgeSearchMessage) MythicRPCCallbackEdgeSearchMessageResponse {
 	response := MythicRPCCallbackEdgeSearchMessageResponse{
 		Success: false,
+		Results: []MythicRPCCallbackEdgeSearchMessageResult{},
 	}
 
 	searchString := `SELECT 
@@ -52,7 +53,7 @@ func MythicRPCCallbackEdgeSearch(input MythicRPCCallbackEdgeSearchMessage) Mythi
 			JOIN callback s on callbackgraphedge.source_id = s.id
 			JOIN callback d on callbackgraphedge.destination_id = d.id
 			JOIN c2profile c2 on callbackgraphedge.c2_profile_id = c2.id
-			WHERE s.id != d.id AND (s.agent_callback_id=:agent_callback_id OR s.id=:id OR 
+			WHERE (s.agent_callback_id=:agent_callback_id OR s.id=:id OR 
 			      d.agent_callback_id=:agent_callback_id OR d.id=:id)`
 
 	rows, err := database.DB.NamedQuery(searchString, databaseStructs.Callback{

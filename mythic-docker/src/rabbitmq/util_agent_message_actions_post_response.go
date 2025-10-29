@@ -328,8 +328,8 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 	cachedFileData := make(map[string]databaseStructs.Filemeta)
 	if err != nil {
 		logging.LogError(err, "Failed to decode agent message into struct, ignoring and continuing on")
-		delete(*incoming, "responses")
 		badMessageString, err2 := json.MarshalIndent(incoming, "", "    ")
+		delete(*incoming, "responses")
 		if err2 != nil {
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to process agent message: \n%s\n%s\n", err2.Error(), err.Error()),
 				uUIDInfo.OperationID, "agent_message_bad_post_response", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
@@ -338,7 +338,8 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			go SendAllOperationsMessage(badMessage,
 				uUIDInfo.OperationID, "agent_message_bad_post_response", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 		}
-		return map[string]interface{}{}, nil
+		// returning nil so that we can continue processing other message pieces if they exist
+		return map[string]interface{}{}, err
 	}
 	responses := []map[string]interface{}{}
 	// iterate over the agent messages
