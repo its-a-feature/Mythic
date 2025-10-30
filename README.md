@@ -2,7 +2,7 @@
 <a href="https://github.com/its-a-feature/Mythic/pulse">
         <img src="https://img.shields.io/github/commit-activity/m/its-a-feature/Mythic/master" 
           alt="Activity"/></a>
-<img src="https://img.shields.io/badge/version-3.3.1rc88-blue" alt="version 3.3.1-rc88"/>
+<img src="https://img.shields.io/github/v/tag/its-a-feature/Mythic?include_prereleases&label=Latest GitHub Tag"/>
 <img src="https://img.shields.io/github/commits-since/its-a-feature/Mythic/latest?include_prereleases&color=orange" 
   alt="commits since last release"/>
 <a href="https://twitter.com/its_a_feature_">
@@ -53,8 +53,8 @@ This will _NOT_ do the update for you, but let you know if an update exists. To 
 
 ## Mythic Docker Containers
 <p align="left">
-  <img src="https://img.shields.io/docker/v/itsafeaturemythic/mythic_go_base?color=green&label=Latest Release&sort=semver" alt="latest docker versions"/> 
-  <img src="https://img.shields.io/github/v/release/MythicMeta/Mythic_Docker_Templates?include_prereleases&label=Latest%20Pre-Release"/>
+  <img src="https://img.shields.io/docker/v/itsafeaturemythic/mythic_go_base?color=green&label=Latest DockerHub Release&sort=semver" alt="latest docker versions"/> 
+  <img src="https://img.shields.io/github/v/tag/MythicMeta/Mythic_Docker_Templates?include_prereleases&label=Latest GitHub Tag"/>
 </p>
 
 Mythic uses Docker and Docker-compose for all of its components, which allows Mythic to provide a wide range of components and features without having requirements exist on the host. However, it can be helpful to have insight into how the containers are configured. All of Mythic's docker containers are hosted on DockerHub under [itsafeaturemythic](https://hub.docker.com/search?q=itsafeaturemythic&type=image).
@@ -90,7 +90,7 @@ Dockerfiles for each of these Docker images can be found on [MythicMeta](https:/
   <img src="https://img.shields.io/pypi/dm/mythic-container" alt="mythic-container downloads" />
   <img src="https://img.shields.io/pypi/pyversions/mythic-container" alt="mythic-container python version" />
   <img src="https://img.shields.io/pypi/v/mythic-container?color=green&label=Latest%20stable%20PyPi" alt="mythic-container version" />
-  <img src="https://img.shields.io/github/v/release/MythicMeta/MythicContainerPypi?include_prereleases&label=Latest Pre-Release&color=orange" alt="latest release" />
+  <img src="https://img.shields.io/github/v/tag/MythicMeta/MythicContainerPypi?include_prereleases&label=Latest GitHub Tag&color=orange" alt="latest tags" />
 </p>
 
 The `mythic-container` PyPi package source code is available on [MythicMeta](https://github.com/MythicMeta/MythicContainerPyPi) and is automatically installed on all of the `mythic_python_*` Docker images.
@@ -100,8 +100,7 @@ This PyPi package is responsible for connecting to RabbitMQ, syncing your data t
 ### github.com/MythicMeta/MythicContainer
 <p align="left">
   <img src="https://img.shields.io/github/go-mod/go-version/MythicMeta/MythicContainer" alt="MythicContainer go version"/>
-  <img src="https://img.shields.io/github/v/release/MythicMeta/MythicContainer?label=Latest%20Stable&color=green" alt="MythicContainer latest stable version" />
-  <img src="https://img.shields.io/github/v/release/MythicMeta/MythicContainer?include_prereleases&label=Latest Pre-Release&color=orange" alt="MythicContainer latest version" />
+  <img src="https://img.shields.io/github/v/tag/MythicMeta/MythicContainer?label=Latest%20GitHub%20Tag&color=green" alt="MythicContainer latest stable version" />
 </p>
 
 The `github.com/MythicMeta/MythicContainer` Golang package source code is available on [MythicMeta](https://github.com/MythicMeta/MythicContainer).
@@ -113,7 +112,7 @@ This Golang package is responsible for connecting to RabbitMQ, syncing your data
   <img src="https://img.shields.io/pypi/dm/mythic" alt="mythic scripting downloads" />
   <img src="https://img.shields.io/pypi/pyversions/mythic" alt="mythic scripting python version" />
   <img src="https://img.shields.io/pypi/v/mythic?color=green&label=Latest%20Stable%20PyPi" alt="mythic scripting latest pypi version" />
-<img src="https://img.shields.io/github/v/release/MythicMeta/Mythic_Scripting?include_prereleases&label=Latest Pre-Release&color=orange" alt="latest release" />
+<img src="https://img.shields.io/github/v/tag/MythicMeta/Mythic_Scripting?include_prereleases&label=Latest GitHub Tag&color=orange" alt="latest release" />
 </p>
 
 
@@ -150,8 +149,4 @@ This is an open source project meant to be used with authorization to assess the
 * BSides Seattle 2019 Slides: [Ready Player 2: Multiplayer Red Teaming against macOS](https://www.slideshare.net/CodyThomas6/ready-player-2-multiplayer-red-teaming-against-macos)
 * BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.com/playlist?list=PLHVFedjbv6sOz8OGuLdomdkr6-7VdMRQ9)
 * Objective By the Sea 2019 talk on JXA: https://objectivebythesea.com/v2/talks/OBTS_v2_Thomas.pdf
-* Objective By the sea 2019 Video: https://www.youtube.com/watch?v=E-QEsGsq3uI&list=PLliknDIoYszvTDaWyTh6SYiTccmwOsws8&index=17  
-
-## File Icon Attribution
-
-* [bin/txt file icons](https://www.flaticon.com/packs/file-types-31?word=file%20extension) - created by Icon home - Flaticon
+* Objective By the sea 2019 Video: https://www.youtube.com/watch?v=E-QEsGsq3uI&list=PLliknDIoYszvTDaWyTh6SYiTccmwOsws8&index=17
