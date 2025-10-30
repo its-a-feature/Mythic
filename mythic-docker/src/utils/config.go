@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const mythicServerVersion = "3.4.8"
+const mythicServerVersion = "3.4.9"
 
 type Config struct {
 	// server configuration

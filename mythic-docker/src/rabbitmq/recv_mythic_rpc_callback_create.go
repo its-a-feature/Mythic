@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -12,8 +15,6 @@ import (
 	"github.com/its-a-feature/Mythic/utils"
 	"github.com/mitchellh/mapstructure"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"slices"
-	"strings"
 )
 
 type MythicRPCCallbackCreateMessage struct {
@@ -366,6 +367,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 			OperationID: triggerData.OperationID,
 			OperatorID:  triggerData.OperatorID,
 			CallbackID:  triggerData.ID,
+			PayloadID:   callback.RegisteredPayloadID,
 		}
 	}(callback)
 
