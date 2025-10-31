@@ -139,8 +139,10 @@ func c2Sync(in C2SyncMessage) error {
 		c2Profile.Description = in.Profile.Description
 		c2Profile.Deleted = false
 		c2Profile.SemVer = in.Profile.SemVer
-		if in.Profile.AgentIcon != nil || in.Profile.DarkModeAgentIcon != nil {
+		if (in.Profile.AgentIcon != nil && len(*in.Profile.AgentIcon) > 0) || (in.Profile.DarkModeAgentIcon != nil && len(*in.Profile.DarkModeAgentIcon) > 0) {
 			c2Profile.HasLogo = true
+		} else {
+			c2Profile.HasLogo = false
 		}
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO c2profile 
 			("name",author,container_running,is_p2p,is_server_routed,description, running, deleted, has_logo, semver) 
@@ -168,7 +170,7 @@ func c2Sync(in C2SyncMessage) error {
 		c2Profile.Description = in.Profile.Description
 		c2Profile.Deleted = false
 		c2Profile.SemVer = in.Profile.SemVer
-		if in.Profile.AgentIcon != nil || in.Profile.DarkModeAgentIcon != nil {
+		if (in.Profile.AgentIcon != nil && len(*in.Profile.AgentIcon) > 0) || (in.Profile.DarkModeAgentIcon != nil && len(*in.Profile.DarkModeAgentIcon) > 0) {
 			c2Profile.HasLogo = true
 		} else {
 			c2Profile.HasLogo = false
