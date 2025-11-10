@@ -115,7 +115,7 @@ export function Step5Build(props){
             }
         }
         let c2Profiles = [];
-        for(let i = 0; i < props.buildOptions[3].c2.length; i++){
+        for(let i = 0; i < props.buildOptions[3]?.c2?.length; i++){
             let instanceParam = {};
             let c2params = GetGroupedParameters({
                 buildParameters: props.buildOptions[3].c2[i].c2profileparameters,

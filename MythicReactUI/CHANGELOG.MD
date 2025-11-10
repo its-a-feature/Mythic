@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.82] - 2025-11-10
+
+### Changed
+
+- Fixed an issue with creating payloads without including any C2 profiles
+
 ## [0.3.81] - 2025-10-29
 
 ### Changed
