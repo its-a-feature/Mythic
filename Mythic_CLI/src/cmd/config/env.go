@@ -318,6 +318,9 @@ If this is false, then the local filesystem is mounted inside the container inst
 	mythicEnvInfo["rabbitmq_use_build_context"] = `The mythic_rabbitmq container by default pulls configuration from a pre-compiled Docker image hosted on GitHub's Container Registry (ghcr.io). 
 Setting this to "true" means that the local Mythic/rabbitmq-docker/Dockerfile is used to generate the image used for the mythic_rabbitmq container instead of the hosted image. `
 
+	mythicEnv.SetDefault("rabbitmq_vhost", "mythic_vhost")
+	mythicEnvInfo["rabbitmq_vhost"] = `The VHost attribute on RabbitMQ allows you to logically separate queues into separate "hosts" while keeping the same names. This helps with collisions if you have multiple instances of something running concurrently.`
+
 	// jwt configuration ---------------------------------------------
 	mythicEnv.SetDefault("jwt_secret", utils.GenerateRandomPassword(30))
 	mythicEnvInfo["jwt_secret"] = `This is the randomly generated password used to sign JWTs to ensure they're valid for this Mythic instance`
