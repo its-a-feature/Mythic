@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.83] - 2025-12-10
+
+### Changed
+
+- Updated context menu for virtualized tables
+- Updated column adjustment icon for virtualized tables to be || instead of three vertical dots
+- Updated virtualized table header context menu display type
+- Updated minimum column width for virtualized columns to be 100 instead of 20
+- Updated virtualized tree views to check item.has_children instead of item.metadata.has_children
+  - this is in support of custom browsers
+- Updated context menu for callbacks to display custom browser support
+- Updated callback tabs to have customFileBasedBrowser type for new custom browser support
+- Added custom browser table and tree views
+- Updated file browser to come more inline with custom browsers
+- Updated context menu for virtualized tree to have some copy options
+- Fixed an issue with `\\` in tasking on the command line when not surrounded by quotes
+- Updated token select in browser views to not be so squished
+- Updated split tasking view to align content
+- Added new `database` view for file previews with sql.js and wasm
+- Updated `icon` usage in browser scripts to support just supplying the font awesome name instead of a curated list
+  - https://fontawesome.com/v6/search?s=solid&ic=free-collection all of these should be available
+- Updated task display to allow showing of operator names that bypassed OPSEC checks
+- Updated task buttons for split view to be along the right-hand side instead of a floating speeddial button at the bottom
+- Added verifier_regex to command parameters
+- Fixed a UI bug where display names of command parameter descriptions/names would overflow
+- Added support for broader range of hide conditions in payload type build parameters
+- Fixed a UI bug where payload selection options for wrappers weren't all sorted by time
+- Updated Eventing Instance Table view to be more in line with other virtualized tables
+- Updated view to show "selected" eventing workflow and task in split view tasking to be easier to see
+- Updated detailed payload views to show parameter names and descriptions, just like the building views
+- Updated hovering over payloads to show payload type semver when payload was created vs currently installed version
+- Added CustomBrowser entry to the "Installed Services" page
+- Added CustomBrowser search page
+- Fixed Task/Callback links on Token search page 
+- Updated UI Configuration settings to support `showOPSECBypassUsername` and new `navBarBottomColor`
+  - the latter allows you to have gradients for the side navbar instead of just a solid color
+
 ## [0.3.82] - 2025-11-10
 
 ### Changed
