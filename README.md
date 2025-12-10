@@ -20,6 +20,9 @@
 # Mythic
 A cross-platform, post-exploit, red teaming framework built with GoLang, docker, docker-compose, and a web browser UI. It's designed to provide a collaborative and user friendly interface for operators, managers, and reporting throughout red teaming. 
 
+* Check out a [series of YouTube videos](https://ghst.ly/mythic-op) showing Operator usage
+* Check out a [series of YouTube videos](https://www.youtube.com/playlist?list=PLJK0fZNGiFU_iJI2A8S5OdloTDexi5zs8) showing Developer tips and tricks
+
 ## Starting Mythic
 
 Mythic is controlled via the `mythic-cli` binary. To generate the binary, run `sudo make` from the main Mythic directory. 
@@ -29,7 +32,7 @@ More specific setup instructions, configurations, examples, screenshots, and mor
 
 ## Installing Agents and C2 Profiles
 
-The Mythic repository itself does not host any Payload Types or any C2 Profiles. Instead, Mythic provides a command, `./mythic-cli install github <url> [branch name] [-f]`, that can be used to install agents into a current Mythic instance.
+The Mythic repository itself does not host any Payload Types or any C2 Profiles. Instead, Mythic provides a command, `./mythic-cli install github <url> [-b branch name] [-f]`, that can be used to install agents into a current Mythic instance.
 
 Payload Types and C2 Profiles can be found on the [overview](https://mythicmeta.github.io/overview) page.
 
@@ -143,7 +146,6 @@ The following people have contributed a lot to the project. As you see their han
 This is an open source project meant to be used with authorization to assess the security posture and for research purposes.
 
 ## Historic References
-
 * Check out a [series of YouTube videos](https://www.youtube.com/playlist?list=PLHVFedjbv6sNLB1QqnGJxRBMukPRGYa-H) showing how Mythic looks/works and highlighting a few key features
 * Check out the [blog post](https://posts.specterops.io/a-change-of-mythic-proportions-21debeb03617) on the rebranding.
 * BSides Seattle 2019 Slides: [Ready Player 2: Multiplayer Red Teaming against macOS](https://www.slideshare.net/CodyThomas6/ready-player-2-multiplayer-red-teaming-against-macos)

@@ -34,7 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added some mutexes when syncing PayloadTypes to prevent possible race conditions
 - Updated file downloads to allow specifying a negative `total_chunks` until you're done and know how many chunks total there are
 - Added new `database` tab to file previews to run SQL queries on database right in the browser
-
+- Added the following new options for BuildParameter's HideConditionOperator
+  - LessThan, GreaterThan, LessThanOrEqual, GreaterThanOrEqual, StartsWith, EndsWith, Contains, NotContains
+  
 ## [3.4.10] - 2025-10-31
 
 ### Changed
