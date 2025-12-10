@@ -284,6 +284,9 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 return;
             }
             tokenOptions.current = data.data.callbacktoken;
+            if(tokenOptions.current.length === 0) {
+                props.changeSelectedToken("Default Token");
+            }
         }
       });
     useSubscription(contextSubscription, {
@@ -789,7 +792,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
         str.split('').forEach((value, i, s) => {
             //loop over every value in the string
             //console.log(value);
-            if(value === "\\"){
+            if( (sQuoted || dQuoted) && value === "\\"){
                 if(!backslash){
                     backslash = true;
                     return;
@@ -1794,11 +1797,11 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                               innerDialog={<MythicSelectFromListDialog onClose={() => {
                                   setOpenSelectCommandDialog(false);
                               }}
-                                                                       onSubmit={processCommandAndCommandLine}
-                                                                       options={commandOptions.current}
-                                                                       title={"Select Command"}
-                                                                       action={"select"} identifier={"id"}
-                                                                       display={"display"}/>}
+                           onSubmit={processCommandAndCommandLine}
+                           options={commandOptions.current}
+                           title={"Select Command"}
+                           action={"select"} identifier={"id"}
+                           display={"display"}/>}
                 />
             }
         </div>

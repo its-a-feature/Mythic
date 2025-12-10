@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useContext} from 'react';
-import {MythicDialog} from '../../MythicComponents/MythicDialog';
+import {MythicDialog, MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import {
     exportCallbackConfigQuery,
     hideCallbackMutation, lockCallbackMutation, unlockCallbackMutation, updateCallbackTriggerMutation,
@@ -7,7 +7,7 @@ import {
     updateSleepInfoCallbackMutation
 } from './CallbackMutations';
 import {snackActions} from '../../utilities/Snackbar';
-import {useMutation, useLazyQuery } from '@apollo/client';
+import {useMutation, useLazyQuery, gql } from '@apollo/client';
 import {
     CallbacksTableIDCell,
     CallbacksTableStringCell,
@@ -19,7 +19,6 @@ import {
     CallbacksTableIPCell, CallbacksTableTagsCell
 } from './CallbacksTableRow';
 import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
-import {TableFilterDialog} from './TableFilterDialog';
 import {CallbacksTabsHideMultipleDialog, CallbacksTabsSelectMultipleDialog} from "./CallbacksTabsHideMultipleDialog";
 import {CallbacksTabsTaskMultipleDialog} from "./CallbacksTabsTaskMultipleDialog";
 import ip6 from 'ip6';
@@ -56,7 +55,26 @@ import {CallbacksTableColumnsReorderDialog} from "./CallbacksTableColumnsReorder
 import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwoTone';
 import Typography from '@mui/material/Typography';
 import {EventTriggerContextSelectDialog} from "../Eventing/EventTriggerContextSelect";
+import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {faFilter} from '@fortawesome/free-solid-svg-icons';
 
+export const getCustomBrowsersQuery = gql(`
+query getCustomBrowsersQuery{
+    custombrowser(where: {deleted: {_eq: false}}, order_by: {name: asc}){
+        id
+        name
+        type
+        separator
+        columns
+        default_visible_columns
+        indicate_partial_listing
+        show_current_path
+        extra_table_inputs
+        row_actions
+        export_function
+    }
+}
+`);
 export const ipCompare = (a, b) => {
     let aJSON = JSON.parse(a);
     if(aJSON.length === 0){return 0}
@@ -316,7 +334,8 @@ function CallbacksTablePreMemo(props){
             console.log(data);
             snackActions.error("Failed to export configuration: " + data.message)
         }
-    })
+    });
+    const getCustomBrowsers = useMythicLazyQuery(getCustomBrowsersQuery, {fetchPolicy: "no-cache"});
     const taskingData = React.useRef({"parameters": "", "ui_feature": "callback_table:exit"});
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
     const eventingDataRef = React.useRef({});
@@ -327,7 +346,10 @@ function CallbacksTablePreMemo(props){
         updateTrigger({variables: {callback_display_id: openTriggerDialog.display_id, trigger_on_checkin_after_time: newTriggerValue}})
         setOpenTriggerDialog({...openTriggerDialog, open: false});
     }
-    const onRowContextClick = ({rowDataStatic}) => {
+    async function getCustomBrowsersForContextMenu(){
+        return await getCustomBrowsers({}).then(result => {return result.data?.custombrowser});
+    }
+    async function onRowContextClick({rowDataStatic}) {
         // based on row, return updated options array?
         let defaultInteractIcon = <KeyboardIcon style={{paddingRight: "5px"}}/>;
         if(interactType === "interactSplit"){
@@ -335,6 +357,26 @@ function CallbacksTablePreMemo(props){
         } else if(interactType === "interactConsole"){
             defaultInteractIcon = <TerminalIcon style={{paddingRight: "5px"}}/>;
         }
+        let customBrowsers = await getCustomBrowsersForContextMenu();
+        customBrowsers = customBrowsers.map(b => {
+            return {
+                name: b.name,
+                icon: b.type === 'file' ? <FontAwesomeIcon icon={faFolderOpen} style={{color: theme.folderColor, cursor: "pointer", marginRight: "10px"}} /> : <AccountTreeIcon style={{paddingRight: "5px"}}/>,
+                click: ({event}) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const tabType = b.type === 'file' ? 'customFileBasedBrowser' : 'customProcessBasedBrowser';
+                    onOpenTab({
+                        tabType: tabType,
+                        tabID: rowDataStatic.id + tabType + b.name,
+                        callbackID: rowDataStatic.id,
+                        color: rowDataStatic.color,
+                        displayID: rowDataStatic.display_id,
+                        customBrowser: b
+                    });
+                }
+            }
+        })
         return  [
             {
                 name: <div style={{display: "flex", flexDirection: "column"}}>
@@ -433,6 +475,7 @@ function CallbacksTablePreMemo(props){
                     {
                         name: 'File Browser', icon: <FontAwesomeIcon icon={faFolderOpen} style={{color: theme.folderColor, cursor: "pointer", marginRight: "10px"}} />,
                         click: ({event}) => {
+                            event.preventDefault();
                             event.stopPropagation();
                             const tabType = "fileBrowser";
                             onOpenTab({
@@ -446,6 +489,7 @@ function CallbacksTablePreMemo(props){
                     {
                         name: 'Process Browser', icon: <AccountTreeIcon style={{paddingRight: "5px"}}/>,
                         click: ({event}) => {
+                            event.preventDefault();
                             event.stopPropagation();
                             const tabType = "processBrowser";
                             onOpenTab({
@@ -456,6 +500,17 @@ function CallbacksTablePreMemo(props){
                                 displayID: rowDataStatic.display_id});
                         }
                     },
+                    {
+                        name: <div style={{display: "flex", flexDirection: "column", width: "100%"}}>
+                            <Typography>
+                                {"Custom Agent Browsers:"}
+                            </Typography>
+                        </div>,
+                        icon: null, click: ({event}) => {},
+                        type: "item",
+                        disabled: true
+                    },
+                    ...customBrowsers
                 ]
             },
             {
@@ -583,10 +638,10 @@ function CallbacksTablePreMemo(props){
             }
         ];
     }
-    const callbackDropdown = ({rowDataStatic, event}) => {
-        callbackDropdownRef.current.options = onRowContextClick({rowDataStatic});
+    async function callbackDropdown({rowDataStatic, event}) {
+        callbackDropdownRef.current.options = await onRowContextClick({rowDataStatic});
         callbackDropdownRef.current.callback = rowDataStatic;
-        callbackDropdownRef.current.dropdownAnchorRef = event.currentTarget;
+        callbackDropdownRef.current.dropdownAnchorRef = event?.currentTarget || event.target;
         setOpenCallbackDropdown(true);
     }
     React.useEffect( () => {
@@ -679,23 +734,28 @@ function CallbacksTablePreMemo(props){
     }, []);
     const contextMenuOptions = [
         {
-            name: 'Filter Column', 
+            name: 'Filter Column', type: "item",
+            icon: <FontAwesomeIcon icon={faFilter} style={{paddingRight: "5px"}} />,
             click: ({event, columnIndex}) => {
-                event.preventDefault();
-                event.stopPropagation();
+                if(event){
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
                 if(columns[columnIndex].disableFilterMenu){
                     snackActions.warning("Can't filter that column");
                     return;
                 }
                 setSelectedColumn(columns[columnIndex]);
                 setOpenContextMenu(true);
-            }
+            },
         },
         {
-            name: "Reorder Columns and Adjust Visibility",
+            name: "Reorder Columns and Adjust Visibility", type: "item", icon: null,
             click: ({event, columnIndex}) => {
-                event.preventDefault();
-                event.stopPropagation();
+                if(event){
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
                 setOpenReorderDialog(true);
             }
         }
@@ -882,10 +942,10 @@ function CallbacksTablePreMemo(props){
             }
         }, [])
     }, [callbacks, sortData, filterOptions, columnVisibility, clickedCallbackID]);
-    const onSubmitFilterOptions = (newFilterOptions) => {
-      setFilterOptions(newFilterOptions);
+    const onSubmitFilterOptions = (value) => {
+        setFilterOptions({...filterOptions, [selectedColumn.key]: value });
       try{
-          updateSetting({setting_name: "callbacks_table_filter_options", value: newFilterOptions});
+          updateSetting({setting_name: "callbacks_table_filter_options", value: {...filterOptions, [selectedColumn.key]: value }});
       }catch(error){
           console.log("failed to save filter options");
       }
@@ -963,11 +1023,14 @@ function CallbacksTablePreMemo(props){
           {openContextMenu &&
               <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
                   onClose={()=>{setOpenContextMenu(false);}} 
-                  innerDialog={<TableFilterDialog 
-                      selectedColumn={selectedColumn} 
-                      filterOptions={filterOptions} 
-                      onSubmit={onSubmitFilterOptions} 
-                      onClose={()=>{setOpenContextMenu(false);}} />}
+                  innerDialog={<MythicModifyStringDialog
+                      title='Filter Column'
+                      onSubmit={onSubmitFilterOptions}
+                      value={filterOptions[selectedColumn.key]}
+                      onClose={() => {
+                          setOpenContextMenu(false);
+                      }}
+                  />}
               />
           }
             {openEditDescriptionDialog &&

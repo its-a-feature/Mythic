@@ -188,10 +188,15 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         }
         return tempData;
     }, [allData, sortData]);
-    const onSubmitFilterOptions = (newFilterOptions) => {
-        setFilterOptions(newFilterOptions);
+    const onSubmitFilterOptions = (value) => {
+        setFilterOptions({...filterOptions, [selectedColumn.key]: value });
     }
     const filterRow = (row) => {
+        if(props.treeRootData[props.selectedFolderData.group] === undefined ||
+            props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host] === undefined ||
+            props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row] === undefined) {
+            return true;
+        }
         if(!props.showDeletedFiles && props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.deleted){
             return true;
         }
@@ -216,7 +221,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                             treeRootData={props.treeRootData[props.selectedFolderData.group]}
                                             selectedFolderData={props.selectedFolderData} 
                                             rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]}
-                                            cellData={row}
+                                            cellData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.name_text}
                                             me={props.me}
                                             tabInfo={props.tabInfo}
                                             onTaskRowAction={props.onTaskRowAction} />;
@@ -224,7 +229,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                 return <FileBrowserTableRowNameCell 
                                             treeRootData={props.treeRootData[props.selectedFolderData.group]}
                                             selectedFolderData={props.selectedFolderData} 
-                                            cellData={row}
+                                            cellData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.name_text}
                                             rowData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]} />;
                             case "Size":
                                 return <TableRowSizeCell cellData={props.treeRootData[props.selectedFolderData.group][props.selectedFolderData.host][row]?.metadata?.size}
@@ -254,9 +259,9 @@ export const CallbacksTabsFileBrowserTable = (props) => {
             return "showTask";
         }else if(sortedData.length > 0 || props?.selectedFolderData?.success){
             return "normal";
-        } else if(sortedData.length === 0 && props?.selectedFolderData?.metadata?.has_children && props?.selectedFolderData?.success === null){
+        } else if(sortedData.length === 0 && props?.selectedFolderData?.has_children && props?.selectedFolderData?.success === null){
             return "fetchLocal";
-        }else if(sortedData.length === 0 && !props?.selectedFolderData?.metadata?.has_children && props?.selectedFolderData?.success === null) {
+        }else if(sortedData.length === 0 && !props?.selectedFolderData?.has_children && props?.selectedFolderData?.success === null) {
             return "fetchRemote";
         }else if(sortedData.length === 0){
             return "fetchRemote";
@@ -304,7 +309,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
     };
     const contextMenuOptions = [
         {
-            name: 'Filter Column', 
+            name: 'Filter Column', type: "item", icon: null,
             click: ({event, columnIndex}) => {
                 if(event){
                     event.stopPropagation();
@@ -319,7 +324,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
             }
         },
         {
-            name: "Show/Hide Columns",
+            name: "Show/Hide Columns",type: "item", icon: null,
             click: ({event, columnIndex}) => {
                 if(event){
                     event.stopPropagation();
@@ -365,7 +370,9 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                     icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
                     click: ({event}) => {
                         event.stopPropagation();
-                        copyStringToClipboard(element.name_text);
+                        if(copyStringToClipboard(element.name_text)){
+                            snackActions.success("Copied to clipboard");
+                        }
                     },
                 },
                 {
@@ -373,22 +380,26 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                     icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
                     click: ({event}) => {
                         event.stopPropagation();
-                        copyStringToClipboard(element.full_path_text);
+                        if(copyStringToClipboard(element.full_path_text)){
+                            snackActions.success("Copied to clipboard");
+                        }
                     },
                 },
                 {
-                    name: 'Attributes', type: "item",
+                    name: 'Metadata', type: "item",
                     icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
                     click: ({event}) => {
                         event.stopPropagation();
-                        copyStringToClipboard(JSON.stringify(element?.metadata?.permissions, null, 2));
+                        if(copyStringToClipboard(JSON.stringify(element?.metadata?.permissions, null, 2))){
+                            snackActions.success("Copied to clipboard");
+                        }
                     },
                 },
             ]
         },
     ]
     async function optionsB (callback_id, callback_display_id, element) {
-        let downloadCommand = await props.getLoadedCommandForUIFeature(callback_id, element.can_have_children ?  "file_browser:download_folder" : "file_browser:download");
+        let downloadCommand = await props.getLoadedCommandForUIFeature(callback_id, element.can_have_children ?  props.baseUIFeature + ":download_folder" : props.baseUIFeature + ":download");
         let downloadDisplay = "Download (Unsupported)";
         if(element.can_have_children){
             downloadDisplay = "Download Folder (Unsupported)";
@@ -399,12 +410,12 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                 downloadDisplay = `Download Folder (${downloadCommand.command.cmd})`;
             }
         }
-        let listCommand = await props.getLoadedCommandForUIFeature(callback_id, "file_browser:list");
+        let listCommand = await props.getLoadedCommandForUIFeature(callback_id, props.baseUIFeature + ":list");
         let listDisplay = "List (Unsupported)";
         if(listCommand !== undefined){
             listDisplay = `List (${listCommand.command.cmd})`;
         }
-        let removeCommand = await props.getLoadedCommandForUIFeature(callback_id, "file_browser:remove");
+        let removeCommand = await props.getLoadedCommandForUIFeature(callback_id, props.baseUIFeature + ":remove");
         let removeDisplay = "Remove (Unsupported)";
         if(removeCommand !== undefined){
             removeDisplay = `Remove (${removeCommand.command.cmd})`;
@@ -421,7 +432,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                         full_path: element.full_path_text,
                         host: element.host,
                         filename: element.name_text,
-                        uifeature: element.can_have_children ? 'file_browser:download_folder' : 'file_browser:download',
+                        uifeature: element.can_have_children ? props.baseUIFeature + ':download_folder' : props.baseUIFeature + ':download',
                         callback_id, callback_display_id
                     });
                 },
@@ -436,7 +447,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                         full_path: element.full_path_text,
                         host: element.host,
                         filename: element.name_text,
-                        uifeature: 'file_browser:list',
+                        uifeature: props.baseUIFeature + ':list',
                         callback_id, callback_display_id
                     });
                 },
@@ -451,7 +462,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                         full_path: element.full_path_text,
                         host: element.host,
                         filename: element.name_text,
-                        uifeature: 'file_browser:remove',
+                        uifeature: props.baseUIFeature + ':remove',
                         getConfirmation: true,
                         callback_id, callback_display_id
                     });
@@ -476,7 +487,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                 full_path: selectedRows[i].full_path_text,
                                 host: selectedRows[i].host,
                                 filename: selectedRows[i].name_text,
-                                uifeature: selectedRows[i].can_have_children ? 'file_browser:download_folder': 'file_browser:download',
+                                uifeature: selectedRows[i].can_have_children ? props.baseUIFeature + ':download_folder': props.baseUIFeature + ':download',
                                 callback_id: props.tabInfo.callbackID,
                                 callback_display_id: props.tabInfo.displayID
                             });
@@ -496,7 +507,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                 full_path: selectedRows[i].full_path_text,
                                 host: selectedRows[i].host,
                                 filename: selectedRows[i].name_text,
-                                uifeature: 'file_browser:remove',
+                                uifeature: props.baseUIFeature + ':remove',
                                 getConfirmation: true,
                                 callback_id: props.tabInfo.callbackID,
                                 callback_display_id: props.tabInfo.displayID
@@ -517,7 +528,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                                 full_path: selectedRows[i].full_path_text,
                                 host: selectedRows[i].host,
                                 filename: selectedRows[i].name_text,
-                                uifeature: 'file_browser:list',
+                                uifeature: props.baseUIFeature + ':list',
                                 callback_id: props.tabInfo.callbackID,
                                 callback_display_id: props.tabInfo.displayID
                             });
@@ -619,15 +630,18 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                 <RenderSingleTask task_id={props.selectedFolderData?.task_id} />
             }
             {openContextMenu &&
-                <MythicDialog fullWidth={true} maxWidth="xs" open={openContextMenu}
-                              onClose={() => {
-                                  setOpenContextMenu(false);
-                              }}
-                              innerDialog={<TableFilterDialog
-                                  selectedColumn={selectedColumn}
-                                  filterOptions={filterOptions}
-                                  onSubmit={onSubmitFilterOptions}
-                        onClose={()=>{setOpenContextMenu(false);}} />}
+                <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
+                              onClose={()=>{setOpenContextMenu(false);}}
+                              innerDialog={
+                                  <MythicModifyStringDialog
+                                      title='Filter Column'
+                                      onSubmit={onSubmitFilterOptions}
+                                      value={filterOptions[selectedColumn.key]}
+                                      onClose={() => {
+                                          setOpenContextMenu(false);
+                                      }}
+                                  />
+                              }
                 />
             }
             {openAdjustColumnsDialog &&
@@ -646,8 +660,8 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
     const theme = useTheme();
 
     return (
-        <div style={{ alignItems: 'center', display: 'flex', maxHeight: "100%", textDecoration: treeRootData[selectedFolderData.host][cellData]?.deleted ? 'line-through' : '' }}>
-            {!treeRootData[selectedFolderData.host][cellData]?.can_have_children ? (
+        <div style={{ alignItems: 'center', display: 'flex', maxHeight: "100%", textDecoration: treeRootData[selectedFolderData.host][rowData.full_path_text]?.deleted ? 'line-through' : '' }}>
+            {!treeRootData[selectedFolderData.host][rowData.full_path_text]?.can_have_children ? (
                 <DescriptionIcon size={"small"} style={{
                     marginRight: '5px' }} />
             ) : (
@@ -658,7 +672,7 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
                         marginRight: '8px',
                         marginLeft: "4px",
                         color:
-                        treeRootData[selectedFolderData.host][cellData]?.success || treeRootData[selectedFolderData.host][cellData]?.metadata?.has_children
+                        treeRootData[selectedFolderData.host][rowData.full_path_text]?.success || treeRootData[selectedFolderData.host][rowData.full_path_text]?.has_children
                                 ? theme.folderColor
                                 : 'grey',
                     }}
@@ -667,17 +681,17 @@ const FileBrowserTableRowNameCell = ({cellData,  rowData, treeRootData, selected
             <pre 
                 style={{
                     color:
-                    treeRootData[selectedFolderData.host][cellData]?.success !== null
+                    treeRootData[selectedFolderData.host][rowData.full_path_text]?.success !== null
                             ? theme.palette.text.primary
                             : theme.palette.text.secondary,
                 }}>
-                {treeRootData[selectedFolderData.host][cellData]?.name_text}
+                {cellData}
             </pre>
-            {treeRootData[selectedFolderData.host][cellData]?.success === true ? (
+            {treeRootData[selectedFolderData.host][rowData.full_path_text]?.success === true ? (
                 <MythicStyledTooltip title='Successfully listed contents of folder' tooltipStyle={{display: "inline-flex", marginLeft: "5px"}}>
                     <CheckCircleOutlineIcon color="success" fontSize='small' />
                 </MythicStyledTooltip>
-            ) : treeRootData[selectedFolderData.host][cellData]?.success === false ? (
+            ) : treeRootData[selectedFolderData.host][rowData.full_path_text]?.success === false ? (
                 <MythicStyledTooltip title='Failed to list contents of folder' tooltipStyle={{display: "inline-flex", marginLeft: "5px"}}>
                     <ErrorIcon fontSize='small' color="error" />
                 </MythicStyledTooltip>
@@ -810,7 +824,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
     };
     const optionsA = [
         {
-            name: treeRootData[selectedFolderData.host][cellData]?.name_text, icon: null, click: ({event}) => {},
+            name: treeRootData[selectedFolderData.host][rowData.full_path_text]?.name_text, icon: null, click: ({event}) => {},
             type: "item", disabled: true
         },
         {
@@ -818,7 +832,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
             icon: <VisibilityIcon style={{ paddingRight: '5px' }} />,
             click: ({event}) => {
                 event.stopPropagation();
-                setPermissionData(treeRootData[selectedFolderData.host][cellData].metadata);
+                setPermissionData(treeRootData[selectedFolderData.host][rowData.full_path_text].metadata);
                 setViewPermissionsDialogOpen(true);
             },
         },
@@ -828,7 +842,7 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
             click: ({event}) => {
                 event.stopPropagation();
                 getHistory({ variables: {
-                    full_path_text: treeRootData[selectedFolderData.host][cellData].full_path_text,
+                    full_path_text: treeRootData[selectedFolderData.host][rowData.full_path_text].full_path_text,
                     host: selectedFolderData.host,
                     group: [selectedFolderData.group],
                 } });
@@ -867,8 +881,8 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                 ref={dropdownAnchorRef}>
                 <SettingsIcon />
             </IconButton>
-            {treeRootData[selectedFolderData.host][cellData]?.filemeta.length > 0 ?
-                <MythicStyledTooltip title={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.complete ?
+            {treeRootData[selectedFolderData.host][rowData.full_path_text]?.filemeta.length > 0 ?
+                <MythicStyledTooltip title={treeRootData[selectedFolderData.host][rowData.full_path_text]?.filemeta[0]?.complete ?
                     "Preview Media" : "Preview Partial Media"}>
                     <FontAwesomeIcon icon={faPhotoVideo} size={"1x"} style={{
                         position: "relative", cursor: "pointer", display: "inline-block"}}
@@ -880,8 +894,8 @@ const FileBrowserTableRowActionCell = ({ rowData, cellData, onTaskRowAction, tre
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
                               onClose={(e)=>{setOpenPreviewMediaDialog(false);}}
                               innerDialog={<PreviewFileMediaDialog
-                                  agent_file_id={treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.agent_file_id}
-                                  filename={b64DecodeUnicode(treeRootData[selectedFolderData.host][cellData]?.filemeta[0]?.filename_text)}
+                                  agent_file_id={treeRootData[selectedFolderData.host][rowData.full_path_text]?.filemeta[0]?.agent_file_id}
+                                  filename={b64DecodeUnicode(treeRootData[selectedFolderData.host][rowData.full_path_text]?.filemeta[0]?.filename_text)}
                                   onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
                 />
             }

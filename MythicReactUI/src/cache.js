@@ -27,6 +27,7 @@ export const operatorSettingDefaults =  {
     hideUsernames: false,
     showIP: false,
     showHostname: false,
+    showOPSECBypassUsername: false,
     showCallbackGroups: false,
     useDisplayParamsForCLIHistory: true,
     interactType: "interact",
@@ -108,8 +109,12 @@ export const operatorSettingDefaults =  {
             light: '#ffffff'
         },
         navBarColor: {
-            dark: "#2e373c",
-            light: "#3c4d67",
+            dark: "#194573",
+            light: "#3b606d",
+        },
+        navBarBottomColor: {
+            dark: "#330814",
+            light: "#283581",
         },
         taskPromptTextColor: {
             dark: '#bebebe',
@@ -130,6 +135,10 @@ export const operatorSettingDefaults =  {
         taskContextExtraColor: {
             dark: "#2a5953",
             light: "#a7ce9d",
+        },
+        emptyFolderColor: {
+            dark: '#bebebe',
+            light: '#a6a5a5'
         },
     },
 }

@@ -41,6 +41,7 @@ import 'ace-builds/src-noconflict/mode-apache_conf';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
+import TabContext from '@mui/lab/TabContext';
 import Tab from '@mui/material/Tab';
 import {previewFileQuery} from "../Search/FileMetaTable";
 import { useMutation, gql, useQuery } from '@apollo/client';
@@ -48,12 +49,20 @@ import CodeIcon from '@mui/icons-material/Code';
 import DownloadIcon from '@mui/icons-material/Download';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import {MythicDialog, TableRowSizeCell} from "../../MythicComponents/MythicDialog";
-import {Table, TableHead, TableRow, TableBody} from '@mui/material';
+import {Table, TableHead, TableRow, TableBody, TableCell, Paper} from '@mui/material';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import WarningOutlinedIcon from '@mui/icons-material/WarningOutlined';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {ResponseDisplayScreenshotModal} from "./ResponseDisplayScreenshotModal";
+import initSQLJS from 'sql.js';
+import TabPanel from '@mui/lab/TabPanel';
+import TabList from '@mui/lab/TabList';
+import {Backdrop, CircularProgress} from '@mui/material';
+// Required to let webpack 4 know it needs to copy the wasm file to our assets
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import sqlWasm from "!!file-loader?name=sql-wasm-[contenthash].wasm!sql.js/dist/sql-wasm.wasm";
+import {copyStringToClipboard} from "../../utilities/Clipboard";
 
 export const modeOptions = ["csharp", "golang", "html", "json", "markdown", "ruby", "python", "java",
     "javascript", "yaml", "toml", "swift", "sql", "rust", "powershell", "pgsql", "perl", "php", "objectivec",
@@ -121,7 +130,6 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
         <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
             <DisplayFileMetaData fileMetaData={fileMetaData} />
             <AppBar color={'default'} position='static' className={"no-box-shadow"}>
-
                 <Tabs
                     value={value}
                     onChange={handleChange}
@@ -139,6 +147,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     <Tab className={value === 0 ? "selectedCallback": ""} label={"Preview"}></Tab>
                     <Tab className={value === 1 ? "selectedCallback": ""} label={"Text"}></Tab>
                     <Tab className={value === 2 ? "selectedCallback": ""} label={"Hex"}></Tab>
+                    <Tab className={value === 3 ? "selectedCallback": ""} label={"Database"}></Tab>
                     <MythicStyledTooltip title={"Download the file"} tooltipStyle={{display: "inline-flex"}}>
                         <Button style={{}}  size={"small"} href={"/direct/download/" +  media.agent_file_id}
                                 download color={"success"}>
@@ -147,7 +156,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     </MythicStyledTooltip>
                 </Tabs>
             </AppBar>
-            <div hidden={value !== 0}  style={{height: "100%"}} role='tabpanel' >
+            <div hidden={value !== 0}  style={{height: "100%", overflow: "auto"}} role='tabpanel' >
                 {value === 0 &&
                     <DisplayMedia agent_file_id={media?.agent_file_id || ""}
                                   task={task} filename={media?.filename || undefined}
@@ -155,7 +164,7 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                                   expand={expand} />
                 }
             </div>
-            <div hidden={value !== 1} style={{height: "100%"}} role='tabpanel' >
+            <div hidden={value !== 1} style={{height: "100%", overflow: "auto"}} role='tabpanel' >
                 {value === 1 &&
                     <DisplayText agent_file_id={media?.agent_file_id || ""}
                                  task={task} filename={media?.filename || undefined}
@@ -163,9 +172,18 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                                  expand={expand} preview />
                 }
             </div>
-            <div hidden={value !== 2} style={{height: "100%"}} role='tabpanel' >
+            <div hidden={value !== 2} style={{height: "100%", overflow: "auto"}} role='tabpanel' >
                 {value === 2 &&
                     <DisplayHex agent_file_id={media?.agent_file_id || ""}
+                                task={task} filename={media?.filename || undefined}
+                                fileMetaData={fileMetaData}
+                                expand={expand} />
+                }
+
+            </div>
+            <div hidden={value !== 3} style={{height: "100%", overflow: "auto"}} role='tabpanel' >
+                {value === 3 &&
+                    <DisplayDatabase agent_file_id={media?.agent_file_id || ""}
                                 task={task} filename={media?.filename || undefined}
                                 fileMetaData={fileMetaData}
                                 expand={expand} />
@@ -353,7 +371,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
     }
     return null;
 }
-const MaxRenderSize = 2000000;
+const MaxRenderSize = 2000000; // 2MB
 const DisplayFileMetaData = ({fileMetaData}) => {
     return (
         <Table style={{marginLeft: "0px", width: "100%", tableLayout: "fixed"}}>
@@ -634,4 +652,258 @@ const DisplayHex = ({agent_file_id, expand, fileMetaData}) => {
                 </div>
             </div>
 );
+}
+const MAX_ROWS = 1000;
+const DisplayDatabase = ({agent_file_id, expand, fileMetaData}) => {
+    const theme = useTheme();
+    const queryCountRef = React.useRef(1);
+    const currentContentRef = React.useRef();
+    const [selectedTab, setSelectedTab] = React.useState(0);
+    const [sql, setSql] = React.useState(null);
+    const [query, setQuery] = React.useState("select * from cookies;");
+    const [results, setResults] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
+    const onChangeText = (data) => {
+        setQuery(data);
+    }
+    const removeQuery = (event, index) => {
+        event.stopPropagation();
+        event.preventDefault();
+        if(selectedTab === index){
+            if(index !== 0){
+                setSelectedTab(index-1);
+            }
+        }
+        setResults(results.toSpliced(index, 1));
+    }
+    const onSubmitQuery = (event) => {
+        if(event){
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        if(sql){
+            try{
+                const result = sql.exec(query);
+                //console.log(result);
+                if(result.length > 0){
+                    setResults([...results, {name: `Query: ${queryCountRef.current}`, query: query, results: result[0]}]);
+                    setSelectedTab(queryCountRef.current - 1);
+                    queryCountRef.current += 1;
+                }
+            }catch(e){
+                console.log(e);
+                snackActions.error(e.message);
+            }
+        } else {
+            console.log(sql);
+            snackActions.error("Failed to load as SQL Database");
+        }
+    }
+    const onChangeTab = (_, v) => {
+        const tabQuery = results[v]?.query;
+        setQuery(tabQuery);
+        setSelectedTab(v);
+    }
+    const onCopyToClipboard = (data) => {
+        let result = copyStringToClipboard(data);
+        if(result){
+            snackActions.success("Copied text!");
+        }else{
+            snackActions.error("Failed to copy text");
+        }
+    }
+    const onSaveOutputCSV = (result) => {
+        const filteredData = result.results.values;
+        let outputHeaders = "";
+        let outputRow = "";
+        outputHeaders = result.results.columns.join(",");
+        for(let i = 0; i < filteredData.length; i++){
+            outputRow += filteredData[i].join(",") + "\n"
+        }
+        onCopyToClipboard(outputHeaders + "\n" + outputRow);
+    }
+    const onSaveOutputPrettyPrint = (result) => {
+        let tableData = result.results.values;
+        if(tableData.length === 0){return}
+        let outputHeaders = result.results.columns;
+        let outputHeadersMaxLength = outputHeaders.reduce( (prev, cur) => {
+            return [...prev,  cur.length]
+        }, []);
+        tableData.map( cur => {
+            for(let i = 0; i < outputHeaders.length; i++){
+                if(outputHeadersMaxLength[i] < String(cur[i]).length){
+                    outputHeadersMaxLength[i] = String(cur[i]).length;
+                }
+            }
+        });
+        let allOutput = "";
+        for(let i = 0; i < outputHeaders.length; i++){
+            let remainingSpace = Math.max(0, outputHeadersMaxLength[i] - outputHeaders[i].length);
+            allOutput += "  " + outputHeaders[i].toUpperCase() + " ".repeat(remainingSpace + 2);
+        }
+        allOutput += "\n";
+        for(let i = 0; i < outputHeaders.length; i++){
+            let remainingSpace = Math.max(0, outputHeadersMaxLength[i] - outputHeaders[i].length);
+            allOutput += "  " + "-".repeat(outputHeaders[i].length) + " ".repeat(remainingSpace + 2);
+        }
+        allOutput += "\n";
+        for(let i = 0; i < tableData.length; i++){
+            for(let j = 0; j < outputHeaders.length; j++){
+                let remainingSpace = Math.max(0, outputHeadersMaxLength[j] - String(tableData[i][j]).length);
+                allOutput += "| " + String(tableData[i][j]) + " ".repeat(remainingSpace) + "  ";
+            }
+            allOutput += " |\n"
+        }
+        onCopyToClipboard(allOutput);
+    }
+    React.useEffect( () => {
+        async function initialize(){
+            const newSQL = await initSQLJS({locateFile: () => sqlWasm});
+            fetch('/direct/view/' + agent_file_id).then((response) => {
+                if(response.status !== 200){
+                    setLoading(false);
+                    snackActions.warning("Failed to fetch contents from Mythic");
+                    return;
+                }
+                response.arrayBuffer().then( data => {
+                    const SQL = new newSQL.Database(new Uint8Array(data));
+                    if(SQL){
+                        setSql(SQL);
+                    }
+                    setLoading(false);
+                }).catch(error => {
+                        setLoading(false);
+                        snackActions.warning("Error getting contents from server: " + error.toString());
+                        console.log("Error trying to get json response", error, response);
+                    });
+            }).catch(error => {
+                if(error.toString() === "TypeError: Failed to fetch"){
+                    snackActions.warning("Please refresh and accept the SSL connection error");
+                } else {
+                    snackActions.warning("Error talking to server: " + error.toString());
+                }
+                setLoading(false);
+                console.log("There was an error!", error);
+            });
+        }
+        initialize();
+    }, []);
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Execute query on Ctrl+Enter or Cmd+Enter when in the SQL editor
+            if (e.shiftKey && e.key === 'Enter') {
+                onSubmitQuery(e);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onSubmitQuery]);
+    return (
+        <div style={{display: "flex", height: "100%", flexDirection: "column", width: "100%", position: "relative"}}>
+            <Backdrop open={loading} onClick={()=>{setLoading(false);}} style={{zIndex: 2, position: "absolute"}}>
+                <CircularProgress color="inherit" disableShrink  />
+            </Backdrop>
+            <div style={{display: "inline-flex", flexDirection: "row", alignItems: "center", borderBottom: "1px solid grey"}}>
+                <AceEditor
+                    className={"roundedBottomCorners"}
+                    ref={currentContentRef}
+                    mode={'sql'}
+                    theme={theme.palette.mode === "dark" ? "monokai" : "xcode"}
+                    fontSize={14}
+                    showGutter={ true}
+                    onChange={onChangeText}
+                    highlightActiveLine={false}
+                    showPrintMargin={false}
+                    value={query}
+                    height={"100%"}
+                    maxLines={3}
+                    width={"100%"}
+                    wrapEnabled={true}
+                    minLines={2}
+                    setOptions={{
+                        showLineNumbers: true,
+                        tabSize: 4,
+                        useWorker: false,
+                        showInvisibles: false,
+                    }}/>
+                <Button color={"success"} variant={"contained"} onClick={onSubmitQuery} >Query</Button>
+            </div>
+                <TabContext style={{width: "100%", height: "100%", borderBottom: "1px solid grey"}} value={selectedTab}>
+                    <TabList onChange={onChangeTab} indicatorColor='secondary'
+                             textColor='primary'
+                             sx={{
+                                 '& .Mui-selected': {
+                                     color: "unset !important"
+                                 }
+                             }}>
+                        {results.map((result, index) => (
+                            <Tab key={result.query + index} style={{padding: 0, paddingLeft: "10px", paddingRight: "10px"}} label={
+                                <div style={{display: "inline-block"}}>
+                                    {result.name}
+                                    <IconButton style={{padding: 0, marginLeft: "5px", marginRight: "5px", marginBottom: "5px"}}
+                                                color={"error"}
+                                                onClick={(e) => removeQuery(e, index)}>
+                                        x
+                                    </IconButton>
+                                </div>} value={index} className={selectedTab === index ? "selectedCallback" : ""} />
+                        ))}
+                    </TabList>
+
+                    {results.map((result, index) => (
+                        <>
+                            {result?.results?.values?.length >= MAX_ROWS &&
+                                <Paper key={"overflow" + index} style={{display: selectedTab === index ? "flex" : "none",
+                                    justifyContent: "center", hidden: selectedTab !== index}}>
+                                    <WarningOutlinedIcon color={"warning"}></WarningOutlinedIcon>
+                                    {"Output is truncated to first " + MAX_ROWS + " rows"}
+                                    <WarningOutlinedIcon color={"warning"}></WarningOutlinedIcon>
+                                </Paper>
+                            }
+                            <div key={"output" + index} style={{display: selectedTab === index ? "flex" : "none", alignItems: "center"}}>
+                                {"Save Output As: "}
+                                <Button variant={"outlined"} style={{marginLeft: "10px"}} onClick={() => onSaveOutputCSV(result)} >CSV</Button>
+                                <Button variant={"outlined"} style={{marginLeft: "10px"}} onClick={() => onSaveOutputPrettyPrint(result)} >Pretty Print</Button>
+                            </div>
+                            <TabPanel value={index} key={"tabpanel" + index}
+                                      style={{padding: 0, height: "100%", width: "100%", overflow: "auto", position: "relative",
+                                          display: selectedTab === index ? "flex" : "none",
+                                          flexDirection: "column"}} >
+
+                                <DisplayDatabaseResult result={result?.results} />
+                            </TabPanel>
+                        </>
+                    ))}
+                </TabContext>
+        </div>
+    )
+}
+const DisplayDatabaseResult = ({result}) => {
+    const [columns, setColumns] = React.useState(result.columns);
+    const [rows, setRows] = React.useState(result.values?.slice(0, MAX_ROWS));
+    return (
+        <>
+
+            <Table style={{overflow: "auto"}}>
+                <TableHead >
+                    <TableRow>
+                        {columns.map((column, index) => (
+                            <TableCell key={"header" + index}>{column}</TableCell>
+                        ))}
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {rows.map((row, index1) => (
+                        <TableRow key={"row" + index1} hover>
+                            {columns.map((_, index2) => (
+                                <TableCell key={"row" + index1+ "cell" + index2}>
+                                    {row[index2]}
+                                </TableCell>
+                            ))}
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </>
+
+    )
 }

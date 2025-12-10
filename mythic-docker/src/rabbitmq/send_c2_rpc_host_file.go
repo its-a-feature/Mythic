@@ -25,21 +25,25 @@ type C2HostFileMessageResponse struct {
 func (r *rabbitMQConnection) SendC2RPCHostFile(hostFile C2HostFileMessage) (*C2HostFileMessageResponse, error) {
 	c2HostFileMessageResponse := C2HostFileMessageResponse{}
 	exclusiveQueue := true
-	if opsecBytes, err := json.Marshal(hostFile); err != nil {
+	opsecBytes, err := json.Marshal(hostFile)
+	if err != nil {
 		logging.LogError(err, "Failed to convert hostFile to JSON", "hostFile", hostFile)
 		return nil, err
-	} else if response, err := r.SendRPCMessage(
+	}
+	response, err := r.SendRPCMessage(
 		MYTHIC_EXCHANGE,
 		GetC2RPCHostFileRoutingKey(hostFile.Name),
 		opsecBytes,
 		exclusiveQueue,
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send RPC message")
 		return nil, err
-	} else if err := json.Unmarshal(response, &c2HostFileMessageResponse); err != nil {
+	}
+	err = json.Unmarshal(response, &c2HostFileMessageResponse)
+	if err != nil {
 		logging.LogError(err, "Failed to parse c2 host file response back to struct", "response", response)
 		return nil, err
-	} else {
-		return &c2HostFileMessageResponse, nil
 	}
+	return &c2HostFileMessageResponse, nil
 }

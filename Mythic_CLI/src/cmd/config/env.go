@@ -3,8 +3,6 @@ package config
 import (
 	"bufio"
 	"fmt"
-	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
-	"github.com/spf13/viper"
 	"log"
 	"os"
 	"path/filepath"
@@ -12,6 +10,9 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+
+	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
+	"github.com/spf13/viper"
 )
 
 var MythicPossibleServices = []string{
@@ -365,6 +366,10 @@ This should only be needed if you're doing a bunch of development on Mythic itse
 If you need to rebuild a specific container, you should use './mythic-cli build [container name]' instead to just rebuild that one container.
 This will also delete any volumes in use (which will remove things like C2 Profile's config.json updates). 
 To keep these around when starting or building, use the --keep-volume flag`
+
+	mythicEnv.SetDefault("COMPOSE_FILE", "docker-compose.yml")
+	mythicEnvInfo["COMPOSE_FILE"] = `This is a specific Docker Compose variable you can use to configure docker compose overrides. You specify multiple files separated by : (colon) and they're squashed together for what's actually executed instead of just Mythic's default docker-compose file.
+More info can be found here: https://docs.docker.com/compose/how-tos/environment-variables/envvars/#compose_file.`
 
 	// Mythic instance configuration ---------------------------------------------
 	mythicEnv.SetDefault("mythic_admin_user", "mythic_admin")

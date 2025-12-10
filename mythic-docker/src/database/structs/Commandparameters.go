@@ -21,4 +21,5 @@ type Commandparameters struct {
 	Required                        bool            `db:"required"`
 	UiPosition                      int             `db:"ui_position"`
 	LimitCredentialsByType          MythicJSONArray `db:"limit_credentials_by_type"`
+	VerifierRegex                   string          `db:"verifier_regex"`
 }

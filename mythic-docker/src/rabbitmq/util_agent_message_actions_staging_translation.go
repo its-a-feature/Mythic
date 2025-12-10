@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"errors"
 	"fmt"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -24,10 +25,10 @@ func handleAgentMessageStagingTranslation(incoming *map[string]interface{}, uUID
 	/*
 			# message back should have:
 		        # {
-				# 	"action": "staging_translator",
+				# 	"action": "staging_translation",
 		        #   "session_id": "a string way if needed to tell two concurrently staging requests apart"
-		        #   "enc_key": raw bytes of the encryption key to use for the next request
-		        #   "dec_key": raw bytes of the decryption key to use for the next request
+		        #   "enc_key": base64 of the encryption key to use for the next request
+		        #   "dec_key": base64 of the decryption key to use for the next request
 		        #   "type": "string crypto type"
 		        #   "next_uuid": "string UUID that will be used for the next message to pull this information back from the database",
 		        #   "message": the final message you want to actually go back to the agent

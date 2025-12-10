@@ -100,6 +100,7 @@ query GetPayloadDetails($payload_id: Int!) {
       buildparameter {
         description
         parameter_type
+        name
       }
     }
     os
@@ -109,6 +110,7 @@ query GetPayloadDetails($payload_id: Int!) {
       c2profileparameter {
         description
         parameter_type
+        name
       }
       c2profile {
         name
@@ -411,7 +413,7 @@ function DetailedPayloadInnerTable(props){
             setCommands(commandState);
             const buildParametersState = data.payload[0].buildparameterinstances.map( (b) =>
             {
-                return {description: b.buildparameter.description, 
+                return {description: b.buildparameter.description, name: b.buildparameter.name,
                   value: b.value, 
                   parameter_type: b.buildparameter.parameter_type,
                   enc_key: b.enc_key_base64,
@@ -424,6 +426,7 @@ function DetailedPayloadInnerTable(props){
                 if( !(headerName in prev) ){
                     return {...prev, [headerName]:
                             [{description: cur.c2profileparameter.description,
+                                name: cur.c2profileparameter.name,
                               value: cur.value,
                               count: cur.count,
                               enc_key: cur.enc_key_base64,
@@ -434,6 +437,7 @@ function DetailedPayloadInnerTable(props){
                 }
                 return {...prev, [headerName]: [...prev[headerName],
                         {description: cur.c2profileparameter.description,
+                            name: cur.c2profileparameter.name,
                           value: cur.value,
                           count: cur.count,
                           enc_key: cur.enc_key_base64,
@@ -445,7 +449,7 @@ function DetailedPayloadInnerTable(props){
             const c2ProfilesState = Object.keys(c2Profiles).reduce( (prev, cur) => {
                 return [...prev, {
                     c2_profile: cur,
-                    parameters: c2Profiles[cur].sort((a,b) => (a.description > b.description) ? 1: ((b.description > a.description) ? -1 : 0))
+                    parameters: c2Profiles[cur].sort((a,b) => (a.name > b.name) ? 1: ((b.name > a.name) ? -1 : 0))
                 }];
             }, []);
             setC2Profiles(c2ProfilesState);
@@ -599,6 +603,10 @@ function DetailedPayloadInnerTable(props){
                         </TableCell>
                     </TableRow>
                     <TableRow hover>
+                        <TableCell>Agent File ID</TableCell>
+                        <TableCell>{data.payload[0].filemetum.agent_file_id}</TableCell>
+                    </TableRow>
+                    <TableRow hover>
                         <TableCell>SHA1</TableCell>
                         <TableCell>{data.payload[0].filemetum.sha1}</TableCell>
                     </TableRow>
@@ -664,7 +672,14 @@ function DetailedPayloadInnerTable(props){
                   {
                     buildParameters.map( (cmd, i) => (
                         <TableRow key={"buildprop" + i + "for" + props.payload_id} hover>
-                            <TableCell>{cmd.description}</TableCell>
+                            <TableCell>
+                                <Typography style={{fontWeight: "600"}} >
+                                    {cmd.name}
+                                </Typography>
+                                <Typography style={{fontSize: theme.typography.pxToRem(15), marginLeft: "10px"}}>
+                                    {cmd.description}
+                                </Typography>
+                            </TableCell>
                             <TableCell>
                                 <ParseForDisplay cmd={cmd} />
                                   {cmd.enc_key === null ? null : (<React.Fragment>
@@ -726,7 +741,14 @@ function DetailedPayloadInnerTable(props){
                               {
                                 c2.parameters.map( (cmd, j) => (
                                     <TableRow key={"c2frag" + props.payload_id + c2.c2_profile + j} hover>
-                                        <TableCell>{cmd.description}</TableCell>
+                                        <TableCell>
+                                            <Typography style={{fontWeight: "600"}} >
+                                                {cmd.name}
+                                            </Typography>
+                                            <Typography style={{fontSize: theme.typography.pxToRem(15), marginLeft: "10px"}}>
+                                                {cmd.description}
+                                            </Typography>
+                                        </TableCell>
                                         <TableCell>
                                             <ParseForDisplay cmd={cmd} />
                                           {cmd.enc_key === null ? null : (<React.Fragment>

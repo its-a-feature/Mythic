@@ -384,7 +384,7 @@ export function CallbacksTop(props){
             callbackEdges.current = updated;
         }
     });
-    const onOpenTabLocal = React.useCallback( ({tabType, tabID, callbackID}) => {
+    const onOpenTabLocal = React.useCallback( ({tabType, tabID, callbackID, customBrowser}) => {
       for(let i = 0; i < callbacks.current.length; i++){
         if(callbacks.current[i]["id"] === callbackID){
           const tabData = {tabID, tabType, callbackID, 
@@ -396,7 +396,9 @@ export function CallbacksTop(props){
               callbackDescription: callbacks.current[i]["description"],
               host: callbacks.current[i]["host"],
               color: callbacks.current[i]["color"],
-              os: callbacks.current[i]["payload"]["os"]};
+              os: callbacks.current[i]["payload"]["os"],
+              customBrowser: customBrowser,
+          };
           props.onOpenTab(tabData);
         }
       }
@@ -418,7 +420,9 @@ export function CallbacksTop(props){
                         callbackDescription: callbacks.current[i]["description"],
                         host: callbacks.current[i]["host"],
                         color: callbacks.current[i]["color"],
-                        os: callbacks.current[i]["payload"]["os"]};
+                        os: callbacks.current[i]["payload"]["os"],
+                        customBrowser: tabs[j].customBrowser,
+                    };
                     newTabData.push(tabData);
                 }
             }

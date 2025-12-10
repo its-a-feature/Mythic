@@ -9,7 +9,7 @@ const (
 	CHECK_CONTAINER_STATUS_DELAY           = 10 * time.Second
 	TIME_FORMAT_STRING_YYYY_MM_DD          = "2006-01-02"
 	TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS = "2006-01-02 15:04:05 Z07"
-	RPC_TIMEOUT                            = 5 * time.Second
+	RPC_TIMEOUT                            = 10 * time.Second
 	TASK_STATUS_CONTAINER_DOWN             = "Error: Container Down"
 )
 
@@ -76,6 +76,11 @@ const (
 
 	CONTAINER_ON_START          = "container_on_start"
 	CONTAINER_ON_START_RESPONSE = "container_on_start_response"
+
+	// CUSTOM_BROWSER  routes
+	CUSTOMBROWSER_SYNC_ROUTING_KEY         = "custombrowser_sync"
+	CUSTOMBROWSER_EXPORT_FUNCTION          = "custombrowser_exportfunction"
+	CUSTOMBROWSER_EXPORT_FUNCTION_RESPONSE = "custombrowser_exportfunction_response"
 )
 
 // Direct fanout rabbitmq routes where the container is consuming messages and responding back to Mythic, but others can also listen in and consume.
@@ -223,6 +228,7 @@ const (
 	// MYTHIC_RPC_CALLBACKTOKEN_CREATE callback token operations
 	MYTHIC_RPC_CALLBACKTOKEN_CREATE = "mythic_rpc_callbacktoken_create"
 	MYTHIC_RPC_CALLBACKTOKEN_REMOVE = "mythic_rpc_callbacktoken_remove"
+	MYTHIC_RPC_CALLBACKTOKEN_SEARCH = "mythic_rpc_callbacktoken_search"
 	// MYTHIC_RPC_TOKEN_CREATE token operations
 	MYTHIC_RPC_TOKEN_CREATE = "mythic_rpc_token_create"
 	MYTHIC_RPC_TOKEN_REMOVE = "mythic_rpc_token_remove"
@@ -240,6 +246,8 @@ const (
 	MYTHIC_RPC_APITOKEN_CREATE = "mythic_rpc_apitoken_create"
 	// Agent Message
 	MYTHIC_RPC_HANDLE_AGENT_JSON = "mythic_rpc_handle_agent_message_json"
+	// CustomBrowser
+	CUSTOMBROWSER_SEARCH = "mythic_rpc_custombrowser_search"
 	// MYTHIC_RPC_BLANK blank
 	MYTHIC_RPC_BLANK = "mythic_rpc_blank"
 )

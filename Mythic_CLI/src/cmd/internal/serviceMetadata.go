@@ -2,12 +2,13 @@ package internal
 
 import (
 	"fmt"
-	"github.com/MythicMeta/Mythic_CLI/cmd/config"
-	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
-	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 	"log"
 	"path/filepath"
 	"strings"
+
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
+	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
+	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 )
 
 func AddMythicService(service string, removeVolume bool) {
@@ -451,6 +452,7 @@ func AddMythicService(service string, removeVolume bool) {
 				"./MythicReactUI/public:/app/public",
 				"./MythicReactUI/package.json:/app/package.json",
 				"./MythicReactUI/package-lock.json:/app/package-lock.json",
+				"./MythicReactUI/config-overrides.js:/app/config-overrides.js",
 				"./mythic-react-docker/mythic/public:/app/build",
 			}
 		} else {

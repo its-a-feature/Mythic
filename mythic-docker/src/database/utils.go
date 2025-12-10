@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -179,14 +180,15 @@ func ResolveAllOperationsMessage(message string, operationID int) {
 			updateObject := databaseStructs.Operationeventlog{
 				Message:     message,
 				OperationID: operationID,
+				Level:       MESSAGE_LEVEL_INFO,
 			}
 			if operationID == 0 {
 				updateObject.OperationID = operation.ID
 			}
 			if _, err := DB.NamedExec(`UPDATE operationeventlog SET 
 			resolved=true 
-			WHERE level='warning' AND resolved=false AND deleted=false AND message=:message AND operation_id=:operation_id`, updateObject); err != nil {
-				logging.LogError(err, "Failed to increase count on operationeventlog")
+			WHERE warning=true AND resolved=false AND deleted=false AND message=:message AND operation_id=:operation_id`, updateObject); err != nil {
+				logging.LogError(err, "Failed to resolve message")
 			}
 		}
 	}

@@ -53,7 +53,9 @@ func StartStopC2ProfileWebhook(c *gin.Context) {
 		c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCStartServer(rabbitmq.C2StartServerMessage{
 			Name: c2profile.Name,
 		})
-		go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
+		if c2ProfileResponse != nil {
+			go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
+		}
 		if err != nil {
 			logging.LogError(err, "Failed to send SendC2RPCStartServer to c2 profile", "c2_profile", c2profile.Name)
 			c.JSON(http.StatusOK, StartStopC2ProfileResponse{
@@ -82,7 +84,9 @@ func StartStopC2ProfileWebhook(c *gin.Context) {
 		c2ProfileResponse, err := rabbitmq.RabbitMQConnection.SendC2RPCStopServer(rabbitmq.C2StopServerMessage{
 			Name: c2profile.Name,
 		})
-		go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
+		if c2ProfileResponse != nil {
+			go rabbitmq.UpdateC2ProfileRunningStatus(c2profile, c2ProfileResponse.InternalServerRunning)
+		}
 		if err != nil {
 			logging.LogError(err, "Failed to send SendC2RPCStopServer to c2 profile", "c2_profile", c2profile.Name)
 			c.JSON(http.StatusOK, StartStopC2ProfileResponse{

@@ -6,6 +6,19 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"text/tabwriter"
+	"time"
+
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
 	"github.com/creack/pty"
@@ -19,18 +32,6 @@ import (
 	"golang.org/x/exp/slices"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
-	"io"
-	"log"
-	"net"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
-	"text/tabwriter"
-	"time"
 )
 
 type DockerComposeManager struct {
@@ -1369,14 +1370,13 @@ func (d *DockerComposeManager) runDockerCompose(args []string) error {
 	lookPath, err := exec.LookPath("docker")
 	if err != nil {
 		log.Fatalf("[-] docker is not installed or available in the current PATH\n")
-	} else {
-		// adjust the current args for docker compose subcommand
-		args = append([]string{"compose"}, args...)
 	}
+	// adjust the current args for docker compose subcommand
+	args = append([]string{"compose"}, args...)
 
 	exe, err := os.Executable()
 	if err != nil {
-		log.Fatalf("[-] Failed to get lookPath to current executable\n")
+		log.Fatalf("[-] Failed to get lookPath to current executable\n%v", err)
 	}
 	exePath := filepath.Dir(exe)
 	command := exec.Command(lookPath, args...)
@@ -1386,11 +1386,11 @@ func (d *DockerComposeManager) runDockerCompose(args []string) error {
 	if err != nil {
 		stdout, err := command.StdoutPipe()
 		if err != nil {
-			log.Fatalf("[-] Failed to get stdout pipe for running docker-compose\n")
+			log.Fatalf("[-] Failed to get stdout pipe for running docker-compose\n%v", err)
 		}
 		stderr, err := command.StderrPipe()
 		if err != nil {
-			log.Fatalf("[-] Failed to get stderr pipe for running docker-compose\n")
+			log.Fatalf("[-] Failed to get stderr pipe for running docker-compose\n%v", err)
 		}
 
 		stdoutScanner := bufio.NewScanner(stdout)
@@ -1415,10 +1415,20 @@ func (d *DockerComposeManager) runDockerCompose(args []string) error {
 			log.Printf("[*] Docker compose command: %v\n", args)
 			return err
 		}
+		if command.ProcessState.ExitCode() != 0 {
+			log.Fatalf("[-] Error from docker-compose: %v\n", command.ProcessState.ExitCode())
+		}
 	} else {
 		io.Copy(os.Stdout, f)
+		processState, err := command.Process.Wait()
+		if err != nil {
+			log.Printf("[-] Error from docker-compose: %v\n", err)
+			return err
+		}
+		if processState.ExitCode() != 0 {
+			return err
+		}
 	}
-
 	return nil
 }
 func (d *DockerComposeManager) setDockerComposeDefaultsAndWrite(curConfig map[string]interface{}) error {

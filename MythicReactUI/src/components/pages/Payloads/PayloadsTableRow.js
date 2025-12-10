@@ -44,13 +44,14 @@ import {PayloadGetIOCDialog} from "./PayloadGetIOCDialog";
 import {PayloadGetSampleMessageDialog} from "./PayloadGetSampleMessageDialog";
 import IosShareIcon from '@mui/icons-material/IosShare';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
-import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import {MythicAgentSVGIcon, MythicAgentSVGIconNoTooltip} from "../../MythicComponents/MythicAgentSVGIcon";
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import BlockIcon from '@mui/icons-material/Block';
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 import {EditPayloadConfigDialog} from "./EditPayloadConfigDialog";
 import DifferenceIcon from '@mui/icons-material/Difference';
+import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
 
 const rebuildPayloadMutation = gql`
 mutation triggerRebuildMutation($uuid: String!) {
@@ -146,90 +147,195 @@ export function PayloadsTableRow(props){
     const onCallbacksAllowedChanged = () =>[
         props.onCallbacksAllowedChanged(props.uuid, !props.callback_allowed)
     ]
-    const handleMenuItemClick = (event, index) => {
-        options[index].click();
+    const handleMenuItemClick = (event, clickOption) => {
+        clickOption({event});
         setOpenUpdateDialog(false);
     };
     const options = [
-                    {name: <><DriveFileRenameOutlineIcon style={{marginRight: "10px"}}/> {"Rename File"}</> , click: () => {
-                        setOpenFilenameDialog(true);
-                     }},
-                     {name: <><DescriptionIcon color={"info"} style={{marginRight: "10px"}} />{'Edit Description'}</>, click: () => {
-                        setOpenDescriptionDialog(true);
-                     }},
-                    {name: <><InfoIconOutline color={"info"} style={{marginRight: "10px"}} /> View Payload Configuration</>, click: () => {
-                            setOpenDetailedView(true);
-                        }},
-                    {name: <><DifferenceIcon color={"info"} style={{marginRight: "10px"}} /> Compare Payload Configuration</>, click: () => {
-                            setOpenComparePayloadsDialog(true);
-                        }},
-                     {name: props.callback_alert ?
-                             <><VisibilityIcon color={"success"} style={{marginRight: "10px"}}  />{'Alerting to New Callbacks'}</> :
-                             <><VisibilityOffIcon color={"error"} style={{marginRight: "10px"}}  />{"Not Alerting to New Callbacks"}</>,
-                         click: () => {
-                        onAlertChanged();
-                      }},
-                    {name: props.callback_allowed ?
-                            <><VisibilityIcon color={"success"} style={{marginRight: "10px"}}  />{'Allowing New Callbacks from this Payload'}</> :
-                            <><VisibilityOffIcon color={"error"} style={{marginRight: "10px"}}  />{"Preventing New Callbacks from this Payload"}</>,
-                        click: () => {
-                            onCallbacksAllowedChanged();
-                        }},
-                     {name: <><MessageIcon style={{marginRight: "10px"}}  />{'View Build Message/Stdout'} </> , click: () => {
-                         setViewError(false);
-                        setOpenBuildMessageDialog(true);
-                    }},
-                    {name: <><ErrorIcon color={"error"} style={{marginRight: "10px"}}  />{'View Build Errors'}</>, click: () => {
-                       setViewError(true);
-                       setOpenBuildMessageDialog(true);
-                    }},
-                    {name: <><CachedIcon color={"success"} style={{marginRight: "10px"}} />{'Trigger New Build'}</>, click: () => {
-                      triggerRebuild({variables: {uuid: props.uuid}});
-                    }},
-                    {name: <><CachedIcon color={"success"} style={{marginRight: "10px"}} />{'Trigger New Build With Edits'}</>, click: () => {
-                            setOpenEditPayloadConfigDialog(true);
-                    }},
-                    {name: <><IosShareIcon color={"info"} style={{marginRight: "10px"}} />{'Export Payload Config'}</>, click: () => {
-                      exportConfig({variables: {uuid: props.uuid}});
-                    }},
-                    {name: <><PhoneMissedIcon style={{marginRight: "10px"}} />{'Generate Redirect Rules'}</>, click: () => {
-                      setOpenRedirectRulesDialog(true);
-                    }},
-                    {name: <><VerifiedIcon style={{marginRight: "10px"}} />{'Check Agent C2 Configuration'}</>, click: () => {
-                        setOpenConfigCheckDialog(true);
-                    }},
-                    {name: <><FingerprintIcon style={{marginRight: "10px"}} />{'Generate IOCs'}</>, click: () => {
-                        setOpenGenerateIOCDialog(true);
-                    }},
-                    {name: <><BiotechIcon style={{marginRight: "10px"}} />{'Generate Sample Message'}</>, click: () => {
-                        setOpenGenerateSampleMessageDialog(true);
-                    }},
-                    {name: <><AddIcCallIcon color={"success"} style={{marginRight: "10px"}} />{'Generate Fake Callback'}</>, click: () => {
-                      setOpenCreateNewCallbackDialog(true);
-                    }},
-                    {name:<>
-                            {props.deleted ? (
-                                <>
-                                    <RestoreFromTrashIcon color={"success"} style={{marginRight: "10px"}} />
-                                    Restore Payload
-                                </>
-
-                            ) : (
-                                <React.Fragment>
-                                    <DeleteIcon color={"error"} style={{marginRight: "10px"}}/>
-                                    Delete the payload from disk
-                                </React.Fragment>
-                            )}</>, click: () => {
-                            setOpenDeleteDialog(true);
-                        }}
-                     ]
-    ;
+        {
+            name: "Rename File", type: "item",
+            icon: <DriveFileRenameOutlineIcon style={{marginRight: "10px"}}/>,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpenFilenameDialog(true);
+            }
+         },
+         {
+             name: "Edit Description", type: "item",
+             icon: <DescriptionIcon color={"info"} style={{marginRight: "10px"}} />,
+             click: ({event}) => {
+                 event.preventDefault();
+                 event.stopPropagation();
+                setOpenDescriptionDialog(true);
+            }
+         },
+        {
+            name: "View Payload Configuration", type: "item",
+            icon: <InfoIconOutline color={"info"} style={{marginRight: "10px"}} />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpenDetailedView(true);
+            }
+        },
+        {
+            name: "Compare Payload Configuration", type: "item",
+            icon: <DifferenceIcon color={"info"} style={{marginRight: "10px"}} />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpenComparePayloadsDialog(true);
+            }
+        },
+         {
+             name: props.callback_alert ? "Alerting to New Callbacks" : "Not Alerting to New Callbacks",
+             type: "item",
+             icon: props.callback_alert ?
+                 <VisibilityIcon color={"success"} style={{marginRight: "10px"}}  />:
+                 <VisibilityOffIcon color={"error"} style={{marginRight: "10px"}}  />,
+             click: ({event}) => {
+                 event.preventDefault();
+                 event.stopPropagation();
+                 onAlertChanged();
+             }
+        },
+        {
+            name: props.callback_allowed ? "Allowing New Callbacks from this Payload" : "Preventing New Callbacks from this Payload",
+            type: "item",
+            icon: props.callback_allowed ?
+                <VisibilityIcon color={"success"} style={{marginRight: "10px"}}  /> :
+                <VisibilityOffIcon color={"error"} style={{marginRight: "10px"}}  />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onCallbacksAllowedChanged();
+            }
+        },
+        {
+            name: "View Build Message/Stdout",
+            type: "item",
+            icon: <MessageIcon style={{marginRight: "10px"}}  />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setViewError(false);
+                setOpenBuildMessageDialog(true);
+            }
+        },
+        {
+            name: "View Build Errors",
+            type: "item",
+            icon: <ErrorIcon color={"error"} style={{marginRight: "10px"}}  />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setViewError(true);
+                setOpenBuildMessageDialog(true);
+            }
+        },
+        {
+            name: "Trigger New Build",
+            type: "item",
+            icon: <CachedIcon color={"success"} style={{marginRight: "10px"}} />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                triggerRebuild({variables: {uuid: props.uuid}});
+            }
+        },
+        {
+            name: "Trigger New Build With Edits",
+            type: "item",
+            icon: <CachedIcon color={"success"} style={{marginRight: "10px"}} />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpenEditPayloadConfigDialog(true);
+            }
+        },
+        {
+            name: "Export Payload Config",
+            type: "item",
+            icon: <IosShareIcon color={"info"} style={{marginRight: "10px"}} />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                exportConfig({variables: {uuid: props.uuid}});
+            }
+        },
+        {
+            name: "Generate Redirect Rules",
+            type: "item",
+            icon: <PhoneMissedIcon style={{marginRight: "10px"}} />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpenRedirectRulesDialog(true);
+            }
+        },
+        {
+            name: "Check Agent C2 Configuration",
+            type: "item",
+            icon: <VerifiedIcon style={{marginRight: "10px"}} />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpenConfigCheckDialog(true);
+            }
+        },
+        {
+            name: "Generate IOCs",
+            type: "item",
+            icon: <FingerprintIcon style={{marginRight: "10px"}} />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpenGenerateIOCDialog(true);
+            }
+        },
+        {
+            name: "Generate Sample Message",
+            type: "item",
+            icon: <BiotechIcon style={{marginRight: "10px"}} />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpenGenerateSampleMessageDialog(true);
+            }
+        },
+        {
+            name: "Generate Fake Callback",
+            type: "item",
+            icon: <AddIcCallIcon color={"success"} style={{marginRight: "10px"}} />,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpenCreateNewCallbackDialog(true);
+            }
+        },
+        {
+            name: props.deleted ? "Restore Payload" : "Delete the Payload from Disk",
+            type: "item",
+            icon: props.deleted ? <RestoreFromTrashIcon color={"success"} style={{marginRight: "10px"}} /> :
+                    <DeleteIcon color={"error"} style={{marginRight: "10px"}}/>,
+            click: ({event}) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpenDeleteDialog(true);
+            }
+        }
+    ];
     const handleClose = (event) => {
         if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
           return;
         }
         setOpenUpdateDialog(false);
-      };
+    };
+    const openMenu = (event) => {
+        dropdownAnchorRef.current = event?.currentTarget || event.target;
+        setOpenUpdateDialog(true);
+    }
     
     const shouldDisplay = React.useMemo(() => {
       if(!props.deleted){
@@ -245,35 +351,46 @@ export function PayloadsTableRow(props){
         <React.Fragment>
             <TableRow key={"payload" + props.uuid} hover>
                 <MythicStyledTableCell>
-                    <Button ref={dropdownAnchorRef} size="small" onClick={()=>{setOpenUpdateDialog(true);}} >
+                    <Button size="small" onClick={openMenu} >
                         Actions <ArrowDropDownIcon />
                     </Button>
                 {openUpdate &&
-                    <Popper open={openUpdate} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
-              {({ TransitionProps, placement }) => (
-                <Grow
-                  {...TransitionProps}
-                  style={{
-                    transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                  }}
-                >
-                  <Paper className={"dropdownMenuColored"}>
                     <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
-                      <MenuList id="split-button-menu"  >
-                        {options.map((option, index) => (
-                          <MenuItem
-                            key={index + props.uuid}
-                            onClick={(event) => handleMenuItemClick(event, index)}
-                          >
-                            {option.name}
-                          </MenuItem>
-                        ))}
-                      </MenuList>
+                        <Dropdown
+                            isOpen={dropdownAnchorRef.current}
+                            onOpen={setOpenUpdateDialog}
+                            externallyOpen={openUpdate}
+                            menu={
+                                options.map((option, index) => (
+                                    option.type === 'item' ? (
+                                        <DropdownMenuItem
+                                            key={option.name}
+                                            disabled={option.disabled}
+                                            onClick={(event) => handleMenuItemClick(event, option.click)}
+                                        >
+                                            {option.icon}{option.name}
+                                        </DropdownMenuItem>
+                                    ) : option.type === 'menu' ? (
+                                        <DropdownNestedMenuItem
+                                            label={option.name}
+                                            disabled={option.disabled}
+                                            menu={
+                                                option.menuItems.map((menuOption, indx) => (
+                                                    <DropdownMenuItem
+                                                        key={menuOption.name}
+                                                        disabled={menuOption.disabled}
+                                                        onClick={(event) => handleMenuItemClick(event, menuOption.click)}
+                                                    >
+                                                        {menuOption.icon}{menuOption.name}
+                                                    </DropdownMenuItem>
+                                                ))
+                                            }
+                                        />
+                                    ) : null
+                                ))
+                            }
+                        />
                     </ClickAwayListener>
-                  </Paper>
-                </Grow>
-              )}
-            </Popper>
                 }
                 {openDescription &&
                     <MythicDialog fullWidth={true} maxWidth="md" open={openDescription} 
@@ -340,8 +457,12 @@ export function PayloadsTableRow(props){
                 }
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <MythicStyledTooltip title={props.payloadtype.name} tooltipStyle={{display: "inline-block"}}>
-                        <MythicAgentSVGIcon payload_type={props.payloadtype.name} style={{width: "35px", height: "35px"}} />
+                    <MythicStyledTooltip title={props.payloadtype.name +
+                        (props.payload_type_semver === "" ? "" : `\nBuilt w/ Version: v${props.payload_type_semver}`) +
+                        (props.payloadtype.semver === "" ? "" :  `\nCurrent Version: v${props.payloadtype.semver}`)
+                    }
+                                         tooltipStyle={{display: "inline-block", whiteSpace: "pre-wrap"}}>
+                        <MythicAgentSVGIconNoTooltip payload_type={props.payloadtype.name} style={{width: "35px", height: "35px"}} />
                     </MythicStyledTooltip>
                     {!props.callback_allowed &&
                         <MythicStyledTooltip title={"No new Callbacks allowed from this payload"}

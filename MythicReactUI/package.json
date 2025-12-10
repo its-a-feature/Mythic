@@ -6,7 +6,11 @@
   "author": "@its_a_feature_",
   "description": "React UI for Mythic C2 Framework",
   "devDependencies": {
-    "react-scripts": "^5.0.1"
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.1",
+    "react-app-rewired": "^2.2.1",
+    "react-scripts": "^5.0.1",
+    "stream-browserify": "^3.0.0"
   },
   "dependencies": {
     "@apollo/client": "^3.13.8",
@@ -38,6 +42,7 @@
     "jwt-decode": "^4.0.0",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.45",
+    "path-browserify": "^1.0.1",
     "randexp": "^0.5.3",
     "react": "^18.3.1",
     "react-ace": "^14.0.1",
@@ -55,18 +60,19 @@
     "react-window": "^1.8.11",
     "save-svg-as-png": "^1.4.17",
     "semver": "^7.6.2",
+    "sql.js": "^1.13.0",
     "styled-components": "^6.1.17",
     "uuid": "^9.0.1",
     "webpack": "^5.99.6",
     "word-wrap": "^1.2.5"
   },
   "scripts": {
-    "react-start": "CHOKIDAR_USEPOLLING=true WATCHPACK_POLLING=true FAST_REFRESH=true WDS_POLLING=true BROWSER=none PORT=3000 WDS_SOCKET_PORT=7443 WDS_SOCKET_PATH=ws react-scripts start",
-    "react-build": "react-scripts build",
-    "react-test": "react-scripts test",
+    "react-start": "CHOKIDAR_USEPOLLING=true WATCHPACK_POLLING=true FAST_REFRESH=true WDS_POLLING=true BROWSER=none PORT=3000 WDS_SOCKET_PORT=7443 WDS_SOCKET_PATH=ws react-app-rewired start",
+    "react-build": "react-app-rewired build",
+    "react-test": "react-app-rewired test",
     "react-eject": "react-scripts eject",
     "build": "npm run react-build",
-    "start": "cross-env BROWSER=none CHOKIDAR_USEPOLLING=true WATCHPACK_POLLING=true FAST_REFRESH=true WDS_POLLING=true PORT=3000 WDS_SOCKET_PORT=7443 WDS_SOCKET_PATH=ws npm run react-start"
+    "start": "BROWSER=none CHOKIDAR_USEPOLLING=true WATCHPACK_POLLING=true FAST_REFRESH=true WDS_POLLING=true PORT=3000 WDS_SOCKET_PORT=7443 WDS_SOCKET_PATH=ws npm run react-start"
   },
   "eslintConfig": {
     "extends": [

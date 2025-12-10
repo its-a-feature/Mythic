@@ -393,13 +393,12 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 			finalBytes, err := handleAgentMessageStagingTranslation(&decryptedMessage, uuidInfo)
 			if err != nil {
 				logging.LogError(err, "Failed to handle translation staging function")
-				go SendAllOperationsMessage(err.Error(), uuidInfo.OperationID, "debug", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+				go SendAllOperationsMessage(err.Error(), uuidInfo.OperationID, "agent_message_bad_staging", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
 				instanceResponse.Err = err
 				return response
 			}
 			instanceResponse.Message = *finalBytes
 			return response
-
 		}
 	default:
 		{
@@ -587,9 +586,11 @@ func recursiveProcessAgentMessage(agentMessageInput *AgentMessageRawInput) recur
 	if agentMessageInput.Base64Message != nil {
 		base64DecodedMessage, err = base64.StdEncoding.DecodeString(string(*agentMessageInput.Base64Message))
 		if err != nil {
+			errMsg := err.Error()
 			base64DecodedMessage, err = base64.URLEncoding.DecodeString(string(*agentMessageInput.Base64Message))
 			if err != nil {
-				errorMessage := fmt.Sprintf("Failed to base64 decode message\n")
+				errorMessage := fmt.Sprintf("Failed to base64 decode message\nTried to process base64 message as standard encoding and url safe encoding:")
+				errorMessage += fmt.Sprintf("StdBase64 Error: %s\nURLEncoded Base64 Error: %s\n", errMsg, err.Error())
 				errorMessage += fmt.Sprintf("message: %s\n", string(*agentMessageInput.Base64Message))
 				errorMessage += fmt.Sprintf("Connection from %s via %s\n", agentMessageInput.RemoteIP, agentMessageInput.C2Profile)
 				logging.LogError(err, "Failed to base64 decode agent message")

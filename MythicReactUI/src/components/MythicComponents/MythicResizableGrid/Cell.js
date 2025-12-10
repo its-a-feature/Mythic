@@ -22,6 +22,8 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
         [data, rowIndex]
     );
     const handleClick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         if(data.onRowClick){
             data.onRowClick({event, rowDataStatic: data.items[rowIndex][columnIndex]?.props?.rowData})
         }
@@ -44,6 +46,8 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
         }
     }
     const handleMenuItemClick = (event, clickOption) => {
+        event.preventDefault();
+        event.stopPropagation();
         clickOption({event, columnIndex, rowIndex, data: data.items[rowIndex][columnIndex]?.props?.rowData || {}});
         setOpenContextMenu(false);
     };
@@ -55,7 +59,8 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
     const handleContextClick = useCallback(
         (event) => {
             event.preventDefault();
-            if(item.disableFilterMenu){
+            event.stopPropagation();
+            if(item?.disableFilterMenu){
                 return;
             }
             contextMenuLocationRef.current.x = event.clientX;
@@ -90,14 +95,14 @@ const CellPreMemo = ({ style, rowIndex, columnIndex, data  }) => {
                 {item}
             </div>
             <ContextMenu dropdownAnchorRef={dropdownAnchorRef} contextMenuOptions={contextMenuOptions}
-                disableFilterMenu={item.disableFilterMenu} openContextMenu={openContextMenu}
+                disableFilterMenu={item?.disableFilterMenu} openContextMenu={openContextMenu}
                          contextMenuLocationRef={contextMenuLocationRef}
                          setOpenContextMenu={setOpenContextMenu} handleMenuItemClick={handleMenuItemClick}
             />
         </div>
     );
 };
-const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOptions, setOpenContextMenu, handleMenuItemClick, contextMenuLocationRef}) => {
+export const ContextMenu = ({openContextMenu, dropdownAnchorRef, contextMenuOptions, setOpenContextMenu, handleMenuItemClick, contextMenuLocationRef}) => {
     const handleClose = (event) => {
         //if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
         //    return;

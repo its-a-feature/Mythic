@@ -1,6 +1,6 @@
 import React, {useEffect, useRef} from 'react';
 import {Button} from '@mui/material';
-import { MythicViewJSONAsTableDialog, MythicDialog } from '../../MythicComponents/MythicDialog';
+import {MythicViewJSONAsTableDialog, MythicDialog, MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
 import { MythicDisplayTextDialog } from '../../MythicComponents/MythicDisplayTextDialog';
 import { ResponseDisplayTableDialogTable } from './ResponseDisplayTableDialogTable';
 import Paper from '@mui/material/Paper';
@@ -89,7 +89,7 @@ export const getIconName = (iconName) => {
     case "camera":
       return faCamera;
     default:
-      return faFileAlt;
+      return iconName;
   }
 }
 export const getIconColor = (theme, color) => {
@@ -360,9 +360,9 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
             <React.Fragment>
               <MythicStyledTooltip title={cellData?.button?.hoverText || "Submit Task"}>
                 <Button size="small" onClick={() => setOpenTaskingButton(true)} disabled={cellData?.button?.disabled || false}  color="warning"
-                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" : getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : null}
+                        startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" : getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : undefined}
                         style={{...actionCellButtonStyle}}
-                >{cellData?.button?.name ? cellData?.button?.name : cellData?.button?.startIcon ? null : "Submit Task"}</Button>
+                >{cellData?.button?.name ? cellData?.button?.name : cellData?.button?.startIcon ? undefined : "Submit Task"}</Button>
               </MythicStyledTooltip>
               {openTaskingButton &&
                   <TaskFromUIButton ui_feature={cellData?.button?.ui_feature || " "}
@@ -408,10 +408,10 @@ const ResponseDisplayTableActionCellButton = ({cellData, callback_id}) => {
                                                                               table={taskingData?.value || {}} callback_id={callback_id} onClose={finishedViewingData} />}
                   />
               }
-              <Button size="small" variant={"contained"} ref={dropdownAnchorRef}
+              <Button size="small" ref={dropdownAnchorRef}
                       onClick={() => setOpenDropdownButton(true)} disabled={cellData?.button?.disabled || false}
                       startIcon={cellData?.button?.startIcon ? <FontAwesomeIcon icon={getIconName(cellData?.button?.startIcon)} style={{color: cellData?.button?.disabled ? "unset" :  getIconColor(theme, cellData?.button?.startIconColor || "")}}/> : null}
-                      style={{...actionCellButtonStyle}}
+                      style={{...actionCellButtonStyle, color: theme.palette.text.primary}}
               >{cellData?.button?.name || " "} <ArrowDropDownIcon />
               </Button>
               <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
@@ -585,9 +585,9 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
         });
     }, [sortedData, table?.headers, callback_id]
   );
-  const onSubmitFilterOptions = (newFilterOptions) => {
-    setFilterOptions(newFilterOptions);
-  }
+    const onSubmitFilterOptions = (value) => {
+        setFilterOptions({...filterOptions, [selectedColumn.key]: value });
+    }
 
   const filterOutButtonsFromRowData = (data) => {
     let rowData = {};
@@ -666,7 +666,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
 ];
   const contextMenuOptions = [
     {
-      name: 'Filter Column',
+      name: 'Filter Column', type: "item", icon: null,
       click: ({event, columnIndex}) => {
         event.preventDefault();
         event.stopPropagation();
@@ -682,7 +682,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
       }
     },
     {
-      name: "Copy Table as JSON",
+      name: "Copy Table as JSON", type: "item", icon: null,
       click: ({event, columnIndex}) => {
         event.preventDefault();
         event.stopPropagation();
@@ -691,7 +691,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
       }
     },
     {
-      name: "Copy Table as CSV",
+      name: "Copy Table as CSV", type: "item", icon: null,
       click: ({event, columnIndex}) => {
         event.preventDefault();
         event.stopPropagation();
@@ -722,7 +722,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
       }
     },
     {
-      name: "Copy Table as TSV",
+      name: "Copy Table as TSV", type: "item", icon: null,
       click: ({event, columnIndex}) => {
         event.preventDefault();
         event.stopPropagation();
@@ -753,7 +753,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
       }
     },
     {
-      name: "Copy Table as PrettyPrint Text",
+      name: "Copy Table as PrettyPrint Text", type: "item", icon: null,
       click: ({event, columnIndex}) => {
         event.preventDefault();
         event.stopPropagation();
@@ -831,11 +831,16 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
             {openContextMenu &&
                 <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
                               onClose={()=>{setOpenContextMenu(false);}}
-                              innerDialog={<TableFilterDialog
-                                  selectedColumn={selectedColumn}
-                                  filterOptions={filterOptions}
-                                  onSubmit={onSubmitFilterOptions}
-                                  onClose={()=>{setOpenContextMenu(false);}} />}
+                              innerDialog={
+                                  <MythicModifyStringDialog
+                                      title='Filter Column'
+                                      onSubmit={onSubmitFilterOptions}
+                                      value={filterOptions[selectedColumn.key]}
+                                      onClose={() => {
+                                          setOpenContextMenu(false);
+                                      }}
+                                    />
+                            }
                 />
             }
           </div>

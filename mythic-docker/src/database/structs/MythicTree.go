@@ -2,8 +2,9 @@ package databaseStructs
 
 import (
 	"database/sql"
-	"github.com/its-a-feature/Mythic/utils/structs"
 	"time"
+
+	"github.com/its-a-feature/Mythic/utils/structs"
 )
 
 type MythicTree struct {
@@ -19,6 +20,8 @@ type MythicTree struct {
 	FullPath        []byte            `db:"full_path" mapstructure:"full_path"`
 	Comment         string            `db:"comment" mapstructure:"comment"`
 	CanHaveChildren bool              `db:"can_have_children" mapstructure:"can_have_children"`
+	HasChildren     bool              `db:"has_children" mapstructure:"has_children"`
+	DisplayPath     []byte            `db:"display_path" mapstructure:"display_path"`
 	Success         sql.NullBool      `db:"success"`
 	Deleted         bool              `db:"deleted" mapstructure:"deleted"`
 	Metadata        MythicJSONText    `db:"metadata"`

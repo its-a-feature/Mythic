@@ -614,6 +614,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
+                onNodeClick={onPaneClick}
                 onPaneClick={onPaneClick}
                 onNodeContextMenu={onNodeContextMenu}
             >
@@ -622,7 +623,7 @@ function EventStepRender({selectedEventGroup, useSuppliedData}) {
                         EventGroup: {selectedEventGroup.id}
                     </Typography>
                 }
-                <Controls showInteractive={false}>
+                <Controls showInteractive={false} style={{color: "black"}}>
                 </Controls>
             </ReactFlow>
             {openContextMenu &&
@@ -905,13 +906,14 @@ function EventStepInstanceRender({selectedEventGroupInstance}) {
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
+                onNodeClick={onPaneClick}
                 onPaneClick={onPaneClick}
                 onNodeContextMenu={onNodeContextMenu}
             >
                 <Typography component={"h1"} style={{marginLeft: "10px"}}>
                     Instance: {selectedEventGroupInstance}
                 </Typography>
-                <Controls showInteractive={false}>
+                <Controls showInteractive={false} style={{color: "black"}}>
                 </Controls>
             </ReactFlow>
             {openContextMenu &&

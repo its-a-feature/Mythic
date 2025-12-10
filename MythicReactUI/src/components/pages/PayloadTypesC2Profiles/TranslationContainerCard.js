@@ -17,17 +17,6 @@ import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
 
-const PREFIX = 'TranslationContainerCard';
-
-const classes = {
-  root: `${PREFIX}-root`,
-  expand: `${PREFIX}-expand`,
-  expandOpen: `${PREFIX}-expandOpen`,
-  running: `${PREFIX}-running`,
-  notrunning: `${PREFIX}-notrunning`
-};
-
-
 const toggleDeleteStatus = gql`
 mutation toggleC2ProfileDeleteStatus($translationcontainer_id: Int!, $deleted: Boolean!){
   update_translationcontainer_by_pk(pk_columns: {id: $translationcontainer_id}, _set: {deleted: $deleted}) {

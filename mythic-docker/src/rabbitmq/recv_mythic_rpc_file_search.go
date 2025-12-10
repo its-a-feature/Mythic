@@ -1,7 +1,9 @@
 package rabbitmq
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/its-a-feature/Mythic/database"
@@ -66,18 +68,39 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 	if input.AgentFileID != "" {
 		// the search is for a specific fileID, so just fetch it and return
 		fileMeta := databaseStructs.Filemeta{}
-		if err := database.DB.Get(&fileMeta, `SELECT 
+		err := database.DB.Get(&fileMeta, `SELECT 
     		filemeta.*
 			FROM filemeta 
-			WHERE filemeta.agent_file_id=$1`, input.AgentFileID); err != nil {
+			WHERE filemeta.agent_file_id=$1`, input.AgentFileID)
+		if errors.Is(err, sql.ErrNoRows) {
+			payload := databaseStructs.Payload{}
+			err = database.DB.Get(&payload, `SELECT
+    			filemeta.path "filemeta.path",
+    			filemeta.filename "filemeta.filename",
+    			filemeta.id "filemeta.id",
+    			filemeta.operation_id "filemeta.operation_id"
+    			FROM payload
+    			JOIN filemeta ON payload.file_id = filemeta.id 
+    			WHERE payload.uuid=$1`, input.AgentFileID)
+			if errors.Is(err, sql.ErrNoRows) {
+				logging.LogError(err, "Failed to get file data from the database, it's not a payload uuid or file uuid")
+				response.Error = err.Error()
+				return response
+			} else if err != nil {
+				logging.LogError(err, "Failed to get file data from database")
+				response.Error = err.Error()
+				return response
+			}
+		}
+		if err != nil {
 			logging.LogError(err, "Failed to get specified file in MythicRPCFileSearch")
 			response.Error = err.Error()
 			return response
-		} else {
-			response.Success = true
-			response.Files = append(response.Files, convertFileMetaToFileData(fileMeta))
-			return response
 		}
+		response.Success = true
+		response.Files = append(response.Files, convertFileMetaToFileData(fileMeta))
+		return response
+
 	} else if input.CallbackID > 0 {
 		callback := databaseStructs.Callback{ID: input.CallbackID}
 		if err := database.DB.Get(&callback, `SELECT operation_id, id FROM callback WHERE id=$1`, callback.ID); err != nil {

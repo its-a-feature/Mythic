@@ -414,7 +414,8 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     }, [taskingData, newlyIssuedTasks]);
     return (
         <MythicTabPanel index={index} value={value} >
-            <Split direction="horizontal" minSize={[0,0]} style={{width: "100%", height: "100%", overflowY: "auto", display: "flex"}} sizes={[30, 70]} >
+            <Split direction="horizontal" minSize={[0,0]} sizes={[30, 70]}
+                   style={{width: "100%", height: "100%", overflowY: "auto", display: "flex", justifyContent: "flex-end"}} >
                 <div className="bg-gray-base" style={{display: "inline-flex", flexDirection: "column"}} >
 
                     <div style={{overflowY: "auto", flexGrow: 1}} id={`taskingPanelSplit${tabInfo.callbackID}`}>

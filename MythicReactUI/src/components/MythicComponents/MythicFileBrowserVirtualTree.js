@@ -239,7 +239,7 @@ const VirtualTreeRow = React.memo(({
                   height: "15px",
                 marginLeft: '3px',
                 marginRight: '5px',
-                color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary,
+                color: item?.has_children || item.success ? theme.folderColor : theme.emptyFolderColor,
               }}
               size={"lg"}
               onClick={handleOnClickButton} />
@@ -250,14 +250,14 @@ const VirtualTreeRow = React.memo(({
                     height: "15px",
                     marginLeft: '3px',
                     marginRight: '5px',
-                    color: item?.metadata?.has_children ? theme.folderColor : theme.palette.text.secondary, }}
+                    color: item?.has_children || item.success ? theme.folderColor : theme.emptyFolderColor, }}
                 size={"lg"}
                 icon={faFolder} onClick={handleOnClickButton} />
           )}
           <Typography
               style={{
                   color:
-                      item?.metadata?.has_children ||
+                      item?.has_children ||
                       item.success !== null
                           ? theme.palette.text.primary
                           : theme.palette.text.secondary,

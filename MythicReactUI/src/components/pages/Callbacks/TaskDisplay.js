@@ -23,6 +23,7 @@ import {operatorSettingDefaults} from "../../../cache";
 import {TaskFromUIButton} from "./TaskFromUIButton";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {faSkullCrossbones} from '@fortawesome/free-solid-svg-icons';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
 // Icons for console-view display
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
@@ -253,6 +254,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
   const initialShowHostnameValue = GetMythicSetting({setting_name: "showHostname", default_value: operatorSettingDefaults.showHostname});
   const initialShowCallbackGroupsValue = GetMythicSetting({setting_name: "showCallbackGroups", default_value: operatorSettingDefaults.showCallbackGroups});
   const initialTaskTimestampDisplayField = GetMythicSetting({setting_name: "taskTimestampDisplayField", default_value: operatorSettingDefaults.taskTimestampDisplayField});
+  const initialShowOPSECBypassUsername = GetMythicSetting({setting_name: "showOPSECBypassUsername", default_value: operatorSettingDefaults.showOPSECBypassUsername});
   const displayTimestamp = task[initialTaskTimestampDisplayField] ? task[initialTaskTimestampDisplayField] : task.timestamp;
   const [openKillTaskButton, setOpenKillTaskButton] = React.useState({open: false});
   const toggleDisplayComment = (evt) => {
@@ -288,46 +290,46 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
             <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
               [{toLocalTime(displayTimestamp, me?.user?.view_utc_time || false)}]
               {" / "}
-              <span style={{}}>
-                  {task.has_intercepted_response &&
-                      <>
-                        <MythicStyledTooltip
-                            title={"This task has responses that have been intercepted and changed due to a workflow container"}>
-                          <IconButton style={{padding: 0}} color={"secondary"}>
-                            <CropRotateTwoToneIcon fontSize={"small"}/>
-                          </IconButton>
-
-                        </MythicStyledTooltip>
-                        {"/ "}
-                      </>
-                  }
-                {task?.eventstepinstance !== null &&
-                    <>
-                      <MythicStyledTooltip title={"Task created via Eventing, click to view entire event flow in separate page"} >
-                        <IconButton component={Link} href={'/new/eventing?eventgroup=' +
-                            task?.eventstepinstance?.eventgroupinstance?.eventgroup?.id +
-                            "&eventgroupinstance=" + task?.eventstepinstance?.eventgroupinstance?.id
-                        } target={"_blank"} style={{padding: 0}}
-                                    color="inherit" disableFocusRipple={true}
+              {task.has_intercepted_response &&
+                  <span style={{display:"inline-flex", whiteSpace: "pre-wrap"}}>
+                    <MythicStyledTooltip
+                        title={"This task has responses that have been intercepted and changed due to a workflow container"}>
+                        <IconButton color={"inherit"} style={{padding: 0}} disableFocusRipple={true}
                                     disableRipple={true}>
-                          <PlayCircleFilledTwoToneIcon />
+                            <CropRotateTwoToneIcon style={{height: "15px", cursor: "default"}}/>
                         </IconButton>
-                      </MythicStyledTooltip>
-
-                      {"/  "}
-                    </>
-                }
-                  <MythicStyledTooltip title={"View Task in separate page"} >
-                    <Link style={{wordBreak: "break-all", color: theme.taskPromptTextColor,}} underline={"always"} target={"_blank"}
-                          href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
+                    </MythicStyledTooltip>
+                    {" / "}
+                  </span>
+              }
+              {task?.eventstepinstance !== null &&
+                <span style={{display:"inline-flex", whiteSpace: "pre-wrap"}}>
+                  <MythicStyledTooltip title={"Task created via Eventing, click to view entire event flow in separate page"} >
+                    <IconButton component={Link} href={'/new/eventing?eventgroup=' +
+                        task?.eventstepinstance?.eventgroupinstance?.eventgroup?.id +
+                        "&eventgroupinstance=" + task?.eventstepinstance?.eventgroupinstance?.id
+                    } target={"_blank"} style={{padding: 0, }}
+                                color="inherit" disableFocusRipple={true}
+                                disableRipple={true}>
+                      <PlayCircleFilledTwoToneIcon fontSize={"small"} />
+                    </IconButton>
                   </MythicStyledTooltip>
+
+                  {" / "}
+                </span>
+              }
+              <span style={{display:"inline-flex", whiteSpace: "pre-wrap"}}>
+                <MythicStyledTooltip title={"View Task in separate page"} >
+                  <Link style={{wordBreak: "break-all", color: theme.taskPromptTextColor,}} underline={"always"} target={"_blank"}
+                      href={"/new/task/" + task.display_id}>T-{task.display_id}</Link>
+                </MythicStyledTooltip>
                 {!task.completed && task.status_timestamp_processing &&
-                    <>
-                      <MythicStyledTooltip title={"Task the agent to kill this task"} >
-                          <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} onClick={(e) => onClickKillIcon(e, true)}
-                                           style={{cursor: "pointer", height: "15px", marginLeft: "5px"}} />
-                      </MythicStyledTooltip>
-                    </>
+
+                  <MythicStyledTooltip title={"Task the agent to kill this task"} >
+                      <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} onClick={(e) => onClickKillIcon(e, true)}
+                                       style={{cursor: "pointer", height: "15px", marginLeft: "5px"}} />
+                  </MythicStyledTooltip>
+
                 }
               </span>
               {" / "}
@@ -343,16 +345,30 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
               {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
               {" / "}
               {task?.command?.payloadtype?.name}
-              {" / "}
+              {initialShowOPSECBypassUsername && <>
+                  {(task?.opsec_pre_bypass_user?.username || task?.opsec_post_bypass_user?.username) && <span
+                        style={{display:"inline-flex", whiteSpace: "pre-wrap"}}>
+                      {" /"}
+                      <MythicStyledTooltip title={"The specified usernames approved OPSEC bypasses for this task"}
+                        tooltipStyle={{padding: 0}}>
+                          <LockOpenIcon color={"inherit"} style={{height: "15px"}}/>
+                      </MythicStyledTooltip>
+                      {task?.opsec_pre_bypass_user?.username}
+                      {task?.opsec_pre_bypass_user?.username && task?.opsec_post_bypass_user?.username && ", "}
+                      {task?.opsec_post_bypass_user?.username}
+                  </span>}
+              </>}
+                {" "}
               <TaskStatusDisplay task={task} theme={theme}/>
               {task.comment.length > 0 ? (
                   <span className={classes.column}>
+                      {" / "}
                     <IconButton size="small" style={{padding: "0"}}
                                 onClick={toggleDisplayComment}><ChatOutlinedIcon fontSize={"small"}/></IconButton>
                   </span>
               ) : null}
               {task.comment}
-            </Typography>
+              </Typography>
             <TaskTagDisplay task={task}/>
           </div>
           <div>
@@ -425,7 +441,7 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collap
       "parameterString": onlyParameters,
       "hideErrors": hideErrors
     }); */
-      if(hideBrowserTasking && task.tasking_location.includes("browser")){
+      if(hideBrowserTasking && task.tasking_location.includes("_browser")){
         setShouldDisplay(false);
         return;
       }
@@ -508,6 +524,10 @@ const TaskRow = ({task, filterOptions, me, newlyIssuedTasks, indentLevel, collap
         return;
       }
       setDisplayChildren(!displayChildren);
+        if(event){
+            event.stopPropagation();
+            event.preventDefault();
+        }
     }, [displayChildren]);
     useEffect( () => {
       if(collapseAllRequest > 0){

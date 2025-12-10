@@ -51,6 +51,7 @@ const fileDataFragment = gql`
         host
         id
         can_have_children
+        has_children
         success
         full_path_text
         name_text
@@ -68,7 +69,7 @@ const fileDataFragment = gql`
 const rootFileQuery = gql`
     ${fileDataFragment}
     query myRootFolderQuery {
-        mythictree(where: { parent_path_text: { _eq: "" }, tree_type: {_eq: "file"} }) {
+        mythictree(where: { parent_path_text: { _eq: "" }, tree_type: {_eq: "file"} }, order_by: {id: desc}) {
             ...fileObjData
         }
     }
@@ -196,7 +197,7 @@ export function CallbacksTabsFileBrowserLabel(props) {
         </React.Fragment>
     );
 }
-export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNewDataForTab }) => {
+export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNewDataForTab, baseUIFeature }) => {
     const fromNow = React.useRef(getSkewedNow());
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const treeRootDataRef = React.useRef({}); // hold all of the actual data
@@ -215,7 +216,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
         token: 0,
     });
     const autoTaskLsOnEmptyDirectoriesRef = React.useRef(false);
-    const taskingData = React.useRef({"parameters": "", "ui_feature": "file_browser:list"});
+    const taskingData = React.useRef({"parameters": "", "ui_feature": baseUIFeature +":list"});
     const mountedRef = React.useRef(true);
     const tableOpenedPathIdRef = React.useRef({
         host: "",
@@ -254,6 +255,10 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                         if(treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].success === null){
                             treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] = {...data.mythictree[i]}
                         }
+                    }
+                    if(data.mythictree[i].id > treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].id){
+                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]] |= data.mythictree[i].has_children;
+                        treeRootDataRef.current[currentGroups[j]][data.mythictree[i]["host"]][data.mythictree[i]["full_path_text"]].success |= data.mythictree[i].success;
                     }
                 }
            }
@@ -324,9 +329,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                         }
                         existingData.comment += data.data.mythictree_stream[i].comment;
                         existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];
-                        if(!existingData.metadata.has_children){
-                            existingData.metadata.has_children = data.data.mythictree_stream[i].metadata.has_children;
-                        }
+                        existingData.has_children = data.data.mythictree_stream[i].has_children || existingData.has_children;
                         if(data.data.mythictree_stream[i].metadata.permissions !== undefined && data.data.mythictree_stream[i].metadata.permissions !== null){
                             if(Array.isArray(existingData.metadata.permissions) && Array.isArray(data.data.mythictree_stream[i].metadata.permissions)){
                                 existingData.metadata.permissions = [...existingData.metadata.permissions, ...data.data.mythictree_stream[i].metadata.permissions];
@@ -464,9 +467,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                         }
                         existingData.comment += mythictree[i].comment;
                         existingData.tags = [...existingData.tags, ...mythictree[i].tags];
-                        if(!existingData.metadata.has_children){
-                            existingData.metadata.has_children = mythictree[i].metadata.has_children;
-                        }
+                        existingData.has_children = mythictree[i].has_children || existingData.has_children;
                         //console.log("updating permissions", "existing", existingData.metadata.permissions, "new", mythictree[i].metadata)
                         if(mythictree[i].metadata.permissions !== undefined && mythictree[i].metadata.permissions !== null){
                             if(Array.isArray(existingData.metadata.permissions) && Array.isArray(mythictree[i].metadata.permissions)){
@@ -575,7 +576,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
         taskingData.current = ({
             "token": token,
             "parameters": {path: path, full_path: path, host: selectedFolderData.host, file: ""},
-            "ui_feature": "file_browser:list", callback_id, callback_display_id});
+            "ui_feature": baseUIFeature + ":list", callback_id, callback_display_id});
         setOpenTaskingButton(true);
     };
     const onListFilesButtonFromTableWithNoEntries = () => {
@@ -587,7 +588,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                 host: selectedFolderData.host,
                 file: ""
             },
-            "ui_feature": "file_browser:list",
+            "ui_feature": baseUIFeature +":list",
             callback_id: tabInfo.callbackID,
             callback_display_id: tabInfo.displayID});
         setOpenTaskingButton(true);
@@ -596,7 +597,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
         taskingData.current = ({
             "token": token,
             "parameters": {path: fullPath, full_path: fullPath, host: selectedFolderData.host},
-            "ui_feature": "file_browser:upload", "openDialog": true,
+            "ui_feature": baseUIFeature + ":upload", "openDialog": true,
             callback_id, callback_display_id
         });
         setOpenTaskingButton(true);
@@ -656,7 +657,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
         taskingData.current = ({
             "token": localSelectedToken.current,
             "parameters": {path: nodeData.full_path_text, full_path: nodeData.full_path_text, host: nodeData.host, file: ""},
-            "ui_feature": "file_browser:list", callback_id, callback_display_id});
+            "ui_feature": baseUIFeature + ":list", callback_id, callback_display_id});
         setOpenTaskingButton(true);
     }
     const openDirectoryPath = ({group, host, path}) => {
@@ -690,6 +691,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                         taskListing={taskListing}
                         tableOpenedPathId={tableOpenedPathIdRef.current}
                         getLoadedCommandForUIFeature={getLoadedCommandForUIFeature}
+                        baseUIFeature={baseUIFeature}
                     />
 
                 </div>
@@ -708,6 +710,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                                 fetchParentFolderData={fetchParentFolderData}
                                 fetchFolderData={fetchFolderData}
                                 openDirectoryPath={openDirectoryPath}
+                                baseUIFeature={baseUIFeature}
                             />
                         </div>
                         <div style={{ flexGrow: 1 }}>
@@ -727,6 +730,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                                 onTaskRowActions={onTaskRowActions}
                                 getLoadedCommandForUIFeature={getLoadedCommandForUIFeature}
                                 me={me}
+                                baseUIFeature={baseUIFeature}
                             />
                         </div>
                     </div>
@@ -758,7 +762,8 @@ const FileBrowserTableTop = ({
     fetchParentFolderData,
     fetchFolderData,
     openDirectoryPath,
-    tabInfo
+    tabInfo,
+    baseUIFeature
 }) => {
     const autoTaskLsOnEmptyDirectories = useGetMythicSetting({
         setting_name: "autoTaskLsOnEmptyDirectories", default_value: false
@@ -794,6 +799,9 @@ const FileBrowserTableTop = ({
         shouldResubscribe: true,
         onData: ({data}) => {
             setTokenOptions(data.data.callbacktoken);
+            if(data.data.callbacktoken.length === 0) {
+                onChangeSelectedToken("Default Token");
+            }
         }
     });
     useEffect(() => {
@@ -964,9 +972,10 @@ const FileBrowserTableTop = ({
                                 borderRight: "1px solid grey",
                                 marginRight: "10px",
                                 padding: "0 5px 0 0"}}>
-                                {tokenOptions.length > 0 ? (
-                                    <CallbacksTabsTaskingInputTokenSelect options={tokenOptions} changeSelectedToken={changeSelectedToken}/>
-                                ) : null}
+                                {tokenOptions.length > 0 &&
+                                    <CallbacksTabsTaskingInputTokenSelect width={"100%"}
+                                        options={tokenOptions} changeSelectedToken={changeSelectedToken}/>
+                                }
                                 <MythicStyledTooltip title={`Move back to previous listing`}>
                                     <IconButton style={{ padding: '3px' }}
                                                 disabled={historyIndex >= history.length -1 }

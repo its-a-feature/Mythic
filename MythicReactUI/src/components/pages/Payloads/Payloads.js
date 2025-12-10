@@ -16,9 +16,11 @@ fragment payloadData on payload {
   description
   deleted
   auto_generated
+  payload_type_semver
   payloadtype {
     id
     name
+    semver
   }
   payload_build_steps(order_by: {step_number: asc}) {
     step_name

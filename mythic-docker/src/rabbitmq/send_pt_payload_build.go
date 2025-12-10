@@ -3,8 +3,9 @@ package rabbitmq
 import (
 	"errors"
 	"fmt"
-	"github.com/its-a-feature/Mythic/eventing"
 	"time"
+
+	"github.com/its-a-feature/Mythic/eventing"
 
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
@@ -18,7 +19,7 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 	payloadtype := databaseStructs.Payloadtype{}
 	var err error
 	err = database.DB.Get(&payloadtype, `SELECT 
-		payloadtype.id, payloadtype."name", "wrapper", supported_os, supports_dynamic_loading, translation_container_id, mythic_encrypts
+		payloadtype.id, payloadtype."name", "wrapper", supported_os, supports_dynamic_loading, translation_container_id, mythic_encrypts, semver
 		FROM payloadtype 
 		WHERE payloadtype."name"=$1`, payloadDefinition.PayloadType)
 	if err != nil {
@@ -107,14 +108,15 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 		return "", 0, err
 	}
 	databasePayload := databaseStructs.Payload{
-		OperatorID:     operatorOperation.CurrentOperator.ID,
-		PayloadTypeID:  payloadtype.ID,
-		Description:    payloadDefinition.Description,
-		UuID:           payloadDefinition.UUID,
-		OperationID:    operatorOperation.CurrentOperation.ID,
-		Os:             payloadDefinition.SelectedOS,
-		Payloadtype:    payloadtype,
-		BuildContainer: "rabbitmq",
+		OperatorID:        operatorOperation.CurrentOperator.ID,
+		PayloadTypeID:     payloadtype.ID,
+		Description:       payloadDefinition.Description,
+		UuID:              payloadDefinition.UUID,
+		OperationID:       operatorOperation.CurrentOperation.ID,
+		Os:                payloadDefinition.SelectedOS,
+		Payloadtype:       payloadtype,
+		BuildContainer:    "rabbitmq",
+		PayloadTypeSemver: payloadtype.SemVer,
 	}
 	databasePayload.FileID.Valid = true
 	databasePayload.FileID.Int64 = int64(fileMeta.ID)
@@ -128,8 +130,8 @@ func RegisterNewPayload(payloadDefinition PayloadConfiguration, operatorOperatio
 		databasePayload.EventStepInstanceID.Int64 = int64(payloadDefinition.EventStepInstance)
 	}
 	statement, err = database.DB.PrepareNamed(`INSERT INTO payload 
-		(operator_id, payload_type_id, description, uuid, operation_id, os, file_id, wrapped_payload_id, build_container, eventstepinstance_id) 
-		VALUES (:operator_id, :payload_type_id, :description, :uuid, :operation_id, :os, :file_id, :wrapped_payload_id, :build_container, :eventstepinstance_id) 
+		(operator_id, payload_type_id, description, uuid, operation_id, os, file_id, wrapped_payload_id, build_container, eventstepinstance_id, payload_type_semver) 
+		VALUES (:operator_id, :payload_type_id, :description, :uuid, :operation_id, :os, :file_id, :wrapped_payload_id, :build_container, :eventstepinstance_id, :payload_type_semver) 
 		RETURNING id`,
 	)
 	if err != nil {

@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 
@@ -101,5 +102,6 @@ func (r *rabbitMQConnection) SendC2RPCStartServer(startServer C2StartServerMessa
 		logging.LogError(err, "Failed to parse start server response back to struct", "response", response)
 		return &c2StartServerResponse, err
 	}
+	logging.LogDebug("Got response from start server request", "startServer", startServer)
 	return &c2StartServerResponse, nil
 }

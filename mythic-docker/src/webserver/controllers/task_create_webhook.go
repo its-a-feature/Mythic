@@ -2,9 +2,10 @@ package webcontroller
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -77,6 +78,10 @@ func CreateTaskWebhook(c *gin.Context) {
 		rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Starting to task %d callbacks with \"%s\"", len(callbacks), input.Input.Command),
 			operatorOperation.CurrentOperation.ID, "mass_tasking", database.MESSAGE_LEVEL_INFO, false)
 	}
+	eventStepInstanceID := 0
+	if claims != nil {
+		eventStepInstanceID = claims.EventStepInstanceID
+	}
 	createTaskInput := rabbitmq.CreateTaskInput{
 		CallbackDisplayID:   callbacks[0],
 		CurrentOperationID:  operatorOperation.CurrentOperation.ID,
@@ -92,7 +97,7 @@ func CreateTaskWebhook(c *gin.Context) {
 		ParentTaskID:        input.Input.ParentTaskId,
 		IsInteractiveTask:   input.Input.IsInteractiveTask,
 		InteractiveTaskType: input.Input.InteractiveTaskType,
-		EventStepInstanceID: claims.EventStepInstanceID,
+		EventStepInstanceID: eventStepInstanceID,
 		PayloadType:         input.Input.PayloadType,
 	}
 	if operatorOperation.BaseDisabledCommandsID.Valid {
@@ -102,7 +107,7 @@ func CreateTaskWebhook(c *gin.Context) {
 	logging.LogDebug("got creating tasking from web", "createTasking", createTaskInput)
 	c.JSON(http.StatusOK, rabbitmq.CreateTask(createTaskInput))
 	if len(callbacks) > 1 {
-		go issueMassTasking(input, callbacks[1:], operatorOperation, claims.EventStepInstanceID)
+		go issueMassTasking(input, callbacks[1:], operatorOperation, eventStepInstanceID)
 	}
 	return
 

@@ -42,7 +42,7 @@ export function CallbacksTabsTaskingInputTokenSelect(props) {
       }
     }
   return (
-      <FormControl style={{width: "20%"}}>
+      <FormControl style={{width: props.width ? props.width : "20%"}}>
         <Select
           labelId="demo-dialog-select-label"
           id="demo-dialog-select"

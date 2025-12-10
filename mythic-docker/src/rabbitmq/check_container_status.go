@@ -4,12 +4,13 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
-	"github.com/its-a-feature/Mythic/grpc"
-	"github.com/its-a-feature/Mythic/utils"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
+	"github.com/its-a-feature/Mythic/grpc"
+	"github.com/its-a-feature/Mythic/utils"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -24,6 +25,8 @@ var checkContainerStatusAddTrChannel = make(chan databaseStructs.Translationcont
 var translationContainersToCheck = map[string]databaseStructs.Translationcontainer{}
 var checkContainerStatusAddConsumingContainerChannel = make(chan databaseStructs.ConsumingContainer)
 var consumingContainersToCheck = map[string]databaseStructs.ConsumingContainer{}
+var checkContainerStatusAddCustomBrowserChannel = make(chan databaseStructs.CustomBrowser)
+var customBrowsersToCheck = map[string]databaseStructs.CustomBrowser{}
 
 func checkContainerStatusAddPT() {
 	for {
@@ -47,6 +50,12 @@ func checkContainerStatusAddConsumingContainer() {
 	for {
 		cc := <-checkContainerStatusAddConsumingContainerChannel
 		consumingContainersToCheck[cc.Name] = cc
+	}
+}
+func checkContainerStatusAddCustomBrowser() {
+	for {
+		cc := <-checkContainerStatusAddCustomBrowserChannel
+		customBrowsersToCheck[cc.Name] = cc
 	}
 }
 func initializeContainers() {
@@ -80,6 +89,14 @@ func initializeContainers() {
 	} else {
 		for i, _ := range consumingContainers {
 			checkContainerStatusAddConsumingContainerChannel <- consumingContainers[i]
+		}
+	}
+	customBrowsers := []databaseStructs.CustomBrowser{}
+	if err := database.DB.Select(&customBrowsers, `SELECT * FROM custombrowser`); err != nil {
+		logging.LogError(err, "Failed to fetch consuming containers")
+	} else {
+		for i, _ := range customBrowsers {
+			checkContainerStatusAddCustomBrowserChannel <- customBrowsers[i]
 		}
 	}
 }
@@ -193,6 +210,8 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 		if err != nil {
 			logging.LogError(err, "Failed to send container on start")
 		}
+		// wait a few seconds between each message to give the container a chance to process the message
+		time.Sleep(5 * time.Second)
 	}
 }
 func updateAPITokenAfter5Minutes(apitoken_id int) {
@@ -213,6 +232,7 @@ func checkContainerStatus() {
 	go checkContainerStatusAddC2()
 	go checkContainerStatusAddTR()
 	go checkContainerStatusAddConsumingContainer()
+	go checkContainerStatusAddCustomBrowser()
 	go initializeContainers()
 	for {
 		time.Sleep(CHECK_CONTAINER_STATUS_DELAY)
@@ -379,6 +399,37 @@ func checkContainerStatus() {
 					}
 				} else {
 					logging.LogError(nil, "Failed to get consuming container from map for updating running status")
+				}
+			}
+		}
+
+		for container := range customBrowsersToCheck {
+			// check that a container is online
+			//logging.LogDebug("checking container", "container", container)
+			running := utils.SliceContains(existingQueues, GetCustomBrowserExportFunctionRoutingKey(consumingContainersToCheck[container].Name))
+			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", c2profilesToCheck[container].ContainerRunning)
+			if running != consumingContainersToCheck[container].ContainerRunning {
+				if entry, ok := consumingContainersToCheck[container]; ok {
+					entry.ContainerRunning = running
+					_, err = database.DB.NamedExec(`UPDATE custombrowser SET 
+							container_running=:container_running, deleted=false 
+							WHERE id=:id`, entry,
+					)
+					if err != nil {
+						logging.LogError(err, "Failed to set container running status", "container_running", consumingContainersToCheck[container].ContainerRunning, "container", container)
+						continue
+					}
+					consumingContainersToCheck[container] = entry
+					if !running {
+						SendAllOperationsMessage(
+							getDownContainerMessage(container),
+							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
+					} else {
+						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+					}
+				} else {
+					logging.LogError(nil, "Failed to get custom browser from map for updating running status")
 				}
 			}
 		}

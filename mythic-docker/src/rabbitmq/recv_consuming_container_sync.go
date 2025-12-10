@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
@@ -85,7 +86,7 @@ func consumingServicesSync(in ConsumingContainerSyncMessage) error {
 		return errors.New("can't have consuming container with empty name - bad sync")
 	} else if !isValidContainerVersion(in.ContainerVersion) {
 		logging.LogError(nil, "attempting to sync bad consuming container version")
-		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
+		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is < %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
 	}
 	if err := database.DB.Get(&consumingContainer, `SELECT * FROM consuming_container WHERE "name"=$1`, in.ConsumingContainer.Name); err != nil {
 		// this means we don't have the c2 profile, so we need to create it and all the associated components

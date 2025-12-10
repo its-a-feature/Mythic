@@ -38,6 +38,16 @@ import {Eventing} from "./pages/Eventing/Eventing";
 import {InviteForm} from "./pages/Login/InviteForm";
 import {snackActions} from "./utilities/Snackbar";
 import {TopAppBarVertical} from "./TopAppBarVertical";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import * as Icons from '@fortawesome/free-solid-svg-icons';
+
+// add all fas icons
+const iconList = Object
+    .keys(Icons)
+    .filter(key => key !== "fas" && key !== "prefix" )
+    .map(icon => Icons[icon])
+
+library.add(...iconList)
 
 export const MeContext = createContext({});
 export const userSettingsQuery = gql`
@@ -132,6 +142,8 @@ export function App(props) {
                     },
                     topAppBarColor: themeMode === 'dark' ? preferences?.palette?.navBarColor?.dark || operatorSettingDefaults.palette.navBarColor.dark :
                         preferences?.palette?.navBarColor?.light || operatorSettingDefaults.palette.navBarColor.light,
+                    topAppBarBottomColor: themeMode === 'dark' ? preferences?.palette?.navBarBottomColor?.dark || operatorSettingDefaults.palette.navBarBottomColor.dark :
+                        preferences?.palette?.navBarBottomColor?.light || operatorSettingDefaults.palette.navBarBottomColor.light,
                     typography: {
                         fontSize: 12, //preferences?.fontSize,
                         fontFamily: preferences?.fontFamily
@@ -146,6 +158,8 @@ export function App(props) {
                         preferences?.palette?.taskContextImpersonationColor?.light || operatorSettingDefaults.palette.taskContextImpersonationColor.light,
                     taskContextExtraColor: themeMode === 'dark' ? preferences?.palette?.taskContextExtraColor?.dark || operatorSettingDefaults.palette.taskContextExtraColor.dark :
                         preferences?.palette?.taskContextExtraColor?.light || operatorSettingDefaults.palette.taskContextExtraColor.light,
+                    emptyFolderColor: themeMode === 'dark' ? preferences?.palette?.emptyFolderColor?.dark || operatorSettingDefaults.palette.emptyFolderColor.dark :
+                        preferences?.palette?.emptyFolderColor?.light || operatorSettingDefaults.palette.emptyFolderColor.light,
                 })
             }catch(error){
                 console.log(error);
@@ -223,6 +237,10 @@ export function App(props) {
                     },
                     topAppBarColor: themeMode === 'dark' ? operatorSettingDefaults.palette.navBarColor.dark :
                         operatorSettingDefaults.palette.navBarColor.light,
+                    topAppBarBottomColor: themeMode === 'dark' ? operatorSettingDefaults.palette.navBarBottomColor.dark :
+                        operatorSettingDefaults.palette.navBarBottomColor.light,
+                    emptyFolderColor: themeMode === 'dark' ? operatorSettingDefaults.palette.emptyFolderColor.dark :
+                        operatorSettingDefaults.palette.emptyFolderColor.light,
                     typography: {
                         fontSize: 12,//operatorSettingDefaults?.fontSize,
                         fontFamily: operatorSettingDefaults?.fontFamily
@@ -308,7 +326,6 @@ export function App(props) {
                                     pauseOnFocusLoss={false} />
                         <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'row', maxWidth: "100%", width:"100%",
                             ...background}}>
-
                             {openRefreshDialog &&
                                 <MythicDialog fullWidth={true} maxWidth="sm" open={openRefreshDialog}
                                               onClose={()=>{setOpenRefreshDialog(false);}}
@@ -317,15 +334,16 @@ export function App(props) {
                                 />
                             }
                             {me.loggedIn && me.user !== undefined && me.user !== null  ? (
-                                <TopAppBarVertical me={me} theme={themeMode} toggleTheme={themeToggler} />
+                                <TopAppBarVertical me={me} toggleTheme={themeToggler} />
                             ) : null}
                             <div style={{
                                 maxHeight: '100%',
                                 height: '100%',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                width: "100%"
+                                width: "100%",
                             }}>
+                                <div style={{height: "5px", width: "100%", backgroundColor: "unset !important", background: `linear-gradient(25deg, ${theme.topAppBarColor}, ${theme.topAppBarBottomColor})`}}/>
                                 {me.loggedIn && me?.user?.current_operation_banner_text !== "" &&
                                     <Typography style={{
                                         backgroundColor: me?.user?.current_operation_banner_color,

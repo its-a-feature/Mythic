@@ -6,11 +6,14 @@ import ListIcon from '@mui/icons-material/List';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import {getAllParentNodes} from "./CallbacksTabsFileBrowser";
 import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
+import {copyStringToClipboard} from "../../utilities/Clipboard";
+import FileCopyOutlinedIcon from '@mui/icons-material/FileCopyOutlined';
+import {snackActions} from "../../utilities/Snackbar";
 
 export const getOpenIDFromNode = (node) => {
     return `${node.group};${node.host};${node.full_path_text}`;
 }
-export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatrix, fetchFolderData, setTableData, taskListing, tableOpenedPathId, showDeletedFiles, tabInfo, selectedFolderData}) => {
+export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatrix, fetchFolderData, setTableData, taskListing, tableOpenedPathId, showDeletedFiles, tabInfo, selectedFolderData, baseUIFeature}) => {
     const [openNodes, setOpenNodes] = React.useState({});
     const groupName = React.useRef("");
     const [openViewGroupsDialog, setOpenViewGroupDialog] = React.useState(false);
@@ -19,7 +22,7 @@ export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatri
         //console.log("toggleNodeExpanded", nodeId, nodeData);
         let lastOpenedNodeNewState = true;
         let lastOpenedNodeID = getOpenIDFromNode(lastOpenedNodeRef.current);
-        if(!lastOpenedNodeRef.current?.metadata?.has_children){
+        if(!lastOpenedNodeRef.current?.has_children){
             lastOpenedNodeNewState = false;
         }
         lastOpenedNodeRef.current = {...nodeData};
@@ -28,7 +31,7 @@ export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatri
         setOpenNodes({
           ...openNodes,
           [getOpenIDFromNode(nodeData)]: true,
-          [lastOpenedNodeID]: lastOpenedNodeNewState
+          //[lastOpenedNodeID]: lastOpenedNodeNewState
         });
       };
     const toggleNodeCollapsed =  (nodeId, nodeData) => {
@@ -77,6 +80,41 @@ export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatri
         });
     }, [selectedFolderData]);
     const contextMenuOptions= (callback_id, callback_display_id, node) => [
+        {
+            name: "Copy to Clipboard", icon: null, click: () => {}, type: "menu",
+            menuItems: [
+                {
+                    name: 'Name', type: "item",
+                    icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
+                    click: ({event}) => {
+                        event.stopPropagation();
+                        if(copyStringToClipboard(node.name_text)){
+                            snackActions.success("Copied to clipboard");
+                        }
+                    },
+                },
+                {
+                    name: 'Full Path', type: "item",
+                    icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
+                    click: ({event}) => {
+                        event.stopPropagation();
+                        if(copyStringToClipboard(node.full_path_text)){
+                            snackActions.success("Copied to clipboard");
+                        }
+                    },
+                },
+                {
+                    name: 'Metadata', type: "item",
+                    icon: <FileCopyOutlinedIcon style={{ paddingRight: '5px' }} />,
+                    click: ({event}) => {
+                        event.stopPropagation();
+                        if(copyStringToClipboard(JSON.stringify(node?.metadata, null, 2))){
+                            snackActions.success("Copied to clipboard");
+                        }
+                    },
+                },
+            ]
+        },
       {
           name: 'List', type: "item", icon: <ListIcon color="warning" style={{ paddingRight: '5px'}} />,
           click: ({event}) => {
@@ -146,6 +184,7 @@ export const CallbacksTabsFileBrowserTreePreMemo = ({ treeRootData, treeAdjMatri
               onCollapseNode={toggleNodeCollapsed}
               onContextMenu={onContextMenu}
               tabInfo={tabInfo}
+              baseUIFeature={baseUIFeature}
           />
           {openViewGroupsDialog &&
               <MythicDialog

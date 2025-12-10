@@ -741,6 +741,7 @@ export function TaskParametersDialogRow(props){
                             </FormControl>
                             OR
                             <MythicTextField required={props.required} placeholder={"Custom Value"} value={chooseOneCustomValue} multiline={true} maxRows={5}
+                                             validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
                                              onChange={onChangeTextChooseOneCustom} display="inline-block" onEnter={props.onSubmit} autoFocus={props.autoFocus}
                                              name={props.name} marginTop={"5px"}
                             />
@@ -1198,15 +1199,16 @@ export function TaskParametersDialogRow(props){
     return (
             <TableRow key={"buildparam" + props.id}>
                 <MythicStyledTableCell >
-                    <Typography style={{fontWeight: "600"}} >
+                    <Typography style={{fontWeight: "600", wordBreak: "break-all"}} >
                         {props.display_name}
                     </Typography>
-                    <Typography variant={"body2"} style={{fontSize: theme.typography.pxToRem(15)}}>
+                    <Typography variant={"body2"} style={{
+                        fontSize: theme.typography.pxToRem(14),
+                        wordBreak: "break-all"
+                    }}>
                         {props.description}
                     </Typography>
-                    {props.required ? (
-                        <Typography component="div" color={"warning"}>Required</Typography>
-                    ) : null }
+                    {props.required && <Typography component="div" color={"warning"}>Required</Typography>}
                  </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     {getParameterObject()}

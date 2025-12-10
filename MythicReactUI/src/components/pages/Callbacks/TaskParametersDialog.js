@@ -256,6 +256,7 @@ query getCommandQuery($id: Int!){
       parameter_group_name
       display_name
       cli_name
+      verifier_regex
     }
   }
 }
