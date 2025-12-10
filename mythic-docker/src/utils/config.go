@@ -186,6 +186,9 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 	MythicConfig.RabbitmqUser = mythicEnv.GetString("rabbitmq_user")
 	MythicConfig.RabbitmqPassword = mythicEnv.GetString("rabbitmq_password")
 	MythicConfig.RabbitmqVHost = mythicEnv.GetString("rabbitmq_vhost")
+	if MythicConfig.RabbitmqVHost == "" {
+		MythicConfig.RabbitmqVHost = "mythic_vhost"
+	}
 	// jwt configuration
 	MythicConfig.JWTSecret = []byte(mythicEnv.GetString("jwt_secret"))
 }

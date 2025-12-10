@@ -224,8 +224,9 @@ func updateAPITokenAfter5Minutes(apitoken_id int) {
 func checkContainerStatus() {
 	// get all queues from rabbitmq
 	// http://rabbitmq_user:rabbitmq_password@rabbitmq_host:15672/rabbitmq/api/queues/mythic_vhost
-	rabbitmqReqURL := fmt.Sprintf("http://%s:%s@%s:15672/api/queues/mythic_vhost?use_regex=true&page=1&page_size=500&name=%s",
+	rabbitmqReqURL := fmt.Sprintf("http://%s:%s@%s:15672/api/queues/%s?use_regex=true&page=1&page_size=500&name=%s",
 		utils.MythicConfig.RabbitmqUser, utils.MythicConfig.RabbitmqPassword, utils.MythicConfig.RabbitmqHost,
+		utils.MythicConfig.RabbitmqVHost,
 		fmt.Sprintf("(.%%2A_%s|.%%2A_%s|.%%2A_%s)",
 			PT_BUILD_ROUTING_KEY, C2_RPC_START_SERVER_ROUTING_KEY, CONSUMING_CONTAINER_RESYNC_ROUTING_KEY))
 	go checkContainerStatusAddPT()
