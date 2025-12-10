@@ -389,7 +389,7 @@ export const ResponseDisplayInteractive = (props) =>{
       <div style={{
           display: "flex", overflowY: "auto",
           position: "relative", height: props.expand ? "100%" : undefined, maxHeight: props.expand ? "100%" : "500px",
-          flexDirection: "column"
+          flexDirection: "column", width: "100%"
       }}>
           <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute",}} invisible={false}>
               <div style={{

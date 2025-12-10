@@ -70,7 +70,7 @@ export const RenderSingleTask = ({task_id}) => {
         }
     });
     return (
-        taskData.id &&
+        taskData.id > 0 &&
         <TaskDisplay me={me} task={taskData} command_id={taskData.command === null ? 0 : taskData.command.id} />
     )
 }

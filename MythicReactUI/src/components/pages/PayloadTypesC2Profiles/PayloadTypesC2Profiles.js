@@ -20,6 +20,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { IconButton } from '@mui/material';
 import {useTheme} from '@mui/material/styles';
+import {CustomBrowserRow} from "./CustomBrowserCard";
 
 const SUB_Payload_Types = gql`
  subscription getPayloadTypesSubscription {
@@ -80,6 +81,7 @@ subscription getTranslationContainersSubscription {
    deleted
    description
    author
+   semver
    payloadtypes(order_by: {name: asc}) {
        name
        deleted
@@ -98,6 +100,25 @@ subscription ConsumingContainer{
         container_running
         deleted
         subscriptions
+        semver
+    }
+}
+ `;
+const SUB_Custom_Browsers = gql`
+subscription CustomBrowser{
+    custombrowser(order_by: {name: asc}) {
+        id
+        name
+        description
+        type
+        container_running
+        deleted
+        columns
+        export_function
+        row_actions
+        extra_table_inputs
+        author
+        semver
     }
 }
  `;
@@ -115,7 +136,7 @@ function useCustomSubscription({customSubscription, dataKey}){
     return customData
 }
 
-const tabTypes = ["Payload Types", "C2 Profiles", "Translators", "Command Augmentation", "3rd Party", "Webhooks", "Loggers",  "Eventing", "Auth", ];
+const tabTypes = ["Payload Types", "C2 Profiles", "Translators", "Command Augmentation", "3rd Party", "Webhooks", "Loggers",  "Eventing", "Auth", "Browsers"];
 
 const filterDeleted = (c, showDeleted) => {
     if(showDeleted){
@@ -144,12 +165,16 @@ export function PayloadTypesC2Profiles({me}){
         customSubscription: sub_consuming_services,
         dataKey: "consuming_container"
     });
+    const customBrowsers = useCustomSubscription({
+        customSubscription: SUB_Custom_Browsers,
+        dataKey: "custombrowser"
+    })
     const [showDeleted, setShowDeleted] = React.useState(false);
     React.useEffect( () => {
-        let newData = [...payloadTypes, ...c2Profiles, ...translationContainers, ...consumingServices];
+        let newData = [...payloadTypes, ...c2Profiles, ...translationContainers, ...consumingServices, ...customBrowsers];
         newData.sort( (a, b) => a.name.toLowerCase() < b.name.toLowerCase() ? -1 : a.name.toLowerCase() > b.name.toLowerCase() ? 1 : 0);
         setAllData(newData);
-    }, [payloadTypes, c2Profiles, translationContainers, consumingServices])
+    }, [payloadTypes, c2Profiles, translationContainers, consumingServices, customBrowsers])
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
@@ -182,6 +207,9 @@ export function PayloadTypesC2Profiles({me}){
             case 8:
                 return <ContainersTabConsumingServicesPanel key={"Auth"} type={"Auth"} index={value} value={value} showDeleted={showDeleted}
                                                             containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "auth")} />
+            case 9:
+                return <ContainersTabCustomBrowsersPanel key={"Browsers"} type={"Browsers"} index={value} value={value} showDeleted={showDeleted}
+                                                       containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "custombrowser")} />
             default:
                 return null;
         }
@@ -243,6 +271,10 @@ export function PayloadTypesC2Profiles({me}){
                                 case "Auth":
                                     return <ContainersTabAuthLabel key={"auth"}
                                                                    containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "consuming_container" && c.type === "auth")}/>;
+                                case "Browsers":
+                                    return <ContainersTabBrowsersLabel key={"browsers"}
+                                                                   containers={allData.filter(c => filterDeleted(c, showDeleted)).filter(c => c.__typename === "custombrowser")}/>;
+
                                 default:
                                     return null;
                             }
@@ -270,21 +302,21 @@ const PayloadTypesC2ProfilesTableRow = ({service, showDeleted}) => {
 
 const ContainersTabPayloadTypesLabel = (props) => {
     return (
-        <MythicSearchTabLabel label={"Payload Types" + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
+        <MythicSearchTabLabel label={"Agents" + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
             <></>
         } {...props}/>
     )
 }
 const ContainersTab3rdPartyLabel = (props) => {
     return (
-        <MythicSearchTabLabel label={"3rd Party Service"  + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
+        <MythicSearchTabLabel label={"External"  + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
             <></>
         } {...props}/>
     )
 }
 const ContainersTabC2ProfilesLabel = (props) => {
     return (
-        <MythicSearchTabLabel label={"C2 Profiles"  + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
+        <MythicSearchTabLabel label={"C2"  + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
             <></>
         } {...props}/>
     )
@@ -326,7 +358,14 @@ const ContainersTabAuthLabel = (props) => {
 }
 const ContainersTabCommandAugmentLabel = (props) => {
     return (
-        <MythicSearchTabLabel label={"Command Augmentation"  + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
+        <MythicSearchTabLabel label={"Command Augments"  + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
+            <></>
+        } {...props}/>
+    )
+}
+const ContainersTabBrowsersLabel = (props) => {
+    return (
+        <MythicSearchTabLabel label={"Browsers"  + (props.containers.length > 0 ? " (" + props.containers.length + ") " : "")} iconComponent={
             <></>
         } {...props}/>
     )
@@ -360,6 +399,9 @@ Command Augmentation container commands get "injected" into the callbacks of sup
                 message = `To help ease the burden of context switching between applications while operating, Mythic supports 3rd Party Agents.
 These are containers that generate "callbacks" and allow you to interact with a 3rd Party Service over an API from Mythic's standard tasking workflow.
 A few examples are github.com/MythicAgents/bloodhound and github.com/MythicAgents/ghostwriter.`;
+                break;
+            case "Browsers":
+                message = `Custom Browsers allow you to collect and display data in a familiar and unified "browser" format.`;
                 break;
         }
         return (
@@ -464,6 +506,60 @@ You can extend this auth capability to support your own LDAP, SSO, or otherwise 
                         <TableBody>
                             {props.containers.map((service, index) => (
                                 <ConsumingServicesTableRow key={"service" + index + service.name} service={service} showDeleted={props.showDeleted}/>
+                            ))}
+                            {props.containers.length === 0 && getEmptyServiceListMessage()}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </div>
+        </MythicTabPanel>
+    )
+}
+const ContainersTabCustomBrowsersPanel = (props) => {
+    const getEmptyServiceListMessage = () => {
+        let message = "";
+        switch(props.type){
+            case "Browsers":
+                message = `Custom Browsers allow you to collect and display data in a familiar and unified "browser" format.`;
+                break;
+        }
+        return (
+            <div style={{overflowY: "hidden", flexGrow: 1}}>
+                <div style={{
+                    position: "absolute",
+                    left: "35%",
+                    top: "40%",
+                    borderRadius: "4px",
+                    border: "1px solid black",
+                    padding: "5px",
+                    backgroundColor: "rgba(37,37,37,0.92)", color: "white",
+                    whiteSpace: "pre-wrap"
+                }}>
+                    {message}
+                </div>
+            </div>
+        )
+    }
+    return (
+        <MythicTabPanel {...props} >
+            <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
+                <TableContainer>
+                    <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
+                        <TableHead>
+                            <TableRow>
+                                <MythicTableCell style={{width: "4rem"}}>Delete</MythicTableCell>
+                                <MythicTableCell style={{width: "90px"}}></MythicTableCell>
+                                <MythicTableCell>Service</MythicTableCell>
+                                <MythicTableCell style={{width: "4rem"}}>Type</MythicTableCell>
+                                <MythicTableCell>Metadata</MythicTableCell>
+                                <MythicTableCell>Manage</MythicTableCell>
+                                <MythicTableCell></MythicTableCell>
+
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {props.containers.map((service, index) => (
+                                <CustomBrowserRow key={"service" + index} service={service} showDeleted={props.showDeleted}/>
                             ))}
                             {props.containers.length === 0 && getEmptyServiceListMessage()}
                         </TableBody>

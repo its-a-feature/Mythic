@@ -24,12 +24,16 @@ fragment tokenData on token{
     token_id
     task {
         id
+        display_id
     }
     host
     deleted
     description
-    callbacktokens(where: {deleted: {_eq: false}}) {
-        callback_id
+    callbacktokens {
+        callback {
+            display_id
+            id
+        }
         id
     }
 }

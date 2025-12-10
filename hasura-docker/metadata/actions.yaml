@@ -291,6 +291,16 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Creates a new saved instance of a C2 Profile with a given name
+  - name: custombrowserExportFunction
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/custombrowser_export_function_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: deleteAPIToken
     definition:
       kind: synchronous
@@ -1000,4 +1010,5 @@ custom_types:
     - name: updatePayloadOutput
     - name: eventingTriggerManualBulkOutput
     - name: dynamicQueryBuildParameterOutput
+    - name: custombrowserExportFunctionOutput
   scalars: []

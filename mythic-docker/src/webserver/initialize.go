@@ -312,6 +312,8 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("eventing_trigger_manual_bulk_webhook", webcontroller.EventingTriggerManualBulkWebhook)
 				// keylogs
 				noSpectators.POST("keylog_create_webhook", webcontroller.CreateKeylogWebhook)
+				// custom browsers
+				noSpectators.POST("custombrowser_export_function_webhook", webcontroller.CustomBrowserExportFunctionWebhook)
 			}
 			operationAdminsOnly := protected.Group("/api/v1.4/")
 			operationAdminsOnly.Use(authentication.RBACMiddlewareOperationAdmin())

@@ -64,6 +64,7 @@ type agentMessagePostResponse struct {
 	Alerts          *[]agentMessagePostResponseAlert          `json:"alerts,omitempty" mapstructure:"alerts,omitempty" xml:"alerts,omitempty"`
 	Callback        *agentMessagePostResponseCallback         `json:"callback,omitempty" mapstructure:"callback,omitempty" xml:"callback,omitempty"`
 	Events          *[]agentMessagePostResponseTriggerEvent   `json:"events,omitempty" mapstructure:"events,omitempty" xml:"events,omitempty"`
+	CustomBrowser   *agentMessagePostResponseCustomBrowser    `json:"custom_browser,omitempty" mapstructure:"custom_browser,omitempty" xml:"custom_browser,omitempty"`
 	Other           map[string]interface{}                    `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
 }
 
@@ -151,7 +152,7 @@ type agentMessagePostResponseKeylogs struct {
 }
 type agentMessagePostResponseToken struct {
 	Action             string `json:"action" mapstructure:"action" xml:"action"`
-	TokenID            uint64 `json:"token_id" mapstructure:"token_id" xml:"token_id"`
+	TokenID            int64  `json:"token_id" mapstructure:"token_id" xml:"token_id"`
 	User               string `json:"user" mapstructure:"user" xml:"user"`
 	Groups             string `json:"groups" mapstructure:"groups" xml:"groups"`
 	Privileges         string `json:"privileges" mapstructure:"privileges" xml:"privileges"`
@@ -170,7 +171,7 @@ type agentMessagePostResponseToken struct {
 type agentMessagePostResponseCallbackTokens struct {
 	Action  string  `json:"action" mapstructure:"action" xml:"action"`
 	Host    *string `json:"host,omitempty" mapstructure:"host,omitempty" xml:"host,omitempty"`
-	TokenId uint64  `json:"token_id" mapstructure:"token_id" xml:"token_id"`
+	TokenId int64   `json:"token_id" mapstructure:"token_id" xml:"token_id"`
 	// optionally also provide all the token information
 	TokenInfo *agentMessagePostResponseToken `mapstructure:"token"`
 }
@@ -232,6 +233,28 @@ type agentMessagePostResponseCallback struct {
 type agentMessagePostResponseTriggerEvent struct {
 	Keyword string                 `json:"keyword" mapstructure:"keyword" xml:"keyword"`
 	Data    map[string]interface{} `json:"data" mapstructure:"data" xml:"data"`
+}
+type agentMessagePostResponseCustomBrowser struct {
+	BrowserName     string                                        `json:"browser_name" mapstructure:"browser_name" xml:"browser_name"`
+	Host            string                                        `json:"host" mapstructure:"host" xml:"host"`
+	UpdateDeleted   bool                                          `json:"update_deleted" mapstructure:"update_deleted" xml:"update_deleted"` // option to treat this response as full source of truth
+	SetAsUserOutput bool                                          `json:"set_as_user_output" mapstructure:"set_as_user_output"`
+	Entries         *[]agentMessagePostResponseCustomBrowserEntry `json:"entries" mapstructure:"entries" xml:"entries"`
+}
+type agentMessagePostResponseCustomBrowserEntry struct {
+	Name            string                                           `json:"name" mapstructure:"name" xml:"name"`
+	ParentPath      string                                           `json:"parent_path" mapstructure:"parent_path" xml:"parent_path"`
+	DisplayPath     string                                           `json:"display_path" mapstructure:"display_path" xml:"display_path"`
+	Success         *bool                                            `json:"success,omitempty" mapstructure:"success,omitempty" xml:"success,omitempty"`
+	CanHaveChildren bool                                             `json:"can_have_children,omitempty" mapstructure:"can_have_children,omitempty" xml:"can_have_children,omitempty"`
+	Metadata        interface{}                                      `json:"metadata" mapstructure:"metadata" xml:"metadata"`
+	Children        *[]agentMessagePostResponseCustomBrowserChildren `json:"children,omitempty" mapstructure:"children,omitempty" xml:"children,omitempty"`
+}
+type agentMessagePostResponseCustomBrowserChildren struct {
+	Name            string      `json:"name" mapstructure:"name" xml:"name"`
+	DisplayPath     string      `json:"display_path" mapstructure:"display_path" xml:"display_path"`
+	CanHaveChildren bool        `json:"can_have_children,omitempty" mapstructure:"can_have_children,omitempty" xml:"can_have_children,omitempty"`
+	Metadata        interface{} `json:"metadata" mapstructure:"metadata" xml:"metadata"`
 }
 
 // writeDownloadChunkToDiskChan is a blocking call intentionally
@@ -511,6 +534,9 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		if agentMessage.Responses[i].Events != nil && len(*agentMessage.Responses[i].Events) > 0 {
 			go handleAgentMessagePostResponseEvent(currentTask, agentMessage.Responses[i].Events)
 		}
+		if agentMessage.Responses[i].CustomBrowser != nil {
+			go handleAgentMessagePostResponseCustomBrowser(currentTask, agentMessage.Responses[i].CustomBrowser)
+		}
 		// this section always happens
 		reflectBackOtherKeys(&mythicResponse, &agentMessage.Responses[i].Other)
 		responses = append(responses, mythicResponse)
@@ -556,7 +582,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				fileMeta.Size = POSTGRES_MAX_BIGINT - 1
 			}
 		}
-		if fileMeta.ChunksReceived >= fileMeta.TotalChunks {
+		if fileMeta.ChunksReceived >= fileMeta.TotalChunks && fileMeta.TotalChunks >= 0 {
 			fileMeta.Complete = true
 			// also calculate new md5 and sha1 sums
 			sha1Hash := sha1.New()
@@ -1291,6 +1317,9 @@ func handleAgentMessagePostResponseDownload(task *databaseStructs.Task, agentRes
 		if agentResponse.Download.IsScreenshot != nil && *agentResponse.Download.IsScreenshot {
 			fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
 		}
+		if fileMeta.TotalChunks < 0 && agentResponse.Download.TotalChunks != nil && *agentResponse.Download.TotalChunks > 0 {
+			fileMeta.TotalChunks = *agentResponse.Download.TotalChunks
+		}
 		return handleAgentMessageWriteDownloadChunkToLocalDisk(task, fileMeta, agentResponse)
 
 	} else if agentResponse.Download.TotalChunks != nil {
@@ -1606,7 +1635,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 	}
 }
 func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta databaseStructs.Filemeta, task databaseStructs.Task) {
-	resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
+	resolveAndCreateParentPathsForTreeNode(pathData, utils.AnalyzedPath{}, task, databaseStructs.TREE_TYPE_FILE)
 	newTree := databaseStructs.MythicTree{
 		Host:            pathData.Host,
 		TaskID:          task.ID,
@@ -1728,7 +1757,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 	if fileBrowser.Host != "" {
 		pathData.Host = strings.ToUpper(fileBrowser.Host)
 	}
-	resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
+	resolveAndCreateParentPathsForTreeNode(pathData, utils.AnalyzedPath{}, task, databaseStructs.TREE_TYPE_FILE)
 	// now that the parents and all ancestors are resolved, process the current path and all children
 	realParentPath := strings.Join(pathData.PathPieces, pathData.PathSeparator)
 	// check for the instance of // as a leading path
@@ -1759,6 +1788,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 		TreeType:        databaseStructs.TREE_TYPE_FILE,
 		CanHaveChildren: !fileBrowser.IsFile,
 		Deleted:         false,
+		HasChildren:     !fileBrowser.IsFile && fileBrowser.Files != nil && len(*fileBrowser.Files) > 0,
 		Os:              getOSTypeBasedOnPathSeparator(pathData.PathSeparator, databaseStructs.TREE_TYPE_FILE),
 	}
 	if fileBrowser.Success != nil {
@@ -2139,12 +2169,13 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 	}
 	return nil
 }
-func resolveAndCreateParentPathsForTreeNode(pathData utils.AnalyzedPath, task databaseStructs.Task, treeType string) {
+func resolveAndCreateParentPathsForTreeNode(pathData utils.AnalyzedPath, displayPathData utils.AnalyzedPath, task databaseStructs.Task, treeType string) {
 	for i, _ := range pathData.PathPieces {
-		parentPath, fullPath, name := getParentPathFullPathName(pathData, i, databaseStructs.TREE_TYPE_FILE)
+		parentPath, fullPath, name := getParentPathFullPathName(pathData, i, treeType)
 		if parentPath == "" && fullPath == "" && name == "" {
 			continue
 		}
+		displayParentPath, displayFullPath, displayName := getParentPathFullPathName(displayPathData, i, treeType)
 		newTree := databaseStructs.MythicTree{
 			Host:            pathData.Host,
 			TaskID:          task.ID,
@@ -2155,26 +2186,33 @@ func resolveAndCreateParentPathsForTreeNode(pathData utils.AnalyzedPath, task da
 			TreeType:        treeType,
 			CanHaveChildren: true,
 			Deleted:         false,
+			HasChildren:     true,
+			DisplayPath:     []byte(displayFullPath),
 		}
-		metadata := map[string]interface{}{
-			"has_children": true,
-		}
-		newTree.Metadata = GetMythicJSONTextFromStruct(metadata)
+		newTree.Metadata = GetMythicJSONTextFromStruct(nil)
 		newTree.Os = getOSTypeBasedOnPathSeparator(pathData.PathSeparator, treeType)
 		newTree.CallbackID.Valid = true
 		newTree.CallbackID.Int64 = int64(task.Callback.ID)
+		logging.LogInfo("creating parent", "name", name, "parentPath", parentPath, "fullPath", fullPath)
+		logging.LogInfo("display path data for parent path", "displayParentPath", displayParentPath, "displayFullPath", displayFullPath, "displayName", displayName)
 		createTreeNode(&newTree)
 	}
 }
 func getOSTypeBasedOnPathSeparator(pathSeparator string, treeType string) string {
 	switch treeType {
 	case databaseStructs.TREE_TYPE_FILE:
+		fallthrough
+	case databaseStructs.TREE_TYPE_PROCESS:
 		if pathSeparator == "/" {
 			return "linux"
 		} else {
 			return "windows"
 		}
 	default:
+		custom, ok := getCustomBrowser(treeType)
+		if ok {
+			return custom.Os
+		}
 		return "linux"
 	}
 }
@@ -2197,11 +2235,29 @@ func treeNodeGetFullPath(parentPath []byte, name []byte, pathSeparator []byte, t
 			}
 		}
 		return fullPath
-
 	case databaseStructs.TREE_TYPE_PROCESS:
 		// full path is just the process_id of the current process
 		return name
 	default:
+		custom, ok := getCustomBrowser(treeType)
+		if ok && custom.Type == databaseStructs.TREE_TYPE_FILE {
+			fullPath := parentPath
+			// if parent path is empty, then we don't want to add an extra instance of the path separator
+			if len(fullPath) > 0 {
+				if fullPath[len(fullPath)-1] == pathSeparator[len(pathSeparator)-1] {
+				} else if !bytes.Equal(fullPath, pathSeparator) {
+					fullPath = append(fullPath, pathSeparator...)
+				}
+			}
+			fullPath = append(fullPath, name...)
+			//logging.LogInfo("getting full path", "fullPath", fullPath, "parentPath", parentPath, "name", name)
+			if len(fullPath) > 1 {
+				if fullPath[len(fullPath)-1] == pathSeparator[len(pathSeparator)-1] {
+					fullPath = fullPath[:len(fullPath)-1]
+				}
+			}
+			return fullPath
+		}
 		return nil
 	}
 }
@@ -2211,6 +2267,9 @@ func getParentPathFullPathName(pathData utils.AnalyzedPath, endIndex int, treeTy
 	var name string
 	if endIndex < 0 {
 		logging.LogError(nil, "can't get parent full path name when end index < 0")
+		return "", "", ""
+	}
+	if len(pathData.PathPieces) == 0 {
 		return "", "", ""
 	}
 	switch treeType {
@@ -2241,6 +2300,35 @@ func getParentPathFullPathName(pathData utils.AnalyzedPath, endIndex int, treeTy
 		//logging.LogInfo("getting path info", "parentPath", parentPath, "fullPath", fullPath, "name", name)
 		return parentPath, fullPath, name
 	default:
+		custom, ok := getCustomBrowser(treeType)
+		if ok && custom.Type == databaseStructs.TREE_TYPE_FILE {
+			if pathData.ReverseCombine {
+				endIndex = len(pathData.PathPieces) - 1 - endIndex
+				if endIndex == len(pathData.PathPieces)-1 {
+					// this is the root node, so we're looking for name=name, parent_path="", full_path=name
+					fullPath = pathData.PathPieces[endIndex]
+					parentPath = ""
+					name = pathData.PathPieces[endIndex]
+				} else {
+					parentPath = strings.Join(pathData.PathPieces[endIndex+1:], pathData.PathSeparator)
+					fullPath = strings.Join(pathData.PathPieces[endIndex:], pathData.PathSeparator)
+					name = pathData.PathPieces[endIndex]
+				}
+			} else {
+				if endIndex == 0 {
+					// this is the root node, so we're looking for name=name, parent_path="", full_path=name
+					fullPath = pathData.PathPieces[endIndex]
+					parentPath = ""
+					name = pathData.PathPieces[endIndex]
+				} else {
+					parentPath = strings.Join(pathData.PathPieces[:endIndex], pathData.PathSeparator)
+					fullPath = strings.Join(pathData.PathPieces[:endIndex+1], pathData.PathSeparator)
+					name = pathData.PathPieces[endIndex]
+				}
+			}
+			//logging.LogInfo("getting path info", "parentPath", parentPath, "fullPath", fullPath, "name", name)
+			return parentPath, fullPath, name
+		}
 		logging.LogError(nil, "Unknown mythictree type", "tree type", treeType)
 		return "", "", ""
 	}
@@ -2289,13 +2377,15 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 	}
 
 	statement, err := database.DB.PrepareNamed(`INSERT INTO mythictree
-		(host, task_id, operation_id, "name", full_path, parent_path, tree_type, can_have_children, success, metadata, os, callback_id, apitokens_id) 
+		(host, task_id, operation_id, "name", full_path, parent_path, tree_type, can_have_children, success, metadata, os, callback_id, apitokens_id, has_children, display_path) 
 		VALUES 
-		(:host, :task_id, :operation_id, :name, :full_path, :parent_path, :tree_type, :can_have_children, :success, :metadata, :os, :callback_id, :apitokens_id)
+		(:host, :task_id, :operation_id, :name, :full_path, :parent_path, :tree_type, :can_have_children, :success, :metadata, :os, :callback_id, :apitokens_id, :has_children, :display_path)
 		ON CONFLICT (host, operation_id, full_path, tree_type, callback_id)
 		DO UPDATE SET
-		task_id=:task_id, "name"=:name, parent_path=:parent_path, can_have_children=:can_have_children,
-		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false
+		task_id=:task_id, "name"=:name, parent_path=:parent_path, 
+		    can_have_children=(mythictree.can_have_children OR :can_have_children), 
+		    has_children=(mythictree.has_children OR :has_children), 
+		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false, display_path=:display_path
 		    RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to create or update mythictree statement")
@@ -2320,8 +2410,8 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 		return
 	}
 	err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
-		operation_id=$1 AND full_path=$2 AND tree_type='file' AND callback_id=$3`,
-		newFile.OperationID, newFile.FullRemotePath, task.Callback.ID)
+		operation_id=$1 AND full_path=$2 AND tree_type='file' AND callback_id=$3 AND host=$4`,
+		newFile.OperationID, newFile.FullRemotePath, task.Callback.ID, newFile.Host)
 	if errors.Is(err, sql.ErrNoRows) {
 		pathData, err := utils.SplitFilePathGetHost(string(newFile.FullRemotePath), "", []string{})
 		if err != nil {
@@ -2330,26 +2420,9 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 			return
 		}
 		if pathData.Host == "" {
-			pathData.Host = strings.ToUpper(task.Callback.Host)
+			pathData.Host = newFile.Host
 		}
 		associateFileMetaWithMythicTree(pathData, newFile, task)
-		/*
-			resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
-			if err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
-				operation_id=$1 AND full_path=$2 AND tree_type='file' AND host=$3 AND callback_id=$4`,
-				newFile.OperationID, newFile.FullRemotePath, newFile.Host, task.Callback.ID); err != nil {
-				logging.LogError(err, "Failed to find, create, and then fine mythic tree data for newly downloaded file")
-			} else {
-				newFile.MythicTreeID.Int64 = int64(fileBrowser.ID)
-				newFile.MythicTreeID.Valid = true
-				if _, err := database.DB.NamedExec(`UPDATE filemeta SET mythictree_id=:mythictree_id WHERE id=:id`, newFile); err != nil {
-					logging.LogError(err, "Failed to update file meta with mythic tree id")
-				} else if _, err := database.DB.Exec(`UPDATE mythictree SET can_have_children=false WHERE id=$1`, fileBrowser.ID); err != nil {
-					logging.LogError(err, "Failed to update browser object to file instead of folder")
-				}
-			}
-
-		*/
 	} else if err == nil {
 		newFile.MythicTreeID.Int64 = int64(fileBrowser.ID)
 		newFile.MythicTreeID.Valid = true
@@ -2437,5 +2510,250 @@ func submitAgentAlertToWebhook(operationID int, callbackID int, callbackDisplayI
 			"alert":               alert.Alert,
 			"webhook_alert":       alert.WebhookAlert,
 		},
+	}
+}
+
+type customBrowser struct {
+	// Name is the name of the custom browser, like ldap, registry, or agent specific like apollo_ldap
+	Name string `json:"name"`
+	// Separator is the type of path seperator
+	Separator string `json:"separator"`
+	// Type indicates if this is a File or Process based hierarchy
+	Type string `json:"type"`
+	//
+	Os string `json:"os"`
+}
+
+var customBrowserCache = make(map[string]customBrowser)
+var customBrowserCacheMutex sync.RWMutex
+
+func updateCustomBrowserCache() {
+	customBrowserCacheMutex.Lock()
+	customBrowserCache = make(map[string]customBrowser)
+	customBrowserCacheMutex.Unlock()
+}
+func getCustomBrowser(name string) (customBrowser, bool) {
+	customBrowserCacheMutex.RLock()
+	browser, ok := customBrowserCache[name]
+	customBrowserCacheMutex.RUnlock()
+	if ok {
+		return browser, ok
+	}
+	// didn't find the browser, so try fetching it from the database and caching it
+	// fake this for now
+
+	databaseBrowser := databaseStructs.CustomBrowser{
+		Name: name,
+	}
+	customBrowserCacheMutex.Lock()
+	err := database.DB.Get(&databaseBrowser, `SELECT * FROM custombrowser WHERE "name" = $1`, name)
+	if err != nil {
+		logging.LogError(err, "Failed to find custom browser")
+		customBrowserCacheMutex.Unlock()
+		return customBrowser{}, false
+	}
+	customBrowserCache[name] = customBrowser{
+		Name:      name,
+		Separator: databaseBrowser.Separator,
+		Type:      databaseBrowser.Type,
+	}
+	browser, ok = customBrowserCache[name]
+	customBrowserCacheMutex.Unlock()
+	return browser, true
+}
+func handleAgentMessagePostResponseCustomBrowser(task databaseStructs.Task, agentCustomBrowser *agentMessagePostResponseCustomBrowser) {
+	if agentCustomBrowser.BrowserName == "" {
+		return
+	}
+	// given a custom browser object, need to insert it into database and potentially insert parents along the way
+	if agentCustomBrowser.SetAsUserOutput {
+		go func(fileBrowserForOutput *agentMessagePostResponseCustomBrowser) {
+			outputBytes, err := json.Marshal(fileBrowserForOutput)
+			if err != nil {
+				logging.LogError(err, "failed to marshal filebrowser data to JSON")
+				return
+			}
+			asyncAgentMessagePostResponseChannel <- agentAgentMessagePostResponseChannelMessage{
+				Task:        task,
+				Response:    string(outputBytes),
+				SequenceNum: nil,
+			}
+		}(agentCustomBrowser)
+	}
+	if agentCustomBrowser.Entries == nil || len(*agentCustomBrowser.Entries) == 0 {
+		return
+	}
+	customBrowserData, ok := getCustomBrowser(agentCustomBrowser.BrowserName)
+	if !ok {
+		logging.LogError(errors.New("unknown custom browser"), "Failed to get custom browser", "browser", agentCustomBrowser.BrowserName)
+		return
+	}
+	for _, entry := range *agentCustomBrowser.Entries {
+		pathData, err := utils.SplitCustomPath(entry.ParentPath, entry.Name, customBrowserData.Separator)
+		if err != nil {
+			logging.LogError(err, "Failed to add data for custom browser due to path issue")
+			go SendAllOperationsMessage(err.Error(), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
+			continue
+		}
+		pathData.Host = agentCustomBrowser.Host
+		if pathData.Host == "" {
+			pathData.Host = strings.ToUpper(task.Callback.Host)
+		} else {
+			pathData.Host = strings.ToUpper(pathData.Host)
+		}
+		displayData, err := utils.SplitCustomPath(entry.DisplayPath, entry.Name, customBrowserData.Separator)
+		if err != nil {
+			logging.LogError(err, "Failed to add data for custom browser due to display path issue")
+			displayData = utils.AnalyzedPath{}
+		} else if len(displayData.PathPieces) > 0 && displayData.PathPieces[0] == entry.Name {
+			// we're looking at display data that's reversed, so track that
+			displayData.PathPieces = displayData.PathPieces[1:]
+			displayData.ReverseCombine = true
+		}
+		logging.LogInfo("SplitCustomPathResponse", "pathData", pathData)
+		resolveAndCreateParentPathsForTreeNode(pathData, displayData, task, customBrowserData.Name)
+		// now that the parents and all ancestors are resolved, process the current path and all children
+		realParentPath := strings.Join(pathData.PathPieces, pathData.PathSeparator)
+		if entry.Name == "" {
+			logging.LogError(nil, "Can't create browser entry with empty name")
+			continue
+		}
+		fullPath := treeNodeGetFullPath(
+			[]byte(realParentPath),
+			[]byte(entry.Name),
+			[]byte(pathData.PathSeparator),
+			customBrowserData.Name)
+		parentPath := treeNodeGetFullPath([]byte(realParentPath), []byte(""), []byte(pathData.PathSeparator), customBrowserData.Name)
+		name := treeNodeGetFullPath([]byte(""), []byte(entry.Name), []byte(pathData.PathSeparator), customBrowserData.Name)
+		logging.LogInfo("creating entry", "name", entry.Name, "parentPath", realParentPath, "fullPath", fullPath)
+		newTree := databaseStructs.MythicTree{
+			Host:            pathData.Host,
+			TaskID:          task.ID,
+			OperationID:     task.OperationID,
+			Name:            name,
+			ParentPath:      parentPath,
+			FullPath:        fullPath,
+			TreeType:        customBrowserData.Name,
+			CanHaveChildren: entry.CanHaveChildren,
+			Deleted:         false,
+			Os:              getOSTypeBasedOnPathSeparator(pathData.PathSeparator, customBrowserData.Name),
+			DisplayPath:     []byte(entry.DisplayPath),
+		}
+		if entry.Success != nil {
+			newTree.Success.Valid = true
+			newTree.Success.Bool = *entry.Success
+		}
+		if entry.Children != nil && len(*entry.Children) > 0 {
+			newTree.HasChildren = true
+		}
+		newTree.Metadata = GetMythicJSONTextFromStruct(entry.Metadata)
+		newTree.CallbackID.Valid = true
+		newTree.CallbackID.Int64 = int64(task.Callback.ID)
+		createTreeNode(&newTree)
+		if agentCustomBrowser.UpdateDeleted {
+			if customBrowserData.Type == databaseStructs.TREE_TYPE_FILE {
+				// we need to iterate over the children for this entry and potentially remove any that the database know of but that aren't in our `files` list
+				var existingTreeEntries []databaseStructs.MythicTree
+				err = database.DB.Select(&existingTreeEntries, `SELECT 
+    			id, "name", success, full_path, parent_path, operation_id, host, tree_type
+				FROM mythictree WHERE
+				parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4`,
+					fullPath, task.OperationID, pathData.Host, customBrowserData.Name)
+				if err != nil {
+					logging.LogError(err, "Failed to fetch existing children when trying to update deleted")
+					continue
+				}
+				var namesToDeleteAndUpdate []string // will get existing database IDs for things that aren't in the files list
+				for _, existingEntry := range existingTreeEntries {
+					if entry.Children != nil {
+						existingEntryStillExists := false
+						//logging.LogInfo("checking for file existing", "name", existingEntry.Name)
+						for _, newEntry := range *entry.Children {
+							if bytes.Equal([]byte(newEntry.Name), existingEntry.Name) {
+								//logging.LogInfo("[+] found a match in existing data and new data", "name", newEntry.Name, "id", existingEntry.ID)
+								namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, newEntry.Name)
+								existingEntryStillExists = true
+								// update the entry in the database
+								newTreeChild := databaseStructs.MythicTree{
+									Host:            pathData.Host,
+									TaskID:          task.ID,
+									OperationID:     task.OperationID,
+									Name:            []byte(newEntry.Name),
+									ParentPath:      existingEntry.ParentPath,
+									FullPath:        existingEntry.FullPath,
+									TreeType:        customBrowserData.Name,
+									CanHaveChildren: newEntry.CanHaveChildren,
+									DisplayPath:     []byte(newEntry.DisplayPath),
+									Deleted:         false,
+									Success:         existingEntry.Success,
+									ID:              existingEntry.ID,
+									Os:              newTree.Os,
+								}
+								newTreeChild.Metadata = GetMythicJSONTextFromStruct(newEntry.Metadata)
+								newTreeChild.CallbackID.Valid = true
+								newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
+								updateTreeNode(newTreeChild)
+							}
+						}
+						if !existingEntryStillExists {
+							//logging.LogError(nil, "failed to find match, marking as deleted", "name", existingEntry.Name)
+							namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.Name))
+							existingEntry.Deleted = true
+							existingEntry.TaskID = task.ID
+							deleteTreeNode(existingEntry, true)
+						}
+					}
+
+				}
+				// now all existing ones have been updated or deleted, so it's time to add new ones
+				if entry.Children != nil {
+					for _, newEntry := range *entry.Children {
+						if !utils.SliceContains(namesToDeleteAndUpdate, newEntry.Name) {
+							// this isn't marked as updated or deleted, so let's create it
+							newTreeChild := databaseStructs.MythicTree{
+								Host:            pathData.Host,
+								TaskID:          task.ID,
+								OperationID:     task.OperationID,
+								Name:            []byte(newEntry.Name),
+								DisplayPath:     []byte(newEntry.DisplayPath),
+								ParentPath:      fullPath,
+								TreeType:        customBrowserData.Name,
+								CanHaveChildren: newEntry.CanHaveChildren,
+								Deleted:         false,
+								Os:              newTree.Os,
+							}
+							newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), customBrowserData.Name)
+							newTreeChild.Metadata = GetMythicJSONTextFromStruct(newEntry.Metadata)
+							newTreeChild.CallbackID.Valid = true
+							newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
+							createTreeNode(&newTreeChild)
+						}
+					}
+				}
+			}
+
+		} else if entry.Children != nil {
+			// we're not automatically updating deleted children, so just iterate over the files and insert/update them
+			for _, newEntry := range *entry.Children {
+				newTreeChild := databaseStructs.MythicTree{
+					Host:            pathData.Host,
+					TaskID:          task.ID,
+					OperationID:     task.OperationID,
+					Name:            []byte(newEntry.Name),
+					DisplayPath:     []byte(newEntry.DisplayPath),
+					ParentPath:      fullPath,
+					TreeType:        customBrowserData.Name,
+					CanHaveChildren: newEntry.CanHaveChildren,
+					Deleted:         false,
+					Os:              newTree.Os,
+				}
+				newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), customBrowserData.Name)
+				newTreeChild.Metadata = GetMythicJSONTextFromStruct(newEntry.Metadata)
+				newTreeChild.CallbackID.Valid = true
+				newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
+				logging.LogInfo("creating entry child", "name", newEntry.Name, "parentPath", fullPath)
+				createTreeNode(&newTreeChild)
+			}
+		}
 	}
 }

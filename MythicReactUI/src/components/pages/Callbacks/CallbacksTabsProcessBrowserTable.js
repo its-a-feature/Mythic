@@ -384,8 +384,8 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
         }
         return tempData;
     }, [allData, sortData]);
-    const onSubmitFilterOptions = (newFilterOptions) => {
-        setFilterOptions(newFilterOptions);
+    const onSubmitFilterOptions = (value) => {
+        setFilterOptions({...filterOptions, [selectedColumn.current.key]: value });
         if(viewSingleTreeData){
             return
         }
@@ -605,7 +605,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
     };
     const contextMenuOptions = [
         {
-            name: 'Filter Column', 
+            name: 'Filter Column', type: "item", icon: null,
             click: ({event, columnIndex}) => {
                 if(event){
                     event.stopPropagation();
@@ -620,7 +620,7 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
             }
         },
         {
-            name: "Show/Hide Columns",
+            name: "Show/Hide Columns", type: "item", icon: null,
             click: ({event, columnIndex}) => {
                 if(event){
                     event.stopPropagation();
@@ -661,13 +661,18 @@ export const CallbacksTabsProcessBrowserTable = ({treeAdjMatrix, treeRootData, m
                 contextMenuOptions={contextMenuOptions}
             />
             {openContextMenu &&
-                <MythicDialog fullWidth={true} maxWidth="xs" open={openContextMenu} 
-                    onClose={()=>{setOpenContextMenu(false);}} 
-                    innerDialog={<TableFilterDialog 
-                        selectedColumn={selectedColumn.current}
-                        filterOptions={filterOptions} 
-                        onSubmit={onSubmitFilterOptions} 
-                        onClose={()=>{setOpenContextMenu(false);}} />}
+                <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
+                              onClose={()=>{setOpenContextMenu(false);}}
+                              innerDialog={
+                                  <MythicModifyStringDialog
+                                      title='Filter Column'
+                                      onSubmit={onSubmitFilterOptions}
+                                      value={filterOptions[selectedColumn.current]}
+                                      onClose={() => {
+                                          setOpenContextMenu(false);
+                                      }}
+                                  />
+                              }
                 />
             }
             {openAdjustColumnsDialog &&

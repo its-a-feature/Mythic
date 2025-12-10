@@ -181,15 +181,15 @@ function TokenTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
-                        href={"/new/task/" + props.task.id}>
-                            T-{props.task.id}
+                        href={"/new/task/" + props.task.display_id}>
+                            T-{props.task.display_id}
                     </Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.callbacktokens?.map( (cbt) => (
                     <React.Fragment key={"callbacktoken-" + props.id + "-" + cbt.id}>
-                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" key={"callbacklink" + cbt.callback_id + "row" + props.id}
-                            href={"/new/callbacks/" + cbt.callback_id}>
-                                C-{cbt.callback_id}
+                        <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" key={"callbacklink" + cbt.callback.display_id + "row" + props.id}
+                            href={"/new/callbacks/" + cbt.callback.display_id}>
+                                C-{cbt.callback.display_id}
                         </Link>
                         {" "}
                     </React.Fragment>

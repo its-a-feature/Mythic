@@ -129,6 +129,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     const initialTaskingContextField = GetMythicSetting({setting_name: "taskingContextFields", default_value: operatorSettingDefaults.taskingContextFields});
     const [taskingContextFields, setTaskingContextFields] = React.useState(initialTaskingContextField);
 
+    const initialShowOPSECBypassUsername = GetMythicSetting({setting_name: "showOPSECBypassUsername", default_value: operatorSettingDefaults.showOPSECBypassUsername});
+    const [showOPSECBypassUsername, setShowOPSECBypassUsername] = React.useState(initialShowOPSECBypassUsername);
+
     const initialPalette = GetMythicSetting({setting_name: 'palette', default_value: operatorSettingDefaults.palette});
     const [palette, setPalette] = React.useState({
         primary: {
@@ -203,6 +206,10 @@ export function SettingsOperatorUIConfigDialog(props) {
             dark: isValidColor(initialPalette?.navBarColor?.dark) ? initialPalette?.navBarColor?.dark : operatorSettingDefaults.palette.navBarColor.dark,
             light: isValidColor(initialPalette?.navBarColor?.light) ? initialPalette?.navBarColor?.light : operatorSettingDefaults.palette.navBarColor.light,
         },
+        navBarBottomColor: {
+            dark: isValidColor(initialPalette?.navBarBottomColor?.dark) ? initialPalette?.navBarBottomColor?.dark : operatorSettingDefaults.palette.navBarBottomColor.dark,
+            light: isValidColor(initialPalette?.navBarBottomColor?.light) ? initialPalette?.navBarBottomColor?.light : operatorSettingDefaults.palette.navBarBottomColor.light,
+        },
         taskPromptTextColor: {
             dark: isValidColor(initialPalette?.taskPromptTextColor?.dark) ? initialPalette?.taskPromptTextColor?.dark : operatorSettingDefaults.palette.taskPromptTextColor.dark,
             light: isValidColor(initialPalette?.taskPromptTextColor?.light) ? initialPalette?.taskPromptTextColor?.light : operatorSettingDefaults.palette.taskPromptTextColor.light,
@@ -222,6 +229,10 @@ export function SettingsOperatorUIConfigDialog(props) {
         taskContextExtraColor: {
             dark: isValidColor(initialPalette?.taskContextExtraColor?.dark) ? initialPalette?.taskContextExtraColor?.dark : operatorSettingDefaults.palette.taskContextExtraColor.dark,
             light: isValidColor(initialPalette?.taskContextExtraColor?.light) ? initialPalette?.taskContextExtraColor?.light : operatorSettingDefaults.palette.taskContextExtraColor.light,
+        },
+        emptyFolderColor: {
+            dark: isValidColor(initialPalette?.emptyFolderColor?.dark) ? initialPalette?.emptyFolderColor?.dark : operatorSettingDefaults.palette.emptyFolderColor.dark,
+            light: isValidColor(initialPalette?.emptyFolderColor?.light) ? initialPalette?.emptyFolderColor?.light : operatorSettingDefaults.palette.emptyFolderColor.light,
         },
     });
     const paletteOptionsSolidColor = [
@@ -244,7 +255,8 @@ export function SettingsOperatorUIConfigDialog(props) {
         {name: "background", display: "Background"},
         {name: "taskContextColor", display: "Tasking Context Generic Background Color"},
         {name: "taskContextImpersonationColor", display: "Tasking Context User Background Color"},
-        {name: "taskContextExtraColor", display: "Tasking Context Extra Info Background Color"}
+        {name: "taskContextExtraColor", display: "Tasking Context Extra Info Background Color"},
+        {name: "emptyFolderColor", display: "Color of the empty folder icon and text in file-based browsers"}
     ]
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
     const [_, updateSettings, clearSettings] = useSetMythicSetting();
@@ -262,6 +274,9 @@ export function SettingsOperatorUIConfigDialog(props) {
     }
     const onHideBrowserTaskingChanged = (evt) => {
         setHideBrowserTasking(!hideBrowserTasking);
+    }
+    const onShowOPSECBypassUsernameChanged = (evt) => {
+        setShowOPSECBypassUsername(!showOPSECBypassUsername);
     }
     const onHideTaskingContextChanged = (evt) => {
         setHideTaskingContext(!hideTaskingContext);
@@ -315,6 +330,7 @@ export function SettingsOperatorUIConfigDialog(props) {
               hideBrowserTasking,
               hideTaskingContext,
               taskingContextFields,
+              showOPSECBypassUsername,
               palette: palette
       }});
       snackActions.success("updating settings");
@@ -340,6 +356,7 @@ export function SettingsOperatorUIConfigDialog(props) {
       setTaskTimestampDisplayField(operatorSettingDefaults.taskTimestampDisplayField);
       setHideTaskingContext(operatorSettingDefaults.hideTaskingContext);
       setTaskingContextFields(operatorSettingDefaults.taskingContextFields);
+      setShowOPSECBypassUsername(operatorSettingDefaults.showOPSECBypassUsername);
     }
     const clearAllUserSettings = () => {
         clearSettings();
@@ -358,7 +375,24 @@ export function SettingsOperatorUIConfigDialog(props) {
             const contents = e.target.result;
             try{
                 let jsonData = JSON.parse(String(contents));
-                updateSettings({settings: jsonData});
+                let currentSettings = {
+                    hideUsernames,
+                    showIP,
+                    showHostname,
+                    showCallbackGroups,
+                    fontSize: parseInt(fontSize),
+                    fontFamily,
+                    showMedia,
+                    interactType,
+                    useDisplayParamsForCLIHistory,
+                    taskTimestampDisplayField,
+                    hideBrowserTasking,
+                    hideTaskingContext,
+                    taskingContextFields,
+                    showOPSECBypassUsername,
+                    palette: palette
+                }
+                updateSettings({settings: {...currentSettings, ...jsonData}});
                 snackActions.info("Updating settings");
                 props.onClose();
             }catch(error){
@@ -575,6 +609,18 @@ export function SettingsOperatorUIConfigDialog(props) {
                       </MythicStyledTableCell>
                   </TableRow>
                   <TableRow hover>
+                      <MythicStyledTableCell>Show OPSEC Bypass Approvers</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <Switch
+                              checked={showOPSECBypassUsername}
+                              onChange={onShowOPSECBypassUsernameChanged}
+                              color="info"
+                              inputProps={{ 'aria-label': 'info checkbox' }}
+                              name="showOPSECBypassUsername"
+                          />
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
                       <MythicStyledTableCell>Hide Tasking Context Tabs</MythicStyledTableCell>
                       <MythicStyledTableCell>
                           <Switch
@@ -633,13 +679,36 @@ export function SettingsOperatorUIConfigDialog(props) {
                       </MythicStyledTableCell>
                   </TableRow>
                   <TableRow hover>
+                      <MythicStyledTableCell>Navigation Bar Bottom Color</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarBottomColor?.dark} onChange={(v) => onChangePaletteColor("navBarBottomColor", "dark", v)}/>
+                                  <HexColorInput color={palette?.navBarBottomColor?.dark} onChange={(v) => onChangePaletteColor("navBarBottomColor", "dark", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarBottomColor?.dark, display: "flex", alignItems: "center"}}>
+                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.dark, marginRight: "5px"}}/>
+                                      <Typography style={{color: palette.navBarText.dark, display: "inline-block"}}>Dark Mode Color</Typography>
+                                  </Box>
+                              </div>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarBottomColor?.light} onChange={(v) => onChangePaletteColor("navBarBottomColor", "light", v)}/>
+                                  <HexColorInput color={palette?.navBarBottomColor?.light} onChange={(v) => onChangePaletteColor("navBarBottomColor", "light", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarBottomColor?.light, display: "flex", alignItems: "center"}}>
+                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.light, marginRight: "5px"}}/>
+                                      <Typography style={{color: palette.navBarText.light, display: "inline-block"}}>Light Mode Color</Typography>
+                                  </Box>
+                              </div>
+                          </div>
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
                       <MythicStyledTableCell>Navigation Bar Icon Colors</MythicStyledTableCell>
                       <MythicStyledTableCell>
                           <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
                               <div style={{display: "inline-block", width: "100%"}}>
                                   <HexColorPicker style={{width: "100%"}} color={palette?.navBarIcons?.dark} onChange={(v) => onChangePaletteColor("navBarIcons", "dark", v)}/>
                                   <HexColorInput color={palette?.navBarIcons?.dark} onChange={(v) => onChangePaletteColor("navBarIcons", "dark", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.dark, display: "flex", alignItems: "center"}}>
+                                  <Box sx={{width: "100%", height: 25, background: `linear-gradient(.25turn, ${palette?.navBarColor?.dark}, ${palette?.navBarBottomColor?.dark})`, display: "flex", alignItems: "center"}}>
                                       <PhoneCallbackIcon style={{color: palette.navBarIcons.dark, marginRight: "5px"}}/>
                                       <Typography style={{color: palette.navBarText.dark, display: "inline-block"}}>Dark Mode Color</Typography>
                                   </Box>
@@ -647,7 +716,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                               <div style={{display: "inline-block", width: "100%"}}>
                                   <HexColorPicker style={{width: "100%"}} color={palette?.navBarIcons?.light} onChange={(v) => onChangePaletteColor("navBarIcons", "light", v)}/>
                                   <HexColorInput color={palette?.navBarIcons?.light} onChange={(v) => onChangePaletteColor("navBarIcons", "light", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.light, display: "flex", alignItems: "center"}}>
+                                  <Box sx={{width: "100%", height: 25, background: `linear-gradient(.25turn, ${palette?.navBarColor?.light}, ${palette?.navBarBottomColor?.light})`, display: "flex", alignItems: "center"}}>
                                       <PhoneCallbackIcon style={{color: palette.navBarIcons.light, marginRight: "5px"}}/>
                                       <Typography style={{color: palette.navBarText.light, display: "inline-block"}}>Light Mode Color</Typography>
                                   </Box>
@@ -662,7 +731,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                               <div style={{display: "inline-block", width: "100%"}}>
                                   <HexColorPicker style={{width: "100%"}} color={palette?.navBarText?.dark} onChange={(v) => onChangePaletteColor("navBarText", "dark", v)}/>
                                   <HexColorInput color={palette?.navBarText?.dark} onChange={(v) => onChangePaletteColor("navBarText", "dark", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.dark, display: "flex", alignItems: "center"}}>
+                                  <Box sx={{width: "100%", height: 25, background: `linear-gradient(.25turn, ${palette?.navBarColor?.dark}, ${palette?.navBarBottomColor?.dark})`, display: "flex", alignItems: "center"}}>
                                       <PhoneCallbackIcon style={{color: palette.navBarIcons.dark, marginRight: "5px"}}/>
                                       <Typography style={{color: palette.navBarText.dark, display: "inline-block"}}>Dark Mode Color</Typography>
                                   </Box>
@@ -670,7 +739,7 @@ export function SettingsOperatorUIConfigDialog(props) {
                               <div style={{display: "inline-block", width: "100%"}}>
                                   <HexColorPicker style={{width: "100%"}} color={palette?.navBarText?.light} onChange={(v) => onChangePaletteColor("navBarText", "light", v)}/>
                                   <HexColorInput color={palette?.navBarText?.light} onChange={(v) => onChangePaletteColor("navBarText", "light", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.light, display: "flex", alignItems: "center"}}>
+                                  <Box sx={{width: "100%", height: 25, background: `linear-gradient(.25turn, ${palette?.navBarColor?.light}, ${palette?.navBarBottomColor?.light})`, display: "flex", alignItems: "center"}}>
                                       <PhoneCallbackIcon style={{color: palette.navBarIcons.light, marginRight: "5px"}}/>
                                       <Typography style={{color: palette.navBarText.light, display: "inline-block"}}>Light Mode Color</Typography>
                                   </Box>

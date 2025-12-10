@@ -3,8 +3,6 @@ package config
 import (
 	"bufio"
 	"fmt"
-	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
-	"github.com/spf13/viper"
 	"log"
 	"os"
 	"path/filepath"
@@ -12,6 +10,9 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+
+	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
+	"github.com/spf13/viper"
 )
 
 var MythicPossibleServices = []string{
@@ -317,6 +318,9 @@ If this is false, then the local filesystem is mounted inside the container inst
 	mythicEnvInfo["rabbitmq_use_build_context"] = `The mythic_rabbitmq container by default pulls configuration from a pre-compiled Docker image hosted on GitHub's Container Registry (ghcr.io). 
 Setting this to "true" means that the local Mythic/rabbitmq-docker/Dockerfile is used to generate the image used for the mythic_rabbitmq container instead of the hosted image. `
 
+	mythicEnv.SetDefault("rabbitmq_vhost", "mythic_vhost")
+	mythicEnvInfo["rabbitmq_vhost"] = `The VHost attribute on RabbitMQ allows you to logically separate queues into separate "hosts" while keeping the same names. This helps with collisions if you have multiple instances of something running concurrently.`
+
 	// jwt configuration ---------------------------------------------
 	mythicEnv.SetDefault("jwt_secret", utils.GenerateRandomPassword(30))
 	mythicEnvInfo["jwt_secret"] = `This is the randomly generated password used to sign JWTs to ensure they're valid for this Mythic instance`
@@ -365,6 +369,10 @@ This should only be needed if you're doing a bunch of development on Mythic itse
 If you need to rebuild a specific container, you should use './mythic-cli build [container name]' instead to just rebuild that one container.
 This will also delete any volumes in use (which will remove things like C2 Profile's config.json updates). 
 To keep these around when starting or building, use the --keep-volume flag`
+
+	mythicEnv.SetDefault("COMPOSE_FILE", "docker-compose.yml")
+	mythicEnvInfo["COMPOSE_FILE"] = `This is a specific Docker Compose variable you can use to configure docker compose overrides. You specify multiple files separated by : (colon) and they're squashed together for what's actually executed instead of just Mythic's default docker-compose file.
+More info can be found here: https://docs.docker.com/compose/how-tos/environment-variables/envvars/#compose_file.`
 
 	// Mythic instance configuration ---------------------------------------------
 	mythicEnv.SetDefault("mythic_admin_user", "mythic_admin")

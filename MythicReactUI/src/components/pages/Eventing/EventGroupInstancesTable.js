@@ -13,13 +13,12 @@ import Moment from 'react-moment';
 import moment from 'moment';
 import CastConnectedTwoToneIcon from '@mui/icons-material/CastConnectedTwoTone';
 import {snackActions} from "../../utilities/Snackbar";
-import {MythicDialog} from "../../MythicComponents/MythicDialog";
+import {MythicDialog, MythicModifyStringDialog} from "../../MythicComponents/MythicDialog";
 import OpenInNewTwoToneIcon from '@mui/icons-material/OpenInNewTwoTone';
 import IosShareIcon from '@mui/icons-material/IosShare';
 import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {ipCompare} from "../Callbacks/CallbacksTable";
 import MythicResizableGrid from "../../MythicComponents/MythicResizableGrid";
-import {TableFilterDialog} from "../Callbacks/TableFilterDialog";
 import {CallbacksTableStringCell} from "../Callbacks/CallbacksTableRow";
 
 const cancelEventGroupInstanceMutation = gql(`
@@ -171,15 +170,25 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
         }
 
     }, [eventgroups]);
-    const columns = [
-        {key: "id", type: "number", name: "ID", width: 60,  enableHiding: false, disableSort: true, disableFilter: true},
-        {key: "status", type: 'string', name: "Status", width: 150, disableSort: true, enableHiding: false},
-        {key: "event_group", type: 'string', name: "Event Group", inMetadata: true, fillWidth: true, disableSort: true,  enableHiding: false},
-        {key: "trigger", type: 'string', name: "Trigger", fillWidth: true, disableSort: true, enableHiding: false},
-        {key: "time", type: 'date', name: "Time", width: 300, disableSort: true,},
-        {key: "operator", type: 'string', name: "Operator", inMetadata: true, fillWidth: true, disableSort: true,},
-        {key: "cancel", type: 'string', name: "Action", width: 70, disableSort: true, disableFilter: true},
-    ];
+    const columns = React.useMemo(
+        () =>
+            [
+                {key: "id", type: "number", name: "ID", width: 60,  enableHiding: false, disableSort: false, disableFilter: true},
+                {key: "status", type: 'string', name: "Status", width: 150, disableSort: true, enableHiding: false},
+                {key: "eventgroup", type: 'string', name: "Event Group", inMetadata: true, fillWidth: true, disableSort: false,  enableHiding: false},
+                {key: "trigger", type: 'string', name: "Trigger", fillWidth: true, disableSort: false, enableHiding: false},
+                {key: "time", type: 'date', name: "Time", width: 300, disableSort: true,},
+                {key: "operator", type: 'string', name: "Operator", inMetadata: true, fillWidth: true, disableSort: true,},
+                {key: "cancel", type: 'string', name: "Action", width: 70, disableSort: true, disableFilter: true},
+            ]?.reduce( (prev, cur) => {
+                if(filterOptions[cur.key] && String(filterOptions[cur.key]).length > 0){
+                    return [...prev, {...cur, filtered: true}];
+                }else{
+                    return [...prev, {...cur}];
+                }
+            }, []) || []
+        , [filterOptions]
+    );
     const onClickHeader = (e, columnIndex) => {
         const column = columns[columnIndex];
         if(column.disableSort){
@@ -219,7 +228,11 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
         if (sortData.sortType === 'number' || sortData.sortType === 'size' || sortData.sortType === 'date') {
             tempData.sort((a, b) => (parseInt(a[sortData.sortKey]) > parseInt(b[sortData.sortKey]) ? 1 : -1));
         } else if (sortData.sortType === 'string') {
-            tempData.sort((a, b) => (a[sortData.sortKey].toLowerCase() > b[sortData.sortKey].toLowerCase() ? 1 : -1));
+            if(sortData.sortKey === "eventgroup"){
+                tempData.sort((a, b) => (a[sortData.sortKey].name.toLowerCase() > b[sortData.sortKey].name.toLowerCase() ? 1 : -1));
+            } else {
+                tempData.sort((a, b) => (a[sortData.sortKey].toLowerCase() > b[sortData.sortKey].toLowerCase() ? 1 : -1));
+            }
         } else if (sortData.sortType === "ip") {
             tempData.sort((a, b) => (ipCompare(a[sortData.sortKey], b[sortData.sortKey])));
         } else if (sortData.sortType === "array") {
@@ -364,11 +377,11 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
     const sortColumn = columns.findIndex((column) => column.key === sortData.sortKey);
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [selectedColumn, setSelectedColumn] = React.useState({});
-    const onSubmitFilterOptions = (newFilterOptions) => {
-        setFilterOptions(newFilterOptions);
+    const onSubmitFilterOptions = (value) => {
+        setFilterOptions({...filterOptions, [selectedColumn.key]: value });
     }
     const contextMenuOptions = [{
-        name: 'Filter Column',
+        name: 'Filter Column', type: "item", icon: null,
         click: ({event, columnIndex}) => {
             event.preventDefault();
             event.stopPropagation();
@@ -402,13 +415,18 @@ function EventGroupInstancesTableMaterialReactTablePreMemo({eventgroups, me, set
                 onRowContextMenuClick={onRowContextClick}
             />
             {openContextMenu &&
-                <MythicDialog fullWidth={true} maxWidth="xs" open={openContextMenu}
+                <MythicDialog fullWidth={true} maxWidth="sm" open={openContextMenu}
                               onClose={()=>{setOpenContextMenu(false);}}
-                              innerDialog={<TableFilterDialog
-                                  selectedColumn={selectedColumn}
-                                  filterOptions={filterOptions}
-                                  onSubmit={onSubmitFilterOptions}
-                                  onClose={()=>{setOpenContextMenu(false);}} />}
+                              innerDialog={
+                                  <MythicModifyStringDialog
+                                      title='Filter Column'
+                                      onSubmit={onSubmitFilterOptions}
+                                      value={filterOptions[selectedColumn.key]}
+                                      onClose={() => {
+                                          setOpenContextMenu(false);
+                                      }}
+                                  />
+                              }
                 />
             }
             {openDeleteDialog &&

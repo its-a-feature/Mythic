@@ -11,7 +11,7 @@ import {GetMythicSetting, useSetMythicSetting} from "../MythicSavedUserSetting";
 
 const HeaderCellContext = createContext({});
 
-const MIN_COLUMN_WIDTH = 20;
+const MIN_COLUMN_WIDTH = 100;
 const MIN_FLEX_COLUMN_WIDTH = 150;
 
 
@@ -195,7 +195,10 @@ const ResizableGridWrapper = ({
                     return itemRow[columnIndex]?.props?.cellData.length;
                 }
                 if(columns[columnIndex].type === "size"){
-                    if(itemRow[columnIndex]?.props?.cellData){
+                    if(itemRow[columnIndex]?.props?.cellData !== undefined){
+                        if(typeof itemRow[columnIndex]?.props?.cellData === 'number'){
+                            return String(itemRow[columnIndex]?.props?.cellData)?.length;
+                        }
                         return String(itemRow[columnIndex]?.props?.cellData?.plaintext)?.length;
                     }
                     return itemRow[columnIndex].length;

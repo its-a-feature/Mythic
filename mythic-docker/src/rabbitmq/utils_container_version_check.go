@@ -6,7 +6,7 @@ import (
 )
 
 // validContainerVersionMax container's version must be strictly less than this value
-const validContainerVersionMax = "v1.5"
+const validContainerVersionMax = "v1.5.0"
 
 func isValidContainerVersion(version string) bool {
 	if semver.IsValid(validContainerVersionMax) {

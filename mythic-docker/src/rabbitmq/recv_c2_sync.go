@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -124,7 +125,7 @@ func c2Sync(in C2SyncMessage) error {
 		return errors.New("Can't have c2 container with empty name - bad sync")
 	} else if !isValidContainerVersion(in.ContainerVersion) {
 		logging.LogError(nil, "attempting to sync bad c2 container version")
-		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
+		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is < %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
 	}
 	if err := database.DB.Get(&c2Profile, `SELECT * FROM c2profile WHERE "name"=$1`, in.Profile.Name); err != nil {
 		// this means we don't have the c2 profile, so we need to create it and all the associated components
@@ -196,7 +197,6 @@ func c2Sync(in C2SyncMessage) error {
 		go reSyncPayloadTypes()
 	}
 	checkContainerStatusAddC2Channel <- c2Profile
-	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(c2Profile.Name)
 	absPath, err := filepath.Abs(filepath.Join(".", "static", fmt.Sprintf("%s_light.svg", in.Profile.Name)))
 	if err != nil {
 		return err
@@ -365,8 +365,10 @@ func autoStartC2Profile(c2Profile databaseStructs.C2profile) *C2StartServerMessa
 	// on a new sync, if it's not p2p, ask it to start
 	var c2StartResp *C2StartServerMessageResponse
 	var err error
+	CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(c2Profile.Name)
 	if !c2Profile.IsP2p {
 		c2StartResp, err = RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{Name: c2Profile.Name})
+		time.Sleep(10 * time.Second) // give the server a chance to start back up
 		if err != nil {
 			logging.LogError(err, "Failed to send start message to C2 profile")
 			c2StartResp.Error = err.Error()
@@ -374,14 +376,16 @@ func autoStartC2Profile(c2Profile databaseStructs.C2profile) *C2StartServerMessa
 			UpdateC2ProfileRunningStatus(c2Profile, c2StartResp.InternalServerRunning)
 			if !c2StartResp.InternalServerRunning {
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to start c2 profile %s:\n%s", c2Profile.Name, c2StartResp.Error), 0, "", database.MESSAGE_LEVEL_INFO, true)
+			} else {
+				autoReHostFiles(c2Profile)
 			}
 		}
 	}
-	autoReHostFiles(c2Profile)
 	return c2StartResp
 }
 
 func autoReHostFiles(c2Profile databaseStructs.C2profile) {
+	logging.LogInfo("Starting rehost files")
 	fileHostedTagType := databaseStructs.TagType{
 		Name: "FileHosted",
 	}
@@ -401,12 +405,16 @@ func autoReHostFiles(c2Profile databaseStructs.C2profile) {
 		for key, _ := range dataStruct {
 			if strings.HasPrefix(key, fmt.Sprintf("%s; ", c2Profile.Name)) {
 				newTagMap := dataStruct[key].(map[string]interface{})
+				logging.LogInfo("sending host file", "c2", newTagMap["c2_profile"].(string), "url", newTagMap["host_url"].(string))
 				c2HostFileResponse, err := RabbitMQConnection.SendC2RPCHostFile(C2HostFileMessage{
 					Name:     newTagMap["c2_profile"].(string),
 					FileUUID: newTagMap["agent_file_id"].(string),
 					HostURL:  newTagMap["host_url"].(string),
 					Remove:   false,
 				})
+				logging.LogInfo("got response from sending host file", "c2", newTagMap["c2_profile"].(string), "url", newTagMap["host_url"].(string))
+				// sleep for 3 seconds to allow the internal c2 binary to start up before we send anything else
+				time.Sleep(10 * time.Second)
 				if err != nil {
 					logging.LogError(err, "failed to send host file message to c2 profile")
 					go SendAllOperationsMessage(fmt.Sprintf(

@@ -2662,6 +2662,7 @@
           - name
           - parameter_group_name
           - type
+          - verifier_regex
         filter: {}
     - role: mythic_admin
       permission:
@@ -2685,6 +2686,7 @@
           - name
           - parameter_group_name
           - type
+          - verifier_regex
         filter: {}
     - role: operation_admin
       permission:
@@ -2708,6 +2710,7 @@
           - name
           - parameter_group_name
           - type
+          - verifier_regex
         filter: {}
     - role: operator
       permission:
@@ -2731,6 +2734,7 @@
           - name
           - parameter_group_name
           - type
+          - verifier_regex
         filter: {}
     - role: spectator
       permission:
@@ -2754,6 +2758,7 @@
           - name
           - parameter_group_name
           - type
+          - verifier_regex
         filter: {}
 - table:
     name: consuming_container
@@ -3089,6 +3094,137 @@
             _eq: X-Hasura-current-operation-id
         set:
           operator_id: x-hasura-user-id
+- table:
+    name: custombrowser
+    schema: public
+  select_permissions:
+    - role: developer
+      permission:
+        columns:
+          - container_running
+          - deleted
+          - indicate_partial_listing
+          - show_current_path
+          - id
+          - columns
+          - default_visible_columns
+          - extra_table_inputs
+          - row_actions
+          - author
+          - description
+          - export_function
+          - name
+          - semver
+          - separator
+          - type
+        filter: {}
+      comment: ""
+    - role: mythic_admin
+      permission:
+        columns:
+          - container_running
+          - deleted
+          - indicate_partial_listing
+          - show_current_path
+          - id
+          - columns
+          - default_visible_columns
+          - extra_table_inputs
+          - row_actions
+          - author
+          - description
+          - export_function
+          - name
+          - semver
+          - separator
+          - type
+        filter: {}
+      comment: ""
+    - role: operation_admin
+      permission:
+        columns:
+          - container_running
+          - deleted
+          - indicate_partial_listing
+          - show_current_path
+          - id
+          - columns
+          - default_visible_columns
+          - extra_table_inputs
+          - row_actions
+          - author
+          - description
+          - export_function
+          - name
+          - semver
+          - separator
+          - type
+        filter: {}
+      comment: ""
+    - role: operator
+      permission:
+        columns:
+          - container_running
+          - deleted
+          - indicate_partial_listing
+          - show_current_path
+          - id
+          - columns
+          - default_visible_columns
+          - extra_table_inputs
+          - row_actions
+          - author
+          - description
+          - export_function
+          - name
+          - semver
+          - separator
+          - type
+        filter: {}
+      comment: ""
+    - role: spectator
+      permission:
+        columns:
+          - container_running
+          - deleted
+          - indicate_partial_listing
+          - show_current_path
+          - id
+          - columns
+          - default_visible_columns
+          - extra_table_inputs
+          - row_actions
+          - author
+          - description
+          - export_function
+          - name
+          - semver
+          - separator
+          - type
+        filter: {}
+      comment: ""
+  update_permissions:
+    - role: mythic_admin
+      permission:
+        columns:
+          - deleted
+        filter: {}
+        check: null
+      comment: ""
+    - role: operation_admin
+      permission:
+        columns:
+          - deleted
+        filter: {}
+        check: null
+      comment: ""
+    - role: operator
+      permission:
+        columns:
+          - deleted
+        filter: {}
+        check: null
+      comment: ""
 - table:
     name: disabledcommandsprofile
     schema: public
@@ -4892,6 +5028,11 @@
             name: tag
             schema: public
   computed_fields:
+    - name: display_path_text
+      definition:
+        function:
+          name: mythictree_display_path
+          schema: public
     - name: full_path_text
       definition:
         function:
@@ -4913,7 +5054,9 @@
         columns:
           - can_have_children
           - deleted
+          - has_children
           - success
+          - display_path
           - full_path
           - name
           - parent_path
@@ -4929,6 +5072,7 @@
           - tree_type
           - timestamp
         computed_fields:
+          - display_path_text
           - full_path_text
           - name_text
           - parent_path_text
@@ -4941,7 +5085,9 @@
         columns:
           - can_have_children
           - deleted
+          - has_children
           - success
+          - display_path
           - full_path
           - name
           - parent_path
@@ -4957,6 +5103,7 @@
           - tree_type
           - timestamp
         computed_fields:
+          - display_path_text
           - full_path_text
           - name_text
           - parent_path_text
@@ -4969,7 +5116,9 @@
         columns:
           - can_have_children
           - deleted
+          - has_children
           - success
+          - display_path
           - full_path
           - name
           - parent_path
@@ -4985,6 +5134,7 @@
           - tree_type
           - timestamp
         computed_fields:
+          - display_path_text
           - full_path_text
           - name_text
           - parent_path_text
@@ -4997,7 +5147,9 @@
         columns:
           - can_have_children
           - deleted
+          - has_children
           - success
+          - display_path
           - full_path
           - name
           - parent_path
@@ -5013,6 +5165,7 @@
           - tree_type
           - timestamp
         computed_fields:
+          - display_path_text
           - full_path_text
           - name_text
           - parent_path_text
@@ -5025,7 +5178,9 @@
         columns:
           - can_have_children
           - deleted
+          - has_children
           - success
+          - display_path
           - full_path
           - name
           - parent_path
@@ -5041,6 +5196,7 @@
           - tree_type
           - timestamp
         computed_fields:
+          - display_path_text
           - full_path_text
           - name_text
           - parent_path_text
@@ -6155,6 +6311,7 @@
           - build_stdout
           - description
           - os
+          - payload_type_semver
           - uuid
           - creation_time
           - timestamp
@@ -6185,6 +6342,7 @@
           - build_stdout
           - description
           - os
+          - payload_type_semver
           - uuid
           - creation_time
           - timestamp
@@ -6215,6 +6373,7 @@
           - build_stdout
           - description
           - os
+          - payload_type_semver
           - uuid
           - creation_time
           - timestamp
@@ -6245,6 +6404,7 @@
           - build_stdout
           - description
           - os
+          - payload_type_semver
           - uuid
           - creation_time
           - timestamp
@@ -6275,6 +6435,7 @@
           - build_stdout
           - description
           - os
+          - payload_type_semver
           - uuid
           - creation_time
           - timestamp
@@ -6854,8 +7015,10 @@
           - c2_parameter_deviations
           - supported_c2
           - supported_os
+          - supported_wrapping
           - agent_type
           - author
+          - command_help_function
           - file_extension
           - message_format
           - name
@@ -6881,8 +7044,10 @@
           - c2_parameter_deviations
           - supported_c2
           - supported_os
+          - supported_wrapping
           - agent_type
           - author
+          - command_help_function
           - file_extension
           - message_format
           - name
@@ -6908,8 +7073,10 @@
           - c2_parameter_deviations
           - supported_c2
           - supported_os
+          - supported_wrapping
           - agent_type
           - author
+          - command_help_function
           - file_extension
           - message_format
           - name
@@ -6935,8 +7102,10 @@
           - c2_parameter_deviations
           - supported_c2
           - supported_os
+          - supported_wrapping
           - agent_type
           - author
+          - command_help_function
           - file_extension
           - message_format
           - name
@@ -6962,8 +7131,10 @@
           - c2_parameter_deviations
           - supported_c2
           - supported_os
+          - supported_wrapping
           - agent_type
           - author
+          - command_help_function
           - file_extension
           - message_format
           - name

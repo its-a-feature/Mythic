@@ -730,6 +730,18 @@ export const sortByUiPositionThenName = (a, b) => {
     }
     return 0;
 }
+const HideConditionOperandEQ                  = "eq"
+const HideConditionOperandNotEQ                                   = "neq"
+const HideConditionOperandIN                                      = "in"
+const HideConditionOperandNotIN                                   = "nin"
+const HideConditionOperandLessThan                                = "lt"
+const HideConditionOperandGreaterThan                             = "gt"
+const HideConditionOperandLessThanOrEqual                         = "lte"
+const HideConditionOperandGreaterThanOrEqual                      = "gte"
+const HideConditionOperationStartsWith                            = "sw"
+const HideConditionOperationEndsWith                              = "ew"
+const HideConditionOperationContains                              = "co"
+const HideConditionOperationNotContains                           = "nco"
 export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
     let groups = buildParameters?.reduce( (prev, cur) => {
         if(prev.includes(cur?.group_name)){return [...prev]}
@@ -756,23 +768,80 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
                     for(let l = 0; l < buildParameters.length; l++){
                         if(buildParameters[l].name === buildParameters[i].hide_conditions[k].name){
                             switch(buildParameters[i].hide_conditions[k].operand){
-                                case "eq":
+                                case HideConditionOperandEQ:
                                     if(String(buildParameters[i].hide_conditions[k].value) === String(buildParameters[l].value)){
                                         should_hide = true;
                                     }
                                     break;
-                                case "neq":
+                                case HideConditionOperandNotEQ:
                                     if(String(buildParameters[i].hide_conditions[k].value) !== String(buildParameters[l].value)){
                                         should_hide = true;
                                     }
                                     break;
-                                case "in":
+                                case HideConditionOperandIN:
                                     if(buildParameters[i].hide_conditions[k].choices.includes(buildParameters[l].value)){
                                         should_hide = true;
                                     }
                                     break;
-                                case "nin":
+                                case HideConditionOperandNotIN:
                                     if(!buildParameters[i].hide_conditions[k].choices.includes(buildParameters[l].value)){
+                                        should_hide = true;
+                                    }
+                                    break;
+                                case HideConditionOperandLessThan:
+                                    try{
+                                        if(parseInt(buildParameters[l].value) < parseInt(buildParameters[i].hide_conditions[k].value)){
+                                            should_hide = true;
+                                        }
+                                    }catch(e){
+                                        console.log("couldn't parse build parameter value as int", e);
+                                    }
+
+                                    break;
+                                case HideConditionOperandLessThanOrEqual:
+                                    try{
+                                        if(parseInt(buildParameters[l].value) <= parseInt(buildParameters[i].hide_conditions[k].value)){
+                                            should_hide = true;
+                                        }
+                                    }catch(e){
+                                        console.log("couldn't parse build parameter value as int", e);
+                                    }
+                                    break;
+                                case HideConditionOperandGreaterThan:
+                                    try{
+                                        if(parseInt(buildParameters[l].value) > parseInt(buildParameters[i].hide_conditions[k].value) ){
+                                            should_hide = true;
+                                        }
+                                    }catch(e){
+                                        console.log("couldn't parse build parameter value as int", e);
+                                    }
+                                    break;
+                                case HideConditionOperandGreaterThanOrEqual:
+                                    try{
+                                        if(parseInt(buildParameters[l].value) >= parseInt(buildParameters[i].hide_conditions[k].value)){
+                                            should_hide = true;
+                                        }
+                                    }catch(e){
+                                        console.log("couldn't parse build parameter value as int", e);
+                                    }
+                                    break;
+                                case HideConditionOperationStartsWith:
+                                    if(String(buildParameters[l].value).startsWith(String(buildParameters[i].hide_conditions[k].value))){
+                                        should_hide = true;
+                                    }
+                                    break;
+                                case HideConditionOperationEndsWith:
+                                    if(String(buildParameters[l].value).endsWith(String(buildParameters[i].hide_conditions[k].value))){
+                                        should_hide = true;
+                                    }
+                                    break;
+                                case HideConditionOperationContains:
+                                    if(buildParameters[l].value.includes(buildParameters[i].hide_conditions[k].value)){
+                                        should_hide = true;
+                                    }
+                                    break;
+                                case HideConditionOperationNotContains:
+                                    if(!buildParameters[l].value.includes(buildParameters[i].hide_conditions[k].value)){
                                         should_hide = true;
                                     }
                                     break;
@@ -820,8 +889,6 @@ export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
                         </div>
                     </div>
                 ))}
-
-
             </div>
         ))
     )

@@ -5,13 +5,7 @@ import {classes} from './styles';
 import React from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faFilter} from '@fortawesome/free-solid-svg-icons';
-import Grow from '@mui/material/Grow';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Paper from '@mui/material/Paper';
-import {useTheme} from '@mui/material/styles';
+import {ContextMenu} from "./Cell";
 
 const HeaderCell = ({
     onClick = () => {},
@@ -23,9 +17,9 @@ const HeaderCell = ({
     VariableSizeGridProps: { style, rowIndex, columnIndex, data },
 }) => {
     const dropdownAnchorRef = React.useRef(null);
-    const theme = useTheme();
     const item = data.items[rowIndex][columnIndex];
     const isFiltered = item?.filtered || false;
+    const contextMenuLocationRef = React.useRef({x: 0, y: 0});
     const handleClick = useCallback(
         (e) => {
             onClick(e, columnIndex);
@@ -47,22 +41,20 @@ const HeaderCell = ({
                 return;
             }
             if(contextMenuOptions && contextMenuOptions.length > 0){
-                
+                contextMenuLocationRef.current.x = event.clientX;
+                contextMenuLocationRef.current.y = event.clientY;
                 setOpenContextMenu(true);
             }
         },
         [contextMenuOptions, columnIndex] // eslint-disable-line react-hooks/exhaustive-deps
     );
-    const handleMenuItemClick = (event, index) => {
-        contextMenuOptions[index].click({event, columnIndex});
+    const handleMenuItemClick = (event, clickOption) => {
+        event.preventDefault();
+        event.stopPropagation();
+        clickOption({event, columnIndex, rowIndex, data: data.items[rowIndex][columnIndex]?.props?.rowData || {}});
         setOpenContextMenu(false);
     };
-    const handleClose = (event) => {
-        if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
-          return;
-        }
-        setOpenContextMenu(false);
-      };
+
     const handleClicks = useSingleAndDoubleClick(handleClick, handleDoubleClick);
 
     return (
@@ -73,31 +65,11 @@ const HeaderCell = ({
                 </Typography>
                 {isFiltered && <FontAwesomeIcon icon={faFilter} />}
                 {sortIndicatorIndex === columnIndex && (sortDirection === 'ASC' ? <div>↑</div> : <div>↓</div>)}
-                <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 40}}>
-                  {({ TransitionProps, placement }) => (
-                    <Grow
-                      {...TransitionProps}
-                      style={{
-                        transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                      }}
-                    >
-                      <Paper variant="outlined" style={{backgroundColor: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light}}>
-                        <ClickAwayListener onClickAway={handleClose} mouseEvent={"onMouseDown"}>
-                          <MenuList id="split-button-menu"  >
-                            {contextMenuOptions.map((option, index) => (
-                              <MenuItem
-                                key={option.name + index}
-                                onClick={(event) => handleMenuItemClick(event, index)}
-                              >
-                                {option.name}
-                              </MenuItem>
-                            ))}
-                          </MenuList>
-                        </ClickAwayListener>
-                      </Paper>
-                    </Grow>
-                  )}
-                </Popper>
+                <ContextMenu dropdownAnchorRef={dropdownAnchorRef} contextMenuOptions={contextMenuOptions}
+                             disableFilterMenu={item?.disableFilterMenu} openContextMenu={openContextMenu}
+                             contextMenuLocationRef={contextMenuLocationRef}
+                             setOpenContextMenu={setOpenContextMenu} handleMenuItemClick={handleMenuItemClick}
+                />
             </Box>
         </div>
     );

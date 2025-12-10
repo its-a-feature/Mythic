@@ -25,7 +25,6 @@ import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import InputLabel from '@mui/material/InputLabel';
-import { FormControlLabel } from '@mui/material';
 
 export const getDynamicQueryBuildParameterParams = gql`
 mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: String!, $selected_os: String!){

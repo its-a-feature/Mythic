@@ -19,8 +19,12 @@ export const getCallbackIdFromClickedTab = (tabId) => {
         return Number(tabId.split("fileBrowser")[0]);
     }else if(tabId.includes("interact")){
         return Number(tabId.split("interact")[0]);
-    }else if(tabId.includes("processBrowser")){
+    }else if(tabId.includes("processBrowser")) {
         return Number(tabId.split("processBrowser")[0]);
+    }else if(tabId.includes("customFileBasedBrowser")) {
+        return Number(tabId.split("customFileBasedBrowser")[0]);
+    }else if(tabId.includes("customProcessBasedBrowser")) {
+        return Number(tabId.split("customProcessBasedBrowser")[0]);
     } else {
         console.log("unknown tab type", tabId);
         return 0;

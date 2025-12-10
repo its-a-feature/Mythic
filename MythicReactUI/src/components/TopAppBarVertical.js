@@ -90,12 +90,14 @@ const openedMixin = (theme) => ({
     overflowX: 'hidden',
     borderRadius: "0 !important",
     border: "0px !important",
+    //backgroundColor: "unset !important",
 });
 const closedMixin = (theme) => ({
     overflowX: 'hidden',
     width: `calc(${theme.spacing(4)} + 1px)`,
     borderRadius: "0 !important",
-     border: "0px !important",
+    border: "0px !important",
+    //backgroundColor: "unset !important",
     [theme.breakpoints.up('sm')]: {
       width: `calc(${theme.spacing(5)} + 1px)`,
       borderRadius: "0 !important",
@@ -108,28 +110,38 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
       flexShrink: 0,
       whiteSpace: 'nowrap',
       boxSizing: 'border-box',
+      background: `linear-gradient(${theme.topAppBarColor}, ${theme.topAppBarBottomColor}) !important`,
+      //backgroundColor: `${theme.topAppBarColor} !important`,
       [`& .${classes.listSubHeader}`]: {
         //color: ` ${theme.navBarTextIconColor} !important`,
-        backgroundColor: `${theme.topAppBarColor} !important`,
+        //backgroundColor: `${theme.topAppBarColor} !important`,
+        backgroundColor: "unset !important",
       },
       [`& .${classes.listSubHeader}:hover`]: {
-        backgroundColor: `${theme.topAppBarColor} !important`,
+        //backgroundColor: `${theme.topAppBarColor} !important`,
         filter: `brightness(90%)`,
         color: `${theme.navBarTextIconColor} !important`,
+        backgroundColor: "unset !important",
       },
       variants: [
         {
           props: ({ open }) => open,
           style: {
             ...openedMixin(theme),
-            '& .MuiDrawer-paper': openedMixin(theme),
+            '& .MuiDrawer-paper': {
+                ...openedMixin(theme),
+                backgroundColor: "unset !important",
+            },
           },
         },
         {
           props: ({ open }) => !open,
           style: {
             ...closedMixin(theme),
-            '& .MuiDrawer-paper': closedMixin(theme),
+            '& .MuiDrawer-paper': {
+                ...closedMixin(theme),
+                backgroundColor: "unset !important",
+            },
           },
         },
       ],
@@ -143,6 +155,7 @@ export const StyledListItem = styled(ListItem)(
       marginTop: 0,
       paddingBottom: "2px",
       color: theme.navBarTextColor,
+      backgroundColor: "unset !important",
     }),
 );
 export const StyledListItemIcon = styled(ListItemIcon)(
@@ -152,6 +165,7 @@ export const StyledListItemIcon = styled(ListItemIcon)(
         paddingBottom: 0,
         minWidth: "45px",
         //color: theme.navBarTextIconColor,
+        backgroundColor: "unset !important",
     }),
 );
 
@@ -736,9 +750,10 @@ export function TopAppBarVertical(props) {
     <>
       {me?.user?.current_operation_id ? (<EventFeedNotifications me={me} />) : null }
       <Drawer anchor="left" variant="permanent" open={menuOpen} onClose={handleDrawerClose}
-        style={{borderRight: "1px solid grey !important"}}>
+        style={{borderRight: "1px solid grey !important",
+            }}>
         <List style={{paddingTop: 0, marginTop: 0, height: "100%", display: "flex", flexDirection: "column",
-            backgroundColor: theme.topAppBarColor,
+            backgroundColor: "unset !important",
             borderBottom: "unset !important", borderLeft: "unset !important", borderTop: "unset !important"}}>
           <ListItem className={classes.listSubHeader} style={{marginTop:0, paddingTop: 0, paddingLeft: "2px", paddingBottom: 0}}>
             <ListItemIcon >

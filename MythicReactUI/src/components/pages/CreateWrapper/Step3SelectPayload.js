@@ -101,6 +101,7 @@ export function Step3SelectPayload(props){
                 options.push({name: data.payloadtype_by_pk.wrap_these_payload_types[i].wrapped.name, ...data.payloadtype_by_pk.wrap_these_payload_types[i].wrapped.payloads[j] })
               }
             }
+            options = options.sort((a,b) => new Date(a.creation_time) < new Date(b.creation_time) ? 1 : -1)
             setPayloadOptions(options);
             setOpenBackdrop(false);
           }else{

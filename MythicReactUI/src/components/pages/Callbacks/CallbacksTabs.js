@@ -10,6 +10,10 @@ import { CallbacksTabsFileBrowserLabel, CallbacksTabsFileBrowserPanel } from './
 import { CallbacksTabsProcessBrowserLabel, CallbacksTabsProcessBrowserPanel } from './CallbacksTabsProcessBrowser';
 import { CallbacksTabsTaskingSplitLabel, CallbacksTabsTaskingSplitPanel} from "./CallbacksTabsTaskingSplit";
 import {CallbacksTabsTaskingConsoleLabel, CallbacksTabsTaskingConsolePanel} from "./CallbacksTabsTaskingConsole";
+import {
+    CallbacksTabsCustomFileBasedBrowserLabel,
+    CallbacksTabsCustomFileBasedBrowserPanel
+} from "./CallbacksTabsCustomFileBasedBrowser";
 
 export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clickedTabId, setClickedTabId, onEditTabDescription, contextMenuOptions, me, newDataForTab, setNewDataForTab}) {
 
@@ -134,12 +138,12 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                                                         contextMenuOptions={contextMenuOptions}
                                                     />
                                                 )
-                                            case 'fileBrowser':
+                                            case 'customFileBasedBrowser':
                                                 return (
-                                                    <CallbacksTabsFileBrowserLabel
+                                                    <CallbacksTabsCustomFileBasedBrowserLabel
                                                         onEditTabDescription={onEditTabDescription}
                                                         onCloseTab={onCloseTabLocal}
-                                                        key={'tablabel' + tab.tabID + tab.tabType}
+                                                        key={'tablabel' + tab.tabID + tab.tabType + tab?.customBrowser?.name}
                                                         tabInfo={tab}
                                                         index={index}
                                                         me={me}
@@ -152,6 +156,21 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                                             case 'processBrowser':
                                                 return (
                                                     <CallbacksTabsProcessBrowserLabel
+                                                        onEditTabDescription={onEditTabDescription}
+                                                        onCloseTab={onCloseTabLocal}
+                                                        key={'tablabel' + tab.tabID + tab.tabType}
+                                                        tabInfo={tab}
+                                                        index={index}
+                                                        me={me}
+                                                        newDataForTab={newDataForTab}
+                                                        selectedIndex={value}
+                                                        onDragTab={onDragTab}
+                                                        contextMenuOptions={contextMenuOptions}
+                                                    />
+                                                );
+                                            case 'fileBrowser':
+                                                return (
+                                                    <CallbacksTabsFileBrowserLabel
                                                         onEditTabDescription={onEditTabDescription}
                                                         onCloseTab={onCloseTabLocal}
                                                         key={'tablabel' + tab.tabID + tab.tabType}
@@ -237,6 +256,25 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                                 parentMountedRef={mountedRef}
                             />
                         )
+                    case 'customFileBasedBrowser':
+                        return (
+                            <CallbacksTabsCustomFileBasedBrowserPanel
+                                style={{
+                                    height: '100%',
+                                    maxHeight: '100%',
+                                    position: 'relative',
+                                    overflow: 'auto',
+                                }}
+                                onCloseTab={onCloseTabLocal}
+                                key={'tabpanel' + tab.tabID + tab.tabType + tab?.customBrowser?.name}
+                                tabInfo={tab}
+                                setNewDataForTab={setNewDataForTab}
+                                value={value}
+                                index={index}
+                                me={me}
+                                parentMountedRef={mountedRef}
+                            />
+                        );
                     case 'fileBrowser':
                         return (
                             <CallbacksTabsFileBrowserPanel
@@ -254,6 +292,7 @@ export function CallbacksTabs({ onCloseTab, openTabs, onDragTab, onDragEnd, clic
                                 index={index}
                                 me={me}
                                 parentMountedRef={mountedRef}
+                                baseUIFeature={"file_browser"}
                             />
                         );
                     case 'processBrowser':

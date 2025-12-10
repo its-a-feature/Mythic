@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {classes} from './styles';
 import Draggable from 'react-draggable';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import DragHandleIcon from '@mui/icons-material/DragHandle';
 
 const DraggableHandles = React.forwardRef(({ height, rowHeight, width, minColumnWidth, columnWidths, onStop }, ref) => {
     const [isDragging, setIsDragging] = useState(-1);
@@ -40,13 +41,14 @@ const DraggableHandles = React.forwardRef(({ height, rowHeight, width, minColumn
                             setIsDragging(-1);
                             onStop(data.x, i);
                         }}>
-                            <MoreVertIcon
+                            <DragHandleIcon
                                 ref={nodeRef}
                                 className={isDragging === i ? classes.draggableHandlesClickAreaSelected : classes.draggableHandlesClickArea}
                                 style={{
                                     left: leftOffset + columnWidths[i] - 1 - 7,
+                                    rotate: isDragging === i ? "0deg" : "90deg",
                                 }}>
-                            </MoreVertIcon>
+                            </DragHandleIcon>
                     </Draggable>
                 );
             })}

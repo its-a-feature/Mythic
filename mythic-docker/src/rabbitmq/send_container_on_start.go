@@ -13,16 +13,15 @@ type ContainerOnStartMessage struct {
 }
 
 func (r *rabbitMQConnection) SendContainerOnStart(onStartMessage ContainerOnStartMessage) error {
-	if err := r.SendStructMessage(
+	err := r.SendStructMessage(
 		MYTHIC_EXCHANGE,
 		GetContainerOnStartRoutingKey(onStartMessage.ContainerName),
 		"",
 		onStartMessage,
 		true,
-	); err != nil {
+	)
+	if err != nil {
 		logging.LogError(err, "Failed to send message")
-		return err
-	} else {
-		return nil
 	}
+	return err
 }

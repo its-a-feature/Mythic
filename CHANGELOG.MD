@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.11] - 2025-12-10
+
+### Changed
+
+- Added `CustomBrowser` containers to allow customized file-like browser creation
+  - This includes an "export" functionality that's a custom function you can implement per browser type
+  - This includes a new field in `responses` for `custom_browser` 
+- Added `SendMythicRPCCallbackTokenSearch`
+- Added `SendMythicRPCCustomBrowserSearch`
+- Added `verifier_regex` option to CommandParameters 
+  - Allows you to provide regex that must match the supplied value
+- Changed `mythictree` to move `has_children` out of metadata in support of CustomBrowsers
+- Changed `mythictree` to have new `display_path` field separate from `full_path` in support of CustomBrowsers
+- Added field to `payload` to track the version of the backing payload_type when the payload was created
+  - This makes it easier to track payloads as you're doing payload type development/updates
+- Added `supported_c2` and `supported_wrapping` to Payload Types to track supported C2/Wrappers
+  - This is now used to "resync" data rather than asking the container to resync back to Mythic
+- Changed `token_id` to int64 (from uint64) to match similar change in Postgres database to BigInt from just Integer
+- Updated operation event log auto resolver to use new `warining=true` vs `level='warning'` check
+- Added a 5s sleep between container's OnStart messages to help with multiple operations bombarding a container in rapid succession
+- Updated standard RPC timeouts to 10s instead of 5s
+- Updated auto re-hosting of files to have a 10s delay between files
+- Updated ContainerVersion out of bounds message to be a bit clearer
+- Updated `SendMythicRPCCallbackUpdate` to allow specifying the `dead` attribute
+- Updated `SendMythicRPCFileSearch` to allow specifying a PayloadUUID in addition to AgentFileID in `AgentFileID` field
+- Updated `SendMythicRPCResponseCreate` to go through the same process as an agent's `user_output`
+  - This allows responses in this way to be intercepted and emitted to logging
+- Added some mutexes when syncing PayloadTypes to prevent possible race conditions
+- Updated file downloads to allow specifying a negative `total_chunks` until you're done and know how many chunks total there are
+- Added new `database` tab to file previews to run SQL queries on database right in the browser
+- Added the following new options for BuildParameter's HideConditionOperator
+  - LessThan, GreaterThan, LessThanOrEqual, GreaterThanOrEqual, StartsWith, EndsWith, Contains, NotContains
+- [UI Updates](/MythicReactUI/CHANGELOG.MD#0383---2025-12-10)
+- [CLI Updates](/Mythic_CLI/Changelog.md#0321---2025-12-10)
+
 ## [3.4.10] - 2025-10-31
 
 ### Changed

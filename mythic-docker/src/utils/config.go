@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const mythicServerVersion = "3.4.10"
+const mythicServerVersion = "3.4.11"
 
 type Config struct {
 	// server configuration
@@ -186,6 +186,9 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 	MythicConfig.RabbitmqUser = mythicEnv.GetString("rabbitmq_user")
 	MythicConfig.RabbitmqPassword = mythicEnv.GetString("rabbitmq_password")
 	MythicConfig.RabbitmqVHost = mythicEnv.GetString("rabbitmq_vhost")
+	if MythicConfig.RabbitmqVHost == "" {
+		MythicConfig.RabbitmqVHost = "mythic_vhost"
+	}
 	// jwt configuration
 	MythicConfig.JWTSecret = []byte(mythicEnv.GetString("jwt_secret"))
 }

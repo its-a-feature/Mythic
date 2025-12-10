@@ -146,8 +146,16 @@ export const taskingDataFragment = gql`
         command_name
         opsec_pre_blocked
         opsec_pre_bypassed
+        opsec_pre_bypass_user {
+            id
+            username
+        }
         opsec_post_blocked
         opsec_post_bypassed
+        opsec_post_bypass_user {
+            id
+            username
+        }
         is_interactive_task
         interactive_task_type
         has_intercepted_response

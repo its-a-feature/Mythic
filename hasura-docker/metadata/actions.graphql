@@ -211,6 +211,14 @@ type Mutation {
 }
 
 type Mutation {
+  custombrowserExportFunction(
+    tree_type: String!
+    host: String!
+    path: String!
+  ): custombrowserExportFunctionOutput
+}
+
+type Mutation {
   deleteAPIToken(
     apitokens_id: Int!
   ): deleteAPITokenOutput
@@ -1266,5 +1274,10 @@ type dynamicQueryBuildParameterOutput {
   error: String
   parameter_name: String!
   choices: [String]
+}
+
+type custombrowserExportFunctionOutput {
+  status: String!
+  error: String
 }
 

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -160,6 +161,7 @@ type CommandParameter struct {
 	DynamicQueryFunctionName                string                 `json:"dynamic_query_function"`
 	ParameterGroupInformation               []ParameterGroupInfo   `json:"parameter_group_info"`
 	LimitCredentialsByType                  []string               `json:"limit_credentials_by_type"`
+	VerifierRegex                           string                 `json:"verifier_regex"`
 }
 
 type CommandAttribute struct {
@@ -224,6 +226,9 @@ func processPayloadSyncMessages(msg amqp.Delivery) interface{} {
 var messageFormats = []string{"xml", "json"}
 var agentTypes = []string{"agent", "wrapper", "service", "command_augment"}
 var messageUUIDLengths = []int{16, 36}
+var buildParameterMutex sync.Mutex
+var c2ProfileMutex sync.Mutex
+var commandsMutex sync.Mutex
 
 func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	//logging.LogDebug("Received connection to PayloadTypeSync", "syncMessage", in)
@@ -234,7 +239,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 	}
 	if !isValidContainerVersion(in.ContainerVersion) {
 		logging.LogError(nil, "attempting to sync bad payload container version")
-		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
+		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is < %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
 	}
 	if err := database.DB.Get(&payloadtype, `SELECT * FROM payloadtype WHERE "name"=$1`, in.PayloadType.Name); errors.Is(err, sql.ErrNoRows) {
 		// this means we don't have the payload, so we need to create it and all the associated components
@@ -281,13 +286,14 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.CommandHelpFunction = in.PayloadType.CommandHelpFunction
 		payloadtype.SemVer = in.PayloadType.SemVer
 		payloadtype.SupportedC2 = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedC2Profiles)
+		payloadtype.SupportedWrapping = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedWrapperPayloadTypes)
 		payloadtype.SupportsMultipleC2InBuild = in.PayloadType.SupportsMultipleC2InBuild
 		payloadtype.SupportsMultipleC2InstancesInBuild = in.PayloadType.SupportsMultipleC2InstancesInBuild
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO payloadtype 
 			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper,agent_type,message_format,command_augment_supported_agents,message_uuid_length,use_display_params_for_cli_history,
-			 c2_parameter_deviations, command_help_function, supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build, supported_c2, semver) 
+			 c2_parameter_deviations, command_help_function, supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build, supported_c2, semver, supported_wrapping) 
 			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper,:agent_type, :message_format, :command_augment_supported_agents, :message_uuid_length, :use_display_params_for_cli_history,
-			        :c2_parameter_deviations, :command_help_function, :supports_multiple_c2_in_build, :supports_multiple_c2_instances_in_build, :supported_c2, :semver) 
+			        :c2_parameter_deviations, :command_help_function, :supports_multiple_c2_in_build, :supports_multiple_c2_instances_in_build, :supported_c2, :semver, :supported_wrapping) 
 			RETURNING id`,
 		); err != nil {
 			logging.LogError(err, "Failed to create new payloadtype statement")
@@ -348,6 +354,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.CommandHelpFunction = in.PayloadType.CommandHelpFunction
 		payloadtype.SemVer = in.PayloadType.SemVer
 		payloadtype.SupportedC2 = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedC2Profiles)
+		payloadtype.SupportedWrapping = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedWrapperPayloadTypes)
 		payloadtype.SupportsMultipleC2InBuild = in.PayloadType.SupportsMultipleC2InBuild
 		payloadtype.SupportsMultipleC2InstancesInBuild = in.PayloadType.SupportsMultipleC2InstancesInBuild
 		_, err = database.DB.NamedExec(`UPDATE payloadtype SET 
@@ -357,7 +364,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			message_uuid_length=:message_uuid_length, use_display_params_for_cli_history=:use_display_params_for_cli_history,
 			c2_parameter_deviations=:c2_parameter_deviations, command_help_function=:command_help_function, 
 			supports_multiple_c2_in_build=:supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build=:supports_multiple_c2_instances_in_build, 
-			supported_c2=:supported_c2, semver=:semver
+			supported_c2=:supported_c2, semver=:semver, supported_wrapping=:supported_wrapping
 			WHERE id=:id`, payloadtype,
 		)
 		if err != nil {
@@ -459,6 +466,8 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 	// if a parameter is in the database but not in the sync message, delete it
 	// if a parameter is in the sync message, but not in the database, add it
 	// if a parameter is in both, update it
+	buildParameterMutex.Lock()
+	defer buildParameterMutex.Unlock()
 	syncingParameters := in.PayloadType.BuildParameters
 	databaseParameter := databaseStructs.Buildparameter{}
 	updatedAndDeletedParameters := []string{}
@@ -478,7 +487,7 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 			} else {
 				//logging.LogDebug("Got row from buildparameter while syncing payloadtype", "row", databaseParameter)
 				for _, newParameter := range syncingParameters {
-					if newParameter.Name == databaseParameter.Name {
+					if newParameter.Name == databaseParameter.Name && !utils.SliceContains(updatedAndDeletedParameters, newParameter.Name) {
 						// we found a matching parameter name, update it
 						//logging.LogDebug("Found matching newParameter.Name and databaseParameter.Name", "name", newParameter.Name)
 						updatedAndDeletedParameters = append(updatedAndDeletedParameters, databaseParameter.Name)
@@ -521,6 +530,7 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 							logging.LogError(err, "Failed to update build parameter in database", "build_parameter", databaseParameter)
 							return err
 						}
+						break
 					}
 				}
 			}
@@ -599,6 +609,8 @@ func updatePayloadTypeC2Profiles(in PayloadTypeSyncMessage, payloadtype database
 	// get all currently associated c2 profiles from database
 	// if profile in database but not in sync message, delete it
 	// if profile in sync message but not in database, add it
+	c2ProfileMutex.Lock()
+	defer c2ProfileMutex.Unlock()
 	syncingC2Profiles := in.PayloadType.SupportedC2Profiles
 	databaseC2Profile := databaseStructs.Payloadtypec2profile{}
 	if rows, err := database.DB.NamedQuery(`SELECT
@@ -761,6 +773,8 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 	// if a command is in the database but not in the sync message, delete it
 	// if command is in the sync message, but not in the database, then add it
 	// if command is in both, update it
+	commandsMutex.Lock()
+	defer commandsMutex.Unlock()
 	syncingCommands := in.CommandList
 	databaseCommand := databaseStructs.Command{}
 	updatedAndDeletedCommands := []string{}
@@ -987,12 +1001,14 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 								databaseParameter.ChoiceFilterByCommandAttributes = GetMythicJSONTextFromStruct(newParameter.FilterCommandChoicesByCommandAttributes)
 								databaseParameter.DynamicQueryFunction = newParameter.DynamicQueryFunctionName
 								databaseParameter.SupportedAgentBuildParameters = GetMythicJSONTextFromStruct(newParameter.SupportedAgentBuildParameters)
+								databaseParameter.VerifierRegex = newParameter.VerifierRegex
 								_, err = database.DB.NamedExec(`UPDATE commandparameters SET 
 									cli_name=:cli_name, display_name=:display_name, description=:description, choices=:choices, default_value=:default_value, 
 									supported_agents=:supported_agents, supported_agent_build_parameters=:supported_agent_build_parameters,
 									choices_are_all_commands=:choices_are_all_commands, choices_are_loaded_commands=:choices_are_loaded_commands, 
 									choice_filter_by_command_attributes=:choice_filter_by_command_attributes, dynamic_query_function=:dynamic_query_function, 
-									required=:required, ui_position=:ui_position, "type"=:type, limit_credentials_by_type=:limit_credentials_by_type 
+									required=:required, ui_position=:ui_position, "type"=:type, limit_credentials_by_type=:limit_credentials_by_type,
+									verifier_regex=:verifier_regex
 									WHERE id=:id`, databaseParameter,
 								)
 								if err != nil {
@@ -1045,6 +1061,7 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 					ParameterGroupName:       newParameterGroup.GroupName,
 					CommandID:                command.ID,
 					DynamicQueryFunction:     newParameter.DynamicQueryFunctionName,
+					VerifierRegex:            newParameter.VerifierRegex,
 				}
 				if defaultVal, err := getSyncToDatabaseValueForDefaultValue(newParameter.ParameterType, newParameter.DefaultValue, newParameter.Choices); err != nil {
 					logging.LogError(err, "Failed to getSyncToDatabaseValueForDefaultValue for brand new command parameter", "newParameter", newParameter)
@@ -1057,10 +1074,10 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 				if statement, err := database.DB.PrepareNamed(`INSERT INTO commandparameters 
 					("name",display_name,cli_name,description,command_id,choices,default_value,supported_agents,choices_are_all_commands,
 					choices_are_loaded_commands,required,ui_position,"type",choice_filter_by_command_attributes,dynamic_query_function,supported_agent_build_parameters,parameter_group_name,
-					 limit_credentials_by_type) 
+					 limit_credentials_by_type, verifier_regex) 
 					VALUES (:name, :display_name, :cli_name, :description, :command_id, :choices, :default_value, :supported_agents, :choices_are_all_commands,
 					:choices_are_loaded_commands, :required, :ui_position, :type, :choice_filter_by_command_attributes, :dynamic_query_function, :supported_agent_build_parameters, :parameter_group_name,
-					        :limit_credentials_by_type) 
+					        :limit_credentials_by_type, :verifier_regex) 
 					RETURNING id`,
 				); err != nil {
 					logging.LogError(err, "Failed to create new command parameters statement when importing payloadtype")
@@ -1358,19 +1375,29 @@ func updateAllCallbacksWithCommandAugments() {
 func reSyncPayloadTypes() {
 	payloadTypes := []databaseStructs.Payloadtype{}
 	if err := database.DB.Select(&payloadTypes, `SELECT
-		"name", container_running, wrapper
-		FROM payloadtype
-		WHERE deleted=false`); err != nil {
+		"name", supported_wrapping, supported_c2, id
+		FROM payloadtype`); err != nil {
 		logging.LogError(err, "Failed to fetch payload types from database")
 	} else {
 		for _, pt := range payloadTypes {
-			if pt.ContainerRunning {
-				if pt.Wrapper {
-					continue
-				}
-				if _, err = RabbitMQConnection.SendPTRPCReSync(PTRPCReSyncMessage{Name: pt.Name}); err != nil {
-					logging.LogError(err, "Failed to ask payload type to resync")
-				}
+			err = updatePayloadTypeC2Profiles(PayloadTypeSyncMessage{
+				PayloadType: PayloadType{
+					Name:                pt.Name,
+					SupportedC2Profiles: pt.SupportedC2.StructStringValue(),
+				},
+			},
+				pt,
+			)
+			if err != nil {
+				logging.LogError(err, "Failed to update payload type c2 mapping")
+			}
+			err = updatePayloadTypeWrappers(PayloadTypeSyncMessage{
+				PayloadType: PayloadType{
+					Name:                         pt.Name,
+					SupportedWrapperPayloadTypes: pt.SupportedWrapping.StructStringValue(),
+				}}, pt)
+			if err != nil {
+				logging.LogError(err, "Failed to update payload type wrapper mapping")
 			}
 		}
 	}

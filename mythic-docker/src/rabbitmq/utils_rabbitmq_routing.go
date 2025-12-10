@@ -149,6 +149,9 @@ func GetAuthContainerGetNonIDPMetadataRoutingKey(container string) string {
 func GetContainerOnStartRoutingKey(container string) string {
 	return fmt.Sprintf("%s_%s", container, CONTAINER_ON_START)
 }
+func GetCustomBrowserExportFunctionRoutingKey(container string) string {
+	return fmt.Sprintf("%s_%s", container, CUSTOMBROWSER_EXPORT_FUNCTION)
+}
 
 func (r *rabbitMQConnection) GetConnection() (*amqp.Connection, error) {
 	// use a mutex lock around getting the connection because we don't want to accidentally have leaking connections
@@ -270,10 +273,10 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 	if !ignoreErrormessage {
 		logging.LogError(errors.New("failed 3 times"), "failed 3 times", "queue", queue)
 	}
-	return errors.New("failed 3 times")
+	return errors.New(fmt.Sprintf("failed 3 times to send to queue %s", queue))
 }
 func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body []byte, exclusiveQueue bool) ([]byte, error) {
-	var err error
+	var finalError error
 	for attempt := 0; attempt < 3; attempt++ {
 		conn, err := r.GetConnection()
 		if err != nil {
@@ -333,6 +336,7 @@ func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body 
 			false,    // immediate
 			msg,      // publishing
 		)
+		finalError = err
 		if err != nil {
 			logging.LogError(err, "there was an error publishing an rpc message", "queue", queue)
 			ch.Close()
@@ -342,7 +346,8 @@ func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body 
 		select {
 		case ntf := <-confirmChannel:
 			if !ntf.Ack {
-				err := errors.New("failed to deliver message, not ACK-ed by receiver")
+				err = errors.New("failed to deliver message, not ACK-ed by receiver")
+				finalError = err
 				logging.LogError(err, "failed to deliver message to exchange/queue, notifyPublish", "queue", queue)
 				ch.Close()
 				time.Sleep(RPC_TIMEOUT)
@@ -350,11 +355,13 @@ func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body 
 			}
 		case ret := <-notifyReturnChannel:
 			err = errors.New(getMeaningfulRabbitmqError(ret))
+			finalError = err
 			time.Sleep(RPC_TIMEOUT)
 			ch.Close()
 			continue
 		case <-time.After(RPC_TIMEOUT):
 			err = errors.New("message delivery confirmation timed out in SendRPCMessage")
+			finalError = err
 			logging.LogError(err, "message delivery confirmation to exchange/queue timed out when sending", "queue", queue)
 			ch.Close()
 			continue
@@ -367,13 +374,14 @@ func (r *rabbitMQConnection) SendRPCMessage(exchange string, queue string, body 
 			return m.Body, nil
 		case <-time.After(RPC_TIMEOUT):
 			err = errors.New("message delivery confirmation timed out")
+			finalError = err
 			logging.LogError(err, "message delivery confirmation to exchange/queue timed out when receiving", "queue", queue)
 			ch.Close()
 			continue
 		}
 	}
-	logging.LogError(err, "failed 3 times")
-	return nil, err
+	logging.LogError(finalError, "failed 3 times")
+	return nil, finalError
 }
 func (r *rabbitMQConnection) ReceiveFromMythicDirectExchange(exchange string, queue string, routingKey string, handler QueueHandler, exclusiveQueue bool) {
 	// exchange is a direct exchange

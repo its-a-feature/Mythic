@@ -310,8 +310,10 @@ export function Eventing({me}){
                                 />
                             }
                             <ListItem onClick={() => setSelectedEventGroup({id: 0})}
+                                      className={selectedEventGroup.id === 0 ? "selectedCallback": ""}
                                 style={selectedEventGroup.id === 0 ?
-                                    {paddingTop: 0, paddingBottom: 0, borderLeft: `5px solid ${theme.palette.info.main}`} :
+                                    {paddingTop: 0, paddingBottom: 0, borderLeft: `5px solid ${theme.palette.info.main}`,
+                                        borderRight: `5px solid ${theme.palette.info.main}`} :
                                     {paddingTop: 0, paddingBottom: 0}}>
                                 <ListItemText primary={"View All Instances"} />
                             </ListItem>
@@ -335,8 +337,11 @@ export function Eventing({me}){
                                     {eventgroups.map( (e, i) => (
                                         (showDeleted || !e.deleted) &&
                                         <ListItem key={e.id + e.name} onClick={() => setSelectedEventGroup(e)}
+                                                  className={selectedEventGroup.id === e.id ? "selectedCallback": ""}
                                                   style={selectedEventGroup.id === e.id ?
-                                                      {paddingTop: 0, paddingBottom: 0, borderLeft: `5px solid ${theme.palette.info.main}`} :
+                                                      {paddingTop: 0, paddingBottom: 0,
+                                                          borderLeft: `5px solid ${theme.palette.info.main}`, borderRight: `5px solid ${theme.palette.info.main}`,
+                                                      } :
                                                       {paddingTop: 0, paddingBottom: 0}}>
                                             {!e.active &&
                                                 <NotificationsOffTwoToneIcon color={"warning"} />

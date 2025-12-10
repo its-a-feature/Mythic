@@ -33,6 +33,8 @@ html, body, #root {
 .MuiTableCell-head {
     background-color: ${(props) => props.theme.tableHeader} !important;
     font-weight: bold;
+    border-top: 2px solid grey;
+    border-bottom: 2px solid grey;
 }
 tr:nth-child(even) {
   background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "0D" : props.theme.tableHover + "80"};
@@ -181,15 +183,7 @@ tspan {
 }
 
 .selectedTask {
-    padding: 3px 2px 6px 3px;
-    background: 
-        linear-gradient(90deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-x,
-        linear-gradient(90deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-x,
-        linear-gradient(0deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-y,
-        linear-gradient(0deg, ${(props) => props.theme.palette.secondary.main} 50%, transparent 0) repeat-y,
-          ${(props) => props.theme.palette.background.default + "CC"} !important;
-    background-size: 8px 3px, 8px 3px, 3px 8px, 3px 8px  !important;
-    background-position: 0 0, 0 100%, 0 0, 100% 0  !important; // top bottom left right
+    background-color: ${(props) => props.theme.selectedCallbackColor + "DD"} !important;
 }
 *::-webkit-scrollbar {
   width: 0.4em;
@@ -217,9 +211,11 @@ tspan {
     box-sizing: border-box;
     justify-content: space-between;
     user-select: none;
+    border-top: 2px solid grey;
+    border-bottom: 2px solid grey;
     background-color: ${(props) => props.theme.tableHeader} !important;
     &:first-child-of-type {
-        border-left: 1px solid grey;
+        border-left: 2px solid grey;
     }
     &:hover {
         background-color: ${(props) => props.theme.tableHover};

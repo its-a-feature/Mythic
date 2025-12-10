@@ -32,9 +32,10 @@ func SliceContains[V string | int](source []V, check V) bool {
 }
 
 type AnalyzedPath struct {
-	PathPieces    []string `json:"path_pieces"`
-	PathSeparator string   `json:"path_separator"`
-	Host          string   `json:"host"`
+	PathPieces     []string `json:"path_pieces"`
+	PathSeparator  string   `json:"path_separator"`
+	Host           string   `json:"host"`
+	ReverseCombine bool     `json:"reverse_combine"`
 }
 
 func SplitFilePathGetHost(parentPath string, currentPath string, additionalPaths []string) (AnalyzedPath, error) {
@@ -111,7 +112,23 @@ func SplitFilePathGetHost(parentPath string, currentPath string, additionalPaths
 	}
 	return returnedPathInfo, nil
 }
-
+func SplitCustomPath(parentPath string, currentPath string, seperator string) (AnalyzedPath, error) {
+	returnedPathInfo := AnalyzedPath{
+		PathPieces:    []string{},
+		PathSeparator: seperator,
+	}
+	if parentPath == "" {
+		return returnedPathInfo, nil
+	}
+	stringSplit := strings.Split(parentPath, seperator)
+	for _, value := range stringSplit {
+		if value == "" {
+			continue
+		}
+		returnedPathInfo.PathPieces = append(returnedPathInfo.PathPieces, value)
+	}
+	return returnedPathInfo, nil
+}
 func GenerateRandomPassword(pwLength int) string {
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*().,<>?/|")
 	var b strings.Builder

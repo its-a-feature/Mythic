@@ -14,6 +14,7 @@ import {SearchTabSocksLabel, SearchTabSocksPanel} from './SearchTabProxies';
 import {SearchTabProcessesLabel, SearchTabProcessPanel} from "./SearchTabProcesses";
 import {SearchTabTagsLabel, SearchTabTagsPanel} from "./SearchTabTags";
 import {SearchTabPayloadsLabel, SearchTabPayloadsPanel} from "./SearchTabPayloads";
+import {SearchTabCustomBrowserLabel, SearchTabCustomBrowserPanel} from "./SearchTabCustomBrowsers";
 
 const PREFIX = 'Search';
 
@@ -34,7 +35,7 @@ const Root = styled('div')((
 export function Search(props){
 
   const navigate = useNavigate();
-  const tabTypes = ["callbacks", "tasks", "payloads", "files", "credentials", "keylogs", "artifacts", "tokens", "socks", "processes", "tags"];
+  const tabTypes = ["callbacks", "tasks", "payloads", "files", "credentials", "keylogs", "artifacts", "tokens", "socks", "processes", "tags", "browsers"];
   var params = new URLSearchParams(window.location.search);
   var valueString = params.get("tab") ? params.get("tab") : tabTypes[0];
   var valueIndex = tabTypes.findIndex(t => t === valueString);
@@ -74,6 +75,8 @@ export function Search(props){
         return <SearchTabProcessPanel key={"processpanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
       case "tags":
         return <SearchTabTagsPanel key={"tagspanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+      case "browsers":
+        return <SearchTabCustomBrowserPanel key={"browserpanel"} index={value} me={props.me} value={value} changeSearchParam={changeSearchParam} />
       default:
         return null;
     }
@@ -115,6 +118,8 @@ export function Search(props){
                       return <SearchTabProcessesLabel key={"processtab"} me={props.me}/>;
                     case "tags":
                       return <SearchTabTagsLabel key={"tagstab"} me={props.me} />;
+                    case "browsers":
+                      return <SearchTabCustomBrowserLabel key={"browsers"} me={props.me}/>;
                     default:
                       return null;
                   }
