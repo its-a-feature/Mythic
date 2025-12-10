@@ -90,14 +90,14 @@ const openedMixin = (theme) => ({
     overflowX: 'hidden',
     borderRadius: "0 !important",
     border: "0px !important",
-    //backgroundColor: "unset !important",
+    backgroundColor: "unset !important",
 });
 const closedMixin = (theme) => ({
     overflowX: 'hidden',
     width: `calc(${theme.spacing(4)} + 1px)`,
     borderRadius: "0 !important",
     border: "0px !important",
-    //backgroundColor: "unset !important",
+    backgroundColor: "unset !important",
     [theme.breakpoints.up('sm')]: {
       width: `calc(${theme.spacing(5)} + 1px)`,
       borderRadius: "0 !important",
@@ -110,8 +110,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
       flexShrink: 0,
       whiteSpace: 'nowrap',
       boxSizing: 'border-box',
-      background: `linear-gradient(${theme.topAppBarColor}, ${theme.topAppBarBottomColor}) !important`,
-      //backgroundColor: `${theme.topAppBarColor} !important`,
+      background: `linear-gradient(180deg, ${theme.topAppBarColor}, ${theme.topAppBarBottomColor}) !important`,
+      backgroundColor: `unset !important`,
       [`& .${classes.listSubHeader}`]: {
         //color: ` ${theme.navBarTextIconColor} !important`,
         //backgroundColor: `${theme.topAppBarColor} !important`,
@@ -131,6 +131,9 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
             '& .MuiDrawer-paper': {
                 ...openedMixin(theme),
                 backgroundColor: "unset !important",
+                '& .MuiList-root': {
+                    backgroundColor: "unset !important",
+                }
             },
           },
         },
@@ -141,6 +144,9 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
             '& .MuiDrawer-paper': {
                 ...closedMixin(theme),
                 backgroundColor: "unset !important",
+                '& .MuiList-root': {
+                    backgroundColor: "unset !important",
+                }
             },
           },
         },
@@ -750,7 +756,7 @@ export function TopAppBarVertical(props) {
     <>
       {me?.user?.current_operation_id ? (<EventFeedNotifications me={me} />) : null }
       <Drawer anchor="left" variant="permanent" open={menuOpen} onClose={handleDrawerClose}
-        style={{borderRight: "1px solid grey !important",
+        style={{borderRight: "1px solid grey !important", backgroundColor: "unset !important"
             }}>
         <List style={{paddingTop: 0, marginTop: 0, height: "100%", display: "flex", flexDirection: "column",
             backgroundColor: "unset !important",

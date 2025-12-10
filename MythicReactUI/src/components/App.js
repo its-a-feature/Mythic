@@ -69,6 +69,7 @@ export function App(props) {
     const theme = React.useMemo(
         () => {
             try{
+                console.log(preferences.palette);
                 return createTheme({
                     transitions: {
                         // So we have `transition: none;` everywhere
@@ -140,8 +141,8 @@ export function App(props) {
                     pageHeaderText: {
                         main: 'white',
                     },
-                    topAppBarColor: themeMode === 'dark' ? preferences?.palette?.navBarColor?.dark || operatorSettingDefaults.palette.navBarColor.dark :
-                        preferences?.palette?.navBarColor?.light || operatorSettingDefaults.palette.navBarColor.light,
+                    topAppBarColor: themeMode === 'dark' ? (preferences?.palette?.navBarColor?.dark || operatorSettingDefaults.palette.navBarColor.dark) :
+                        (preferences?.palette?.navBarColor?.light || operatorSettingDefaults.palette.navBarColor.light),
                     topAppBarBottomColor: themeMode === 'dark' ? preferences?.palette?.navBarBottomColor?.dark || operatorSettingDefaults.palette.navBarBottomColor.dark :
                         preferences?.palette?.navBarBottomColor?.light || operatorSettingDefaults.palette.navBarBottomColor.light,
                     typography: {
@@ -343,7 +344,7 @@ export function App(props) {
                                 flexDirection: 'column',
                                 width: "100%",
                             }}>
-                                <div style={{height: "5px", width: "100%", backgroundColor: "unset !important", background: `linear-gradient(25deg, ${theme.topAppBarColor}, ${theme.topAppBarBottomColor})`}}/>
+                                <div style={{height: "5px", width: "100%",  background: `linear-gradient(25deg, ${theme.topAppBarColor}, ${theme.topAppBarBottomColor})`}}/>
                                 {me.loggedIn && me?.user?.current_operation_banner_text !== "" &&
                                     <Typography style={{
                                         backgroundColor: me?.user?.current_operation_banner_color,
