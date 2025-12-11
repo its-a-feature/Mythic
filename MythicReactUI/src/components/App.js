@@ -69,7 +69,6 @@ export function App(props) {
     const theme = React.useMemo(
         () => {
             try{
-                console.log(preferences.palette);
                 return createTheme({
                     transitions: {
                         // So we have `transition: none;` everywhere

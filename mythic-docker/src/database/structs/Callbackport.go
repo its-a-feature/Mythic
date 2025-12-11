@@ -5,6 +5,7 @@ import "time"
 type Callbackport struct {
 	ID            int       `db:"id"`
 	CallbackID    int       `db:"callback_id"`
+	Callback      Callback  `db:"callback"`
 	OperationID   int       `db:"operation_id"`
 	TaskID        int       `db:"task_id"`
 	LocalPort     int       `db:"local_port"`

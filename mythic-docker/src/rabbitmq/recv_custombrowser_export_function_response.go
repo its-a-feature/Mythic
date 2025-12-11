@@ -29,7 +29,15 @@ func processCbExportFunctionResponseMessages(msg amqp.Delivery) {
 		return
 	}
 	if !response.Success {
-		go SendAllOperationsMessage(fmt.Sprintf("Failed to export from browser:\n%s", response.Error),
-			response.OperationID, "custombrowser_export_function", database.MESSAGE_LEVEL_INFO, true)
+		if response.TreeType == "" {
+			logging.LogError(nil, "Custom Browser Export Function failed in target container")
+		} else {
+			go SendAllOperationsMessage(fmt.Sprintf("%s Export Function Response:\nFailed to export from browser:\n%s", response.TreeType, response.Error),
+				response.OperationID, "custombrowser_export_function", database.MESSAGE_LEVEL_INFO, true)
+		}
+
+	} else if response.CompletionMessage != "" {
+		go SendAllOperationsMessage(fmt.Sprintf("%s Export Function Response: \n%s", response.TreeType, response.CompletionMessage),
+			response.OperationID, "custombrowser_export_function", database.MESSAGE_LEVEL_INFO, false)
 	}
 }

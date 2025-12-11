@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.12] - 2025-12-11
+
+### Changed
+
+- Added more context to the Proxy start event log message
+- Added a new event log message when a Proxy stops
+- Updated the CustomBrowserExportFunctionMessage to also take in a callback group
+- Updated the SendMythicRPCFileCreate call to also allow creation by OperationID
+
 ## [3.4.11] - 2025-12-10
 
 ### Changed

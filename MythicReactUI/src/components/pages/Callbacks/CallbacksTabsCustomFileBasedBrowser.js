@@ -121,8 +121,8 @@ const fileBrowserTaskSub = gql`
     }
 `;
 const customBrowserExportFunctionMutation = gql`
-    mutation customBrowserExportFunctionMutation($tree_type: String!, $host: String!, $path: String!) {
-        custombrowserExportFunction(tree_type: $tree_type, host: $host, path: $path) {
+    mutation customBrowserExportFunctionMutation($tree_type: String!, $host: String!, $path: String!, $callback_group: String!) {
+        custombrowserExportFunction(tree_type: $tree_type, host: $host, path: $path, callback_group: $callback_group) {
             status
             error
         }
@@ -944,6 +944,7 @@ const FileBrowserTableTop = ({
             tree_type: treeConfig.name,
             host: selectedFolderData.host,
             path: fullPath,
+            callback_group: selectedFolderData.group,
         }});
     };
     const onToggleAutoTaskLsOnEmptyDirectories = () => {

@@ -24,10 +24,11 @@ type MythicRPCCustomBrowserSearchMessageResponse struct {
 }
 type MythicRPCCustomBrowserSearchData struct {
 	TreeType      string      `json:"tree_type" mapstructure:"tree_type"`
-	Host          *string     `json:"host" mapstructure:"host"`
+	Host          string      `json:"host" mapstructure:"host"`
 	Name          *string     `json:"name" mapstructure:"name"`
 	ParentPath    *string     `json:"parent_path" mapstructure:"parent_path"`
 	FullPath      *string     `json:"full_path" mapstructure:"full_path"`
+	CallbackGroup *string     `json:"callback_group" mapstructure:"callback_group"`
 	MetadataKey   *string     `json:"metadata_key" mapstructure:"metadata_key"`
 	MetadataValue interface{} `json:"metadata_value" mapstructure:"metadata_value"`
 }
@@ -49,7 +50,6 @@ func init() {
 	})
 }
 
-// Endpoint: MYTHIC_RPC_PROCESS_SEARCH
 func MythicRPCCustomBrowserSearch(input MythicRPCCustomBrowserSearchMessage) MythicRPCCustomBrowserSearchMessageResponse {
 	response := MythicRPCCustomBrowserSearchMessageResponse{
 		Success:              false,
@@ -75,11 +75,18 @@ func MythicRPCCustomBrowserSearch(input MythicRPCCustomBrowserSearchMessage) Myt
 		return response
 	}
 	paramDict["tree_type"] = input.SearchCustomBrowser.TreeType
-	searchString := `SELECT * FROM mythictree 
-         WHERE operation_id=:operation_id AND tree_type=:tree_type AND deleted=false `
-	if input.SearchCustomBrowser.Host != nil {
-		paramDict["host"] = fmt.Sprintf("%%%s%%", *input.SearchCustomBrowser.Host)
-		searchString += "AND host ILIKE :host "
+	searchString := `SELECT 
+    	 mythictree.id, mythictree.task_id, mythictree.timestamp, mythictree.operation_id,
+    	 mythictree.host, mythictree.name, mythictree.parent_path, mythictree.comment,
+    	 mythictree.can_have_children, mythictree.success, mythictree.full_path,
+    	 mythictree.metadata, mythictree.tree_type, mythictree.callback_id,
+    	 mythictree.apitokens_id, mythictree.has_children, mythictree.display_path
+		 FROM mythictree 
+		 JOIN callback on mythictree.callback_id = callback.id
+         WHERE mythictree.operation_id=:operation_id AND tree_type=:tree_type AND deleted=false `
+	if input.SearchCustomBrowser.Host != "" {
+		paramDict["host"] = fmt.Sprintf("%%%s%%", input.SearchCustomBrowser.Host)
+		searchString += "AND mythictree.host ILIKE :host "
 	}
 	if input.SearchCustomBrowser.Name != nil {
 		paramDict["name"] = fmt.Sprintf("%%%s%%", *input.SearchCustomBrowser.Name)
@@ -117,9 +124,13 @@ func MythicRPCCustomBrowserSearch(input MythicRPCCustomBrowserSearchMessage) Myt
 			searchString += " is not null "
 		}
 	}
+	if input.SearchCustomBrowser.CallbackGroup != nil {
+		paramDict["callback_group"] = *input.SearchCustomBrowser.CallbackGroup
+		searchString += " AND :callback_group = ANY (callback.mythictree_groups) "
 
-	searchString += " ORDER BY id DESC"
-	logging.LogInfo("searching", "searchString", searchString, "paramDict", paramDict)
+	}
+	searchString += " ORDER BY mythictree.id DESC"
+	logging.LogInfo("searching custom browser", "searchString", searchString)
 	rows, err := database.DB.NamedQuery(searchString, paramDict)
 	if err != nil {
 		logging.LogError(err, "Failed to search custombrowser information")
@@ -133,7 +144,7 @@ func MythicRPCCustomBrowserSearch(input MythicRPCCustomBrowserSearchMessage) Myt
 			logging.LogError(err, "Failed to get row from mythic tree for search")
 			continue
 		}
-		logging.LogInfo("found match", "match", searchResult)
+		//logging.LogInfo("found match", "match", searchResult)
 		returnedProcess := MythicRPCCustomBrowserSearchDataResponse{
 			TreeType:   searchResult.TreeType,
 			Host:       searchResult.Host,
@@ -145,7 +156,7 @@ func MythicRPCCustomBrowserSearch(input MythicRPCCustomBrowserSearchMessage) Myt
 		response.CustomBrowserEntries = append(response.CustomBrowserEntries, returnedProcess)
 	}
 	response.Success = true
-	logging.LogInfo("searched successfully", "response", response)
+	//logging.LogInfo("searched successfully", "response", response)
 	return response
 }
 func processMythicRPCCustomBrowserSearch(msg amqp.Delivery) interface{} {

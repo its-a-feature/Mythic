@@ -6,11 +6,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/its-a-feature/Mythic/database"
-	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
-	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
-	"github.com/its-a-feature/Mythic/logging"
-	"github.com/its-a-feature/Mythic/utils"
 	"io"
 	"math"
 	"math/rand"
@@ -18,6 +13,12 @@ import (
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/its-a-feature/Mythic/database"
+	"github.com/its-a-feature/Mythic/database/enums/InteractiveTask"
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/logging"
+	"github.com/its-a-feature/Mythic/utils"
 )
 
 type CallbackPortType = string
@@ -65,6 +66,7 @@ type bytesReceivedFromAgentMessage struct {
 type callbackPortUsage struct {
 	CallbackPortID             int              `json:"id" db:"id"`
 	CallbackID                 int              `json:"callback_id" db:"callback_id"`
+	CallbackDisplayID          int              `json:"callback_display_id" db:"callback_display_id"`
 	TaskID                     int              `json:"task_id" db:"task_id"`
 	LocalPort                  int              `json:"local_port" db:"local_port"`
 	RemotePort                 int              `json:"remote_port" db:"remote_port"`
@@ -216,7 +218,15 @@ func (c *callbackPortsInUse) Initialize() {
 	c.bytesSentToAgentChan = make(chan bytesSentToAgentMessage, 2000)
 	go c.ListenForProxyFromAgentMessage()
 	go c.ListenForNewByteTransferUpdates()
-	if err := database.DB.Select(&callbackPorts, `SELECT * FROM callbackport WHERE deleted=false`); err != nil {
+	if err := database.DB.Select(&callbackPorts, `SELECT 
+    	callbackport.id, callbackport.callback_id, callbackport.task_id, 
+    	callbackport.local_port, callbackport.remote_port, callbackport.remote_ip,
+    	callbackport.port_type, callbackport.operation_id, callbackport.username,
+    	callbackport.password,
+    	callback.display_id "callback.display_id"
+		FROM callbackport 
+		JOIN callback ON callbackport.callback_id=callback.id
+		WHERE deleted=false`); err != nil {
 		logging.LogError(err, "Failed to load callback ports from database")
 	} else {
 		for _, proxy := range callbackPorts {
@@ -233,6 +243,7 @@ func (c *callbackPortsInUse) Initialize() {
 			newPort := callbackPortUsage{
 				CallbackPortID:               proxy.ID,
 				CallbackID:                   proxy.CallbackID,
+				CallbackDisplayID:            proxy.Callback.DisplayID,
 				TaskID:                       proxy.TaskID,
 				LocalPort:                    proxy.LocalPort,
 				RemoteIP:                     proxy.RemoteIP,
@@ -538,12 +549,18 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, loca
 	}
 	acceptedConnections := make([]*acceptedConnection, 0)
 	newPort.acceptedConnections = &acceptedConnections
-	err := newPort.Start()
+	callbackPort := databaseStructs.Callbackport{}
+	err := database.DB.Get(&callbackPort.Callback.DisplayID, `SELECT display_id FROM callback WHERE id=$1`, newPort.CallbackID)
+	if err != nil {
+		logging.LogError(err, "Failed to get callback information for new proxy port")
+	} else {
+		newPort.CallbackDisplayID = callbackPort.Callback.DisplayID
+	}
+	err = newPort.Start()
 	if err != nil {
 		logging.LogError(err, "Failed to start new proxy port")
 		return err
 	}
-	callbackPort := databaseStructs.Callbackport{}
 	err = database.DB.Get(&callbackPort, `SELECT id FROM callbackport WHERE
                                 operation_id=$1 AND callback_id=$2 AND local_port=$3 AND port_type=$4
                                 AND remote_ip=$5 AND remote_port=$6 AND username=$7 AND password=$8`,
@@ -677,7 +694,7 @@ func (p *callbackPortUsage) Start() error {
 			p.listener = &l
 			go p.handleSocksConnections()
 			go p.manageConnections()
-			go SendAllOperationsMessage(fmt.Sprintf("Opened port %d for %s", p.LocalPort, p.PortType),
+			go SendAllOperationsMessage(fmt.Sprintf("Opened %s for %s on Mythic server for Callback %d", addr, p.PortType, p.CallbackDisplayID),
 				p.OperationID, "", database.MESSAGE_LEVEL_INFO, false)
 		} else {
 			err := errors.New(fmt.Sprintf("Failed to start listening on port %d, it's not exposed through docker", p.LocalPort))
@@ -703,7 +720,7 @@ func (p *callbackPortUsage) Start() error {
 			p.listener = &l
 			go p.handleInteractiveConnections()
 			go p.manageConnections()
-			go SendAllOperationsMessage(fmt.Sprintf("Opened port %d for %s", p.LocalPort, "interactive tasking"),
+			go SendAllOperationsMessage(fmt.Sprintf("Opened %s for %s on Mythic server for Callback %d", addr, p.PortType, p.CallbackDisplayID),
 				p.OperationID, "", database.MESSAGE_LEVEL_INFO, false)
 
 		} else {
@@ -993,6 +1010,8 @@ func (p *callbackPortUsage) manageConnections() {
 				}
 				delete(connectionMap, rmProxyData.ServerID)
 			}
+			go SendAllOperationsMessage(fmt.Sprintf("Stopped port %d for %s on Mythic server for Callback %d", p.LocalPort, p.PortType, p.CallbackDisplayID),
+				p.OperationID, "", database.MESSAGE_LEVEL_INFO, false)
 			continue
 			//case <-time.After(10 * time.Second):
 			//logging.LogError(nil, "1s timeout, re-looping", "p.newConnectionChannel", len(p.newConnectionChannel),
