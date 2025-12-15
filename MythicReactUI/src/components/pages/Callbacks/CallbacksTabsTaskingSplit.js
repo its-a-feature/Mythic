@@ -447,7 +447,14 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                     </div>
 
                 </div>
-                <div className="bg-gray-light" style={{display: "inline-flex", height: "100%"}}>
+                <div className="bg-gray-light" style={{display: "inline-flex", flexDirection: "column", height: "100%"}}>
+                    {selectedTask.id > 0 && <TaskDisplayFlat key={"taskinteractdisplaysplit" + selectedTask.id} me={me} task={selectedTask}
+                                     command_id={selectedTask.command == null ? 0 : selectedTask.command.id}
+                                     filterOptions={filterOptions}
+                                     onSelectTask={(tsk) => {
+                                     }}
+                                     selectedTask={selectedTask}
+                    />}
                     <CallbacksTabsTaskingSplitTable selectedTask={selectedTask} me={me} filterOptions={filterOptions}
                                                     onSelectTask={(tsk) => {changeSelectedTask(tsk)}} changeSelectedTask={changeSelectedTask}
                     />

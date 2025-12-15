@@ -683,11 +683,14 @@ const TaskRowFlat = ({task, filterOptions, me, onSelectTask, showOnSelectTask, s
     event.stopPropagation();
     event.preventDefault();
   }, [displayChildren]);
+  const onLocalSelectTask = React.useCallback( () => {
+      onSelectTask(task);
+  }, [task]);
   return (
       shouldDisplay && (
           <div style={{marginLeft: (indentLevel * 10) + "px"}}>
             <TaskLabelFlat me={me} task={task}
-                           onSelectTask={() => {onSelectTask(task)}}
+                           onSelectTask={onLocalSelectTask}
                            showOnSelectTask={showOnSelectTask}
                            toggleDisplayChildren={toggleDisplayChildren} displayChildren={displayChildren}
             />
@@ -805,7 +808,7 @@ export const TaskLabelFlat = ({task, me, showOnSelectTask, onSelectTask, graphVi
   }
 
   return(
-      <StyledPaper className={task.selected ? classes.root + " selectedTask no-box-shadow" : classes.root}
+      <StyledPaper className={task.selected && showOnSelectTask ? classes.root + " selectedTask no-box-shadow" : classes.root}
                    elevation={5} style={{marginRight: 0, cursor: "pointer"}} id={`taskHeader-${task.id}`}
                    onClick={onClickEntry}
       >

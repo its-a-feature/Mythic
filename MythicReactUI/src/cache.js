@@ -30,7 +30,7 @@ export const operatorSettingDefaults =  {
     showOPSECBypassUsername: false,
     showCallbackGroups: false,
     useDisplayParamsForCLIHistory: true,
-    interactType: "interact",
+    interactType: "interactSplit",
     taskTimestampDisplayField: "timestamp",
     callbacks_table_columns: ["Interact", "Host", "Domain", "User", "Description", "Last Checkin", "Agent",  "IP", "PID"],
     callbacks_table_filters: {},
