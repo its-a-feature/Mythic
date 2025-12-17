@@ -4,7 +4,8 @@ import {
     exportCallbackConfigQuery,
     hideCallbackMutation, lockCallbackMutation, unlockCallbackMutation, updateCallbackTriggerMutation,
     updateDescriptionCallbackMutation,
-    updateSleepInfoCallbackMutation
+    updateSleepInfoCallbackMutation,
+    removeCallbackMutation
 } from './CallbackMutations';
 import {snackActions} from '../../utilities/Snackbar';
 import {useMutation, useLazyQuery, gql } from '@apollo/client';
@@ -39,7 +40,7 @@ import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import InfoIcon from '@mui/icons-material/Info';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {faSkullCrossbones, faFolderOpen, faList} from '@fortawesome/free-solid-svg-icons';
+import {faSkullCrossbones, faFolderOpen, faList, faTrash} from '@fortawesome/free-solid-svg-icons';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import LockIcon from '@mui/icons-material/Lock';
@@ -294,6 +295,19 @@ function CallbacksTablePreMemo(props){
             snackActions.warning(data);
         }
     });
+    const [removeCallback] = useMutation(removeCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Removed callback");
+            }else{
+                snackActions.warning(data.updateCallback.error);
+            }
+        },
+        onError: data => {
+            console.log(data);
+            snackActions.warning(data);
+        }
+    });
     const [updateTrigger] = useMutation(updateCallbackTriggerMutation, {
         update: (cache, {data}) => {
             if(data.updateCallback.status === "success"){
@@ -431,6 +445,13 @@ function CallbacksTablePreMemo(props){
                         acceptText: "exit"
                     };
                     setOpenTaskingButton(true);
+                }, type: "item"
+            },
+            {
+                name: "Remove Callback", icon: <FontAwesomeIcon icon={faTrash} style={{color: theme.palette.error.main, cursor: "pointer", marginRight: "8px"}} />,
+                click: ({event}) => {
+                    event.stopPropagation();
+                    removeCallback({variables: {callback_display_id: rowDataStatic.display_id}});
                 }, type: "item"
             },
             {
