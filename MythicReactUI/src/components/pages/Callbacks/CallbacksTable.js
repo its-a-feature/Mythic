@@ -297,10 +297,10 @@ function CallbacksTablePreMemo(props){
     });
     const [removeCallback] = useMutation(removeCallbackMutation, {
         update: (cache, {data}) => {
-            if(data.updateCallback.status === "success"){
+            if(data.deleteTasksAndCallbacks.status === "success"){
                 snackActions.success("Removed callback");
             }else{
-                snackActions.warning(data.updateCallback.error);
+                snackActions.warning(data.deleteTasksAndCallbacks.error);
             }
         },
         onError: data => {
@@ -451,7 +451,7 @@ function CallbacksTablePreMemo(props){
                 name: "Remove Callback", icon: <FontAwesomeIcon icon={faTrash} style={{color: theme.palette.error.main, cursor: "pointer", marginRight: "8px"}} />,
                 click: ({event}) => {
                     event.stopPropagation();
-                    removeCallback({variables: {callback_display_id: rowDataStatic.display_id}});
+                    removeCallback({variables: {callback_display_ids: [rowDataStatic.display_id]}});
                 }, type: "item"
             },
             {
