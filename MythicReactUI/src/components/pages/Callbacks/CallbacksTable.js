@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useContext} from 'react';
 import {MythicDialog, MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
+import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import {
     exportCallbackConfigQuery,
     hideCallbackMutation, lockCallbackMutation, unlockCallbackMutation, updateCallbackTriggerMutation,
@@ -221,6 +222,7 @@ function CallbacksTablePreMemo(props){
     const [openHideMultipleDialog, setOpenHideMultipleDialog] = React.useState(false);
     const [openTriggerDialog, setOpenTriggerDialog] = React.useState({open: false, trigger_on_checkin_after_time: 0, display_id: 0});
     const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState({open: false, data: {}});
+    const [openRemoveCallbackConfirmDialog, setOpenRemoveCallbackConfirmDialog] = React.useState({open: false, display_id: 0});
     const [filterOptions, setFilterOptions] = React.useState({});
     const [selectedColumn, setSelectedColumn] = React.useState({});
     const [columnVisibility, setColumnVisibility] = React.useState(() => {
@@ -451,7 +453,7 @@ function CallbacksTablePreMemo(props){
                 name: "Remove Callback", icon: <FontAwesomeIcon icon={faTrash} style={{color: theme.palette.error.main, cursor: "pointer", marginRight: "8px"}} />,
                 click: ({event}) => {
                     event.stopPropagation();
-                    removeCallback({variables: {callback_display_ids: [rowDataStatic.display_id]}});
+                    setOpenRemoveCallbackConfirmDialog({open: true, display_id: rowDataStatic.display_id});
                 }, type: "item"
             },
             {
@@ -1229,6 +1231,19 @@ function CallbacksTablePreMemo(props){
                         <CallbacksTabsSelectMultipleDialog onClose={() => {setOpenEventingMultipleDialog(false);}}
                         onSubmit={onSubmitSelectMultiple}/>
                     }
+                />
+            }
+            {openRemoveCallbackConfirmDialog.open &&
+                <MythicConfirmDialog
+                    open={openRemoveCallbackConfirmDialog.open}
+                    title={"Remove Callback?"}
+                    dialogText={"Are you sure you want to remove this callback? This action will delete the callback and all associated tasks."}
+                    acceptText={"Remove"}
+                    acceptColor={"error"}
+                    onClose={() => {setOpenRemoveCallbackConfirmDialog({open: false, display_id: 0});}}
+                    onSubmit={() => {
+                        removeCallback({variables: {callback_display_ids: [openRemoveCallbackConfirmDialog.display_id]}});
+                    }}
                 />
             }
         </div>             
