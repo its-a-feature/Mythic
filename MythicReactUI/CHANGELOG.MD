@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.87] - 2025-12-18
+
+### Changed
+
+- Updated the file media viewer to also fetch updates more dynamically
+
 ## [0.3.85] - 2025-12-15
 
 ### Changed

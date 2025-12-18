@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.3.22] - 2025-12-18
+
+### Changed
+
+- Updated to loop over installed services and update ENV as necessary when run, not just on add
+  - This adds in support for `rabbitmq_vhost` into the containers
+
 ## [0.3.21] - 2025-12-10
 
 ### Changed

@@ -496,7 +496,7 @@ const DisplayText = ({agent_file_id, expand, filename, preview, fileMetaData}) =
                 }
             }
         }
-    }, [agent_file_id, filename]);
+    }, [agent_file_id, filename, fileMetaData]);
     const onChangeMode = (event) => {
         setMode(event.target.value);
     }
@@ -554,7 +554,7 @@ const DisplayText = ({agent_file_id, expand, filename, preview, fileMetaData}) =
                     </>
                 }
             </div>
-            <div style={{display: "flex", flexGrow: 1, height: "100%", minHeight: "375px"}}>
+            <div style={{display: "flex", flexGrow: 1, height: "100%"}}>
                 <AceEditor
                     ref={currentContentRef}
                     mode={mode}

@@ -918,5 +918,15 @@ func Initialize() {
 	for _, container := range intendedMythicContainers {
 		AddMythicService(container, false)
 	}
-
+	installedContainers, err := manager.GetManager().GetAllInstalled3rdPartyServiceNames()
+	if err != nil {
+		log.Printf("[-] Error getting installed 3rd party services list: %v\n", err)
+		return
+	}
+	for _, container := range installedContainers {
+		err = Add3rdPartyService(container, nil, false)
+		if err != nil {
+			log.Printf("[-] Error adding 3rd party service: %v\n", err)
+		}
+	}
 }
