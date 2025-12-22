@@ -1,7 +1,6 @@
 package rabbitmq
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -65,7 +64,6 @@ func processTrSyncMessages(msg amqp.Delivery) interface{} {
 
 func trSync(in TrSyncMessage) error {
 	//logging.LogDebug("Received connection to c2Sync", "syncMessage", in)
-	newTranslationContainer := false
 	translationDatabase := databaseStructs.Translationcontainer{
 		Name:             in.Name,
 		Deleted:          false,
@@ -85,9 +83,6 @@ func trSync(in TrSyncMessage) error {
 	err := database.DB.Get(&translationDatabase, `SELECT id 
 		FROM translationcontainer
 		WHERE "name" = $1`, in.Name)
-	if errors.Is(err, sql.ErrNoRows) {
-		newTranslationContainer = true
-	}
 	_, err = database.DB.NamedExec(`INSERT INTO translationcontainer 
     	("name", deleted, container_running, description, author, semver) VALUES (:name, :deleted, :container_running, :description, :author, :semver)
     	ON CONFLICT ("name") DO UPDATE SET deleted=false, container_running=true, description=:description, author=:author, semver=:semver`, translationDatabase)
@@ -102,8 +97,6 @@ func trSync(in TrSyncMessage) error {
 	}
 	checkContainerStatusAddTrChannel <- translationDatabase
 	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(translationDatabase.Name)
-	if newTranslationContainer {
-		go reSyncPayloadTypes()
-	}
+	go reSyncPayloadTypes()
 	return nil
 }

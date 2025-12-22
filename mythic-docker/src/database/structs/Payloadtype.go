@@ -34,4 +34,5 @@ type Payloadtype struct {
 	SupportedC2                        MythicJSONArray      `db:"supported_c2"`
 	CommandHelpFunction                string               `db:"command_help_function"`
 	SupportedWrapping                  MythicJSONArray      `db:"supported_wrapping"`
+	SupportedTranslationContainer      string               `db:"supported_translation_container"`
 }

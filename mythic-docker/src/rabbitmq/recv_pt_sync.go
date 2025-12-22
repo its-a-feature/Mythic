@@ -289,11 +289,12 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.SupportedWrapping = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedWrapperPayloadTypes)
 		payloadtype.SupportsMultipleC2InBuild = in.PayloadType.SupportsMultipleC2InBuild
 		payloadtype.SupportsMultipleC2InstancesInBuild = in.PayloadType.SupportsMultipleC2InstancesInBuild
+		payloadtype.SupportedTranslationContainer = in.PayloadType.TranslationContainerName
 		if statement, err := database.DB.PrepareNamed(`INSERT INTO payloadtype 
 			("name",author,container_running,file_extension,mythic_encrypts,note,supported_os,supports_dynamic_loading,wrapper,agent_type,message_format,command_augment_supported_agents,message_uuid_length,use_display_params_for_cli_history,
-			 c2_parameter_deviations, command_help_function, supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build, supported_c2, semver, supported_wrapping) 
+			 c2_parameter_deviations, command_help_function, supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build, supported_c2, semver, supported_wrapping, supported_translation_container) 
 			VALUES (:name, :author, :container_running, :file_extension, :mythic_encrypts, :note, :supported_os, :supports_dynamic_loading, :wrapper,:agent_type, :message_format, :command_augment_supported_agents, :message_uuid_length, :use_display_params_for_cli_history,
-			        :c2_parameter_deviations, :command_help_function, :supports_multiple_c2_in_build, :supports_multiple_c2_instances_in_build, :supported_c2, :semver, :supported_wrapping) 
+			        :c2_parameter_deviations, :command_help_function, :supports_multiple_c2_in_build, :supports_multiple_c2_instances_in_build, :supported_c2, :semver, :supported_wrapping, :supported_translation_container) 
 			RETURNING id`,
 		); err != nil {
 			logging.LogError(err, "Failed to create new payloadtype statement")
@@ -357,6 +358,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		payloadtype.SupportedWrapping = GetMythicJSONArrayFromStruct(in.PayloadType.SupportedWrapperPayloadTypes)
 		payloadtype.SupportsMultipleC2InBuild = in.PayloadType.SupportsMultipleC2InBuild
 		payloadtype.SupportsMultipleC2InstancesInBuild = in.PayloadType.SupportsMultipleC2InstancesInBuild
+		payloadtype.SupportedTranslationContainer = in.PayloadType.TranslationContainerName
 		_, err = database.DB.NamedExec(`UPDATE payloadtype SET 
 			author=:author, container_running=:container_running, file_extension=:file_extension, mythic_encrypts=:mythic_encrypts,
 			note=:note, supported_os=:supported_os, supports_dynamic_loading=:supports_dynamic_loading, wrapper=:wrapper, deleted=:deleted,
@@ -364,7 +366,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 			message_uuid_length=:message_uuid_length, use_display_params_for_cli_history=:use_display_params_for_cli_history,
 			c2_parameter_deviations=:c2_parameter_deviations, command_help_function=:command_help_function, 
 			supports_multiple_c2_in_build=:supports_multiple_c2_in_build, supports_multiple_c2_instances_in_build=:supports_multiple_c2_instances_in_build, 
-			supported_c2=:supported_c2, semver=:semver, supported_wrapping=:supported_wrapping
+			supported_c2=:supported_c2, semver=:semver, supported_wrapping=:supported_wrapping, supported_translation_container=:supported_translation_container
 			WHERE id=:id`, payloadtype,
 		)
 		if err != nil {
@@ -765,6 +767,35 @@ func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseSt
 
 		}
 	}
+	return nil
+}
+
+func updatePayloadTypeTranslationContainer(in PayloadTypeSyncMessage, payloadtype databaseStructs.Payloadtype) error {
+	if in.PayloadType.TranslationContainerName != "" {
+		translationContainer := databaseStructs.Translationcontainer{
+			Name: in.PayloadType.TranslationContainerName,
+		}
+		err := database.DB.Get(&translationContainer, `SELECT id FROM translationcontainer WHERE "name"=$1`, translationContainer.Name)
+		if err != nil {
+			logging.LogError(err, "Failed to find corresponding translation container for payload type")
+			return err
+		}
+		_, err = database.DB.Exec(`UPDATE payloadtype SET translation_container_id=$1 WHERE id=$2`, translationContainer.ID, payloadtype.ID)
+		if err != nil {
+			logging.LogError(err, "Failed to associate translation container with payload type")
+			return err
+		}
+		// translation container information potentially changed, invalidate all the caches and re-do them with the updates
+		InvalidateAllCachedUUIDInfo()
+		return nil
+	}
+	_, err := database.DB.Exec(`UPDATE payloadtype SET translation_container_id=NULL WHERE id=$1`, payloadtype.ID)
+	if err != nil {
+		logging.LogError(err, "Failed to update translation container status back to null")
+		return err
+	}
+	// translation container information potentially changed, invalidate all the caches and re-do them with the updates
+	InvalidateAllCachedUUIDInfo()
 	return nil
 }
 
@@ -1375,7 +1406,7 @@ func updateAllCallbacksWithCommandAugments() {
 func reSyncPayloadTypes() {
 	payloadTypes := []databaseStructs.Payloadtype{}
 	if err := database.DB.Select(&payloadTypes, `SELECT
-		"name", supported_wrapping, supported_c2, id
+		"name", supported_wrapping, supported_c2, id, supported_translation_container, translation_container_id
 		FROM payloadtype`); err != nil {
 		logging.LogError(err, "Failed to fetch payload types from database")
 	} else {
@@ -1398,6 +1429,15 @@ func reSyncPayloadTypes() {
 				}}, pt)
 			if err != nil {
 				logging.LogError(err, "Failed to update payload type wrapper mapping")
+			}
+			err = updatePayloadTypeTranslationContainer(PayloadTypeSyncMessage{
+				PayloadType: PayloadType{
+					Name:                     pt.Name,
+					TranslationContainerName: pt.SupportedTranslationContainer,
+				},
+			}, pt)
+			if err != nil {
+				logging.LogError(err, "Failed to update payload type translation mapping")
 			}
 		}
 	}
