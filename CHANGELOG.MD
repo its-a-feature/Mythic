@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.17] - 2025-12-23
+
+### Changed
+
+- Fixed an issue where uploaded files were getting treated as folders in the file browsers
+- Fixed an issue where uploaded files would get the wrong timestamp in the file browser
+- Updated go modules
+
 ## [3.4.16] - 2025-12-23
 
 ### Changed

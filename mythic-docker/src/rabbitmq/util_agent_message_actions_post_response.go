@@ -1569,6 +1569,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 	}
 	if agentResponse.Upload.FullPath != nil && *agentResponse.Upload.FullPath != "" {
 		filePieces, err := utils.SplitFilePathGetHost(*agentResponse.Upload.FullPath, "", []string{})
+		//logging.LogInfo("splitting path in upload for pieces", "filePieces", filePieces)
 		if err != nil {
 			logging.LogError(err, "Failed to parse out the full path returned by the agent for an upload")
 			go SendAllOperationsMessage(fmt.Sprintf("Failed to parse out the full path returned by the agent for an upload: %v\n", err), task.OperationID, "", database.MESSAGE_LEVEL_AGENT_MESSGAGE, true)
@@ -1635,7 +1636,6 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 	}
 }
 func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta databaseStructs.Filemeta, task databaseStructs.Task) {
-	resolveAndCreateParentPathsForTreeNode(pathData, utils.AnalyzedPath{}, task, databaseStructs.TREE_TYPE_FILE)
 	newTree := databaseStructs.MythicTree{
 		Host:            pathData.Host,
 		TaskID:          task.ID,
@@ -1654,14 +1654,17 @@ func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta datab
 	newTree.Success.Valid = true
 	newTree.Success.Bool = true
 	fileMetaData := map[string]interface{}{
-		"access_time": time.Now().Unix(),
-		"modify_time": time.Now().Unix(),
+		"access_time": time.Now().Unix() * 1000,
+		"modify_time": time.Now().Unix() * 1000,
 		"size":        fileMeta.Size,
 		"permissions": map[string]interface{}{},
 	}
 	newTree.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
 	newTree.CallbackID.Valid = true
 	newTree.CallbackID.Int64 = int64(task.Callback.ID)
+	// remove this filename from parent creation
+	pathData.PathPieces = pathData.PathPieces[:len(pathData.PathPieces)-1]
+	resolveAndCreateParentPathsForTreeNode(pathData, utils.AnalyzedPath{}, task, databaseStructs.TREE_TYPE_FILE)
 	createTreeNode(&newTree)
 	if newTree.ID == 0 {
 		logging.LogError(nil, "Failed to create new tree entry")
@@ -2383,7 +2386,7 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 		ON CONFLICT (host, operation_id, full_path, tree_type, callback_id)
 		DO UPDATE SET
 		task_id=:task_id, "name"=:name, parent_path=:parent_path, 
-		    can_have_children=(mythictree.can_have_children OR :can_have_children), 
+		    can_have_children=(mythictree.has_children OR :has_children OR :can_have_children), 
 		    has_children=(mythictree.has_children OR :has_children), 
 		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false, display_path=:display_path
 		    RETURNING id`)
