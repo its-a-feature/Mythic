@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useContext} from 'react';
 import {MythicDialog, MythicModifyStringDialog} from '../../MythicComponents/MythicDialog';
+import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import {
     exportCallbackConfigQuery,
     hideCallbackMutation, lockCallbackMutation, unlockCallbackMutation, updateCallbackTriggerMutation,
     updateDescriptionCallbackMutation,
-    updateSleepInfoCallbackMutation
+    updateSleepInfoCallbackMutation,
+    removeCallbackMutation
 } from './CallbackMutations';
 import {snackActions} from '../../utilities/Snackbar';
 import {useMutation, useLazyQuery, gql } from '@apollo/client';
@@ -39,7 +41,7 @@ import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import InfoIcon from '@mui/icons-material/Info';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {faSkullCrossbones, faFolderOpen, faList} from '@fortawesome/free-solid-svg-icons';
+import {faSkullCrossbones, faFolderOpen, faList, faTrash} from '@fortawesome/free-solid-svg-icons';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import LockIcon from '@mui/icons-material/Lock';
@@ -220,6 +222,7 @@ function CallbacksTablePreMemo(props){
     const [openHideMultipleDialog, setOpenHideMultipleDialog] = React.useState(false);
     const [openTriggerDialog, setOpenTriggerDialog] = React.useState({open: false, trigger_on_checkin_after_time: 0, display_id: 0});
     const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState({open: false, data: {}});
+    const [openRemoveCallbackConfirmDialog, setOpenRemoveCallbackConfirmDialog] = React.useState({open: false, display_id: 0});
     const [filterOptions, setFilterOptions] = React.useState({});
     const [selectedColumn, setSelectedColumn] = React.useState({});
     const [columnVisibility, setColumnVisibility] = React.useState(() => {
@@ -288,6 +291,19 @@ function CallbacksTablePreMemo(props){
                 snackActions.warning(data.updateCallback.error);
             }
 
+        },
+        onError: data => {
+            console.log(data);
+            snackActions.warning(data);
+        }
+    });
+    const [removeCallback] = useMutation(removeCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.deleteTasksAndCallbacks.status === "success"){
+                snackActions.success("Removed callback");
+            }else{
+                snackActions.warning(data.deleteTasksAndCallbacks.error);
+            }
         },
         onError: data => {
             console.log(data);
@@ -431,6 +447,13 @@ function CallbacksTablePreMemo(props){
                         acceptText: "exit"
                     };
                     setOpenTaskingButton(true);
+                }, type: "item"
+            },
+            {
+                name: "Remove Callback", icon: <FontAwesomeIcon icon={faTrash} style={{color: theme.palette.error.main, cursor: "pointer", marginRight: "8px"}} />,
+                click: ({event}) => {
+                    event.stopPropagation();
+                    setOpenRemoveCallbackConfirmDialog({open: true, display_id: rowDataStatic.display_id});
                 }, type: "item"
             },
             {
@@ -1208,6 +1231,19 @@ function CallbacksTablePreMemo(props){
                         <CallbacksTabsSelectMultipleDialog onClose={() => {setOpenEventingMultipleDialog(false);}}
                         onSubmit={onSubmitSelectMultiple}/>
                     }
+                />
+            }
+            {openRemoveCallbackConfirmDialog.open &&
+                <MythicConfirmDialog
+                    open={openRemoveCallbackConfirmDialog.open}
+                    title={"Remove Callback?"}
+                    dialogText={"Are you sure you want to remove this callback? This action will delete the callback and all associated tasks."}
+                    acceptText={"Remove"}
+                    acceptColor={"error"}
+                    onClose={() => {setOpenRemoveCallbackConfirmDialog({open: false, display_id: 0});}}
+                    onSubmit={() => {
+                        removeCallback({variables: {callback_display_ids: [openRemoveCallbackConfirmDialog.display_id]}});
+                    }}
                 />
             }
         </div>             
