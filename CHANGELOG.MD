@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.18] - 2025-12-23
+
+### Changed
+
+- Updated how processing happens for the `update_deleted` with file browser data
+  - data is now processed as part of two channels to ensure ordering and supporting multi-chunk file browser data
+  
 ## [3.4.17] - 2025-12-23
 
 ### Changed

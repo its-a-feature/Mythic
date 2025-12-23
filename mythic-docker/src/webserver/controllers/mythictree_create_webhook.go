@@ -1,8 +1,9 @@
 package webcontroller
 
 import (
-	"github.com/its-a-feature/Mythic/database"
 	"net/http"
+
+	"github.com/its-a-feature/Mythic/database"
 
 	"github.com/gin-gonic/gin"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -70,6 +71,14 @@ func MythictreeCreateWebhook(c *gin.Context) {
 	}
 	if input.Input.FileBrowser != nil {
 		err = rabbitmq.HandleAgentMessagePostResponseFileBrowser(task, input.Input.FileBrowser, apitokenId)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"status": "error",
+				"error":  err.Error(),
+			})
+			return
+		}
+		err = rabbitmq.HandleAgentMessagePostResponseFileBrowser(task, nil, apitokenId)
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"status": "error",

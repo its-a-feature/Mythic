@@ -486,7 +486,12 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		}
 		if agentMessage.Responses[i].FileBrowser != nil {
 			// do it in the background - the agent doesn't need the result of this directly
-			go HandleAgentMessagePostResponseFileBrowser(currentTask, agentMessage.Responses[i].FileBrowser, 0)
+			FileBrowserChannel <- FileBrowserChannelMessage{
+				Task:               &currentTask,
+				NewFileBrowserData: agentMessage.Responses[i].FileBrowser,
+				APITokenID:         0,
+			}
+			//go HandleAgentMessagePostResponseFileBrowser(currentTask, agentMessage.Responses[i].FileBrowser, 0)
 		}
 		if agentMessage.Responses[i].Processes != nil {
 			go HandleAgentMessagePostResponseProcesses(currentTask, agentMessage.Responses[i].Processes, 0)
@@ -559,6 +564,10 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 		if currentTask.Completed {
 			// use updatedToCompleted to try to make sure we only do this once per task
 			go CheckAndProcessTaskCompletionHandlers(currentTask.ID)
+			FileBrowserChannel <- FileBrowserChannelMessage{
+				Task:               &currentTask,
+				NewFileBrowserData: nil,
+			}
 			go emitTaskLog(currentTask.ID)
 			go func(task databaseStructs.Task) {
 				EventingChannel <- EventNotification{
@@ -1731,9 +1740,41 @@ func addChildFilePermissions(fileBrowser *agentMessagePostResponseFileBrowserChi
 	*/
 	return fileMetaData
 }
+
+type FileBrowserChannelMessage struct {
+	Task               *databaseStructs.Task
+	NewFileBrowserData *agentMessagePostResponseFileBrowser
+	APITokenID         int
+}
+
+var fileBrowserUpdateDeletedChannel = make(chan FileBrowserChannelMessage)
+var FileBrowserChannel = make(chan FileBrowserChannelMessage, 1000)
+
+func listenForFileBrowserData() {
+	go listenForFileBrowserUpdateDeleted()
+	for {
+		select {
+		case message := <-FileBrowserChannel:
+			//logging.LogInfo("[*] got message from FileBrowserChannel", "task", message.Task.ID, "completed", message.Task.Completed,
+			//	"nil data", message.NewFileBrowserData == nil)
+			err := HandleAgentMessagePostResponseFileBrowser(*message.Task, message.NewFileBrowserData, message.APITokenID)
+			if err != nil {
+				logging.LogError(err, "Failed to handle file browser post response")
+			}
+		}
+	}
+}
 func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBrowser *agentMessagePostResponseFileBrowser,
 	apitokensId int) error {
 	// given a FileBrowser object, need to insert it into database and potentially insert parents along the way
+	if fileBrowser == nil {
+		fileBrowserUpdateDeletedChannel <- FileBrowserChannelMessage{
+			Task:               &task,
+			NewFileBrowserData: fileBrowser,
+			APITokenID:         apitokensId,
+		}
+		return nil
+	}
 	if fileBrowser.SetAsUserOutput != nil && *fileBrowser.SetAsUserOutput {
 		go func(fileBrowserForOutput *agentMessagePostResponseFileBrowser) {
 			outputBytes, err := json.Marshal(fileBrowser)
@@ -1807,92 +1848,12 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 		newTree.APITokensID.Int64 = int64(apitokensId)
 	}
 	createTreeNode(&newTree)
+	//logging.LogInfo("checking update deleted", "update_deleted", fileBrowser.UpdateDeleted)
 	if fileBrowser.UpdateDeleted != nil && *fileBrowser.UpdateDeleted {
-		// we need to iterate over the children for this entry and potentially remove any that the database know of but that aren't in our `files` list
-		var existingTreeEntries []databaseStructs.MythicTree
-		err = database.DB.Select(&existingTreeEntries, `SELECT 
-    			id, "name", success, full_path, parent_path, operation_id, host, tree_type
-				FROM mythictree WHERE
-				parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4`,
-			fullPath, task.OperationID, pathData.Host, databaseStructs.TREE_TYPE_FILE)
-		if err != nil {
-			logging.LogError(err, "Failed to fetch existing children")
-			return err
-		}
-		var namesToDeleteAndUpdate []string // will get existing database IDs for things that aren't in the files list
-		for _, existingEntry := range existingTreeEntries {
-			if fileBrowser.Files != nil {
-				existingEntryStillExists := false
-				//logging.LogInfo("checking for file existing", "name", existingEntry.Name)
-				for _, newEntry := range *fileBrowser.Files {
-					if bytes.Equal([]byte(newEntry.Name), existingEntry.Name) {
-						//logging.LogInfo("[+] found a match in existing data and new data", "name", newEntry.Name, "id", existingEntry.ID)
-						namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, newEntry.Name)
-						existingEntryStillExists = true
-						// update the entry in the database
-						newTreeChild := databaseStructs.MythicTree{
-							Host:            pathData.Host,
-							TaskID:          task.ID,
-							OperationID:     task.OperationID,
-							Name:            []byte(newEntry.Name),
-							ParentPath:      existingEntry.ParentPath,
-							FullPath:        existingEntry.FullPath,
-							TreeType:        databaseStructs.TREE_TYPE_FILE,
-							CanHaveChildren: !newEntry.IsFile,
-							Deleted:         false,
-							Success:         existingEntry.Success,
-							ID:              existingEntry.ID,
-							Os:              newTree.Os,
-						}
-						fileMetaData = addChildFilePermissions(&newEntry)
-						newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
-						newTreeChild.CallbackID.Valid = true
-						newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
-						if apitokensId > 0 {
-							newTree.APITokensID.Valid = true
-							newTree.APITokensID.Int64 = int64(apitokensId)
-						}
-						updateTreeNode(newTreeChild)
-					}
-				}
-				if !existingEntryStillExists {
-					//logging.LogError(nil, "failed to find match, marking as deleted", "name", existingEntry.Name)
-					namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.Name))
-					existingEntry.Deleted = true
-					existingEntry.TaskID = task.ID
-					deleteTreeNode(existingEntry, true)
-				}
-			}
-
-		}
-		// now all existing ones have been updated or deleted, so it's time to add new ones
-		if fileBrowser.Files != nil {
-			for _, newEntry := range *fileBrowser.Files {
-				if !utils.SliceContains(namesToDeleteAndUpdate, newEntry.Name) {
-					// this isn't marked as updated or deleted, so let's create it
-					newTreeChild := databaseStructs.MythicTree{
-						Host:            pathData.Host,
-						TaskID:          task.ID,
-						OperationID:     task.OperationID,
-						Name:            []byte(newEntry.Name),
-						ParentPath:      fullPath,
-						TreeType:        databaseStructs.TREE_TYPE_FILE,
-						CanHaveChildren: !newEntry.IsFile,
-						Deleted:         false,
-						Os:              newTree.Os,
-					}
-					newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
-					fileMetaData = addChildFilePermissions(&newEntry)
-					newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
-					newTreeChild.CallbackID.Valid = true
-					newTreeChild.CallbackID.Int64 = int64(task.Callback.ID)
-					if apitokensId > 0 {
-						newTree.APITokensID.Valid = true
-						newTree.APITokensID.Int64 = int64(apitokensId)
-					}
-					createTreeNode(&newTreeChild)
-				}
-			}
+		fileBrowserUpdateDeletedChannel <- FileBrowserChannelMessage{
+			Task:               &task,
+			NewFileBrowserData: fileBrowser,
+			APITokenID:         apitokensId,
 		}
 	} else if fileBrowser.Files != nil {
 		// we're not automatically updating deleted children, so just iterate over the files and insert/update them
@@ -1921,6 +1882,151 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 		}
 	}
 	return nil
+}
+func listenForFileBrowserUpdateDeleted() {
+	fileBrowserUpdateDeletedCache := make(map[int][]*agentMessagePostResponseFileBrowser)
+	for {
+		select {
+		case updateMessage := <-fileBrowserUpdateDeletedChannel:
+			//logging.LogInfo("[*] got message from FileBrowserChannel for delete", "task", updateMessage.Task.ID, "completed", updateMessage.Task.Completed,
+			//	"nil data", updateMessage.NewFileBrowserData == nil)
+			_, ok := fileBrowserUpdateDeletedCache[updateMessage.Task.ID]
+			if !ok {
+				fileBrowserUpdateDeletedCache[updateMessage.Task.ID] = []*agentMessagePostResponseFileBrowser{}
+			}
+			if updateMessage.NewFileBrowserData != nil {
+				fileBrowserUpdateDeletedCache[updateMessage.Task.ID] = append(fileBrowserUpdateDeletedCache[updateMessage.Task.ID], updateMessage.NewFileBrowserData)
+			}
+			if len(fileBrowserUpdateDeletedCache[updateMessage.Task.ID]) == 0 && updateMessage.NewFileBrowserData == nil {
+				// this means we got the signal to end and there's no data
+				//logging.LogInfo("bailing early from update deleted")
+				delete(fileBrowserUpdateDeletedCache, updateMessage.Task.ID)
+				continue
+			}
+			if updateMessage.NewFileBrowserData != nil {
+				// only process it all once this is nil
+				continue
+			}
+			// check if we actually need to do anything, if this was kicked off via task completion
+
+			//logging.LogInfo("processing update deleted data now", "task", updateMessage.Task.Completed, "cache data", len(fileBrowserUpdateDeletedCache[updateMessage.Task.ID]))
+			// now process all of it
+			// we need to iterate over the children for this entry and potentially remove any that the database know of but that aren't in our `files` list
+			pathData, err := utils.SplitFilePathGetHost(fileBrowserUpdateDeletedCache[updateMessage.Task.ID][0].ParentPath, fileBrowserUpdateDeletedCache[updateMessage.Task.ID][0].Name, []string{})
+			if err != nil {
+				logging.LogError(err, "failed to split path to get path data for updating paths")
+				delete(fileBrowserUpdateDeletedCache, updateMessage.Task.ID)
+				continue
+			}
+			if pathData.Host == "" {
+				pathData.Host = strings.ToUpper(updateMessage.Task.Callback.Host)
+			}
+			if fileBrowserUpdateDeletedCache[updateMessage.Task.ID][0].Host != "" {
+				pathData.Host = strings.ToUpper(fileBrowserUpdateDeletedCache[updateMessage.Task.ID][0].Host)
+			}
+			// now that the parents and all ancestors are resolved, process the current path and all children
+			realParentPath := strings.Join(pathData.PathPieces, pathData.PathSeparator)
+			// check for the instance of // as a leading path
+			if len(realParentPath) > 2 {
+				if realParentPath[0] == '/' && realParentPath[1] == '/' {
+					realParentPath = realParentPath[1:]
+				}
+			}
+			if fileBrowserUpdateDeletedCache[updateMessage.Task.ID][0].Name == "" {
+				logging.LogError(nil, "Can't create file browser entry with empty name")
+				delete(fileBrowserUpdateDeletedCache, updateMessage.Task.ID)
+				continue
+			}
+			fullPath := treeNodeGetFullPath(
+				[]byte(realParentPath),
+				[]byte(fileBrowserUpdateDeletedCache[updateMessage.Task.ID][0].Name),
+				[]byte(pathData.PathSeparator),
+				databaseStructs.TREE_TYPE_FILE)
+			var existingTreeEntries []databaseStructs.MythicTree
+			err = database.DB.Select(&existingTreeEntries, `SELECT 
+    			id, "name", success, full_path, parent_path, operation_id, host, tree_type, callback_id
+				FROM mythictree WHERE
+				parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4`,
+				fullPath, updateMessage.Task.OperationID, pathData.Host, databaseStructs.TREE_TYPE_FILE)
+			if err != nil {
+				logging.LogError(err, "Failed to fetch existing children")
+				delete(fileBrowserUpdateDeletedCache, updateMessage.Task.ID)
+				continue
+			}
+			var namesToDeleteAndUpdate []string // will get existing database IDs for things that aren't in the files list
+			for _, existingEntry := range existingTreeEntries {
+				existingEntryStillExists := false
+				for _, fileBrowser := range fileBrowserUpdateDeletedCache[updateMessage.Task.ID] {
+					//logging.LogInfo("trying to loop through cached file browser entry", "cached entry", fileBrowser)
+					if fileBrowser.Files != nil {
+						//logging.LogInfo("checking for file existing", "name", existingEntry.Name)
+						for _, newEntry := range *fileBrowser.Files {
+							//logging.LogInfo("checking for existing file", "existing", existingEntry.Name, "reported", newEntry.Name)
+							if bytes.Equal([]byte(newEntry.Name), existingEntry.Name) {
+								//logging.LogInfo("[+] found a match in existing data and new data", "name", newEntry.Name, "id", existingEntry.ID, "callback", existingEntry.CallbackID)
+								namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, newEntry.Name)
+								existingEntryStillExists = true
+								// update the entry in the database
+								newTreeChild := databaseStructs.MythicTree{
+									Host:            pathData.Host,
+									TaskID:          updateMessage.Task.ID,
+									OperationID:     updateMessage.Task.OperationID,
+									Name:            []byte(newEntry.Name),
+									ParentPath:      existingEntry.ParentPath,
+									FullPath:        existingEntry.FullPath,
+									TreeType:        databaseStructs.TREE_TYPE_FILE,
+									CanHaveChildren: !newEntry.IsFile,
+									Deleted:         false,
+									Success:         existingEntry.Success,
+									ID:              existingEntry.ID,
+								}
+								fileMetaData := addChildFilePermissions(&newEntry)
+								newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+								newTreeChild.CallbackID.Valid = true
+								newTreeChild.CallbackID.Int64 = int64(updateMessage.Task.Callback.ID)
+								updateTreeNode(newTreeChild)
+							}
+						}
+					}
+				}
+				if !existingEntryStillExists {
+					//logging.LogError(nil, "failed to find match, marking as deleted", "name", existingEntry.Name)
+					namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.Name))
+					existingEntry.Deleted = true
+					existingEntry.TaskID = updateMessage.Task.ID
+					deleteTreeNode(existingEntry, true)
+				}
+			}
+			// now all existing ones have been updated or deleted, so it's time to add new ones
+			for _, fileBrowser := range fileBrowserUpdateDeletedCache[updateMessage.Task.ID] {
+				if fileBrowser.Files != nil {
+					for _, newEntry := range *fileBrowser.Files {
+						if !utils.SliceContains(namesToDeleteAndUpdate, newEntry.Name) {
+							// this isn't marked as updated or deleted, so let's create it
+							newTreeChild := databaseStructs.MythicTree{
+								Host:            pathData.Host,
+								TaskID:          updateMessage.Task.ID,
+								OperationID:     updateMessage.Task.OperationID,
+								Name:            []byte(newEntry.Name),
+								ParentPath:      fullPath,
+								TreeType:        databaseStructs.TREE_TYPE_FILE,
+								CanHaveChildren: !newEntry.IsFile,
+								Deleted:         false,
+							}
+							newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
+							fileMetaData := addChildFilePermissions(&newEntry)
+							newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+							newTreeChild.CallbackID.Valid = true
+							newTreeChild.CallbackID.Int64 = int64(updateMessage.Task.Callback.ID)
+							createTreeNode(&newTreeChild)
+						}
+					}
+				}
+			}
+			delete(fileBrowserUpdateDeletedCache, updateMessage.Task.ID)
+			continue
+		}
+	}
 }
 func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processes *[]agentMessagePostResponseProcesses,
 	apitokensId int) error {

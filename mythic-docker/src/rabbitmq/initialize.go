@@ -2,13 +2,14 @@ package rabbitmq
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/grpc"
-	"sync"
-	"time"
 
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -88,6 +89,7 @@ func Initialize() {
 	go invalidateAllSpectatorAPITokens()
 	go InvalidateOperationEventLogCacheMap()
 	go listenForWriteDownloadChunkToLocalDisk()
+	go listenForFileBrowserData()
 	go listenForAsyncAgentMessagePostResponseContent()
 	go updateCheckinTimeEverySecond()
 	for {

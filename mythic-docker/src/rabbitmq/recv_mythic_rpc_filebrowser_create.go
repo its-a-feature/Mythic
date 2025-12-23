@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -52,6 +53,12 @@ func MythicRPCFileBrowserCreate(input MythicRPCFileBrowserCreateMessage) MythicR
 		return response
 	}
 	err = HandleAgentMessagePostResponseFileBrowser(task, &input.FileBrowser, int(task.APITokensID.Int64))
+	if err != nil {
+		logging.LogError(err, "Failed to create processes in MythicRPCFileBrowserCreate")
+		response.Error = err.Error()
+		return response
+	}
+	err = HandleAgentMessagePostResponseFileBrowser(task, nil, int(task.APITokensID.Int64))
 	if err != nil {
 		logging.LogError(err, "Failed to create processes in MythicRPCFileBrowserCreate")
 		response.Error = err.Error()
