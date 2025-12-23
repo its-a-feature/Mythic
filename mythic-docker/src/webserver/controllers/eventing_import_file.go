@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
@@ -12,8 +15,6 @@ import (
 	"github.com/its-a-feature/Mythic/eventing"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"net/http"
-	"os"
 )
 
 type EventingImportWebhookResponse struct {
@@ -162,14 +163,20 @@ func EventingImportWebhook(c *gin.Context) {
 	if eventData.Trigger == eventing.TriggerCron {
 		triggerData := eventData.TriggerData.StructValue()
 		if _, ok = triggerData["cron"]; ok {
-			cronData := triggerData["cron"].(string)
-			rabbitmq.CronChannel <- rabbitmq.CronNotification{
-				Action:       rabbitmq.CronActionNewEventGroup,
-				EventGroupID: eventData.ID,
-				CronSchedule: cronData,
-				OperationID:  operatorOperation.CurrentOperation.ID,
-				OperatorID:   eventData.OperatorID,
+			switch triggerData["cron"].(type) {
+			case string:
+				cronData := triggerData["cron"].(string)
+				rabbitmq.CronChannel <- rabbitmq.CronNotification{
+					Action:       rabbitmq.CronActionNewEventGroup,
+					EventGroupID: eventData.ID,
+					CronSchedule: cronData,
+					OperationID:  operatorOperation.CurrentOperation.ID,
+					OperatorID:   eventData.OperatorID,
+				}
+			default:
+				logging.LogError(nil, "bad type from cron data, should be a string", "eventgroup", eventData.Name)
 			}
+
 		}
 	}
 	c.JSON(http.StatusOK, EventingImportWebhookResponse{

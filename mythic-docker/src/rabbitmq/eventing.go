@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/go-co-op/gocron/v2"
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
@@ -14,9 +18,6 @@ import (
 	"github.com/its-a-feature/Mythic/utils"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/exp/slices"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type EventNotification struct {
@@ -78,7 +79,7 @@ var CronChannel = make(chan CronNotification, 100)
 func initializeEventGroupCronSchedulesOnStart() {
 	go listenForCronEvents()
 	eventGroups := []databaseStructs.EventGroup{}
-	err := database.DB.Select(&eventGroups, `SELECT id, trigger_data, operator_id, operation_id
+	err := database.DB.Select(&eventGroups, `SELECT id, trigger_data, operator_id, operation_id, name
 		FROM eventgroup 
 		WHERE deleted=false AND active=true AND trigger=$1`,
 		eventing.TriggerCron)
@@ -88,13 +89,18 @@ func initializeEventGroupCronSchedulesOnStart() {
 	for i, _ := range eventGroups {
 		triggerData := eventGroups[i].TriggerData.StructValue()
 		if _, ok := triggerData["cron"]; ok {
-			cronData := triggerData["cron"].(string)
-			CronChannel <- CronNotification{
-				Action:       CronActionNewEventGroup,
-				EventGroupID: eventGroups[i].ID,
-				CronSchedule: cronData,
-				OperatorID:   eventGroups[i].OperatorID,
-				OperationID:  eventGroups[i].OperationID,
+			switch triggerData["cron"].(type) {
+			case string:
+				cronData := triggerData["cron"].(string)
+				CronChannel <- CronNotification{
+					Action:       CronActionNewEventGroup,
+					EventGroupID: eventGroups[i].ID,
+					CronSchedule: cronData,
+					OperatorID:   eventGroups[i].OperatorID,
+					OperationID:  eventGroups[i].OperationID,
+				}
+			default:
+				logging.LogError(nil, "bad type from cron data, should be a string", "eventgroup", eventGroups[i].Name)
 			}
 		} else {
 			logging.LogError(err, "failed to get cron schedule from cron trigger")

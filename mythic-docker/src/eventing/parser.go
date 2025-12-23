@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/pelletier/go-toml/v2"
@@ -130,6 +131,18 @@ func Ingest(fileContents []byte) (databaseStructs.EventGroup, error) {
 	databaseEventGroup.Name = eventGroup.Name
 	databaseEventGroup.TriggerData = GetMythicJSONTextFromStruct(eventGroup.TriggerData)
 	databaseEventGroup.Trigger = eventGroup.Trigger
+	switch eventGroup.Trigger {
+	case TriggerCron:
+		_, ok := eventGroup.TriggerData["cron"]
+		if !ok {
+			return databaseEventGroup, errors.New("no cron field for cron trigger")
+		}
+		switch eventGroup.TriggerData["cron"].(type) {
+		case string:
+		default:
+			return databaseEventGroup, errors.New("cron field is wrong type for cron, should be a string")
+		}
+	}
 	databaseEventGroup.Description = eventGroup.Description
 	databaseEventGroup.Environment = GetMythicJSONTextFromStruct(eventGroup.Environment)
 	databaseEventGroup.Keywords = GetMythicJSONArrayFromStruct(eventGroup.Keywords)
