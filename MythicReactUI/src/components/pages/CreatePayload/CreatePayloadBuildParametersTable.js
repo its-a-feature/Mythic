@@ -14,7 +14,11 @@ import {useTheme} from '@mui/material/styles';
 
 export function CreatePayloadBuildParametersTable(props){
     const theme = useTheme();
-    const buildParameters = GetGroupedParameters({buildParameters: props.buildParameters, os: props.os});
+    const buildParameters = GetGroupedParameters({
+        buildParameters: props.buildParameters,
+        os: props.os,
+        c2_name: props.c2_name,
+    });
     return (
         <div style={{height: "100%", overflowY: "auto", width: "100%"}}>
             {buildParameters.map(b => (

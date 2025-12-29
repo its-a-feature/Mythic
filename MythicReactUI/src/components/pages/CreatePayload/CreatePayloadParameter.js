@@ -36,7 +36,15 @@ mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: 
     }
 }
 `;
-
+function isTrue(value){
+    if(typeof value === 'boolean'){
+        return value;
+    }
+    if(typeof value === 'string'){
+        return value.toLowerCase() === 'true' || value.toLowerCase() === 't';
+    }
+    console.log("unknown boolean value", value);
+}
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
                                            description, initialValue, choices, trackedValue, instance_name,
                                            payload_type, selected_os, dynamic_query_function}){
@@ -712,7 +720,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 return (
                       <Switch
                           color={"info"}
-                        checked={Boolean(value)}
+                        checked={isTrue(value)}
                         onChange={toggleSwitchValue}
                         inputProps={{ 'aria-label': 'info checkbox' }}
                       />

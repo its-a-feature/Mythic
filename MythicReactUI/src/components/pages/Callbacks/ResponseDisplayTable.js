@@ -801,7 +801,7 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
   const tableStyle = React.useMemo( () => {
     return expand ? {flexGrow: 1,
           minHeight: gridData.length > 0 ? Math.min(maxHeight, dataHeight) : headerHeight,
-          width: "99%", position: "relative"} :
+          width: "100%", position: "relative"} :
         {height: dataHeight, position: "relative"}
   }, [expand, dataHeight, gridData]);
   return (

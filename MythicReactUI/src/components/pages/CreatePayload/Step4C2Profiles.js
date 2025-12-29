@@ -662,7 +662,10 @@ const C2ProfileTabs = ({includedC2Profiles, onChange, os, onCloseTab, onChangeCr
                             }
                         </Select>
                     }
-                    <CreatePayloadBuildParametersTable instance_name={c.selected_instance} onChange={(n,v,e) => onChange(index, n, v, e)} buildParameters={c.c2profileparameters} os={os} />
+                    <CreatePayloadBuildParametersTable instance_name={c.selected_instance} onChange={(n,v,e) => onChange(index, n, v, e)}
+                                                       buildParameters={c.c2profileparameters} os={os}
+                                                       c2_name={c.name}
+                    />
                 </CustomTabPanel>
             ))}
         </>

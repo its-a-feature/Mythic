@@ -264,6 +264,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const me = useReactiveVar(meState);
     const useDisplayParamsForCLIHistoryUserSetting = React.useRef(GetMythicSetting({setting_name: "useDisplayParamsForCLIHistory", default_value: operatorSettingDefaults.useDisplayParamsForCLIHistory}));
     const hideTaskingContext = React.useRef(GetMythicSetting({setting_name: "hideTaskingContext", default_value: operatorSettingDefaults.hideTaskingContext}));
+    hideTaskingContext.current = props.hide_context | hideTaskingContext.current;
     const taskingContextFields = React.useRef(GetMythicSetting({setting_name: "taskingContextFields", default_value: operatorSettingDefaults.taskingContextFields}));
     const forwardOrBackwardTabIndex = (event, currentIndex, options) => {
         if(event.shiftKey){

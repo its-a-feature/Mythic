@@ -52,17 +52,14 @@ export function EditPayloadConfigDialog(props) {
       createPayloadMutation({variables: {payload: updatedConfig}}).catch( (e) => {console.log(e)} );
       props.onClose();
     }
-  return (
-    <React.Fragment>
+    return (
         <MythicModifyStringDialog title={"Create New Payload With Modified Config"}
                                   value={payloadConfig}
                                   dontCloseOnSubmit={true}
                                   onSubmit={onCommitSubmit}
                                   onSubmitText={"Create"}
                                   onClose={props.onClose}
-                                  maxRows={60}
                                   />
-    </React.Fragment>
   );
 }
 
@@ -110,16 +107,13 @@ export function ViewPayloadConfigJSON(props) {
     }, [props.value]);
     return (
         <React.Fragment>
-            <div style={{display: "flex", }}>
+            <div style={{display: "flex", height: "100%" }}>
                 <AceEditor
                     mode="json"
                     theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
                     width="100%"
-                    height={"100%"}
                     showPrintMargin={false}
                     wrapEnabled={true}
-                    minLines={10}
-                    maxLines={50}
                     value={payloadConfig}
                     focus={true}
                     onChange={onChange}

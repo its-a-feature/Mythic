@@ -86,11 +86,8 @@ export function MythicModifyStringDialog(props) {
                 mode="json"
                 theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
                 width="100%"
-                height="100%"
                 showPrintMargin={false}
                 wrapEnabled={props.wrap ? props.wrap : false}
-                minLines={props.maxRows ? props.maxRows : 10}
-                maxLines={props.maxRows ? props.maxRows : 10}
                 value={comment}
                 focus={true}
                 onChange={onChange}
@@ -99,18 +96,20 @@ export function MythicModifyStringDialog(props) {
                 }}
             />
         </DialogContent>
-        <DialogActions>
-            {props.onClose &&
-                <Button onClick={props.onClose} variant="contained" color="primary">
-                    Close
-                </Button>
-            }
-            {props.onSubmit &&
-                <Button onClick={onCommitSubmit} variant="contained" color="success">
-                    {props.onSubmitText ? props.onSubmitText : "Submit"}
-                </Button>
-            }
-        </DialogActions>
+        { (props.onClose || props.onSubmit) &&
+            <DialogActions>
+                {props.onClose &&
+                    <Button onClick={props.onClose} variant="contained" color="primary">
+                        Close
+                    </Button>
+                }
+                {props.onSubmit &&
+                    <Button onClick={onCommitSubmit} variant="contained" color="success">
+                        {props.onSubmitText ? props.onSubmitText : "Submit"}
+                    </Button>
+                }
+            </DialogActions>
+        }
     </React.Fragment>
   );
 }
