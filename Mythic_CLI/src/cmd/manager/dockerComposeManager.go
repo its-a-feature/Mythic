@@ -121,26 +121,9 @@ func (d *DockerComposeManager) RemoveImages() error {
 		return err
 	}
 	defer cli.Close()
-	/*
-		images, err := cli.ImageList(ctx, image.ListOptions{All: true})
-		if err != nil {
-			log.Fatalf("[-] Failed to get list of images: %v\n", err)
-		}
-
-		for _, dockerImage := range images {
-			if utils.StringInSlice("<none>:<none>", dockerImage.RepoTags) {
-				_, err = cli.ImageRemove(ctx, dockerImage.ID, image.RemoveOptions{
-					Force:         true,
-					PruneChildren: true,
-				})
-				if err != nil {
-					log.Printf("[-] Failed to remove unused image: %v\n", err)
-				}
-			}
-		}
-
-	*/
-	pruneReport, err := cli.ImagesPrune(ctx, filters.Args{})
+	filter := filters.NewArgs()
+	filter.Add("dangling", "false")
+	pruneReport, err := cli.ImagesPrune(ctx, filter)
 	if err != nil {
 		log.Printf("[-] Failed to prune images: %v\n", err)
 	} else {

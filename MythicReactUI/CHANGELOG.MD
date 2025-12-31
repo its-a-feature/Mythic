@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.89] - 2025-12-31
+
+### Changed
+
+- Fixed an alignment issue in the UI for split callbacks that would cause a horizontal scroll bar
+- Fixed a height issue on the browser script page that wasn't going the full page height
+- Added an option to string dialog boxes to wrap the displayed content or not
+
 ## [0.3.88] - 2025-12-29
 
 ### Changed

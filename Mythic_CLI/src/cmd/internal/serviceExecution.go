@@ -2,11 +2,12 @@ package internal
 
 import (
 	"fmt"
+	"log"
+	"slices"
+
 	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
 	"github.com/MythicMeta/Mythic_CLI/cmd/utils"
-	"log"
-	"slices"
 )
 
 // ServiceStart is entrypoint from commands to start containers
@@ -44,7 +45,8 @@ func ServiceStart(containers []string, keepVolume bool) error {
 	if len(containers) == 0 {
 		containers = append(dockerComposeContainers, intendedMythicServices...)
 		// make sure the ports are open that we're going to need
-		TestPorts()
+		intendedServices, _ := config.GetIntendedMythicServiceNames()
+		manager.GetManager().TestPorts(intendedServices)
 	}
 	finalContainers := []string{}
 	for _, val := range containers { // these are specified containers or all in docker compose

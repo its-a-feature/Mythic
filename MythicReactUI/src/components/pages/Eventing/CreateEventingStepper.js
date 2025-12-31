@@ -634,10 +634,10 @@ const CreateEventingStep1 = ({finished, back, first, last, cancel, prevData}) =>
         <>
             <div style={{flexGrow: 1, width: "100%", display: "flex", flexDirection: "column", overflowY: "auto"}}>
                 <Table style={{tableLayout: "fixed", width: "100%",}}>
-                    <TableHead>
+                    <TableHead >
                         <TableRow>
-                            <MythicStyledTableCell style={{width: "10rem"}}></MythicStyledTableCell>
-                            <MythicStyledTableCell></MythicStyledTableCell>
+                            <MythicStyledTableCell className={"empty-table-header"} style={{width: "10rem"}}></MythicStyledTableCell>
+                            <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -686,8 +686,8 @@ const CreateEventingStep1 = ({finished, back, first, last, cancel, prevData}) =>
                                     (<Table>
                                         <TableHead>
                                             <TableRow>
-                                                <MythicStyledTableCell style={{width: "30%"}}></MythicStyledTableCell>
-                                                <MythicStyledTableCell></MythicStyledTableCell>
+                                                <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
+                                                <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -1073,8 +1073,8 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
             <Table>
                 <TableHead>
                     <TableRow>
-                        <MythicStyledTableCell style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1264,8 +1264,8 @@ const EventingStepActionDataCustomFunction = ({allSteps, updateStep, index, prev
             <Table>
                 <TableHead>
                     <TableRow>
-                        <MythicStyledTableCell style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1388,8 +1388,8 @@ const EventingStepActionDataConditionalCheck = ({allSteps, updateStep, index, pr
             <Table>
                 <TableHead>
                     <TableRow>
-                        <MythicStyledTableCell style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1532,8 +1532,8 @@ const EventingStepActionDataCreatePayload = ({allSteps, updateStep, index, prevD
             <Table>
                 <TableHead>
                     <TableRow>
-                        <MythicStyledTableCell style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1615,8 +1615,8 @@ const EventingStepActionDataCreateCallback = ({allSteps, updateStep, index, prev
             <Table>
                 <TableHead>
                     <TableRow>
-                        <MythicStyledTableCell style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1676,8 +1676,8 @@ const EventingStepActionDataTaskIntercept = ({allSteps, updateStep, index, prevD
             <Table>
                 <TableHead>
                     <TableRow>
-                        <MythicStyledTableCell style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1738,8 +1738,8 @@ const EventingStepActionDataResponseIntercept = ({allSteps, updateStep, index, p
             <Table>
                 <TableHead>
                     <TableRow>
-                        <MythicStyledTableCell style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1829,8 +1829,8 @@ const EventingStepActionDataCreateAlert = ({allSteps, updateStep, index, prevDat
             <Table>
                 <TableHead>
                     <TableRow>
-                        <MythicStyledTableCell style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1975,8 +1975,8 @@ const EventingStepActionDataSendWebhook = ({allSteps, updateStep, index, prevDat
             <Table>
                 <TableHead>
                     <TableRow>
-                        <MythicStyledTableCell style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -2137,8 +2137,8 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data}) => {
             <Table >
                 <TableHead>
                     <TableRow>
-                        <MythicStyledTableCell style={{width: "15%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "15%"}}></MythicStyledTableCell>
+                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -2337,8 +2337,8 @@ const CreateEventingStep2 = ({finished, back, first, last, cancel, prevData, ste
                 <Table style={{tableLayout: "fixed", width: "100%",}}>
                     <TableHead>
                         <TableRow>
-                            <MythicStyledTableCell style={{width: "3rem"}}></MythicStyledTableCell>
-                            <MythicStyledTableCell></MythicStyledTableCell>
+                            <MythicStyledTableCell className={"empty-table-header"} style={{width: "3rem"}}></MythicStyledTableCell>
+                            <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>

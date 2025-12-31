@@ -293,12 +293,12 @@ const NonInteractiveResponseDisplay = (props) => {
         <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2, position: "absolute"}}>
           <CircularProgress color="inherit" disableShrink  />
         </Backdrop>
-        {props.searchOutput &&
-            <SearchBar onSubmitSearch={onSubmitSearch} />
-        }
+
         {!openBackdrop &&
             <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
-
+                {props.searchOutput &&
+                    <SearchBar onSubmitSearch={onSubmitSearch} />
+                }
               <div style={{overflowY: "auto", flexGrow: 1, width: "100%", height: props.expand ? "100%": undefined, display: "flex", flexDirection: "column"}} ref={props.responseRef}>
                 <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
                                           output={output} command_id={props.command_id} displayType={"accordion"}
@@ -402,7 +402,7 @@ export const PaginationBar = ({selectAllOutput, totalCount, onSubmitPageChange, 
   }, [totalCount, maxCount, search, selectAllOutput]);
   const pageCount = Math.max(1, Math.ceil(localTotalCount / pageSize));
   // don't bother people with pagination information if they haven't even started paginating
-  if(pageCount < 2){
+  if(pageCount < 2 || pageCount === Infinity){
     return (<div id={'scrolltotaskbottom' + task.id}></div>)
   }
   return (

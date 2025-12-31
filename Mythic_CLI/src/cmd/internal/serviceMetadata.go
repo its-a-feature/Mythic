@@ -177,6 +177,11 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_graphql":
+		pStruct["depends_on"] = map[string]map[string]string{
+			"mythic_postgres": {
+				"condition": "service_healthy",
+			},
+		}
 		if mythicEnv.GetBool("hasura_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
 				"context": "./hasura-docker",
@@ -207,11 +212,6 @@ func AddMythicService(service string, removeVolume bool) {
 			"MYTHIC_ACTIONS_URL_BASE=http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/api/v1.4",
 			"HASURA_GRAPHQL_CONSOLE_ASSETS_DIR=/srv/console-assets",
 		}
-		//if _, ok := pStruct["environment"]; ok {
-		//	pStruct["environment"] = utils.UpdateEnvironmentVariables(pStruct["environment"].([]interface{}), environment)
-		//} else {
-		//	pStruct["environment"] = environment
-		//}
 		if mythicEnv.GetString("mythic_docker_networking") == "bridge" {
 			if mythicEnv.GetBool("hasura_bind_localhost_only") {
 				pStruct["ports"] = []string{
@@ -253,6 +253,23 @@ func AddMythicService(service string, removeVolume bool) {
 			delete(pStruct, "volumes")
 		}
 	case "mythic_nginx":
+		pStruct["depends_on"] = map[string]map[string]string{
+			"mythic_server": {
+				"condition": "service_healthy",
+			},
+			"mythic_react": {
+				"condition": "service_started",
+			},
+			"mythic_jupyter": {
+				"condition": "service_healthy",
+			},
+			"mythic_documentation": {
+				"condition": "service_started",
+			},
+			"mythic_graphql": {
+				"condition": "service_healthy",
+			},
+		}
 		if mythicEnv.GetBool("nginx_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
 				"context": "./nginx-docker",
@@ -441,6 +458,17 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_react":
+		pStruct["depends_on"] = map[string]map[string]string{
+			"mythic_server": {
+				"condition": "service_healthy",
+			},
+			"mythic_graphql": {
+				"condition": "service_healthy",
+			},
+			"mythic_postgres": {
+				"condition": "service_healthy",
+			},
+		}
 		if mythicEnv.GetBool("mythic_react_debug") {
 			pStruct["build"] = map[string]interface{}{
 				"context": "./MythicReactUI",
@@ -535,6 +563,17 @@ func AddMythicService(service string, removeVolume bool) {
 		}
 
 	case "mythic_jupyter":
+		pStruct["depends_on"] = map[string]map[string]string{
+			"mythic_server": {
+				"condition": "service_healthy",
+			},
+			"mythic_postgres": {
+				"condition": "service_healthy",
+			},
+			"mythic_graphql": {
+				"condition": "service_healthy",
+			},
+		}
 		if mythicEnv.GetBool("jupyter_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
 				"context": "./jupyter-docker",
@@ -614,6 +653,17 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_server":
+		pStruct["depends_on"] = map[string]map[string]string{
+			"mythic_postgres": {
+				"condition": "service_healthy",
+			},
+			"mythic_graphql": {
+				"condition": "service_healthy",
+			},
+			"mythic_rabbitmq": {
+				"condition": "service_healthy",
+			},
+		}
 		if mythicEnv.GetBool("mythic_server_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
 				"context": "./mythic-docker",
@@ -715,6 +765,11 @@ func AddMythicService(service string, removeVolume bool) {
 			}
 		}
 	case "mythic_sync":
+		pStruct["depends_on"] = map[string]map[string]string{
+			"mythic_nginx": {
+				"condition": "service_healthy",
+			},
+		}
 		absPath, err := filepath.Abs(filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service))
 		if err != nil {
 			log.Printf("[-] Failed to get abs path for mythic_sync\n")
@@ -809,30 +864,20 @@ func Add3rdPartyService(service string, additionalConfigs map[string]interface{}
 		"mythic_jupyter:127.0.0.1",
 		"mythic_postgres:127.0.0.1",
 	}
-	/*
-		pStruct := map[string]interface{}{
-			"labels": map[string]string{
-				"name": service,
-			},
-			"image":    strings.ToLower(service),
-			"hostname": service,
-			"logging": map[string]interface{}{
-				"driver": "json-file",
-				"options": map[string]string{
-					"max-file": "1",
-					"max-size": "10m",
-				},
-			},
-			"restart":        config.GetMythicEnv().GetString("global_restart_policy"),
-			"container_name": strings.ToLower(service),
-			"cpus":           config.GetMythicEnv().GetInt("INSTALLED_SERVICE_CPUS"),
-		}
-		pStruct["build"] = map[string]interface{}{
-			"context": filepath.Join(manager.GetManager().GetPathTo3rdPartyServicesOnDisk(), service),
-			"args":    config.GetBuildArguments(),
-		}
-
-	*/
+	existingConfig["depends_on"] = map[string]map[string]string{
+		"mythic_server": {
+			"condition": "service_healthy",
+		},
+		"mythic_rabbitmq": {
+			"condition": "service_healthy",
+		},
+		"mythic_nginx": {
+			"condition": "service_healthy",
+		},
+		"mythic_graphql": {
+			"condition": "service_healthy",
+		},
+	}
 	agentConfigs := config.GetConfigStrings([]string{fmt.Sprintf("%s_.*", service)})
 	agentUseBuildContextKey := fmt.Sprintf("%s_use_build_context", service)
 	agentRemoteImageKey := fmt.Sprintf("%s_remote_image", service)

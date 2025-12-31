@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"github.com/MythicMeta/Mythic_CLI/cmd/config"
-	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
-	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
+	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func TestMythicConnection() {
@@ -131,11 +132,6 @@ func TestMythicRabbitmqConnection() {
 		}
 
 	}
-}
-func TestPorts() error {
-	intendedServices, _ := config.GetIntendedMythicServiceNames()
-	manager.GetManager().TestPorts(intendedServices)
-	return nil
 }
 
 func Status(verbose bool) {

@@ -18,6 +18,9 @@ import "ace-builds/src-noconflict/theme-github";
 import "ace-builds/src-noconflict/theme-monokai";
 import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
+import WrapTextIcon from '@mui/icons-material/WrapText';
+import {IconButton} from '@mui/material';
+import {MythicStyledTooltip} from "./MythicStyledTooltip";
 
 export function MythicDialog(props) {
   const descriptionElementRef = React.useRef(null);
@@ -59,6 +62,7 @@ export function MythicDialog(props) {
 
 export function MythicModifyStringDialog(props) {
   const [comment, setComment] = React.useState("");
+  const [wrap, setWrap] = React.useState(props.wrap ? props.wrap : false);
   const theme = useTheme();
     const onCommitSubmit = () => {
         props.onSubmit(comment);
@@ -80,19 +84,32 @@ export function MythicModifyStringDialog(props) {
     }, [props.value]);
   return (
     <React.Fragment>
-        {props.title !== "" && <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>}
+        {props.title !== "" &&
+            <DialogTitle id="form-dialog-title">{props.title}
+                <MythicStyledTooltip title={wrap ? "Toggle off word wrap" : "Toggl on word wrap"}
+                tooltipStyle={{float: "right"}}>
+                    <IconButton onClick={() => {setWrap(!wrap)}}>
+                        <WrapTextIcon color={wrap ? "success" : "secondary"} />
+                    </IconButton>
+                </MythicStyledTooltip>
+
+            </DialogTitle>
+        }
         <DialogContent dividers={true} style={{height: "100%", margin: 0, padding: 0}}>
             <AceEditor
                 mode="json"
                 theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
                 width="100%"
+                fontSize={14}
                 showPrintMargin={false}
-                wrapEnabled={props.wrap ? props.wrap : false}
+                wrapEnabled={wrap}
                 value={comment}
                 focus={true}
                 onChange={onChange}
                 setOptions={{
-                    useWorker: false
+                    tabSize: 4,
+                    useWorker: false,
+                    showInvisibles: false,
                 }}
             />
         </DialogContent>

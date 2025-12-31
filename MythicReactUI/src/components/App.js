@@ -323,113 +323,114 @@ export function App(props) {
                                     stacked={false}
                                     style={{maxWidth: "100%", minWidth: "40%", display: "flex", flexWrap: "wrap",
                                     wordBreak: "break-all", flexDirection: "column", justifyContent: "center",}}
-                                    pauseOnFocusLoss={false} />
-                        <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'row', maxWidth: "100%", width:"100%",
-                            ...background}}>
-                            {openRefreshDialog &&
-                                <MythicDialog fullWidth={true} maxWidth="sm" open={openRefreshDialog}
-                                              onClose={()=>{setOpenRefreshDialog(false);}}
-                                              innerDialog={<RefreshTokenDialog
-                                                  onClose={()=>{setOpenRefreshDialog(false);}} />}
-                                />
-                            }
-                            {me.loggedIn && me.user !== undefined && me.user !== null  ? (
-                                <TopAppBarVertical me={me} toggleTheme={themeToggler} />
-                            ) : null}
-                            <div style={{
-                                maxHeight: '100%',
-                                height: '100%',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                width: "100%",
-                            }}>
-                                <div style={{height: "5px", width: "100%",  background: `linear-gradient(25deg, ${theme.topAppBarColor}, ${theme.topAppBarBottomColor})`}}/>
-                                {me.loggedIn && me?.user?.current_operation_banner_text !== "" &&
-                                    <Typography style={{
-                                        backgroundColor: me?.user?.current_operation_banner_color,
-                                        width: "100%",
-                                        textAlign: "center",
-                                        fontWeight: "600",
-                                        color: "white",
-                                        border: `1px solid ${theme.topAppBarColor || "grey"}`
-                                    }}>
-                                        {me?.user?.current_operation_banner_text}
-                                    </Typography>
-                                }
-                                {me.loggedIn && me?.badConnection
-                                    &&
-                                    <Typography style={{
-                                        backgroundColor: theme.palette.error.main,
-                                        width: "100%",
-                                        textAlign: "center",
-                                        fontWeight: "600",
-                                        color: "white",
-                                        border: `1px solid ${theme.topAppBarColor || "grey"}`
-                                    }}>
-                                        {"Can't connect to Mythic. Please check connection and refresh"}
-                                    </Typography>
-                                }
-                                <div style={{
-                                    margin: '0px 0px 0px 0px',
-                                    flexGrow: 1,
-                                    overflowY: "hidden",
-                                    flexDirection: 'column',
-                                    height: "100%",
+                                    pauseOnFocusLoss={false}
+                    />
+                    <div style={{ maxHeight: '100%', height: '100%', display: 'flex', flexDirection: 'row', maxWidth: "100%", width:"100%",
+                        ...background}}>
+                        {openRefreshDialog &&
+                            <MythicDialog fullWidth={true} maxWidth="sm" open={openRefreshDialog}
+                                          onClose={()=>{setOpenRefreshDialog(false);}}
+                                          innerDialog={<RefreshTokenDialog
+                                              onClose={()=>{setOpenRefreshDialog(false);}} />}
+                            />
+                        }
+                        {me.loggedIn && me.user !== undefined && me.user !== null &&
+                            <TopAppBarVertical me={me} toggleTheme={themeToggler} />
+                        }
+                        <div style={{
+                            maxHeight: '100%',
+                            flexGrow: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: "hidden",
+                        }}>
+                            <div style={{height: "5px", width: "100%",  background: me.loggedIn ? `linear-gradient(25deg, ${theme.topAppBarColor}, ${theme.topAppBarBottomColor})` : ""}}/>
+                            {me.loggedIn && me?.user?.current_operation_banner_text !== "" &&
+                                <Typography style={{
+                                    backgroundColor: me?.user?.current_operation_banner_color,
+                                    width: "100%",
+                                    textAlign: "center",
+                                    fontWeight: "600",
+                                    color: "white",
+                                    border: `1px solid ${theme.topAppBarColor || "grey"}`
                                 }}>
-                                    <Routes>
-                                        <Route path='/new/login' element={<LoginForm me={me}/>}/>
-                                        <Route path='/new/invite' element={<InviteForm me={me}/>}/>
-                                        <Route path='/' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new'
-                                               element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/settings'
-                                               element={<LoggedInRoute me={me}><Settings me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/payloadtypes'
-                                               element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
-                                                   me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/eventfeed'
-                                               element={<LoggedInRoute me={me}><EventFeed me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/createpayload'
-                                               element={<LoggedInRoute me={me}><CreatePayload me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/createwrapper'
-                                               element={<LoggedInRoute me={me}><CreatePayloadWrapper
-                                                   me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/payloads'
-                                               element={<LoggedInRoute me={me}><Payloads me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/c2profiles'
-                                               element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
-                                                   me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/services/'
-                                               element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
-                                                   me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/callbacks'
-                                               element={<LoggedInRoute me={me}><Callbacks me={me}/></LoggedInRoute>}/>
-                                        <Route path='/new/search'
-                                               element={<LoggedInRoute me={me}><Search history={props.history}
-                                                                                       me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/browserscripts'
-                                               element={<LoggedInRoute me={me}><BrowserScripts me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/task/:taskId'
-                                               element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/tasks/by_range'
-                                               element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/operations'
-                                               element={<LoggedInRoute me={me}><Operations me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/callbacks/:callbackDisplayId'
-                                               element={<LoggedInRoute me={me}><ExpandedCallback
-                                                   me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/reporting'
-                                               element={<LoggedInRoute me={me}><Reporting me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/mitre'
-                                               element={<LoggedInRoute me={me}><MitreAttack me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/tagtypes'
-                                               element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>}/>
-                                        <Route exact path='/new/eventing'
-                                               element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>}/>
-                                    </Routes>
-                                </div>
+                                    {me?.user?.current_operation_banner_text}
+                                </Typography>
+                            }
+                            {me.loggedIn && me?.badConnection
+                                &&
+                                <Typography style={{
+                                    backgroundColor: theme.palette.error.main,
+                                    width: "100%",
+                                    textAlign: "center",
+                                    fontWeight: "600",
+                                    color: "white",
+                                    border: `1px solid ${theme.topAppBarColor || "grey"}`
+                                }}>
+                                    {"Can't connect to Mythic. Please check connection and refresh"}
+                                </Typography>
+                            }
+                            <div style={{
+                                margin: '0px 0px 0px 0px',
+                                flexGrow: 1,
+                                display: "flex",
+                                flexDirection: 'column',
+                                overflow:"hidden"
+                            }}>
+                                <Routes>
+                                    <Route path='/new/login' element={<LoginForm me={me}/>}/>
+                                    <Route path='/new/invite' element={<InviteForm me={me}/>}/>
+                                    <Route path='/' element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new'
+                                           element={<LoggedInRoute me={me}><Home me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/settings'
+                                           element={<LoggedInRoute me={me}><Settings me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/payloadtypes'
+                                           element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/eventfeed'
+                                           element={<LoggedInRoute me={me}><EventFeed me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/createpayload'
+                                           element={<LoggedInRoute me={me}><CreatePayload me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/createwrapper'
+                                           element={<LoggedInRoute me={me}><CreatePayloadWrapper
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/payloads'
+                                           element={<LoggedInRoute me={me}><Payloads me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/c2profiles'
+                                           element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/services/'
+                                           element={<LoggedInRoute me={me}><PayloadTypesC2Profiles
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/callbacks'
+                                           element={<LoggedInRoute me={me}><Callbacks me={me}/></LoggedInRoute>}/>
+                                    <Route path='/new/search'
+                                           element={<LoggedInRoute me={me}><Search history={props.history}
+                                                                                   me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/browserscripts'
+                                           element={<LoggedInRoute me={me}><BrowserScripts me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/task/:taskId'
+                                           element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/tasks/by_range'
+                                           element={<LoggedInRoute me={me}><SingleTaskView me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/operations'
+                                           element={<LoggedInRoute me={me}><Operations me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/callbacks/:callbackDisplayId'
+                                           element={<LoggedInRoute me={me}><ExpandedCallback
+                                               me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/reporting'
+                                           element={<LoggedInRoute me={me}><Reporting me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/mitre'
+                                           element={<LoggedInRoute me={me}><MitreAttack me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/tagtypes'
+                                           element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/eventing'
+                                           element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>}/>
+                                </Routes>
                             </div>
                         </div>
+                    </div>
                 </MeContext.Provider>
             </ThemeProvider>
         </StyledEngineProvider>

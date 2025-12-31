@@ -20,7 +20,7 @@ COPY --from=builder /mythic_server /mythic_server
 
 WORKDIR /usr/src/app
 
-HEALTHCHECK --interval=60s --timeout=10s --retries=5 --start-period=20s \
+HEALTHCHECK --interval=60s --timeout=10s --retries=5 --start-period=5s \
   CMD wget -SqO - http://127.0.0.1:${MYTHIC_SERVER_PORT:-17443}/health || exit 1
 
 CMD ["/bin/sh", "-c", "cp /mythic_server . && ./mythic_server" ]

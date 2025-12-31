@@ -48,6 +48,7 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
                 theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
                 width="100%"
                 height="100%"
+                fontSize={14}
                 wrapEnabled={props.wrap ? props.wrap : false}
                 minLines={props.maxRows ? props.maxRows : 3}
                 maxLines={props.maxRows ? props.maxRows : 3}
@@ -55,7 +56,9 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
                 focus={true}
                 onChange={onChange}
                 setOptions={{
-                    useWorker: false
+                    tabSize: 4,
+                    useWorker: false,
+                    showInvisibles: false,
                 }}
             />
             <HexColorPicker color={color} onChange={setColor} style={{width: "100%"}} />

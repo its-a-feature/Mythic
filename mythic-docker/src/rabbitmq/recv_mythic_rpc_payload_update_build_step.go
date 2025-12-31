@@ -113,7 +113,7 @@ func MythicRPCPayloadUpdateBuildStep(input MythicRPCPayloadUpdateBuildStepMessag
 					step.EndTime.Valid = true
 					step.EndTime.Time = stepNow
 				}
-				step.StepSkip = input.StepSkip
+				step.StepSkip = true
 				step.Success = input.StepSuccess
 				step.StepStdout = step.StepStdout + "\nAutomatically marked as done due to future step completing"
 				if _, err := database.DB.NamedExec(`UPDATE payload_build_step SET

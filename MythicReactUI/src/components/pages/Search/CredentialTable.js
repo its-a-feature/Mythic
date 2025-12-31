@@ -346,7 +346,7 @@ function CredentialTableRow(props){
                 {editCredentialDialogOpen &&
                     <MythicDialog fullWidth={true} maxWidth="md" open={editCredentialDialogOpen} 
                         onClose={()=>{setEditCredentialDialogOpen(false);}} 
-                        innerDialog={<MythicModifyStringDialog onEnter={()=>{}} title="Edit Credential Credential" onSubmit={onSubmitUpdatedCredential} value={props.credential_text} onClose={()=>{setEditCredentialDialogOpen(false);}} 
+                        innerDialog={<MythicModifyStringDialog onEnter={()=>{}} title="Edit Credential Value" onSubmit={onSubmitUpdatedCredential} value={props.credential_text} onClose={()=>{setEditCredentialDialogOpen(false);}}
                         multiline={true} maxRows={20}/>}
                     />
                 }

@@ -19,7 +19,7 @@ export function BrowserScriptsTable(props){
     const theme = useTheme();
     const [openNewScriptDialog, setOpenNewScriptDialog] = React.useState(false);
     return (
-        <React.Fragment>
+        <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
                 <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Browser Scripts
@@ -37,7 +37,7 @@ export function BrowserScriptsTable(props){
                     ) : null
                 }
             </Paper>
-            <TableContainer className="mythicElement" style={{maxHeight: "90%"}}>
+            <TableContainer className="mythicElement" style={{height: "100%", flexGrow: 1}}>
             <Table stickyHeader={true} size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
@@ -62,7 +62,7 @@ export function BrowserScriptsTable(props){
                 </TableBody>
             </Table>
         </TableContainer>
-        </React.Fragment>
+        </div>
         
     )
 }

@@ -140,19 +140,21 @@ export const StyledAccordionSummary = styled(AccordionSummary)((
 ) => ({
   [`&.${accordionClasses.root}`]: {
     margin: 0,
-    padding: 0,
+    paddingLeft: 0,
+    //paddingRight: 0,
     height: "auto",
     width: "100%",
-    whiteSpace: "break-all",
     wordBreak: "break-all",
     userSelect: "text",
     boxShadow: "unset",
     backgroundColor: "unset",
+    justifyContent: "flex-start",
   },
   [`& .${accordionClasses.content}`]: {
     margin: 0,
     height: "100%",
     padding: 0,
+    width: "inherit",
   },
   [`& .${accordionClasses.expandIcon}`]: {
     margin: 0,
@@ -225,7 +227,7 @@ const ColoredTaskDisplay = ({task, theme, children, expanded}) => {
       setThemeColor(theme.palette.warning.main);
     }else if(task.status.toLowerCase().includes("processing")){
       setThemeColor(theme.palette.warning.main);
-    }else if(task.status === "completed" || (task.status === "success" && task.completed)){
+    }else if(task.status === "completed" || task.completed){
         setThemeColor(theme.palette.success.main);
     }else{
       setThemeColor(theme.palette.info.main);
@@ -233,7 +235,7 @@ const ColoredTaskDisplay = ({task, theme, children, expanded}) => {
   }, [task.status, task.completed])
     return(
       <span style={{display: "flex", margin: 0, borderWidth: 0, padding: 0, minHeight: "48px", alignItems: "center",
-        height: "100%", borderLeft: "6px solid " + themeColor, paddingLeft: "5px", width: "100%",
+        height: "100%", borderLeft: "6px solid " + themeColor, paddingLeft: "5px", width: "100%", maxWidth: "100%",
         borderTopLeftRadius: "4px", borderBottomLeftRadius: expanded ? 0 : "4px"}}>
         {children}
       </span>
@@ -243,7 +245,7 @@ const GetOperatorDisplay = ({initialHideUsernameValue, task}) => {
   if(initialHideUsernameValue){
     return '';
   }
-  return task.operator.username;
+  return " / " + task.operator.username;
 }
 export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayChildren, toggleDisplayChildren, expanded }) => {
   const [displayComment, setDisplayComment] = React.useState(false);
@@ -269,7 +271,6 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
     if(onClick){
       onClick(e);
     }
-    //preventPropagation(e);
   }
   const onClickKillIcon = (e, open) => {
     if(e){
@@ -278,7 +279,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
     setOpenKillTaskButton({open: open});
   }
   return (
-      <ColoredTaskDisplay task={task} theme={theme} expanded={expanded}  >
+      <ColoredTaskDisplay task={task} theme={theme} expanded={expanded} >
         <div id={taskDivID} style={{width: "100%"}}>
           {displayComment && (
               <React.Fragment>
@@ -286,7 +287,7 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                 <Typography className={classes.heading} onClick={preventPropagation}>{task.comment}</Typography>
               </React.Fragment>
           )}
-          <div style={{lineHeight: 0}}>
+          <div style={{lineHeight: 0}} onClick={onLocalClick}>
             <Typography className={classes.taskAndTimeDisplay} onClick={preventPropagation}>
               [{toLocalTime(displayTimestamp, me?.user?.view_utc_time || false)}]
               {" / "}
@@ -327,19 +328,17 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
 
                   <MythicStyledTooltip title={"Task the agent to kill this task"} >
                       <FontAwesomeIcon size={"sm"} icon={faSkullCrossbones} onClick={(e) => onClickKillIcon(e, true)}
-                                       style={{cursor: "pointer", height: "15px", marginLeft: "5px"}} />
+                                       style={{cursor: "pointer", height: "12px", marginLeft: "5px"}} />
                   </MythicStyledTooltip>
 
                 }
               </span>
-              {" / "}
               <GetOperatorDisplay initialHideUsernameValue={initialHideUsernameValue} task={task}/>
               {" / "}
               <MythicStyledTooltip title={"View Callback in separate page"}>
                 <Link style={{wordBreak: "break-all", color: theme.taskPromptTextColor}} underline="always" target="_blank"
                       href={"/new/callbacks/" + task.callback.display_id}>C-{task.callback.display_id}</Link>
               </MythicStyledTooltip>
-
               {initialShowHostnameValue ? ` / ${task.callback.host} ` : ''}
               {initialShowIPValue ? `/ ${ipValue} ` : ''}
               {initialShowCallbackGroupsValue ? `/ ${task.callback.mythictree_groups.join(', ')} ` : ''}
@@ -358,22 +357,22 @@ export const ColoredTaskLabel = ({task, theme, me, taskDivID, onClick, displayCh
                       {task?.opsec_post_bypass_user?.username}
                   </span>}
               </>}
-                {" "}
+              {" "}
               <TaskStatusDisplay task={task} theme={theme}/>
-              {task.comment.length > 0 ? (
+              {task.comment.length > 0 &&
                   <span className={classes.column}>
                       {" / "}
                     <IconButton size="small" style={{padding: "0"}}
                                 onClick={toggleDisplayComment}><ChatOutlinedIcon fontSize={"small"}/></IconButton>
                   </span>
-              ) : null}
+              }
               {task.comment}
               </Typography>
             <TaskTagDisplay task={task}/>
           </div>
-          <div>
+          <div onClick={onLocalClick}>
 
-            <div className={classes.column} onClick={onLocalClick}>
+            <div className={classes.column} >
               <Badge badgeContent={alertBadges} color="warning" anchorOrigin={{vertical: 'top', horizontal: 'left'}}>
                 {task.tasks.length > 0 && !displayChildren &&
                     <ExpandMoreIcon onClick={toggleDisplayChildren} />

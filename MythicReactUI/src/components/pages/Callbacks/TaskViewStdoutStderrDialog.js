@@ -16,7 +16,6 @@ query getParametersQuery ($task_id: Int!) {
 
 export function TaskViewStdoutStderrDialog(props) {
     const [comment, setComment] = useState("");
-    const theme = useTheme();
     const { loading, error } = useQuery(getParametersQuery, {
         variables: {task_id: props.task_id},
         onCompleted: data => {

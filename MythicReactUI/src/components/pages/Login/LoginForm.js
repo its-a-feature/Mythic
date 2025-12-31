@@ -200,72 +200,75 @@ export function LoginForm(props){
             me.loggedIn && (<Navigate replace to={redirectPath}/>)
         }
 
-                    <div style={{backgroundColor: "transparent"}}>
-                        <CardContent >
-                            <img src={logo} height="400px" alt="Mythic logo"/>
-                            {requestField.length === 0 &&
-                                <>
-                                    <MythicTextField name='username' value={username} onChange={onUsernameChange}
-                                                     width={31} debounceDelay={0} showLabel={true} autoComplete={true}/>
-                                    <MythicTextField name='password' type="password" onEnter={submit} value={password} autoComplete={true}
-                                                     onChange={onPasswordChange} width={31} debounceDelay={0} showLabel={true}/>
-                                    <Button type="submit" color="primary" onClick={submit} variant="contained"
-                                            style={{}}>Login</Button>
-                                </>
-                            }
-                            {requestField.length > 0 &&
-                                <>
-                                    {requestField.map(r => (
-                                        <MythicTextField key={r.name} name={r.name} value={r.value} onChange={onUpdateText}
-                                                         type={r.name === "password" ? "password" : ""}
-                                                         width={31} debounceDelay={0} showLabel={true}/>
-                                    ))}
-                                    <Button type="submit" color="primary" onClick={submitNonIDP} variant="contained"
-                                            style={{}}>Login via {selectedAuthOptionRef.current.idp}</Button>
-                                </>
-                            }
-                            {authOptions.length > 0 &&
-                                <>
-                                    <Button ref={dropdownAnchorRef} style={{float: "right"}}
-                                            variant={"outlined"}
-                                            onClick={() => {
-                                                setOpenUpdateDialog(true);
-                                            }} color="success"
-                                    >
-                                        Login via Custom Auth Providers
-                                    </Button>
-                                    <Popper open={openUpdate} anchorEl={dropdownAnchorRef.current}
-                                            role={undefined} transition disablePortal style={{zIndex: 4}}>
-                                        {({TransitionProps, placement}) => (
-                                            <Grow
-                                                {...TransitionProps}
-                                                style={{
-                                                    transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                                                }}
-                                            >
-                                                <Paper className={"dropdownMenuColored"}>
-                                                    <ClickAwayListener onClickAway={handleClose}
-                                                                       mouseEvent={"onMouseDown"}>
-                                                        <MenuList id="split-button-menu">
-                                                            {authOptions.map((option, index) => (
-                                                                <MenuItem
-                                                                    key={index + option}
-                                                                    onClick={(event) => handleMenuItemClick(event, index)}
-                                                                >
-                                                                    {option}
-                                                                </MenuItem>
-                                                            ))}
-                                                            <MenuItem onClick={resetLoginOption}>Mythic Local Login</MenuItem>
-                                                        </MenuList>
-                                                    </ClickAwayListener>
-                                                </Paper>
-                                            </Grow>
-                                        )}
-                                    </Popper>
-                                </>
-                            }
-                        </CardContent>
-                    </div>
+        <div style={{backgroundColor: "transparent"}}>
+            <CardContent >
+                <div style={{height: "400px"}}>
+                    <img src={logo} height="400px" alt="Mythic logo"/>
+                </div>
+
+                {requestField.length === 0 &&
+                    <>
+                        <MythicTextField name='username' value={username} onChange={onUsernameChange}
+                                         width={31} debounceDelay={0} showLabel={true} autoComplete={true}/>
+                        <MythicTextField name='password' type="password" onEnter={submit} value={password} autoComplete={true}
+                                         onChange={onPasswordChange} width={31} debounceDelay={0} showLabel={true}/>
+                        <Button type="submit" color="primary" onClick={submit} variant="contained"
+                                style={{}}>Login</Button>
+                    </>
+                }
+                {requestField.length > 0 &&
+                    <>
+                        {requestField.map(r => (
+                            <MythicTextField key={r.name} name={r.name} value={r.value} onChange={onUpdateText}
+                                             type={r.name === "password" ? "password" : ""}
+                                             width={31} debounceDelay={0} showLabel={true}/>
+                        ))}
+                        <Button type="submit" color="primary" onClick={submitNonIDP} variant="contained"
+                                style={{}}>Login via {selectedAuthOptionRef.current.idp}</Button>
+                    </>
+                }
+                {authOptions.length > 0 &&
+                    <>
+                        <Button ref={dropdownAnchorRef} style={{float: "right"}}
+                                variant={"outlined"}
+                                onClick={() => {
+                                    setOpenUpdateDialog(true);
+                                }} color="success"
+                        >
+                            Login via Custom Auth Providers
+                        </Button>
+                        <Popper open={openUpdate} anchorEl={dropdownAnchorRef.current}
+                                role={undefined} transition disablePortal style={{zIndex: 4}}>
+                            {({TransitionProps, placement}) => (
+                                <Grow
+                                    {...TransitionProps}
+                                    style={{
+                                        transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
+                                    }}
+                                >
+                                    <Paper className={"dropdownMenuColored"}>
+                                        <ClickAwayListener onClickAway={handleClose}
+                                                           mouseEvent={"onMouseDown"}>
+                                            <MenuList id="split-button-menu">
+                                                {authOptions.map((option, index) => (
+                                                    <MenuItem
+                                                        key={index + option}
+                                                        onClick={(event) => handleMenuItemClick(event, index)}
+                                                    >
+                                                        {option}
+                                                    </MenuItem>
+                                                ))}
+                                                <MenuItem onClick={resetLoginOption}>Mythic Local Login</MenuItem>
+                                            </MenuList>
+                                        </ClickAwayListener>
+                                    </Paper>
+                                </Grow>
+                            )}
+                        </Popper>
+                    </>
+                }
+            </CardContent>
+        </div>
 
         </div>
     )

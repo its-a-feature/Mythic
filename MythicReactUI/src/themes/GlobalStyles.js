@@ -6,6 +6,7 @@ body {
 }
 html, body, #root {
     height: 100%;
+    width: 100%;
 }
 @media screen and (max-width: 1100px) {
     .hideOnSmallWidth {
@@ -389,6 +390,12 @@ tspan {
     border-bottom: 1px solid grey;
     position: relative;
     top: 2px;
+    word-break: break-all;
 }
-
+.empty-table-header {
+    border: 1px solid grey !important;
+    height: 0px !important;
+    padding: 0px !important;
+    margin: 0px !important;
+}
 `

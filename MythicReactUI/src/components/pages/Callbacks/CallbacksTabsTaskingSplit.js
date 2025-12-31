@@ -415,7 +415,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
     return (
         <MythicTabPanel index={index} value={value} >
             <Split direction="horizontal" minSize={[0,0]} sizes={[30, 70]}
-                   style={{width: "100%", height: "100%", overflowY: "auto", display: "flex", justifyContent: "flex-end"}} >
+                   style={{width: "100%", height: "100%", overflow: "auto", display: "flex", justifyContent: "flex-end"}} >
                 <div className="bg-gray-base" style={{display: "inline-flex", flexDirection: "column"}} >
 
                     <div style={{overflowY: "auto", flexGrow: 1}} id={`taskingPanelSplit${tabInfo.callbackID}`}>
@@ -447,13 +447,13 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
                     </div>
 
                 </div>
-                <div className="bg-gray-light" style={{display: "inline-flex", flexDirection: "column", height: "100%"}}>
+                <div className="bg-gray-light" style={{display: "inline-flex", flexDirection: "column", height: "100%", width: "100%"}}>
                     {selectedTask.id > 0 && <TaskDisplayFlat key={"taskinteractdisplaysplit" + selectedTask.id} me={me} task={selectedTask}
-                                     command_id={selectedTask.command == null ? 0 : selectedTask.command.id}
-                                     filterOptions={filterOptions}
-                                     onSelectTask={(tsk) => {
-                                     }}
-                                     selectedTask={selectedTask}
+                                                             command_id={selectedTask.command == null ? 0 : selectedTask.command.id}
+                                                             filterOptions={filterOptions}
+                                                             onSelectTask={(tsk) => {
+                                                             }}
+                                                             selectedTask={selectedTask}
                     />}
                     <CallbacksTabsTaskingSplitTable selectedTask={selectedTask} me={me} filterOptions={filterOptions}
                                                     onSelectTask={(tsk) => {changeSelectedTask(tsk)}} changeSelectedTask={changeSelectedTask}

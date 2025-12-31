@@ -189,7 +189,6 @@ export const ResponseDisplayPlaintext = (props) =>{
                       //autoScrollEditorIntoView={true}
                       wrapEnabled={props.displayType !== 'console' ? wrapText : true}
                       minLines={1}
-                      //maxLines={props.expand ? 50 : 20}
                       setOptions={{
                           showLineNumbers: props.displayType !== 'console',
                           tabSize: 4,
