@@ -28,19 +28,18 @@ import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {updateCredentialDeleted} from "../Search/CredentialTable";
 
-export const getDynamicQueryParams = gql`
+export const getDynamicQueryParamsString = `
 mutation getDynamicParamsMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $other_parameters: jsonb){
     dynamic_query_function(callback: $callback, command: $command, payload_type: $payload_type, parameter_name: $parameter_name, other_parameters: $other_parameters){
         status
         error
         choices
         parameter_name
-        complex_choices {
-            value
-            display_value
-        }
     }
 }
+`
+export const getDynamicQueryParams = gql`
+${getDynamicQueryParamsString}
 `;
 const parseTypedArrayMutation = gql`
 mutation parseTypedArrayMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $input_array: [String!]!){

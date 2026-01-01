@@ -398,4 +398,12 @@ tspan {
     padding: 0px !important;
     margin: 0px !important;
 }
+.code-box {
+    border: 1px solid grey !important;
+    padding: 0px 5px 0px 5px;
+    overflow: auto;
+    white-space: pre;
+    background-color: black;
+    color: white;
+}
 `

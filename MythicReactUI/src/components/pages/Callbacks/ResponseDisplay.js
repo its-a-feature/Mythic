@@ -402,9 +402,10 @@ export const PaginationBar = ({selectAllOutput, totalCount, onSubmitPageChange, 
   }, [totalCount, maxCount, search, selectAllOutput]);
   const pageCount = Math.max(1, Math.ceil(localTotalCount / pageSize));
   // don't bother people with pagination information if they haven't even started paginating
-  if(pageCount < 2 || pageCount === Infinity){
+  if(pageCount < 2 || pageCount === Infinity || isNaN(pageCount)){
     return (<div id={'scrolltotaskbottom' + task.id}></div>)
   }
+  console.log(pageCount);
   return (
     <div id={'scrolltotaskbottom' + task.id} style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "10px",}} >
         <Pagination count={pageCount} page={currentPage} variant="contained" color="primary" showFirstButton showLastButton
