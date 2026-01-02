@@ -83,7 +83,6 @@ func ServiceStart(containers []string, keepVolume bool) error {
 		log.Printf("[-] Failed to start services: %v", err)
 		return err
 	}
-	err = manager.GetManager().RemoveImages()
 	if err != nil {
 		log.Printf("[-] Failed to remove images\n%v\n", err)
 		return err

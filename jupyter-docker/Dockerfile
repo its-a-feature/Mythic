@@ -18,5 +18,5 @@ ENV JUPYTER_PORT "8888"
 
 COPY ["jupyter/", "."]
 
-CMD start.sh jupyter lab --ServerApp.open_browser=false --IdentityProvider.token=${JUPYTER_TOKEN:-mythic} --ServerApp.base_url="/jupyter" --ServerApp.default_url="/jupyter" --port=${JUPYTER_PORT} --ip=${JUPYTER_IP}
+CMD start.sh jupyter lab --ServerApp.allow_remote_access=true --ServerApp.open_browser=false --IdentityProvider.token=${JUPYTER_TOKEN:-mythic} --ServerApp.base_url="/jupyter" --ServerApp.default_url="/jupyter" --port=${JUPYTER_PORT} --ip=${JUPYTER_IP}
 # sudo docker run -p 8888:8888 -v `pwd`/jupyter:/projects jupyter

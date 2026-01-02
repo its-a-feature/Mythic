@@ -181,6 +181,9 @@ func AddMythicService(service string, removeVolume bool) {
 			"mythic_postgres": {
 				"condition": "service_healthy",
 			},
+			"mythic_server": {
+				"condition": "service_healthy",
+			},
 		}
 		if mythicEnv.GetBool("hasura_use_build_context") {
 			pStruct["build"] = map[string]interface{}{
@@ -655,9 +658,6 @@ func AddMythicService(service string, removeVolume bool) {
 	case "mythic_server":
 		pStruct["depends_on"] = map[string]map[string]string{
 			"mythic_postgres": {
-				"condition": "service_healthy",
-			},
-			"mythic_graphql": {
 				"condition": "service_healthy",
 			},
 			"mythic_rabbitmq": {
