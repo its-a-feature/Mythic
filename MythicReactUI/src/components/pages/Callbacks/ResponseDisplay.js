@@ -405,7 +405,6 @@ export const PaginationBar = ({selectAllOutput, totalCount, onSubmitPageChange, 
   if(pageCount < 2 || pageCount === Infinity || isNaN(pageCount)){
     return (<div id={'scrolltotaskbottom' + task.id}></div>)
   }
-  console.log(pageCount);
   return (
     <div id={'scrolltotaskbottom' + task.id} style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "10px",}} >
         <Pagination count={pageCount} page={currentPage} variant="contained" color="primary" showFirstButton showLastButton

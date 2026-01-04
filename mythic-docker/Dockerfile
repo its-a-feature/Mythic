@@ -1,5 +1,3 @@
-#FROM ghcr.io/its-a-feature/mythic_server:v0.0.3.8
-
 FROM golang:1.25 AS builder
 
 WORKDIR /usr/src/app
