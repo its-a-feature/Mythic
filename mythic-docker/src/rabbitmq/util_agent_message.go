@@ -173,6 +173,8 @@ func (cache *cachedUUIDInfo) IterateAndAct(agentMessage *[]byte, action string) 
 				logging.LogError(err, "Failed IterateAndAct for an aes256_hmac key")
 				return nil, err
 			}
+		case "":
+			fallthrough
 		case "none":
 			return modified, nil
 		default:

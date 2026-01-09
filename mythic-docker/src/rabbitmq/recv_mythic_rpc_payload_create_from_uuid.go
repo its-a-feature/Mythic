@@ -416,7 +416,7 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 					}
 				} else {
 					if cryptoKeys, err := mythicCrypto.GenerateKeysForPayload(paramStringVal); err != nil {
-						logging.LogError(err, "Failed to generate crypto keys for payload")
+						logging.LogError(err, "Failed to generate crypto keys for payload", "value", paramStringVal, "name", databaseC2ProfileParameter.Name)
 						return nil, err
 					} else {
 						if cryptoKeys.EncKey != nil {
