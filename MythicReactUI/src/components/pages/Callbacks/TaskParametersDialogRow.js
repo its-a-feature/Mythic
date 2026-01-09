@@ -127,7 +127,9 @@ export function TaskParametersDialogRow(props){
             if(data.dynamic_query_function.status === "success"){
                 try{
                     let choicesInUse = [];
-                    if (data.dynamic_query_function.complex_choices !== null && data.dynamic_query_function.complex_choices.length > 0) {
+                    if (data.dynamic_query_function.complex_choices !== null &&
+                        data.dynamic_query_function.complex_choices !== undefined &&
+                        data.dynamic_query_function.complex_choices.length > 0) {
                         usingDynamicParamComplexChoices.current = true;
                         setChoiceOptions([...data.dynamic_query_function.complex_choices]);
                         choicesInUse = [...data.dynamic_query_function.complex_choices];
@@ -208,6 +210,7 @@ export function TaskParametersDialogRow(props){
                         }
                     }
                 }catch(error){
+                    console.log(error);
                     setBackdropOpen(false);
                     snackActions.warning("Failed to parse dynamic parameter results");
                     usingDynamicParamComplexChoices.current = false;
