@@ -8,7 +8,7 @@ import WrapTextIcon from '@mui/icons-material/WrapText';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
-import { IconButton } from '@mui/material';
+import { IconButton, Select } from '@mui/material';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import { useReactiveVar } from '@apollo/client';
@@ -16,6 +16,7 @@ import { meState } from '../../../cache';
 import CodeIcon from '@mui/icons-material/Code';
 import {GetOutputFormatAll} from "./ResponseDisplayInteractive";
 import PaletteIcon from '@mui/icons-material/Palette';
+import Input from '@mui/material/Input';
 
 const MaxRenderSize = 2000000;
 export const ResponseDisplayPlaintext = (props) =>{
@@ -96,14 +97,25 @@ export const ResponseDisplayPlaintext = (props) =>{
   return (
       <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
           {showOptions &&
-              <div style={{display: "inline-flex", flexDirection: "row", alignItems: "center"}}>
-                  <FormControl sx={{ display: "inline-block", marginLeft: "10px" }} size="small">
+              <div style={{display: "inline-flex", flexDirection: "row", alignItems: "center",
+                  color: theme.outputTextColor,
+                  backgroundColor: theme.outputBackgroundColor + (theme.palette.mode === 'dark' ? "D0" : "20"),}}>
+                  <FormControl sx={{ display: "inline-block", marginLeft: "10px", color: theme.outputTextColor, }} size="small">
                       <TextField
                           label={"Syntax"}
                           select
                           margin={"dense"}
                           size={"small"}
-                          style={{display: "inline-block", width: "100%"}}
+                          sx={{
+                              // Target the icon element directly within the Select
+                              '.MuiSelect-icon': {
+                                  color: theme.outputTextColor, // Set your desired color
+                              },
+                              '.MuiInputBase-root': {
+                                  color: theme.outputTextColor,
+                              }
+                          }}
+                          style={{display: "inline-block", width: "100%",}}
                           value={mode}
                           onChange={onChangeMode}
                       >
@@ -139,7 +151,6 @@ export const ResponseDisplayPlaintext = (props) =>{
                   width: "100%",
                   display: "flex",
                   zIndex: 1,
-                  backgroundColor: theme.palette.secondary.main
               }}>
                   {showOptions &&
                       <UnfoldLessIcon onClick={onChangeShowOptions}

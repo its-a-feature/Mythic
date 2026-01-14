@@ -436,7 +436,10 @@ const DisplayText = ({agent_file_id, expand, filename, preview, fileMetaData}) =
                     setLimitedPreviewWarning(true);
                 }
             }else{
-                snackActions.error(data.previewFile.error)
+                console.log(data.previewFile.error);
+                if(data.previewFile.error !== "EOF"){
+                    snackActions.error(data.previewFile.error);
+                }
             }
         },
         onError: (data) => {

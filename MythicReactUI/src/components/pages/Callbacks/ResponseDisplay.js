@@ -102,6 +102,7 @@ export const ResponseDisplay = (props) =>{
   )
 }
 const NonInteractiveResponseDisplay = (props) => {
+  const theme = useTheme();
   const [output, setOutput] = React.useState("");
   const [rawResponses, setRawResponses] = React.useState([]);
   const seenResponseIDs = React.useRef([]);
@@ -289,13 +290,16 @@ const NonInteractiveResponseDisplay = (props) => {
   }, [search.current]);
 
   return (
-      <React.Fragment>
+      <>
         <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2, position: "absolute"}}>
           <CircularProgress color="inherit" disableShrink  />
         </Backdrop>
 
         {!openBackdrop &&
-            <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%"}}>
+            <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%",
+                backgroundColor: theme.outputBackgroundColor + (theme.palette.mode === 'dark' ? "D0" : "D0"),
+                color: theme.outputTextColor,
+            }}>
                 {props.searchOutput &&
                     <SearchBar onSubmitSearch={onSubmitSearch} />
                 }
@@ -312,7 +316,7 @@ const NonInteractiveResponseDisplay = (props) => {
             </div>
 
         }
-      </React.Fragment>
+      </>
   )
 }
 export const ResponseDisplayConsole = (props) => {

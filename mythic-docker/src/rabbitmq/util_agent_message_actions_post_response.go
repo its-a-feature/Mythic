@@ -411,7 +411,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				} else {
 					fileMeta = databaseStructs.Filemeta{AgentFileID: *agentMessage.Responses[i].Download.FileID}
 					err = database.DB.Get(&fileMeta, `SELECT 
-					id, "path", total_chunks, chunks_received, host, is_screenshot, full_remote_path, complete, md5, sha1, filename, chunk_size, operation_id
+					id, "path", total_chunks, chunks_received, host, is_screenshot, full_remote_path, complete, md5, sha1, filename, chunk_size, operation_id, mythictree_id
 					FROM filemeta
 					WHERE agent_file_id=$1`, *agentMessage.Responses[i].Download.FileID)
 					if err != nil {
@@ -630,6 +630,9 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 					FileMetaID:  file.ID,
 				}
 			}(fileMeta)
+			if !fileMeta.IsScreenshot {
+				go updateFileMetaToMythicTree(fileMeta)
+			}
 		}
 	}
 	return response, nil
@@ -1353,7 +1356,8 @@ func handleAgentMessagePostResponseDownload(task *databaseStructs.Task, agentRes
 		}
 		fileMeta.TaskID.Valid = true
 		fileMeta.TaskID.Int64 = int64(task.ID)
-		if fileMeta.AgentFileID, fileMeta.Path, err = GetSaveFilePath(); err != nil {
+		fileMeta.AgentFileID, fileMeta.Path, err = GetSaveFilePath()
+		if err != nil {
 			logging.LogError(err, "Failed to create new save file on disk for agent download")
 			return "", err
 		}
@@ -2445,7 +2449,7 @@ func getParentPathFullPathName(pathData utils.AnalyzedPath, endIndex int, treeTy
 func updateTreeNode(treeNode databaseStructs.MythicTree) {
 	//logging.LogInfo("[*] Updating entry", "id", treeNode.ID, "deleted", treeNode.Deleted)
 	if _, err := database.DB.NamedExec(`UPDATE mythictree SET
-        success=:success, deleted=:deleted, metadata=mythictree.metadata || :metadata, task_id=:task_id
+        success=(mythictree.success OR :success), deleted=:deleted, metadata=mythictree.metadata || :metadata, task_id=:task_id, "timestamp"=now()
 		WHERE id=:id
 `, treeNode); err != nil {
 		logging.LogError(err, "Failed to update tree node")
@@ -2494,7 +2498,8 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 		task_id=:task_id, "name"=:name, parent_path=:parent_path, 
 		    can_have_children=(mythictree.has_children OR :has_children OR :can_have_children), 
 		    has_children=(mythictree.has_children OR :has_children), 
-		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false, display_path=:display_path
+		    metadata=mythictree.metadata || :metadata, os=:os, "timestamp"=now(), deleted=false, display_path=:display_path,
+		    success=(mythictree.success OR :success)
 		    RETURNING id`)
 	if err != nil {
 		logging.LogError(err, "Failed to create or update mythictree statement")
@@ -2504,13 +2509,6 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 	if err != nil {
 		logging.LogError(err, "Failed to create or update mythictree entry")
 	}
-	//logging.LogInfo("updating tree", "id", treeNode.ID, "permissions", treeNode.Metadata.StructValue())
-	if treeNode.Success.Valid {
-		_, err = database.DB.NamedExec(`UPDATE mythictree SET success=:success WHERE id=:id`, treeNode)
-		if err != nil {
-			logging.LogError(err, "failed to update success status on tree node")
-		}
-	}
 }
 func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.Filemeta) {
 	fileBrowser := databaseStructs.MythicTree{}
@@ -2518,7 +2516,7 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 		logging.LogError(nil, "Trying to addFileMeta to Mythic's Tree, but no FullRemotePath provided")
 		return
 	}
-	err := database.DB.Get(&fileBrowser, `SELECT id FROM mythictree WHERE
+	err := database.DB.Get(&fileBrowser, `SELECT id, metadata FROM mythictree WHERE
 		operation_id=$1 AND full_path=$2 AND tree_type='file' AND callback_id=$3 AND host=$4`,
 		newFile.OperationID, newFile.FullRemotePath, task.Callback.ID, newFile.Host)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -2540,12 +2538,38 @@ func addFileMetaToMythicTree(task databaseStructs.Task, newFile databaseStructs.
 			logging.LogError(err, "Failed to update file meta with mythic tree id")
 			return
 		}
-		_, err = database.DB.Exec(`UPDATE mythictree SET "timestamp"=now() WHERE id=$1`, fileBrowser.ID)
+		// update the file size
+		metadata := fileBrowser.Metadata.StructValue()
+		metadata["size"] = newFile.Size
+		metadataJSON := GetMythicJSONArrayFromStruct(metadata)
+		_, err = database.DB.Exec(`UPDATE mythictree SET "timestamp"=now(), metadata=$2 WHERE id=$1`, fileBrowser.ID, metadataJSON)
 		if err != nil {
 			logging.LogError(err, "failed to update timestamp on mythictree to indicate new file association happened")
 		}
 	} else {
 		logging.LogError(err, "failed to search for file browser data")
+	}
+}
+func updateFileMetaToMythicTree(newFile databaseStructs.Filemeta) {
+	fileBrowser := databaseStructs.MythicTree{}
+	if newFile.FullRemotePath == nil || len(newFile.FullRemotePath) == 0 {
+		return
+	}
+	if newFile.MythicTreeID.Int64 == 0 {
+		return // no valid tree id to update
+	}
+	err := database.DB.Get(&fileBrowser, `SELECT id, metadata FROM mythictree WHERE id=$1`, newFile.MythicTreeID)
+	if err == nil {
+		// update the file size
+		metadata := fileBrowser.Metadata.StructValue()
+		metadata["size"] = newFile.Size
+		metadataJSON := GetMythicJSONArrayFromStruct(metadata)
+		_, err = database.DB.Exec(`UPDATE mythictree SET "timestamp"=now(), metadata=$2 WHERE id=$1`, fileBrowser.ID, metadataJSON)
+		if err != nil {
+			logging.LogError(err, "failed to update timestamp on mythic tree to indicate new file association happened")
+		}
+	} else {
+		logging.LogError(err, "failed to search for file browser data when trying to update after finishing a file download")
 	}
 }
 func handleAgentMessagePostResponseEdges(uuidInfo *cachedUUIDInfo, edges *[]agentMessagePostResponseEdges) {

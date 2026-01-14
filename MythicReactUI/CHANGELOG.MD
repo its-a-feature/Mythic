@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.93] - 2026-01-14
+
+### Changed
+
+- Updated UI to allow output background color and output text color to be set separate from the "theme"
+- Updated UI to reflect file size updates from file browser while streaming
+
 ## [0.3.92] - 2026-01-09
 
 ### Changed

@@ -95,10 +95,18 @@ func AddMythicService(service string, removeVolume bool) {
 			pStruct["environment"] = environment
 		}
 		if !mythicEnv.GetBool("postgres_use_volume") {
-			pStruct["volumes"] = []string{
-				"./postgres-docker/database:/var/lib/postgresql/data",
-				"./postgres-docker/postgres.conf:/etc/postgresql.conf",
+			if mythicEnv.GetBool("postgres_debug") {
+				pStruct["volumes"] = []string{
+					"./postgres-docker/database:/var/lib/postgresql/data",
+					"./postgres-docker/postgres_debug.conf:/etc/postgresql.conf",
+				}
+			} else {
+				pStruct["volumes"] = []string{
+					"./postgres-docker/database:/var/lib/postgresql/data",
+					"./postgres-docker/postgres.conf:/etc/postgresql.conf",
+				}
 			}
+
 		} else {
 			pStruct["volumes"] = []string{
 				"mythic_postgres_volume:/var/lib/postgresql/data",

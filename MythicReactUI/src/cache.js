@@ -140,6 +140,14 @@ export const operatorSettingDefaults =  {
             dark: '#bebebe',
             light: '#a6a5a5'
         },
+        outputBackgroundColor: {
+            dark: '#282828',
+            light: '#f6f6f6'
+        },
+        outputTextColor: {
+            dark: '#f6f6f6',
+            light: '#282828',
+        }
     },
 }
 export const defaultShortcuts = [

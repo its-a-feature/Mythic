@@ -160,6 +160,10 @@ export function App(props) {
                         preferences?.palette?.taskContextExtraColor?.light || operatorSettingDefaults.palette.taskContextExtraColor.light,
                     emptyFolderColor: themeMode === 'dark' ? preferences?.palette?.emptyFolderColor?.dark || operatorSettingDefaults.palette.emptyFolderColor.dark :
                         preferences?.palette?.emptyFolderColor?.light || operatorSettingDefaults.palette.emptyFolderColor.light,
+                    outputBackgroundColor: themeMode === 'dark' ? preferences?.palette?.outputBackgroundColor?.dark || operatorSettingDefaults.palette.outputBackgroundColor.dark :
+                        preferences?.palette?.outputBackgroundColor?.light || operatorSettingDefaults.palette.outputBackgroundColor.light,
+                    outputTextColor: themeMode === 'dark' ? preferences?.palette?.outputTextColor?.dark || operatorSettingDefaults.palette.outputTextColor.dark :
+                        preferences?.palette?.outputTextColor?.light || operatorSettingDefaults.palette.outputTextColor.light,
                 })
             }catch(error){
                 console.log(error);
@@ -241,6 +245,10 @@ export function App(props) {
                         operatorSettingDefaults.palette.navBarBottomColor.light,
                     emptyFolderColor: themeMode === 'dark' ? operatorSettingDefaults.palette.emptyFolderColor.dark :
                         operatorSettingDefaults.palette.emptyFolderColor.light,
+                    outputBackgroundColor: themeMode === 'dark' ? operatorSettingDefaults.palette.outputBackgroundColor.dark :
+                        operatorSettingDefaults.palette.outputBackgroundColor.light,
+                    outputTextColor: themeMode === 'dark' ? operatorSettingDefaults.palette.outputTextColor.dark :
+                        operatorSettingDefaults.palette.outputTextColor.light,
                     typography: {
                         fontSize: 12,//operatorSettingDefaults?.fontSize,
                         fontFamily: operatorSettingDefaults?.fontFamily

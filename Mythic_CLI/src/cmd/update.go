@@ -5,18 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/MythicMeta/Mythic_CLI/cmd/config"
-	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
-	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
-	"github.com/spf13/cobra"
-	"golang.org/x/mod/semver"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
+
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
+	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
+	"github.com/MythicMeta/Mythic_CLI/cmd/manager"
+	"github.com/spf13/cobra"
+	"golang.org/x/mod/semver"
 )
 
 // configCmd represents the config command
@@ -291,6 +293,7 @@ func checkConfigJsonVersion(body []byte, agentName string) (updateVersion string
 func checkAgentVersions(agents []string, allAgents bool) error {
 	agentUpdateMessages := ""
 	localAgents := agents
+	updatedAgents := []string{}
 	if len(localAgents) == 0 || allAgents {
 		dockerComposeContainers, err := manager.GetManager().GetAllInstalled3rdPartyServiceNames()
 		if err != nil {
@@ -340,17 +343,32 @@ func checkAgentVersions(agents []string, allAgents bool) error {
 					if !keepVolume {
 						localKeepVolume = !config.GetMythicEnv().GetBool("REBUILD_ON_START")
 					}
-					err = internal.InstallService(targetInfoPieces[0], targetInfoPieces[1], true, localKeepVolume)
+					err, additionalServices := internal.InstallService(targetInfoPieces[0], targetInfoPieces[1], true, localKeepVolume)
 					if err != nil {
 						log.Printf("[!] Failed to install updated %s: %v\n", agent, err)
 						agentUpdateMessages += fmt.Sprintf("[!] Failed to install updated %s: %v\n", agent, err)
 					} else {
 						log.Printf("[+] Successfully installed updated %s\n", agent)
+						updatedAgents = append(updatedAgents, agent)
 						agentUpdateMessages += fmt.Sprintf("[+] Successfully installed updated %s\n", agent)
+					}
+					if len(additionalServices) > 0 {
+						log.Printf("[*] Attempting to install additional services.\n")
+					}
+					for serviceName, servicePath := range additionalServices {
+						if (installAgentUpdates || config.AskConfirm("[*] Would you like to install "+serviceName+"? ")) && !slices.Contains(updatedAgents, serviceName) {
+							updatedAgents = append(updatedAgents, serviceName)
+							if strings.HasPrefix(servicePath, "http") || strings.HasPrefix(servicePath, "git@") {
+								installGitHub(nil, strings.Split(servicePath, " "))
+							} else {
+								installFolder(nil, []string{servicePath})
+							}
+						}
 					}
 				}
 			} else {
 				log.Printf("[*] %s is up to date! Version: %s\n", agent, config.GetMythicEnv().GetString(fmt.Sprintf("%s_remote_image", agent)))
+				updatedAgents = append(updatedAgents, agent)
 				agentUpdateMessages += fmt.Sprintf("[*] %s is up to date! Version: %s\n", agent, config.GetMythicEnv().GetString(fmt.Sprintf("%s_remote_image", agent)))
 			}
 		} else {
@@ -375,14 +393,28 @@ func checkAgentVersions(agents []string, allAgents bool) error {
 					if !keepVolume {
 						localKeepVolume = !config.GetMythicEnv().GetBool("REBUILD_ON_START")
 					}
-					err = internal.InstallFolder(installLocation, true, localKeepVolume, "")
+					err, additionalServices := internal.InstallFolder(installLocation, true, localKeepVolume, "")
 					if err != nil {
 						log.Printf("[!] Failed to parse config.json for %s: %v\n", agent, err)
 						agentUpdateMessages += fmt.Sprintf("[!] Failed to parse config.json for %s: %v\n", agent, err)
 						continue
 					} else {
+						updatedAgents = append(updatedAgents, agent)
 						log.Printf("[+] Successfully installed updated %s\n", agent)
 						agentUpdateMessages += fmt.Sprintf("[+] Successfully installed updated %s\n", agent)
+						if len(additionalServices) > 0 {
+							log.Printf("[*] Attempting to install additional services.\n")
+						}
+						for serviceName, servicePath := range additionalServices {
+							if (installAgentUpdates || config.AskConfirm("[*] Would you like to install "+serviceName+"? ")) && !slices.Contains(updatedAgents, serviceName) {
+								updatedAgents = append(updatedAgents, serviceName)
+								if strings.HasPrefix(servicePath, "http") || strings.HasPrefix(servicePath, "git@") {
+									installGitHub(nil, strings.Split(servicePath, " "))
+								} else {
+									installFolder(nil, []string{servicePath})
+								}
+							}
+						}
 					}
 				}
 			} else {

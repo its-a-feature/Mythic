@@ -202,6 +202,7 @@ const EnterOptions = [
 ];
 export const ResponseDisplayInteractive = (props) =>{
     const me = useReactiveVar(meState);
+    const theme = useTheme();
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     const [scrollToBottom, setScrollToBottom] = React.useState(false);
     const pageSize = React.useRef(100);
@@ -392,7 +393,9 @@ export const ResponseDisplayInteractive = (props) =>{
           height: props.expand ? "100%" : undefined,
           maxHeight: props.expand ? "100%" : "500px",
           flexDirection: "column",
-          width: "100%"
+          width: "100%",
+          backgroundColor: theme.outputBackgroundColor + (theme.palette.mode === 'dark' ? "B0" : "E0"),
+          color: theme.outputTextColor,
       }}>
           <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute",}} invisible={false}>
               <div style={{
@@ -576,17 +579,26 @@ const InteractiveTaskingBar = ({
         <div style={{
             display: "flex",
             alignItems: "flex-end",
-            backgroundColor: theme.palette.graphGroupRGBA,
+            //backgroundColor: theme.outputBackgroundColor + (theme.palette.mode === 'dark' ? "F0" : "50"),
+            color: theme.outputTextColor,
             paddingTop: "5px",
+            border: "1px solid grey",
+            borderRadius: "4px",
             width: "100%"}}>
-            <FormControl style={{width: "10rem", marginTop: "2px"}} >
-                <InputLabel id="control-label" style={{}}>Controls</InputLabel>
+            <FormControl style={{width: "10rem", marginTop: "2px", color: theme.outputTextColor}} >
+                <InputLabel id="control-label" style={{color: theme.outputTextColor}}>Controls</InputLabel>
                 <Select
                     labelId="control-label"
                     id="control-select"
                     value={selectedControlOption}
                     onChange={onChangeSelect}
-                    input={<Input style={{margin: 0}} />}
+                    sx={{
+                        // Target the icon element directly within the Select
+                        '.MuiSelect-icon': {
+                            color: theme.outputTextColor, // Set your desired color
+                        },
+                    }}
+                    input={<Input style={{margin: 0, color: theme.outputTextColor}} />}
                 >
                     {InteractiveMessageTypes.map( (opt) => (
                         <MenuItem value={opt} key={opt.name}>{opt.name}</MenuItem>
@@ -597,15 +609,21 @@ const InteractiveTaskingBar = ({
             <MythicTextField autoFocus={true} maxRows={5} multiline={true} onChange={onInputChange} onEnter={submitTask}
                              value={inputText} variant={"standard"} placeholder={">_ type here..."} inline={true}
                              debounceDelay={50}
-                             marginBottom={"0px"} InputProps={{style: { width: "100%"}}}/>
-            <FormControl style={{width: "7rem"}} >
+                             marginBottom={"0px"} InputProps={{style: { width: "100%", color: theme.outputTextColor}}}/>
+            <FormControl style={{width: "7rem", color: theme.outputTextColor}} >
                 <Select
                     labelId="linefeed-label"
                     id="linefeed-control"
                     value={selectedEnterOption}
                     autoWidth
+                    sx={{
+                        // Target the icon element directly within the Select
+                        '.MuiSelect-icon': {
+                            color: theme.outputTextColor, // Set your desired color
+                        },
+                    }}
                     onChange={onChangeSelectEnterOption}
-                    input={<Input />}
+                    input={<Input style={{color: theme.outputTextColor}} />}
                     IconComponent={KeyboardReturnIcon}
                 >
                     {EnterOptions.map( (opt) => (
@@ -614,7 +632,7 @@ const InteractiveTaskingBar = ({
                 </Select>
             </FormControl>
             <MythicStyledTooltip title={useASNIColor ?  "Disable ANSI Color" : "Enable ANSI Color"} >
-                <IconButton onClick={toggleANSIColor} style={{paddingLeft: 0, paddingRight: 0}} disableRipple={true} disableFocusRipple={true}>
+                <IconButton onClick={toggleANSIColor} style={{paddingLeft: 0, paddingRight: 0,}} disableRipple={true} disableFocusRipple={true}>
                     <PaletteIcon color={useASNIColor ? "success" : "secondary"}
                                  style={{cursor: "pointer"}}
                     />

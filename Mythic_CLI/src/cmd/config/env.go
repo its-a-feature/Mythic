@@ -24,9 +24,6 @@ var MythicPossibleServices = []string{
 	"mythic_graphql",
 	"mythic_documentation",
 	"mythic_jupyter",
-	"mythic_grafana",
-	"mythic_prometheus",
-	"mythic_postgres_exporter",
 }
 var mythicEnv = viper.New()
 var mythicEnvInfo = make(map[string]string)
@@ -72,18 +69,21 @@ func GetIntendedMythicServiceNames() ([]string, error) {
 			if mythicEnv.GetString("JUPYTER_HOST") == "127.0.0.1" || mythicEnv.GetString("JUPYTER_HOST") == "mythic_jupyter" {
 				containerList = append(containerList, service)
 			}
-		case "mythic_grafana":
-			if mythicEnv.GetBool("postgres_debug") {
-				containerList = append(containerList, service)
-			}
-		case "mythic_prometheus":
-			if mythicEnv.GetBool("postgres_debug") {
-				containerList = append(containerList, service)
-			}
-		case "mythic_postgres_exporter":
-			if mythicEnv.GetBool("postgres_debug") {
-				containerList = append(containerList, service)
-			}
+			/*
+				case "mythic_grafana":
+					if mythicEnv.GetBool("postgres_debug") {
+						containerList = append(containerList, service)
+					}
+				case "mythic_prometheus":
+					if mythicEnv.GetBool("postgres_debug") {
+						containerList = append(containerList, service)
+					}
+				case "mythic_postgres_exporter":
+					if mythicEnv.GetBool("postgres_debug") {
+						containerList = append(containerList, service)
+					}
+			
+			*/
 		}
 	}
 	return containerList, nil

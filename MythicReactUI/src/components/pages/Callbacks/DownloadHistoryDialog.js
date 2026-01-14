@@ -39,8 +39,8 @@ export function DownloadHistoryDialog(props){
                       <TableRow>
                           <TableCell style={{}}></TableCell>
                           <TableCell style={{width: "15rem"}}>Time</TableCell>
-                          <TableCell style={{width: "5rem"}}>Task</TableCell>
-                          <TableCell style={{width: "5rem"}}>Callback</TableCell>
+                          <TableCell style={{width: "7rem"}}>Task</TableCell>
+                          <TableCell style={{width: "7rem"}}>Callback</TableCell>
                           <TableCell>Comment</TableCell>
                       </TableRow>
                   </TableHead>

@@ -470,12 +470,15 @@ func (d *DockerComposeManager) BuildServices(services []string, keepVolume bool)
 	if err != nil {
 		return err
 	}
-	err = d.runDockerCompose(append([]string{"up", "--build", "-d"}, services...))
+	err = d.runDockerCompose(append([]string{"build"}, services...))
+	if err != nil {
+		return err
+	}
+	err = d.runDockerCompose(append([]string{"up", "-d"}, services...))
 	if err != nil {
 		return err
 	}
 	return nil
-
 }
 
 // GetInstalled3rdPartyServicesOnDisk lists out the name of all 3rd party software installed on disk

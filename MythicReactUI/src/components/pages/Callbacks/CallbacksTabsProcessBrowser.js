@@ -271,11 +271,14 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me, set
                         treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]].callbacks = [data.data.mythictree_stream[i].callback]
                     } else {
                         // we need to merge data in because we already have some info
-                        if(data.data.mythictree_stream[i].deleted){
-                            delete treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
-                            continue;
-                        }
                         let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
+                        if(existingData.task_id <= data.data.mythictree_stream[i].task_id){
+                            if(data.data.mythictree_stream[i].deleted){
+                                delete treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
+                                continue;
+                            }
+                        }
+                        existingData.has_children = data.data.mythictree_stream[i].has_children || existingData.has_children;
                         existingData.callbacks.push(data.data.mythictree_stream[i].callback)
                         existingData.comment += data.data.mythictree_stream[i].comment;
                         existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];

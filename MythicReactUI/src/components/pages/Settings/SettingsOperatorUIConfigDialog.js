@@ -234,6 +234,14 @@ export function SettingsOperatorUIConfigDialog(props) {
             dark: isValidColor(initialPalette?.emptyFolderColor?.dark) ? initialPalette?.emptyFolderColor?.dark : operatorSettingDefaults.palette.emptyFolderColor.dark,
             light: isValidColor(initialPalette?.emptyFolderColor?.light) ? initialPalette?.emptyFolderColor?.light : operatorSettingDefaults.palette.emptyFolderColor.light,
         },
+        outputBackgroundColor: {
+            dark: isValidColor(initialPalette?.outputBackgroundColor?.dark) ? initialPalette?.outputBackgroundColor?.dark : operatorSettingDefaults.palette.outputBackgroundColor.dark,
+            light: isValidColor(initialPalette?.outputBackgroundColor?.light) ? initialPalette?.outputBackgroundColor?.light : operatorSettingDefaults.palette.outputBackgroundColor.light,
+        },
+        outputTextColor: {
+            dark: isValidColor(initialPalette?.outputTextColor?.dark) ? initialPalette?.outputTextColor?.dark : operatorSettingDefaults.palette.outputTextColor.dark,
+            light: isValidColor(initialPalette?.outputTextColor?.light) ? initialPalette?.outputTextColor?.light : operatorSettingDefaults.palette.outputTextColor.light,
+        },
     });
     const paletteOptionsSolidColor = [
         {name: "primary", display: "Primary"},
@@ -839,6 +847,48 @@ export function SettingsOperatorUIConfigDialog(props) {
                                   <HexColorInput color={palette?.text?.light} onChange={(v) => onChangePaletteColor("text", "light", v)}/>
                                   <Box sx={{width: "100%", height: 25, backgroundColor: palette?.background?.light, display: "flex", alignItems: "center"}}>
                                       <Typography style={{color: palette.text.light, display: "inline-block"}}>Light Mode Color</Typography>
+                                  </Box>
+                              </div>
+                          </div>
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Task Output Text Color</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.outputTextColor?.dark} onChange={(v) => onChangePaletteColor("outputTextColor", "dark", v)}/>
+                                  <HexColorInput color={palette?.outputTextColor?.dark} onChange={(v) => onChangePaletteColor("outputTextColor", "dark", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.outputBackgroundColor?.dark, display: "flex", alignItems: "center"}}>
+                                      <Typography style={{color: palette.outputTextColor.dark, display: "inline-block"}}>Dark Mode Output Text Color</Typography>
+                                  </Box>
+                              </div>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.outputTextColor?.light} onChange={(v) => onChangePaletteColor("outputTextColor", "light", v)}/>
+                                  <HexColorInput color={palette?.outputTextColor?.light} onChange={(v) => onChangePaletteColor("outputTextColor", "light", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.outputBackgroundColor?.light, display: "flex", alignItems: "center"}}>
+                                      <Typography style={{color: palette.outputTextColor.light, display: "inline-block"}}>Light Mode Output Text Color</Typography>
+                                  </Box>
+                              </div>
+                          </div>
+                      </MythicStyledTableCell>
+                  </TableRow>
+                  <TableRow hover>
+                      <MythicStyledTableCell>Task Output Background Color</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.outputBackgroundColor?.dark} onChange={(v) => onChangePaletteColor("outputBackgroundColor", "dark", v)}/>
+                                  <HexColorInput color={palette?.outputBackgroundColor?.dark} onChange={(v) => onChangePaletteColor("outputBackgroundColor", "dark", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.outputBackgroundColor?.dark, display: "flex", alignItems: "center"}}>
+                                      <Typography style={{color: palette.outputTextColor.dark, display: "inline-block"}}>Dark Mode Output Text Color</Typography>
+                                  </Box>
+                              </div>
+                              <div style={{display: "inline-block", width: "100%"}}>
+                                  <HexColorPicker style={{width: "100%"}} color={palette?.outputBackgroundColor?.light} onChange={(v) => onChangePaletteColor("outputBackgroundColor", "light", v)}/>
+                                  <HexColorInput color={palette?.outputBackgroundColor?.light} onChange={(v) => onChangePaletteColor("outputBackgroundColor", "light", v)}/>
+                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.outputBackgroundColor?.light, display: "flex", alignItems: "center"}}>
+                                      <Typography style={{color: palette.outputTextColor.light, display: "inline-block"}}>Light Mode Output Text Color</Typography>
                                   </Box>
                               </div>
                           </div>

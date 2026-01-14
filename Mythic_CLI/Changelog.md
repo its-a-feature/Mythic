@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.3.25] - 2026-01-14
+
+### Changed
+
+- Updated `postgres_debug` to not add in prometheus, grafana, and postgres-exporter
+  - this will get added back later with better integrations and configurations
+- updated `postgres_debug` to use postgres_debug.conf instead of postgres.conf
+- updated to allow `additional_services` keyword in `config.json` installs
+  - This is a `map[string]string` that identifies additional services to install
+  - for example: `"additional_services": {"http": "https://github.com/MythicC2Profiles/http" }`
+  - if you want to specify a specific branch, do: `"additional_services": {"http": "https://github.com/MythicC2Profiles/http branchName" }`
+  - you can also specify a local path instead of a GitHub URL
+
 ## [0.3.24] - 2026-01-02
 
 ### Changed

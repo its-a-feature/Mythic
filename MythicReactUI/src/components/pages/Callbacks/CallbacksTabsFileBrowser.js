@@ -320,16 +320,19 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                     } else {
                         // we need to merge data in because we already have some info
                         let existingData = treeRootDataRef.current[currentGroups[j]][data.data.mythictree_stream[i]["host"]][data.data.mythictree_stream[i]["full_path_text"]];
-                        if(existingData.task_id < data.data.mythictree_stream[i].task_id){
+                        if(existingData.task_id <= data.data.mythictree_stream[i].task_id){
                             existingData.deleted = data.data.mythictree_stream[i].deleted;
                         }
                         if( (existingData.success === null || !existingData.success) && data.data.mythictree_stream[i].success !== null){
                             existingData.success = data.data.mythictree_stream[i].success;
                             existingData.task_id = data.data.mythictree_stream[i].task_id;
                         }
-                        existingData.comment += data.data.mythictree_stream[i].comment;
+                        existingData.comment = data.data.mythictree_stream[i].comment;
                         existingData.tags = [...existingData.tags, ...data.data.mythictree_stream[i].tags];
                         existingData.has_children = data.data.mythictree_stream[i].has_children || existingData.has_children;
+                        existingData.metadata.size = data.data.mythictree_stream[i].metadata.size;
+                        existingData.metadata.access_time = data.data.mythictree_stream[i].metadata.access_time;
+                        existingData.metadata.modify_time = data.data.mythictree_stream[i].metadata.modify_time;
                         if(data.data.mythictree_stream[i].metadata.permissions !== undefined && data.data.mythictree_stream[i].metadata.permissions !== null){
                             if(Array.isArray(existingData.metadata.permissions) && Array.isArray(data.data.mythictree_stream[i].metadata.permissions)){
                                 existingData.metadata.permissions = [...existingData.metadata.permissions, ...data.data.mythictree_stream[i].metadata.permissions];
@@ -458,7 +461,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                     } else {
                         // we need to merge data in because we already have some info
                         let existingData = treeRootDataRef.current[currentGroups[j]][mythictree[i]["host"]][mythictree[i]["full_path_text"]];
-                        if(existingData.task_id < mythictree[i].task_id){
+                        if(existingData.task_id <= mythictree[i].task_id){
                             existingData.deleted = mythictree[i].deleted;
                         }
                         if( (existingData.success === null || !existingData.success) && mythictree[i].success !== null){
@@ -468,6 +471,9 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me, setNe
                         existingData.comment += mythictree[i].comment;
                         existingData.tags = [...existingData.tags, ...mythictree[i].tags];
                         existingData.has_children = mythictree[i].has_children || existingData.has_children;
+                        existingData.metadata.size = mythictree[i].metadata.size;
+                        existingData.metadata.access_time = mythictree[i].metadata.access_time;
+                        existingData.metadata.modify_time = mythictree[i].metadata.modify_time;
                         //console.log("updating permissions", "existing", existingData.metadata.permissions, "new", mythictree[i].metadata)
                         if(mythictree[i].metadata.permissions !== undefined && mythictree[i].metadata.permissions !== null){
                             if(Array.isArray(existingData.metadata.permissions) && Array.isArray(mythictree[i].metadata.permissions)){

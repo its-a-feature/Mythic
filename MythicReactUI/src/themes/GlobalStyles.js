@@ -38,13 +38,13 @@ html, body, #root {
     border-bottom: 2px solid grey;
 }
 tr:nth-child(even) {
-  background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "0D" : props.theme.tableHover + "80"};
+  background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "80" : props.theme.tableHover + "80"};
 }
 .alternateRow {
     background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "0D" : props.theme.tableHover + "80"};
 }
 .MythicResizableGridRowHighlight {
-  background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "0D" : props.theme.tableHover + "80"};
+  background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "60" : props.theme.tableHover + "10"};
 } 
 .MuiTableRow-hover {
     &:hover,
@@ -372,13 +372,15 @@ tspan {
   opacity: 0.3;
 }
 .ace_editor{
-    background-color: ${(props) => props.theme.palette.background.default + "80"};
+    background-color: ${(props) => props.theme.outputBackgroundColor + "20"};
 }
 .ace_gutter {
     //background: transparent !important;
+    background-color: ${(props) => props.theme.outputBackgroundColor + "20"} !important;
+    color: ${(props) => props.theme.outputTextColor} !important;
 }
 .ace_editor .ace_text-layer {
-    color: ${(props) => props.theme.palette.text.primary};
+    color: ${(props) => props.theme.outputTextColor};
 }
 .rounded-tab { 
     border-top-left-radius: 10px;
