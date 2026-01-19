@@ -50,7 +50,7 @@
     "react-dom": "^18.3.1",
     "react-draggable": "^4.4.6",
     "react-moment": "^1.1.3",
-    "react-router-dom": "^7.5.2",
+    "react-router-dom": "^7.12.0",
     "react-scrollbar-size": "^5.0.0",
     "react-split": "^2.0.14",
     "react-toastify": "^11.0.5",
