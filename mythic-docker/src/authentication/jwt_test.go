@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 )
 
@@ -22,7 +23,7 @@ func TestTokenValid(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	user := databaseStructs.Operator{ID: 123}
-	access_token, _, _, _ := GenerateJWT(user, AUTH_METHOD_USER)
+	access_token, _, _, _ := mythicjwt.GenerateJWT(user, mythicjwt.AUTH_METHOD_USER, 0, 0)
 
 	tests := []struct {
 		name    string
@@ -91,12 +92,12 @@ func TestGetClaims(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	user := databaseStructs.Operator{ID: 123}
-	access_token, _, _, _ := GenerateJWT(user, AUTH_METHOD_USER)
+	access_token, _, _, _ := mythicjwt.GenerateJWT(user, mythicjwt.AUTH_METHOD_USER, 0, 0)
 
 	tests := []struct {
 		name    string
 		args    args
-		want    *CustomClaims
+		want    *mythicjwt.CustomClaims
 		wantErr bool
 	}{
 		{
@@ -106,12 +107,12 @@ func TestGetClaims(t *testing.T) {
 					"Authorization": {"Bearer " + access_token},
 				},
 			},
-			want: &CustomClaims{
+			want: &mythicjwt.CustomClaims{
 				UserID:     123,
-				AuthMethod: AUTH_METHOD_USER,
+				AuthMethod: mythicjwt.AUTH_METHOD_USER,
 				StandardClaims: jwt.StandardClaims{
 					IssuedAt:  time.Now().Unix(),
-					ExpiresAt: time.Now().Add(JWTTimespan).UTC().Unix(),
+					ExpiresAt: time.Now().Add(mythicjwt.JWTTimespan).UTC().Unix(),
 				},
 			},
 			wantErr: false,
@@ -133,12 +134,12 @@ func TestGetClaims(t *testing.T) {
 					"Apitoken": {access_token}, // "Apitoken" and not "apitoken" here because Go uses the canonical form (first letter of the word and after hyphens as uppercase)
 				},
 			},
-			want: &CustomClaims{
+			want: &mythicjwt.CustomClaims{
 				UserID:     123,
-				AuthMethod: AUTH_METHOD_USER,
+				AuthMethod: mythicjwt.AUTH_METHOD_USER,
 				StandardClaims: jwt.StandardClaims{
 					IssuedAt:  time.Now().Unix(),
-					ExpiresAt: time.Now().Add(JWTTimespan).UTC().Unix(),
+					ExpiresAt: time.Now().Add(mythicjwt.JWTTimespan).UTC().Unix(),
 				},
 			},
 			wantErr: false,
@@ -202,7 +203,7 @@ func TestRefreshJWT(t *testing.T) {
 	}
 	userID := 42
 	user := databaseStructs.Operator{ID: userID}
-	access_token, refresh_token, _, _ := GenerateJWT(user, AUTH_METHOD_USER)
+	access_token, refresh_token, _, _ := mythicjwt.GenerateJWT(user, mythicjwt.AUTH_METHOD_USER, 0, 0)
 
 	tests := []struct {
 		name                     string
@@ -258,7 +259,7 @@ func TestRefreshJWT(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			access_token, refresh_token, user, err := RefreshJWT(tt.args.access_token, tt.args.refresh_token)
+			access_token, refresh_token, user, err := mythicjwt.RefreshJWT(tt.args.access_token, tt.args.refresh_token)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RefreshJWT() error = %v, wantErr %v", err, tt.wantErr)
 				return

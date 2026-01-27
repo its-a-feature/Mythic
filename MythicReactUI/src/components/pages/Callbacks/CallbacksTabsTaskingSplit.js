@@ -377,7 +377,7 @@ export const CallbacksTabsTaskingSplitPanel = ({tabInfo, index, value, onCloseTa
         }
     }
     const changeSelectedTask = (task) => {
-        let updated = {...taskingData};
+        let updated = {...taskingDataRef.current};
         for(let i = 0; i < updated.task.length; i++){
             if(updated.task[i].id === task.id){
                 updated.task[i].selected = true;
