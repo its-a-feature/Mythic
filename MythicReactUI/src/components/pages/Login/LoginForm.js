@@ -24,7 +24,7 @@ export function LoginForm(props){
     const [authOptions, setAuthOptions] = React.useState([]);
     const selectedAuthOptionRef = React.useRef({});
     let queryParams = new URLSearchParams(window.location.search);
-    const redirectPath = queryParams.has("redirect") ? queryParams.get("redirect") : "/new";
+    const redirectPath = React.useRef(queryParams.has("redirect") ? queryParams.get("redirect") : "/new");
     useEffect( () => {
         if(!isJWTValid()){
             console.log("calling FailedRefresh on the login page to remove old data");
@@ -197,7 +197,7 @@ export function LoginForm(props){
     return (
         <div style={{justifyContent: "center", display: "flex"}}>
         {
-            me.loggedIn && (<Navigate replace to={redirectPath}/>)
+            me.loggedIn && (<Navigate replace to={redirectPath.current}/>)
         }
 
         <div style={{backgroundColor: "transparent"}}>

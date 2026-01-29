@@ -106,6 +106,7 @@ export const taskingDataFragment = gql`
             domain
             ip
             mythictree_groups
+            pid
         }
         callback_id
         commentOperator{
@@ -175,6 +176,7 @@ export const taskingDataFragment = gql`
                 domain
                 ip
                 mythictree_groups
+                pid
             }
             completed
             subtask_group_name

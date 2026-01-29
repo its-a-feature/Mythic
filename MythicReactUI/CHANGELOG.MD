@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.95] - 2026-01-29
+
+### Changed
+
+- Updated tasking data for browser scripts to also provide callback's pid
+- Updated browser scripting to provide new type: `tabs`
+  - returning `{"tabs": [ {"title": "tab title here", "content": {"table": {table dict} } } ] }`
+    - this creates one tab with title `tab title here` that renders a table
+    
 ## [0.3.94] - 2026-01-27
 
 ### Changed

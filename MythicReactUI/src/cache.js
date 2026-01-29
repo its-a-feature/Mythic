@@ -38,7 +38,7 @@ export const operatorSettingDefaults =  {
     hideBrowserTasking: false,
     hideTaskingContext: false,
     taskingContextFields: ["impersonation_context", "cwd"],
-    ["experiment-responseStreamLimit"]: 50,
+    ["experiment-responseStreamLimit"]: 200,
     palette: {
         primary: {
             dark: "#75859b",

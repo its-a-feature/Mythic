@@ -16,6 +16,8 @@ import {ResponseDisplayInteractive} from "./ResponseDisplayInteractive";
 import {ResponseDisplayMedia} from "./ResponseDisplayMedia";
 import {GetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import {ResponseDisplayGraph} from "./ResponseDisplayGraph";
+import {operatorSettingDefaults} from "../../../cache";
+import {ResponseDisplayTabs} from "./ResponseDisplayTabs";
 
 const subResponsesStream = gql`
 subscription subResponsesStream($task_id: Int!){
@@ -110,7 +112,7 @@ const NonInteractiveResponseDisplay = (props) => {
   const [totalCount, setTotalCount] = React.useState(0);
   const [openBackdrop, setOpenBackdrop] = React.useState(true);
   const togglingAllOutputToPaginated = React.useRef(false);
-  const initialResponseStreamLimit = GetMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: 50});
+  const initialResponseStreamLimit = GetMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: operatorSettingDefaults["experiment-responseStreamLimit"]});
   const [fetchMoreResponses] = useLazyQuery(getResponsesLazyQuery, {
     fetchPolicy: "network-only",
     onCompleted: (data) => {
@@ -544,47 +546,64 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     return null
   }
   return (
-    localViewBrowserScript && Object.keys(browserScriptData).length > 0 ? (
-      <React.Fragment>
-          {browserScriptData?.screenshot?.map( (scr, index) => (
-              <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} task={task} {...scr}
-                                         displayType={displayType} expand={expand} />
-            ))
-          }
-          {browserScriptData?.plaintext !== undefined &&
-            <ResponseDisplayPlaintext plaintext={browserScriptData["plaintext"]} task={task}
-                                      expand={expand} displayType={displayType} />
-          }
-          {browserScriptData?.table?.map( (table, index) => (
-
-            <ResponseDisplayTable callback_id={task.callback_id} task={task} expand={expand}
-                                         table={table} key={"tablefortask" + task.id + "table" + index}
-                                         displayType={displayType}
-            />
-          ))
-          }
-          {browserScriptData?.download?.map( (dl, index) => (
-              <ResponseDisplayDownload download={dl} task={task} displayType={displayType}
-                                       key={"download" + index + "fortask" + task.id} />
-            ))
-          }
-          {browserScriptData?.search?.map( (s, index) => (
-              <ResponseDisplaySearch search={s} task={task} displayType={displayType}
-                                     key={"searchlink" + index + "fortask" + task.id} />
-          ))
-          }
-          {browserScriptData?.media?.map( (s, index) => (
-              <ResponseDisplayMedia key={"searchmedia" + index + "fortask" + task.id}
-                                    displayType={displayType}
-                                    task={task} media={s} expand={expand} />
-          ))}
-          {browserScriptData?.graph !== undefined &&
-            <ResponseDisplayGraph graph={browserScriptData.graph} task={task}
-                                  expand={expand} displayType={displayType} />
-          }
-      </React.Fragment>
+    localViewBrowserScript ? (
+        <ResponseDisplayBrowserScriptComponent expand={expand} displayType={displayType}
+                                               task={task} browserScriptData={browserScriptData}
+                                               output={output}/>
     ) : (
       <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand} displayType={displayType}/>
     )
+  )
+}
+
+export function ResponseDisplayBrowserScriptComponent({output, browserScriptData, task, expand, displayType}) {
+  return (
+      <>
+        {Object.keys(browserScriptData).length > 0 ? (
+            <>
+              {browserScriptData?.screenshot?.map( (scr, index) => (
+                  <ResponseDisplayScreenshot key={"screenshot" + index + 'fortask' + task.id} task={task} {...scr}
+                                             displayType={displayType} expand={expand} />
+              ))
+              }
+              {browserScriptData?.plaintext !== undefined &&
+                  <ResponseDisplayPlaintext plaintext={browserScriptData["plaintext"]} task={task}
+                                            expand={expand} displayType={displayType} />
+              }
+              {browserScriptData?.table?.map( (table, index) => (
+                  <ResponseDisplayTable callback_id={task.callback_id} task={task} expand={expand}
+                                        table={table} key={"tablefortask" + task.id + "table" + index}
+                                        displayType={displayType}
+                  />
+              ))
+              }
+              {browserScriptData?.download?.map( (dl, index) => (
+                  <ResponseDisplayDownload download={dl} task={task} displayType={displayType}
+                                           key={"download" + index + "fortask" + task.id} />
+              ))
+              }
+              {browserScriptData?.search?.map( (s, index) => (
+                  <ResponseDisplaySearch search={s} task={task} displayType={displayType}
+                                         key={"searchlink" + index + "fortask" + task.id} />
+              ))
+              }
+              {browserScriptData?.media?.map( (s, index) => (
+                  <ResponseDisplayMedia key={"searchmedia" + index + "fortask" + task.id}
+                                        displayType={displayType}
+                                        task={task} media={s} expand={expand} />
+              ))}
+              {browserScriptData?.graph !== undefined &&
+                  <ResponseDisplayGraph graph={browserScriptData.graph} task={task}
+                                        expand={expand} displayType={displayType} />
+              }
+              {browserScriptData.tabs && browserScriptData.tabs.length > 0 &&
+                <ResponseDisplayTabs task={task} expand={expand} displayType={displayType} tabs={browserScriptData.tabs} output={output} />
+              }
+            </>
+            ) : (
+                <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand} displayType={displayType}/>
+            )
+        }
+      </>
   )
 }
