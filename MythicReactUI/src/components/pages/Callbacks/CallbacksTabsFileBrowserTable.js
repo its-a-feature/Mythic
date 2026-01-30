@@ -415,10 +415,16 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         if(listCommand !== undefined){
             listDisplay = `List (${listCommand.command.cmd})`;
         }
-        let removeCommand = await props.getLoadedCommandForUIFeature(callback_id, props.baseUIFeature + ":remove");
+        let removeCommand = await props.getLoadedCommandForUIFeature(callback_id, element.can_have_children ?  props.baseUIFeature + ":remove_folder" : props.baseUIFeature + ":remove");
         let removeDisplay = "Remove (Unsupported)";
+        if( element.can_have_children) {
+            removeDisplay = "Remove Folder (Unsupported)"
+        }
         if(removeCommand !== undefined){
             removeDisplay = `Remove (${removeCommand.command.cmd})`;
+            if(element.can_have_children){
+                downloadDisplay = `Remove Folder (${removeCommand.command.cmd})`;
+            }
         }
         return [
             {
@@ -462,7 +468,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
                         full_path: element.full_path_text,
                         host: element.host,
                         filename: element.name_text,
-                        uifeature: props.baseUIFeature + ':remove',
+                        uifeature: element.can_have_children ? props.baseUIFeature + ':remove_folder' : props.baseUIFeature + ':remove',
                         getConfirmation: true,
                         callback_id, callback_display_id
                     });

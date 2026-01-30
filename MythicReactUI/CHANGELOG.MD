@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.96] - 2026-01-30
+
+### Changed
+
+- Updated the file browser to support `file_browser:remove` and `file_browser:remove_folder`
+  - this allows separate commands for deleting files vs deleting folders (or the same command if you want)
+  
 ## [0.3.95] - 2026-01-29
 
 ### Changed
