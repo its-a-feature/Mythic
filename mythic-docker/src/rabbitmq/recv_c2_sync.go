@@ -192,7 +192,7 @@ func c2Sync(in C2SyncMessage) error {
 	}
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", c2Profile.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
 	go database.ResolveAllOperationsMessage(getDownContainerMessage(c2Profile.Name), 0)
-	go autoStartC2Profile(c2Profile)
+	go autoStartC2Profile(c2Profile, false)
 	if newProfile {
 		go reSyncPayloadTypes()
 	}
@@ -361,11 +361,15 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 	return nil
 }
 
-func autoStartC2Profile(c2Profile databaseStructs.C2profile) *C2StartServerMessageResponse {
+func autoStartC2Profile(c2Profile databaseStructs.C2profile, startC2Only bool) *C2StartServerMessageResponse {
 	// on a new sync, if it's not p2p, ask it to start
 	var c2StartResp *C2StartServerMessageResponse
+	c2StartResp = new(C2StartServerMessageResponse)
+	c2StartResp.Success = true
 	var err error
-	CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(c2Profile.Name)
+	if !startC2Only {
+		CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(c2Profile.Name)
+	}
 	if !c2Profile.IsP2p {
 		c2StartResp, err = RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{Name: c2Profile.Name})
 		time.Sleep(10 * time.Second) // give the server a chance to start back up
@@ -376,7 +380,7 @@ func autoStartC2Profile(c2Profile databaseStructs.C2profile) *C2StartServerMessa
 			UpdateC2ProfileRunningStatus(c2Profile, c2StartResp.InternalServerRunning)
 			if !c2StartResp.InternalServerRunning {
 				go SendAllOperationsMessage(fmt.Sprintf("Failed to start c2 profile %s:\n%s", c2Profile.Name, c2StartResp.Error), 0, "", database.MESSAGE_LEVEL_INFO, true)
-			} else {
+			} else if !startC2Only {
 				autoReHostFiles(c2Profile)
 			}
 		}
@@ -414,7 +418,7 @@ func autoReHostFiles(c2Profile databaseStructs.C2profile) {
 				})
 				logging.LogInfo("got response from sending host file", "c2", newTagMap["c2_profile"].(string), "url", newTagMap["host_url"].(string))
 				// sleep for 3 seconds to allow the internal c2 binary to start up before we send anything else
-				time.Sleep(10 * time.Second)
+				time.Sleep(12 * time.Second)
 				if err != nil {
 					logging.LogError(err, "failed to send host file message to c2 profile")
 					go SendAllOperationsMessage(fmt.Sprintf(

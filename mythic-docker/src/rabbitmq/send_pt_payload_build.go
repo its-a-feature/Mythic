@@ -302,11 +302,20 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 		}
 		if !c2.IsP2P {
 			buildOutput += fmt.Sprintf("Step 3/%d - Issuing Start command\n", totalSteps)
-			c2StartServerResponse := autoStartC2Profile(databaseStructs.C2profile{Name: c2.Name, ID: c2.ID})
-			if !c2StartServerResponse.Success {
-				buildOutput += c2StartServerResponse.Error + "\n"
-			} else {
-				buildOutput += c2StartServerResponse.Message + "\n"
+			c2Container := databaseStructs.C2profile{
+				Name: c2.Name,
+				ID:   c2.ID,
+			}
+			err := database.DB.Get(&c2Container, `SELECT running FROM c2profile WHERE id=$1`, c2Container.ID)
+			if err != nil {
+				buildOutput += err.Error() + "\n"
+			} else if !c2Container.Running {
+				c2StartServerResponse := autoStartC2Profile(c2Container, true)
+				if !c2StartServerResponse.Success {
+					buildOutput += c2StartServerResponse.Error + "\n"
+				} else {
+					buildOutput += c2StartServerResponse.Message + "\n"
+				}
 			}
 		}
 	}

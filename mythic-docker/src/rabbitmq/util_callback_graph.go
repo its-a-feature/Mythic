@@ -60,6 +60,7 @@ func (c *bfsCache) GetPath(sourceId int, destinationId int) []cbGraphAdjMatrixEn
 	if _, sourceExists := c.cache[sourceId]; sourceExists {
 		if _, destinationExists := c.cache[sourceId][destinationId]; destinationExists {
 			if len(c.cache[sourceId][destinationId]) > 0 {
+				logging.LogInfo("Got path from cache", "source", sourceId, "destination", destinationId, "path", c.cache[sourceId][destinationId][0])
 				return c.cache[sourceId][destinationId][0]
 			}
 			return nil
@@ -70,34 +71,13 @@ func (c *bfsCache) GetPath(sourceId int, destinationId int) []cbGraphAdjMatrixEn
 		return nil
 	}
 }
-func (c *bfsCache) Remove(sourceId int, destinationId int, c2ProfileName string) {
+func (c *bfsCache) Remove(sourceId int) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if _, sourceExists := c.cache[sourceId]; sourceExists {
-		if _, destinationExists := c.cache[sourceId][destinationId]; destinationExists {
-			removalIndex := -1
-			for index, _ := range c.cache[sourceId][destinationId] {
-				if c.cache[sourceId][destinationId][index][0].C2ProfileName == c2ProfileName {
-					removalIndex = index
-					break
-				}
-			}
-			if removalIndex >= 0 {
-				for index, _ := range c.cache[sourceId][destinationId] {
-					if index == removalIndex {
-						c.cache[sourceId][destinationId][index] = c.cache[sourceId][destinationId][len(c.cache[sourceId][destinationId])-1]
-						c.cache[sourceId][destinationId][len(c.cache[sourceId][destinationId])-1] = nil
-						c.cache[sourceId][destinationId] = c.cache[sourceId][destinationId][:len(c.cache[sourceId][destinationId])-1]
-						break
-					}
-				}
-			}
-			if len(c.cache[sourceId][destinationId]) == 0 {
-				delete(c.cache[sourceId], destinationId)
-			}
-			return
-		}
+		delete(c.cache, sourceId)
 	}
+	return
 }
 func (c *bfsCache) Add(sourceId int, destinationId int, bfsPath []cbGraphAdjMatrixEntry) {
 	c.lock.Lock()
@@ -271,7 +251,6 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 			return
 		}
 	}
-	//logging.LogInfo("adding new adjMatrix connection", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName)
 	g.adjMatrix[source.ID] = append(g.adjMatrix[source.ID], cbGraphAdjMatrixEntry{
 		DestinationId:      destination.ID,
 		DestinationAgentId: destination.AgentCallbackID,
@@ -281,6 +260,7 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 	})
 
 	g.lock.Unlock()
+	logging.LogInfo("adding new adjMatrix connection", "source", source.ID, "destination", destination.ID, "c2 profile", c2profileName, "adj", g.adjMatrix[source.ID])
 	return
 }
 func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName string) {
@@ -371,15 +351,17 @@ func (g *cbGraph) Remove(sourceId int, destinationId int, c2profileName string) 
 		for i, edge := range g.adjMatrix[sourceId] {
 			if edge.DestinationId == destinationId && edge.C2ProfileName == c2profileName {
 				foundIndex = i
+				break
 			}
 		}
 		if foundIndex >= 0 {
-			g.adjMatrix[sourceId][foundIndex] = g.adjMatrix[sourceId][len(g.adjMatrix[sourceId])-1]
-			g.adjMatrix[sourceId][len(g.adjMatrix[sourceId])-1] = cbGraphAdjMatrixEntry{}
-			g.adjMatrix[sourceId] = g.adjMatrix[sourceId][:len(g.adjMatrix[sourceId])-1]
-			//g.adjMatrix[sourceId] = append(g.adjMatrix[sourceId][:foundIndex], g.adjMatrix[sourceId][foundIndex:]...)
-			logging.LogDebug("removing cached BFSCache", "sourceID", sourceId, "destinationID", destinationId)
-			BFSCache.Remove(sourceId, destinationId, c2profileName)
+			// delete found index and only found index from the list
+			g.adjMatrix[sourceId] = slices.Delete(g.adjMatrix[sourceId], foundIndex, foundIndex+1)
+			//g.adjMatrix[sourceId][foundIndex] = g.adjMatrix[sourceId][len(g.adjMatrix[sourceId])-1]
+			//g.adjMatrix[sourceId][len(g.adjMatrix[sourceId])-1] = cbGraphAdjMatrixEntry{}
+			//g.adjMatrix[sourceId] = g.adjMatrix[sourceId][:len(g.adjMatrix[sourceId])-1]
+			logging.LogDebug("removed adj matrix entry", "sourceID", sourceId, "destinationID", destinationId, "new adj", g.adjMatrix[sourceId])
+			BFSCache.Remove(sourceId)
 		}
 	}
 }
