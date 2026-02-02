@@ -570,9 +570,9 @@ export const ResponseDisplayTable = ({table, callback_id, expand, task}) =>{
     }
     if (sortData.sortKey === column.plaintext) {
         if (sortData.sortDirection === 'ASC') {
-            setSortData({sortKey: column.plaintext, sortType: column.type, sortDirection: "DESC"});
+            setSortData({...sortData, sortDirection: "DESC"});
         } else {
-            setSortData({sortKey: column.plaintext, sortType: column.type, sortDirection: "ASC"});
+            setSortData({sortKey: null, sortType: null, sortDirection: "ASC"});
         }
     } else {
         setSortData({sortKey: column.plaintext, sortType: column.type, sortDirection: "ASC"});

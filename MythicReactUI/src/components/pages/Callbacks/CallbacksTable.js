@@ -711,16 +711,16 @@ function CallbacksTablePreMemo(props){
           return;
       }
       if (!column.key) {
-          setSortData({"sortKey": null, "sortType":null, "sortDirection": "ASC"});
+          setSortData({sortKey: null, sortType:null, sortDirection: "ASC"});
       }
       if (sortData.sortKey === column.key) {
           if (sortData.sortDirection === 'ASC') {
-              setSortData({...sortData, "sortDirection": "DESC"});
+              setSortData({...sortData, sortDirection: "DESC"});
           } else {
-              setSortData({"sortKey": null, "sortType":null, "sortDirection": "ASC"});
+              setSortData({sortKey: null, sortType:null, sortDirection: "ASC"});
           }
       } else {
-          setSortData({"sortKey": column.key, "sortType":column.type, "sortDirection": "ASC"});
+          setSortData({sortKey: column.key, sortType:column.type, sortDirection: "ASC"});
       }
     };
     const onRowDoubleClick = React.useCallback( (event, rowID, rowDataStatic) => {

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.97] - 2026-02-02
+
+### Changed
+
+- Updated browser script tables to rever sort after toggling ASC/DESC to match other virtualized tables in Mythic
+
 ## [0.3.96] - 2026-01-30
 
 ### Changed
