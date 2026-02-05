@@ -796,7 +796,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		fmt.Fprintln(w, "=======\t============")
 		for _, row := range outputFields {
 			fmt.Fprintln(w, row[0]+"\tUsage: "+row[1])
-			fmt.Fprintln(w, "\tDescription:"+strings.ReplaceAll(row[2], "\n", ""))
+			fmt.Fprintln(w, "\tDescription: "+strings.ReplaceAll(row[2], "\n", ""))
 		}
 		w.Flush()
 		go updateTaskStatus(task.ID, "completed", true)
