@@ -19,6 +19,11 @@ export const taskTimestampDisplayFieldOptions = [
     }
 ]
 export const taskingContextFieldsOptions = ["impersonation_context", "cwd", "user", "host", "ip", "pid", "process_short_name", "extra_info", "architecture"].sort();
+export const defaultShortcuts = [
+    "ActiveCallbacks", "Payloads", "PayloadTypesAndC2",
+    "Operations", "SearchFiles", "SearchProxies",
+    "CreatePayload", "Eventing",
+].sort();
 export const operatorSettingDefaults =  {
     fontSize: 12,
     navBarOpen: false,
@@ -39,6 +44,7 @@ export const operatorSettingDefaults =  {
     hideTaskingContext: false,
     taskingContextFields: ["impersonation_context", "cwd"],
     ["experiment-responseStreamLimit"]: 200,
+    sideShortcuts: defaultShortcuts,
     palette: {
         primary: {
             dark: "#75859b",
@@ -150,11 +156,7 @@ export const operatorSettingDefaults =  {
         }
     },
 }
-export const defaultShortcuts = [
-    "ActiveCallbacks", "Payloads", "PayloadTypesAndC2",
-    "Operations", "SearchFiles", "SearchProxies",
-     "Reporting", "Eventing",
-].sort();
+
 export const mePreferences = makeVar(operatorSettingDefaults);
 
 

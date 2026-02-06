@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.98] - 2026-02-08
+
+### Changed
+
+- Updated the default shortcuts to remove Reporting and add CreatePayload
+- Updated Task Search on Parameters to include agent parameters, not just original and display
+- Updated callback table bulk actions to include a note about callback last checkin times not updates in those windows
+
 ## [0.3.97] - 2026-02-02
 
 ### Changed

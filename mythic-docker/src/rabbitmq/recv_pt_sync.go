@@ -304,10 +304,8 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 				logging.LogError(err, "Failed to create new payloadtype")
 				return err
 			}
-			// when we get a new wrapper, resync payloads that might support it
-			if payloadtype.Wrapper {
-				go reSyncPayloadTypes()
-			}
+			// resync payloads that might support it
+			go reSyncPayloadTypes()
 		}
 	} else if err == nil {
 		// the payload exists in the database, so we need to go down the track of updating/adding/removing information
@@ -1411,24 +1409,28 @@ func reSyncPayloadTypes() {
 		logging.LogError(err, "Failed to fetch payload types from database")
 	} else {
 		for _, pt := range payloadTypes {
-			err = updatePayloadTypeC2Profiles(PayloadTypeSyncMessage{
-				PayloadType: PayloadType{
-					Name:                pt.Name,
-					SupportedC2Profiles: pt.SupportedC2.StructStringValue(),
+			if len(pt.SupportedC2.StructValue()) > 0 {
+				err = updatePayloadTypeC2Profiles(PayloadTypeSyncMessage{
+					PayloadType: PayloadType{
+						Name:                pt.Name,
+						SupportedC2Profiles: pt.SupportedC2.StructStringValue(),
+					},
 				},
-			},
-				pt,
-			)
-			if err != nil {
-				logging.LogError(err, "Failed to update payload type c2 mapping")
+					pt,
+				)
+				if err != nil {
+					logging.LogError(err, "Failed to update payload type c2 mapping")
+				}
 			}
-			err = updatePayloadTypeWrappers(PayloadTypeSyncMessage{
-				PayloadType: PayloadType{
-					Name:                         pt.Name,
-					SupportedWrapperPayloadTypes: pt.SupportedWrapping.StructStringValue(),
-				}}, pt)
-			if err != nil {
-				logging.LogError(err, "Failed to update payload type wrapper mapping")
+			if len(pt.SupportedWrapping.StructValue()) > 0 {
+				err = updatePayloadTypeWrappers(PayloadTypeSyncMessage{
+					PayloadType: PayloadType{
+						Name:                         pt.Name,
+						SupportedWrapperPayloadTypes: pt.SupportedWrapping.StructStringValue(),
+					}}, pt)
+				if err != nil {
+					logging.LogError(err, "Failed to update payload type wrapper mapping")
+				}
 			}
 			err = updatePayloadTypeTranslationContainer(PayloadTypeSyncMessage{
 				PayloadType: PayloadType{

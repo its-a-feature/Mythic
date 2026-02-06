@@ -8,6 +8,7 @@ import {hideCallbacksMutation} from './CallbackMutations';
 import {snackActions} from "../../utilities/Snackbar";
 import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell, CallbacksTableIPCell} from "./CallbacksTableRow";
 import { DataGrid } from '@mui/x-data-grid';
+import  DialogContentText  from '@mui/material/DialogContentText';
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -175,6 +176,9 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Hide Multiple Callbacks at Once</DialogTitle>
+        <DialogContentText style={{textAlign: "center"}}>
+            <b>Note: </b> Last checkin times are based on when this window opened and won't refresh.
+        </DialogContentText>
             <CustomSelectTable initialData={initialData}
                                selectedData={selectedData}
                                sortModel={{ field: 'last_checkin', sort: 'asc' }}
@@ -217,6 +221,9 @@ export function CallbacksTabsSelectMultipleDialog({onClose, onSubmit}) {
     return (
         <React.Fragment>
             <DialogTitle id="form-dialog-title">Select Multiple Callbacks</DialogTitle>
+            <DialogContentText style={{textAlign: "center"}}>
+                <b>Note: </b> Last checkin times are based on when this window opened and won't refresh.
+            </DialogContentText>
             <CustomSelectTable initialData={initialData}
                                selectedData={selectedData}
                                sortModel={{ field: 'display_id', sort: 'desc' }}

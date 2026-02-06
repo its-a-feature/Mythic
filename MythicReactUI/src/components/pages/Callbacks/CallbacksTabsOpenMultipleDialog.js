@@ -5,6 +5,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql } from '@apollo/client';
 import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell, CallbacksTableIPCell} from "./CallbacksTableRow";
 import { DataGrid } from '@mui/x-data-grid';
+import  DialogContentText  from '@mui/material/DialogContentText';
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -140,6 +141,9 @@ export function CallbacksTabsOpenMultipleDialog({onClose, tabType, onOpenTabs}) 
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Select Callback to open {tabType} tab</DialogTitle>
+        <DialogContentText style={{textAlign: "center"}}>
+            <b>Note: </b> Last checkin times are based on when this window opened and won't refresh.
+        </DialogContentText>
             <CustomSelectTable initialData={initialData}
                                selectedData={selectedData}
                                onRowClick={onRowClick}
