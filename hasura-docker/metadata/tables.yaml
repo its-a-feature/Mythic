@@ -8605,6 +8605,22 @@
         check: {}
         set:
           comment_operator_id: x-hasura-User-Id
+  delete_permissions:
+    - role: mythic_admin
+      permission:
+        filter:
+          operator_id:
+            _eq: X-Hasura-User-Id
+    - role: operation_admin
+      permission:
+        filter:
+          operator_id:
+            _eq: X-Hasura-User-Id
+    - role: operator
+      permission:
+        filter:
+          operator_id:
+            _eq: X-Hasura-User-Id
 - table:
     name: taskartifact
     schema: public
