@@ -1695,11 +1695,17 @@ func (p *callbackPortUsage) handleRpfwdConnections(newConnection *acceptedConnec
 	}(newConnection.conn)
 	go func(conn net.Conn) {
 		// function for reading from Mythic's connections to send to agents
+		lastReadSizes := []int{0, 0, 0}
+		tempBufSize := minAllocSize
 		for {
-			buf := make([]byte, 4096)
+			tempBufSize = p.burstAdjustReadSize(lastReadSizes, tempBufSize)
+			buf := make([]byte, tempBufSize)
 			//logging.LogDebug("looping to read from connection", "server_id", newConnection.ServerID)
 			length, err := conn.Read(buf)
 			if length > 0 {
+				lastReadSizes[0] = lastReadSizes[1]
+				lastReadSizes[1] = lastReadSizes[2]
+				lastReadSizes[2] = length
 				//logging.LogDebug("Message received for chan %d: length %v\n", newConnection.ServerID, length)
 				interceptProxyToAgentMessageChan <- interceptProxyToAgentMessage{
 					Message: proxyToAgentMessage{
