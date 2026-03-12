@@ -174,9 +174,10 @@ VALUES (:total_chunks, :chunks_received, :complete, :is_payload, :filename, :ope
 		}
 		// make sure callbackConfig.PayloadType has callbackConfig.PayloadBuild parameters (and create if needed)
 		for _, build := range callbackConfig.PayloadBuild {
-			buildParameter := databaseStructs.Buildparameter{Name: build.Name, PayloadTypeID: payloadtype.ID,
-				Description: build.Name}
-			err = database.DB.Get(&buildParameter, `SELECT id, crypto_type FROM buildparameter WHERE "name"=$1 AND payload_type_id=$2`,
+			buildParameter := databaseStructs.Buildparameter{Name: build.Name,
+				PayloadTypeID: payloadtype.ID,
+				Description:   build.Name}
+			err = database.DB.Get(&buildParameter, `SELECT id, crypto_type, parameter_type FROM buildparameter WHERE "name"=$1 AND payload_type_id=$2`,
 				buildParameter.Name, buildParameter.PayloadTypeID)
 			if err != nil {
 				if err == sql.ErrNoRows {

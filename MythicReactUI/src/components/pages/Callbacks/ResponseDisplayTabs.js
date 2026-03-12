@@ -69,9 +69,10 @@ export function ResponseDisplayTabs({ tabs, task, expand, displayType, output })
 
     return (
         <div style={{width: "100%", maxWidth: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1, height: expand ? "100%" : "400px", }}>
-            <AppBar color='default' position={"static"} style={{}} >
+            <AppBar color='default' position={"static"} style={{maxHeight: "25%", overflowY: 'auto', maxWidth: "100%", flexWrap: "no-wrap"}} >
                 <Tabs
                     value={value}
+                    variant={"standard"}
                     onChange={handleChange}
                     indicatorColor='primary'
                     textColor='primary'

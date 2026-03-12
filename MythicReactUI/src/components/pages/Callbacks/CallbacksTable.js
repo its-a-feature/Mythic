@@ -316,13 +316,13 @@ function CallbacksTablePreMemo(props){
                 const ele = document.getElementById("download_config");
                 if(ele !== null){
                     ele.href = URL.createObjectURL(dataBlob);
-                    ele.download = data.exportCallbackConfig.agent_callback_id + ".json";
+                    ele.download = "exported_callback.json";
                     ele.click();
                 }else{
                     const element = document.createElement("a");
                     element.id = "download_config";
                     element.href = URL.createObjectURL(dataBlob);
-                    element.download = data.exportCallbackConfig.agent_callback_id + ".json";
+                    element.download = "exported_callback.json";
                     document.body.appendChild(element);
                     element.click();
                 }

@@ -243,7 +243,7 @@ export function SingleTaskView(props){
         }      
     }, [getTasks, taskId]);
   return (
-    <div style={{height: "100%", display: "flex", flexDirection: "column", width:"100%",}}>
+    <div style={{height: "100%", display: "flex", flexDirection: "column", width:"100%", overflowY: 'auto',}}>
         <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px"}} variant={"elevation"}>
             <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Task View
@@ -252,10 +252,10 @@ export function SingleTaskView(props){
                 onClick={getShareableLink}>Get Shareable link</Button>
             <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.warning.main}} 
                 onClick={removeTasksButton}>Remove Tasks From View</Button>
-            
         </Paper>
-        {tasks.map( (task) => (
-            task.type === "task" ? (
+        <div style={{ display: "flex", flexDirection: "column"}}>
+            {tasks.map( (task) => (
+                task.type === "task" ? (
                     <div key={"taskdisplay:" + task.display_id} style={{marginRight: "5px"}}>
                         <div style={{width: removing ? "95%" : "100%", display: "inline-block"}}>
                             <TaskDisplay me={me} task={task} command_id={task.command === null ? 0 : task.command.id} />
@@ -266,28 +266,31 @@ export function SingleTaskView(props){
                                 onChange={toggleTaskToRemove}
                                 name={"task" + task.display_id}
                                 inputProps={{ 'aria-label': 'checkbox', 'color': theme.palette.error.main }}
-                        />
+                            />
                         ) : null}
                     </div>
-                    
-            ) : (
-                <Paper key={"taskdisplayforcallback:" + task.id} elevation={5} style={{ marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-                    <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                        {task.domain === "" ? null : (task.domain + "\\")}{task.user}{task.integrity_level > 2 ? ("*") : null}@{task.host} (
-                        <Link style={{wordBreak: "break-all"}} color={"textPrimary"} underline="always" target="_blank" href={"/new/callbacks/" + task.display_id}>{task.display_id}</Link>
-                        )
-                    </Typography>
-                    <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.info.main}} 
-                        onClick={() => {setTaskSearchInfo(task.display_id)}}>Include More Tasks</Button>
-                </Paper>
-            ))
-            
+
+                ) : (
+                    <Paper key={"taskdisplayforcallback:" + task.id} elevation={5} style={{ marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+                        <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+                            {task.domain === "" ? null : (task.domain + "\\")}{task.user}{task.integrity_level > 2 ? ("*") : null}@{task.host} (
+                            <Link style={{wordBreak: "break-all"}} color={"textPrimary"} underline="always" target="_blank" href={"/new/callbacks/" + task.display_id}>{task.display_id}</Link>
+                            )
+                        </Typography>
+                        <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.info.main}}
+                                onClick={() => {setTaskSearchInfo(task.display_id)}}>Include More Tasks</Button>
+                    </Paper>
+                ))
+
             )
+            }
+        </div>
+        {openIncludeMoreTasksDialog &&
+            <MythicDialog fullWidth={true} maxWidth="md" open={openIncludeMoreTasksDialog}
+                          onClose={()=>{setOpenIncludeMoreTasksDialog(false);}}
+                          innerDialog={<IncludeMoreTasksDialog submitFetchTasks={submitIncludeMoreTasks} taskOptions={taskOptions} onClose={()=>{setOpenIncludeMoreTasksDialog(false);}} />}
+            />
         }
-        <MythicDialog fullWidth={true} maxWidth="md" open={openIncludeMoreTasksDialog} 
-            onClose={()=>{setOpenIncludeMoreTasksDialog(false);}} 
-            innerDialog={<IncludeMoreTasksDialog submitFetchTasks={submitIncludeMoreTasks} taskOptions={taskOptions} onClose={()=>{setOpenIncludeMoreTasksDialog(false);}} />}
-        />
         <TaskMetadataTable taskIDs={taskIDs} />
     </div>
   );
