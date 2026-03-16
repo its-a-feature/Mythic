@@ -63,7 +63,7 @@
     "sql.js": "^1.13.0",
     "styled-components": "^6.1.17",
     "uuid": "^9.0.1",
-    "webpack": "^5.99.6",
+    "webpack": "^5.105.0",
     "word-wrap": "^1.2.5"
   },
   "scripts": {
