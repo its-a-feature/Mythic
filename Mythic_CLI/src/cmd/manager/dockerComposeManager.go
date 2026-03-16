@@ -225,10 +225,11 @@ func (d *DockerComposeManager) LoadImages(outputPath string) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("[-] Failed to read tar file: %v\n", err))
 	}
-	_, err = cli.ImageLoad(context.Background(), ioReadCloser, false)
+	imageLoadResp, err := cli.ImageLoad(context.Background(), ioReadCloser, nil)
 	if err != nil {
 		return errors.New(fmt.Sprintf("[-] Failed to load image into Docker: %v\n", err))
 	}
+	imageLoadResp.Body.Close()
 	log.Printf("[+] loaded docker images!\n")
 	return nil
 
@@ -958,7 +959,7 @@ func (d *DockerComposeManager) BackupDatabase(backupPath string, useVolume bool)
 			return err
 		}
 		defer cli.Close()
-		execID, err := cli.ContainerExecCreate(ctx, "mythic_postgres", types.ExecConfig{
+		execID, err := cli.ContainerExecCreate(ctx, "mythic_postgres", container.ExecOptions{
 			AttachStderr: true,
 			AttachStdout: true,
 			AttachStdin:  true,
@@ -969,7 +970,7 @@ func (d *DockerComposeManager) BackupDatabase(backupPath string, useVolume bool)
 		} else {
 			log.Printf("[*] Created docker exec session")
 		}
-		session, err := cli.ContainerExecAttach(ctx, execID.ID, types.ExecStartCheck{})
+		session, err := cli.ContainerExecAttach(ctx, execID.ID, container.ExecStartOptions{})
 		if err != nil {
 			log.Fatalf("[!] Failed to attach to exec session: %v", err)
 		} else {
@@ -1034,7 +1035,7 @@ func (d *DockerComposeManager) RestoreDatabase(backupPath string, useVolume bool
 			return err
 		}
 		defer cli.Close()
-		execID, err := cli.ContainerExecCreate(ctx, "mythic_postgres", types.ExecConfig{
+		execID, err := cli.ContainerExecCreate(ctx, "mythic_postgres", container.ExecOptions{
 			AttachStderr: true,
 			AttachStdout: true,
 			AttachStdin:  true,
@@ -1045,7 +1046,7 @@ func (d *DockerComposeManager) RestoreDatabase(backupPath string, useVolume bool
 		} else {
 			log.Printf("[*] Created docker exec session")
 		}
-		session, err := cli.ContainerExecAttach(ctx, execID.ID, types.ExecStartCheck{})
+		session, err := cli.ContainerExecAttach(ctx, execID.ID, container.ExecStartOptions{})
 		if err != nil {
 			log.Fatalf("[!] Failed to attach to exec session: %v", err)
 		} else {
