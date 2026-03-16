@@ -51,9 +51,9 @@ require (
 	go.opentelemetry.io/otel/sdk v1.40.0 // indirect
 	go.opentelemetry.io/otel/trace v1.40.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gotest.tools/v3 v3.5.1 // indirect
 )
