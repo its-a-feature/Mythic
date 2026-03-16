@@ -36,24 +36,23 @@ func handleAgentMessageStagingTranslation(incoming *map[string]interface{}, uUID
 	*/
 	agentMessage := agentMessageStagingTranslator{}
 	stagingDatabaseMessage := databaseStructs.Staginginfo{}
-	if err := mapstructure.Decode(incoming, &agentMessage); err != nil {
+	err := mapstructure.Decode(incoming, &agentMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to decode agent message into struct")
 		return nil, errors.New(fmt.Sprintf("Failed to decode agent message into struct: %s", err.Error()))
-	} else {
-		stagingDatabaseMessage.CryptoType = agentMessage.CryptoType
-		stagingDatabaseMessage.EncKey = agentMessage.EncryptionKey
-		stagingDatabaseMessage.DecKey = agentMessage.DecryptionKey
-		stagingDatabaseMessage.SessionID = agentMessage.SessionID
-		stagingDatabaseMessage.StagingUuID = agentMessage.NextUUID
-		stagingDatabaseMessage.PayloadID = uUIDInfo.PayloadID
-		if _, err := database.DB.NamedExec(`INSERT INTO staginginfo 
-		(session_id, enc_key, dec_key, crypto_type, payload_id, staging_uuid)
-		VALUES (:session_id, :enc_key, :dec_key, :crypto_type, :payload_id, :staging_uuid)`, stagingDatabaseMessage); err != nil {
-			logging.LogError(err, "Failed to save staging information into database", "staginginfo", stagingDatabaseMessage)
-			return nil, errors.New(fmt.Sprintf("Failed to save staging information: %s", err.Error()))
-		} else {
-			return agentMessage.FinalMessage, nil
-		}
 	}
-
+	stagingDatabaseMessage.CryptoType = agentMessage.CryptoType
+	stagingDatabaseMessage.EncKey = agentMessage.EncryptionKey
+	stagingDatabaseMessage.DecKey = agentMessage.DecryptionKey
+	stagingDatabaseMessage.SessionID = agentMessage.SessionID
+	stagingDatabaseMessage.StagingUuID = agentMessage.NextUUID
+	stagingDatabaseMessage.PayloadID = uUIDInfo.PayloadID
+	_, err = database.DB.NamedExec(`INSERT INTO staginginfo 
+		(session_id, enc_key, dec_key, crypto_type, payload_id, staging_uuid)
+		VALUES (:session_id, :enc_key, :dec_key, :crypto_type, :payload_id, :staging_uuid)`, stagingDatabaseMessage)
+	if err != nil {
+		logging.LogError(err, "Failed to save staging information into database", "staginginfo", stagingDatabaseMessage)
+		return nil, errors.New(fmt.Sprintf("Failed to save staging information: %s", err.Error()))
+	}
+	return agentMessage.FinalMessage, nil
 }

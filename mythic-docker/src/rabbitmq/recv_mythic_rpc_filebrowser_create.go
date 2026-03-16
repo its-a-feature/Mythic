@@ -54,13 +54,13 @@ func MythicRPCFileBrowserCreate(input MythicRPCFileBrowserCreateMessage) MythicR
 	}
 	err = HandleAgentMessagePostResponseFileBrowser(task, &input.FileBrowser, int(task.APITokensID.Int64))
 	if err != nil {
-		logging.LogError(err, "Failed to create processes in MythicRPCFileBrowserCreate")
+		logging.LogError(err, "Failed to create files in MythicRPCFileBrowserCreate")
 		response.Error = err.Error()
 		return response
 	}
 	err = HandleAgentMessagePostResponseFileBrowser(task, nil, int(task.APITokensID.Int64))
 	if err != nil {
-		logging.LogError(err, "Failed to create processes in MythicRPCFileBrowserCreate")
+		logging.LogError(err, "Failed to flush files in MythicRPCFileBrowserCreate")
 		response.Error = err.Error()
 		return response
 	}
@@ -72,11 +72,11 @@ func processMythicRPCFileBrowserCreate(msg amqp.Delivery) interface{} {
 	responseMsg := MythicRPCFileBrowserCreateMessageResponse{
 		Success: false,
 	}
-	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+	err := json.Unmarshal(msg.Body, &incomingMessage)
+	if err != nil {
 		logging.LogError(err, "Failed to unmarshal JSON into struct")
 		responseMsg.Error = err.Error()
-	} else {
-		return MythicRPCFileBrowserCreate(incomingMessage)
+		return responseMsg
 	}
-	return responseMsg
+	return MythicRPCFileBrowserCreate(incomingMessage)
 }

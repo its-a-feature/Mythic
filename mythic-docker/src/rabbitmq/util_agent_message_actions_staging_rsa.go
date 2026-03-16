@@ -9,6 +9,7 @@ import (
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/logging"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -71,7 +72,9 @@ func handleAgentMessageStagingRSA(incoming *map[string]interface{}, uUIDInfo *ca
 	stagingDatabaseMessage.StagingUuID = tempUUID.String()
 	stagingDatabaseMessage.PayloadID = uUIDInfo.PayloadID
 
-	if _, err := database.DB.NamedExec(insertQuery, stagingDatabaseMessage); err != nil {
+	_, err = database.DB.NamedExec(insertQuery, stagingDatabaseMessage)
+	if err != nil {
+		logging.LogError(err, "failed to save staging info", "staging data", stagingDatabaseMessage)
 		return nil, fmt.Errorf("failed to save staging information into database %s: %v", "staginginfo", err)
 	}
 	// generate the response map

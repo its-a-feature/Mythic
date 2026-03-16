@@ -415,6 +415,14 @@ func processAgentMessageContent(agentMessageInput *AgentMessageRawInput, uuidInf
 		instanceResponse.Err = err
 		return response
 	}
+	if response == nil {
+		response = map[string]interface{}{
+			"status": "error",
+		}
+		if err != nil {
+			response["error"] = err.Error()
+		}
+	}
 	//logging.LogInfo("decrypted message after post response", "decrypted", decryptedMessage)
 	if _, ok := decryptedMessage[CALLBACK_MESSAGE_KEY_RESPONSES]; ok {
 		// this means we got response data outside the post_response key, so handle it
@@ -906,7 +914,7 @@ func LookupEncryptionData(c2profile string, messageUUID string, updateCheckinTim
 		newCache.StagingEncKey = stager.EncKey
 		newCache.StagingDecKey = stager.DecKey
 		newCache.CryptoType = stager.CryptoType
-		newCache.PayloadID = stager.PayloadID
+		newCache.PayloadID = stager.Payload.ID
 		newCache.PayloadTypeID = stager.Payload.Payloadtype.ID
 		newCache.PayloadTypeName = stager.Payload.Payloadtype.Name
 		newCache.PayloadTypeMessageFormat = stager.Payload.Payloadtype.MessageFormat

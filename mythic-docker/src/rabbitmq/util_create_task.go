@@ -675,7 +675,8 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 	}
 	task.Status = "processing"
 	outputFields := [][]string{}
-	if err := addTaskToDatabase(&task); err != nil {
+	err := addTaskToDatabase(&task)
+	if err != nil {
 		logging.LogError(err, "Failed to add task to database")
 		output.Error = err.Error()
 		return output
@@ -683,7 +684,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 	output.TaskID = task.ID
 	output.TaskDisplayID = task.DisplayID
 	loadedCommands := []databaseStructs.Loadedcommands{}
-	err := database.DB.Select(&loadedCommands, `SELECT
+	err = database.DB.Select(&loadedCommands, `SELECT
 		command.cmd "command.cmd",
 		command.id "command.id", 
 		command.attributes "command.attributes",
@@ -696,8 +697,8 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		WHERE loadedcommands.callback_id=$1 ORDER BY command.cmd ASC`, callback.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to fetch loaded commands")
-		go updateTaskStatus(task.ID, "error", true)
-		go addErrToTask(task.ID, fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error()))
+		updateTaskStatus(task.ID, "error", true)
+		addErrToTask(task.ID, fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error()))
 		output.Error = fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error())
 		return output
 	}
@@ -716,7 +717,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		})
 		if err == nil {
 			if resp.Success {
-				go updateTaskStatus(task.ID, "success", true)
+				updateTaskStatus(task.ID, "success", true)
 				go addOutputToTask(task.ID, resp.Output, task.OperationID)
 				output.Error = ""
 				output.Status = "success"
@@ -782,7 +783,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 			fmt.Fprintln(w, "\tDescription:"+strings.ReplaceAll(row[2], "\n", ""))
 		}
 		w.Flush()
-		go updateTaskStatus(task.ID, "completed", true)
+		updateTaskStatus(task.ID, "completed", true)
 		go addOutputToTask(task.ID, formattedBuilder.String(), task.OperationID)
 		output.Error = ""
 		output.Status = "success"
@@ -791,7 +792,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 	if task.Params == "help" {
 		// looking for detailed help about a specific command
 		responseOutput := `The 'help' command gives detailed information about specific commands or general information about all available commands.\n`
-		go updateTaskStatus(task.ID, "completed", true)
+		updateTaskStatus(task.ID, "completed", true)
 		go addOutputToTask(task.ID, responseOutput, task.OperationID)
 		output.Error = ""
 		output.Status = "success"
@@ -801,7 +802,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		responseOutput := "The 'clear' command will mark tasks as 'cleared' so that they can't be picked up by agents.\n"
 		responseOutput += "Clear with no arguments or with the 'all' argument will clear all tasking in the 'submitted' or 'delegating...' state for the current callback.\n"
 		responseOutput += "Clear can also take one argument, the task number, to clear just that one task.\n"
-		go updateTaskStatus(task.ID, "completed", true)
+		updateTaskStatus(task.ID, "completed", true)
 		go addOutputToTask(task.ID, responseOutput, task.OperationID)
 		output.Error = ""
 		output.Status = "success"
@@ -827,7 +828,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		WHERE command.id=$1`, command.ID)
 		if err != nil {
 			logging.LogError(err, "Failed to fetch loaded commands")
-			go updateTaskStatus(task.ID, "error", true)
+			updateTaskStatus(task.ID, "error", true)
 			go addErrToTask(task.ID, fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error()))
 			output.Error = fmt.Sprintf("Failed to fetch loaded commands: %v\n", err.Error())
 			return output
@@ -869,7 +870,7 @@ func handleHelpCommand(createTaskInput CreateTaskInput, callback databaseStructs
 		}
 	}
 
-	go updateTaskStatus(task.ID, "success", true)
+	updateTaskStatus(task.ID, "success", true)
 	go addOutputToTask(task.ID, responseUserOutput, task.OperationID)
 	output.Error = ""
 	output.Status = "success"
