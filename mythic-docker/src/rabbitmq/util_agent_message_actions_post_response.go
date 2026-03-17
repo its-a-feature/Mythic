@@ -1342,6 +1342,7 @@ func handleAgentMessagePostResponseDownload(task *databaseStructs.Task, agentRes
 			TotalChunks:         *agentResponse.Download.TotalChunks,
 			IsDownloadFromAgent: true,
 			ChunksReceived:      0,
+			FullRemotePath:      []byte(""),
 			OperationID:         task.OperationID,
 			OperatorID:          task.OperatorID,
 			Timestamp:           time.Now().UTC(),
@@ -1363,6 +1364,7 @@ func handleAgentMessagePostResponseDownload(task *databaseStructs.Task, agentRes
 		}
 		if agentResponse.Download.IsScreenshot != nil && *agentResponse.Download.IsScreenshot {
 			fileMeta.IsScreenshot = *agentResponse.Download.IsScreenshot
+			fileMeta.FullRemotePath = []byte("")
 		}
 		if agentResponse.Download.Host != nil && *agentResponse.Download.Host != "" {
 			fileMeta.Host = strings.ToUpper(*agentResponse.Download.Host)
