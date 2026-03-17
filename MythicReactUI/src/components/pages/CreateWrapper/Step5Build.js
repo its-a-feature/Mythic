@@ -103,6 +103,8 @@ export function Step5Build(props){
             } else if (param.parameter_type === "File") {
                 if (typeof param.value === "string") {
                     buildParameters.push({name: param.name, value: param.value});
+                } else if(param.value.legacy){
+                    buildParameters.push({name: param.name, value: param.value.name});
                 } else {
                     const newUUID = await UploadTaskFile(param.value, "Uploaded as build parameter for " + filename);
                     if (newUUID) {
@@ -119,6 +121,8 @@ export function Step5Build(props){
                 for(let j = 0; j < param.value.length; j++){
                     if (typeof param.value[j] === "string") {
                         fileMultipleValues.push(param.value[j]);
+                    }else if(param.value[j].legacy){
+                        fileMultipleValues.push(param.value[j].name);
                     } else {
                         const newUUID = await UploadTaskFile(param.value[j], "Uploaded as build parameter for " + filename);
                         if (newUUID) {

@@ -15,7 +15,7 @@ export const useDarkMode = () => {
         const localTheme = window.localStorage.getItem('theme');
         if(localTheme){setTheme(localTheme)}
         else{
-            const checkIsDarkSchemePreferred = () => window?.matchMedia?.('(prefers-color-scheme:dark)')?.matches || false;
+            const checkIsDarkSchemePreferred = () => window?.matchMedia?.('(prefers-color-scheme:dark)')?.matches || true;
             if(checkIsDarkSchemePreferred()){
                 setMode('dark');
             } else {
