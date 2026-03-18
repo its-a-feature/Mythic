@@ -141,7 +141,8 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 	searchString := `SELECT 
     		filemeta.*
 			FROM filemeta 
-			WHERE filemeta.comment LIKE $1 AND filemeta.filename LIKE $2 AND is_payload=$3 AND is_download_from_agent=$4 AND is_screenshot=$5 AND deleted=false and filemeta.operation_id=$6
+			WHERE filemeta.comment LIKE $1 AND filemeta.filename LIKE $2 AND is_payload=$3 AND is_download_from_agent=$4 AND 
+			      is_screenshot=$5 AND deleted=false and filemeta.operation_id=$6 and filemeta.copy_of_file_id is NULL 
 			ORDER BY id DESC`
 	searchParameters := []interface{}{
 		comment, filename, input.IsPayload, input.IsDownloadFromAgent, input.IsScreenshot, operationId,
