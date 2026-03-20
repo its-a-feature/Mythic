@@ -14,7 +14,7 @@ import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableHead from '@mui/material/TableHead';
-import TableContainer from '@mui/material/TableContainer';
+import DialogContent from '@mui/material/DialogContent';
 
 export function PayloadsTableRowBuildProgress(props){
     const [buildProgressData, setBuildProgressData] = React.useState({
@@ -109,23 +109,26 @@ export function PayloadsTableRowBuildProgress(props){
         }
     }
     return (
-        <span style={props.build_phase === "success" ? {
-            filter: "grayscale(1)",
-            opacity: 0.5} : {}}>
-            {buildProgressData.total_steps > 0 &&
+        <>
+            <span style={props.build_phase === "success" ? {
+                filter: "grayscale(1)",
+                opacity: 0.5} : {}}>
+                {buildProgressData.total_steps > 0 &&
                     props.payload_build_steps.map( step => (
                         <MythicStyledTooltip title={step.step_name} key={"buildstep" + step.step_number}>
                             {getButton(step)}
                         </MythicStyledTooltip>
                     ))
                 }
-                {openStatusDialog &&
-                    <MythicDialog fullWidth={true} maxWidth="lg" open={openStatusDialog} 
-                        onClose={()=>{setOpenStatusDialog(false);}} 
-                        innerDialog={<PayloadBuildStepStatusDialog step={displayData} onClose={()=>{setOpenStatusDialog(false);}} />}
-                    />
-                }
-        </span>
+            </span>
+            {openStatusDialog &&
+                <MythicDialog fullWidth={true} maxWidth="lg" open={openStatusDialog}
+                              onClose={()=>{setOpenStatusDialog(false);}}
+                              innerDialog={<PayloadBuildStepStatusDialog step={displayData} onClose={()=>{setOpenStatusDialog(false);}} />}
+                />
+            }
+        </>
+
     );
 }
 
@@ -167,44 +170,43 @@ export function PayloadBuildStepStatusDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Step {props.step.step_number + 1} - {props.step.step_name}</DialogTitle>
-            <TableContainer className="mythicElement">
-                <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell style={{width: "30%"}}>Parameter</TableCell>
-                            <TableCell >Value</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody style={{whiteSpace: "pre"}}> 
-                        <TableRow hover>
-                            <TableCell>Step Start Time</TableCell>
-                            <TableCell>{props.step.start_time}</TableCell>
-                        </TableRow>
-                        <TableRow hover>
-                            <TableCell>Step End Time</TableCell>
-                            <TableCell>{props.step.end_time}</TableCell>
-                        </TableRow>
-                        <TableRow hover>
-                            <TableCell>Duration</TableCell>
-                            <TableCell>{duration}</TableCell>
-                        </TableRow>
-                        <TableRow hover>
-                            <TableCell>Status</TableCell>
-                            <TableCell> {getStatusMessage()}
-                            </TableCell>
-                        </TableRow>
-                        <TableRow hover>
-                            <TableCell>Step Output</TableCell>
-                            <TableCell>{props.step.step_stdout}</TableCell>
-                        </TableRow>
-                        <TableRow hover>
-                            <TableCell>Step Error</TableCell>
-                            <TableCell>{props.step.step_stderr}</TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
-            </TableContainer>
-       
+        <DialogContent>
+            <Table size="small" style={{ maxWidth: "100%", overflow: "scroll"}}>
+                <TableHead>
+                    <TableRow>
+                        <TableCell style={{width: "30%"}}>Parameter</TableCell>
+                        <TableCell >Value</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody style={{whiteSpace: "pre"}}>
+                    <TableRow hover>
+                        <TableCell>Step Start Time</TableCell>
+                        <TableCell>{props.step.start_time}</TableCell>
+                    </TableRow>
+                    <TableRow hover>
+                        <TableCell>Step End Time</TableCell>
+                        <TableCell>{props.step.end_time}</TableCell>
+                    </TableRow>
+                    <TableRow hover>
+                        <TableCell>Duration</TableCell>
+                        <TableCell>{duration}</TableCell>
+                    </TableRow>
+                    <TableRow hover>
+                        <TableCell>Status</TableCell>
+                        <TableCell> {getStatusMessage()}
+                        </TableCell>
+                    </TableRow>
+                    <TableRow hover>
+                        <TableCell>Step Output</TableCell>
+                        <TableCell>{props.step.step_stdout}</TableCell>
+                    </TableRow>
+                    <TableRow hover>
+                        <TableCell>Step Error</TableCell>
+                        <TableCell>{props.step.step_stderr}</TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+        </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={props.onClose} color="primary">
             Close
@@ -308,16 +310,11 @@ export function PayloadsTableRowBuildProcessPerStep(props){
     }
     return (
         <React.Fragment>
-            {buildProgressData.total_steps > 0 ? (
-                <React.Fragment>
-                    {props.payload_build_steps.map( step => (
-                        step.step_number === props.step_number ? (
-                            <React.Fragment key={"buildstep" + step.step_number}>{getButton(step)}</React.Fragment>
-                        ) : null
-                        
-                    ))}
-                </React.Fragment>
-                ) : null}
+            {buildProgressData.total_steps > 0 &&
+                props.payload_build_steps.map( step => (
+                    step.step_number === props.step_number &&
+                        <React.Fragment key={"buildstep" + step.step_number}>{getButton(step)}</React.Fragment>
+                ))}
             {openStatusDialog &&
                     <MythicDialog fullWidth={true} maxWidth="lg" open={openStatusDialog} 
                         onClose={()=>{setOpenStatusDialog(false);}} 

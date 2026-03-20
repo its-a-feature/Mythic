@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.30] - 2026-03-20
+
+### Changed
+
+- Added a `received_chunk_ids` map to the database for `filemeta` to track not just chunks, but which chunks are received
+  - this helps prevent duplicate chunks getting counted multiple times and causing faulty downloads
+- Added some default values for `DisplayPath` that were causing null constraint errors on the database
+- Fixed a remote path null value with uploading eventing files
+
 ## [3.4.29] - 2026-03-18
 
 ### Changed

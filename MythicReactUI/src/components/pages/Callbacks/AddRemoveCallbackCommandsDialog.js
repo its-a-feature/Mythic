@@ -185,8 +185,8 @@ export function AddRemoveCallbackCommandsDialog(props) {
     }
   return (
     <React.Fragment>
-        <MythicDraggableDialogTitle>Add or Remove Commands for Callback {props.display_id} </MythicDraggableDialogTitle>
-        <DialogContent dividers={true} style={{height: "100%", display: "flex", flexDirection: "column", position: "relative",  maxHeight: "100%"}}>
+        <DialogTitle>Add or Remove Commands for Callback {props.display_id} </DialogTitle>
+        <DialogContent dividers={true} style={{height: "100%", display: "flex", flexDirection: "column", position: "relative", overflowY: "auto"}}>
           This will add or remove commands associated with this callback from Mythic's perspective. 
           This does NOT add or remove commands within the payload itself that's beaconing out to Mythic.
           <div style={{display: "flex", flexDirection: "row", overflowY: "auto", flexGrow: 1, minHeight: 0}}>

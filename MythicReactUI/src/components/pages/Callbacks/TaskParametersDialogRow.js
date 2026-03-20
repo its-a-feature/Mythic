@@ -27,6 +27,7 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import {MythicFileContext} from "../../MythicComponents/MythicFileContext";
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {updateCredentialDeleted} from "../Search/CredentialTable";
+import CloudUploadTwoToneIcon from '@mui/icons-material/CloudUploadTwoTone';
 
 export const getDynamicQueryParamsString = `
 mutation getDynamicParamsMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $other_parameters: jsonb){
@@ -559,13 +560,13 @@ export function TaskParametersDialogRow(props){
         setValue(event.target.checked);
         props.onChange(props.name, event.target.checked);
     }
-    const onFileChange = (evt) => {
-       setFileValue({name: evt.target.files[0].name});
-       props.onChange(props.name, evt.target.files[0]);
+    const onFileChange = (newFile) => {
+       setFileValue({name: newFile.name});
+       props.onChange(props.name, newFile);
     }
-    const onFileMultChange = (evt) => {
-        setFileMultValue([...evt.target.files]);
-        props.onChange(props.name, [...evt.target.files]);
+    const onFileMultChange = (newFiles) => {
+        setFileMultValue([...newFiles]);
+        props.onChange(props.name, [...newFiles]);
     }
     const onChangeAgentConnectHost = (event) => {
         setAgentConnectHost(event.target.value); 
@@ -923,28 +924,14 @@ export function TaskParametersDialogRow(props){
             case "File":
                 return (
                     <>
-                        <Button variant="contained" component="label">
-                            { fileValue.name === "" ? "Select File" : fileValue.name }
-                            <input onChange={onFileChange} type="file" hidden />
-                        </Button>
+                        <DragAndDropFileUpload value={fileValue} multiple={false} onChange={onFileChange} />
                     </>
 
                 )
             case "FileMultiple":
                 return (
                     <>
-                        <Button variant="contained" component="label">
-                            Select Files
-                            <input onChange={onFileMultChange} type="file" hidden multiple />
-                        </Button>
-                        { fileMultValue.length > 0 &&
-                            fileMultValue.map((f, i) => (
-                                <div key={i}>
-                                    {typeof f === "string" && <MythicFileContext agent_file_id={f} />}
-                                    {typeof f !== "string" && (f.name)}
-                                </div>
-                            ))
-                        }
+                        <DragAndDropFileUpload values={fileMultValue} multiple={true} onChange={onFileMultChange} />
                     </>
                 )
             case "LinkInfo":
@@ -1219,3 +1206,115 @@ export function TaskParametersDialogRow(props){
         )
 }
 
+export const DragAndDropFileUpload = ({value, values, multiple, onChange}) => {
+    const theme = useTheme();
+    const inputRef = React.useRef(null);
+    const [files, setFiles] = React.useState(values ? values : []);
+    const [file, setFile] = React.useState(value ? value : {name: ""});
+    const [isDragging, setIsDragging] = React.useState(false);
+
+    React.useEffect( () => {
+        if(value){
+            setFile(value);
+        }
+        if(values){
+            setFiles(values);
+        }
+    }, [value, values]);
+    const handleDragEnter = () => setIsDragging(true);
+    const handleDragLeave = (event) => {
+        if (event.currentTarget.contains(event.relatedTarget)) {
+            return; // Don't treat as a real leave event
+        }
+        setIsDragging(false);
+    }
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        if(multiple){
+            setFiles(droppedFiles);
+            onChange(droppedFiles)
+        } else {
+            setFile(droppedFiles[0]);
+            onChange(droppedFiles[0]);
+        }
+    };
+    const handleDragOver = (e) => {
+        e.preventDefault();
+    };
+    const onFileChange = (evt) => {
+        setFile({name: evt.target.files[0].name});
+        onChange(evt.target.files[0]);
+    }
+    const onFileMultChange = (evt) => {
+        setFiles([...evt.target.files]);
+        onChange(evt.target.files)
+    }
+    const onClick = (e) => {
+        inputRef.current.click();
+    }
+    return (
+        <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onClick={onClick}
+            style={{
+                border: isDragging ? `4px dashed ${theme.palette.success.main}` : `4px dashed ${theme.palette.primary.main}`,
+                padding: "20px",
+                textAlign: "center",
+                borderRadius: "10px",
+                cursor: "pointer"
+                //backgroundColor: isDragging ? "#f0f8ff" : "#fff",
+            }}
+        >
+            <input ref={inputRef} onChange={multiple ? onFileMultChange : onFileChange} type="file" hidden multiple={multiple} />
+            <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
+                {!multiple && file.name !== "" &&
+                    <>
+                        <CloudUploadTwoToneIcon fontSize={"large"} color={"success"} />
+                        <Typography>
+                            Selected:
+                        </Typography>
+                        <Typography>
+                            {!file.legacy && file.name}
+                            {file.legacy &&
+                                <MythicFileContext agent_file_id={file.name}
+                                                   extraStyles={{ position: "relative", marginLeft: "5px", marginRight: "5px"}} />
+                            }
+                        </Typography>
+                    </>
+
+                }
+                {multiple && files.length > 0 &&
+                    <>
+                        <CloudUploadTwoToneIcon fontSize={"large"} color={"success"} />
+                        <Typography>
+                            Selected:
+                        </Typography>
+                        {files.map( (f, i) => (
+                            <div key={i}>
+                                {typeof f === "string" && <MythicFileContext agent_file_id={f} />}
+                                {typeof f !== "string" && (f.name)}
+                            </div>
+                        ))}
+                    </>
+
+                }
+                {file.name === "" && files.length === 0 &&
+                    <>
+                        <CloudUploadTwoToneIcon fontSize={"large"} color={"success"} />
+                        <Typography>
+                            Drag and drop files here
+                        </Typography>
+                        <Typography>
+                            Click to open dialog
+                        </Typography>
+                    </>
+                }
+            </div>
+        </div>
+    );
+}

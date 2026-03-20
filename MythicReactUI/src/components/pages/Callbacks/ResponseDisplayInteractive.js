@@ -21,6 +21,7 @@ import WrapTextIcon from '@mui/icons-material/WrapText';
 import { useReactiveVar } from '@apollo/client';
 import { meState } from '../../../cache';
 import {useTheme} from '@mui/material/styles';
+import HeightIcon from '@mui/icons-material/Height';
 
 const getInteractiveTaskingQuery = gql`
 ${taskingDataFragment}
@@ -204,7 +205,7 @@ export const ResponseDisplayInteractive = (props) =>{
     const me = useReactiveVar(meState);
     const theme = useTheme();
     const [backdropOpen, setBackdropOpen] = React.useState(false);
-    const [scrollToBottom, setScrollToBottom] = React.useState(false);
+    const [scrollToBottom, setScrollToBottom] = React.useState(true);
     const pageSize = React.useRef(100);
     const highestFetched = React.useRef(0);
     const [taskData, setTaskData] = React.useState([]);
@@ -219,6 +220,7 @@ export const ResponseDisplayInteractive = (props) =>{
     const [useASNIColor, setUseANSIColor] = React.useState(true);
     const [showTaskStatus, setShowTaskStatus] = React.useState(true);
     const [wrapText, setWrapText] = React.useState(true);
+    const [autoScroll, setAutoScroll] = React.useState(true);
     const {loading: loadingTasks} = useSubscription(getInteractiveTaskingQuery, {
       variables: {parent_task_id: props.task.id},
       onError: data => {
@@ -280,8 +282,7 @@ export const ResponseDisplayInteractive = (props) =>{
         if(backdropOpen){
             setBackdropOpen(false);
         }
-
-    }, [highestFetched.current, rawResponses, props.task.id, backdropOpen, taskIDRef.current]);
+    }, [highestFetched.current, rawResponses, props.task.id, backdropOpen, taskIDRef.current, autoScroll]);
     useSubscription(subResponsesQuery, {
         variables: {task_id: props.task.id},
         fetchPolicy: "no-cache",
@@ -368,11 +369,14 @@ export const ResponseDisplayInteractive = (props) =>{
     const toggleWrapText = () => {
         setWrapText(!wrapText);
     }
-    useEffect( () => {
-        if(scrollToBottom){
-            messagesEndRef.current.scrollIntoView();
+    const toggleAutoScroll = () => {
+        setAutoScroll(!autoScroll);
+    }
+    useEffect(() => {
+        if(autoScroll){
+            messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
         }
-    }, [scrollToBottom]);
+    }, [props.responseRef?.current?.scrollHeight, autoScroll]);
     React.useEffect( () => {
         if(loadingTasks){
             setTaskData([]);
@@ -417,16 +421,14 @@ export const ResponseDisplayInteractive = (props) =>{
           <div style={{overflowY: "auto", width: "100%", marginBottom: "5px", height: props.expand ? "100%": undefined,
               flexGrow: 1, paddingLeft: "10px", minHeight: "50px"}} ref={props.responseRef}
                id={`ptytask${props.task.id}`}>
-
-                  <GetOutputFormatAll data={alloutput}
-                                   myTask={props.task.operator.username === (me?.user?.username || "")}
-                                   taskID={props.task.id}
-                                   useASNIColor={useASNIColor}
-                                   messagesEndRef={messagesEndRef}
-                                   showTaskStatus={showTaskStatus}
-                                   search={props.searchOutput ? search : undefined}
-                                   wrapText={wrapText}/>
-
+              <GetOutputFormatAll data={alloutput}
+                               myTask={props.task.operator.username === (me?.user?.username || "")}
+                               taskID={props.task.id}
+                               useASNIColor={useASNIColor}
+                               messagesEndRef={messagesEndRef}
+                               showTaskStatus={showTaskStatus}
+                               search={props.searchOutput ? search : undefined}
+                               wrapText={wrapText}/>
               <div ref={messagesEndRef}/>
           </div>
           {!props.task?.is_interactive_task &&
@@ -435,6 +437,7 @@ export const ResponseDisplayInteractive = (props) =>{
                                          useASNIColor={useASNIColor} toggleANSIColor={toggleANSIColor}
                                          showTaskStatus={showTaskStatus} toggleShowTaskStatus={toggleShowTaskStatus}
                                          wrapText={wrapText} toggleWrapText={toggleWrapText}
+                                         autoScroll={autoScroll} toggleAutoScroll={toggleAutoScroll}
                   />
               </div>
           }
@@ -448,7 +451,8 @@ export const ResponseDisplayInteractive = (props) =>{
 }
 const InteractiveTaskingBar = ({
                                    task, taskData, useASNIColor, toggleANSIColor,
-                                   showTaskStatus, toggleShowTaskStatus, wrapText, toggleWrapText
+                                   showTaskStatus, toggleShowTaskStatus, wrapText, toggleWrapText,
+                                   autoScroll, toggleAutoScroll
                                }) => {
     const [inputText, setInputText] = React.useState("");
     const theme = useTheme();
@@ -465,8 +469,8 @@ const InteractiveTaskingBar = ({
     });
     const [taskOptionsIndex, setTaskOptionsIndex] = React.useState(-1);
     const [taskOptions, setTaskOptions] = React.useState([]);
-    const [selectedEnterOption, setSelectedEnterOption] = React.useState(EnterOptions[1]);
-    const [selectedControlOption, setSelectedControlOption] = React.useState(InteractiveMessageTypes[0]);
+    const [selectedEnterOption, setSelectedEnterOption] = React.useState(1);
+    const [selectedControlOption, setSelectedControlOption] = React.useState(0);
     React.useEffect( () => {
         const newTaskOptions = taskData.filter( t => t.display_params.length > 1 && (t.interactive_task_type === 0 || t.interactive_task_type === 8));
         newTaskOptions.sort( (a,b) => a.id > b.id ? -1 : 1);
@@ -516,23 +520,23 @@ const InteractiveTaskingBar = ({
         event.stopPropagation();
         event.preventDefault();
         if(event.shiftKey){
-            setInputText(inputText + selectedEnterOption.value);
+            setInputText(inputText + EnterOptions[selectedEnterOption].value);
             return;
         }
         if(event.metaKey || event.ctrlKey){
-            setInputText(inputText + selectedEnterOption.value);
+            setInputText(inputText + EnterOptions[selectedEnterOption].value);
             return;
         }
-        if(selectedControlOption.value > 0){
-            let ctrlSequence = selectedControlOption.text;
-            let enterOption = selectedEnterOption.value;
+        if(InteractiveMessageTypes[selectedControlOption].value > 0){
+            let ctrlSequence = InteractiveMessageTypes[selectedControlOption].text;
+            let enterOption = EnterOptions[selectedEnterOption].value;
             let originalParams = inputText + ctrlSequence + enterOption;
             // if we're looking at a tab, never send enter along with it
-            if (selectedControlOption.value === 8){
+            if (InteractiveMessageTypes[selectedControlOption].value === 8){
                 originalParams = inputText + ctrlSequence;
                 enterOption = "";
             // if we're looking at escape, never send enter along with it
-            } else if(selectedControlOption.value === 4){
+            } else if(InteractiveMessageTypes[selectedControlOption].value === 4){
                 originalParams = ctrlSequence + inputText;
                 enterOption = "";
             }
@@ -545,16 +549,16 @@ const InteractiveTaskingBar = ({
                     parameter_group_name: "default",
                     parent_task_id: task.id,
                     is_interactive_task: true,
-                    interactive_task_type: selectedControlOption.value,
+                    interactive_task_type: InteractiveMessageTypes[selectedControlOption].value,
                 }})
         }else {
             // no control option selected, just send data along as input
             createTask({variables: {
                     callback_id: task.callback.display_id,
                     command: task.command.cmd,
-                    params: inputText + selectedEnterOption.value,
+                    params: inputText + EnterOptions[selectedEnterOption].value,
                     tasking_location: "command_line",
-                    original_params: inputText + selectedEnterOption.value,
+                    original_params: inputText + EnterOptions[selectedEnterOption].value,
                     parameter_group_name: "default",
                     parent_task_id: task.id,
                     is_interactive_task: true,
@@ -562,7 +566,7 @@ const InteractiveTaskingBar = ({
                 }})
         }
         setInputText("");
-        setSelectedControlOption(InteractiveMessageTypes[0]);
+        setSelectedControlOption(0);
         setTaskOptionsIndex(-1);
     }
     const onChangeSelect = (event) => {
@@ -600,8 +604,8 @@ const InteractiveTaskingBar = ({
                     }}
                     input={<Input style={{margin: 0, color: theme.outputTextColor}} />}
                 >
-                    {InteractiveMessageTypes.map( (opt) => (
-                        <MenuItem value={opt} key={opt.name}>{opt.name}</MenuItem>
+                    {InteractiveMessageTypes.map( (opt,index) => (
+                        <MenuItem value={index} key={opt.name}>{opt.name}</MenuItem>
                     ) )}
                 </Select>
             </FormControl>
@@ -626,8 +630,8 @@ const InteractiveTaskingBar = ({
                     input={<Input style={{color: theme.outputTextColor}} />}
                     IconComponent={KeyboardReturnIcon}
                 >
-                    {EnterOptions.map( (opt) => (
-                        <MenuItem value={opt} key={opt.name}>{opt.name}</MenuItem>
+                    {EnterOptions.map( (opt,index) => (
+                        <MenuItem value={index} key={opt.name}>{opt.name}</MenuItem>
                     ) )}
                 </Select>
             </FormControl>
@@ -637,7 +641,6 @@ const InteractiveTaskingBar = ({
                                  style={{cursor: "pointer"}}
                     />
                 </IconButton>
-
             </MythicStyledTooltip>
             <MythicStyledTooltip title={showTaskStatus ?  "Hide Task Status" : "Show Task Status"} >
                 <IconButton onClick={toggleShowTaskStatus} style={{paddingLeft: 0, paddingRight: 0}} disableRipple={true} disableFocusRipple={true}>
@@ -645,7 +648,6 @@ const InteractiveTaskingBar = ({
                                             style={{cursor: "pointer",}}
                     />
                 </IconButton>
-
             </MythicStyledTooltip>
             <MythicStyledTooltip title={wrapText ?  "Unwrap Text" : "Wrap Text"} >
                 <IconButton onClick={toggleWrapText} style={{paddingLeft: 0, paddingRight: 0}} disableRipple={true} disableFocusRipple={true}>
@@ -653,7 +655,13 @@ const InteractiveTaskingBar = ({
                                   style={{cursor: "pointer"}}
                     />
                 </IconButton>
-
+            </MythicStyledTooltip>
+            <MythicStyledTooltip title={autoScroll ?  "Stop Auto Scroll" : "Auto Scroll"} >
+                <IconButton onClick={toggleAutoScroll} style={{paddingLeft: 0, paddingRight: 0}} disableRipple={true} disableFocusRipple={true}>
+                    <HeightIcon color={autoScroll ? "success" : "secondary"}
+                                  style={{cursor: "pointer"}}
+                    />
+                </IconButton>
             </MythicStyledTooltip>
         </div>
     )

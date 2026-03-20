@@ -59,8 +59,8 @@ export function ExpandedCallbackSideDetailsTable(props){
         <Table size="small" style={{tableLayout: "fixed"}}>
             <TableHead>
                 <TableRow>
-                    <TableCell style={{width: "12rem"}}></TableCell>
-                    <TableCell></TableCell>
+                    <TableCell style={{width: "12rem"}}>Callback Info</TableCell>
+                    <TableCell>Value</TableCell>
                 </TableRow>
             </TableHead>
             <TableBody style={{whiteSpace: "pre-wrap", wordBreak: "break-all"}}>

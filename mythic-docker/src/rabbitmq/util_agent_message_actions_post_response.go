@@ -411,7 +411,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				} else {
 					fileMeta = databaseStructs.Filemeta{AgentFileID: *agentMessage.Responses[i].Download.FileID}
 					err = database.DB.Get(&fileMeta, `SELECT 
-					id, "path", total_chunks, chunks_received, host, is_screenshot, full_remote_path, complete, md5, sha1, filename, chunk_size, operation_id, mythictree_id
+					id, "path", total_chunks, chunks_received, host, is_screenshot, full_remote_path, complete, md5, sha1, filename, chunk_size, operation_id, mythictree_id, received_chunk_ids
 					FROM filemeta
 					WHERE agent_file_id=$1`, *agentMessage.Responses[i].Download.FileID)
 					if err != nil {
@@ -1144,8 +1144,9 @@ func handleAgentMessagePostResponseEvent(task databaseStructs.Task, eventingData
 }
 
 type chunkWriterData struct {
-	FileMetaID int
-	Chunks     int
+	FileMetaID       int
+	Chunks           int
+	ReceivedChunkIDs map[int]interface{}
 }
 type writeDownloadChunkToDiskResponse struct {
 	Success        bool
@@ -1153,7 +1154,7 @@ type writeDownloadChunkToDiskResponse struct {
 }
 
 func listenForWriteDownloadChunkToLocalDisk() {
-	updateChunksStatement, err := database.DB.Prepare(`UPDATE filemeta SET chunks_received=$2 WHERE id=$1`)
+	updateChunksStatement, err := database.DB.Prepare(`UPDATE filemeta SET chunks_received=$2, received_chunk_ids=$3 WHERE id=$1`)
 	openFiles := make(map[string]*os.File)
 	newChunks := make(map[string]*chunkWriterData)
 	if err != nil {
@@ -1175,17 +1176,19 @@ func listenForWriteDownloadChunkToLocalDisk() {
 					continue
 				}
 				openFiles[agentResponse.LocalMythicPath] = f
-				chunksReceived := 0
-				err = database.DB.Get(&chunksReceived, `SELECT chunks_received FROM filemeta WHERE id=$1`,
+				fileMetaChunkData := databaseStructs.Filemeta{}
+				err = database.DB.Get(&fileMetaChunkData, `SELECT chunks_received, received_chunk_ids FROM filemeta WHERE id=$1`,
 					agentResponse.FileMetaID)
 				if err != nil {
 					logging.LogError(err, "Failed to update chunks_received count")
 					continue
 				}
 				newChunks[agentResponse.LocalMythicPath] = &chunkWriterData{
-					FileMetaID: agentResponse.FileMetaID,
-					Chunks:     chunksReceived,
+					FileMetaID:       agentResponse.FileMetaID,
+					Chunks:           fileMetaChunkData.ChunksReceived,
+					ReceivedChunkIDs: fileMetaChunkData.ReceivedChunkIDs.StructValueMapInt(),
 				}
+				newChunks[agentResponse.LocalMythicPath].Chunks = len(newChunks[agentResponse.LocalMythicPath].ReceivedChunkIDs)
 			}
 			if agentResponse.KnownChunkSize > 0 {
 				//logging.LogDebug("1. downloading with known chunk size", "chunk_num", agentResponse.ChunkNum, "chunk size", agentResponse.KnownChunkSize)
@@ -1223,7 +1226,11 @@ func listenForWriteDownloadChunkToLocalDisk() {
 				agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
 				continue
 			}
-			newChunks[agentResponse.LocalMythicPath].Chunks += 1
+			if _, ok := newChunks[agentResponse.LocalMythicPath].ReceivedChunkIDs[agentResponse.ChunkNum]; !ok {
+				// only increment our chunks if we haven't seen this one before
+				newChunks[agentResponse.LocalMythicPath].ReceivedChunkIDs[agentResponse.ChunkNum] = totalWritten
+				newChunks[agentResponse.LocalMythicPath].Chunks += 1
+			}
 			agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{
 				Success:        true,
 				ChunksReceived: newChunks[agentResponse.LocalMythicPath].Chunks,
@@ -1233,7 +1240,7 @@ func listenForWriteDownloadChunkToLocalDisk() {
 				f.Sync()
 				f.Close()
 				delete(openFiles, key)
-				_, err = updateChunksStatement.Exec(newChunks[key].FileMetaID, newChunks[key].Chunks)
+				_, err = updateChunksStatement.Exec(newChunks[key].FileMetaID, newChunks[key].Chunks, GetMythicJSONTextFromStruct(newChunks[key].ReceivedChunkIDs))
 				if err != nil {
 					logging.LogError(err, "failed to update chunk count for file")
 				}
@@ -1241,7 +1248,7 @@ func listenForWriteDownloadChunkToLocalDisk() {
 			}
 		case <-syncChunksTimer.C:
 			for key, _ := range openFiles {
-				_, err = updateChunksStatement.Exec(newChunks[key].FileMetaID, newChunks[key].Chunks)
+				_, err = updateChunksStatement.Exec(newChunks[key].FileMetaID, newChunks[key].Chunks, GetMythicJSONTextFromStruct(newChunks[key].ReceivedChunkIDs))
 				if err != nil {
 					logging.LogError(err, "failed to update chunk count for file")
 				}
@@ -1659,6 +1666,7 @@ func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta datab
 		TreeType:        databaseStructs.TREE_TYPE_FILE,
 		CanHaveChildren: false,
 		Deleted:         false,
+		DisplayPath:     []byte{},
 	}
 	parentPath, _, name := getParentPathFullPathName(pathData, len(pathData.PathPieces)-1, databaseStructs.TREE_TYPE_FILE)
 	if parentPath == "" && name == "" {
@@ -1840,6 +1848,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 		Deleted:         false,
 		HasChildren:     !fileBrowser.IsFile && fileBrowser.Files != nil && len(*fileBrowser.Files) > 0,
 		Os:              getOSTypeBasedOnPathSeparator(pathData.PathSeparator, databaseStructs.TREE_TYPE_FILE),
+		DisplayPath:     []byte{},
 	}
 	if fileBrowser.Success != nil {
 		newTree.Success.Valid = true
@@ -1874,6 +1883,7 @@ func HandleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 				CanHaveChildren: !newEntry.IsFile,
 				Deleted:         false,
 				Os:              newTree.Os,
+				DisplayPath:     []byte{},
 			}
 			newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
 			fileMetaData = addChildFilePermissions(&newEntry)
@@ -2018,6 +2028,7 @@ func listenForFileBrowserUpdateDeleted() {
 								TreeType:        databaseStructs.TREE_TYPE_FILE,
 								CanHaveChildren: !newEntry.IsFile,
 								Deleted:         false,
+								DisplayPath:     []byte{},
 							}
 							newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
 							fileMetaData := addChildFilePermissions(&newEntry)
@@ -2100,6 +2111,7 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 						TreeType:        databaseStructs.TREE_TYPE_PROCESS,
 						CanHaveChildren: true,
 						Deleted:         false,
+						DisplayPath:     []byte{},
 					}
 					if newEntry.OS != nil {
 						newTree.Os = *newEntry.OS
@@ -2167,6 +2179,7 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 					TreeType:        databaseStructs.TREE_TYPE_PROCESS,
 					CanHaveChildren: true,
 					Deleted:         false,
+					DisplayPath:     []byte{},
 				}
 				if newEntry.OS != nil {
 					newTree.Os = *newEntry.OS
@@ -2251,6 +2264,7 @@ func HandleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 				TreeType:        databaseStructs.TREE_TYPE_PROCESS,
 				CanHaveChildren: true,
 				Deleted:         false,
+				DisplayPath:     []byte{},
 			}
 			if newEntry.OS != nil {
 				newTree.Os = *newEntry.OS

@@ -71,6 +71,13 @@ export const MythicFileContext = ({agent_file_id, display_link, filename, extraS
     if(fileData.agent_file_id === '' || fileData.filename === undefined){
         return agent_file_id
     }
+    const onClose = (e) => {
+        if(e){
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        setOpenPreviewMediaDialog(false)
+    }
     return (
         <>
             <MythicStyledTooltip title={"Preview Media"} tooltipStyle={extraStyles ? extraStyles : {}}>
@@ -83,11 +90,11 @@ export const MythicFileContext = ({agent_file_id, display_link, filename, extraS
             </Link>
             {openPreviewMediaDialog &&
                 <MythicDialog fullWidth={true} maxWidth="xl" open={openPreviewMediaDialog}
-                              onClose={(e)=>{setOpenPreviewMediaDialog(false);}}
+                              onClose={onClose}
                               innerDialog={<PreviewFileMediaDialog
                                   agent_file_id={fileData.agent_file_id}
                                   filename={fileData.filename}
-                                  onClose={(e)=>{setOpenPreviewMediaDialog(false);}} />}
+                                  onClose={onClose} />}
                 />
             }
         </>

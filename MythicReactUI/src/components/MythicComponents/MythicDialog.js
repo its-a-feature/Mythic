@@ -51,8 +51,9 @@ export function MythicDialog(props) {
   }, [props.open]);
     const dialogOnClick = (e) => {
         e.stopPropagation();
+        e.preventDefault();
         if(e.target.classList.length > 0 && e.target.classList.contains("MuiDialog-container")){
-          //props.onClose();
+          props.onClose();
         }
     }
     const dialogOnContextMenu = (e) => {
@@ -65,24 +66,37 @@ export function MythicDialog(props) {
         props.onClose();
     }
     const onStart = (e) => {
+        if(e){
+            e.stopPropagation();
+            e.preventDefault();
+        }
         if(!draggedState.modified){
             setDraggedState({
                 style: {
-                    width: e.target.parentElement.offsetWidth + "px",
                     height: e.target.offsetParent.offsetHeight  + "px",
+                    width: e.target.offsetParent.offsetWidth + "px",
                     margin: "auto",
+                    overflowY: "auto",
                 },
                 paperStyle: {
-                    height: e.target.offsetParent.offsetHeight + "px",
-                    width: e.target.parentElement.offsetWidth + "px",
-                    margin: 0
+                    //height: e.target.offsetParent.offsetHeight + "px",
+                    width: e.target.offsetParent.offsetWidth + "px",
+                    margin: 0,
+                    overflowY: "auto",
                 },
                 containerStyle: {
-                    height: "fit-content"
+                    height: "fit-content",
+                    overflowY: "auto"
                 },
                 hideBackdrop: true,
                 modified: true,
             })
+        }
+    }
+    const onStop = (e) => {
+        if(e){
+            e.stopPropagation();
+            e.preventDefault();
         }
     }
   return (
@@ -91,17 +105,19 @@ export function MythicDialog(props) {
           handle="#mythic-draggable-title"
           cancel={'[class*="MuiDialogContent-root"]'}
           onStart={onStart}
+          onStop={onStop}
       >
           <Dialog
             ref={nodeRef}
             open={props.open}
+            onClick={dialogOnClick}
             onClose={handleOnClose}
             scroll="paper"
             maxWidth={props.maxWidth}
             fullWidth={true}
             style={{...props.style, ...draggedState.style}}
             disableEnforceFocus={true}
-            disablePortal={true}
+            disablePortal={false}
             hideBackdrop={draggedState.hideBackdrop}
             aria-labelledby="scroll-dialog-title"
             aria-describedby="scroll-dialog-description"

@@ -85,6 +85,17 @@ func (j MythicJSONText) StructValue() map[string]interface{} {
 	}
 	return newMap
 }
+func (j MythicJSONText) StructValueMapInt() map[int]interface{} {
+	newMap := make(map[int]interface{})
+	if err := j.Unmarshal(&newMap); err != nil {
+		logging.LogError(err, "Failed to unmarshal types.JSONText into map[int]interface{}")
+		return newMap
+	}
+	if newMap == nil {
+		newMap = make(map[int]interface{})
+	}
+	return newMap
+}
 func (j MythicJSONArray) StructValue() []interface{} {
 	newArray := []interface{}{}
 	if err := j.Unmarshal(&newArray); err != nil {

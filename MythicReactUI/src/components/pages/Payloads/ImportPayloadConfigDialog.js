@@ -5,6 +5,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {gql, useMutation} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
+import {DragAndDropFileUpload} from "../Callbacks/TaskParametersDialogRow";
 
 const create_payload = gql`
  mutation createPayloadMutation($payload: String!) {
@@ -31,22 +32,19 @@ export function ImportPayloadConfigDialog(props) {
       createPayloadMutation({variables: {payload: fileValue.contents}}).catch( (e) => {console.log(e)} );
         props.onClose();
     }
-    const onFileChange = (evt) => {
+    const onFileChange = (newFile) => {
       const reader = new FileReader();
       reader.onload = (e) => {
           const contents = e.target.result;
-          setFileValue({name: evt.target.files[0].name, contents: contents});
+          setFileValue({name: newFile.name, contents: contents});
       }
-      reader.readAsBinaryString(evt.target.files[0]);
+      reader.readAsBinaryString(newFile);
   }
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Import Payload Config to Generate New Payload</DialogTitle>
         <DialogContent dividers={true}>
-          <Button variant="contained" component="label"> 
-              { fileValue.name === "" ? "Select File" : fileValue.name } 
-              <input onChange={onFileChange} type="file" hidden /> 
-          </Button>
+            <DragAndDropFileUpload value={fileValue} multiple={false} onChange={onFileChange} />
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={props.onClose} color="primary">

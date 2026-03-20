@@ -7,14 +7,21 @@ import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
 import {ResponseDisplayMedia} from "../Callbacks/ResponseDisplayMedia";
+import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggableDialogTitle";
 
 export function PreviewFileMediaDialog({agent_file_id, filename, onClose}) {
-  return (
+    const onClick = (e) => {
+        if(e){
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }
+    return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">
+        <MythicDraggableDialogTitle>
             Previewing <b>{filename}</b>
-        </DialogTitle>
-        <DialogContent style={{height: "calc(95vh)", margin: 0, padding: 0}}>
+        </MythicDraggableDialogTitle>
+        <DialogContent onClick={onClick} style={{height: "calc(80vh)", margin: 0, padding: 0}}>
           <ResponseDisplayMedia media={{agent_file_id, filename}} expand={true} />
         </DialogContent>
         <DialogActions>

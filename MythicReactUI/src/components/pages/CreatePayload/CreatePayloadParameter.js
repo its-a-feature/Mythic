@@ -25,6 +25,7 @@ import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import InputLabel from '@mui/material/InputLabel';
+import {DragAndDropFileUpload} from "../Callbacks/TaskParametersDialogRow";
 
 export const getDynamicQueryBuildParameterParams = gql`
 mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: String!, $selected_os: String!){
@@ -182,13 +183,13 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const submitDictChange = (list) => {
         onChange(name, list, false);
     };
-    const onFileChange = (evt) => {
-        setFileValue({name: evt.target.files[0].name});
-        onChange(name, evt.target.files[0]);
+    const onFileChange = (newFile) => {
+        setFileValue({name: newFile.name});
+        onChange(name, newFile);
     }
-    const onFileMultChange = (evt) => {
-        setFileMultValue([...evt.target.files]);
-        onChange(name, [...evt.target.files]);
+    const onFileMultChange = (newFiles) => {
+        setFileMultValue([...newFiles]);
+        onChange(name, [...newFiles]);
     }
     useEffect( () => {
         if( parameter_type === "ChooseOne" || parameter_type === "ChooseOneCustom" ){
@@ -474,32 +475,13 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             case "FileMultiple":
                 return (
                     <>
-                        <Button variant="contained" component="label">
-                            Select Files
-                            <input onChange={onFileMultChange} type="file" hidden multiple />
-                        </Button>
-                        { fileMultValue.length > 0 &&
-                            fileMultValue?.map((f, i) => (
-                                <div key={i} style={{display: "inline-block"}}>
-                                    {typeof f === "string" && <MythicFileContext agent_file_id={f}
-                                                                                 extraStyles={{bottom: "-10px", position: "relative", marginLeft: "5px", marginRight: "5px"}} />}
-                                    {typeof f !== "string" && (f.name)}
-                                </div>
-                            ))
-                        }
+                        <DragAndDropFileUpload values={fileMultValue} multiple={true} onChange={onFileMultChange} />
                     </>
                 )
             case "File":
                 return (
                     <>
-                        <Button variant="contained" component="label">
-                            { fileValue.legacy ? "Select New File" : fileValue.name === "" ? "Select File" : fileValue.name }
-                            <input onChange={onFileChange} type="file" hidden />
-                        </Button>
-                        {fileValue.legacy &&
-                            <MythicFileContext agent_file_id={fileValue.name}
-                                               extraStyles={{ position: "relative", marginLeft: "5px", marginRight: "5px"}} />
-                        }
+                        <DragAndDropFileUpload value={fileValue} multiple={false} onChange={onFileChange} />
                     </>
 
                 )

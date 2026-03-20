@@ -66,7 +66,7 @@ mutation eventingManualTrigger($eventgroup_id: Int!){
     }
 }
 `)
-export function EventGroupTable({selectedEventGroup, me, showInstances, showGraph}) {
+export function EventGroupTable({selectedEventGroup, me, showInstances, showGraph, height}) {
     const [openEventStepRender, setOpenEventStepRender] = React.useState(false);
     const [openEnvView, setOpenEnvView] = React.useState(false);
     const [openTriggerDataView, setOpenTriggerDataView] = React.useState(false);
@@ -141,7 +141,7 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
          triggerManually({variables: {eventgroup_id: selectedEventGroup.id}});
      }
  return (
-     <div style={{marginLeft: "5px", display: "flex", overflowY: "auto", flexDirection: "column", height: "100%"}}>
+     <div style={{marginLeft: "5px", display: "flex", overflowY: "auto", flexDirection: "column", height: height || "100%"}}>
 
          {selectedEventGroup.id === 0 &&
              <Typography variant={"h4"}><strong>All Eventing Runs</strong></Typography>

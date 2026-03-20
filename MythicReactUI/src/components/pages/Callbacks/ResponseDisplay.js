@@ -97,9 +97,9 @@ export const ResponseDisplay = (props) =>{
   const interactive = props?.task?.command?.supported_ui_features.includes("task_response:interactive") || false;
   return (
       interactive ? (
-          <ResponseDisplayInteractive {...props} />
+          <ResponseDisplayInteractive {...props} key={props?.task?.id} />
         ) : (
-          <NonInteractiveResponseDisplay {...props} />
+          <NonInteractiveResponseDisplay {...props} key={props?.task?.id} />
         )
   )
 }

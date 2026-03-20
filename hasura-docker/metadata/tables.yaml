@@ -4307,34 +4307,35 @@
     - role: developer
       permission:
         columns:
-          - size
-          - complete
-          - delete_after_fetch
-          - deleted
-          - is_download_from_agent
-          - is_payload
-          - is_screenshot
-          - filename
-          - full_remote_path
+          - agent_file_id
           - apitokens_id
           - chunk_size
           - chunks_received
+          - comment
+          - complete
           - copy_of_file_id
+          - delete_after_fetch
+          - deleted
           - eventgroup_id
           - eventstepinstance_id
+          - filename
+          - full_remote_path
+          - host
           - id
+          - is_download_from_agent
+          - is_payload
+          - is_screenshot
+          - md5
           - mythictree_id
           - operation_id
           - operator_id
-          - task_id
-          - total_chunks
-          - agent_file_id
-          - comment
-          - host
-          - md5
           - path
+          - received_chunk_ids
           - sha1
+          - size
+          - task_id
           - timestamp
+          - total_chunks
         computed_fields:
           - filename_text
           - filename_utf8
@@ -4347,34 +4348,35 @@
     - role: mythic_admin
       permission:
         columns:
-          - size
-          - complete
-          - delete_after_fetch
-          - deleted
-          - is_download_from_agent
-          - is_payload
-          - is_screenshot
-          - filename
-          - full_remote_path
+          - agent_file_id
           - apitokens_id
           - chunk_size
           - chunks_received
+          - comment
+          - complete
           - copy_of_file_id
+          - delete_after_fetch
+          - deleted
           - eventgroup_id
           - eventstepinstance_id
+          - filename
+          - full_remote_path
+          - host
           - id
+          - is_download_from_agent
+          - is_payload
+          - is_screenshot
+          - md5
           - mythictree_id
           - operation_id
           - operator_id
-          - task_id
-          - total_chunks
-          - agent_file_id
-          - comment
-          - host
-          - md5
           - path
+          - received_chunk_ids
           - sha1
+          - size
+          - task_id
           - timestamp
+          - total_chunks
         computed_fields:
           - filename_text
           - filename_utf8
@@ -4387,34 +4389,35 @@
     - role: operation_admin
       permission:
         columns:
-          - size
-          - complete
-          - delete_after_fetch
-          - deleted
-          - is_download_from_agent
-          - is_payload
-          - is_screenshot
-          - filename
-          - full_remote_path
+          - agent_file_id
           - apitokens_id
           - chunk_size
           - chunks_received
+          - comment
+          - complete
           - copy_of_file_id
+          - delete_after_fetch
+          - deleted
           - eventgroup_id
           - eventstepinstance_id
+          - filename
+          - full_remote_path
+          - host
           - id
+          - is_download_from_agent
+          - is_payload
+          - is_screenshot
+          - md5
           - mythictree_id
           - operation_id
           - operator_id
-          - task_id
-          - total_chunks
-          - agent_file_id
-          - comment
-          - host
-          - md5
           - path
+          - received_chunk_ids
           - sha1
+          - size
+          - task_id
           - timestamp
+          - total_chunks
         computed_fields:
           - filename_text
           - filename_utf8
@@ -4427,34 +4430,35 @@
     - role: operator
       permission:
         columns:
-          - size
-          - complete
-          - delete_after_fetch
-          - deleted
-          - is_download_from_agent
-          - is_payload
-          - is_screenshot
-          - filename
-          - full_remote_path
+          - agent_file_id
           - apitokens_id
           - chunk_size
           - chunks_received
+          - comment
+          - complete
           - copy_of_file_id
+          - delete_after_fetch
+          - deleted
           - eventgroup_id
           - eventstepinstance_id
+          - filename
+          - full_remote_path
+          - host
           - id
+          - is_download_from_agent
+          - is_payload
+          - is_screenshot
+          - md5
           - mythictree_id
           - operation_id
           - operator_id
-          - task_id
-          - total_chunks
-          - agent_file_id
-          - comment
-          - host
-          - md5
           - path
+          - received_chunk_ids
           - sha1
+          - size
+          - task_id
           - timestamp
+          - total_chunks
         computed_fields:
           - filename_text
           - filename_utf8
@@ -4467,34 +4471,35 @@
     - role: spectator
       permission:
         columns:
-          - size
-          - complete
-          - delete_after_fetch
-          - deleted
-          - is_download_from_agent
-          - is_payload
-          - is_screenshot
-          - filename
-          - full_remote_path
+          - agent_file_id
           - apitokens_id
           - chunk_size
           - chunks_received
+          - comment
+          - complete
           - copy_of_file_id
+          - delete_after_fetch
+          - deleted
           - eventgroup_id
           - eventstepinstance_id
+          - filename
+          - full_remote_path
+          - host
           - id
+          - is_download_from_agent
+          - is_payload
+          - is_screenshot
+          - md5
           - mythictree_id
           - operation_id
           - operator_id
-          - task_id
-          - total_chunks
-          - agent_file_id
-          - comment
-          - host
-          - md5
           - path
+          - received_chunk_ids
           - sha1
+          - size
+          - task_id
           - timestamp
+          - total_chunks
         computed_fields:
           - filename_text
           - filename_utf8

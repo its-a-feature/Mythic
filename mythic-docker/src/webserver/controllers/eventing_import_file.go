@@ -44,6 +44,7 @@ func EventingImportWebhook(c *gin.Context) {
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	fileData := databaseStructs.Filemeta{
 		AgentFileID:         uuid.New().String(),
+		FullRemotePath:      make([]byte, 0),
 		TotalChunks:         1,
 		ChunksReceived:      1,
 		ChunkSize:           int(file.Size),

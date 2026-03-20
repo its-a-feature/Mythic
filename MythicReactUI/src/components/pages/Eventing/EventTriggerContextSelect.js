@@ -221,7 +221,7 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
                     }
                 </Select>
                 {selectedEventGroup.id !== 0 &&
-                    <EventGroupTable me={me} selectedEventGroup={selectedEventGroup} showInstances={false} showGraph={false}/>
+                    <EventGroupTable me={me} selectedEventGroup={selectedEventGroup} showInstances={false} showGraph={false} height={"unset"}/>
                 }
                 <Table>
                     <TableHead>
