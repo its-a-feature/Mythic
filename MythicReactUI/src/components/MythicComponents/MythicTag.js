@@ -29,6 +29,7 @@ import Typography from '@mui/material/Typography';
 import MythicStyledTableCell from "./MythicTableCell";
 import {meState} from "../../cache";
 import { useReactiveVar } from '@apollo/client';
+import {MythicDraggableDialogTitle} from "./MythicDraggableDialogTitle";
 
 const createNewTagMutationTemplate = ({target_object}) => {
   // target_object should be something like "task_id"
@@ -495,20 +496,17 @@ const onAcceptDelete = () => {
 
 return (
   <React.Fragment>
-      <DialogTitle id="form-dialog-title">Edit Tags
-      </DialogTitle>
-      <DialogContent dividers={true}>
-      {openNewDialog ?
-        (<MythicDialog fullWidth={true} maxWidth="xl" open={openNewDialog}
+      <MythicDraggableDialogTitle >Edit Tags </MythicDraggableDialogTitle>
+      <DialogContent dividers={true} style={{width: "100%"}}>
+      {openNewDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openNewDialog}
           onClose={()=>{setOpenNewDialog(false);}} 
           innerDialog={<NewTagDialog me={props.me} 
             target_object={props.target_object} 
             target_object_id={props.target_object_id} 
             onClose={()=>{setOpenNewDialog(false);}} 
             onSubmit={handleNewTagCreate} />}
-      />) : null}
-        <TableContainer className="mythicElement">
-          <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+      />}
+          <Table size="small" style={{ width: "100%", overflow: "scroll"}}>
               <TableBody>
                 <TableRow hover>
                   <MythicStyledTableCell style={{width: "30%"}}>Select Existing Tag to Edit or Add New</MythicStyledTableCell>
@@ -578,7 +576,6 @@ return (
                 </TableRow>
               </TableBody>
           </Table>
-        </TableContainer>
       </DialogContent>
       <DialogActions>
         <Button onClick={props.onClose} variant="contained" color="primary">
@@ -647,10 +644,9 @@ export function NewTagDialog(props) {
 
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Add New Tag</DialogTitle>
-        <DialogContent dividers={true}>
-          <TableContainer className="mythicElement">
-            <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
+        <MythicDraggableDialogTitle >Add New Tag</MythicDraggableDialogTitle>
+        <DialogContent dividers={true} style={{width: "100%"}}>
+          <Table size="small" style={{ overflow: "scroll", width: "100%"}}>
                 <TableBody>
                   <TableRow hover>
                     <MythicStyledTableCell style={{width: "20%"}}>
@@ -717,7 +713,6 @@ export function NewTagDialog(props) {
                   </TableRow>
                 </TableBody>
             </Table>
-          </TableContainer>
         </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">

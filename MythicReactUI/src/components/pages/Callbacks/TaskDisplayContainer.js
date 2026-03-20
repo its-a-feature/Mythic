@@ -288,41 +288,36 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
     }
     return (
         <div style={{height: "100%"}}>
-            {openTaskTagDialog ?
-                (<MythicDialog fullWidth={true} maxWidth="lg" open={openTaskTagDialog}
+            {openTaskTagDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openTaskTagDialog}
                                onClose={()=>{setOpenTaskTagDialog(false);}}
                                innerDialog={<ViewEditTagsDialog me={me} target_object={"task_id"} target_object_id={task.id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
-                />) : null}
-            {openCommentDialog ?
-                (<MythicDialog fullWidth={true} maxWidth="lg" open={openCommentDialog}
+                />
+            }
+            {openCommentDialog && <MythicDialog fullWidth={true} maxWidth="md" open={openCommentDialog}
                                onClose={()=>{setOpenCommentDialog(false);}}
                                innerDialog={<TaskCommentDialog task_id={task.id} onClose={()=>{setOpenCommentDialog(false);}} />}
-                />) : null
+                />
             }
-            {openParametersDialog ?
-                (<MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog}
+            {openParametersDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog}
                                onClose={()=>{setOpenParametersDialog(false);}}
                                innerDialog={<TaskViewParametersDialog task_id={task.id} onClose={()=>{setOpenParametersDialog(false);}} />}
-                />) : null
+                />
             }
-            {openTokenDialog ?
-                (<MythicDialog fullWidth={true} maxWidth="md" open={openTokenDialog}
+            {openTokenDialog && <MythicDialog fullWidth={true} maxWidth="md" open={openTokenDialog}
                                onClose={()=>{setOpenTokenDialog(false);}}
                                innerDialog={<TaskTokenDialog token_id={task.token === undefined ? 0 : task.token.id} onClose={()=>{setOpenTokenDialog(false);}} />}
-                />) : null
+                />
             }
-            {openOpsecDialog.open ?
-                (<MythicDialog fullWidth={true} maxWidth="md" open={openOpsecDialog.open}
+            {openOpsecDialog.open && <MythicDialog fullWidth={true} maxWidth="lg" open={openOpsecDialog.open}
                                onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}}
                                innerDialog={<TaskOpsecDialog task_id={task.id} view={openOpsecDialog.view} onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} />}
-                />) : null
+                />
             }
 
-            {openStdoutStderrDialog ?
-                (<MythicDialog fullWidth={true} maxWidth="lg" open={openStdoutStderrDialog}
+            {openStdoutStderrDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openStdoutStderrDialog}
                                onClose={()=>{setOpenStdoutStderrDialog(false);}}
                                innerDialog={<TaskViewStdoutStderrDialog task_id={task.id} onClose={()=>{setOpenStdoutStderrDialog(false);}} />}
-                />) : null
+                />
             }
             {openEventingDialog &&
                 <MythicDialog
@@ -562,41 +557,36 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
   return (
       <React.Fragment>
         <Backdrop open={openSpeedDial} onClick={()=>{setOpenSpeedDial(false);}} style={{zIndex: 2, position: "absolute"}}/>
-        {openTaskTagDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="lg" open={openTaskTagDialog}
+        {openTaskTagDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openTaskTagDialog}
                            onClose={()=>{setOpenTaskTagDialog(false);}}
                            innerDialog={<ViewEditTagsDialog me={me} target_object={"task_id"} target_object_id={task.id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
-            />) : null}
-        {openCommentDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="lg" open={openCommentDialog}
+            />
+        }
+        {openCommentDialog && <MythicDialog fullWidth={true} maxWidth="md" open={openCommentDialog}
                            onClose={()=>{setOpenCommentDialog(false);}}
                            innerDialog={<TaskCommentDialog task_id={task.id} onClose={()=>{setOpenCommentDialog(false);}} />}
-            />) : null
+            />
         }
-        {openParametersDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog}
+        {openParametersDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openParametersDialog}
                            onClose={()=>{setOpenParametersDialog(false);}}
                            innerDialog={<TaskViewParametersDialog task_id={task.id} onClose={()=>{setOpenParametersDialog(false);}} />}
-            />) : null
+            />
         }
-        {openTokenDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openTokenDialog}
+        {openTokenDialog && <MythicDialog fullWidth={true} maxWidth="md" open={openTokenDialog}
                            onClose={()=>{setOpenTokenDialog(false);}}
                            innerDialog={<TaskTokenDialog token_id={task.token === undefined ? 0 : task.token.id} onClose={()=>{setOpenTokenDialog(false);}} />}
-            />) : null
+            />
         }
-        {openOpsecDialog.open ?
-            (<MythicDialog fullWidth={true} maxWidth="md" open={openOpsecDialog.open}
+        {openOpsecDialog.open && <MythicDialog fullWidth={true} maxWidth="lg" open={openOpsecDialog.open}
                            onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}}
                            innerDialog={<TaskOpsecDialog task_id={task.id} view={openOpsecDialog.view} onClose={()=>{setOpenOpsecDialog({...openOpsecDialog, open: false});}} />}
-            />) : null
+            />
         }
 
-        {openStdoutStderrDialog ?
-            (<MythicDialog fullWidth={true} maxWidth="lg" open={openStdoutStderrDialog}
+        {openStdoutStderrDialog && <MythicDialog fullWidth={true} maxWidth="lg" open={openStdoutStderrDialog}
                            onClose={()=>{setOpenStdoutStderrDialog(false);}}
                            innerDialog={<TaskViewStdoutStderrDialog task_id={task.id} onClose={()=>{setOpenStdoutStderrDialog(false);}} />}
-            />) : null
+            />
         }
       {openEventingDialog &&
           <MythicDialog

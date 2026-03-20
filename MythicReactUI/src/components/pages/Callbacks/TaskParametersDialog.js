@@ -21,6 +21,7 @@ import {Backdrop, CircularProgress} from '@mui/material';
 import Divider from '@mui/material/Divider';
 import {b64DecodeUnicode} from './ResponseDisplay';
 import {snackActions} from "../../utilities/Snackbar";
+import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggableDialogTitle";
 
 //if we need to get all the loaded commands for the callback and filter, use this
 const GetLoadedCommandsQuery = gql`
@@ -977,7 +978,7 @@ export function TaskParametersDialog(props) {
     }
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">{commandInfo.cmd}'s Parameters</DialogTitle>
+        <MythicDraggableDialogTitle>{commandInfo.cmd}'s Parameters</MythicDraggableDialogTitle>
         <DialogContent dividers={true}>
             <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}}>
                 <CircularProgress color="inherit" />

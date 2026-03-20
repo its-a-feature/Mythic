@@ -68,13 +68,14 @@ export function TaskViewParametersDialog(props) {
      return <div>Error!</div>;
     }
   return (
-    <React.Fragment>
-        <MythicModifyStringDialog title={`View Task Parameters And Timestamps`}
-                                  onClose={props.onClose}
-                                  maxRows={40}
-                                  wrap={true}
-                                  value={comment} />
-  </React.Fragment>
+      <>
+          <MythicModifyStringDialog title={`View Task Parameters And Timestamps`}
+                                    onClose={props.onClose}
+                                    maxRows={40}
+                                    wrap={true}
+                                    value={comment} />
+      </>
+
   );
 }
 

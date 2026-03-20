@@ -19,6 +19,7 @@ import {TextField} from '@mui/material';
 import {snackActions} from "../../utilities/Snackbar";
 import {MeContext} from "../../App";
 import {EventGroupTable} from "./EventGroupTable";
+import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggableDialogTitle";
 
 const triggerManualMutation = gql(`
 mutation triggerManualMutation($eventgroup_id: Int!, $env_data: jsonb){
@@ -203,7 +204,7 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
     }
     return (
         <React.Fragment>
-            <DialogTitle id="form-dialog-title">Trigger a workflow</DialogTitle>
+            <MythicDraggableDialogTitle >Trigger a workflow</MythicDraggableDialogTitle>
             <DialogContent dividers={true} style={{maxHeight: "calc(70vh)"}}>
                 <DialogContentText>
                     Trigger a workflow with selected context and optional additional data.

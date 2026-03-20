@@ -12,6 +12,7 @@ import CardHeader from '@mui/material/CardHeader';
 import {gql, useQuery} from '@apollo/client';
 import { CardContent } from '@mui/material';
 import {classes, StyledButton, StyledDivider} from '../../MythicComponents/MythicTransferList';
+import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggableDialogTitle";
 
 const getCommandsQuery = gql`
 query GetCallbackDetails($callback_id: Int!) {
@@ -184,7 +185,7 @@ export function AddRemoveCallbackCommandsDialog(props) {
     }
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Add or Remove Commands for Callback {props.display_id} </DialogTitle>
+        <MythicDraggableDialogTitle>Add or Remove Commands for Callback {props.display_id} </MythicDraggableDialogTitle>
         <DialogContent dividers={true} style={{height: "100%", display: "flex", flexDirection: "column", position: "relative",  maxHeight: "100%"}}>
           This will add or remove commands associated with this callback from Mythic's perspective. 
           This does NOT add or remove commands within the payload itself that's beaconing out to Mythic.

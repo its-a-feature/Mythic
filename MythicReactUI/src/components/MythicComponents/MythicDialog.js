@@ -21,10 +21,27 @@ import {useTheme} from '@mui/material/styles';
 import WrapTextIcon from '@mui/icons-material/WrapText';
 import {IconButton} from '@mui/material';
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
+import Draggable from 'react-draggable';
+import {MythicDraggableDialogTitle} from "./MythicDraggableDialogTitle";
+import {GetShortRandomString} from "./MythicResizableGrid/MythicResizableGrid";
 
 export function MythicDialog(props) {
-  const descriptionElementRef = React.useRef(null);
-  React.useEffect(() => {
+    const [draggedState, setDraggedState] = React.useState({
+        style: {},
+        paperStyle: {
+            margin: "0",
+            height: "fit-content",
+            width: "stretch"
+        },
+        containerStyle: {
+
+        },
+        hideBackdrop: false,
+        modified: false
+    });
+    const nodeRef = React.useRef(null);
+    const descriptionElementRef = React.useRef(null);
+    React.useEffect(() => {
     if (props.open) {
       const { current: descriptionElement } = descriptionElementRef;
       if (descriptionElement !== null) {
@@ -35,28 +52,73 @@ export function MythicDialog(props) {
     const dialogOnClick = (e) => {
         e.stopPropagation();
         if(e.target.classList.length > 0 && e.target.classList.contains("MuiDialog-container")){
-            props.onClose();
+          //props.onClose();
         }
     }
     const dialogOnContextMenu = (e) => {
         e.stopPropagation();
-
+    }
+    const handleOnClose = (event, reason) => {
+        if(reason === "backdropClick" && draggedState.hideBackdrop){
+            return;
+        }
+        props.onClose();
+    }
+    const onStart = (e) => {
+        if(!draggedState.modified){
+            setDraggedState({
+                style: {
+                    width: e.target.parentElement.offsetWidth + "px",
+                    height: e.target.offsetParent.offsetHeight  + "px",
+                    margin: "auto",
+                },
+                paperStyle: {
+                    height: e.target.offsetParent.offsetHeight + "px",
+                    width: e.target.parentElement.offsetWidth + "px",
+                    margin: 0
+                },
+                containerStyle: {
+                    height: "fit-content"
+                },
+                hideBackdrop: true,
+                modified: true,
+            })
+        }
     }
   return (
-      <Dialog
-        open={props.open}
-        onClose={props.onClose}
-        scroll="paper"
-        maxWidth={props.maxWidth}
-        fullWidth={props.fullWidth}
-        style={props.style}
-        aria-labelledby="scroll-dialog-title"
-        aria-describedby="scroll-dialog-description"
-        onMouseDown={dialogOnClick}
-        onContextMenu={dialogOnContextMenu}
+      <Draggable
+          nodeRef={nodeRef}
+          handle="#mythic-draggable-title"
+          cancel={'[class*="MuiDialogContent-root"]'}
+          onStart={onStart}
       >
-        {props.innerDialog}
-      </Dialog>
+          <Dialog
+            ref={nodeRef}
+            open={props.open}
+            onClose={handleOnClose}
+            scroll="paper"
+            maxWidth={props.maxWidth}
+            fullWidth={true}
+            style={{...props.style, ...draggedState.style}}
+            disableEnforceFocus={true}
+            disablePortal={true}
+            hideBackdrop={draggedState.hideBackdrop}
+            aria-labelledby="scroll-dialog-title"
+            aria-describedby="scroll-dialog-description"
+            sx={{
+                [".MuiPaper-root"]: {
+                    ...draggedState.paperStyle
+                },
+                [".MuiDialog-container"]: {
+                    ...draggedState.containerStyle
+                }
+            }}
+            onMouseDown={dialogOnClick}
+            onContextMenu={dialogOnContextMenu}
+          >
+            {props.innerDialog}
+          </Dialog>
+      </Draggable>
   );
 }
 
@@ -85,17 +147,16 @@ export function MythicModifyStringDialog(props) {
   return (
     <React.Fragment>
         {props.title !== "" &&
-            <DialogTitle id="form-dialog-title">{props.title}
+            <MythicDraggableDialogTitle>{props.title}
                 <MythicStyledTooltip title={wrap ? "Toggle off word wrap" : "Toggl on word wrap"}
                 tooltipStyle={{float: "right"}}>
                     <IconButton onClick={() => {setWrap(!wrap)}}>
                         <WrapTextIcon color={wrap ? "success" : "secondary"} />
                     </IconButton>
                 </MythicStyledTooltip>
-
-            </DialogTitle>
+            </MythicDraggableDialogTitle>
         }
-        <DialogContent dividers={true} style={{height: "100%", margin: 0, padding: 0}}>
+        <DialogContent dividers={true} style={{ margin: 0, padding: 0}}>
             <AceEditor
                 mode="json"
                 theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
@@ -198,7 +259,7 @@ export function MythicViewJSONAsTableDialog(props) {
     }, [props.value, props.leftColumn, props.rightColumn]);
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title" style={{wordBreak: "break-all", maxWidth: "100%"}}>{props.title}</DialogTitle>
+        <MythicDraggableDialogTitle style={{wordBreak: "break-all", maxWidth: "100%"}}>{props.title}</MythicDraggableDialogTitle>
 
           <TableContainer  className="mythicElement" style={{paddingLeft: "10px"}}>
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>

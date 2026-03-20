@@ -10,7 +10,7 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
+import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggableDialogTitle";
 
 export const allTokenDataFragment = gql`
 fragment allTokenData on token {
@@ -89,7 +89,7 @@ export function TaskTokenDialog(props) {
     });
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Token Information</DialogTitle>
+        <MythicDraggableDialogTitle >Token Information</MythicDraggableDialogTitle>
             <TableContainer className="mythicElement">
               <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                     <TableHead>
