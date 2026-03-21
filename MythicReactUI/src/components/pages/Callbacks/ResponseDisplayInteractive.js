@@ -169,7 +169,6 @@ export const GetOutputFormatAll = ({data, myTask, taskID,  useASNIColor, message
 
 }
 
-
 const InteractiveMessageTypes = [
     {"name": "None", "value": -1, "text": "None"},
     {"name": "Tab", "value": 13, "text": "^I"},
@@ -374,7 +373,7 @@ export const ResponseDisplayInteractive = (props) =>{
     }
     useEffect(() => {
         if(autoScroll){
-            messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
+            messagesEndRef?.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
         }
     }, [props.responseRef?.current?.scrollHeight, autoScroll]);
     React.useEffect( () => {

@@ -23,7 +23,6 @@ import {IconButton} from '@mui/material';
 import {MythicStyledTooltip} from "./MythicStyledTooltip";
 import Draggable from 'react-draggable';
 import {MythicDraggableDialogTitle} from "./MythicDraggableDialogTitle";
-import {GetShortRandomString} from "./MythicResizableGrid/MythicResizableGrid";
 
 export function MythicDialog(props) {
     const [draggedState, setDraggedState] = React.useState({
@@ -50,8 +49,8 @@ export function MythicDialog(props) {
     }
   }, [props.open]);
     const dialogOnClick = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
+        //e.preventDefault();
+        //e.stopPropagation();
         if(e.target.classList.length > 0 && e.target.classList.contains("MuiDialog-container")){
           props.onClose();
         }
