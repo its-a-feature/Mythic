@@ -735,10 +735,41 @@ func handleAgentMessagePostResponseRemovedFiles(task databaseStructs.Task, remov
 	// mark the file / folder as removed and recursively mark all children as deleted too
 	for _, rmData := range *removedFiles {
 		host := task.Callback.Host
+		if len(rmData.Path) == 0 {
+			logging.LogError(nil, "removed path is empty, not marking any files as deleted")
+			continue
+		}
 		if rmData.Host != nil && *rmData.Host != "" {
 			host = strings.ToUpper(*rmData.Host)
 		}
-		likePath := rmData.Path + "%"
+		mythictreePath := databaseStructs.MythicTree{
+			FullPath: []byte(rmData.Path),
+			Host:     host,
+		}
+		err := database.DB.Get(&mythictreePath, ` SELECT * FROM mythictree WHERE 
+                              deleted=false AND full_path=$1 AND operation_id=$2 AND "tree_type"=$3`,
+			mythictreePath.FullPath, task.OperationID, databaseStructs.TREE_TYPE_FILE)
+		if err != nil {
+			logging.LogError(err, "failed to find file to delete")
+			continue
+		}
+		if _, err := database.DB.Exec(`UPDATE mythictree SET deleted=true, task_id=$2 WHERE id=$1`, mythictreePath.ID, task.ID); err != nil {
+			logging.LogError(err, "Failed to mark file as deleted")
+			return err
+		}
+		likePath := rmData.Path
+		if mythictreePath.CanHaveChildren {
+			if strings.Contains(rmData.Path, "/") {
+				if !strings.HasSuffix(rmData.Path, "/") {
+					likePath = rmData.Path + "/"
+				}
+			} else {
+				if !strings.HasSuffix(rmData.Path, "\\") {
+					likePath = rmData.Path + "\\"
+				}
+			}
+			likePath += "%"
+		}
 		likePath = strings.ReplaceAll(likePath, "\\", "\\\\")
 		//logging.LogInfo("updating removal path", "path", likePath, "host", host)
 		if _, err := database.DB.Exec(`UPDATE mythictree SET
@@ -1190,44 +1221,44 @@ func listenForWriteDownloadChunkToLocalDisk() {
 				}
 				newChunks[agentResponse.LocalMythicPath].Chunks = len(newChunks[agentResponse.LocalMythicPath].ReceivedChunkIDs)
 			}
-			if agentResponse.KnownChunkSize > 0 {
-				//logging.LogDebug("1. downloading with known chunk size", "chunk_num", agentResponse.ChunkNum, "chunk size", agentResponse.KnownChunkSize)
-				_, err = f.Seek(int64((agentResponse.ChunkNum-1)*(agentResponse.KnownChunkSize)), io.SeekStart)
+			if _, ok := newChunks[agentResponse.LocalMythicPath].ReceivedChunkIDs[agentResponse.ChunkNum]; !ok {
+				// only process and write the file if we haven't seen it before
+				if agentResponse.KnownChunkSize > 0 {
+					//logging.LogDebug("1. downloading with known chunk size", "chunk_num", agentResponse.ChunkNum, "chunk size", agentResponse.KnownChunkSize)
+					_, err = f.Seek(int64((agentResponse.ChunkNum-1)*(agentResponse.KnownChunkSize)), io.SeekStart)
+					if err != nil {
+						logging.LogError(err, "Failed to seek to next chunk in file")
+						//f.Sync()
+						//f.Close()
+						agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
+						continue
+					}
+					//logging.LogDebug("1.1. downloading chunk", "offset from beginning", newOffset)
+				} else {
+					//logging.LogDebug("1. downloading with unknown chunk size chunk", "chunk_num", agentResponse.ChunkNum, "chunk size", len(agentResponse.ChunkData))
+					_, err = f.Seek(int64((agentResponse.ChunkNum-1)*(len(*agentResponse.ChunkData))), io.SeekStart)
+					if err != nil {
+						logging.LogError(err, "Failed to seek to next chunk in file")
+						agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
+						continue
+					}
+					//logging.LogDebug("1.1. downloading chunk", "offset from beginning", newOffset)
+				}
+				totalWritten, err := f.Write(*agentResponse.ChunkData)
 				if err != nil {
-					logging.LogError(err, "Failed to seek to next chunk in file")
+					logging.LogError(err, "Failed to write bytes to file in agent download")
 					//f.Sync()
 					//f.Close()
 					agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
 					continue
 				}
-				//logging.LogDebug("1.1. downloading chunk", "offset from beginning", newOffset)
-			} else {
-				//logging.LogDebug("1. downloading with unknown chunk size chunk", "chunk_num", agentResponse.ChunkNum, "chunk size", len(agentResponse.ChunkData))
-				_, err = f.Seek(int64((agentResponse.ChunkNum-1)*(len(*agentResponse.ChunkData))), io.SeekStart)
-				if err != nil {
-					logging.LogError(err, "Failed to seek to next chunk in file")
+				//logging.LogDebug("wrote bytes", "byte sample", string(agentResponse.ChunkData[:10]), "total bytes", len(agentResponse.ChunkData))
+				//logging.LogDebug("2. finished writing chunk", "next offset should be", offset)
+				if totalWritten != len(*agentResponse.ChunkData) {
+					logging.LogError(nil, "Didn't write all of the bytes to disk")
 					agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
 					continue
 				}
-				//logging.LogDebug("1.1. downloading chunk", "offset from beginning", newOffset)
-			}
-			totalWritten, err := f.Write(*agentResponse.ChunkData)
-			if err != nil {
-				logging.LogError(err, "Failed to write bytes to file in agent download")
-				//f.Sync()
-				//f.Close()
-				agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
-				continue
-			}
-			//logging.LogDebug("wrote bytes", "byte sample", string(agentResponse.ChunkData[:10]), "total bytes", len(agentResponse.ChunkData))
-			//logging.LogDebug("2. finished writing chunk", "next offset should be", offset)
-			if totalWritten != len(*agentResponse.ChunkData) {
-				logging.LogError(nil, "Didn't write all of the bytes to disk")
-				agentResponse.ChunksWritten <- writeDownloadChunkToDiskResponse{Success: false}
-				continue
-			}
-			if _, ok := newChunks[agentResponse.LocalMythicPath].ReceivedChunkIDs[agentResponse.ChunkNum]; !ok {
-				// only increment our chunks if we haven't seen this one before
 				newChunks[agentResponse.LocalMythicPath].ReceivedChunkIDs[agentResponse.ChunkNum] = totalWritten
 				newChunks[agentResponse.LocalMythicPath].Chunks += 1
 			}
@@ -1608,7 +1639,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 			// this was uploaded manually through the file hosting and not part of a task or was uploaded as part of a different task
 			// either way, we need to make a new fileMeta tracker for it
 			newFileMeta.FullRemotePath = []byte(*agentResponse.Upload.FullPath)
-			newFileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
+			//newFileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
 			newFileMeta.Host = filePieces.Host
 			//newFileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
 			_, err = database.DB.NamedExec(`UPDATE filemeta 
@@ -1623,7 +1654,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 		} else {
 			// this might be a new full path for the current file meta that we need to update
 			fileMeta.FullRemotePath = []byte(*agentResponse.Upload.FullPath)
-			fileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
+			//fileMeta.Filename = []byte(filePieces.PathPieces[len(filePieces.PathPieces)-1])
 			fileMeta.Host = filePieces.Host
 			_, err := database.DB.NamedExec(`UPDATE filemeta 
 					SET full_remote_path=:full_remote_path, filename=:filename, host=:host

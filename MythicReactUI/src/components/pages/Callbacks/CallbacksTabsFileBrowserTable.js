@@ -502,7 +502,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         if(removeCommand !== undefined){
             removeDisplay = `Remove (${removeCommand.command.cmd})`;
             if(element.can_have_children){
-                downloadDisplay = `Remove Folder (${removeCommand.command.cmd})`;
+                removeDisplay = `Remove Folder (${removeCommand.command.cmd})`;
             }
         }
         return [
