@@ -40,6 +40,8 @@ import {snackActions} from "./utilities/Snackbar";
 import {TopAppBarVertical} from "./TopAppBarVertical";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as Icons from '@fortawesome/free-solid-svg-icons';
+import {Jupyter} from "./pages/Jupyter/Jupyter";
+import {Hasura} from "./pages/Hasura/Hasura";
 
 // add all fas icons
 const iconList = Object
@@ -435,6 +437,8 @@ export function App(props) {
                                            element={<LoggedInRoute me={me}><Tags me={me}/></LoggedInRoute>}/>
                                     <Route exact path='/new/eventing'
                                            element={<LoggedInRoute me={me}><Eventing me={me}/></LoggedInRoute>}/>
+                                    <Route exact path='/new/jupyter' element={<LoggedInRoute me={me}><Jupyter/></LoggedInRoute>}/>
+                                    <Route exact path='/new/hasura' element={<LoggedInRoute me={me}><Hasura/></LoggedInRoute>}/>
                                 </Routes>
                             </div>
                         </div>

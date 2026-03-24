@@ -436,7 +436,7 @@ const Eventing = () => {
 }
 const JupyterNotebook = () => {
   return (
-      <StyledListItem className={classes.listSubHeader} target="_blank" component={Link} to='/jupyter' key={"jupyter"} >
+      <StyledListItem className={classes.listSubHeader} target="_blank"  component={Link} to='/jupyter' key={"jupyter"} >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"Jupyter Notebooks"} tooltipStyle={{display: "inline-flex"}}>
                 <img src={JupyterLogo} height={"25px"} width={"25px"} />
@@ -448,7 +448,7 @@ const JupyterNotebook = () => {
 }
 const GraphQL = () => {
   return (
-      <StyledListItem className={classes.listSubHeader} target="_blank" component={Link} to='/console' key={"console"} >
+      <StyledListItem className={classes.listSubHeader} target="_blank"  component={Link} to='/console' key={"console"} >
         <StyledListItemIcon>
             <MythicStyledTooltip title={"GraphQL Console"} tooltipStyle={{display: "inline-flex"}}>
                 <img src={GraphQLLogo} height={"25px"} width={"25px"} className="mythicElement"/>
