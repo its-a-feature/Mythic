@@ -3,6 +3,7 @@ import {MythicStyledTooltip} from "./MythicStyledTooltip";
 import WifiIcon from '@mui/icons-material/Wifi';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faLink } from '@fortawesome/free-solid-svg-icons';
+import {ImageWithAuth} from "../utilities/ImageWithAuth";
 
 export const MythicAgentSVGIcon = ({payload_type, style, is_p2p}) => {
     const theme = useTheme();
@@ -11,8 +12,8 @@ export const MythicAgentSVGIcon = ({payload_type, style, is_p2p}) => {
     }
     return (
         <MythicStyledTooltip title={payload_type} >
-            <img src={"/static/" + payload_type + "_" + theme.palette.mode + ".svg"}
-                 style={{...style}}  />
+            <ImageWithAuth src={"/static/" + payload_type + "_" + theme.palette.mode + ".svg"}
+                           style={{...style}} />
             {is_p2p === false &&
                 <WifiIcon style={{width: "20px", height: "20px", marginLeft: "-20px", marginBottom: "5px",
                 borderRadius: "10px", border: "1px solid",
@@ -35,7 +36,8 @@ export const MythicAgentSVGIconNoTooltip = ({payload_type, is_p2p, className, st
     const extraStyles = style ? style : {};
     return (
         <div style={{display: "inline-block", left: "50%"}} className={className}>
-            <img src={"/static/" + payload_type + "_" + theme.palette.mode + ".svg"} style={{height: "20px", margin: 'auto', ...extraStyles}}/>
+            <ImageWithAuth src={"/static/" + payload_type + "_" + theme.palette.mode + ".svg"}
+                           style={{height: "20px", margin: 'auto', ...extraStyles}} />
             {is_p2p === false &&
                 <WifiIcon style={{width: "10px", height: "10px", marginLeft: "-5px", marginBottom: "0px",
                     borderRadius: "10px", border: "1px solid",

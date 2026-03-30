@@ -6,6 +6,7 @@ import { MobileStepper } from '@mui/material';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import {useTheme} from '@mui/material/styles';
+import {ImageWithAuth} from "../../utilities/ImageWithAuth";
 
 export function ResponseDisplayScreenshotModal({onClose, images, startIndex}) {
     const [zoom, setZoom] = React.useState(false);
@@ -25,7 +26,7 @@ export function ResponseDisplayScreenshotModal({onClose, images, startIndex}) {
     < >
         <DialogContent dividers={true} style={{padding: 0}} >
           <div style={{height: "calc(80vh)", display: zoom ? "" : "flex", alignItems: zoom ? "" : "flex-start" , background: theme.palette.mode === "dark" ? "rgb(44, 52, 60)" : "grey"}}>
-            <img onClick={toggleZoom} src={"/api/v1.4/files/screencaptures/" + images[activeStep]}
+            <ImageWithAuth onClick={toggleZoom} src={"/api/v1.4/files/screencaptures/" + images[activeStep]}
                  style={{width: zoom ? "" : "100%", cursor: zoom ? "zoom-out" : "zoom-in", overflow: "auto"}} />
           </div>
         </DialogContent>

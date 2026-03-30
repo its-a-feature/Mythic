@@ -38,6 +38,7 @@ import {getIconName} from "./ResponseDisplayTable";
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MythicAgentSVGIconNoTooltip} from "../../MythicComponents/MythicAgentSVGIcon";
+import {ImageWithAuth} from "../../utilities/ImageWithAuth";
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -399,7 +400,7 @@ function AgentNode({data}) {
                 ))
 
             }
-            <img alt={data.img} style={{margin: "auto"}} src={data.img}  className={"circleImageNode"} />
+            <ImageWithAuth alt={data.img} style={{margin: "auto"}} src={data.img}  className={"circleImageNode"} />
             <Handle type={"target"} position={targetPosition} isConnectable={false}/>
             <Typography style={{textAlign: "center", margin: 0, padding: 0}} >{data.label}</Typography>
         </div>

@@ -63,6 +63,8 @@ import {Backdrop, CircularProgress} from '@mui/material';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import sqlWasm from "!!file-loader?name=sql-wasm-[contenthash].wasm!sql.js/dist/sql-wasm.wasm";
 import {copyStringToClipboard} from "../../utilities/Clipboard";
+import {FileDownloadButtonWithAuth} from "../../utilities/FileDownloadWithAuth";
+import {ImageWithAuth} from "../../utilities/ImageWithAuth";
 
 export const modeOptions = ["csharp", "golang", "html", "json", "markdown", "ruby", "python", "java",
     "javascript", "yaml", "toml", "swift", "sql", "rust", "powershell", "pgsql", "perl", "php", "objectivec",
@@ -149,10 +151,10 @@ export const ResponseDisplayMedia = ({media, expand, task}) =>{
                     <Tab className={value === 2 ? "selectedCallback": ""} label={"Hex"}></Tab>
                     <Tab className={value === 3 ? "selectedCallback": ""} label={"Database"}></Tab>
                     <MythicStyledTooltip title={"Download the file"} tooltipStyle={{display: "inline-flex"}}>
-                        <Button style={{}}  size={"small"} href={"/direct/download/" +  media.agent_file_id}
+                        <FileDownloadButtonWithAuth style={{}}  size={"small"} href={"/direct/download/" +  media.agent_file_id}
                                 download color={"success"}>
                             <DownloadIcon />
-                        </Button>
+                        </FileDownloadButtonWithAuth>
                     </MythicStyledTooltip>
                 </Tabs>
             </AppBar>
@@ -343,9 +345,9 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
     if(fileData.display_type === "image"){
         return (
             <>
-                <img width={"100%"} onClick={clickedScreenshot}
+                <ImageWithAuth width={"100%"} onClick={clickedScreenshot}
                         src={"/direct/view/" + agent_file_id} style={{cursor: "zoom-in", width: "100%"}}>
-                </img>
+                </ImageWithAuth>
                 {openScreenshot &&
                     <MythicDialog fullWidth={true} maxWidth="xl" open={openScreenshot}
                                   onClose={() => {
@@ -455,7 +457,11 @@ const DisplayText = ({agent_file_id, expand, filename, preview, fileMetaData}) =
             previewFileString({variables: {file_id: agent_file_id}})
         }else{
             // get entire file
-            fetch('/direct/view/' + agent_file_id).then((response) => {
+            fetch('/direct/view/' + agent_file_id, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+                }
+            }).then((response) => {
                 if(response.status !== 200){
                     snackActions.warning("Failed to fetch contents from Mythic");
                     return;
@@ -762,7 +768,11 @@ const DisplayDatabase = ({agent_file_id, expand, fileMetaData}) => {
     React.useEffect( () => {
         async function initialize(){
             const newSQL = await initSQLJS({locateFile: () => sqlWasm});
-            fetch('/direct/view/' + agent_file_id).then((response) => {
+            fetch('/direct/view/' + agent_file_id, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('access_token')}`
+                }
+            }).then((response) => {
                 if(response.status !== 200){
                     setLoading(false);
                     snackActions.warning("Failed to fetch contents from Mythic");

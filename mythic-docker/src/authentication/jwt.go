@@ -20,7 +20,6 @@ var (
 	ErrBearerInvalidValue              = errors.New("Authorization bearer value is invalid")
 	ErrMissingAuthorizationBearerToken = errors.New("Missing Authorization Bearer token")
 	ErrMissingAuthorizationHeader      = errors.New("Missing Authorization header")
-	ErrMissingCookieValue              = errors.New("Missing cookie value")
 	ErrMissingJWTToken                 = errors.New("Missing JWT header")
 )
 
@@ -244,43 +243,4 @@ func ExtractAPIToken(c *gin.Context) (string, error) {
 	}
 	//logging.LogTrace("got apitoken header", "apitoken", token)
 	return token, nil
-}
-
-func CookieTokenValid(c *gin.Context) error {
-	tokenString, err := ExtractCookieToken(c)
-	if err != nil {
-		return err
-	}
-	claims := mythicjwt.CustomClaims{}
-	_, err = jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			logging.LogError(ErrUnexpectedSigningMethod, "signing method", token.Header["alg"])
-			return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
-		}
-		return utils.MythicConfig.JWTSecret, nil
-	})
-	if err != nil {
-		logging.LogError(err, "Failed to parse JWT with claims", "JWT", tokenString)
-		return err
-	}
-	c.Set("user_id", claims.UserID)
-	operator, err := database.GetUserFromID(claims.UserID)
-	if err == nil {
-		c.Set("username", operator.Username)
-	}
-	c.Request.Header.Add("Authorization", fmt.Sprintf("Bearer: %s", tokenString))
-	c.Request.Header.Add("MythicSource", "cookie")
-	return nil
-}
-
-func ExtractCookieToken(c *gin.Context) (string, error) {
-	token, err := c.Cookie("mythic")
-	if err != nil {
-		return "", ErrMissingCookieValue
-	}
-	if len(token) > 0 {
-		return token, nil
-	}
-	logging.LogDebug("Failed to find cookie value")
-	return "", ErrMissingCookieValue
 }
