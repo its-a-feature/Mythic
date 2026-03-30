@@ -15,7 +15,7 @@ import {b64DecodeUnicode} from "../Callbacks/ResponseDisplay";
 import { updateFileDeleted} from "../Search/FileMetaTable";
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
-import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
+import {PreviewFileMediaDialog} from "../../MythicComponents/PreviewFileMedia";
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';

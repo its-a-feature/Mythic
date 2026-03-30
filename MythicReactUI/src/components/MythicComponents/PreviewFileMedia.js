@@ -6,8 +6,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-xcode';
-import {ResponseDisplayMedia} from "../Callbacks/ResponseDisplayMedia";
-import {MythicDraggableDialogTitle} from "../../MythicComponents/MythicDraggableDialogTitle";
+import {ResponseDisplayMedia} from "../pages/Callbacks/ResponseDisplayMedia";
+import {MythicDraggableDialogTitle} from "./MythicDraggableDialogTitle";
 
 export function PreviewFileMediaDialog({agent_file_id, filename, onClose}) {
     const onClick = (e) => {

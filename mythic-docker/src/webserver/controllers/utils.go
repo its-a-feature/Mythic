@@ -22,17 +22,6 @@ func GetUserIDFromGin(c *gin.Context) (int, error) {
 	}
 	return customClaims.UserID, nil
 }
-func GetUserIDFromGinAllowCookies(c *gin.Context) (int, error) {
-	customClaims, err := authentication.GetClaims(c)
-	if err != nil {
-		err = authentication.CookieTokenValid(c)
-		if err != nil {
-			return 0, err
-		}
-		return GetUserIDFromGin(c)
-	}
-	return customClaims.UserID, nil
-}
 
 const (
 	tagTypePreview               = "FilePreviewed"
