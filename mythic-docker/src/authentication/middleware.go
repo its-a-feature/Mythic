@@ -2,9 +2,10 @@ package authentication
 
 import (
 	"fmt"
-	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net"
 	"net/http"
+
+	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
@@ -21,19 +22,6 @@ func JwtAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		c.Next()
-	}
-}
-
-func CookieAuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		err := CookieTokenValid(c)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
-			c.Abort()
-			return
-		}
-		c.Request.Header.Add("MythicSource", "cookie")
 		c.Next()
 	}
 }

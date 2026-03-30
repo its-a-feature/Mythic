@@ -10,7 +10,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import {Button, Link, Typography} from '@mui/material';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import {MythicDialog} from "../../MythicComponents/MythicDialog";
-import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
+import {PreviewFileMediaDialog} from "../../MythicComponents/PreviewFileMedia";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 

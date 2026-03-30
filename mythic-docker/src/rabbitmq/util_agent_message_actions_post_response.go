@@ -306,13 +306,22 @@ func listenForAsyncAgentMessagePostResponseContent() {
 	UpdateCachedResponseIntercept()
 	for {
 		msg := <-asyncAgentMessagePostResponseChannel
+		// force chunking user_output can be useful, but might also affect command's browserscripts
+		//chunkSize := 1024 * 1024
+		//chunks := int(len(msg.Response)/chunkSize) + 1 // 1MB chunks
+		//for j := 0; j < chunks; j++ {
+		//	currentChunkStart := j * chunkSize
+		//	currentChunkEnd := currentChunkStart + chunkSize
+		//	if currentChunkEnd > len(msg.Response) {
+		//		currentChunkEnd = len(msg.Response)
+		//	}
+		//	chunkBuf := msg.Response[currentChunkStart:currentChunkEnd]
 		responseInterceptMapLock.RLock()
 		if eventGroupID, ok := responseInterceptMapOperationIDToEventGroupID[msg.Task.OperationID]; ok {
 			output := ""
 			responseID := handleAgentMessagePostResponseUserOutput(msg.Task, agentMessagePostResponse{
-				TaskID:         msg.Task.AgentTaskID,
-				UserOutput:     &output,
-				SequenceNumber: msg.SequenceNum,
+				TaskID:     msg.Task.AgentTaskID,
+				UserOutput: &output,
 			}, false)
 			if responseID > 0 {
 				// we have an interception possibility, so send that off for processing
@@ -327,12 +336,12 @@ func listenForAsyncAgentMessagePostResponseContent() {
 			}
 		} else {
 			handleAgentMessagePostResponseUserOutput(msg.Task, agentMessagePostResponse{
-				TaskID:         msg.Task.AgentTaskID,
-				UserOutput:     &msg.Response,
-				SequenceNumber: msg.SequenceNum,
+				TaskID:     msg.Task.AgentTaskID,
+				UserOutput: &msg.Response,
 			}, true)
 		}
 		responseInterceptMapLock.RUnlock()
+		//}
 	}
 }
 func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *cachedUUIDInfo) (map[string]interface{}, error) {
@@ -473,9 +482,8 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 			// do it in the background - the agent doesn't need the result of this directly
 			//handleAgentMessagePostResponseUserOutput(currentTask, agentResponse, true)
 			asyncAgentMessagePostResponseChannel <- agentAgentMessagePostResponseChannelMessage{
-				Task:        currentTask,
-				Response:    *agentMessage.Responses[i].UserOutput,
-				SequenceNum: agentMessage.Responses[i].SequenceNumber,
+				Task:     currentTask,
+				Response: *agentMessage.Responses[i].UserOutput,
 			}
 		}
 		if agentMessage.Responses[i].Stdout != nil {

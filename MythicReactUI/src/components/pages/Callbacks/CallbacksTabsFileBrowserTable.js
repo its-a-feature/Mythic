@@ -31,7 +31,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { toLocalTime } from '../../utilities/Time';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
-import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
+import {PreviewFileMediaDialog} from "../../MythicComponents/PreviewFileMedia";
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicComponents/MythicNestedMenus";
 import {RenderSingleTask} from "../SingleTaskView/SingleTaskView";

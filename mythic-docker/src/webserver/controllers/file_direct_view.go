@@ -24,7 +24,7 @@ func FileDirectViewWebhook(c *gin.Context) {
 	filemeta := databaseStructs.Filemeta{}
 	payload := databaseStructs.Payload{}
 	operatorUsername := "unknown"
-	userID, err := GetUserIDFromGinAllowCookies(c)
+	userID, err := GetUserIDFromGin(c)
 	if err == nil {
 		user, err := database.GetUserFromID(userID)
 		if err == nil {

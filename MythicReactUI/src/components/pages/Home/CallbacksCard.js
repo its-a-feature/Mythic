@@ -43,7 +43,7 @@ import FormatListBulletedAddIcon from '@mui/icons-material/FormatListBulletedAdd
 import AddchartIcon from '@mui/icons-material/Addchart';
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
 import {MythicSelectFromListDialog} from "../../MythicComponents/MythicSelectFromListDialog";
-import {PreviewFileMediaDialog} from "../Search/PreviewFileMedia";
+import {PreviewFileMediaDialog} from "../../MythicComponents/PreviewFileMedia";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {Link} from '@mui/material';
@@ -57,6 +57,7 @@ import {copyStringToClipboard} from "../../utilities/Clipboard";
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {faCopy} from '@fortawesome/free-solid-svg-icons';
 import MythicTextField from "../../MythicComponents/MythicTextField";
+import {ImageWithAuth} from "../../utilities/ImageWithAuth";
 import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 
 const LeadDashboardQuery = gql`
@@ -1534,9 +1535,10 @@ const Top10RecentScreenshotsDashboardElement = ({me, data, editing, removeElemen
                                                </Button>
                                            </MythicTableCell>
                                            <MythicTableCell>
-                                               <img onClick={(e) => onPreviewMedia(e, activeStep)}
-                                                    src={"/api/v1.4/files/screencaptures/" + files[activeStep] + "?" + now}
-                                                    style={{height: "200px", cursor: "pointer"}}/>
+                                               <ImageWithAuth src={"/api/v1.4/files/screencaptures/" + files[activeStep] + "?" + now}
+                                                              style={{height: "200px", cursor: "pointer"}}
+                                                              onClick={(e) => onPreviewMedia(e, activeStep)}
+                                                              />
                                            </MythicTableCell>
                                             <MythicTableCell style={{borderBottom: 0}} >
                                                 <Button

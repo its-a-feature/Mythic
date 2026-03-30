@@ -30,9 +30,11 @@ import Checkbox from '@mui/material/Checkbox';
 import {HostFileDialog} from "../Payloads/HostFileDialog";
 import PublicIcon from '@mui/icons-material/Public';
 import {getStringSize} from '../Callbacks/ResponseDisplayTable';
-import {PreviewFileMediaDialog} from "./PreviewFileMedia";
+import {PreviewFileMediaDialog} from "../../MythicComponents/PreviewFileMedia";
 import {faPhotoVideo} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {ImageWithAuth} from "../../utilities/ImageWithAuth";
+import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 
 export const downloadBulkQuery = gql`
 mutation downloadBulkMutation($files: [String!]!){
@@ -347,7 +349,9 @@ function FileMetaDownloadTableRow(props){
     return (
         <React.Fragment>
             <TableRow hover onClick={expandRow}>
-                <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
+                {openDelete &&
+                    <MythicConfirmDialog onClose={() => {setOpenDelete(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
+                }
                 <MythicStyledTableCell>
                     {props.deleted ? null : (
                         <MythicStyledTooltip title="Toggle to download multiple files at once">
@@ -766,7 +770,7 @@ function FileMetaUploadTableRow(props){
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</Link>
+                    <FileDownloadLinkWithAuth style={{wordBreak: "break-all"}} color="textPrimary" underline="always" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</FileDownloadLinkWithAuth>
                     {props.complete ? null : (
                         <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.chunks_received} / {props.total_chunks} Chunks Received</Typography>
                     )
@@ -1052,7 +1056,8 @@ function FileMetaScreenshotTableRow(props){
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <img onClick={() => setOpenScreenshot(true)} src={"/api/v1.4/files/screencaptures/" + props.agent_file_id + "?" + now} style={{width: "270px", cursor: "pointer"}} />
+                    <ImageWithAuth src={"/api/v1.4/files/screencaptures/" + props.agent_file_id}
+                                   style={{width: "270px", cursor: "pointer"}} />
                     {openScreenshot && 
                         <MythicDialog fullWidth={true} maxWidth="xl" open={openScreenshot} 
                             onClose={()=>{setOpenScreenshot(false);}} 

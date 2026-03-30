@@ -147,10 +147,10 @@ func setRoutes(r *gin.Engine) {
 	r.POST("/agent_message", webcontroller.AgentMessageWebhook)
 	r.GET("/agent_message", webcontroller.AgentMessageGetWebhook)
 	// healthcheck endpoint
-	r.GET("/health", webcontroller.HealthCheckSimple)
-	r.GET("/healthDetailed", webcontroller.HealthCheckDetailed)
 	r.Use(authentication.IPBlockMiddleware())
 	{
+		r.GET("/health", webcontroller.HealthCheckSimple)
+		r.GET("/healthDetailed", webcontroller.HealthCheckDetailed)
 		// login page
 		r.POST("/auth", webcontroller.Login)
 		r.POST("/invite", webcontroller.UseInviteLink)
@@ -169,24 +169,7 @@ func setRoutes(r *gin.Engine) {
 		// unauthenticated file upload based on file UUID
 		// this is for payload containers to upload files that are too big for rabbitmq
 		r.POST("/direct/upload/:file_uuid", webcontroller.FileDirectUploadWebhook)
-
-		// create a protected group that allows Cookie values to access things instead of only a JWT header field
-		// this mainly allows the user through the UI to view agent icons and download files
-		allowAuthenticatedCookies := r.Group("/")
-		{
-			// allow access to getting images for agent icons, still blocked by IP range
-			allowAuthenticatedCookies.Use(authentication.CookieAuthMiddleware())
-			{
-				allowAuthenticatedCookies.Static("/static", "./static")
-				allowAuthenticatedCookies.GET("direct/view/:file_uuid", webcontroller.FileDirectViewWebhook)
-				allOperationMembersWithCookies := allowAuthenticatedCookies.Group("/api/v1.4/")
-				allOperationMembersWithCookies.Use(authentication.RBACMiddlewareAll())
-				{
-					allOperationMembersWithCookies.GET("files/download/:file_uuid", webcontroller.DownloadFileAuthWebhook)
-					allOperationMembersWithCookies.GET("files/screencaptures/:file_uuid", webcontroller.DownloadFileAuthWebhook)
-				}
-			}
-		}
+		
 		// create a protected group that requires valid auth with a JWT to access
 		protected := r.Group("/")
 		protected.Use(authentication.JwtAuthMiddleware())
@@ -213,6 +196,8 @@ func setRoutes(r *gin.Engine) {
 			protected.POST("/api/v1.4/get_global_settings_webhook", webcontroller.GetGlobalSettingWebhook)
 			// a refresh post will contain the access_token and refresh_token
 			protected.POST("/refresh", webcontroller.RefreshJWT)
+			protected.Static("/static", "./static")
+			protected.GET("direct/view/:file_uuid", webcontroller.FileDirectViewWebhook)
 			// following require you to have an operation set
 			allOperationMembers := protected.Group("/api/v1.4/")
 			allOperationMembers.Use(authentication.RBACMiddlewareAll())
@@ -231,6 +216,7 @@ func setRoutes(r *gin.Engine) {
 				// file
 				allOperationMembers.POST("download_bulk_webhook", webcontroller.DownloadBulkFilesWebhook)
 				allOperationMembers.POST("preview_file_webhook", webcontroller.PreviewFileWebhook)
+				allOperationMembers.GET("files/screencaptures/:file_uuid", webcontroller.DownloadFileAuthWebhook)
 			}
 			noSpectators := protected.Group("/api/v1.4/")
 			noSpectators.Use(authentication.RBACMiddlewareNoSpectators())
