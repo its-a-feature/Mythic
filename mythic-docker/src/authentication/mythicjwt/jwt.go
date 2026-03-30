@@ -4,14 +4,15 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt"
-	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
-	"github.com/its-a-feature/Mythic/logging"
-	"github.com/its-a-feature/Mythic/utils"
 	"math/big"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/golang-jwt/jwt"
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/logging"
+	"github.com/its-a-feature/Mythic/utils"
 )
 
 type CustomClaims struct {
@@ -37,10 +38,10 @@ var (
 	ErrUnexpectedSigningMethod    = errors.New("Unexpected signing method")
 )
 
-func generateRandomPassword(pw_length int) (string, error) {
+func generateRandomPassword(passwordLength int) (string, error) {
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 	var b strings.Builder
-	for i := 0; i < pw_length; i++ {
+	for i := 0; i < passwordLength; i++ {
 		nBig, err := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
 		if err != nil {
 			logging.LogError(err, "[-] Failed to generate random number for password generation\n")
