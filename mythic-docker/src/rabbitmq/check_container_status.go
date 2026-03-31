@@ -27,6 +27,9 @@ var checkContainerStatusAddConsumingContainerChannel = make(chan databaseStructs
 var consumingContainersToCheck = map[string]databaseStructs.ConsumingContainer{}
 var checkContainerStatusAddCustomBrowserChannel = make(chan databaseStructs.CustomBrowser)
 var customBrowsersToCheck = map[string]databaseStructs.CustomBrowser{}
+var containerOfflineCount = map[string]int{}
+
+const CONTAINER_OFFLINE_THRESHOLD = 3
 
 func checkContainerStatusAddPT() {
 	for {
@@ -282,29 +285,51 @@ func checkContainerStatus() {
 			//logging.LogDebug("checking container", "container", container)
 			// check that a container is online
 			running := utils.SliceContains(existingQueues, GetPtBuildRoutingKey(payloadTypesToCheck[container].Name))
-			if running != payloadTypesToCheck[container].ContainerRunning {
-				if entry, ok := payloadTypesToCheck[container]; ok {
-					entry.ContainerRunning = running
-					_, err = database.DB.NamedExec(`UPDATE payloadtype SET
-								container_running=:container_running, deleted=false
-								WHERE id=:id`, entry,
-					)
-					if err != nil {
-						logging.LogError(err, "Failed to set container running status", "container_running", payloadTypesToCheck[container].ContainerRunning, "container", container)
-						continue
+			if running {
+				// container is online, reset offline counter
+				containerOfflineCount[container] = 0
+				if !payloadTypesToCheck[container].ContainerRunning {
+					// container was previously marked as not running, update to running
+					if entry, ok := payloadTypesToCheck[container]; ok {
+						entry.ContainerRunning = true
+						_, err = database.DB.NamedExec(`UPDATE payloadtype SET
+									container_running=:container_running, deleted=false
+									WHERE id=:id`, entry,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to set container running status", "container_running", true, "container", container)
+							continue
+						}
+						payloadTypesToCheck[container] = entry
+						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+					} else {
+						logging.LogError(nil, "Failed to get payload type from map for updating running status")
 					}
-					payloadTypesToCheck[container] = entry
-					if !running {
+				}
+			} else {
+				// container is not running, increment offline counter
+				containerOfflineCount[container]++
+				if containerOfflineCount[container] >= CONTAINER_OFFLINE_THRESHOLD && payloadTypesToCheck[container].ContainerRunning {
+					// container has been offline for enough consecutive checks, mark as down
+					if entry, ok := payloadTypesToCheck[container]; ok {
+						entry.ContainerRunning = false
+						_, err = database.DB.NamedExec(`UPDATE payloadtype SET
+									container_running=:container_running, deleted=false
+									WHERE id=:id`, entry,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to set container running status", "container_running", false, "container", container)
+							continue
+						}
+						payloadTypesToCheck[container] = entry
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
 							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 						go updateDownContainerBuildingPayloads(container)
 					} else {
-						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
-						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						logging.LogError(nil, "Failed to get payload type from map for updating running status")
 					}
-				} else {
-					logging.LogError(nil, "Failed to get payload type from map for updating running status")
 				}
 			}
 		}
@@ -314,29 +339,47 @@ func checkContainerStatus() {
 			//logging.LogDebug("checking container", "container", container)
 			running := utils.SliceContains(existingQueues, GetC2RPCStartServerRoutingKey(c2profilesToCheck[container].Name))
 			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", c2profilesToCheck[container].ContainerRunning)
-			if running != c2profilesToCheck[container].ContainerRunning {
-				if entry, ok := c2profilesToCheck[container]; ok {
-					entry.ContainerRunning = running
-					_, err = database.DB.NamedExec(`UPDATE c2profile SET 
-							container_running=:container_running, deleted=false 
-							WHERE id=:id`, entry,
-					)
-					if err != nil {
-						logging.LogError(err, "Failed to set container running status", "container_running", c2profilesToCheck[container].ContainerRunning, "container", container)
-						continue
+			if running {
+				containerOfflineCount[container] = 0
+				if !c2profilesToCheck[container].ContainerRunning {
+					if entry, ok := c2profilesToCheck[container]; ok {
+						entry.ContainerRunning = true
+						_, err = database.DB.NamedExec(`UPDATE c2profile SET 
+								container_running=:container_running, deleted=false 
+								WHERE id=:id`, entry,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to set container running status", "container_running", true, "container", container)
+							continue
+						}
+						c2profilesToCheck[container] = entry
+						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+					} else {
+						logging.LogError(nil, "Failed to get c2 profile from map for updating running status")
 					}
-					c2profilesToCheck[container] = entry
-					if !running {
+				}
+			} else {
+				containerOfflineCount[container]++
+				if containerOfflineCount[container] >= CONTAINER_OFFLINE_THRESHOLD && c2profilesToCheck[container].ContainerRunning {
+					if entry, ok := c2profilesToCheck[container]; ok {
+						entry.ContainerRunning = false
+						_, err = database.DB.NamedExec(`UPDATE c2profile SET 
+								container_running=:container_running, deleted=false 
+								WHERE id=:id`, entry,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to set container running status", "container_running", false, "container", container)
+							continue
+						}
+						c2profilesToCheck[container] = entry
 						UpdateC2ProfileRunningStatus(c2profilesToCheck[container], false)
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
 							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
-						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
-						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						logging.LogError(nil, "Failed to get c2 profile from map for updating running status")
 					}
-				} else {
-					logging.LogError(nil, "Failed to get c2 profile from map for updating running status")
 				}
 			}
 		}
@@ -346,30 +389,47 @@ func checkContainerStatus() {
 			//logging.LogDebug("checking container", "container", container)
 			running := checkTranslationContainerGRPCOnline(container)
 			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", translationContainersToCheck[container].ContainerRunning)
-			if running != translationContainersToCheck[container].ContainerRunning {
-				if entry, ok := translationContainersToCheck[container]; ok {
-					entry.ContainerRunning = running
-					_, err = database.DB.NamedExec(`UPDATE translationcontainer SET
-							container_running=:container_running, deleted=false
-							WHERE id=:id`, entry,
-					)
-					if err != nil {
-						logging.LogError(err, "Failed to set container running status", "container_running", translationContainersToCheck[container].ContainerRunning, "container", container)
-						continue
+			if running {
+				containerOfflineCount[container] = 0
+				if !translationContainersToCheck[container].ContainerRunning {
+					if entry, ok := translationContainersToCheck[container]; ok {
+						entry.ContainerRunning = true
+						_, err = database.DB.NamedExec(`UPDATE translationcontainer SET
+								container_running=:container_running, deleted=false
+								WHERE id=:id`, entry,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to set container running status", "container_running", true, "container", container)
+							continue
+						}
+						translationContainersToCheck[container] = entry
+						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+					} else {
+						logging.LogError(nil, "Failed to get translation container from map for updating running status")
 					}
-					translationContainersToCheck[container] = entry
-					if !running {
+				}
+			} else {
+				containerOfflineCount[container]++
+				if containerOfflineCount[container] >= CONTAINER_OFFLINE_THRESHOLD && translationContainersToCheck[container].ContainerRunning {
+					if entry, ok := translationContainersToCheck[container]; ok {
+						entry.ContainerRunning = false
+						_, err = database.DB.NamedExec(`UPDATE translationcontainer SET
+								container_running=:container_running, deleted=false
+								WHERE id=:id`, entry,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to set container running status", "container_running", false, "container", container)
+							continue
+						}
+						translationContainersToCheck[container] = entry
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
 							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
-						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
-						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						logging.LogError(nil, "Failed to get translation container from map for updating running status")
 					}
-				} else {
-					logging.LogError(nil, "Failed to get translation container from map for updating running status")
 				}
-
 			}
 		}
 		// loop through consuming containers
@@ -378,28 +438,46 @@ func checkContainerStatus() {
 			//logging.LogDebug("checking container", "container", container)
 			running := utils.SliceContains(existingQueues, GetConsumingContainerRPCReSyncRoutingKey(consumingContainersToCheck[container].Name))
 			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", c2profilesToCheck[container].ContainerRunning)
-			if running != consumingContainersToCheck[container].ContainerRunning {
-				if entry, ok := consumingContainersToCheck[container]; ok {
-					entry.ContainerRunning = running
-					_, err = database.DB.NamedExec(`UPDATE consuming_container SET 
-							container_running=:container_running, deleted=false 
-							WHERE id=:id`, entry,
-					)
-					if err != nil {
-						logging.LogError(err, "Failed to set container running status", "container_running", consumingContainersToCheck[container].ContainerRunning, "container", container)
-						continue
+			if running {
+				containerOfflineCount[container] = 0
+				if !consumingContainersToCheck[container].ContainerRunning {
+					if entry, ok := consumingContainersToCheck[container]; ok {
+						entry.ContainerRunning = true
+						_, err = database.DB.NamedExec(`UPDATE consuming_container SET 
+								container_running=:container_running, deleted=false 
+								WHERE id=:id`, entry,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to set container running status", "container_running", true, "container", container)
+							continue
+						}
+						consumingContainersToCheck[container] = entry
+						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+					} else {
+						logging.LogError(nil, "Failed to get consuming container from map for updating running status")
 					}
-					consumingContainersToCheck[container] = entry
-					if !running {
+				}
+			} else {
+				containerOfflineCount[container]++
+				if containerOfflineCount[container] >= CONTAINER_OFFLINE_THRESHOLD && consumingContainersToCheck[container].ContainerRunning {
+					if entry, ok := consumingContainersToCheck[container]; ok {
+						entry.ContainerRunning = false
+						_, err = database.DB.NamedExec(`UPDATE consuming_container SET 
+								container_running=:container_running, deleted=false 
+								WHERE id=:id`, entry,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to set container running status", "container_running", false, "container", container)
+							continue
+						}
+						consumingContainersToCheck[container] = entry
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
 							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
-						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
-						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						logging.LogError(nil, "Failed to get consuming container from map for updating running status")
 					}
-				} else {
-					logging.LogError(nil, "Failed to get consuming container from map for updating running status")
 				}
 			}
 		}
@@ -409,28 +487,46 @@ func checkContainerStatus() {
 			//logging.LogDebug("checking container", "container", container)
 			running := utils.SliceContains(existingQueues, GetCustomBrowserExportFunctionRoutingKey(consumingContainersToCheck[container].Name))
 			//logging.LogInfo("checking container running", "container", container, "running", running, "current_running", c2profilesToCheck[container].ContainerRunning)
-			if running != consumingContainersToCheck[container].ContainerRunning {
-				if entry, ok := consumingContainersToCheck[container]; ok {
-					entry.ContainerRunning = running
-					_, err = database.DB.NamedExec(`UPDATE custombrowser SET 
-							container_running=:container_running, deleted=false 
-							WHERE id=:id`, entry,
-					)
-					if err != nil {
-						logging.LogError(err, "Failed to set container running status", "container_running", consumingContainersToCheck[container].ContainerRunning, "container", container)
-						continue
+			if running {
+				containerOfflineCount[container] = 0
+				if !consumingContainersToCheck[container].ContainerRunning {
+					if entry, ok := consumingContainersToCheck[container]; ok {
+						entry.ContainerRunning = true
+						_, err = database.DB.NamedExec(`UPDATE custombrowser SET 
+								container_running=:container_running, deleted=false 
+								WHERE id=:id`, entry,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to set container running status", "container_running", true, "container", container)
+							continue
+						}
+						consumingContainersToCheck[container] = entry
+						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+					} else {
+						logging.LogError(nil, "Failed to get custom browser from map for updating running status")
 					}
-					consumingContainersToCheck[container] = entry
-					if !running {
+				}
+			} else {
+				containerOfflineCount[container]++
+				if containerOfflineCount[container] >= CONTAINER_OFFLINE_THRESHOLD && consumingContainersToCheck[container].ContainerRunning {
+					if entry, ok := consumingContainersToCheck[container]; ok {
+						entry.ContainerRunning = false
+						_, err = database.DB.NamedExec(`UPDATE custombrowser SET 
+								container_running=:container_running, deleted=false 
+								WHERE id=:id`, entry,
+						)
+						if err != nil {
+							logging.LogError(err, "Failed to set container running status", "container_running", false, "container", container)
+							continue
+						}
+						consumingContainersToCheck[container] = entry
 						SendAllOperationsMessage(
 							getDownContainerMessage(container),
 							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
-						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
-						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
+						logging.LogError(nil, "Failed to get custom browser from map for updating running status")
 					}
-				} else {
-					logging.LogError(nil, "Failed to get custom browser from map for updating running status")
 				}
 			}
 		}
