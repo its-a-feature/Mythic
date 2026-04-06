@@ -161,6 +161,7 @@ func setRoutes(r *gin.Engine) {
 		// the /metadata endpoint responds with raw text of the metadata for an IDP to fetch if it can reach Mythic
 		r.GET("/auth_metadata/:containerName/:IDPName/metadata", webcontroller.GetAuthContainerMetadataIDPEndpoint)
 		r.GET("/auth_redirect/:containerName/:IDPName", webcontroller.GetAuthContainerRedirect)
+		r.GET("/auth_acs/:containerName/:IDPName", webcontroller.ProcessIDPResponse)
 		r.POST("/auth_acs/:containerName/:IDPName", webcontroller.ProcessIDPResponse)
 		// unauthenticated file download based on file UUID
 		// this is for payload hosting and payload containers to fetch files via web
