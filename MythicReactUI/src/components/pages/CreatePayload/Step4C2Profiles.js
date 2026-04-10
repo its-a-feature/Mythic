@@ -39,6 +39,7 @@ query getPayloadTypesC2ProfilesQuery($payloadType: String!, $operation_id: Int!)
       required
       verifier_regex
       choices
+      ui_position
     }
     c2profileparametersinstances(where: {instance_name: {_is_null: false}, operation_id: {_eq: $operation_id}}, distinct_on: instance_name, order_by: {instance_name: asc}){
         instance_name
@@ -61,6 +62,7 @@ query getProfileInstanceQuery($name: String!, $operation_id: Int!, $c2_profile_i
       required
       verifier_regex
       choices
+      ui_position
       c2profile {
           name
       }
@@ -86,6 +88,7 @@ query getDefaultC2ProfileParameters($c2profile_id: Int!) {
         required
         verifier_regex
         choices
+        ui_position
       }
     }
   }
@@ -150,7 +153,13 @@ export function Step4C2Profiles(props){
         onCompleted: data => {
             const profiles = data.c2profile.map( (c2) => {
                 const parameters = getModifiedC2Params(c2, c2.c2profileparameters, props.buildOptions, false);
-                parameters.sort((a,b) => -b.description.localeCompare(a.description));
+                let hasUiPositions = parameters.filter(p => p.ui_position > 0).length > 0;
+                if(hasUiPositions){
+                    parameters.sort((a,b) => a.ui_position > b.ui_position ? 1 : a.ui_position === b.ui_position ? 0 : -1);
+                } else {
+                    parameters.sort((a,b) => -b.description.localeCompare(a.description));
+                }
+
                 return {...c2, c2profileparameters: parameters, "selected_instance": "None"};
             });
             profiles.sort((a, b) => -b.name.localeCompare(a.name))
@@ -285,7 +294,13 @@ export function Step4C2Profiles(props){
                         return inst;
                     });
                     updates = getModifiedC2Params(c2, updates, props.buildOptions, true);
-                    updates.sort( (a, b) => a.description < b.description ? -1 : 1);
+                    //updates.sort( (a, b) => a.description < b.description ? -1 : 1);
+                    let hasUiPositions = updates.filter(p => p.ui_position > 0).length > 0;
+                    if(hasUiPositions){
+                        updates.sort((a,b) => a.ui_position > b.ui_position ? 1 : a.ui_position === b.ui_position ? 0 : -1);
+                    } else {
+                        updates.sort((a,b) => -b.description.localeCompare(a.description));
+                    }
                     const updatedc2 = includedC2Profiles.map( (curc2, indx) => {
                         if(index === indx){
                             return {...curc2, c2profileparameters: updates, selected_instance: evt.target.value};
@@ -310,7 +325,13 @@ export function Step4C2Profiles(props){
                             choices: getDefaultChoices(param)};
                     });
                     updates = getModifiedC2Params(c2, updates, props.buildOptions, false);
-                    updates.sort( (a, b) => a.description < b.description ? -1 : 1);
+                    let hasUiPositions = updates.filter(p => p.ui_position > 0).length > 0;
+                    if(hasUiPositions){
+                        updates.sort((a,b) => a.ui_position > b.ui_position ? 1 : a.ui_position === b.ui_position ? 0 : -1);
+                    } else {
+                        updates.sort((a,b) => -b.description.localeCompare(a.description));
+                    }
+                    //updates.sort( (a, b) => a.description < b.description ? -1 : 1);
                     const updatedc2 = includedC2Profiles.map( (curc2, indx) => {
                         if(index === indx){
                             return {...curc2, c2profileparameters: updates, selected_instance: 'None'};
