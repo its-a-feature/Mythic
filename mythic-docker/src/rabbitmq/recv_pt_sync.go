@@ -479,6 +479,7 @@ func updatePayloadTypeBuildParameters(in PayloadTypeSyncMessage, payloadtype dat
 		logging.LogError(err, "Failed to fetch build parameters for payloadtype when syncing")
 		return err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			found := false
 			if err = rows.StructScan(&databaseParameter); err != nil {
@@ -624,6 +625,7 @@ func updatePayloadTypeC2Profiles(in PayloadTypeSyncMessage, payloadtype database
 		logging.LogError(err, "Failed to get payloadtypec2profile from database")
 		return err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			if err = rows.StructScan(&databaseC2Profile); err != nil {
 				logging.LogError(err, "Failed to get row from payloadtypec2profile")
@@ -684,6 +686,7 @@ func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseSt
 			logging.LogError(err, "Failed to get wrappedpayloadtypes from database")
 			return err
 		} else {
+			defer rows.Close()
 			for rows.Next() {
 				if err = rows.StructScan(&databaseWrapper); err != nil {
 					logging.LogError(err, "Failed to get row from wrappedpayloadtypes for importing new payloadtype")
@@ -715,6 +718,7 @@ func updatePayloadTypeWrappers(in PayloadTypeSyncMessage, payloadtype databaseSt
 			logging.LogError(err, "Failed to get wrappedpayloadtypes from database")
 			return err
 		} else {
+			defer rows.Close()
 			for rows.Next() {
 				if err = rows.StructScan(&databaseWrapper); err != nil {
 					logging.LogError(err, "Failed to get row from wrappedpayloadtypes for importing new payloadtype")
@@ -815,6 +819,7 @@ func updatePayloadTypeCommands(in PayloadTypeSyncMessage, payloadtype databaseSt
 		logging.LogError(err, "Failed to fetch commands for payloadtype when syncing")
 		return err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			if err = rows.StructScan(&databaseCommand); err != nil {
 				logging.LogError(err, "Failed to parse command into structure when syncing payloadtype")
@@ -981,6 +986,7 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 		logging.LogError(err, "Failed to fetch command parameters for command when syning")
 		return err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			if err = rows.StructScan(&databaseParameter); err != nil {
 				logging.LogError(err, "Failed to parse commandparameter into structure when syncing command")
@@ -1142,6 +1148,7 @@ func updatePayloadTypeCommandBrowserScripts(in PayloadTypeSyncMessage, syncComma
 		return err
 	} else {
 		found := false
+		defer rows.Close()
 		for rows.Next() {
 			if err = rows.StructScan(&databaseBrowserScript); err != nil {
 				logging.LogError(err, "Failed to parse browserscript into structure when syncing command")
@@ -1212,6 +1219,7 @@ func addBrowserScriptToAllOperators(browserscript databaseStructs.Browserscript)
 		logging.LogError(err, "Failed to get operators")
 		return err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			if err = rows.StructScan(&operator); err != nil {
 				logging.LogError(err, "Failed to parse operator into structure")
@@ -1241,6 +1249,7 @@ func updateBrowserScriptForAllOperators(browserscript databaseStructs.Browserscr
 		logging.LogError(err, "Failed to get operators")
 		return err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			if err = rows.StructScan(&operatorScript); err != nil {
 				logging.LogError(err, "Failed to parse browserscript into structure for updating scripts")
@@ -1278,6 +1287,7 @@ func removeBrowserScriptFromAllOperators(browserscript databaseStructs.Browsersc
 		logging.LogError(err, "Failed to get browserscripts for command", "command", browserscript.CommandID)
 		return err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			if err = rows.StructScan(&operatorScript); err != nil {
 				logging.LogError(err, "Failed to parse operator into structure")
@@ -1307,6 +1317,7 @@ func updatePayloadTypeCommandMitreAttack(in PayloadTypeSyncMessage, syncCommand 
 		logging.LogError(err, "Failed to get attackcommand from database")
 		return err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			if err = rows.StructScan(&databaseMitreAttack); err != nil {
 				logging.LogError(err, "Failed to parse mitre att&ck into structure")

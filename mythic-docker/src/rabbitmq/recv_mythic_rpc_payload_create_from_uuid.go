@@ -151,6 +151,7 @@ func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload
 		logging.LogError(err, "Failed to get build parameters from database when trying to build payload")
 		return nil, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		err = rows.StructScan(&databaseBuildParameter)
 		if err != nil {
@@ -298,6 +299,7 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 			logging.LogError(err, "Failed to get c2 parameters from database when trying to build payload")
 			return nil, err
 		}
+		defer rows.Close()
 		for rows.Next() {
 			err = rows.StructScan(&databaseC2ProfileParameter)
 			if err != nil {

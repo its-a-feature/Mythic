@@ -157,6 +157,7 @@ func updateLoadedCommandsFromPayloadBuild(databasePayload databaseStructs.Payloa
 		logging.LogError(err, "Failed to get payload commands when trying to update loaded commands for payload build response")
 		return err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			if err = rows.StructScan(&databasePayloadCommand); err != nil {
 				logging.LogError(err, "Failed to get row from payloadcommand when trying to process payload build response")

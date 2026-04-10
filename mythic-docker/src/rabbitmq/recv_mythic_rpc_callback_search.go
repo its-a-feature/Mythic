@@ -181,6 +181,7 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 		response.Error = err.Error()
 		return response
 	}
+	defer rows.Close()
 	for rows.Next() {
 		result := MythicRPCCallbackSearchMessageResult{}
 		err = rows.StructScan(&searchResults)

@@ -78,6 +78,7 @@ func MythicRPCArtifactSearch(input MythicRPCArtifactSearchMessage) MythicRPCArti
 			response.Error = err.Error()
 			return response
 		} else {
+			defer rows.Close()
 			for rows.Next() {
 				result := MythicRPCArtifactSearchArtifactData{}
 				searchResult := databaseStructs.Taskartifact{}

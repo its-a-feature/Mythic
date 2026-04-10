@@ -110,6 +110,7 @@ func MythicRPCProcessSearch(input MythicRPCProcessSearchMessage) MythicRPCProces
 			response.Error = err.Error()
 			return response
 		} else {
+			defer rows.Close()
 			for rows.Next() {
 				searchResult := databaseStructs.MythicTree{}
 				if err = rows.StructScan(&searchResult); err != nil {

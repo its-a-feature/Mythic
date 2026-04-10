@@ -251,6 +251,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 		logging.LogError(err, "Failed to fetch c2 parameters for c2 profile when syncing")
 		return err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			found := false
 			if err = rows.StructScan(&databaseParameter); err != nil {

@@ -66,6 +66,7 @@ func MythicRPCCallbackEdgeSearch(input MythicRPCCallbackEdgeSearchMessage) Mythi
 		return response
 	}
 	searchResults := databaseStructs.Callbackgraphedge{}
+	defer rows.Close()
 	for rows.Next() {
 		result := MythicRPCCallbackEdgeSearchMessageResult{}
 		err = rows.StructScan(&searchResults)

@@ -137,6 +137,7 @@ func MythicRPCCustomBrowserSearch(input MythicRPCCustomBrowserSearchMessage) Myt
 		response.Error = err.Error()
 		return response
 	}
+	defer rows.Close()
 	for rows.Next() {
 		searchResult := databaseStructs.MythicTree{}
 		err = rows.StructScan(&searchResult)
