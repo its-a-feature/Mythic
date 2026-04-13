@@ -165,35 +165,6 @@ func HashUserPassword(databaseOperator databaseStructs.Operator, password string
 	return fmt.Sprintf("%x", hashBytes)
 }
 
-func ResolveAllOperationsMessage(message string, operationID int) {
-	/*
-		Resolve a message in all operation's event logs if operationID is 0, otherwise just resolve it to the specific operation.
-	*/
-	operations := []databaseStructs.Operation{}
-	if err := DB.Select(&operations, `SELECT id FROM operation WHERE complete=false`); err != nil {
-		logging.LogError(err, "Failed to get operations for ResolveAllOperationsMessage", "data", message)
-		return
-	}
-	for _, operation := range operations {
-		if operationID == 0 || operation.ID == operationID {
-			// this is the operation we're interested in
-			updateObject := databaseStructs.Operationeventlog{
-				Message:     message,
-				OperationID: operationID,
-				Level:       MESSAGE_LEVEL_INFO,
-			}
-			if operationID == 0 {
-				updateObject.OperationID = operation.ID
-			}
-			if _, err := DB.NamedExec(`UPDATE operationeventlog SET 
-			resolved=true 
-			WHERE warning=true AND resolved=false AND deleted=false AND message=:message AND operation_id=:operation_id`, updateObject); err != nil {
-				logging.LogError(err, "Failed to resolve message")
-			}
-		}
-	}
-}
-
 func AssignNewOperatorAllBrowserScripts(userID int) {
 	browserscripts := []databaseStructs.Browserscript{}
 	if err := DB.Select(&browserscripts, `SELECT

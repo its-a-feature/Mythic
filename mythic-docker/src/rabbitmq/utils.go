@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -1245,6 +1246,8 @@ func GetSaveFilePath() (string, string, error) {
 
 var operationsMap = make(map[int]databaseStructs.Operation)
 var operationsMapMutex sync.RWMutex
+var unresolvedErrors = make(map[int]map[string]map[string]int)
+var lastUpdateTime = time.Now()
 
 func InvalidateOperationEventLogCacheMap() {
 	operationsMapMutex.Lock()
@@ -1260,123 +1263,225 @@ func InvalidateOperationEventLogCacheMap() {
 		operationsMap[operation.ID] = operation
 	}
 }
-func SendAllOperationsMessage(message string, operationID int, source string, messageLevel database.MESSAGE_TYPE, warning bool) {
-	var operations []databaseStructs.Operation
-	operationsMapMutex.RLock()
-	if operationID == 0 {
-		for _, operation := range operationsMap {
-			operations = append(operations, operation)
-		}
-	} else {
-		operation, ok := operationsMap[operationID]
-		if !ok {
-			operationsMapMutex.RUnlock()
-			logging.LogError(nil, "unknown operation id, can't send message", "operation_id", operationID)
-			return
-		}
-		operations = append(operations, operation)
+func checkUnresolvedError(operationID int, source string, level string) int {
+	if _, ok := unresolvedErrors[operationID]; !ok {
+		return 0
 	}
-	operationsMapMutex.RUnlock()
-	sourceString := source
-	if sourceString == "" {
-		sourceString = uuid.NewString()
+	if _, ok := unresolvedErrors[operationID][source]; !ok {
+		return 0
 	}
-	for _, operation := range operations {
-		if operationID == 0 || operation.ID == operationID {
-			// this is the operation we're interested in
-			if messageLevel == "warning" || warning {
-				existingMessage := databaseStructs.Operationeventlog{}
-				err := database.DB.Get(&existingMessage, `
-				SELECT id, count, "message", source, "level" FROM operationeventlog WHERE
-				warning=true and source=$1 and operation_id=$2 and resolved=false and deleted=false and "level"=$3
-				`, sourceString, operation.ID, messageLevel)
-				if !errors.Is(err, sql.ErrNoRows) && err != nil {
-					logging.LogError(err, "Failed to query existing event log message")
-					continue
-				}
-				if errors.Is(err, sql.ErrNoRows) {
-					if messageLevel == "warning" {
-						messageLevel = database.MESSAGE_LEVEL_INFO
-					}
-					newMessage := databaseStructs.Operationeventlog{
-						Source:      sourceString,
-						Level:       messageLevel,
-						Warning:     warning,
-						Message:     message,
-						OperationID: operation.ID,
-						Count:       1,
-					}
-					_, err = database.DB.NamedExec(`INSERT INTO operationeventlog 
-						(source, "level", "message", operation_id, count, warning) 
-						VALUES 
-						(:source, :level, :message, :operation_id, :count, :warning)`, newMessage)
-					if err != nil {
-						logging.LogError(err, "Failed to create new operationeventlog message")
-						continue
-					}
-					go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
-						OperationID:      operation.ID,
-						OperationName:    operation.Name,
-						OperationWebhook: operation.Webhook,
-						OperationChannel: operation.Channel,
-						OperatorUsername: "",
-						Action:           WEBHOOK_TYPE_ALERT,
-						Data: map[string]interface{}{
-							"message":   newMessage.Message,
-							"source":    newMessage.Source,
-							"count":     newMessage.Count,
-							"timestamp": time.Now().UTC(),
-						},
-					})
-					EventingChannel <- EventNotification{
-						Trigger:     eventing.TriggerAlert,
-						OperationID: operation.ID,
-						Outputs: map[string]interface{}{
-							"alert": newMessage.Message,
-						},
-					}
-					continue
-				}
-				// err was nil, so we did get a matching existing message
-				existingMessage.Count += 1
-				_, err = database.DB.NamedExec(`UPDATE operationeventlog SET 
-					"count"=:count 
-					WHERE id=:id`, existingMessage)
-				if err != nil {
-					logging.LogError(err, "Failed to increase count on operationeventlog")
-					continue
-				}
+	if _, ok := unresolvedErrors[operationID][source][level]; !ok {
+		return 0
+	}
+	return unresolvedErrors[operationID][source][level]
+}
+func addUnresolvedError(operationID int, source string, level string, messageID int) {
+	if _, ok := unresolvedErrors[operationID]; !ok {
+		unresolvedErrors[operationID] = make(map[string]map[string]int)
+	}
+	if _, ok := unresolvedErrors[operationID][source]; !ok {
+		unresolvedErrors[operationID][source] = make(map[string]int)
+	}
+	unresolvedErrors[operationID][source][level] = messageID
+}
+func removeUnresolvedError(operationID int) {
+	delete(unresolvedErrors, operationID)
+}
 
-				go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
-					OperationID:      operation.ID,
-					OperationName:    operation.Name,
-					OperationWebhook: operation.Webhook,
-					OperationChannel: operation.Channel,
-					OperatorUsername: "",
-					Action:           WEBHOOK_TYPE_ALERT,
-					Data: map[string]interface{}{
-						"message":   existingMessage.Message,
-						"source":    existingMessage.Source,
-						"count":     existingMessage.Count,
-						"timestamp": time.Now().UTC(),
-					},
-				})
-			} else {
-				newMessage := databaseStructs.Operationeventlog{
-					Source:      sourceString,
-					Level:       messageLevel,
-					Warning:     warning,
-					Message:     message,
-					OperationID: operation.ID,
-					Count:       1,
+type operationMessage struct {
+	action       string
+	message      string
+	operationID  int
+	source       string
+	messageLevel database.MESSAGE_TYPE
+	warning      bool
+}
+
+var operationMessageChannel = make(chan operationMessage, 100)
+
+func listenForOperationsMessages() {
+	timer := time.NewTimer(time.Second * 10)
+	for {
+		select {
+		case msg := <-operationMessageChannel:
+			/*
+				Resolve a message in all operation's event logs if operationID is 0, otherwise just resolve it to the specific operation.
+			*/
+			var operations []databaseStructs.Operation
+			operationsMapMutex.RLock()
+			if msg.operationID == 0 {
+				for _, operation := range operationsMap {
+					operations = append(operations, operation)
 				}
-				if _, err := database.DB.NamedExec(`INSERT INTO operationeventlog 
-				(source, "level", "message", operation_id, count, warning) 
-				VALUES 
-				(:source, :level, :message, :operation_id, :count, :warning)`, newMessage); err != nil {
-					logging.LogError(err, "Failed to create new operationeventlog message")
+			} else {
+				operation, ok := operationsMap[msg.operationID]
+				if !ok {
+					operationsMapMutex.RUnlock()
+					logging.LogError(nil, "unknown operation id, can't send message", "operation_id", msg.operationID)
+					continue
+				}
+				operations = append(operations, operation)
+			}
+			operationsMapMutex.RUnlock()
+			switch msg.action {
+			case "send":
+				sourceString := msg.source
+				if sourceString == "" {
+					sourceString = uuid.NewString()
+				}
+				// hitting concurrency issues where like-messages aren't getting collapsed like they should
+				var err error
+				for _, operation := range operations {
+					if msg.operationID == 0 || operation.ID == msg.operationID {
+						// this is the operation we're interested in
+						if msg.messageLevel == "warning" || msg.warning {
+							existingMessage := databaseStructs.Operationeventlog{}
+							existingMessage.ID = checkUnresolvedError(operation.ID, msg.source, msg.messageLevel)
+							if existingMessage.ID == 0 {
+								err = database.DB.Get(&existingMessage, `
+									SELECT id, count, "message", source, "level" FROM operationeventlog WHERE
+									warning=true and source=$1 and operation_id=$2 and resolved=false and deleted=false and "level"=$3
+									`, sourceString, operation.ID, msg.messageLevel)
+								if !errors.Is(err, sql.ErrNoRows) && err != nil {
+									logging.LogError(err, "Failed to query existing event log message")
+									continue
+								}
+								if errors.Is(err, sql.ErrNoRows) {
+									var utf8Message = strings.ToValidUTF8(string(bytes.ReplaceAll([]byte(msg.message), []byte{0}, []byte{})), "*")
+									if msg.messageLevel == "warning" {
+										msg.messageLevel = database.MESSAGE_LEVEL_INFO
+									}
+									newMessage := databaseStructs.Operationeventlog{
+										Source:      sourceString,
+										Level:       msg.messageLevel,
+										Warning:     msg.warning,
+										Message:     utf8Message,
+										OperationID: operation.ID,
+										Count:       1,
+									}
+									_, err = database.DB.NamedExec(`INSERT INTO operationeventlog 
+										(source, "level", "message", operation_id, count, warning) 
+										VALUES 
+										(:source, :level, :message, :operation_id, :count, :warning)`, newMessage)
+									if err != nil {
+										logging.LogError(err, "Failed to create new operationeventlog message")
+										continue
+									}
+									go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
+										OperationID:      operation.ID,
+										OperationName:    operation.Name,
+										OperationWebhook: operation.Webhook,
+										OperationChannel: operation.Channel,
+										OperatorUsername: "",
+										Action:           WEBHOOK_TYPE_ALERT,
+										Data: map[string]interface{}{
+											"message":   newMessage.Message,
+											"source":    newMessage.Source,
+											"count":     newMessage.Count,
+											"timestamp": time.Now().UTC(),
+										},
+									})
+									EventingChannel <- EventNotification{
+										Trigger:     eventing.TriggerAlert,
+										OperationID: operation.ID,
+										Outputs: map[string]interface{}{
+											"alert": newMessage.Message,
+										},
+									}
+									addUnresolvedError(operation.ID, msg.source, msg.messageLevel, existingMessage.ID)
+									continue
+								}
+								addUnresolvedError(operation.ID, msg.source, msg.messageLevel, existingMessage.ID)
+							}
+							if time.Now().Sub(lastUpdateTime).Seconds() > 1 {
+								lastUpdateTime = time.Now()
+								// don't bother trying to update if it's less than once a second
+								_, err = database.DB.NamedExec(`UPDATE operationeventlog SET 
+									"count"="count" + 1 WHERE id=:id`, existingMessage)
+								if err != nil {
+									logging.LogError(err, "Failed to increase count on operationeventlog")
+									continue
+								}
+							}
+
+							/*
+								go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
+									OperationID:      operation.ID,
+									OperationName:    operation.Name,
+									OperationWebhook: operation.Webhook,
+									OperationChannel: operation.Channel,
+									OperatorUsername: "",
+									Action:           WEBHOOK_TYPE_ALERT,
+									Data: map[string]interface{}{
+										"message":   existingMessage.Message,
+										"source":    existingMessage.Source,
+										"count":     existingMessage.Count,
+										"timestamp": time.Now().UTC(),
+									},
+								})
+
+							*/
+							continue
+						}
+						var utf8Message = strings.ToValidUTF8(string(bytes.ReplaceAll([]byte(msg.message), []byte{0}, []byte{})), "*")
+						newMessage := databaseStructs.Operationeventlog{
+							Source:      sourceString,
+							Level:       msg.messageLevel,
+							Warning:     msg.warning,
+							Message:     utf8Message,
+							OperationID: operation.ID,
+							Count:       1,
+						}
+						if _, err := database.DB.NamedExec(`INSERT INTO operationeventlog 
+							(source, "level", "message", operation_id, count, warning) 
+							VALUES 
+							(:source, :level, :message, :operation_id, :count, :warning)`, newMessage); err != nil {
+							logging.LogError(err, "Failed to create new operationeventlog message")
+						}
+					}
+				}
+			case "remove":
+				for _, operation := range operations {
+					if msg.operationID == 0 || operation.ID == msg.operationID {
+						// this is the operation we're interested in
+						updateObject := databaseStructs.Operationeventlog{
+							Message:     msg.message,
+							OperationID: msg.operationID,
+							Level:       database.MESSAGE_LEVEL_INFO,
+						}
+						if msg.operationID == 0 {
+							updateObject.OperationID = operation.ID
+						}
+						if _, err := database.DB.NamedExec(`UPDATE operationeventlog SET 
+			resolved=true  WHERE warning=true AND resolved=false AND deleted=false AND message=:message AND operation_id=:operation_id`, updateObject); err != nil {
+							logging.LogError(err, "Failed to resolve message")
+						}
+						removeUnresolvedError(operation.ID)
+					}
 				}
 			}
+		case <-timer.C:
+			if len(unresolvedErrors) > 0 {
+				unresolvedErrors = make(map[int]map[string]map[string]int)
+			}
+			timer.Reset(30 * time.Second)
 		}
+	}
+}
+func SendAllOperationsMessage(message string, operationID int, source string, messageLevel database.MESSAGE_TYPE, warning bool) {
+	operationMessageChannel <- operationMessage{
+		action:       "send",
+		message:      message,
+		source:       source,
+		operationID:  operationID,
+		messageLevel: messageLevel,
+		warning:      warning,
+	}
+}
+func ResolveAllOperationsMessage(message string, operationID int) {
+	operationMessageChannel <- operationMessage{
+		action:      "remove",
+		operationID: operationID,
+		message:     message,
 	}
 }

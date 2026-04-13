@@ -300,7 +300,7 @@ func checkContainerStatus() {
 							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 						go updateDownContainerBuildingPayloads(container)
 					} else {
-						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
@@ -332,7 +332,7 @@ func checkContainerStatus() {
 							getDownContainerMessage(container),
 							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
-						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
@@ -363,7 +363,7 @@ func checkContainerStatus() {
 							getDownContainerMessage(container),
 							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
-						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
@@ -395,7 +395,7 @@ func checkContainerStatus() {
 							getDownContainerMessage(container),
 							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
-						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
 					}
 				} else {
@@ -426,7 +426,7 @@ func checkContainerStatus() {
 							getDownContainerMessage(container),
 							0, fmt.Sprintf("%s_container_down", container), database.MESSAGE_LEVEL_INFO, true)
 					} else {
-						go database.ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
+						go ResolveAllOperationsMessage(getDownContainerMessage(container), 0)
 						go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(container)
 					}
 				} else {

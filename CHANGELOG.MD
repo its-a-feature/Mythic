@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.34] - 2026-04-13
+
+### Changed
+
+- Updated way that SendAllOperationsMessage functions to reduce duplicate messages to event log
+  - Reduced the number of lookups per error message to increment count by caching error lookup data
+  - Updated event log messages to ensure proper UTF8 encoding (and removal of bad characters)
+  - Using channels to ensure no duplicate messages are created due to go concurrency
+  
 ## [3.4.33] - 2026-04-10
 
 ### Changed

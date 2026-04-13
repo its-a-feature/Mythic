@@ -190,7 +190,7 @@ func customBrowserSync(in CustomBrowserSyncMessage) error {
 		return err
 	}
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", customSyncBrowser.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
-	go database.ResolveAllOperationsMessage(getDownContainerMessage(customSyncBrowser.Name), 0)
+	go ResolveAllOperationsMessage(getDownContainerMessage(customSyncBrowser.Name), 0)
 
 	checkContainerStatusAddCustomBrowserChannel <- customSyncBrowser
 	go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(customSyncBrowser.Name)

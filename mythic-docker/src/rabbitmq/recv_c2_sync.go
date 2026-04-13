@@ -191,7 +191,7 @@ func c2Sync(in C2SyncMessage) error {
 		return err
 	}
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", c2Profile.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
-	go database.ResolveAllOperationsMessage(getDownContainerMessage(c2Profile.Name), 0)
+	go ResolveAllOperationsMessage(getDownContainerMessage(c2Profile.Name), 0)
 	go autoStartC2Profile(c2Profile, false)
 	if newProfile {
 		go reSyncPayloadTypes()

@@ -86,8 +86,9 @@ var pushC2StreamingDisconnectNotification = make(chan int, 100)
 
 func Initialize() {
 	RabbitMQConnection.channelMutexMap = make(map[string]*channelMutex)
-	go invalidateAllSpectatorAPITokens()
-	go InvalidateOperationEventLogCacheMap()
+	invalidateAllNonUserAPITokens()
+	InvalidateOperationEventLogCacheMap()
+	go listenForOperationsMessages()
 	go listenForWriteDownloadChunkToLocalDisk()
 	go listenForFileBrowserData()
 	go listenForAsyncAgentMessagePostResponseContent()
@@ -109,10 +110,10 @@ func Initialize() {
 			go listenForEvents()
 			go initializeEventGroupCronSchedulesOnStart()
 			// start listening for new messages from push c2 profiles, needs gRPC initialized first
+			go listenForPushConnectDisconnectMessages()
 			go processAgentMessageFromPushC2()
 			go interceptProxyDataToAgentForPushC2()
 			go checkIfActiveCallbacksAreAliveForever()
-			go listenForPushConnectDisconnectMessages()
 			go func() {
 				// wait 20s for things to stabilize a bit, then send a startup message
 				time.Sleep(time.Second * 30)
@@ -171,9 +172,9 @@ func emitStartupMessages() {
 
 }
 
-func invalidateAllSpectatorAPITokens() {
+func invalidateAllNonUserAPITokens() {
 	_, err := database.DB.Exec(`UPDATE apitokens 
-		SET deleted=true, active=true WHERE token_type=$1 OR token_type=$2 OR token_type=$3`,
+		SET deleted=true, active=false WHERE token_type=$1 OR token_type=$2 OR token_type=$3`,
 		mythicjwt.AUTH_METHOD_GRAPHQL_SPECTATOR, mythicjwt.AUTH_METHOD_TASK, mythicjwt.AUTH_METHOD_EVENT)
 	if err != nil {
 		logging.LogError(err, "failed to mark all spectator tokens as deleted and inactive")

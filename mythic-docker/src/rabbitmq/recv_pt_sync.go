@@ -450,7 +450,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		InvalidateAllCachedUUIDInfo()
 	}
 	go SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "debug", database.MESSAGE_LEVEL_DEBUG, false)
-	go database.ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
+	go ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
 	checkContainerStatusAddPtChannel <- payloadtype
 	if !in.ForcedSync {
 		go CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(payloadtype.Name)
