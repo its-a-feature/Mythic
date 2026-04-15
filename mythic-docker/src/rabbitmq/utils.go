@@ -1089,6 +1089,7 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 		Status:                             databaseTask.Status,
 		OriginalParams:                     databaseTask.OriginalParams,
 		DisplayParams:                      databaseTask.DisplayParams,
+		MythicParsedParams:                 databaseTask.MythicParsedParams,
 		Comment:                            databaseTask.Comment,
 		Stdout:                             databaseTask.Stdout,
 		Stderr:                             databaseTask.Stderr,

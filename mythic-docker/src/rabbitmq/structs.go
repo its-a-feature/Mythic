@@ -81,6 +81,7 @@ type PTTaskMessageTaskData struct {
 	Status                             string `json:"status"`
 	OriginalParams                     string `json:"original_params"`
 	DisplayParams                      string `json:"display_params"`
+	MythicParsedParams                 string `json:"mythic_parsed_params"`
 	Comment                            string `json:"comment"`
 	Stdout                             string `json:"stdout"`
 	Stderr                             string `json:"stderr"`

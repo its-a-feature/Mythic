@@ -4,13 +4,15 @@ import (
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
+	"github.com/its-a-feature/Mythic/utils"
+
 	"time"
 )
 
 func emitTaskLog(taskId int) {
 	task := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT
-    task.*,
+    task.operation_id,
     operation.name "operation.name",
     operator.username "operator.username"
     FROM task
@@ -27,6 +29,7 @@ func emitTaskLog(taskId int) {
 			Timestamp:     time.Now().UTC(),
 			Action:        LOG_TYPE_TASK,
 			Data:          data,
+			ServerName:    utils.MythicConfig.GlobalServerName,
 		})
 	}
 }
@@ -49,6 +52,7 @@ func emitPayloadLog(payloadId int) {
 			Timestamp:     time.Now().UTC(),
 			Action:        LOG_TYPE_PAYLOAD,
 			Data:          payload,
+			ServerName:    utils.MythicConfig.GlobalServerName,
 		})
 	}
 }
@@ -72,6 +76,7 @@ func emitKeylogLog(keylogId int) {
 			Timestamp:     time.Now().UTC(),
 			Action:        LOG_TYPE_KEYLOG,
 			Data:          keylog,
+			ServerName:    utils.MythicConfig.GlobalServerName,
 		})
 	}
 }
@@ -94,6 +99,7 @@ func EmitCredentialLog(credentialId int) {
 			Timestamp:     time.Now().UTC(),
 			Action:        LOG_TYPE_CREDENTIAL,
 			Data:          credential,
+			ServerName:    utils.MythicConfig.GlobalServerName,
 		})
 	}
 }
@@ -117,6 +123,7 @@ func emitArtifactLog(artifactId int) {
 			Timestamp:     time.Now().UTC(),
 			Action:        LOG_TYPE_ARTIFACT,
 			Data:          artifact,
+			ServerName:    utils.MythicConfig.GlobalServerName,
 		})
 	}
 }
@@ -139,6 +146,7 @@ func EmitFileLog(fileId int) {
 			Timestamp:     time.Now().UTC(),
 			Action:        LOG_TYPE_FILE,
 			Data:          file,
+			ServerName:    utils.MythicConfig.GlobalServerName,
 		})
 	}
 }
@@ -161,6 +169,7 @@ func emitCallbackLog(callbackId int) {
 			Timestamp:     time.Now().UTC(),
 			Action:        LOG_TYPE_CALLBACK,
 			Data:          callback,
+			ServerName:    utils.MythicConfig.GlobalServerName,
 		})
 	}
 
@@ -193,6 +202,7 @@ func emitResponseLog(responseId int) {
 				"task_display_id": response.Task.DisplayID,
 				"timestamp":       response.Timestamp,
 			},
+			ServerName: utils.MythicConfig.GlobalServerName,
 		})
 	}
 }
