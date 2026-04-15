@@ -10,6 +10,7 @@ import (
 func emitTaskLog(taskId int) {
 	task := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT
+    task.*,
     operation.name "operation.name",
     operator.username "operator.username"
     FROM task
