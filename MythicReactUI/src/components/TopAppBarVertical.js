@@ -78,6 +78,8 @@ import {
 } from "@hello-pangea/dnd";
 import {reorder} from "./MythicComponents/MythicDraggableList";
 import { useNavigate } from 'react-router-dom';
+import LogoutIcon from '@mui/icons-material/Logout';
+import TuneIcon from '@mui/icons-material/Tune';
 
 const PREFIX = 'TopAppBarVertical';
 
@@ -898,16 +900,29 @@ function TopBarRightShortcutsVertical({me, menuOpen, serverName}){
       {
           name: (
               <>
-                  <Typography paragraph={true} variant="caption" style={{marginBottom: "0"}}>Signed in as:</Typography>
-                  <Typography paragraph={true} variant="body1"  style={{marginBottom: "0", fontWeight: 600}}> {me?.user?.username || "" } </Typography>
-              </>
+                  <Typography variant={"caption"} style={{marginBottom: "0"}}>Signed in as:</Typography>
+                  <Typography variant={"body1"} style={{marginBottom: "0", fontWeight: 600}}>{me?.user?.username}</Typography>
+              </>),
+          disabled: true,
+          click: handleSettingsClose
+      },
+      {
+          name: (
+              <div style={{display: "flex", alignItems: "center"}}>
+                  <TuneIcon style={{marginRight: "0.5rem"}}/>
+                  <Typography variant="body1"  style={{marginBottom: "0", }}> Settings </Typography>
+              </div>
           ),
           to: "/new/settings",
           component: Link,
           click: handleSettingsClose
       },
       {
-          name: "Logout",
+          name: (
+              <div style={{display: "flex", alignItems: "center"}}>
+                  <LogoutIcon style={{marginRight: "0.5rem"}} /> Logout
+              </div>
+          ),
           click: handleLogout,
           to: "",
       }

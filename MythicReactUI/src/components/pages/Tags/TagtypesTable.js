@@ -19,6 +19,7 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import {downloadFileFromMemory} from '../../utilities/Clipboard';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 
 const importTagtypesMutation = gql`
  mutation importMultipleTagtypes($tagtypes: String!) {
@@ -83,11 +84,8 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
             .then(({data}) => exportTagTypesSuccess(data)).catch(({data}) => exportTagTypesError(data));
     }
     return (
-        <div style={{display: "flex", flexDirection: "column", width: "100%", height: "100%"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
-                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                    Types of Tags
-                </Typography>
+        <>
+            <MythicPageHeader title={"Types of Tags"}>
                 <Button component="label" size={"small"}
                         style={{float:"right", marginRight: "5px", color: "white"}} >
                     <FileUploadIcon  /> {"Import"}
@@ -105,7 +103,7 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
                         innerDialog={<NewTagtypesDialog onClose={()=>{setOpenNewDialog(false);}} onSubmit={onNewTag} />}
                     />
                 }
-            </Paper>  
+            </MythicPageHeader>
             <div style={{display: "flex", flexGrow: 1, overflow: "auto"}}>
                 <TableContainer className="mythicElement">
                     <Table stickyHeader={true} size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
@@ -132,7 +130,7 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
                     </Table>
                 </TableContainer>
             </div>
-        </div>
+        </>
     )
 }
 

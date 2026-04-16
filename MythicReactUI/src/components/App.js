@@ -166,6 +166,8 @@ export function App(props) {
                         preferences?.palette?.outputBackgroundColor?.light || operatorSettingDefaults.palette.outputBackgroundColor.light,
                     outputTextColor: themeMode === 'dark' ? preferences?.palette?.outputTextColor?.dark || operatorSettingDefaults.palette.outputTextColor.dark :
                         preferences?.palette?.outputTextColor?.light || operatorSettingDefaults.palette.outputTextColor.light,
+                    borderColor: themeMode === 'dark' ? preferences?.palette?.borderColor?.dark || operatorSettingDefaults.palette.borderColor.dark :
+                        preferences?.palette?.borderColor?.light || operatorSettingDefaults.palette.borderColor.light,
                 })
             }catch(error){
                 console.log(error);
@@ -251,6 +253,8 @@ export function App(props) {
                         operatorSettingDefaults.palette.outputBackgroundColor.light,
                     outputTextColor: themeMode === 'dark' ? operatorSettingDefaults.palette.outputTextColor.dark :
                         operatorSettingDefaults.palette.outputTextColor.light,
+                    borderColor: themeMode === 'dark' ? operatorSettingDefaults.palette.borderColor.dark :
+                        operatorSettingDefaults.palette.borderColor.light,
                     typography: {
                         fontSize: 12,//operatorSettingDefaults?.fontSize,
                         fontFamily: operatorSettingDefaults?.fontFamily

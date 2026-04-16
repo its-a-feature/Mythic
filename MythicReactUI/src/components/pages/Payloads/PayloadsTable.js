@@ -21,6 +21,7 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 import {useNavigate} from 'react-router-dom';
 import Pagination from '@mui/material/Pagination';
 import { Backdrop, CircularProgress } from '@mui/material';
+import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 
 
 export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, onRestorePayload, me,
@@ -74,70 +75,68 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
         setDropdownOpen(false);
     };
     return (
-        <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
-                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                    Payloads
-                </Typography>
+        <>
+            <MythicPageHeader title={"Payloads"}>
+
                 <ButtonGroup variant="text" ref={dropdownAnchorRef} aria-label="split button" style={{float: "right", marginRight: "10px", color: "white"}}>
                     <Button size="small" style={{color: "white"}}  aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
-                        aria-expanded={dropdownOpen ? 'true' : undefined}
-                        aria-haspopup="menu"
-                        onClick={() => setDropdownOpen(!dropdownOpen)}>
-                            Actions <ArrowDropDownIcon />
+                            aria-expanded={dropdownOpen ? 'true' : undefined}
+                            aria-haspopup="menu"
+                            onClick={() => setDropdownOpen(!dropdownOpen)}>
+                        Actions <ArrowDropDownIcon />
                     </Button>
                 </ButtonGroup>
                 <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 10}}>
-                {({ TransitionProps, placement }) => (
-                    <Grow
-                    {...TransitionProps}
-                    style={{
-                        transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
-                    }}
-                    >
-                    <Paper className={"dropdownMenuColored"}>
-                        <ClickAwayListener onClickAway={() => setDropdownOpen(false)}>
-                        <MenuList id="split-button-menu">
-                            {dropDownOptions.map((option, index) => (
-                            <MenuItem
-                                key={option.name}
-                                onClick={(event) => handleMenuItemClick(event, index)}
-                            >
-                                {option.name}
-                            </MenuItem>
-                            ))}
-                        </MenuList>
-                        </ClickAwayListener>
-                    </Paper>
-                    </Grow>
-                )}
+                    {({ TransitionProps, placement }) => (
+                        <Grow
+                            {...TransitionProps}
+                            style={{
+                                transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
+                            }}
+                        >
+                            <Paper className={"dropdownMenuColored"}>
+                                <ClickAwayListener onClickAway={() => setDropdownOpen(false)}>
+                                    <MenuList id="split-button-menu">
+                                        {dropDownOptions.map((option, index) => (
+                                            <MenuItem
+                                                key={option.name}
+                                                onClick={(event) => handleMenuItemClick(event, index)}
+                                            >
+                                                {option.name}
+                                            </MenuItem>
+                                        ))}
+                                    </MenuList>
+                                </ClickAwayListener>
+                            </Paper>
+                        </Grow>
+                    )}
                 </Popper>
                 {openPayloadImport &&
                     <MythicDialog fullWidth={true} maxWidth="sm" open={openPayloadImport}
-                        onClose={()=>{setOpenPayloadImport(false);}}
-                        innerDialog={<ImportPayloadConfigDialog onClose={()=>{setOpenPayloadImport(false);}} />}
+                                  onClose={()=>{setOpenPayloadImport(false);}}
+                                  innerDialog={<ImportPayloadConfigDialog onClose={()=>{setOpenPayloadImport(false);}} />}
                     />
                 }
-            </Paper>
+            </MythicPageHeader>
             <div style={{flexGrow: 1, overflowY: "auto", height: "100%", position: "relative"}}>
                 {openBackdrop &&
                     <Backdrop open={openBackdrop} style={{zIndex: 2000, position: "absolute"}}>
                         <CircularProgress color="inherit" disableShrink  />
                     </Backdrop>
                 }
-                    <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "auto", tableLayout: "fixed"}}>
-                        <TableHead >
-                            <TableRow>
-                                <TableCell style={{width: "6rem"}}></TableCell>
-                                <TableCell style={{width: "3rem"}}></TableCell>
-                                <TableCell>File</TableCell>
-                                <TableCell>Progress</TableCell>
-                                <TableCell>Description</TableCell>
-                                <TableCell >C2 Status</TableCell>
-                                <TableCell>Tags</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
+                <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "auto", tableLayout: "fixed"}}>
+                    <TableHead >
+                        <TableRow>
+                            <TableCell style={{width: "6rem"}}></TableCell>
+                            <TableCell style={{width: "3rem"}}></TableCell>
+                            <TableCell>File</TableCell>
+                            <TableCell>Progress</TableCell>
+                            <TableCell>Description</TableCell>
+                            <TableCell >C2 Status</TableCell>
+                            <TableCell>Tags</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
                         {payload.map( (op) => (
                             <PayloadsTableRow
                                 me={me}
@@ -150,15 +149,16 @@ export function PayloadsTable({payload, onDeletePayload, onUpdateCallbackAlert, 
                                 {...op}
                             />
                         ))}
-                        </TableBody>
-                    </Table>
+                    </TableBody>
+                </Table>
             </div>
             <div style={{background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: "5px", paddingBottom: "10px"}}>
                 <Pagination count={Math.ceil(pageData.totalCount / pageData.fetchLimit)} variant="outlined" color="primary" boundaryCount={1}
-                    siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
+                            siblingCount={1} onChange={onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
                 <Typography style={{paddingLeft: "10px"}}>Total Results: {pageData.totalCount}</Typography>
             </div>
-        </div>
+        </>
+
     )
 }
 

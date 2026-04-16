@@ -21,6 +21,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import { IconButton } from '@mui/material';
 import {useTheme} from '@mui/material/styles';
 import {CustomBrowserRow} from "./CustomBrowserCard";
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
+import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 
 const SUB_Payload_Types = gql`
  subscription getPayloadTypesSubscription {
@@ -215,11 +217,8 @@ export function PayloadTypesC2Profiles({me}){
         }
     }
     return (
-        <div style={{  height: "100%", display: "flex", flexDirection: "column", width: "100%"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
-                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                    Installed Services
-                </Typography>
+        <MythicPageBody>
+            <MythicPageHeader title={"Installed Services"}>
                 {showDeleted ? (
                     <MythicStyledTooltip title={"Hide Deleted Services"} tooltipStyle={{float: "right"}}>
                         <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
@@ -230,7 +229,7 @@ export function PayloadTypesC2Profiles({me}){
                         <IconButton size="small" style={{float: "right"}} variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                     </MythicStyledTooltip>
                 )}
-            </Paper>
+            </MythicPageHeader>
             <AppBar position="static" color="default" className={"no-box-shadow"}>
                 <Tabs
                     value={value}
@@ -285,7 +284,7 @@ export function PayloadTypesC2Profiles({me}){
             {
                 getTabComponent()
             }
-        </div>
+        </MythicPageBody>
     );
 }
 

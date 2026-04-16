@@ -26,6 +26,8 @@ import {SettingsOperatorAPITokenSearchDialog} from "./SettingsOperatorAPITokenSe
 import ForwardToInboxTwoToneIcon from '@mui/icons-material/ForwardToInboxTwoTone';
 import {InviteLinksDialog} from "./InviteLinksDialog";
 import {useLazyQuery} from '@apollo/client';
+import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 
 
 
@@ -72,23 +74,43 @@ export function SettingsOperatorTable(props){
         getGlobalSettings().then(({data}) => setInviteLinksEnabled(data.getGlobalSettings.settings["server_config"]["allow_invite_links"]));
     }, []);
     return (
-    <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
-            <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                Settings
-            </Typography>
-            <MythicStyledTooltip title={"Adjust Global Settings"} tooltipStyle={{float: "right", marginRight: "10px", marginLeft: "5px"}}>
+    <>
+        <MythicPageHeader title={"Settings"}>
+            <MythicStyledTooltip title={"Manage Invite Links"} tooltipStyle={{}}>
+                <IconButton size={"small"} disabled={!inviteLinksEnabled || !userIsAdmin}
+                            onClick={()=>{setOpenInviteLinksDialog(true);}} variant={"contained"} >
+                    <ForwardToInboxTwoToneIcon />
+                </IconButton>
+            </MythicStyledTooltip>
+            <MythicStyledTooltip title={"Create new user account"} tooltipStyle={{}}>
+                <IconButton size="small" onClick={()=>{setOpenNewDialog(true);}}  variant="contained">
+                    <PersonAddIcon/>
+                </IconButton>
+            </MythicStyledTooltip>
+            <MythicStyledTooltip title={"Create new Bot account"} tooltipStyle={{}}>
+                <IconButton size={"small"}
+                            onClick={()=>{setOpenNewBotDialog(true);}}  variant="contained">
+                    <SmartToyTwoToneIcon />
+                </IconButton>
+            </MythicStyledTooltip>
+            <MythicStyledTooltip title={"Search for API Tokens"}  tooltipStyle={{}} >
+                <IconButton size={"small"}  variant="contained"
+                            onClick={() => setOpenAPITokenSearch(true)}>
+                    <SearchIcon />
+                </IconButton>
+            </MythicStyledTooltip>
+            <MythicStyledTooltip title={"Adjust Global Settings"} tooltipStyle={{}}>
                 <IconButton size="small" variant="contained"
                             onClick={() => setOpenGlobalSettingsDialog(!openGlobalSettingsDialog)} >
                     <TuneIcon />
                 </IconButton>
             </MythicStyledTooltip>
             {showDeleted ? (
-                <MythicStyledTooltip title={"Hide Deleted Operators"} tooltipStyle={{float: "right"}}>
+                <MythicStyledTooltip title={"Hide Deleted Operators"} tooltipStyle={{}}>
                     <IconButton size="small"  variant="contained" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon /></IconButton>
                 </MythicStyledTooltip>
             ) : (
-                <MythicStyledTooltip title={"Show Deleted Operators"} tooltipStyle={{float: "right"}}>
+                <MythicStyledTooltip title={"Show Deleted Operators"} tooltipStyle={{}}>
                     <IconButton size="small"  variant="contained" onClick={() => setShowDeleted(!showDeleted)} ><VisibilityOffIcon /></IconButton>
                 </MythicStyledTooltip>
             )}
@@ -99,12 +121,6 @@ export function SettingsOperatorTable(props){
                                   onClose={closeGlobalSettingsDialog}  />}
                 />
             }
-            <MythicStyledTooltip title={"Search for API Tokens"}  tooltipStyle={{float: "right", marginRight: "5px",}} >
-                <IconButton size={"small"}  variant="contained"
-                onClick={() => setOpenAPITokenSearch(true)}>
-                    <SearchIcon />
-                </IconButton>
-            </MythicStyledTooltip>
             {openAPITokenSearch &&
                 <MythicDialog open={openAPITokenSearch} maxWidth={"xl"} fullWidth={true}
                               onClose={()=>{setOpenAPITokenSearch(false);}}
@@ -112,23 +128,6 @@ export function SettingsOperatorTable(props){
                                   onClose={()=>{setOpenAPITokenSearch(false);}}  />}
                 />
             }
-            <MythicStyledTooltip title={"Create new Bot account"} tooltipStyle={{float: "right", marginLeft: "5px"}}>
-                <IconButton size={"small"}
-                            onClick={()=>{setOpenNewBotDialog(true);}}  variant="contained">
-                    <SmartToyTwoToneIcon />
-                </IconButton>
-            </MythicStyledTooltip>
-            <MythicStyledTooltip title={"Create new user account"} tooltipStyle={{float: "right", marginLeft: "5px"}}>
-                <IconButton size="small" onClick={()=>{setOpenNewDialog(true);}}  variant="contained">
-                    <PersonAddIcon/>
-                </IconButton>
-            </MythicStyledTooltip>
-            <MythicStyledTooltip title={"Manage Invite Links"} tooltipStyle={{float: "right", marginLeft: "5px"}}>
-                <IconButton size={"small"} disabled={!inviteLinksEnabled || !userIsAdmin}
-                            onClick={()=>{setOpenInviteLinksDialog(true);}} variant={"contained"} >
-                    <ForwardToInboxTwoToneIcon />
-                </IconButton>
-            </MythicStyledTooltip>
             {openInviteLinksDialog &&
                 <MythicDialog open={openInviteLinksDialog} maxWidth={"xl"} fullWidth={true}
                               onClose={()=>{setOpenInviteLinksDialog(false);}}
@@ -151,7 +150,7 @@ export function SettingsOperatorTable(props){
                               innerDialog={<SettingsBotDialog title="New Bot Account" onAccept={onSubmitNewBot} handleClose={()=>{setOpenNewBotDialog(false);}}  {...props}/>}
                 />
             }
-        </Paper>
+        </MythicPageHeader>
         <div style={{display: "flex", flexGrow: 1, overflowY: "auto", alignItems: "flex-start"}}>
             <Table stickyHeader size="small" style={{"tableLayout": "fixed",}}>
                 <TableHead >
@@ -189,7 +188,7 @@ export function SettingsOperatorTable(props){
                 </TableBody>
             </Table>
         </div>
-    </div>
+    </>
     )
 }
 

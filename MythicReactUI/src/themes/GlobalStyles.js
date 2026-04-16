@@ -34,8 +34,8 @@ html, body, #root {
 .MuiTableCell-head {
     background-color: ${(props) => props.theme.tableHeader} !important;
     font-weight: bold;
-    border-top: 2px solid grey;
-    border-bottom: 2px solid grey;
+    border-top: 2px solid ${(props) => props.theme.borderColor};
+    border-bottom: 2px solid ${(props) => props.theme.borderColor};
 }
 tr:nth-child(even) {
   background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "80" : props.theme.tableHover + "80"};
@@ -146,13 +146,13 @@ tspan {
   opacity: 1;
 }
 .groupNode {
-    border: 1px solid grey;
+    border: 1px solid ${(props) => props.theme.borderColor};
     padding: 5px;
     border-radius: 5px;
     background: ${(props) => props.theme.palette.graphGroupRGBA} !important;
 }
 .groupEventNode {
-    border: 1px solid grey;
+    border: 1px solid ${(props) => props.theme.borderColor};
     padding: 2px;
     border-radius: 5px;
     background: ${(props) => props.theme.palette.graphGroupRGBA} !important;
@@ -167,7 +167,7 @@ tspan {
 }
 .context-menu {
     background-color: ${(props) => props.theme.palette.background.paper};
-    border: 1px solid grey;
+    border: 1px solid ${(props) => props.theme.borderColor};
     border-radius: 5px;
     box-shadow: 10px 19px 20px rgba(0, 0, 0, 10%);
     position: absolute;
@@ -212,11 +212,11 @@ tspan {
     box-sizing: border-box;
     justify-content: space-between;
     user-select: none;
-    border-top: 2px solid grey;
-    border-bottom: 2px solid grey;
+    border-top: 2px solid ${(props) => props.theme.borderColor};
+    border-bottom: 2px solid ${(props) => props.theme.borderColor};
     background-color: ${(props) => props.theme.tableHeader} !important;
     &:first-child-of-type {
-        border-left: 2px solid grey;
+        border-left: 2px solid ${(props) => props.theme.borderColor};
     }
     &:hover {
         background-color: ${(props) => props.theme.tableHover};
@@ -232,7 +232,7 @@ tspan {
     padding: 0 0.5em;
     box-sizing: border-box;
     font-family: monospace;
-    border-bottom: 1px solid grey;
+    border-bottom: 1px solid ${(props) => props.theme.borderColor};
     cursor: default !important;
 }
 .MythicResizableGrid-cellInner {
@@ -276,7 +276,7 @@ tspan {
     width: 100%;
 }
 .MuiPaper-root {
-    border: 1px solid grey;
+    border: 1px solid ${(props) => props.theme.borderColor};
     border-radius: 5px;
     background-color: ${(props) => props.theme.palette.background.paper};
     background-image: unset;
@@ -290,13 +290,13 @@ tspan {
 
 .MuiList-root {
     background-color: ${(props) => props.theme.palette.background.paper};
-    border: 1px solid grey;
+    border: 1px solid ${(props) => props.theme.borderColor};
     border-radius: 3px;
     line-height: 30px;
 }
 .dropdownMenuColored {
     background-color: ${(props) => props.theme.palette.background.paper} !important;
-    border: 1px solid grey;
+    border: 1px solid ${(props) => props.theme.borderColor};
     border-radius: 5px;
     //color: white;
 }
@@ -331,25 +331,25 @@ tspan {
     border-bottom-right-radius: 4px;
 }
 .MuiInputLabel-root {
-    color:  grey !important;
+    color:  ${(props) => props.theme.borderColor} !important;
 }
 .MuiOutlinedInput-notchedOutline {
-    border-color: grey !important;
+    border-color: ${(props) => props.theme.borderColor} !important;
 }
 .MuiInput-underline {
-    border-color: grey !important;
+    border-color: ${(props) => props.theme.borderColor} !important;
 }
 .MuiSelect-outlined {
-    border-color: grey !important;
+    border-color: ${(props) => props.theme.borderColor} !important;
 }
 .Mui-focused {
-    border-color: grey !important;
+    border-color: ${(props) => props.theme.borderColor} !important;
 }
 .MuiInputBase-input {
-    border-color: grey !important;
+    border-color: ${(props) => props.theme.borderColor} !important;
 }
 .MuiInput-root::after {
-    border-color: grey !important;
+    border-color: ${(props) => props.theme.borderColor} !important;
 }
 .MuiTableCell-root {
     padding: 0 16px 0 16px;
@@ -386,22 +386,22 @@ tspan {
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
     padding: 0 10px 0 10px;
-    border-top: 1px solid grey;
-    border-left: 2px solid grey;
-    border-right: 1px solid grey;
-    border-bottom: 1px solid grey;
+    border-top: 1px solid ${(props) => props.theme.borderColor};
+    border-left: 2px solid ${(props) => props.theme.borderColor};
+    border-right: 1px solid ${(props) => props.theme.borderColor};
+    border-bottom: 1px solid ${(props) => props.theme.borderColor};
     position: relative;
     top: 2px;
     word-break: break-all;
 }
 .empty-table-header {
-    border: 1px solid grey !important;
+    border: 1px solid ${(props) => props.theme.borderColor} !important;
     height: 0px !important;
     padding: 0px !important;
     margin: 0px !important;
 }
 .code-box {
-    border: 1px solid grey !important;
+    border: 1px solid ${(props) => props.theme.borderColor} !important;
     padding: 0px 5px 0px 5px;
     overflow: auto;
     white-space: pre;

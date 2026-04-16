@@ -13,30 +13,27 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Button from '@mui/material/Button';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {EditScriptDialog} from './EditScriptDialog';
+import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 
 
 export function BrowserScriptsTable(props){
     const theme = useTheme();
     const [openNewScriptDialog, setOpenNewScriptDialog] = React.useState(false);
     return (
-        <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
-                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                    Browser Scripts
-                </Typography>
-                <Button size="small" onClick={() => setOpenNewScriptDialog(true)} style={{float: "right", marginRight: "30px", color: "white"}}
+        <>
+            <MythicPageHeader title={"Browser Scripts"}>
+                <Button size="small" onClick={() => setOpenNewScriptDialog(true)} style={{whiteSpace: "nowrap", color: "white"}}
                         startIcon={<AddCircleIcon color={"success"} style={{backgroundColor: "white", borderRadius: "10px"}}/>} >
                     New Script
                 </Button>
-                {openNewScriptDialog ? (   
+                {openNewScriptDialog &&
                     <MythicDialog fullWidth={true} maxWidth="xl" open={openNewScriptDialog}
                         onClose={()=>{setOpenNewScriptDialog(false);}} 
                         innerDialog={
                             <EditScriptDialog me={props.me} onClose={()=>{setOpenNewScriptDialog(false);}} title="Create New Browser Script" new={true} onSubmitEdit={props.onSubmitNew} />
-                        } />    
-                    ) : null
+                        } />
                 }
-            </Paper>
+            </MythicPageHeader>
             <TableContainer className="mythicElement" style={{height: "100%", flexGrow: 1}}>
             <Table stickyHeader={true} size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
@@ -61,8 +58,8 @@ export function BrowserScriptsTable(props){
                 ))}
                 </TableBody>
             </Table>
-        </TableContainer>
-        </div>
+            </TableContainer>
+        </>
         
     )
 }

@@ -4,6 +4,7 @@ import {useQuery, gql, useLazyQuery} from '@apollo/client';
 import {CommandBlockListTable} from './CommandBlockListTable';
 import { snackActions } from '../../utilities/Snackbar';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 
 const GET_Operations = gql`
 query GetOperations {
@@ -114,13 +115,13 @@ export function Operations(props){
       getBlockLists().then(({data}) => getBlockListsSuccess(data)).catch(({data}) => getBlockListsError(data));
     }, []);
     return (
-      <div style={{  height: "100%", display: "flex", flexDirection: "column"}}>
+      <MythicPageBody>
         <OperationTable operations={operations}
                         onUpdateOperation={onUpdateOperation}
                         onNewOperation={onNewOperation} me={props.me}
                         onUpdateCurrentOperation={onUpdateCurrentOperation}
                         updateDeleted={updateDeleted}/>
         <CommandBlockListTable blockLists={blockLists} me={props.me} />
-      </div>
+      </MythicPageBody>
     );
 } 

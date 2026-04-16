@@ -2,6 +2,7 @@ import React from 'react';
 import { TagtypesTable } from './TagtypesTable';
 import {useMutation, gql, useQuery} from '@apollo/client';
 import { snackActions } from '../../utilities/Snackbar';
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 const tagtypeFragment = gql`
 fragment tagtypeData on tagtype {
   id
@@ -89,8 +90,8 @@ export function Tags(props){
        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     return (
-      <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
+      <MythicPageBody>
         <TagtypesTable onDeleteTagtype={onDeleteTagtype}  tagtypes={tagtypes} onNewTag={onNewTag} onUpdateTagtype={onUpdateTagtype} me={props.me}/>
-      </div>
+      </MythicPageBody>
     );
 } 

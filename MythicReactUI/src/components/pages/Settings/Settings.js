@@ -3,6 +3,7 @@ import { SettingsOperatorTable } from './SettingsOperatorTable';
 import {useMutation, useQuery, gql} from '@apollo/client';
 import { meState } from '../../../cache';
 import { snackActions } from '../../utilities/Snackbar';
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 
 const GET_Operator = gql`
 query GetOperators {
@@ -275,7 +276,7 @@ export function Settings({me}){
     }
 
     return (
-      <div style={{display: "flex", height: "100%", flexDirection: "column"}}>
+      <MythicPageBody>
         <SettingsOperatorTable 
             me={me}
             onViewUTCChanged={onViewUTCChanged}
@@ -287,6 +288,6 @@ export function Settings({me}){
             onUsernameChanged={onUsernameChanged}
             onPasswordChanged={onPasswordChanged}
             operators={operators} />
-        </div>
+    </MythicPageBody>
     );
 } 

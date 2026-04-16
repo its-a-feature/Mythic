@@ -1,11 +1,12 @@
 import React from 'react';
 import {CallbacksCard} from "./CallbacksCard";
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 
 
 export function Home({me}) {
   return (
-  <div style={{width: "100%", height: "100%", display: "flex"}}>
+  <MythicPageBody>
     <CallbacksCard me={me} />
-  </div>
+  </MythicPageBody>
   );
 }

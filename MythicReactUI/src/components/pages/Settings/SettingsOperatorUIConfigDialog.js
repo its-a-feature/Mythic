@@ -242,6 +242,10 @@ export function SettingsOperatorUIConfigDialog(props) {
             dark: isValidColor(initialPalette?.outputTextColor?.dark) ? initialPalette?.outputTextColor?.dark : operatorSettingDefaults.palette.outputTextColor.dark,
             light: isValidColor(initialPalette?.outputTextColor?.light) ? initialPalette?.outputTextColor?.light : operatorSettingDefaults.palette.outputTextColor.light,
         },
+        borderColor: {
+            dark: isValidColor(initialPalette?.borderColor?.dark) ? initialPalette?.borderColor?.dark : operatorSettingDefaults.palette.borderColor.dark,
+            light: isValidColor(initialPalette?.borderColor?.light) ? initialPalette?.borderColor?.light : operatorSettingDefaults.palette.borderColor.light,
+        },
     });
     const paletteOptionsSolidColor = [
         {name: "primary", display: "Primary"},
@@ -264,7 +268,8 @@ export function SettingsOperatorUIConfigDialog(props) {
         {name: "taskContextColor", display: "Tasking Context Generic Background Color"},
         {name: "taskContextImpersonationColor", display: "Tasking Context User Background Color"},
         {name: "taskContextExtraColor", display: "Tasking Context Extra Info Background Color"},
-        {name: "emptyFolderColor", display: "Color of the empty folder icon and text in file-based browsers"}
+        {name: "emptyFolderColor", display: "Color of the empty folder icon and text in file-based browsers"},
+        {name: "borderColor", display: "Color of borders around elements"}
     ]
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
     const [_, updateSettings, clearSettings] = useSetMythicSetting();

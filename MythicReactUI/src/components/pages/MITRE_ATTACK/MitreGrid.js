@@ -16,6 +16,7 @@ import {CircularProgress} from '@mui/material';
 import { MythicDisplayTextDialog} from '../../MythicComponents/MythicDisplayTextDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { SelectPayloadTypeDialog } from './SelectPayloadTypeDialog';
+import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 
 
 export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFiltered, onGetTasksFiltered, onFilterByTags, showCountGrouping}){
@@ -23,12 +24,8 @@ export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFilt
     const [backdropOpen, setBackdropOpen] = React.useState(false);
     
     return (
-        <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
-            <Paper elevation={5}  style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
-                marginBottom: "5px", marginRight: "5px"}} variant={"elevation"}>
-                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                    {"MITRE ATT&CK Mappings"}
-                </Typography>
+        <>
+            <MythicPageHeader title={"MITRE ATT&CK Mappings"}>
                 <PoperDropdown onGetCommands={onGetCommands} 
                     onGetTasks={onGetTasks} 
                     onGetCommandsFiltered={onGetCommandsFiltered} 
@@ -38,7 +35,7 @@ export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFilt
                     showCountGrouping={showCountGrouping}
                     entries={entries}
                 />
-            </Paper> 
+            </MythicPageHeader>
             
             <div style={{display: "flex", flexGrow: 1, overflow: "auto"}}>
                 {backdropOpen && <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
@@ -47,7 +44,7 @@ export function MitreGrid({entries, onGetCommands, onGetTasks, onGetCommandsFilt
                 }
                 <MitreGridDisplay entries={entries} showCountGrouping={showCountGrouping} />
             </div>
-        </div>
+        </>
     )
 }
 

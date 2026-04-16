@@ -57,6 +57,7 @@ import {copyStringToClipboard} from "../../utilities/Clipboard";
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {faCopy} from '@fortawesome/free-solid-svg-icons';
 import MythicTextField from "../../MythicComponents/MythicTextField";
+import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 
 const LeadDashboardQuery = gql`
 ${taskingDataFragment}
@@ -1521,13 +1522,7 @@ const Top10RecentScreenshotsDashboardElement = ({me, data, editing, removeElemen
         <>
             <TableDataCard title={"Recent Screenshots"}
                            tableHead={
-                               <TableHead>
-                                   <TableRow>
-                                       <MythicTableCell></MythicTableCell>
-                                       <MythicTableCell></MythicTableCell>
-                                       <MythicTableCell></MythicTableCell>
-                                   </TableRow>
-                               </TableHead>
+                               null
                            }
                            tableBody={
                                <TableBody>
@@ -1594,11 +1589,7 @@ const Top10RecentTasksDashboardElement = ({me, data, editing, removeElement}) =>
         <>
             <TableDataCard title={"Recent Tasking"}
                            tableHead={
-                               <TableHead>
-                                   <TableRow>
-                                       <MythicTableCell></MythicTableCell>
-                                   </TableRow>
-                               </TableHead>
+                               null
                            }
                            tableBody={
                                <TableBody>
@@ -1714,20 +1705,20 @@ const OperatorDashboard = ({me, setLoading, loading}) => {
     }
     return (
         <>
-            <div style={{display: "flex", marginLeft: "5px", marginBottom: "5px", marginTop: "5px"}}>
+            <div style={{display: "flex", marginLeft: "0.5rem", marginBottom: "0.5rem",}}>
                 <ActiveCallbacksDashboardElement me={me} data={analysisData}/>
                 <Top10RecentPayloadsDashboardElement me={me} data={analysisData}/>
                 <Top10RecentWorkflowsDashboardElement me={me} data={analysisData}/>
             </div>
-            <div style={{display: "flex", marginLeft: "5px", marginBottom: "5px"}}>
+            <div style={{display: "flex", marginLeft: "0.5rem", marginBottom: "0.5rem"}}>
                 <ProxyUsageDashboardElement me={me} data={analysisData}/>
                 <Top10RecentFileDownloadsDashboardElement me={me} data={analysisData}/>
                 <Top10RecentCredentialsDashboardElement me={me} data={analysisData}/>
             </div>
-            <div style={{display: "flex", marginLeft: "5px", marginBottom: "5px"}}>
+            <div style={{display: "flex", marginLeft: "0.5rem", marginBottom: "0.5rem"}}>
                 <Top10RecentTasksDashboardElement me={me} data={analysisData}/>
             </div>
-            <div style={{display: "flex", marginLeft: "5px", marginBottom: "5px"}}>
+            <div style={{display: "flex", marginLeft: "0.5rem", marginBottom: "0.5rem"}}>
                 <Top10RecentScreenshotsDashboardElement me={me} data={analysisData}/>
                 <MyOperationsDashboardElement me={me} data={analysisData} reloadDashboard={reloadDashboard}/>
             </div>
@@ -1754,16 +1745,16 @@ const LeadDashboard = ({me, setLoading, loading}) => {
     }, []);
     return (
         <>
-            <div style={{display: "flex", marginLeft: "5px", marginBottom: "5px", marginTop: "5px"}}>
+            <div style={{display: "flex", marginLeft: "0.5rem", marginBottom: "0.5rem",}}>
                 <ActiveCallbacksDashboardElement me={me} data={analysisData} />
                 <Top10CommandStatsDashboardElement me={me} data={analysisData} />
                 <Top10UserContextsDashboardElement me={me} data={analysisData} />
                 <Top10HostContextsDashboardElement me={me} data={analysisData} />
             </div>
-            <div style={{display: "flex", marginLeft: "5px", marginBottom: "5px"}}>
+            <div style={{display: "flex", marginLeft: "0.5rem", marginBottom: "0.5rem"}}>
                 <ActivityPerDayDashboardElement me={me} data={analysisData} />
             </div>
-            <div style={{display: "flex", marginLeft: "5px"}}>
+            <div style={{display: "flex", marginLeft: "0.5rem"}}>
                 <TaskStatusDashboardElement me={me} data={analysisData} />
                 <OperatorActivityDashboardElement me={me} data={analysisData} />
                 <Top10ArtifactsDashboardElement me={me} data={analysisData} />
@@ -1932,7 +1923,7 @@ const CustomDashboard = ({me, setLoading, loading, editing}) => {
         <div style={{height: "100%", overflowY: "auto"}}>
             {dashboards.map((d, i) => (
                 <div key={"dashboardRow" + i}
-                     style={{display: "flex", marginLeft: "5px", marginTop: "5px", borderRadius: "4px", }}>
+                     style={{display: "flex", marginLeft: "0.5rem", marginBottom: "0.5rem", borderRadius: "5px", }}>
                     {editing &&
                         <div style={{display: "flex", flexDirection: "column", width: "40px", justifyContent: "center"}}>
                             <MythicStyledTooltip title={"Add New Chart To This Row"}>
@@ -1976,7 +1967,6 @@ const CustomDashboard = ({me, setLoading, loading, editing}) => {
 }
 
 export function CallbacksCard({me}) {
-    const theme = useTheme();
     const [loading, setLoading] = React.useState(true);
     const [editing, setEditing] = React.useState(false);
     const initialDashboardView = GetMythicSetting({
@@ -1992,24 +1982,20 @@ export function CallbacksCard({me}) {
         setLoading(true);
     }
     return (
-        <div style={{width: "100%", height: "100%", display: "flex", flexDirection: "column", position: "relative"}}>
-            <Paper elevation={5} variant={"elevation"} style={{
-                backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,
-                display: "flex", alignItems: "center", justifyContent: "space-between"
-            }}
-            >
-                <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "10px"}}>
+        <>
+            <MythicPageHeader title={
+                <>
                     Welcome <b>{me.user.username}</b>
                     {me.user.current_operation_id === 0 ? null : (
                         <>
-                        {" to"} <b>{me.user.current_operation}</b>'s Dashboard
+                            {" to"} <b>{me.user.current_operation}</b>'s Dashboard
                         </>
                     )}
-
-                </Typography>
-                <span>
+                </>
+            }>
+                <div style={{display: "flex", alignItems: "center"}}>
                     <TextField
-                        style={{color: "white", marginTop: "5px", width: "10rem"}}
+                        style={{color: "white",  width: "10rem", margin: "0.5rem"}}
                         InputProps={{style: {color: "white"}}}
                         size={"small"}
                         select={true}
@@ -2022,8 +2008,8 @@ export function CallbacksCard({me}) {
                             <MenuItem key={"searchopt" + opt} value={opt}>{opt}</MenuItem>
                         ))
                     }
-                </TextField>
-                    <MythicStyledTooltip title={"Analyze Operation Data Again"}>
+                    </TextField>
+                    <MythicStyledTooltip title={"Analyze Operation Data Again"} tooltipStyle={{display: "inline-block"}}>
                         <IconButton style={{color: "white"}} onClick={() => setLoading(true)}>
                             <ReplayIcon />
                         </IconButton>
@@ -2035,8 +2021,8 @@ export function CallbacksCard({me}) {
                             </IconButton>
                         </MythicStyledTooltip>
                     }
-                </span>
-            </Paper>
+                </div>
+            </MythicPageHeader>
             <div style={{width: "100%", height: "100%", display: "flex", flexDirection: "column", position: "relative", overflowY: "auto"}}>
                 {loading &&
                     <div style={{
@@ -2070,7 +2056,7 @@ export function CallbacksCard({me}) {
                     me={me} loading={loading} setLoading={setLoading} editing={editing}
                 />}
             </div>
-        </div>
+        </>
 
     );
 }

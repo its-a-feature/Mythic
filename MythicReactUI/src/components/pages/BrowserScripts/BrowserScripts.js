@@ -4,6 +4,7 @@ import {BrowserScriptsTable} from './BrowserScriptsTable';
 import {snackActions} from '../../utilities/Snackbar';
 import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 
 
 const SUB_BrowserScripts = gql`
@@ -135,7 +136,7 @@ export function BrowserScripts({me}){
       }
     }, [])
     return (
-    <React.Fragment>
+    <MythicPageBody>
         <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
             <CircularProgress color="inherit" />
         </Backdrop>
@@ -145,6 +146,6 @@ export function BrowserScripts({me}){
             onSubmitEdit={onSubmitEdit} onRevert={onRevert} onSubmitNew={onSubmitCreateNewBrowserScript}
         />
 
-    </React.Fragment>
+    </MythicPageBody>
     );
 }

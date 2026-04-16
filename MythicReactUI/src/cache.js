@@ -153,6 +153,10 @@ export const operatorSettingDefaults =  {
         outputTextColor: {
             dark: '#f6f6f6',
             light: '#282828',
+        },
+        borderColor: {
+            dark: "#595858",
+            light: "#c5c5c5"
         }
     },
 }

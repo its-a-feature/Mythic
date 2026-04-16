@@ -18,6 +18,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import TuneIcon from '@mui/icons-material/Tune';
+import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 
 const newBlockListEntry = gql`
 mutation newBlockListsEntries($entries: [disabledcommandsprofile_insert_input!]!) {
@@ -174,14 +175,11 @@ export function CommandBlockListTable(props){
         return null;
     }
     return (
-        <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main}} variant={"elevation"}>
-            <Typography variant="h5" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                Command Block Lists
-            </Typography>
+        <>
+        <MythicPageHeader title={"Command Block Lists"}>
             <Button size="small"
                     onClick={()=>{setOpenNewDialog(true);}}
-                    style={{marginRight: "10px", float: "right", color: "white"}}
+                    style={{color: "white", whiteSpace: "nowrap"}}
                     startIcon={<AddCircleIcon color="success" style={{backgroundColor: "white", borderRadius: "10px"}}/>}
                     >New Block List</Button>
             {openNew &&
@@ -191,7 +189,7 @@ export function CommandBlockListTable(props){
                     />}
                 />
             }
-        </Paper>
+        </MythicPageHeader>
         <TableContainer className="mythicElement">
             <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
                 <TableHead>
@@ -211,7 +209,7 @@ export function CommandBlockListTable(props){
                 </TableBody>
             </Table>
         </TableContainer>
-    </React.Fragment>
+    </>
     )
 }
 

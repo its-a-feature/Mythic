@@ -6,6 +6,7 @@ import { Backdrop } from '@mui/material';
 import {CircularProgress} from '@mui/material';
 import { MythicSelectFromListDialog } from '../../MythicComponents/MythicSelectFromListDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 
 const Get_MITREATTACK = gql`
 query GetMitreAttack {
@@ -367,7 +368,7 @@ export function MitreAttack({me}){
       getTasksFilteredByTag({variables: {tasks: taskIds}})
     }
     return (
-      <React.Fragment>
+      <MythicPageBody>
         <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
             <CircularProgress color="inherit" disableShrink />
         </Backdrop>
@@ -388,7 +389,7 @@ export function MitreAttack({me}){
                                           action={"select"} identifier={"cmd"} display={"cmd"}/>}
                   />
           }
-      </React.Fragment>
+      </MythicPageBody>
         
     );
 } 

@@ -15,6 +15,8 @@ import Select from '@mui/material/Select';
 import Grid from '@mui/material/Grid';
 import {alertCount} from "../../../cache";
 import {levelOptions} from "./EventFeed";
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
+import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 
 const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
    return (
@@ -51,42 +53,41 @@ export function EventFeedTable(props){
         }
     }, []);
     return (
-        <div style={{display: "flex", flexDirection: "column", height: "100%", maxWidth: "100%", overflowX: "hidden"}}>
-            <Paper elevation={5} style={{backgroundColor: theme.body, marginBottom: "5px", marginRight: "5px"}}>
-                <Grid container spacing={1} style={{ marginTop: "0px"}}>
-                    <Grid style={{paddingTop: 0}} size={10}>
-                        <MythicTextField placeholder="Search..." value={search} marginBottom={"0px"} marginTop={"0px"}
-                                         onChange={handleSearchValueChange} onEnter={submitSearch} InputProps={{
-                            endAdornment:
-                                <React.Fragment>
-                                    <Tooltip title="Search">
-                                        <IconButton onClick={submitSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></IconButton>
-                                    </Tooltip>
-                                    <Tooltip title="Resolve Viewable Errors">
-                                        <IconButton onClick={props.resolveViewableErrors} size="large"><AutoFixHighIcon style={{color: theme.palette.success.main}}/></IconButton>
-                                    </Tooltip>
-                                    <Tooltip title="Resolve All Errors">
-                                        <IconButton onClick={props.resolveAllErrors} size="large"><HealingIcon style={{color: theme.palette.success.main}}/></IconButton>
-                                    </Tooltip>
-                                </React.Fragment>,
-                            style: {padding: 0}
-                        }}/>
-                    </Grid>
-                    <Grid style={{paddingTop: 0, paddingLeft: 0}} size={2}>
-                        <Select
-                            style={{width: "100%"}}
-                            value={level}
-                            onChange={handleLevelValueChange}
-                        >
-                            {
-                                levelOptions.map((opt, i) => (
-                                    <MenuItem key={"levelFilter" + opt} value={opt}>{opt}</MenuItem>
-                                ))
-                            }
-                        </Select>
-                    </Grid>
+        <MythicPageBody>
+            <Grid container spacing={1} style={{ marginTop: "0px"}}>
+                <Grid style={{paddingTop: 0}} size={10}>
+                    <MythicTextField placeholder="Search..." value={search} marginBottom={"0px"} marginTop={"0px"}
+                                     onChange={handleSearchValueChange} onEnter={submitSearch} InputProps={{
+                        endAdornment:
+                            <React.Fragment>
+                                <Tooltip title="Search">
+                                    <IconButton onClick={submitSearch} size="large"><SearchIcon style={{color: theme.palette.info.main}}/></IconButton>
+                                </Tooltip>
+                                <Tooltip title="Resolve Viewable Errors">
+                                    <IconButton onClick={props.resolveViewableErrors} size="large"><AutoFixHighIcon style={{color: theme.palette.success.main}}/></IconButton>
+                                </Tooltip>
+                                <Tooltip title="Resolve All Errors">
+                                    <IconButton onClick={props.resolveAllErrors} size="large"><HealingIcon style={{color: theme.palette.success.main}}/></IconButton>
+                                </Tooltip>
+                            </React.Fragment>,
+                        style: {padding: 0}
+                    }}/>
                 </Grid>
-            </Paper>
+                <Grid style={{paddingTop: 0, paddingLeft: 0}} size={2}>
+                    <Select
+                        style={{width: "100%"}}
+                        value={level}
+                        onChange={handleLevelValueChange}
+                    >
+                        {
+                            levelOptions.map((opt, i) => (
+                                <MenuItem key={"levelFilter" + opt} value={opt}>{opt}</MenuItem>
+                            ))
+                        }
+                    </Select>
+                </Grid>
+            </Grid>
+
             <div style={{display: "flex", flexDirection: "column", overflowY: "auto", flexGrow: 1, overflowX: "Hidden"}}>
                     <EventList 
                         onUpdateResolution={props.onUpdateResolution}
@@ -98,6 +99,6 @@ export function EventFeedTable(props){
                             siblingCount={1} onChange={props.onChangePage} showFirstButton={true} showLastButton={true} style={{padding: "20px"}}/>
                 <Typography style={{paddingLeft: "10px"}}>Total Results: {props.pageData.totalCount}</Typography>
             </div>
-        </div>
+        </MythicPageBody>
     );
 }

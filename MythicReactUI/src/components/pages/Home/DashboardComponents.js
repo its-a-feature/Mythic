@@ -16,6 +16,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import Paper from "@mui/material/Paper";
 
 const normalColors = [
     '#09bdff',
@@ -45,16 +46,17 @@ export const PieChartCard = ({
     const toggleLegend = () => {
         setShowLegend(!showLegend);
     }
+    const theme = useTheme();
     return (
-        <div style={{
-            marginRight: "5px",
+        <Paper variant={"elevation"} elevation={1} style={{
+            marginRight: "0.5rem",
             width: width,
             height: "100%",
-            border: "1px solid gray",
-            borderRadius: "4px",
+            border: `1px solid ${theme.borderColor}`,
+            borderRadius: "5px",
             overflow: "hidden",
         }}>
-            <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0,}}>
+            <h3 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0,}}>
                 {editing &&
                     <span>
                             <MythicStyledTooltip title={"Remove element"}>
@@ -120,7 +122,7 @@ export const PieChartCard = ({
                 }}>
                 {innerElement}
             </PieChart>
-        </div>
+        </Paper>
     );
 }
 function GaugePointer() {
@@ -151,8 +153,7 @@ export const GaugeCard = ({data, width = "100%", additionalStyles, innerElement,
     right: 10,
     top: 10,
     bottom: 10,
-}, colors = normalColors, onClick, title = "", editing, removeElement, customizeElement
-                   }) => {
+}, colors = normalColors, onClick, title = "", editing, removeElement, customizeElement }) => {
     const theme = useTheme();
     const getFillColor = () => {
         if(data['total'] === 0){return theme.palette.text.disabled}
@@ -166,15 +167,15 @@ export const GaugeCard = ({data, width = "100%", additionalStyles, innerElement,
         }
     }
     return (
-        <div style={{
-            marginRight: "5px",
+        <Paper variant={"elevation"} elevation={1} style={{
+            marginRight: "0.5rem",
             width: width,
             height: "100%",
-            border: "1px solid gray",
+            border: `1px solid ${theme.borderColor}`,
+            borderRadius: "5px",
             overflow: "hidden",
-            borderRadius: "4px",
         }}>
-            <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0,}}>
+            <h3 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0,}}>
                 {editing &&
                     <span>
                             <MythicStyledTooltip title={"Remove element"}>
@@ -208,21 +209,22 @@ export const GaugeCard = ({data, width = "100%", additionalStyles, innerElement,
                 })}
             >
             </Gauge>
-        </div>
+        </Paper>
     );
 }
 export const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondaryElement, width="100%",
                                  editing, removeElement}) => {
+    const theme = useTheme();
     return (
-        <div style={{
-            marginRight: "5px",
+        <Paper variant={"elevation"} elevation={1} style={{
+            marginRight: "0.5rem",
             width: width,
             height: "100%",
-            border: "1px solid gray",
+            border: `1px solid ${theme.borderColor}`,
+            borderRadius: "5px",
             overflow: "hidden",
-            borderRadius: "4px",
         }} >
-                <h5 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
+                <h2 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0}}>
                     {editing &&
                         <span >
                             <MythicStyledTooltip title={"Remove element"}>
@@ -233,7 +235,7 @@ export const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondary
                         </span>
                     }
                     {mainTitle}
-                </h5>
+                </h2>
                 <div style={{height: 180, cursor: "pointer"}}>
                     <MythicStyledTooltip title={"Go to Active Callbacks"}>
                         {mainElement}
@@ -243,43 +245,46 @@ export const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondary
                         {secondaryElement}
                     </MythicStyledTooltip>
                 </div>
-        </div>
+        </Paper>
     )
 }
 export const TableDataCard = ({title, width = "100%", tableHead, tableBody, editing, removeElement, customizeElement}) => {
+    const theme = useTheme();
     return (
-        <div style={{
-            marginRight: "5px",
+        <Paper variant={"elevation"} elevation={1} style={{
+            marginRight: "0.5rem",
             width: width,
             height: "100%",
-            border: "1px solid gray",
-            borderRadius: "4px",
+            border: `1px solid ${theme.borderColor}`,
+            borderRadius: "5px",
+            overflow: "hidden",
         }}>
-            <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0}}>
+            <h3 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0}}>
                 {editing &&
                     <span >
-                            <MythicStyledTooltip title={"Remove element"}>
-                                <IconButton onClick={removeElement} >
-                                    <DeleteIcon color={"error"}/>
-                                </IconButton>
-                            </MythicStyledTooltip>
-                        </span>
+                        <MythicStyledTooltip title={"Remove element"}>
+                            <IconButton onClick={removeElement} >
+                                <DeleteIcon color={"error"}/>
+                            </IconButton>
+                        </MythicStyledTooltip>
+                    </span>
                 }
                 {title}
-                <span style={{float: "right", marginRight: "5px"}}>
+                <span style={{float: "right", marginRight: "0.5rem"}}>
                     {customizeElement}
                 </span>
             </h3>
-            <div style={{height: 200, overflowY: "auto"}}>
-                <Table style={{ "maxWidth": "100%", "overflow": "auto"}} stickyHeader size="small">
+            <div style={{height: 200, overflowY: "auto", width: "100%"}}>
+                <Table style={{ maxWidth: "100%", overflow: "auto"}} stickyHeader size="small">
                     {tableHead}
                     {tableBody}
                 </Table>
             </div>
-        </div>
+        </Paper>
     )
 }
 export const LineTimeChartCard = ({data, additionalStyles}) => {
+    const theme = useTheme();
     const [value, setValue] = React.useState([0, 0]);
     const [range, setRange] = React.useState([0, 0]);
     React.useEffect( () => {
@@ -309,12 +314,12 @@ export const LineTimeChartCard = ({data, additionalStyles}) => {
         }
     };
     return (
-        <div style={{
-            marginBottom: "5px",
-            marginTop: "10px",
+        <Paper variant={"elevation"} elevation={1} style={{
+            marginRight: "0.5rem",
             width: "100%",
             height: "100%",
-            border: "1px solid gray",
+            border: `1px solid ${theme.borderColor}`,
+            borderRadius: "5px",
             overflow: "hidden",
         }} >
             <Typography variant={"h3"} style={{margin: 0, padding: 0, position: "relative", left: "30%"}}>
@@ -369,11 +374,12 @@ export const LineTimeChartCard = ({data, additionalStyles}) => {
                 max={range[1]}
                 sx={{ mt: 2, width: "80%", left: "10%" }}
             />
-        </div>
+        </Paper>
 
     )
 }
 export const LineTimeMultiChartCard = ({data, additionalStyles, colors=normalColors, view_utc_time, editing, removeElement, customizeElement}) => {
+    const theme = useTheme();
     const [value, setValue] = React.useState([0, 0]);
     const [range, setRange] = React.useState([0, 0]);
     React.useEffect( () => {
@@ -423,13 +429,13 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors=normalCol
         }
     }
     return (
-        <div style={{
+        <Paper variant={"elevation"} elevation={1} style={{
             width: "100%",
+            marginRight: "0.5rem",
             height: "100%",
-            marginRight: "5px",
-            border: "1px solid gray",
+            border: `1px solid ${theme.borderColor}`,
+            borderRadius: "5px",
             overflow: "hidden",
-            borderRadius: "4px",
         }} >
             <Typography variant={"h3"} style={{margin: 0, padding: 0, position: "relative", left: "30%"}}>
                 {editing &&
@@ -500,7 +506,7 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors=normalCol
                 max={range[1]}
                 sx={{ mt: 2, width: "80%", left: "10%" }}
             />
-        </div>
+        </Paper>
 
     )
 }
@@ -509,12 +515,14 @@ export const StackedBarChartCard = ({data, labels, title, width="100%", hidden, 
     top: 40,
     bottom: 10,
 }}) => {
+    const theme = useTheme();
     return (
-        <div style={{
-            marginRight: "5px",
+        <Paper variant={"elevation"} elevation={1} style={{
+            marginRight: "0.5rem",
             width: width,
             height: "100%",
-            border: "1px solid gray",
+            border: `1px solid ${theme.borderColor}`,
+            borderRadius: "5px",
             overflow: "hidden",
         }} >
             <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0, position: "absolute"}}>
@@ -544,6 +552,6 @@ export const StackedBarChartCard = ({data, labels, title, width="100%", hidden, 
                         }
                     }
                 }} />
-        </div>
+        </Paper>
     );
 }
