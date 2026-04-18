@@ -190,22 +190,22 @@ func setRoutes(r *gin.Engine) {
 			// a refresh post will contain the access_token and refresh_token
 			protected.POST("/refresh", webcontroller.RefreshJWT)
 			protected.Static("/static", "./static")
-			protected.GET("/direct/view/:file_uuid",
-				authentication.DirectFileScopeMiddleware(mythicjwt.SCOPE_FILE_DIRECT_DOWNLOAD),
-				webcontroller.FileDirectViewWebhook)
-			// authenticated direct file routes.
-			// Supports normal JWT/APIToken auth and scoped short-lived direct-file tokens.
-			r.GET("/direct/download/:file_uuid",
-				authentication.DirectFileScopeMiddleware(mythicjwt.SCOPE_FILE_DIRECT_DOWNLOAD),
-				webcontroller.FileDirectDownloadWebhook)
-			r.POST("/direct/upload/:file_uuid",
-				authentication.DirectFileScopeMiddleware(mythicjwt.SCOPE_FILE_DIRECT_UPLOAD),
-				webcontroller.FileDirectUploadWebhook)
 			// following require you to have an operation set
 			allOperationMembers := protected.Group("/")
 			allOperationMembers.Use(authentication.RBACMiddlewareAll())
 			{
 				// generic all installed services
+				protected.GET("/direct/view/:file_uuid",
+					authentication.DirectFileScopeMiddleware(mythicjwt.SCOPE_FILE_DIRECT_DOWNLOAD),
+					webcontroller.FileDirectViewWebhook)
+				// authenticated direct file routes.
+				// Supports normal JWT/APIToken auth and scoped short-lived direct-file tokens.
+				r.GET("/direct/download/:file_uuid",
+					authentication.DirectFileScopeMiddleware(mythicjwt.SCOPE_FILE_DIRECT_DOWNLOAD),
+					webcontroller.FileDirectDownloadWebhook)
+				r.POST("/direct/upload/:file_uuid",
+					authentication.DirectFileScopeMiddleware(mythicjwt.SCOPE_FILE_DIRECT_UPLOAD),
+					webcontroller.FileDirectUploadWebhook)
 				allOperationMembers.POST("eventing_import_automatic_webhook", webcontroller.EventingImportAutomaticWebhook)
 				// payloadtype / c2profile
 				allOperationMembers.POST("c2profile_status_webhook", webcontroller.C2ProfileStatusWebhook)

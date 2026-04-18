@@ -2,8 +2,9 @@ package webcontroller
 
 import (
 	"fmt"
-	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
+
+	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/database"
@@ -23,20 +24,22 @@ func FileDirectViewWebhook(c *gin.Context) {
 	// get the associated database information
 	filemeta := databaseStructs.Filemeta{}
 	payload := databaseStructs.Payload{}
-	operatorUsername := "unknown"
 	userID, err := GetUserIDFromGin(c)
-	if err == nil {
-		user, err := database.GetUserFromID(userID)
-		if err == nil {
-			operatorUsername = user.Username
-		}
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	user, err := database.GetUserFromID(userID)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
 	err = database.DB.Get(&filemeta, `SELECT
 			"path", filename, id, operation_id
 			FROM filemeta 
 			WHERE
-			filemeta.agent_file_id=$1
-			`, agentFileID)
+			filemeta.agent_file_id=$1 AND filemeta.operation_id=$2
+			`, agentFileID, user.CurrentOperationID.Int64)
 	if err != nil {
 		err = database.DB.Get(&payload, `SELECT
     			filemeta.path "filemeta.path",
@@ -45,7 +48,7 @@ func FileDirectViewWebhook(c *gin.Context) {
     			filemeta.operation_id "filemeta.operation_id"
     			FROM payload
     			JOIN filemeta ON payload.file_id = filemeta.id 
-    			WHERE payload.uuid=$1`, agentFileID)
+    			WHERE payload.uuid=$1 AND payload.operation_id=$2`, agentFileID, user.CurrentOperationID.Int64)
 		if err != nil {
 			logging.LogError(err, "Failed to get file data from database")
 			message := fmt.Sprintf("Attempt to download unknown file: %s", agentFileID)
@@ -53,11 +56,11 @@ func FileDirectViewWebhook(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		go tagFileAs(payload.Filemeta.ID, operatorUsername, payload.Filemeta.OperationID, tagTypePreview, nil, c, false)
+		go tagFileAs(payload.Filemeta.ID, user.Username, payload.Filemeta.OperationID, tagTypePreview, nil, c, false)
 		c.File(payload.Filemeta.Path)
 		return
 	}
-	go tagFileAs(filemeta.ID, operatorUsername, filemeta.OperationID, tagTypePreview, nil, c, false)
+	go tagFileAs(filemeta.ID, user.Username, filemeta.OperationID, tagTypePreview, nil, c, false)
 	c.File(filemeta.Path)
 	return
 }
