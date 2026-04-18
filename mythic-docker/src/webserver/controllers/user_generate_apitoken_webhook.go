@@ -115,10 +115,14 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 		Name:       defaultName,
 		CreatedBy:  createdBy,
 	}
+	if authType == mythicjwt.AUTH_METHOD_EVENT {
+		apiToken.EventStepInstanceID.Valid = true
+		apiToken.EventStepInstanceID.Int64 = int64(claims.EventStepInstanceID)
+	}
 	statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens 
-		(token_value, operator_id, token_type, active, "name", created_by) 
+		(token_value, operator_id, token_type, active, "name", created_by, eventstepinstance_id) 
 		VALUES
-		(:token_value, :operator_id, :token_type, :active, :name, :created_by)
+		(:token_value, :operator_id, :token_type, :active, :name, :created_by, :eventstepinstance_id)
 		RETURNING id`)
 	if err != nil {
 		c.JSON(http.StatusOK, GenerateAPITokenResponse{
@@ -135,9 +139,7 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 		})
 		return
 	}
-	access_token, _, _, err := mythicjwt.GenerateJWT(databaseStructs.Operator{
-		ID: userID,
-	}, authType, claims.EventStepInstanceID, apiToken.ID)
+	accessToken, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
 	if err != nil {
 		c.JSON(http.StatusOK, GenerateAPITokenResponse{
 			Status: "error",
@@ -145,7 +147,7 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 		})
 		return
 	}
-	apiToken.TokenValue = access_token
+	apiToken.TokenValue = storedAPITokenValue
 	_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
 	if err != nil {
 		c.JSON(http.StatusOK, GenerateAPITokenResponse{
@@ -156,7 +158,7 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, GenerateAPITokenResponse{
 		Status:       "success",
-		TokenValue:   access_token,
+		TokenValue:   accessToken,
 		OperatorID:   userID,
 		ID:           apiToken.ID,
 		Name:         apiToken.Name,

@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
@@ -71,6 +72,9 @@ func GetUserCurrentOperation(userID int) (*databaseStructs.Operatoroperation, er
 }
 
 func GetUserFromID(userID int) (*databaseStructs.Operator, error) {
+	if DB == nil {
+		return nil, errors.New("database connection not initialized")
+	}
 	operator := databaseStructs.Operator{}
 	err := DB.Get(&operator, `SELECT 
 	username, id, "admin", last_login, failed_login_count, salt, "password", secrets, preferences,

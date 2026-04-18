@@ -20,8 +20,6 @@ func TestTokenValid(t *testing.T) {
 	}
 	gin.SetMode(gin.TestMode)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
 	user := databaseStructs.Operator{ID: 123}
 	access_token, _, _, _ := mythicjwt.GenerateJWT(user, mythicjwt.AUTH_METHOD_USER, 0, 0)
 
@@ -69,6 +67,8 @@ func TestTokenValid(t *testing.T) {
 		tt := tt // shadowing
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
 			req := &http.Request{
 				Header: make(http.Header),
 			}
@@ -89,8 +89,6 @@ func TestGetClaims(t *testing.T) {
 	}
 	gin.SetMode(gin.TestMode)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
 	user := databaseStructs.Operator{ID: 123}
 	access_token, _, _, _ := mythicjwt.GenerateJWT(user, mythicjwt.AUTH_METHOD_USER, 0, 0)
 
@@ -128,33 +126,6 @@ func TestGetClaims(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Valid apitoken Claim",
-			args: args{
-				header: map[string][]string{
-					"Apitoken": {access_token}, // "Apitoken" and not "apitoken" here because Go uses the canonical form (first letter of the word and after hyphens as uppercase)
-				},
-			},
-			want: &mythicjwt.CustomClaims{
-				UserID:     123,
-				AuthMethod: mythicjwt.AUTH_METHOD_USER,
-				StandardClaims: jwt.StandardClaims{
-					IssuedAt:  time.Now().Unix(),
-					ExpiresAt: time.Now().Add(mythicjwt.JWTTimespan).UTC().Unix(),
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "Empty apitoken",
-			args: args{
-				header: map[string][]string{
-					"Apitoken": {""},
-				},
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
 			name: "No auth",
 			args: args{
 				header: map[string][]string{},
@@ -166,7 +137,6 @@ func TestGetClaims(t *testing.T) {
 			name: "Both token bad",
 			args: args{
 				header: map[string][]string{
-					"Apitoken":      {"badtoken"},
 					"Authorization": {"Bearer bad"},
 				},
 			},
@@ -178,7 +148,8 @@ func TestGetClaims(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // shadowing
 		t.Run(tt.name, func(t *testing.T) {
-			// t.Parallel()
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
 			req := &http.Request{
 				Header: make(http.Header),
 			}

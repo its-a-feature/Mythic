@@ -167,3 +167,5 @@ _ReSharper*/
 jupyter-docker/jupyter/MythicExamples/.ipynb_checkpoints/
 
 nginx-docker/config/blockips.conf
+
+.gocache

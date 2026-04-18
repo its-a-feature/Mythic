@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/rabbitmq"
@@ -107,7 +108,7 @@ func InitializeGinLogger() gin.HandlerFunc {
 				source = "scripting"
 			}
 			graphQLOperationName := c.GetString("GraphQLName")
-			if tokenStruct, ok := c.Get("apitoken_logging_struct"); ok {
+			if tokenStruct, ok := c.Get(authentication.ContextKeyAPIToken); ok {
 				if param.Path == "/graphql/webhook" {
 					if graphQLOperationName == "" {
 						graphQLOperationName = " with a subscription"
@@ -130,8 +131,8 @@ func InitializeGinLogger() gin.HandlerFunc {
 				"latency", param.Latency.String(),
 				"responseSize", param.BodySize,
 				"source", source,
-				"user_id", c.GetInt("user_id"),
-				"username", c.GetString("username"),
+				"user_id", c.GetInt(authentication.ContextKeyUserID),
+				"username", c.GetString(authentication.ContextKeyUsername),
 				"file_id", c.GetString("file_id"),
 				"graphql_name", c.GetString("GraphQLName"),
 				"error", param.ErrorMessage)
@@ -142,15 +143,12 @@ func InitializeGinLogger() gin.HandlerFunc {
 
 func setRoutes(r *gin.Engine) {
 	// the agent message route is allowed to come from anywhere since it'll come through random c2
-	r.POST("/api/v1.4/agent_message", webcontroller.AgentMessageWebhook)
-	r.GET("/api/v1.4/agent_message", webcontroller.AgentMessageGetWebhook)
 	r.POST("/agent_message", webcontroller.AgentMessageWebhook)
 	r.GET("/agent_message", webcontroller.AgentMessageGetWebhook)
 	// healthcheck endpoint
 	r.Use(authentication.IPBlockMiddleware())
 	{
 		r.GET("/health", webcontroller.HealthCheckSimple)
-		r.GET("/healthDetailed", webcontroller.HealthCheckDetailed)
 		// login page
 		r.POST("/auth", webcontroller.Login)
 		r.POST("/invite", webcontroller.UseInviteLink)
@@ -163,43 +161,48 @@ func setRoutes(r *gin.Engine) {
 		r.GET("/auth_redirect/:containerName/:IDPName", webcontroller.GetAuthContainerRedirect)
 		r.GET("/auth_acs/:containerName/:IDPName", webcontroller.ProcessIDPResponse)
 		r.POST("/auth_acs/:containerName/:IDPName", webcontroller.ProcessIDPResponse)
-		// unauthenticated file download based on file UUID
-		// this is for payload hosting and payload containers to fetch files via web
-		r.GET("/direct/download/:file_uuid", webcontroller.FileDirectDownloadWebhook)
-		// unauthenticated file upload based on file UUID
-		// this is for payload containers to upload files that are too big for rabbitmq
-		r.POST("/direct/upload/:file_uuid", webcontroller.FileDirectUploadWebhook)
-		
+
 		// create a protected group that requires valid auth with a JWT to access
 		protected := r.Group("/")
 		protected.Use(authentication.JwtAuthMiddleware())
 		{
 			// EVERYBODY that can authenticate can do the following
+			r.GET("/healthDetailed", webcontroller.HealthCheckDetailed)
 			// hasura's graphql endpoint to get updated claims for access control
 			//protected.GET("/graphql/webhook", webcontroller.GetHasuraClaims)
 			protected.POST("/graphql/webhook", webcontroller.GetHasuraClaims)
 			// user
-			protected.GET("/me", webcontroller.GetMe)                          // controller.login
-			protected.POST("/api/v1.4/me_webhook", webcontroller.GetMeWebhook) // controller.login
-			protected.POST("/api/v1.4/generate_apitoken_webhook", webcontroller.GenerateAPITokenWebhook)
-			protected.POST("/api/v1.4/delete_apitoken_webhook", webcontroller.DeleteAPITokenWebhook)
-			protected.POST("/api/v1.4/update_current_operation_webhook", webcontroller.UpdateCurrentOperationWebhook)
-			protected.POST("/api/v1.4/update_operator_password_webhook", webcontroller.UpdateOperatorPasswordWebhook)
-			protected.POST("/api/v1.4/create_operator", webcontroller.CreateOperatorWebhook)
-			protected.POST("/api/v1.4/operator_get_secrets_webhook", webcontroller.GetSecretsWebhook)
-			protected.POST("/api/v1.4/operator_update_secrets_webhook", webcontroller.UpdateSecretsWebhook)
-			protected.POST("/api/v1.4/operator_get_preferences_webhook", webcontroller.GetPreferencesWebhook)
-			protected.POST("/api/v1.4/operator_update_preferences_webhook", webcontroller.UpdatePreferencesWebhook)
+			protected.GET("/me", webcontroller.GetMe)                 // controller.login
+			protected.POST("/me_webhook", webcontroller.GetMeWebhook) // controller.login
+			protected.POST("/generate_apitoken_webhook", webcontroller.GenerateAPITokenWebhook)
+			protected.POST("/delete_apitoken_webhook", webcontroller.DeleteAPITokenWebhook)
+			protected.POST("/update_current_operation_webhook", webcontroller.UpdateCurrentOperationWebhook)
+			protected.POST("/update_operator_password_webhook", webcontroller.UpdateOperatorPasswordWebhook)
+			protected.POST("/create_operator", webcontroller.CreateOperatorWebhook)
+			protected.POST("/operator_get_secrets_webhook", webcontroller.GetSecretsWebhook)
+			protected.POST("/operator_update_secrets_webhook", webcontroller.UpdateSecretsWebhook)
+			protected.POST("/operator_get_preferences_webhook", webcontroller.GetPreferencesWebhook)
+			protected.POST("/operator_update_preferences_webhook", webcontroller.UpdatePreferencesWebhook)
 			// operation
-			protected.POST("/api/v1.4/create_operation_webhook", webcontroller.CreateOperationWebhook)
+			protected.POST("/create_operation_webhook", webcontroller.CreateOperationWebhook)
 			// global config
-			protected.POST("/api/v1.4/get_global_settings_webhook", webcontroller.GetGlobalSettingWebhook)
+			protected.POST("/get_global_settings_webhook", webcontroller.GetGlobalSettingWebhook)
 			// a refresh post will contain the access_token and refresh_token
 			protected.POST("/refresh", webcontroller.RefreshJWT)
 			protected.Static("/static", "./static")
-			protected.GET("direct/view/:file_uuid", webcontroller.FileDirectViewWebhook)
+			protected.GET("/direct/view/:file_uuid",
+				authentication.DirectFileScopeMiddleware(mythicjwt.SCOPE_FILE_DIRECT_DOWNLOAD),
+				webcontroller.FileDirectViewWebhook)
+			// authenticated direct file routes.
+			// Supports normal JWT/APIToken auth and scoped short-lived direct-file tokens.
+			r.GET("/direct/download/:file_uuid",
+				authentication.DirectFileScopeMiddleware(mythicjwt.SCOPE_FILE_DIRECT_DOWNLOAD),
+				webcontroller.FileDirectDownloadWebhook)
+			r.POST("/direct/upload/:file_uuid",
+				authentication.DirectFileScopeMiddleware(mythicjwt.SCOPE_FILE_DIRECT_UPLOAD),
+				webcontroller.FileDirectUploadWebhook)
 			// following require you to have an operation set
-			allOperationMembers := protected.Group("/api/v1.4/")
+			allOperationMembers := protected.Group("/")
 			allOperationMembers.Use(authentication.RBACMiddlewareAll())
 			{
 				// generic all installed services
@@ -216,9 +219,9 @@ func setRoutes(r *gin.Engine) {
 				// file
 				allOperationMembers.POST("download_bulk_webhook", webcontroller.DownloadBulkFilesWebhook)
 				allOperationMembers.POST("preview_file_webhook", webcontroller.PreviewFileWebhook)
-				allOperationMembers.GET("files/screencaptures/:file_uuid", webcontroller.DownloadFileAuthWebhook)
+				allOperationMembers.GET("screencaptures/:file_uuid", webcontroller.DownloadFileAuthWebhook)
 			}
-			noSpectators := protected.Group("/api/v1.4/")
+			noSpectators := protected.Group("/")
 			noSpectators.Use(authentication.RBACMiddlewareNoSpectators())
 			{
 				// everybody EXCEPT SPECTATORS can do these actions
@@ -302,7 +305,7 @@ func setRoutes(r *gin.Engine) {
 				// custom browsers
 				noSpectators.POST("custombrowser_export_function_webhook", webcontroller.CustomBrowserExportFunctionWebhook)
 			}
-			operationAdminsOnly := protected.Group("/api/v1.4/")
+			operationAdminsOnly := protected.Group("/")
 			operationAdminsOnly.Use(authentication.RBACMiddlewareOperationAdmin())
 			{
 				// Only OPERATION_ADMIN and MYTHIC_ADMIN can do these routes

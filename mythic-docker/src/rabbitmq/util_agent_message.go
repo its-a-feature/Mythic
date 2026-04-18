@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"database/sql"
 	"encoding/base64"
-	"encoding/json/v2"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"

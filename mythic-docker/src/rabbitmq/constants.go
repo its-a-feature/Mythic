@@ -244,6 +244,8 @@ const (
 	MYTHIC_RPC_C2_UPDATE_STATUS = "mythic_rpc_c2_update_status"
 	//
 	MYTHIC_RPC_APITOKEN_CREATE = "mythic_rpc_apitoken_create"
+	//
+	MYTHIC_RPC_DIRECT_FILE_TOKEN_CREATE = "mythic_rpc_direct_file_token_create"
 	// Agent Message
 	MYTHIC_RPC_HANDLE_AGENT_JSON = "mythic_rpc_handle_agent_message_json"
 	// CustomBrowser
