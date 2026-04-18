@@ -58,36 +58,6 @@ let httpLink = new HttpLink({
 });
 export const isJWTValid = () => {
   let access_token = localStorage.getItem("access_token");
-  if(!access_token){
-      let cookie = document.cookie;
-      if(cookie && cookie !== ""){
-          let cookies = cookie.split(";");
-          for(let i = 0; i < cookies.length; i++){
-              let cookiePieces = cookies[i].split("=");
-              if(cookiePieces.length !== 2){
-                  console.log("bad number of cookie pieces", "cookie", cookies[i])
-              } else if(cookiePieces[0].trim() !== "user") {
-                  console.log("unknown cookie", "name", cookiePieces[0].trim());
-              } else {
-                  try{
-                      console.log("user cookie found, trying to parse");
-                      let cookieString = decodeURIComponent(cookiePieces[1].trim());
-                      let cookieJSON = JSON.parse(atob(cookieString));
-                      if("access_token" in cookieJSON){
-                          successfulLogin(cookieJSON);
-                          restartWebsockets();
-                          access_token = localStorage.getItem("access_token");
-                      }else{
-                          snackActions.warning("Invalid Authentication");
-                          console.log("Error", cookieJSON);
-                      }
-                  }catch(error){
-                      console.log("error processing cookie value", error)
-                  }
-              }
-          }
-      }
-  }
   //console.log("in isJWTValid", "access_token", access_token);
   if(access_token){
     const decoded_token = jwtDecode(access_token);

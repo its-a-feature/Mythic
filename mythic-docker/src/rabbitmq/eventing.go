@@ -1047,19 +1047,18 @@ func startEventStepInstance(eventStepInstanceID int) error {
 					logging.LogError(err, "Failed to get new apitoken")
 					continue
 				}
-				accessToken, _, _, err := mythicjwt.GenerateJWT(databaseStructs.Operator{ID: eventStepInstance.OperatorID},
-					mythicjwt.AUTH_METHOD_EVENT, eventStepInstance.ID, apiToken.ID)
+				plainAPITokenValue, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
 				if err != nil {
 					logging.LogError(err, "Failed to generate access token")
 					continue
 				}
-				apiToken.TokenValue = accessToken
+				apiToken.TokenValue = storedAPITokenValue
 				_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
 				if err != nil {
 					logging.LogError(err, "Failed to update apitoken")
 					continue
 				}
-				inputs[key] = apiToken.TokenValue
+				inputs[key] = plainAPITokenValue
 			}
 		}
 		for i := 0; i < len(allEventSteps); i++ {

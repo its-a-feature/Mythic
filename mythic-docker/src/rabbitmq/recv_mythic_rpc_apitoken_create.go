@@ -42,7 +42,6 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage) MythicRPCAPIT
 		TokenValue: "",
 		Active:     true,
 	}
-	operatorData := databaseStructs.Operator{}
 	if input.AgentTaskID != nil {
 		task := databaseStructs.Task{AgentTaskID: *input.AgentTaskID}
 		err := database.DB.Get(&task, `SELECT id, operator_id, operation_id, display_id FROM task WHERE agent_task_id=$1`, task.AgentTaskID)
@@ -55,7 +54,6 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage) MythicRPCAPIT
 		apiToken.CreatedBy = task.OperatorID
 		apiToken.TaskID.Valid = true
 		apiToken.TaskID.Int64 = int64(task.ID)
-		operatorData.ID = task.OperatorID
 		apiToken.Name = fmt.Sprintf("Generated Task API Token via MythicRPC for Task %d", task.DisplayID)
 	} else if input.PayloadUUID != nil {
 		payload := databaseStructs.Payload{UuID: *input.PayloadUUID}
@@ -67,7 +65,6 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage) MythicRPCAPIT
 		apiToken.TokenType = mythicjwt.AUTH_METHOD_TASK
 		apiToken.OperatorID = payload.OperatorID
 		apiToken.CreatedBy = payload.OperatorID
-		operatorData.ID = payload.OperatorID
 		apiToken.PayloadID.Valid = true
 		apiToken.PayloadID.Int64 = int64(payload.ID)
 		apiToken.Name = fmt.Sprintf("Generated Payload API Token via MythicRPC for Payload %s", payload.UuID)
@@ -97,9 +94,6 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage) MythicRPCAPIT
 				if !operatorOperationData[i].CurrentOperator.Deleted && operatorOperationData[i].CurrentOperator.Active {
 					apiToken.OperatorID = operatorOperationData[i].CurrentOperator.ID
 					apiToken.CreatedBy = operatorOperationData[i].CurrentOperator.ID
-					operatorData.ID = operatorOperationData[i].CurrentOperator.ID
-					operatorData.CurrentOperationID.Valid = true
-					operatorData.CurrentOperationID.Int64 = int64(callback.OperationID)
 					apiToken.Name = fmt.Sprintf("Generated Callback API Token via MythicRPC for Callback %d", callback.DisplayID)
 				}
 			}
@@ -129,12 +123,12 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage) MythicRPCAPIT
 		response.Error = err.Error()
 		return response
 	}
-	accessToken, _, _, err := mythicjwt.GenerateJWT(operatorData, apiToken.TokenType, 0, apiToken.ID)
+	accessToken, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
 	if err != nil {
 		response.Error = err.Error()
 		return response
 	}
-	apiToken.TokenValue = accessToken
+	apiToken.TokenValue = storedAPITokenValue
 	_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
 	if err != nil {
 		response.Error = err.Error()

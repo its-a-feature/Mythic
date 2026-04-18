@@ -576,7 +576,7 @@ func associateCommandsWithPayload(databasePayload databaseStructs.Payload, comma
 						if utils.SliceContains(deniedCommandNames, dependency) {
 							// uh oh, we included a command that depends on a rejected command
 							return nil, errors.New(fmt.Sprintf("%s depends on %s, but %s isn't allowed with the currently selected parameters",
-								command.Cmd, dependency))
+								command.Cmd, dependency, dependency))
 						}
 						// the dependency we have isn't included, but isn't explicitly denied, so just add it
 						finalCommandNames = append(finalCommandNames, dependency)

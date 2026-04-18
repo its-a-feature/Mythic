@@ -32,7 +32,6 @@ import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 
 
 export function SettingsOperatorTable(props){
-    const theme = useTheme();
     const [openNew, setOpenNewDialog] = React.useState(false);
     const [openNewBot, setOpenNewBotDialog] = React.useState(false);
     const [openAPITokenSearch, setOpenAPITokenSearch] = React.useState(false);
