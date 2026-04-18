@@ -170,3 +170,5 @@ nginx-docker/config/blockips.conf
 /MythicReactUI/build/
 /MythicReactUI/node_modules/
 /.gocache/
+
+.gocache

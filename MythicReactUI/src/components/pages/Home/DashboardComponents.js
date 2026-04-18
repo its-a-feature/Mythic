@@ -48,7 +48,7 @@ export const PieChartCard = ({
     }
     const theme = useTheme();
     return (
-        <Paper variant={"elevation"} elevation={1} style={{
+        <Paper variant={"elevation"} elevation={3} style={{
             marginRight: "0.5rem",
             width: width,
             height: "100%",
@@ -167,7 +167,7 @@ export const GaugeCard = ({data, width = "100%", additionalStyles, innerElement,
         }
     }
     return (
-        <Paper variant={"elevation"} elevation={1} style={{
+        <Paper variant={"elevation"} elevation={3} style={{
             marginRight: "0.5rem",
             width: width,
             height: "100%",
@@ -216,7 +216,7 @@ export const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondary
                                  editing, removeElement}) => {
     const theme = useTheme();
     return (
-        <Paper variant={"elevation"} elevation={1} style={{
+        <Paper variant={"elevation"} elevation={3} style={{
             marginRight: "0.5rem",
             width: width,
             height: "100%",
@@ -251,7 +251,7 @@ export const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondary
 export const TableDataCard = ({title, width = "100%", tableHead, tableBody, editing, removeElement, customizeElement}) => {
     const theme = useTheme();
     return (
-        <Paper variant={"elevation"} elevation={1} style={{
+        <Paper variant={"elevation"} elevation={3} style={{
             marginRight: "0.5rem",
             width: width,
             height: "100%",
@@ -314,7 +314,7 @@ export const LineTimeChartCard = ({data, additionalStyles}) => {
         }
     };
     return (
-        <Paper variant={"elevation"} elevation={1} style={{
+        <Paper variant={"elevation"} elevation={3} style={{
             marginRight: "0.5rem",
             width: "100%",
             height: "100%",
@@ -429,7 +429,7 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors=normalCol
         }
     }
     return (
-        <Paper variant={"elevation"} elevation={1} style={{
+        <Paper variant={"elevation"} elevation={3} style={{
             width: "100%",
             marginRight: "0.5rem",
             height: "100%",
@@ -517,7 +517,7 @@ export const StackedBarChartCard = ({data, labels, title, width="100%", hidden, 
 }}) => {
     const theme = useTheme();
     return (
-        <Paper variant={"elevation"} elevation={1} style={{
+        <Paper variant={"elevation"} elevation={3} style={{
             marginRight: "0.5rem",
             width: width,
             height: "100%",

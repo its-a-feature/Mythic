@@ -1535,7 +1535,7 @@ const Top10RecentScreenshotsDashboardElement = ({me, data, editing, removeElemen
                                                </Button>
                                            </MythicTableCell>
                                            <MythicTableCell>
-                                               <ImageWithAuth src={"/api/v1.4/files/screencaptures/" + files[activeStep] + "?" + now}
+                                               <ImageWithAuth src={"/screencaptures/" + files[activeStep] + "?" + now}
                                                               style={{height: "200px", cursor: "pointer"}}
                                                               onClick={(e) => onPreviewMedia(e, activeStep)}
                                                               />

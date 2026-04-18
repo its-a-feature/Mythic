@@ -134,7 +134,6 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 			TokenValue: "",
 			Active:     true,
 		}
-		operatorData := databaseStructs.Operator{}
 		operatorOperationData := []databaseStructs.Operatoroperation{}
 		onStartMessage := ContainerOnStartMessage{
 			ContainerName: containerName,
@@ -163,9 +162,6 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 					// current operator is a bot, not deleted, and current operation is this operation
 					apiToken.OperatorID = operatorOperationData[i].CurrentOperator.ID
 					apiToken.CreatedBy = operatorOperationData[i].CurrentOperator.ID
-					operatorData.ID = operatorOperationData[i].CurrentOperator.ID
-					operatorData.CurrentOperationID.Valid = true
-					operatorData.CurrentOperationID.Int64 = int64(operation.ID)
 					onStartMessage.OperationID = operatorOperationData[i].CurrentOperation.ID
 					onStartMessage.OperationName = operatorOperationData[i].CurrentOperation.Name
 					apiToken.Name = fmt.Sprintf("\"%s\"'s OnStart API Call for \"%s\". Deletes after 5min",
@@ -193,18 +189,18 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 			logging.LogError(err, "failed to create new apitoken")
 			continue
 		}
-		accessToken, _, _, err := mythicjwt.GenerateJWT(operatorData, apiToken.TokenType, 0, apiToken.ID)
+		plainAPITokenValue, storedAPITokenValue, err := mythicjwt.GenerateOpaqueAPIToken()
 		if err != nil {
-			logging.LogError(err, "failed to generate new JWT")
+			logging.LogError(err, "failed to generate new API token")
 			continue
 		}
-		apiToken.TokenValue = accessToken
+		apiToken.TokenValue = storedAPITokenValue
 		_, err = database.DB.Exec(`UPDATE apitokens SET token_value=$1 WHERE id=$2`, apiToken.TokenValue, apiToken.ID)
 		if err != nil {
 			logging.LogError(err, "Failed to update apitoken with value")
 			continue
 		}
-		onStartMessage.APIToken = apiToken.TokenValue
+		onStartMessage.APIToken = plainAPITokenValue
 		go updateAPITokenAfter5Minutes(apiToken.ID)
 		err = RabbitMQConnection.SendContainerOnStart(onStartMessage)
 		if err != nil {

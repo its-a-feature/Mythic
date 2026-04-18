@@ -1056,7 +1056,7 @@ function FileMetaScreenshotTableRow(props){
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell >
-                    <ImageWithAuth src={"/api/v1.4/files/screencaptures/" + props.agent_file_id}
+                    <ImageWithAuth src={"/screencaptures/" + props.agent_file_id}
                                    style={{width: "270px", cursor: "pointer"}} />
                     {openScreenshot && 
                         <MythicDialog fullWidth={true} maxWidth="xl" open={openScreenshot} 
