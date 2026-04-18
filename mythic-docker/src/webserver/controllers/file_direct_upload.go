@@ -30,11 +30,21 @@ func FileDirectUploadWebhook(c *gin.Context) {
 		return
 	}
 	filemeta := databaseStructs.Filemeta{}
+	userID, err := GetUserIDFromGin(c)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	user, err := database.GetUserFromID(userID)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
 	err = database.DB.Get(&filemeta, `SELECT
 		"path", id
 		FROM
 		filemeta
-		WHERE agent_file_id=$1`, agentFileID)
+		WHERE agent_file_id=$1 AND operation_id=$2`, agentFileID, user.CurrentOperationID.Int64)
 	if err != nil {
 		logging.LogError(err, "Failed to find file in FileDirectUploadWebhook", "agentFileID", agentFileID)
 		c.JSON(http.StatusOK, gin.H{

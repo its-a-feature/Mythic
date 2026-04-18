@@ -54,7 +54,7 @@ func getAPITokenFromDB(c *gin.Context, tokenString string) (databaseStructs.Apit
 	databaseApiToken := databaseStructs.Apitokens{}
 	hashedTokenValue := mythicjwt.HashAPITokenValue(tokenString)
 	if err := database.DB.Get(&databaseApiToken, SQLGetIDForActiveToken, hashedTokenValue); err != nil {
-		logging.LogError(err, "Failed to get apitoken from database", "apitoken", tokenString)
+		logging.LogError(err, "Failed to get apitoken from database")
 		return databaseApiToken, err
 	}
 	c.Set(ContextKeyAPIToken, databaseApiToken)
@@ -67,6 +67,7 @@ func claimsFromAPIToken(databaseApiToken databaseStructs.Apitokens) *mythicjwt.C
 		AuthMethod:  databaseApiToken.TokenType,
 		APITokensID: databaseApiToken.ID,
 		OperationID: int(databaseApiToken.Operator.CurrentOperationID.Int64),
+		Scopes:      []string{mythicjwt.SCOPE_FILE_DIRECT_UPLOAD, mythicjwt.SCOPE_FILE_DIRECT_DOWNLOAD},
 	}
 	if databaseApiToken.EventStepInstanceID.Valid {
 		claims.EventStepInstanceID = int(databaseApiToken.EventStepInstanceID.Int64)
