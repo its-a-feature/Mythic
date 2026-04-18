@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/rabbitmq"
-	"time"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -45,7 +46,7 @@ func ValidateLogin(username string, password string, scriptingVersion string, fr
 	}
 	if user.ID == 1 &&
 		user.FailedLoginCount >= 10 &&
-		(time.Now().UTC().Sub(user.LastFailedLoginTimestamp.Time) > time.Duration(60*time.Second)) {
+		(time.Now().UTC().Sub(user.LastFailedLoginTimestamp.Time) < 60*time.Second) {
 		err = errors.New("Throttling login attempts of default account")
 		logging.LogError(err, "Throttling login attempts of default account", "username", user.Username)
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Throttling login attempts of account, %s, from %s", user.Username, fromIP),
@@ -109,7 +110,7 @@ func ValidateCustomAuthProviderLogin(email string, authError string, validLogin 
 	}
 	if user.ID == 1 &&
 		user.FailedLoginCount >= 10 &&
-		(time.Now().UTC().Sub(user.LastFailedLoginTimestamp.Time) > 60*time.Second) {
+		(time.Now().UTC().Sub(user.LastFailedLoginTimestamp.Time) < 60*time.Second) {
 		err = errors.New("Throttling login attempts of default account")
 		logging.LogError(err, "Throttling login attempts of default account", "username", user.Username)
 		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Throttling login attempts of account, %s, from %s", user.Username, fromIP),

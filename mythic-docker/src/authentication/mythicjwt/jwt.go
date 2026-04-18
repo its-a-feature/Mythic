@@ -63,13 +63,13 @@ func RefreshJWT(access_token string, refresh_token string) (string, string, int,
 	RefreshTokenCacheLock.RUnlock()
 	if !ok {
 		err := ErrFailedToFindRefreshToken
-		logging.LogError(err, "access_token", access_token)
+		logging.LogError(err, "Failed to refresh an access token and find it within RefreshTokenCache")
 		return "", "", 0, err
 	}
 
 	if storedRefresh != refresh_token {
 		err := ErrRefreshTokenMissmatch
-		logging.LogError(err, "refresh_token", refresh_token, "storedRefreshToken", storedRefresh)
+		logging.LogError(err, "Supplied refresh token doesn't match what Mythic has")
 		return "", "", 0, err
 	}
 
@@ -112,7 +112,7 @@ func GenerateJWT(user databaseStructs.Operator, authMethod string, eventStepInst
 		eventStepInstanceID,
 		APITokensID,
 		int(user.CurrentOperationID.Int64),
-		nil,
+		[]string{SCOPE_FILE_DIRECT_UPLOAD, SCOPE_FILE_DIRECT_DOWNLOAD},
 		"",
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

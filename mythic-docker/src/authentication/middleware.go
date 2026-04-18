@@ -118,11 +118,6 @@ func DirectFileScopeMiddleware(requiredScope string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		// Backward compatibility: existing normal JWT/APIToken flows without scopes continue to work.
-		if len(claims.Scopes) == 0 {
-			c.Next()
-			return
-		}
 		if !scopeIncludes(claims.Scopes, requiredScope) {
 			c.JSON(http.StatusForbidden, gin.H{"message": "Missing Proper Scope"})
 			c.Abort()
