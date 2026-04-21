@@ -450,7 +450,11 @@ export function Step4C2Profiles(props){
                         </div>
                     </div>
                     <div className="mythic-create-builder-split" style={summaryCollapsed ? {gridTemplateColumns: "3rem minmax(0, 1fr)"} : undefined}>
-                        <section className="mythic-create-section mythic-create-section-scroll" style={summaryCollapsed ? {alignItems: "center", paddingLeft: "0.25rem", paddingRight: "0.25rem"} : undefined}>
+                        <section
+                            className="mythic-create-section mythic-create-section-scroll"
+                            style={summaryCollapsed ? {alignItems: "center", cursor: "pointer", paddingLeft: "0.25rem", paddingRight: "0.25rem"} : undefined}
+                            onClick={summaryCollapsed ? () => setSummaryCollapsed(false) : undefined}
+                        >
                             <div style={{display: "flex", alignItems: "center", justifyContent: summaryCollapsed ? "center" : "space-between", gap: "0.5rem"}}>
                                 {!summaryCollapsed && (
                                     <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center", flexGrow: 1}}>
@@ -459,10 +463,26 @@ export function Step4C2Profiles(props){
                                 )}
                                 <IconButton size="small"
                                             aria-label={summaryCollapsed ? "Expand configuration summary" : "Collapse configuration summary"}
-                                            onClick={() => setSummaryCollapsed(prev => !prev)}>
+                                            title={summaryCollapsed ? "Expand" : "Collapse"}
+                                            onClick={(e) => { e.stopPropagation(); setSummaryCollapsed(prev => !prev); }}>
                                     {summaryCollapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
                                 </IconButton>
                             </div>
+                            {summaryCollapsed && (
+                                <div style={{flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center", userSelect: "none"}}>
+                                    <Typography variant={"body2"} style={{
+                                        fontWeight: 600,
+                                        writingMode: "vertical-rl",
+                                        transform: "rotate(180deg)",
+                                        letterSpacing: 0,
+                                        textTransform: "uppercase",
+                                        fontSize: "0.75rem",
+                                        opacity: 0.75,
+                                    }}>
+                                        Configuration Summary
+                                    </Typography>
+                                </div>
+                            )}
                             {!summaryCollapsed && includedC2Profiles.map( (c, index) => (
                                 <ConfigurationSummary key={c.name + index} buildParameters={c.c2profileparameters}
                                                       os={props.buildOptions.os} c2_name={c.name} />
