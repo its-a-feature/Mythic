@@ -27,7 +27,12 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import InputLabel from '@mui/material/InputLabel';
 import {DragAndDropFileUpload} from "../Callbacks/TaskParametersDialogRow";
 import Paper from '@mui/material/Paper';
-import TextField from '@mui/material/TextField';
+import AceEditor from 'react-ace';
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/mode-toml';
+import 'ace-builds/src-noconflict/theme-github';
+import 'ace-builds/src-noconflict/theme-monokai';
+import 'ace-builds/src-noconflict/ext-searchbox';
 
 export const getDynamicQueryBuildParameterParams = gql`
 mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: String!, $selected_os: String!){
@@ -60,6 +65,16 @@ function getConfigEditorMode(parameterType, randomize, formatString){
     return {
         languageHint: parts.length > 2 ? parts.slice(2).join(":") : "text"
     };
+}
+function detectAceMode(languageHint, content){
+    if(languageHint === "json"){ return "json"; }
+    if(languageHint === "toml"){ return "toml"; }
+    // json_toml (or anything else): sniff content
+    const trimmed = (content || "").trim();
+    if(trimmed === "" || trimmed.startsWith("{") || trimmed.startsWith("[")){
+        return "json";
+    }
+    return "toml";
 }
 function getConfigEditorPlaceholder(languageHint){
     switch(languageHint){
@@ -768,6 +783,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 );
             case "String":
                 if(configEditorMode !== null){
+                    const aceMode = detectAceMode(configEditorMode.languageHint, value);
                     return (
                         <Paper variant="outlined" style={{padding: "12px"}}>
                             <div style={{display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap"}}>
@@ -787,19 +803,27 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                         Clear
                                     </Button>
                                 </div>
+                                <Typography variant="caption" color="text.secondary" style={{marginLeft: "auto"}}>
+                                    {aceMode.toUpperCase()}
+                                </Typography>
                             </div>
                             <Typography variant="caption" color="text.secondary" style={{display: "block", marginBottom: "8px"}}>
                                 Paste configuration inline, upload a local JSON/TOML file, or leave this empty for default behavior without transforms.
                             </Typography>
-                            <TextField
-                                fullWidth
-                                multiline
-                                minRows={14}
+                            <AceEditor
+                                mode={aceMode}
+                                theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
+                                width="100%"
+                                minLines={14}
+                                maxLines={30}
+                                showPrintMargin={false}
+                                wrapEnabled={true}
                                 value={value}
-                                onChange={(evt) => onChangeText(name, evt.target.value, testParameterValues(evt.target.value))}
                                 placeholder={getConfigEditorPlaceholder(configEditorMode.languageHint)}
-                                variant="outlined"
-                                inputProps={{spellCheck: "false", style: {fontFamily: "Consolas, 'Courier New', monospace", fontSize: "0.85rem", lineHeight: 1.5}}}
+                                onChange={(newValue) => onChangeText(name, newValue, testParameterValues(newValue))}
+                                setOptions={{useWorker: false, tabSize: 2, useSoftTabs: true}}
+                                name={"ace_config_editor_" + id}
+                                editorProps={{$blockScrolling: true}}
                             />
                         </Paper>
                     );
