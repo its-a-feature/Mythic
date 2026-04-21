@@ -16,6 +16,7 @@ import {ParseForDisplay} from "../Payloads/DetailedPayloadTable";
 import {getModifiedC2Params} from "./Step4C2Profiles";
 import { Backdrop } from '@mui/material';
 import {MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
+import {useTheme} from '@mui/material/styles';
 
 
 const GET_Payload_Types = gql`
@@ -841,7 +842,17 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
     //groupedData.sort((a,b) => -b.name.localeCompare(a.name));
     return groupedData;
 }
+const isParamModifiedFromDefault = (p) => {
+    const tracked = p?.trackedValue !== undefined ? p.trackedValue : p?.value;
+    const def = p?.default_value;
+    if(tracked === undefined || tracked === null) return false;
+    if(Array.isArray(tracked) || typeof tracked === "object"){
+        try { return JSON.stringify(tracked) !== JSON.stringify(def); } catch(_) { return false; }
+    }
+    return String(tracked) !== String(def ?? "");
+}
 export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
+    const theme = useTheme();
     const [groupedParameters, setGroupedParameters] = React.useState([]);
     React.useEffect( () => {
         // grouped should be array of groupName
@@ -855,16 +866,24 @@ export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
                         {b.name}
                     </div>
                 }
-                {b?.parameters?.map( (p) => (
+                {b?.parameters?.map( (p) => {
+                    const displayLabel = (p.display_name && p.display_name.length > 0) ? p.display_name : p.name;
+                    const modified = isParamModifiedFromDefault(p);
+                    return (
                     <div className="mythic-create-summary-row" key={p.name}>
-                        <Typography component="div" className="mythic-create-summary-name">
-                            {p.name}
+                        <Typography component="div" className="mythic-create-summary-name" style={{display: "flex", alignItems: "center", gap: "0.35rem"}}>
+                            {modified && (
+                                <span title="Modified from default"
+                                      style={{display: "inline-block", width: 8, height: 8, borderRadius: "50%", backgroundColor: theme.palette.warning.main, flexShrink: 0}} />
+                            )}
+                            {displayLabel}
                         </Typography>
                         <div className="mythic-create-summary-value">
                             <ParseForDisplay cmd={p} />
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
         ))
     )

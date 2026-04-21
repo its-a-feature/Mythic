@@ -16,6 +16,9 @@ import {CreatePayloadBuildParametersTable} from "./CreatePayloadBuildParametersT
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import CloseIcon from '@mui/icons-material/Close';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import IconButton from '@mui/material/IconButton';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {ConfigurationSummary} from "./Step1SelectOS";
 
@@ -151,6 +154,7 @@ export function Step4C2Profiles(props){
     const [selectedC2, setSelectedC2] = React.useState("None");
     const [includedC2Profiles, setIncludedC2Profiles] = React.useState([]);
     const [c2Profiles, setC2Profiles] = React.useState([]);
+    const [summaryCollapsed, setSummaryCollapsed] = React.useState(false);
     useQuery(GET_Payload_Types, {variables:{payloadType: props.buildOptions["payload_type"], operation_id: me?.user?.current_operation_id || 0},
         onCompleted: data => {
             const profiles = data.c2profile.map( (c2) => {
@@ -445,12 +449,21 @@ export function Step4C2Profiles(props){
                             </Typography>
                         </div>
                     </div>
-                    <div className="mythic-create-builder-split">
-                        <section className="mythic-create-section mythic-create-section-scroll">
-                            <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
-                                Configuration Summary
-                            </Typography>
-                            {includedC2Profiles.map( (c, index) => (
+                    <div className="mythic-create-builder-split" style={summaryCollapsed ? {gridTemplateColumns: "3rem minmax(0, 1fr)"} : undefined}>
+                        <section className="mythic-create-section mythic-create-section-scroll" style={summaryCollapsed ? {alignItems: "center", paddingLeft: "0.25rem", paddingRight: "0.25rem"} : undefined}>
+                            <div style={{display: "flex", alignItems: "center", justifyContent: summaryCollapsed ? "center" : "space-between", gap: "0.5rem"}}>
+                                {!summaryCollapsed && (
+                                    <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center", flexGrow: 1}}>
+                                        Configuration Summary
+                                    </Typography>
+                                )}
+                                <IconButton size="small"
+                                            aria-label={summaryCollapsed ? "Expand configuration summary" : "Collapse configuration summary"}
+                                            onClick={() => setSummaryCollapsed(prev => !prev)}>
+                                    {summaryCollapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
+                                </IconButton>
+                            </div>
+                            {!summaryCollapsed && includedC2Profiles.map( (c, index) => (
                                 <ConfigurationSummary key={c.name + index} buildParameters={c.c2profileparameters}
                                                       os={props.buildOptions.os} c2_name={c.name} />
                             ))}

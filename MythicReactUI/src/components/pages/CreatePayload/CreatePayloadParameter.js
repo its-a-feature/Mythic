@@ -93,7 +93,7 @@ function getConfigEditorMode(parameterType, randomize, formatString){
 function getConfigStatus(value, languageHint){
     const raw = (value ?? "");
     const trimmed = raw.trim();
-    if(trimmed === ""){ return {kind: "empty", label: "Empty — using default"}; }
+    if(trimmed === ""){ return {kind: "empty", label: "Using default"}; }
     const lineCount = raw.split(/\r?\n/).length;
     // only validate when the content is plausibly JSON
     const looksJson = trimmed.startsWith("{") || trimmed.startsWith("[");
@@ -926,10 +926,12 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                         Edit
                                     </Button>
                                     <div style={{marginLeft: "auto", display: "flex", gap: "6px", alignItems: "center"}}>
-                                        <Chip size="small" label={status.label} color={chipColor} />
-                                        <Typography variant="caption" color="text.secondary">
-                                            {aceMode.toUpperCase()}
-                                        </Typography>
+                                        <MythicStyledTooltip title="Open editor">
+                                            <Chip size="small" label={status.label} color={chipColor}
+                                                  clickable
+                                                  onClick={() => setConfigEditorOpen(true)} />
+                                        </MythicStyledTooltip>
+                                        <Chip size="small" variant="outlined" label={aceMode.toUpperCase()} />
                                     </div>
                                 </div>
                             </Paper>
