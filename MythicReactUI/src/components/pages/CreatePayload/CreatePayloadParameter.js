@@ -7,7 +7,7 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import DeleteIcon from '@mui/icons-material/Delete';
-import {IconButton, Input, Button, MenuItem, Grid} from '@mui/material';
+import {IconButton, Input, Button, MenuItem, Grid, Dialog, DialogTitle, DialogContent, DialogActions, Chip} from '@mui/material';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -44,6 +44,15 @@ mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: 
     }
 }
 `;
+export const c2CustomRPCFunctionMutation = gql`
+mutation c2CustomRPCFunctionMutation($c2_profile: String!, $function_name: String!, $arguments: jsonb){
+    c2CustomRPCFunction(c2_profile: $c2_profile, function_name: $function_name, arguments: $arguments){
+        status
+        error
+        result
+    }
+}
+`;
 function isTrue(value){
     if(typeof value === 'boolean'){
         return value;
@@ -57,14 +66,46 @@ function getConfigEditorMode(parameterType, randomize, formatString){
     if(parameterType !== "String" || randomize || typeof formatString !== "string"){
         return null;
     }
-    const normalized = formatString.trim().toLowerCase();
-    if(!normalized.startsWith("ui:config_editor")){
+    const normalized = formatString.trim();
+    if(!normalized.toLowerCase().startsWith("ui:config_editor")){
         return null;
     }
+    // tokens after "ui:config_editor": first is the language hint, remaining are key=value suffixes
     const parts = normalized.split(":");
-    return {
-        languageHint: parts.length > 2 ? parts.slice(2).join(":") : "text"
-    };
+    const tail = parts.slice(2);
+    let languageHint = "text";
+    let randomFn = "";
+    for(const raw of tail){
+        const token = raw.trim();
+        if(token === ""){ continue; }
+        const eq = token.indexOf("=");
+        if(eq === -1){
+            // bare token → language hint (first one wins)
+            if(languageHint === "text"){ languageHint = token.toLowerCase(); }
+            continue;
+        }
+        const key = token.slice(0, eq).trim().toLowerCase();
+        const value = token.slice(eq + 1).trim();
+        if(key === "random_fn"){ randomFn = value; }
+    }
+    return {languageHint, randomFn};
+}
+function getConfigStatus(value, languageHint){
+    const raw = (value ?? "");
+    const trimmed = raw.trim();
+    if(trimmed === ""){ return {kind: "empty", label: "Empty — using default"}; }
+    const lineCount = raw.split(/\r?\n/).length;
+    // only validate when the content is plausibly JSON
+    const looksJson = trimmed.startsWith("{") || trimmed.startsWith("[");
+    if(looksJson){
+        try{
+            JSON.parse(trimmed);
+        }catch(e){
+            return {kind: "invalid", label: "Invalid JSON"};
+        }
+    }
+    const format = (looksJson ? "JSON" : (languageHint === "toml" || languageHint === "json_toml" ? "TOML" : "TEXT"));
+    return {kind: "set", label: `Custom · ${lineCount} line${lineCount === 1 ? "" : "s"}`, format};
 }
 function detectAceMode(languageHint, content){
     if(languageHint === "json"){ return "json"; }
@@ -113,9 +154,10 @@ uris = ["/"]`;
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
                                            description, initialValue, choices, trackedValue, instance_name,
                                            payload_type, selected_os, dynamic_query_function, randomize, format_string,
-                                           displayMode = "table"}){
+                                           c2_profile_name, displayMode = "table"}){
     const theme = useTheme();
     const configEditorMode = getConfigEditorMode(parameter_type, randomize, format_string);
+    const [configEditorOpen, setConfigEditorOpen] = React.useState(false);
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
     const [multiValue, setMultiValue] = React.useState([]);
@@ -197,6 +239,37 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setBackdropOpen(false);
         }
     });
+    const [invokeC2CustomRPC, {loading: c2CustomRPCLoading}] = useMutation(c2CustomRPCFunctionMutation, {
+        onCompleted: (data) => {
+            if(data?.c2CustomRPCFunction?.status === "success"){
+                const result = data.c2CustomRPCFunction.result || {};
+                const newValue = typeof result.value === "string" ? result.value : "";
+                if(newValue !== ""){
+                    onChangeText(name, newValue, testParameterValues(newValue));
+                } else {
+                    snackActions.warning("Random generator returned no value");
+                }
+            } else {
+                snackActions.warning(data?.c2CustomRPCFunction?.error || "Custom RPC failed");
+            }
+        },
+        onError: (err) => {
+            snackActions.warning("Failed to invoke C2 custom RPC");
+            console.log(err);
+        }
+    });
+    const onInvokeRandomFn = () => {
+        if(!configEditorMode || !configEditorMode.randomFn){ return; }
+        if(!c2_profile_name){
+            snackActions.warning("Random generate not available: missing c2 profile context");
+            return;
+        }
+        invokeC2CustomRPC({variables: {
+            c2_profile: c2_profile_name,
+            function_name: configEditorMode.randomFn,
+            arguments: {},
+        }});
+    };
     const reIssueDynamicQueryFunction = () => {
         setBackdropOpen(true);
         snackActions.info("Querying payload type container for options...",  {autoClose: 1000});
@@ -784,48 +857,66 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             case "String":
                 if(configEditorMode !== null){
                     const aceMode = detectAceMode(configEditorMode.languageHint, value);
+                    const status = getConfigStatus(value, configEditorMode.languageHint);
+                    const hasRandomFn = !!configEditorMode.randomFn;
+                    const chipColor = status.kind === "invalid" ? "error" : status.kind === "set" ? "success" : "default";
                     return (
-                        <Paper variant="outlined" style={{padding: "12px"}}>
-                            <div style={{display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap"}}>
-                                <div>
+                        <React.Fragment>
+                            <Paper variant="outlined" style={{padding: "8px 12px"}}>
+                                <div style={{display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap"}}>
                                     <Button variant="outlined" component="label" size="small">
-                                        Upload JSON/TOML
+                                        Upload
                                         <input onChange={onConfigEditorUpload} type="file" hidden accept=".json,.toml,.txt,application/json,text/plain" />
                                     </Button>
-                                </div>
-                                <div>
                                     <Button variant="text" size="small" onClick={onFormatConfigEditorJson}>
-                                        Format JSON
+                                        Format
                                     </Button>
-                                </div>
-                                <div>
+                                    {hasRandomFn && (
+                                        <Button variant="text" size="small" onClick={onInvokeRandomFn} disabled={c2CustomRPCLoading}>
+                                            {c2CustomRPCLoading ? "Generating…" : "Random"}
+                                        </Button>
+                                    )}
                                     <Button variant="text" size="small" color="warning" onClick={onClearConfigEditor}>
                                         Clear
                                     </Button>
+                                    <Button variant="contained" size="small" onClick={() => setConfigEditorOpen(true)}>
+                                        Edit
+                                    </Button>
+                                    <div style={{marginLeft: "auto", display: "flex", gap: "6px", alignItems: "center"}}>
+                                        <Chip size="small" label={status.label} color={chipColor} />
+                                        <Typography variant="caption" color="text.secondary">
+                                            {aceMode.toUpperCase()}
+                                        </Typography>
+                                    </div>
                                 </div>
-                                <Typography variant="caption" color="text.secondary" style={{marginLeft: "auto"}}>
-                                    {aceMode.toUpperCase()}
-                                </Typography>
-                            </div>
-                            <Typography variant="caption" color="text.secondary" style={{display: "block", marginBottom: "8px"}}>
-                                Paste configuration inline, upload a local JSON/TOML file, or leave this empty for default behavior without transforms.
-                            </Typography>
-                            <AceEditor
-                                mode={aceMode}
-                                theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
-                                width="100%"
-                                minLines={14}
-                                maxLines={30}
-                                showPrintMargin={false}
-                                wrapEnabled={true}
-                                value={value}
-                                placeholder={getConfigEditorPlaceholder(configEditorMode.languageHint)}
-                                onChange={(newValue) => onChangeText(name, newValue, testParameterValues(newValue))}
-                                setOptions={{useWorker: false, tabSize: 2, useSoftTabs: true}}
-                                name={"ace_config_editor_" + id}
-                                editorProps={{$blockScrolling: true}}
-                            />
-                        </Paper>
+                            </Paper>
+                            <Dialog open={configEditorOpen} onClose={() => setConfigEditorOpen(false)} maxWidth="lg" fullWidth>
+                                <DialogTitle>{name}</DialogTitle>
+                                <DialogContent dividers>
+                                    <Typography variant="caption" color="text.secondary" style={{display: "block", marginBottom: "8px"}}>
+                                        Paste configuration inline, upload a local JSON/TOML file, or leave this empty for default behavior without transforms.
+                                    </Typography>
+                                    <AceEditor
+                                        mode={aceMode}
+                                        theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
+                                        width="100%"
+                                        minLines={20}
+                                        maxLines={40}
+                                        showPrintMargin={false}
+                                        wrapEnabled={true}
+                                        value={value}
+                                        placeholder={getConfigEditorPlaceholder(configEditorMode.languageHint)}
+                                        onChange={(newValue) => onChangeText(name, newValue, testParameterValues(newValue))}
+                                        setOptions={{useWorker: false, tabSize: 2, useSoftTabs: true}}
+                                        name={"ace_config_editor_" + id}
+                                        editorProps={{$blockScrolling: true}}
+                                    />
+                                </DialogContent>
+                                <DialogActions>
+                                    <Button onClick={() => setConfigEditorOpen(false)}>Close</Button>
+                                </DialogActions>
+                            </Dialog>
+                        </React.Fragment>
                     );
                 }
                 return (

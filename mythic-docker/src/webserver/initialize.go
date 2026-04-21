@@ -307,6 +307,11 @@ func setRoutes(r *gin.Engine) {
 						mythicjwt.SCOPE_PAYLOAD_READ,
 					}),
 					webcontroller.C2ProfileSampleMessageWebhook)
+				allOperationMembers.POST("c2_custom_rpc_function_webhook",
+					authentication.TokenScopeMiddleware([]string{
+						mythicjwt.SCOPE_PAYLOAD_READ,
+					}),
+					webcontroller.C2ProfileCustomRPCFunctionWebhook)
 				// file
 				allOperationMembers.POST("download_bulk_webhook",
 					authentication.TokenScopeMiddleware([]string{

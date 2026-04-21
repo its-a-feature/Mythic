@@ -150,6 +150,8 @@ const (
 	//
 	C2_RPC_HOST_FILE = "c2_rpc_host_file"
 	//
+	MYTHIC_RPC_OTHER_SERVICES_RPC = "mythic_rpc_other_service_rpc"
+	//
 	CONTAINER_RPC_GET_FILE = "container_rpc_get_file"
 	//
 	CONTAINER_RPC_REMOVE_FILE = "container_rpc_remove_file"
