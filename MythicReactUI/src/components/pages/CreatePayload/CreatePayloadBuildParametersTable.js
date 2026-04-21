@@ -24,6 +24,7 @@ export function CreatePayloadBuildParametersTable(props){
                                 selected_os={props.os}
                                 key={"buildparamtablerow" + op.id}
                                 payload_type={props.payload_type}
+                                c2_profile_name={props.c2_name}
                                 instance_name={props.instance_name}
                                 onChange={props.onChange}
                                 {...op}
