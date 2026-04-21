@@ -134,8 +134,8 @@ func (t *translationContainerServer) GetGenerateKeysChannels(translationContaine
 	return nil, nil, errors.New(fmt.Sprintf("no translation container \"%s\" currently connected", translationContainerName))
 }
 func (t *translationContainerServer) SetGenerateKeysChannelExited(translationContainerName string) {
-	t.RLock()
-	defer t.RUnlock()
+	t.Lock()
+	defer t.Unlock()
 	if _, ok := t.clients[translationContainerName]; ok {
 		t.clients[translationContainerName].connectedGenerateKeys = false
 	}
@@ -151,8 +151,8 @@ func (t *translationContainerServer) GetCustomToMythicChannels(translationContai
 	return nil, nil, errors.New(fmt.Sprintf("no translation container \"%s\" currently connected", translationContainerName))
 }
 func (t *translationContainerServer) SetCustomToMythicChannelExited(translationContainerName string) {
-	t.RLock()
-	defer t.RUnlock()
+	t.Lock()
+	defer t.Unlock()
 	if _, ok := t.clients[translationContainerName]; ok {
 		t.clients[translationContainerName].connectedCustomToMythic = false
 	}
@@ -168,23 +168,22 @@ func (t *translationContainerServer) GetMythicToCustomChannels(translationContai
 	return nil, nil, errors.New(fmt.Sprintf("no translation container \"%s\" currently connected", translationContainerName))
 }
 func (t *translationContainerServer) SetMythicToCustomChannelExited(translationContainerName string) {
-	t.RLock()
+	t.Lock()
+	defer t.Unlock()
 	if _, ok := t.clients[translationContainerName]; ok {
 		t.clients[translationContainerName].connectedMythicToCustom = false
 	}
-	t.RUnlock()
 }
 func (t *translationContainerServer) CheckClientConnected(translationContainerName string) bool {
 	t.RLock()
+	defer t.Unlock()
 	if _, ok := t.clients[translationContainerName]; ok {
-		t.RUnlock()
-		return t.clients[translationContainerName].connectedMythicToCustom &&
+		connected := t.clients[translationContainerName].connectedMythicToCustom &&
 			t.clients[translationContainerName].connectedGenerateKeys &&
 			t.clients[translationContainerName].connectedCustomToMythic
-	} else {
-		t.RUnlock()
-		return false
+		return connected
 	}
+	return false
 }
 func (t *translationContainerServer) CheckListening() (listening bool, latestError string) {
 	return t.listening, t.latestError
@@ -230,34 +229,42 @@ func (t *pushC2Server) addNewPushC2OneToManyClient(c2ProfileName string) (chan s
 }
 func (t *pushC2Server) GetPushC2ClientInfo(CallbackID int) (chan services.PushC2MessageFromMythic, string, bool, string, string, int, error) {
 	t.RLock()
-	if _, ok := t.clients[CallbackID]; ok {
-		if t.clients[CallbackID].connected {
+	if client, ok := t.clients[CallbackID]; ok {
+		if client.connected {
+			pushC2MessageFromMythic := client.pushC2MessageFromMythic
+			callbackUUID := client.callbackUUID
+			base64Encoded := client.base64Encoded
+			c2ProfileName := client.c2ProfileName
+			agentUUIDSize := client.AgentUUIDSize
 			t.RUnlock()
-			return t.clients[CallbackID].pushC2MessageFromMythic,
-				t.clients[CallbackID].callbackUUID,
-				t.clients[CallbackID].base64Encoded,
-				t.clients[CallbackID].c2ProfileName,
-				t.clients[CallbackID].callbackUUID,
-				t.clients[CallbackID].AgentUUIDSize,
+			return pushC2MessageFromMythic,
+				callbackUUID,
+				base64Encoded,
+				c2ProfileName,
+				callbackUUID,
+				agentUUIDSize,
 				nil
-		} else {
-			t.RUnlock()
-			return nil, "", false, "", "", 0, errors.New("push c2 channel for that callback is no longer available")
 		}
-
+		t.RUnlock()
+		return nil, "", false, "", "", 0, errors.New("push c2 channel for that callback is no longer available")
 	}
-	for c2, _ := range t.clientsOneToMany {
+	for c2, client := range t.clientsOneToMany {
 		c2ProfileToCallbackIDsMapLock.RLock()
-		if _, ok := c2ProfileToCallbackIDsMap[c2]; ok {
-			if _, ok = c2ProfileToCallbackIDsMap[c2][CallbackID]; ok {
-				t.RUnlock()
+		if callbackInfoMap, ok := c2ProfileToCallbackIDsMap[c2]; ok {
+			if callbackInfo, ok := callbackInfoMap[CallbackID]; ok {
+				pushC2MessageFromMythic := client.pushC2MessageFromMythic
+				callbackUUID := callbackInfo.CallbackUUID
+				base64Encoded := callbackInfo.Base64Encoded
+				trackingID := callbackInfo.TrackingID
+				agentUUIDSize := callbackInfo.AgentUUIDSize
 				c2ProfileToCallbackIDsMapLock.RUnlock()
-				return t.clientsOneToMany[c2].pushC2MessageFromMythic,
-					c2ProfileToCallbackIDsMap[c2][CallbackID].CallbackUUID,
-					c2ProfileToCallbackIDsMap[c2][CallbackID].Base64Encoded,
+				t.RUnlock()
+				return pushC2MessageFromMythic,
+					callbackUUID,
+					base64Encoded,
 					c2,
-					c2ProfileToCallbackIDsMap[c2][CallbackID].TrackingID,
-					c2ProfileToCallbackIDsMap[c2][CallbackID].AgentUUIDSize,
+					trackingID,
+					agentUUIDSize,
 					nil
 			}
 		}
@@ -273,17 +280,20 @@ func (t *pushC2Server) SetPushC2ChannelExited(CallbackID int) {
 		if t.clients[CallbackID].connections <= 0 {
 			t.clients[CallbackID].connections = 0
 			t.clients[CallbackID].connected = false
-			go updatePushC2LastCheckinDisconnectTimestamp(CallbackID, t.clients[CallbackID].c2ProfileName)
+			c2ProfileName := t.clients[CallbackID].c2ProfileName
+			t.Unlock()
+			go updatePushC2LastCheckinDisconnectTimestamp(CallbackID, c2ProfileName)
+			return
 		}
 	}
 	t.Unlock()
 }
 func (t *pushC2Server) SetPushC2OneToManyChannelExited(c2ProfileName string) {
-	t.RLock()
+	t.Lock()
+	defer t.Unlock()
 	if _, ok := t.clientsOneToMany[c2ProfileName]; ok {
 		t.clientsOneToMany[c2ProfileName].connected = false
 	}
-	t.RUnlock()
 }
 func (t *pushC2Server) CheckListening() (listening bool, latestError string) {
 	return t.listening, t.latestError
