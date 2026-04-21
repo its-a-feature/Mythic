@@ -27,7 +27,6 @@ select_permissions:
         - choices
         - default_value
         - description
-        - display_name
         - format_string
         - name
         - parameter_type
@@ -46,7 +45,6 @@ select_permissions:
         - choices
         - default_value
         - description
-        - display_name
         - format_string
         - name
         - parameter_type
@@ -65,7 +63,6 @@ select_permissions:
         - choices
         - default_value
         - description
-        - display_name
         - format_string
         - name
         - parameter_type
@@ -84,7 +81,6 @@ select_permissions:
         - choices
         - default_value
         - description
-        - display_name
         - format_string
         - name
         - parameter_type
@@ -103,7 +99,6 @@ select_permissions:
         - choices
         - default_value
         - description
-        - display_name
         - format_string
         - name
         - parameter_type
