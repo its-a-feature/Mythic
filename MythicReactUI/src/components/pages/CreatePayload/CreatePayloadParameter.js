@@ -26,6 +26,8 @@ import {CircularProgress} from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import InputLabel from '@mui/material/InputLabel';
 import {DragAndDropFileUpload} from "../Callbacks/TaskParametersDialogRow";
+import Paper from '@mui/material/Paper';
+import TextField from '@mui/material/TextField';
 
 export const getDynamicQueryBuildParameterParams = gql`
 mutation getDynamicBuildParamsMutation($payload_type: String!, $parameter_name: String!, $selected_os: String!){
@@ -46,10 +48,59 @@ function isTrue(value){
     }
     console.log("unknown boolean value", value);
 }
+function getConfigEditorMode(parameterType, randomize, formatString){
+    if(parameterType !== "String" || randomize || typeof formatString !== "string"){
+        return null;
+    }
+    const normalized = formatString.trim().toLowerCase();
+    if(!normalized.startsWith("ui:config_editor")){
+        return null;
+    }
+    const parts = normalized.split(":");
+    return {
+        languageHint: parts.length > 2 ? parts.slice(2).join(":") : "text"
+    };
+}
+function getConfigEditorPlaceholder(languageHint){
+    switch(languageHint){
+        case "json_toml":
+            return `{
+  "name": "example",
+  "post": {
+    "uris": ["/"],
+    "client": {
+      "message": {
+        "location": "body"
+      }
+    }
+  }
+}
+
+# Or TOML:
+# name = "example"
+# [post]
+# uris = ["/"]`;
+        case "json":
+            return `{
+  "name": "example",
+  "post": {
+    "uris": ["/"]
+  }
+}`;
+        case "toml":
+            return `name = "example"
+[post]
+uris = ["/"]`;
+        default:
+            return "";
+    }
+}
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
                                            description, initialValue, choices, trackedValue, instance_name,
-                                           payload_type, selected_os, dynamic_query_function, displayMode = "table"}){
+                                           payload_type, selected_os, dynamic_query_function, randomize, format_string,
+                                           displayMode = "table"}){
     const theme = useTheme();
+    const configEditorMode = getConfigEditorMode(parameter_type, randomize, format_string);
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
     const [multiValue, setMultiValue] = React.useState([]);
@@ -305,6 +356,38 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const onChangeText = (name, value, error) => {
         setValue(value);
         onChange(name, value, error);
+    }
+    const onConfigEditorUpload = async (evt) => {
+        const file = evt.target.files?.[0];
+        if(!file){
+            return;
+        }
+        try{
+            const uploadedValue = await file.text();
+            setValue(uploadedValue);
+            onChange(name, uploadedValue, testParameterValues(uploadedValue));
+        }catch(error){
+            snackActions.warning("Failed to read uploaded configuration file");
+            console.error(error);
+        }finally{
+            evt.target.value = "";
+        }
+    }
+    const onFormatConfigEditorJson = () => {
+        if(value.trim() === ""){
+            return;
+        }
+        try{
+            const formattedValue = JSON.stringify(JSON.parse(value), null, 2);
+            setValue(formattedValue);
+            onChange(name, formattedValue, testParameterValues(formattedValue));
+        }catch(error){
+            snackActions.info("Only JSON formatting is available inline. TOML input is left as-is.");
+        }
+    }
+    const onClearConfigEditor = () => {
+        setValue("");
+        onChange(name, "", testParameterValues(""));
     }
     const onChangeNumber = (name, value, error) => {
         setValueNum(value);
@@ -684,6 +767,43 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                     </React.Fragment>
                 );
             case "String":
+                if(configEditorMode !== null){
+                    return (
+                        <Paper variant="outlined" style={{padding: "12px"}}>
+                            <div style={{display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap"}}>
+                                <div>
+                                    <Button variant="outlined" component="label" size="small">
+                                        Upload JSON/TOML
+                                        <input onChange={onConfigEditorUpload} type="file" hidden accept=".json,.toml,.txt,application/json,text/plain" />
+                                    </Button>
+                                </div>
+                                <div>
+                                    <Button variant="text" size="small" onClick={onFormatConfigEditorJson}>
+                                        Format JSON
+                                    </Button>
+                                </div>
+                                <div>
+                                    <Button variant="text" size="small" color="warning" onClick={onClearConfigEditor}>
+                                        Clear
+                                    </Button>
+                                </div>
+                            </div>
+                            <Typography variant="caption" color="text.secondary" style={{display: "block", marginBottom: "8px"}}>
+                                Paste configuration inline, upload a local JSON/TOML file, or leave this empty for default behavior without transforms.
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                multiline
+                                minRows={14}
+                                value={value}
+                                onChange={(evt) => onChangeText(name, evt.target.value, testParameterValues(evt.target.value))}
+                                placeholder={getConfigEditorPlaceholder(configEditorMode.languageHint)}
+                                variant="outlined"
+                                inputProps={{spellCheck: "false", style: {fontFamily: "Consolas, 'Courier New', monospace", fontSize: "0.85rem", lineHeight: 1.5}}}
+                            />
+                        </Paper>
+                    );
+                }
                 return (
                     <MythicTextField required={required} value={value} multiline={true}
                         onChange={onChangeText} display="inline-block" name={name} showLabel={false}
