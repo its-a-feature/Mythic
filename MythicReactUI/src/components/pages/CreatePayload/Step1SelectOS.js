@@ -843,13 +843,20 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
     return groupedData;
 }
 const isParamModifiedFromDefault = (p) => {
-    const tracked = p?.trackedValue !== undefined ? p.trackedValue : p?.value;
-    const def = p?.default_value;
-    if(tracked === undefined || tracked === null) return false;
-    if(Array.isArray(tracked) || typeof tracked === "object"){
-        try { return JSON.stringify(tracked) !== JSON.stringify(def); } catch(_) { return false; }
-    }
-    return String(tracked) !== String(def ?? "");
+    // Date defaults are computed relative to "now" and don't have a
+    // static baseline to compare against, so suppress the indicator.
+    if(p?.parameter_type === "Date") return false;
+    // File defaults are opaque upload references, also skip.
+    if(p?.parameter_type === "File" || p?.parameter_type === "FileMultiple") return false;
+    // Compare tracked vs initial — both are the parsed component-native
+    // type populated from the same source, so JSON.stringify gives a
+    // reliable deep-equality check. default_value stays as the raw DB
+    // string and doesn't round-trip safely for arrays/objects.
+    const tracked = p?.trackedValue;
+    const initial = p?.initialValue;
+    if(tracked === undefined) return false;
+    try { return JSON.stringify(tracked) !== JSON.stringify(initial); }
+    catch(_) { return false; }
 }
 export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
     const theme = useTheme();
