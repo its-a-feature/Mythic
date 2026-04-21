@@ -67,7 +67,7 @@ func Initialize() {
 	mythicEnv.SetDefault("mythic_docker_networking", "bridge")
 	mythicEnv.SetDefault("mythic_server_grpc_port", 17444)
 	mythicEnv.SetDefault("mythic_admin_user", "mythic_admin")
-	mythicEnv.SetDefault("mythic_admin_password", "mythic_password")
+	mythicEnv.SetDefault("mythic_admin_password", "")
 	mythicEnv.SetDefault("allowed_ip_blocks", "0.0.0.0/0")
 	mythicEnv.SetDefault("debug_level", "warning")
 	mythicEnv.SetDefault("mythic_server_allow_invite_links", false)

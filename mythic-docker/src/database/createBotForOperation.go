@@ -1,11 +1,12 @@
 package database
 
 import (
+	"strings"
+
 	"github.com/google/uuid"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
-	"strings"
 )
 
 func CreateOperationBotForOperation(newOperation databaseStructs.Operation) {
@@ -35,7 +36,7 @@ func CreateOperationBotForOperation(newOperation databaseStructs.Operation) {
 	}
 	err = statement.Get(&newOperator.ID, newOperator)
 	if err != nil {
-		logging.LogError(err, "Failed to create new operator", "operator", newOperator)
+		logging.LogError(err, "Failed to create new operator")
 		return
 	}
 	// add the bot account to the operation
@@ -48,7 +49,7 @@ func CreateOperationBotForOperation(newOperation databaseStructs.Operation) {
 			(operator_id, operation_id, view_mode)
 			VALUES (:operator_id, :operation_id, :view_mode)`, newOperatorOperation)
 	if err != nil {
-		logging.LogError(err, "Failed to create new operatorOperation mapping", "operatoroperation", newOperatorOperation)
+		logging.LogError(err, "Failed to create new operatorOperation mapping")
 		return
 	}
 }

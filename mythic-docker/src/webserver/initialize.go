@@ -38,6 +38,10 @@ func Initialize() *gin.Engine {
 		}
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}))
+	err := r.SetTrustedProxies([]string{"127.0.0.1"})
+	if err != nil {
+		logging.LogError(err, "Failed to set trusted proxies")
+	}
 	r.RedirectFixedPath = true
 	r.HandleMethodNotAllowed = true
 	r.RemoveExtraSlash = true
@@ -87,10 +91,8 @@ func InitializeGinLogger() gin.HandlerFunc {
 			Request: c.Request,
 			Keys:    c.Keys,
 		}
-
 		// Stop timer
 		param.TimeStamp = time.Now()
-
 		param.Path = path
 		if !utils.SliceContains(ignorePaths, param.Path) {
 			//if param.Path != "/graphql/webhook" && !strings.Contains(param.Path, "/agent_message") {
@@ -118,7 +120,7 @@ func InitializeGinLogger() gin.HandlerFunc {
 					token := tokenStruct.(databaseStructs.Apitokens)
 					go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("APIToken, %s, for user %s (%s) just used %s",
 						token.Name, token.Operator.Username, token.Operator.AccountType, graphQLOperationName),
-						int(token.Operator.CurrentOperationID.Int64), token.TokenValue,
+						int(token.Operator.CurrentOperationID.Int64), database.MESSAGE_LEVEL_API,
 						database.MESSAGE_LEVEL_API, false)
 				}
 			}

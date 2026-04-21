@@ -67,7 +67,9 @@ func ExportCallbackConfigWebhook(c *gin.Context) {
 	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 	callback := databaseStructs.Callback{}
 	payload := databaseStructs.Payload{}
-	err = database.DB.Get(&callback, `SELECT * FROM callback WHERE agent_callback_id=$1`, input.Input.AgentCallbackID)
+	err = database.DB.Get(&callback, `SELECT 
+    	* FROM callback 
+    	  WHERE agent_callback_id=$1 AND operation_id=$2`, input.Input.AgentCallbackID, operatorOperation.CurrentOperation.ID)
 	if err != nil {
 		logging.LogError(err, "Failed to get callback from database")
 		c.JSON(http.StatusOK, ExportCallbackConfigResponse{

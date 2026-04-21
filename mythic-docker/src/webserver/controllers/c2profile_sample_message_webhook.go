@@ -37,9 +37,29 @@ func C2ProfileSampleMessageWebhook(c *gin.Context) {
 		})
 		return
 	}
+	userID, err := GetUserIDFromGin(c)
+	if err != nil {
+		logging.LogError(err, "Failed to get userID from JWT")
+		c.JSON(http.StatusOK, GetC2SampleMessageResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+	user, err := database.GetUserFromID(userID)
+	if err != nil {
+		logging.LogError(err, "Failed to get userID from JWT")
+		c.JSON(http.StatusOK, GetC2SampleMessageResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
 	// get the associated database information
 	payload := databaseStructs.Payload{}
-	if err := database.DB.Get(&payload, `SELECT id FROM payload WHERE uuid=$1`, input.Input.PayloadUUID); err != nil {
+	if err := database.DB.Get(&payload, `SELECT 
+    	id FROM payload 
+    	   WHERE uuid=$1 AND operation_id=$2`, input.Input.PayloadUUID, user.CurrentOperationID.Int64); err != nil {
 		logging.LogError(err, "Failed to find payload when doing a C2ProfileConfigCheckWebhook")
 	}
 	c2profileParameterInstances := []databaseStructs.C2profileparametersinstance{}

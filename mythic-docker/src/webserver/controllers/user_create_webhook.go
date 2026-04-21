@@ -3,13 +3,14 @@ package webcontroller
 import (
 	"database/sql"
 	"errors"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
-	"net/http"
 )
 
 type CreateOperatorInput struct {
@@ -137,7 +138,7 @@ func CreateOperatorWebhook(c *gin.Context) {
 	}
 	err = statement.Get(&newOperator.ID, newOperator)
 	if err != nil {
-		logging.LogError(err, "Failed to create new operator", "operator", newOperator)
+		logging.LogError(err, "Failed to create new operator")
 		c.JSON(http.StatusOK, CreateOperatorResponse{
 			Status: "error",
 			Error:  err.Error(),

@@ -1,9 +1,10 @@
 package webcontroller
 
 import (
+	"net/http"
+
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/logging"
@@ -39,13 +40,33 @@ func PayloadTypeDynamicTypedArrayParseWebhook(c *gin.Context) {
 		})
 		return
 	}
+	userID, err := GetUserIDFromGin(c)
+	if err != nil {
+		logging.LogError(err, "Failed to get userID from JWT")
+		c.JSON(http.StatusOK, PayloadTypeDynamicTypedArrayParseResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+	user, err := database.GetUserFromID(userID)
+	if err != nil {
+		logging.LogError(err, "Failed to get userID from JWT")
+		c.JSON(http.StatusOK, PayloadTypeDynamicTypedArrayParseResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
 	loadedCommand := databaseStructs.Loadedcommands{}
-	err := database.DB.Get(&loadedCommand, `SELECT
+	err = database.DB.Get(&loadedCommand, `SELECT
     payloadtype.name "command.payloadtype.name"
     FROM loadedcommands 
     JOIN command ON loadedcommands.command_id = command.id
     JOIN payloadtype ON command.payload_type_id = payloadtype.id
-    WHERE callback_id = $1 AND command.cmd=$2 AND payloadtype.name=$3`, input.Input.Callback, input.Input.Command, input.Input.PayloadType)
+    JOIN callback ON loadedcommands.callback_id = callback.id
+    WHERE callback_id = $1 AND command.cmd=$2 AND payloadtype.name=$3 AND callback.operation_id=$4`,
+		input.Input.Callback, input.Input.Command, input.Input.PayloadType, user.CurrentOperationID.Int64)
 	if err != nil {
 		logging.LogError(err, "Failed to get command from loaded commands")
 		c.JSON(http.StatusOK, PayloadTypeDynamicQueryFunctionResponse{
