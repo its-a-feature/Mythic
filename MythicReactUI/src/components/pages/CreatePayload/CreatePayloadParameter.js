@@ -158,6 +158,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const theme = useTheme();
     const configEditorMode = getConfigEditorMode(parameter_type, randomize, format_string);
     const [configEditorOpen, setConfigEditorOpen] = React.useState(false);
+    const aceEditorRef = React.useRef(null);
+    const preRandomValueRef = React.useRef("");
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
     const [multiValue, setMultiValue] = React.useState([]);
@@ -245,7 +247,11 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 const result = data.c2CustomRPCFunction.result || {};
                 const newValue = typeof result.value === "string" ? result.value : "";
                 if(newValue !== ""){
+                    const prev = preRandomValueRef.current;
                     onChangeText(name, newValue, testParameterValues(newValue));
+                    if(prev !== ""){
+                        showUndoSnackbar("Random config generated.", prev);
+                    }
                 } else {
                     snackActions.warning("Random generator returned no value");
                 }
@@ -264,6 +270,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             snackActions.warning("Random generate not available: missing c2 profile context");
             return;
         }
+        preRandomValueRef.current = value ?? "";
         invokeC2CustomRPC({variables: {
             c2_profile: c2_profile_name,
             function_name: configEditorMode.randomFn,
@@ -473,10 +480,49 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             snackActions.info("Only JSON formatting is available inline. TOML input is left as-is.");
         }
     }
+    const showUndoSnackbar = (label, previousValue) => {
+        snackActions.info(
+            <span style={{display: "inline-flex", alignItems: "center", gap: "8px"}}>
+                {label}
+                <Button size="small" variant="outlined" onClick={(e) => {
+                    e.stopPropagation();
+                    onChangeText(name, previousValue, testParameterValues(previousValue));
+                }}>
+                    Undo
+                </Button>
+            </span>,
+            {autoClose: 8000}
+        );
+    }
     const onClearConfigEditor = () => {
+        const prev = value;
         setValue("");
         onChange(name, "", testParameterValues(""));
+        if(prev !== ""){
+            showUndoSnackbar("Config cleared.", prev);
+        }
     }
+    const onCopyConfigToClipboard = async () => {
+        const raw = value ?? "";
+        if(raw === ""){
+            snackActions.info("Nothing to copy");
+            return;
+        }
+        try{
+            await navigator.clipboard.writeText(raw);
+            snackActions.success("Copied to clipboard");
+        }catch(err){
+            snackActions.warning("Clipboard unavailable");
+            console.error(err);
+        }
+    }
+    React.useEffect(() => {
+        if(!configEditorOpen){ return; }
+        const t = setTimeout(() => {
+            try { aceEditorRef.current?.focus(); } catch(_) {}
+        }, 200);
+        return () => clearTimeout(t);
+    }, [configEditorOpen]);
     const onChangeNumber = (name, value, error) => {
         setValueNum(value);
         onChange(name, value, error);
@@ -868,9 +914,6 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                         Upload
                                         <input onChange={onConfigEditorUpload} type="file" hidden accept=".json,.toml,.txt,application/json,text/plain" />
                                     </Button>
-                                    <Button variant="text" size="small" onClick={onFormatConfigEditorJson}>
-                                        Format
-                                    </Button>
                                     {hasRandomFn && (
                                         <Button variant="text" size="small" onClick={onInvokeRandomFn} disabled={c2CustomRPCLoading}>
                                             {c2CustomRPCLoading ? "Generating…" : "Random"}
@@ -893,9 +936,17 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             <Dialog open={configEditorOpen} onClose={() => setConfigEditorOpen(false)} maxWidth="lg" fullWidth>
                                 <DialogTitle>{name}</DialogTitle>
                                 <DialogContent dividers>
-                                    <Typography variant="caption" color="text.secondary" style={{display: "block", marginBottom: "8px"}}>
-                                        Paste configuration inline, upload a local JSON/TOML file, or leave this empty for default behavior without transforms.
-                                    </Typography>
+                                    <div style={{display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap"}}>
+                                        <Typography variant="caption" color="text.secondary" style={{flex: "1 1 auto"}}>
+                                            Paste configuration inline, upload a local JSON/TOML file, or leave empty for default behavior without transforms.
+                                        </Typography>
+                                        <Button variant="text" size="small" onClick={onFormatConfigEditorJson}>
+                                            Format
+                                        </Button>
+                                        <Button variant="text" size="small" onClick={onCopyConfigToClipboard}>
+                                            Copy
+                                        </Button>
+                                    </div>
                                     <AceEditor
                                         mode={aceMode}
                                         theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
@@ -909,6 +960,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                         onChange={(newValue) => onChangeText(name, newValue, testParameterValues(newValue))}
                                         setOptions={{useWorker: false, tabSize: 2, useSoftTabs: true}}
                                         name={"ace_config_editor_" + id}
+                                        onLoad={(editor) => { aceEditorRef.current = editor; }}
                                         editorProps={{$blockScrolling: true}}
                                     />
                                 </DialogContent>
