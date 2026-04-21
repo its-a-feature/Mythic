@@ -4,6 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
+	"sync"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/google/uuid"
@@ -12,9 +16,6 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/rabbitmq"
 	"github.com/its-a-feature/Mythic/utils"
-	"net/http"
-	"sync"
-	"time"
 )
 
 type CreateInviteLinkMessage struct {
@@ -243,7 +244,7 @@ func UseInviteLink(c *gin.Context) {
 	}
 	err = statement.Get(&newOperator.ID, newOperator)
 	if err != nil {
-		logging.LogError(err, "Failed to create new operator", "operator", newOperator)
+		logging.LogError(err, "Failed to create new operator")
 		c.JSON(http.StatusOK, UseInviteLinkResponse{
 			Status: "error",
 			Error:  err.Error(),
