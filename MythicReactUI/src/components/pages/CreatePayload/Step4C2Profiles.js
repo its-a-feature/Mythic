@@ -15,7 +15,6 @@ import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import {CreatePayloadBuildParametersTable} from "./CreatePayloadBuildParametersTable";
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import { IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {ConfigurationSummary} from "./Step1SelectOS";
@@ -621,9 +620,11 @@ const C2ProfileTabs = ({includedC2Profiles, onChange, os, onCloseTab, onChangeCr
                     <Tab key={c.name + index} label={
                         <div style={{display: "flex", alignItems: "center"}}>
                                 {c.name}
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size='small' onClick={(e) => onCloseTabLocal(e, index)} >
+                            <span role="button" aria-label="close tab"
+                                  onClick={(e) => onCloseTabLocal(e, index)}
+                                  style={{display: "inline-flex", alignItems: "center", cursor: "pointer", marginLeft: "4px"}}>
                                 <CloseIcon fontSize="small" />
-                            </IconButton>
+                            </span>
                         </div>
                     } {...a11yProps(index)} style={{flexShrink: 0}} />
                 ))}
