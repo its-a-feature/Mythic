@@ -14,6 +14,25 @@ array_relationships:
           name: c2profileparametersinstance
           schema: public
 select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - crypto_type
+        - deleted
+        - randomize
+        - required
+        - c2_profile_id
+        - id
+        - ui_position
+        - choices
+        - default_value
+        - description
+        - display_name
+        - format_string
+        - name
+        - parameter_type
+        - verifier_regex
+      filter: {}
   - role: mythic_admin
     permission:
       columns:
@@ -27,6 +46,7 @@ select_permissions:
         - choices
         - default_value
         - description
+        - display_name
         - format_string
         - name
         - parameter_type
@@ -45,6 +65,7 @@ select_permissions:
         - choices
         - default_value
         - description
+        - display_name
         - format_string
         - name
         - parameter_type
@@ -63,6 +84,7 @@ select_permissions:
         - choices
         - default_value
         - description
+        - display_name
         - format_string
         - name
         - parameter_type
@@ -81,6 +103,7 @@ select_permissions:
         - choices
         - default_value
         - description
+        - display_name
         - format_string
         - name
         - parameter_type

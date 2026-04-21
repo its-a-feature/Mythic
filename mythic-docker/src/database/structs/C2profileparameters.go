@@ -5,6 +5,7 @@ type C2profileparameters struct {
 	C2ProfileID   int             `db:"c2_profile_id"`
 	Description   string          `db:"description"`
 	Name          string          `db:"name"`
+	DisplayName   string          `db:"display_name"`
 	DefaultValue  string          `db:"default_value"`
 	Randomize     bool            `db:"randomize"`
 	FormatString  string          `db:"format_string"`

@@ -59,6 +59,7 @@ const (
 type C2Parameter struct {
 	Description       string                `json:"description"`
 	Name              string                `json:"name"`
+	DisplayName       string                `json:"display_name"`
 	DefaultValue      interface{}           `json:"default_value"`
 	Randomize         bool                  `json:"randomize"`
 	FormatString      string                `json:"format_string"`
@@ -267,6 +268,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 						found = true
 						// update it
 						databaseParameter.Description = newParameter.Description
+						databaseParameter.DisplayName = newParameter.DisplayName
 						databaseParameter.Randomize = newParameter.Randomize
 						databaseParameter.FormatString = newParameter.FormatString
 						databaseParameter.ParameterType = newParameter.ParameterType
@@ -286,11 +288,11 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 						} else {
 							databaseParameter.Choices = choices
 						}
-						if _, err = database.DB.NamedExec(`UPDATE c2profileparameters SET 
-							description=:description, default_value=:default_value, randomize=:randomize, format_string=:format_string,
+						if _, err = database.DB.NamedExec(`UPDATE c2profileparameters SET
+							description=:description, display_name=:display_name, default_value=:default_value, randomize=:randomize, format_string=:format_string,
 							parameter_type=:parameter_type, required=:required, choices=:choices,
-							verifier_regex=:verifier_regex, deleted=:deleted, 
-							crypto_type=:crypto_type, ui_position=:ui_position 
+							verifier_regex=:verifier_regex, deleted=:deleted,
+							crypto_type=:crypto_type, ui_position=:ui_position
 							WHERE id=:id`, databaseParameter,
 						); err != nil {
 							logging.LogError(err, "Failed to update c2 parameter in database", "c2_parameter", databaseParameter)
@@ -318,6 +320,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 			// we have a new parameter group / command parameter to add in
 			databaseParameter = databaseStructs.C2profileparameters{
 				Name:          newParameter.Name,
+				DisplayName:   newParameter.DisplayName,
 				Description:   newParameter.Description,
 				Randomize:     newParameter.Randomize,
 				FormatString:  newParameter.FormatString,
@@ -340,11 +343,11 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 			} else {
 				databaseParameter.Choices = choices
 			}
-			if statement, err := database.DB.PrepareNamed(`INSERT INTO c2profileparameters 
-				("name",description,default_value,randomize,format_string,verifier_regex,deleted,
-				 crypto_type,required,parameter_type,c2_profile_id,choices, ui_position) 
-				VALUES (:name, :description, :default_value, :randomize, :format_string, :verifier_regex, :deleted,
-				:crypto_type, :required, :parameter_type, :c2_profile_id, :choices, :ui_position) 
+			if statement, err := database.DB.PrepareNamed(`INSERT INTO c2profileparameters
+				("name",display_name,description,default_value,randomize,format_string,verifier_regex,deleted,
+				 crypto_type,required,parameter_type,c2_profile_id,choices, ui_position)
+				VALUES (:name, :display_name, :description, :default_value, :randomize, :format_string, :verifier_regex, :deleted,
+				:crypto_type, :required, :parameter_type, :c2_profile_id, :choices, :ui_position)
 				RETURNING id`,
 			); err != nil {
 				logging.LogError(err, "Failed to create new c2 profile parameters statement when importing c2 profile")

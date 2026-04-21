@@ -141,6 +141,7 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
         c2profileparameter {
           default_value
           description
+          display_name
           format_string
           id
           name

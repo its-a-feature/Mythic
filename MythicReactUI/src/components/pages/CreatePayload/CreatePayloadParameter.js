@@ -154,7 +154,7 @@ uris = ["/"]`;
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
                                            description, initialValue, choices, trackedValue, instance_name,
                                            payload_type, selected_os, dynamic_query_function, randomize, format_string,
-                                           c2_profile_name, displayMode = "table"}){
+                                           c2_profile_name, display_name, displayMode = "table"}){
     const theme = useTheme();
     const configEditorMode = getConfigEditorMode(parameter_type, randomize, format_string);
     const [configEditorOpen, setConfigEditorOpen] = React.useState(false);
@@ -1115,7 +1115,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 <MythicStyledTableCell>
                     <MythicStyledTooltip title={name.length > 0 ? name : "No Description"}>
                         <Typography style={{fontWeight: "600"}} >
-                            {name}
+                            {display_name && display_name.length > 0 ? display_name : name}
                         </Typography>
                         <Typography style={{fontSize: theme.typography.pxToRem(15), marginLeft: "10px"}}>
                             {description}

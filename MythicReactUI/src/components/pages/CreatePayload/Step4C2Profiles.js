@@ -31,6 +31,7 @@ query getPayloadTypesC2ProfilesQuery($payloadType: String!, $operation_id: Int!)
     c2profileparameters(where: {deleted: {_eq: false}}) {
       default_value
       description
+      display_name
       format_string
       id
       name
@@ -54,6 +55,7 @@ query getProfileInstanceQuery($name: String!, $operation_id: Int!, $c2_profile_i
     c2profileparameter {
       default_value
       description
+      display_name
       format_string
       id
       name
@@ -80,6 +82,7 @@ query getDefaultC2ProfileParameters($c2profile_id: Int!) {
       c2profileparameters(where: {deleted: {_eq: false}}) {
         default_value
         description
+        display_name
         format_string
         id
         name
