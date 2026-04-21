@@ -3,25 +3,26 @@ package webcontroller
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+	"sync"
+
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	"github.com/its-a-feature/Mythic/logging"
-	"net/http"
-	"strings"
-	"sync"
 )
 
 var (
-	hasuraClaimsCache     = make(map[int]map[string]interface{})
+	hasuraClaimsCache     = make(map[string]map[string]interface{})
 	hasuraClaimsCacheLock = sync.RWMutex{}
 )
 
 func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 	if invalidateAllOthers {
 		hasuraClaimsCacheLock.Lock()
-		hasuraClaimsCache = make(map[int]map[string]interface{})
+		hasuraClaimsCache = make(map[string]map[string]interface{})
 		hasuraClaimsCacheLock.Unlock()
 		return nil
 	}
@@ -35,7 +36,7 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 		return err
 	}
 	c.Set("GraphQLName", hasuraInput.Request.OperationName)
-	c.Set("user_id", claims.UserID)
+	c.Set(authentication.ContextKeyUserID, claims.UserID)
 	c.Set("hasura_claims", claims)
 	hasuraClaims := make(map[string]interface{})
 	//logging.LogTrace("JWT claims", "claims", claims, "user", claims.UserID)
@@ -48,7 +49,7 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 		logging.LogError(err, "Failed to fetch operator based on JWT UserID")
 		return err
 	}
-	c.Set("username", user.Username)
+	c.Set(authentication.ContextKeyUsername, user.Username)
 	if !user.CurrentOperationID.Valid {
 		hasuraClaims["x-hasura-current-operation-id"] = "0"
 		hasuraClaims["x-hasura-current_operation"] = "null"
@@ -96,7 +97,9 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 		hasuraClaims["x-hasura-current-operation-id"] = fmt.Sprintf("%d", claims.OperationID)
 	}
 	hasuraClaimsCacheLock.Lock()
-	hasuraClaimsCache[claims.UserID] = hasuraClaims
+	hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d",
+		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID,
+	)] = hasuraClaims
 	hasuraClaimsCacheLock.Unlock()
 	return nil
 }
@@ -124,10 +127,12 @@ func GetHasuraClaims(c *gin.Context) {
 		return
 	}
 	c.Set("GraphQLName", hasuraInput.Request.OperationName)
-	c.Set("user_id", claims.UserID)
+	c.Set(authentication.ContextKeyUserID, claims.UserID)
 	c.Set("hasura_claims", claims)
 	hasuraClaimsCacheLock.RLock()
-	hasuraClaims, ok := hasuraClaimsCache[claims.UserID]
+	hasuraClaims, ok := hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d",
+		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID,
+	)]
 	hasuraClaimsCacheLock.RUnlock()
 	if ok {
 		c.JSON(http.StatusOK, hasuraClaims)
@@ -140,7 +145,9 @@ func GetHasuraClaims(c *gin.Context) {
 		return
 	}
 	hasuraClaimsCacheLock.RLock()
-	hasuraClaims, ok = hasuraClaimsCache[claims.UserID]
+	hasuraClaims, ok = hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d",
+		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID,
+	)]
 	hasuraClaimsCacheLock.RUnlock()
 	if ok {
 		c.JSON(http.StatusOK, hasuraClaims)

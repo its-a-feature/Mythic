@@ -1,8 +1,11 @@
 package webcontroller
 
 import (
-	"github.com/its-a-feature/Mythic/rabbitmq"
 	"net/http"
+
+	"github.com/its-a-feature/Mythic/database"
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 	"github.com/its-a-feature/Mythic/logging"
@@ -33,6 +36,26 @@ func CreateCallbackWebhook(c *gin.Context) {
 	var input callbackCreateInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		logging.LogError(err, "Failed to get JSON parameters for CreateCallbackWebhook")
+		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+		return
+	}
+	userID, err := GetUserIDFromGin(c)
+	if err != nil {
+		logging.LogError(err, "Failed to get userID from JWT")
+		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+		return
+	}
+	user, err := database.GetUserFromID(userID)
+	if err != nil {
+		logging.LogError(err, "Failed to get userID from JWT")
+		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
+		return
+	}
+	payload := databaseStructs.Payload{}
+	if err := database.DB.Get(&payload, `SELECT 
+    	id FROM payload 
+    	   WHERE uuid=$1 AND operation_id=$2`, input.Input.PayloadUUID, user.CurrentOperationID.Int64); err != nil {
+		logging.LogError(err, "Failed to find payload when doing a CreateCallbackWebhook")
 		c.JSON(http.StatusOK, gin.H{"status": "error", "error": err.Error()})
 		return
 	}

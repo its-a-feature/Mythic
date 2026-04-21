@@ -37,16 +37,29 @@ func C2ProfileRedirectRulesWebhook(c *gin.Context) {
 		})
 		return
 	}
-	ginOperatorOperation, ok := c.Get("operatorOperation")
-	if !ok {
-		logging.LogError(nil, "Failed to get operatorOperation information for CreateC2ParameterInstanceWebhook")
-		c.JSON(http.StatusOK, gin.H{"status": "error", "error": "Failed to get current operation. Is it set?"})
+	userID, err := GetUserIDFromGin(c)
+	if err != nil {
+		logging.LogError(err, "Failed to get userID from JWT")
+		c.JSON(http.StatusOK, GetC2RedirectRulesResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
 		return
 	}
-	operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
+	user, err := database.GetUserFromID(userID)
+	if err != nil {
+		logging.LogError(err, "Failed to get userID from JWT")
+		c.JSON(http.StatusOK, GetC2RedirectRulesResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
 	// get the associated database information
 	payload := databaseStructs.Payload{}
-	if err := database.DB.Get(&payload, `SELECT id FROM payload WHERE uuid=$1 AND operation_id=$2`, input.Input.PayloadUUID, operatorOperation.CurrentOperation.ID); err != nil {
+	if err := database.DB.Get(&payload, `SELECT 
+    	id FROM payload 
+    	   WHERE uuid=$1 AND operation_id=$2`, input.Input.PayloadUUID, user.CurrentOperationID.Int64); err != nil {
 		logging.LogError(err, "Failed to find payload when doing a C2ProfileRedirectRulesWebhook")
 	}
 	c2profileParameterInstances := []databaseStructs.C2profileparametersinstance{}
