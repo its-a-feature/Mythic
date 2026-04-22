@@ -70,17 +70,30 @@ const shouldShow = (fieldSchema, parentValue) => {
     return sw.in.includes(parentValue?.[sw.field]);
 };
 
+// Resolves schema.placeholder based on a sibling's current value:
+//   placeholder_when: {field: "action", map: {xor: "key", prepend: "text"}}
+// Returns the original schema if no match or feature not present.
+const resolveConditionalPlaceholder = (fieldSchema, parentValue) => {
+    const pw = fieldSchema?.placeholder_when;
+    if(!pw || !pw.field || !pw.map || typeof pw.map !== "object") return fieldSchema;
+    const siblingVal = parentValue?.[pw.field];
+    const hint = pw.map[siblingVal];
+    if(typeof hint !== "string" || hint.length === 0) return fieldSchema;
+    return {...fieldSchema, placeholder: hint};
+};
+
 const ObjectField = ({schema, value, onChange, depth}) => {
     const safeValue = (value && typeof value === "object" && !Array.isArray(value)) ? value : {};
     const body = (
         <React.Fragment>
             {(schema.fields || []).map(fieldSchema => {
                 if(!shouldShow(fieldSchema, safeValue)) return null;
+                const resolved = resolveConditionalPlaceholder(fieldSchema, safeValue);
                 const fieldValue = safeValue[fieldSchema.name];
                 return (
                     <SchemaFormRenderer
                         key={fieldSchema.name}
-                        schema={fieldSchema}
+                        schema={resolved}
                         value={fieldValue === undefined ? emptyValueForSchema(fieldSchema) : fieldValue}
                         depth={(depth || 0) + 1}
                         onChange={(newFieldVal) => {
@@ -200,11 +213,12 @@ const ArrayOfObjectField = ({schema, value, onChange, depth}) => {
                     <div style={{flexGrow: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "6px"}}>
                         {(itemSchema.fields || []).map(fieldSchema => {
                             if(!shouldShow(fieldSchema, item)) return null;
+                            const resolved = resolveConditionalPlaceholder(fieldSchema, item);
                             const fv = (item || {})[fieldSchema.name];
                             return (
                                 <SchemaFormRenderer
                                     key={fieldSchema.name}
-                                    schema={fieldSchema}
+                                    schema={resolved}
                                     value={fv === undefined ? emptyValueForSchema(fieldSchema) : fv}
                                     depth={(depth || 0) + 1}
                                     onChange={(newVal) => {
