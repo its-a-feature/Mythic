@@ -1002,6 +1002,8 @@ CREATE TABLE public.c2profileparameters (
     c2_profile_id integer NOT NULL,
     description text NOT NULL,
     name text NOT NULL,
+    display_name text DEFAULT ''::text NOT NULL,
+    group_name text DEFAULT ''::text NOT NULL,
     default_value text DEFAULT ''::text NOT NULL,
     randomize boolean DEFAULT false NOT NULL,
     format_string text DEFAULT ''::text NOT NULL,

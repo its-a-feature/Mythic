@@ -60,6 +60,7 @@ type C2Parameter struct {
 	Description       string                `json:"description"`
 	Name              string                `json:"name"`
 	DisplayName       string                `json:"display_name"`
+	GroupName         string                `json:"group_name"`
 	DefaultValue      interface{}           `json:"default_value"`
 	Randomize         bool                  `json:"randomize"`
 	FormatString      string                `json:"format_string"`
@@ -269,6 +270,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 						// update it
 						databaseParameter.Description = newParameter.Description
 						databaseParameter.DisplayName = newParameter.DisplayName
+						databaseParameter.GroupName = newParameter.GroupName
 						databaseParameter.Randomize = newParameter.Randomize
 						databaseParameter.FormatString = newParameter.FormatString
 						databaseParameter.ParameterType = newParameter.ParameterType
@@ -289,7 +291,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 							databaseParameter.Choices = choices
 						}
 						if _, err = database.DB.NamedExec(`UPDATE c2profileparameters SET
-							description=:description, display_name=:display_name, default_value=:default_value, randomize=:randomize, format_string=:format_string,
+							description=:description, display_name=:display_name, group_name=:group_name, default_value=:default_value, randomize=:randomize, format_string=:format_string,
 							parameter_type=:parameter_type, required=:required, choices=:choices,
 							verifier_regex=:verifier_regex, deleted=:deleted,
 							crypto_type=:crypto_type, ui_position=:ui_position
@@ -321,6 +323,7 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 			databaseParameter = databaseStructs.C2profileparameters{
 				Name:          newParameter.Name,
 				DisplayName:   newParameter.DisplayName,
+				GroupName:     newParameter.GroupName,
 				Description:   newParameter.Description,
 				Randomize:     newParameter.Randomize,
 				FormatString:  newParameter.FormatString,
@@ -344,9 +347,9 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 				databaseParameter.Choices = choices
 			}
 			if statement, err := database.DB.PrepareNamed(`INSERT INTO c2profileparameters
-				("name",display_name,description,default_value,randomize,format_string,verifier_regex,deleted,
+				("name",display_name,group_name,description,default_value,randomize,format_string,verifier_regex,deleted,
 				 crypto_type,required,parameter_type,c2_profile_id,choices, ui_position)
-				VALUES (:name, :display_name, :description, :default_value, :randomize, :format_string, :verifier_regex, :deleted,
+				VALUES (:name, :display_name, :group_name, :description, :default_value, :randomize, :format_string, :verifier_regex, :deleted,
 				:crypto_type, :required, :parameter_type, :c2_profile_id, :choices, :ui_position)
 				RETURNING id`,
 			); err != nil {

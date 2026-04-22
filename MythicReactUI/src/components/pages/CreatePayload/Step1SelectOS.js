@@ -144,6 +144,7 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
           description
           display_name
           format_string
+          group_name
           id
           name
           parameter_type

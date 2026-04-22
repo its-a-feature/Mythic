@@ -27,7 +27,9 @@ select_permissions:
         - choices
         - default_value
         - description
+        - display_name
         - format_string
+        - group_name
         - name
         - parameter_type
         - verifier_regex
@@ -45,7 +47,9 @@ select_permissions:
         - choices
         - default_value
         - description
+        - display_name
         - format_string
+        - group_name
         - name
         - parameter_type
         - verifier_regex
@@ -63,7 +67,9 @@ select_permissions:
         - choices
         - default_value
         - description
+        - display_name
         - format_string
+        - group_name
         - name
         - parameter_type
         - verifier_regex
@@ -81,7 +87,9 @@ select_permissions:
         - choices
         - default_value
         - description
+        - display_name
         - format_string
+        - group_name
         - name
         - parameter_type
         - verifier_regex
@@ -99,7 +107,9 @@ select_permissions:
         - choices
         - default_value
         - description
+        - display_name
         - format_string
+        - group_name
         - name
         - parameter_type
         - verifier_regex
