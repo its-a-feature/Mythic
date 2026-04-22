@@ -276,9 +276,14 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         }
     });
     React.useEffect(() => {
-        if(!configEditorOpen) return;
+        // Refetch schema each time the modal opens so updates on the
+        // container side propagate without requiring a page reload.
+        if(!configEditorOpen){
+            setFormSchema(null);
+            setFormSchemaError("");
+            return;
+        }
         if(!configEditorMode?.formFn) return;
-        if(formSchema) return;
         if(formSchemaLoading) return;
         if(!c2_profile_name) return;
         fetchFormSchema({variables: {
