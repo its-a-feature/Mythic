@@ -15,6 +15,7 @@ type C2profileparameters struct {
 	VerifierRegex string          `db:"verifier_regex"`
 	Deleted       bool            `db:"deleted"`
 	IsCryptoType  bool            `db:"crypto_type"`
-	Choices       MythicJSONArray `db:"choices"`
-	UiPosition    int             `db:"ui_position"`
+	Choices              MythicJSONArray `db:"choices"`
+	ChoicesDisplayNames  MythicJSONText  `db:"choices_display_names"`
+	UiPosition           int             `db:"ui_position"`
 }

@@ -68,9 +68,10 @@ type C2Parameter struct {
 	Required          bool                  `json:"required"`
 	VerifierRegex     string                `json:"verifier_regex"`
 	IsCryptoType      bool                  `json:"crypto_type"`
-	Choices           []string              `json:"choices"`
-	DictionaryChoices []ParameterDictionary `json:"dictionary_choices"`
-	UIPosition        int                   `json:"ui_position"`
+	Choices             []string              `json:"choices"`
+	ChoicesDisplayNames map[string]string     `json:"choices_display_names"`
+	DictionaryChoices   []ParameterDictionary `json:"dictionary_choices"`
+	UIPosition          int                   `json:"ui_position"`
 }
 
 type ParameterDictionary struct {
@@ -290,9 +291,17 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 						} else {
 							databaseParameter.Choices = choices
 						}
+						if newParameter.ChoicesDisplayNames == nil {
+							databaseParameter.ChoicesDisplayNames = databaseStructs.MythicJSONText("{}")
+						} else if cdnBytes, err := json.Marshal(newParameter.ChoicesDisplayNames); err != nil {
+							logging.LogError(err, "Failed to marshal ChoicesDisplayNames", "name", newParameter.Name)
+							databaseParameter.ChoicesDisplayNames = databaseStructs.MythicJSONText("{}")
+						} else {
+							databaseParameter.ChoicesDisplayNames = databaseStructs.MythicJSONText(cdnBytes)
+						}
 						if _, err = database.DB.NamedExec(`UPDATE c2profileparameters SET
 							description=:description, display_name=:display_name, group_name=:group_name, default_value=:default_value, randomize=:randomize, format_string=:format_string,
-							parameter_type=:parameter_type, required=:required, choices=:choices,
+							parameter_type=:parameter_type, required=:required, choices=:choices, choices_display_names=:choices_display_names,
 							verifier_regex=:verifier_regex, deleted=:deleted,
 							crypto_type=:crypto_type, ui_position=:ui_position
 							WHERE id=:id`, databaseParameter,
@@ -346,11 +355,19 @@ func updateC2Parameters(in C2SyncMessage, c2Profile databaseStructs.C2profile) e
 			} else {
 				databaseParameter.Choices = choices
 			}
+			if newParameter.ChoicesDisplayNames == nil {
+				databaseParameter.ChoicesDisplayNames = databaseStructs.MythicJSONText("{}")
+			} else if cdnBytes, err := json.Marshal(newParameter.ChoicesDisplayNames); err != nil {
+				logging.LogError(err, "Failed to marshal ChoicesDisplayNames", "name", newParameter.Name)
+				databaseParameter.ChoicesDisplayNames = databaseStructs.MythicJSONText("{}")
+			} else {
+				databaseParameter.ChoicesDisplayNames = databaseStructs.MythicJSONText(cdnBytes)
+			}
 			if statement, err := database.DB.PrepareNamed(`INSERT INTO c2profileparameters
 				("name",display_name,group_name,description,default_value,randomize,format_string,verifier_regex,deleted,
-				 crypto_type,required,parameter_type,c2_profile_id,choices, ui_position)
+				 crypto_type,required,parameter_type,c2_profile_id,choices,choices_display_names, ui_position)
 				VALUES (:name, :display_name, :group_name, :description, :default_value, :randomize, :format_string, :verifier_regex, :deleted,
-				:crypto_type, :required, :parameter_type, :c2_profile_id, :choices, :ui_position)
+				:crypto_type, :required, :parameter_type, :c2_profile_id, :choices, :choices_display_names, :ui_position)
 				RETURNING id`,
 			); err != nil {
 				logging.LogError(err, "Failed to create new c2 profile parameters statement when importing c2 profile")

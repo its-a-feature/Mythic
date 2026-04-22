@@ -152,6 +152,7 @@ query getPayloadTypesBuildParametersQuery($payload_id: Int!) {
           required
           verifier_regex
           choices
+          choices_display_names
           ui_position
           c2profile {
               name

@@ -1012,7 +1012,8 @@ CREATE TABLE public.c2profileparameters (
     verifier_regex text DEFAULT ''::text NOT NULL,
     deleted boolean DEFAULT false NOT NULL,
     crypto_type boolean DEFAULT false NOT NULL,
-    choices jsonb DEFAULT jsonb_build_array() NOT NULL
+    choices jsonb DEFAULT jsonb_build_array() NOT NULL,
+    choices_display_names jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
 

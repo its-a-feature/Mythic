@@ -154,9 +154,17 @@ uris = ["/"]`;
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
                                            description, initialValue, choices, trackedValue, instance_name,
                                            payload_type, selected_os, dynamic_query_function, randomize, format_string,
-                                           c2_profile_name, display_name, displayMode = "table"}){
+                                           c2_profile_name, display_name, choices_display_names,
+                                           displayMode = "table"}){
     const theme = useTheme();
     const configEditorMode = getConfigEditorMode(parameter_type, randomize, format_string);
+    const choiceLabel = (val) => {
+        const m = choices_display_names;
+        if(m && typeof m === "object" && val in m && typeof m[val] === "string" && m[val].length > 0){
+            return m[val];
+        }
+        return val;
+    };
     const [configEditorOpen, setConfigEditorOpen] = React.useState(false);
     const aceEditorRef = React.useRef(null);
     const preRandomValueRef = React.useRef("");
@@ -718,7 +726,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             >
                             {
                                 ChoiceOptions.map((opt, i) => (
-                                    <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
+                                    <MenuItem key={"buildparamopt" + i} value={opt}>{choiceLabel(opt)}</MenuItem>
                                 ))
                             }
                             </Select>
@@ -749,7 +757,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                 >
                                     {
                                         ChoiceOptions.map((opt, i) => (
-                                            <MenuItem key={name + i} value={opt}>{opt}</MenuItem>
+                                            <MenuItem key={name + i} value={opt}>{choiceLabel(opt)}</MenuItem>
                                         ))
                                     }
                                 </Select>
@@ -787,7 +795,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             >
                             {
                                 ChoiceOptions.map((opt, i) => (
-                                    <MenuItem key={"buildparamopt" + i} value={opt}>{opt}</MenuItem>
+                                    <MenuItem key={"buildparamopt" + i} value={opt}>{choiceLabel(opt)}</MenuItem>
                                 ))
                             }
                             </Select>
@@ -851,7 +859,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                                     >
                                                         {
                                                             choices.map((opt, i) => (
-                                                                <MenuItem key={name + i} value={opt}>{opt}</MenuItem>
+                                                                <MenuItem key={name + i} value={opt}>{choiceLabel(opt)}</MenuItem>
                                                             ))
                                                         }
                                                     </Select>
