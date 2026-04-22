@@ -18,16 +18,21 @@ import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 
 // A schema descriptor is a JSON object. Supported `type` values:
-//   object      { type: "object", fields: [ {name, type, label, description, ...}, ... ] }
-//   array       { type: "array", items: <schema>, label }  (items is itself a schema)
+//   object      { type: "object", fields: [ {name, type, label, description, show_when?, ...}, ... ] }
+//   array       { type: "array", items: <schema>, label }
 //   enum        { type: "enum", choices: [..], choiceLabels: {value: display}?, label }
 //   string      { type: "string", label, placeholder? }
 //   number      { type: "number", label }
 //   boolean     { type: "boolean", label }
 //   string_map  { type: "string_map", label, keyLabel?, valueLabel? }
 //
-// SchemaFormRenderer is controlled: pass `value` and `onChange`. It renders a
-// section for the top-level schema and recurses for nested composites.
+// Conditional rendering: any field in an object's fields[] may carry
+//   show_when: {field: "<siblingName>", in: [<values>]}
+// and it will only be rendered when the sibling's current value is in the list.
+//
+// SchemaFormRenderer is controlled: pass `value` and `onChange`. The top-level
+// call renders without a surrounding Paper; nested objects get a subtle left-
+// border accent instead of stacking Paper inside Paper.
 
 const emptyValueForSchema = (schema) => {
     switch(schema?.type){
@@ -48,7 +53,6 @@ const emptyValueForSchema = (schema) => {
     }
 };
 
-// Only keep own enumerable properties and primitive/plain types on output.
 const cloneValue = (v) => {
     if(v === null || v === undefined) return v;
     if(Array.isArray(v)) return v.map(cloneValue);
@@ -60,58 +64,102 @@ const cloneValue = (v) => {
     return v;
 };
 
-const ObjectField = ({schema, value, onChange}) => {
+const shouldShow = (fieldSchema, parentValue) => {
+    const sw = fieldSchema?.show_when;
+    if(!sw || !sw.field || !Array.isArray(sw.in)) return true;
+    return sw.in.includes(parentValue?.[sw.field]);
+};
+
+const ObjectField = ({schema, value, onChange, depth}) => {
     const safeValue = (value && typeof value === "object" && !Array.isArray(value)) ? value : {};
+    const body = (
+        <React.Fragment>
+            {(schema.fields || []).map(fieldSchema => {
+                if(!shouldShow(fieldSchema, safeValue)) return null;
+                const fieldValue = safeValue[fieldSchema.name];
+                return (
+                    <SchemaFormRenderer
+                        key={fieldSchema.name}
+                        schema={fieldSchema}
+                        value={fieldValue === undefined ? emptyValueForSchema(fieldSchema) : fieldValue}
+                        depth={(depth || 0) + 1}
+                        onChange={(newFieldVal) => {
+                            onChange({...safeValue, [fieldSchema.name]: newFieldVal});
+                        }}
+                    />
+                );
+            })}
+        </React.Fragment>
+    );
+
+    // Top-level object gets no wrapper — content flows in the modal's natural
+    // padding. Nested objects get a soft left-border accent and generous
+    // interior padding.
+    if(!depth || depth === 0){
+        return (
+            <div style={{display: "flex", flexDirection: "column", gap: "12px"}}>
+                {schema.label && (
+                    <Typography variant="subtitle1" style={{fontWeight: 700, letterSpacing: "0.3px"}}>
+                        {schema.label}
+                    </Typography>
+                )}
+                {body}
+            </div>
+        );
+    }
+
     return (
-        <div style={{marginTop: "4px", marginBottom: "8px"}}>
+        <div style={{marginTop: "12px", marginBottom: "8px"}}>
             {schema.label && (
-                <Typography variant="subtitle2" style={{fontWeight: 600, marginTop: "8px", marginBottom: "4px"}}>
+                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "4px"}}>
                     {schema.label}
                 </Typography>
             )}
             {schema.description && (
-                <Typography variant="caption" color="text.secondary" style={{display: "block", marginBottom: "4px"}}>
+                <Typography variant="caption" color="text.secondary" style={{display: "block", marginBottom: "6px"}}>
                     {schema.description}
                 </Typography>
             )}
-            <Paper variant="outlined" style={{padding: "8px 12px"}}>
-                {(schema.fields || []).map(fieldSchema => {
-                    const fieldValue = safeValue[fieldSchema.name];
-                    return (
-                        <SchemaFormRenderer
-                            key={fieldSchema.name}
-                            schema={fieldSchema}
-                            value={fieldValue === undefined ? emptyValueForSchema(fieldSchema) : fieldValue}
-                            onChange={(newFieldVal) => {
-                                onChange({...safeValue, [fieldSchema.name]: newFieldVal});
-                            }}
-                        />
-                    );
-                })}
-            </Paper>
+            <div style={{
+                borderLeft: "2px solid rgba(127,127,127,0.3)",
+                paddingLeft: "14px",
+                paddingRight: "4px",
+                paddingTop: "4px",
+                paddingBottom: "4px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+            }}>
+                {body}
+            </div>
         </div>
     );
 };
 
-const ArrayOfPrimitiveField = ({schema, value, onChange}) => {
+const ArrayOfPrimitiveField = ({schema, value, onChange, depth}) => {
     const arr = Array.isArray(value) ? value : [];
     const itemSchema = schema.items || {type: "string"};
     return (
-        <div style={{marginTop: "4px", marginBottom: "8px"}}>
+        <div style={{marginTop: "12px", marginBottom: "8px"}}>
             {schema.label && (
-                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "4px"}}>{schema.label}</Typography>
+                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "6px"}}>
+                    {schema.label}
+                </Typography>
             )}
             {arr.map((item, i) => (
-                <div key={i} style={{display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px"}}>
-                    <SchemaFormRenderer
-                        schema={{...itemSchema, label: undefined}}
-                        value={item}
-                        onChange={(newItem) => {
-                            const next = [...arr];
-                            next[i] = newItem;
-                            onChange(next);
-                        }}
-                    />
+                <div key={i} style={{display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px"}}>
+                    <div style={{flexGrow: 1, minWidth: 0}}>
+                        <SchemaFormRenderer
+                            schema={{...itemSchema, label: undefined}}
+                            value={item}
+                            depth={(depth || 0) + 1}
+                            onChange={(newItem) => {
+                                const next = [...arr];
+                                next[i] = newItem;
+                                onChange(next);
+                            }}
+                        />
+                    </div>
                     <IconButton size="small" color="error" aria-label="remove"
                                 onClick={() => {
                                     const next = [...arr];
@@ -130,18 +178,46 @@ const ArrayOfPrimitiveField = ({schema, value, onChange}) => {
     );
 };
 
-const ArrayOfObjectField = ({schema, value, onChange}) => {
+const ArrayOfObjectField = ({schema, value, onChange, depth}) => {
     const arr = Array.isArray(value) ? value : [];
     const itemSchema = schema.items;
     return (
-        <div style={{marginTop: "4px", marginBottom: "8px"}}>
+        <div style={{marginTop: "12px", marginBottom: "8px"}}>
             {schema.label && (
-                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "4px"}}>{schema.label}</Typography>
+                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "6px"}}>
+                    {schema.label}
+                </Typography>
             )}
             {arr.map((item, i) => (
-                <Paper variant="outlined" key={i} style={{padding: "8px 12px", marginBottom: "6px", position: "relative"}}>
+                <Paper variant="outlined" key={i}
+                       style={{
+                           padding: "12px 14px",
+                           marginBottom: "10px",
+                           display: "flex",
+                           gap: "10px",
+                           alignItems: "flex-start",
+                       }}>
+                    <div style={{flexGrow: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "6px"}}>
+                        {(itemSchema.fields || []).map(fieldSchema => {
+                            if(!shouldShow(fieldSchema, item)) return null;
+                            const fv = (item || {})[fieldSchema.name];
+                            return (
+                                <SchemaFormRenderer
+                                    key={fieldSchema.name}
+                                    schema={fieldSchema}
+                                    value={fv === undefined ? emptyValueForSchema(fieldSchema) : fv}
+                                    depth={(depth || 0) + 1}
+                                    onChange={(newVal) => {
+                                        const next = [...arr];
+                                        next[i] = {...(item || {}), [fieldSchema.name]: newVal};
+                                        onChange(next);
+                                    }}
+                                />
+                            );
+                        })}
+                    </div>
                     <IconButton size="small" color="error" aria-label="remove"
-                                style={{position: "absolute", right: 4, top: 4}}
+                                style={{marginTop: "4px"}}
                                 onClick={() => {
                                     const next = [...arr];
                                     next.splice(i, 1);
@@ -149,21 +225,6 @@ const ArrayOfObjectField = ({schema, value, onChange}) => {
                                 }}>
                         <DeleteIcon fontSize="small" />
                     </IconButton>
-                    {(itemSchema.fields || []).map(fieldSchema => {
-                        const fv = (item || {})[fieldSchema.name];
-                        return (
-                            <SchemaFormRenderer
-                                key={fieldSchema.name}
-                                schema={fieldSchema}
-                                value={fv === undefined ? emptyValueForSchema(fieldSchema) : fv}
-                                onChange={(newVal) => {
-                                    const next = [...arr];
-                                    next[i] = {...(item || {}), [fieldSchema.name]: newVal};
-                                    onChange(next);
-                                }}
-                            />
-                        );
-                    })}
                 </Paper>
             ))}
             <Button size="small" startIcon={<AddCircleIcon />}
@@ -188,16 +249,13 @@ const StringMapField = ({schema, value, onChange}) => {
         }
         onChange(next);
     };
-    const setVal = (k, v) => {
-        onChange({...obj, [k]: v});
-    };
+    const setVal = (k, v) => { onChange({...obj, [k]: v}); };
     const removeKey = (k) => {
         const next = {...obj};
         delete next[k];
         onChange(next);
     };
     const addEntry = () => {
-        // pick a unique empty key
         let base = "new_key";
         let i = 0;
         let key = base;
@@ -205,26 +263,28 @@ const StringMapField = ({schema, value, onChange}) => {
         onChange({...obj, [key]: ""});
     };
     return (
-        <div style={{marginTop: "4px", marginBottom: "8px"}}>
+        <div style={{marginTop: "12px", marginBottom: "8px"}}>
             {schema.label && (
-                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "4px"}}>{schema.label}</Typography>
+                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "6px"}}>
+                    {schema.label}
+                </Typography>
             )}
             {entries.length > 0 && (
                 <Table size="small">
                     <TableBody>
                         {entries.map(([k, v]) => (
                             <TableRow key={k}>
-                                <TableCell style={{width: "35%", padding: "4px"}}>
+                                <TableCell style={{width: "35%", padding: "6px 8px", borderBottom: "none"}}>
                                     <TextField size="small" fullWidth label={keyLabel}
                                                defaultValue={k}
                                                onBlur={(e) => renameKey(k, e.target.value)} />
                                 </TableCell>
-                                <TableCell style={{padding: "4px"}}>
+                                <TableCell style={{padding: "6px 8px", borderBottom: "none"}}>
                                     <TextField size="small" fullWidth label={valueLabel}
                                                value={v}
                                                onChange={(e) => setVal(k, e.target.value)} />
                                 </TableCell>
-                                <TableCell style={{width: "32px", padding: "4px"}}>
+                                <TableCell style={{width: "40px", padding: "6px 0px", borderBottom: "none"}}>
                                     <IconButton size="small" color="error" onClick={() => removeKey(k)}>
                                         <DeleteIcon fontSize="small" />
                                     </IconButton>
@@ -245,7 +305,7 @@ const EnumField = ({schema, value, onChange}) => {
     const choices = schema.choices || [];
     const labels = schema.choiceLabels || {};
     return (
-        <FormControl size="small" fullWidth style={{marginTop: "4px", marginBottom: "4px"}}>
+        <FormControl size="small" fullWidth style={{marginTop: "8px", marginBottom: "4px"}}>
             {schema.label && <InputLabel>{schema.label}</InputLabel>}
             <Select
                 value={value ?? ""}
@@ -256,51 +316,75 @@ const EnumField = ({schema, value, onChange}) => {
                     <MenuItem key={c} value={c}>{labels[c] || c}</MenuItem>
                 ))}
             </Select>
+            {schema.description && (
+                <Typography variant="caption" color="text.secondary" style={{marginTop: "4px"}}>
+                    {schema.description}
+                </Typography>
+            )}
         </FormControl>
     );
 };
 
 const StringField = ({schema, value, onChange}) => (
-    <TextField
-        size="small"
-        fullWidth
-        label={schema.label}
-        placeholder={schema.placeholder}
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        style={{marginTop: "4px", marginBottom: "4px"}}
-    />
+    <div style={{marginTop: "8px", marginBottom: "4px"}}>
+        <TextField
+            size="small"
+            fullWidth
+            label={schema.label}
+            placeholder={schema.placeholder}
+            value={value ?? ""}
+            onChange={(e) => onChange(e.target.value)}
+        />
+        {schema.description && (
+            <Typography variant="caption" color="text.secondary" style={{display: "block", marginTop: "4px"}}>
+                {schema.description}
+            </Typography>
+        )}
+    </div>
 );
 
 const NumberField = ({schema, value, onChange}) => (
-    <TextField
-        size="small"
-        fullWidth
-        type="number"
-        label={schema.label}
-        value={value ?? 0}
-        onChange={(e) => onChange(Number(e.target.value))}
-        style={{marginTop: "4px", marginBottom: "4px"}}
-    />
+    <div style={{marginTop: "8px", marginBottom: "4px"}}>
+        <TextField
+            size="small"
+            fullWidth
+            type="number"
+            label={schema.label}
+            value={value ?? 0}
+            onChange={(e) => onChange(Number(e.target.value))}
+        />
+        {schema.description && (
+            <Typography variant="caption" color="text.secondary" style={{display: "block", marginTop: "4px"}}>
+                {schema.description}
+            </Typography>
+        )}
+    </div>
 );
 
 const BooleanField = ({schema, value, onChange}) => (
-    <FormControlLabel
-        label={schema.label || ""}
-        control={<Switch checked={!!value} onChange={(e) => onChange(e.target.checked)} />}
-    />
+    <div style={{marginTop: "8px", marginBottom: "4px"}}>
+        <FormControlLabel
+            label={schema.label || ""}
+            control={<Switch checked={!!value} onChange={(e) => onChange(e.target.checked)} />}
+        />
+        {schema.description && (
+            <Typography variant="caption" color="text.secondary" style={{display: "block"}}>
+                {schema.description}
+            </Typography>
+        )}
+    </div>
 );
 
-export function SchemaFormRenderer({schema, value, onChange}){
+export function SchemaFormRenderer({schema, value, onChange, depth}){
     if(!schema) return null;
     switch(schema.type){
         case "object":
-            return <ObjectField schema={schema} value={value} onChange={onChange} />;
+            return <ObjectField schema={schema} value={value} onChange={onChange} depth={depth} />;
         case "array":
             if(schema.items?.type === "object"){
-                return <ArrayOfObjectField schema={schema} value={value} onChange={onChange} />;
+                return <ArrayOfObjectField schema={schema} value={value} onChange={onChange} depth={depth} />;
             }
-            return <ArrayOfPrimitiveField schema={schema} value={value} onChange={onChange} />;
+            return <ArrayOfPrimitiveField schema={schema} value={value} onChange={onChange} depth={depth} />;
         case "enum":
             return <EnumField schema={schema} value={value} onChange={onChange} />;
         case "string":
