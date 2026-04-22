@@ -842,16 +842,12 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
     //groupedData.sort((a,b) => -b.name.localeCompare(a.name));
     return groupedData;
 }
-const isParamModifiedFromDefault = (p) => {
-    // Date defaults are computed relative to "now" and don't have a
-    // static baseline to compare against, so suppress the indicator.
-    if(p?.parameter_type === "Date") return false;
-    // File defaults are opaque upload references, also skip.
-    if(p?.parameter_type === "File" || p?.parameter_type === "FileMultiple") return false;
-    // Compare tracked vs initial — both are the parsed component-native
-    // type populated from the same source, so JSON.stringify gives a
-    // reliable deep-equality check. default_value stays as the raw DB
-    // string and doesn't round-trip safely for arrays/objects.
+const hasParamChangedSinceLoad = (p) => {
+    // "Changed" == different from what was auto-populated when the
+    // operator landed on this page (either the c2 profile's default
+    // or, in edit flows, the previously-saved value). Works uniformly
+    // across parameter types because trackedValue and initialValue are
+    // both stored in the same component-native shape.
     const tracked = p?.trackedValue;
     const initial = p?.initialValue;
     if(tracked === undefined) return false;
@@ -875,12 +871,12 @@ export const ConfigurationSummary = ({buildParameters, os, c2_name}) => {
                 }
                 {b?.parameters?.map( (p) => {
                     const displayLabel = (p.display_name && p.display_name.length > 0) ? p.display_name : p.name;
-                    const modified = isParamModifiedFromDefault(p);
+                    const changed = hasParamChangedSinceLoad(p);
                     return (
                     <div className="mythic-create-summary-row" key={p.name}>
                         <Typography component="div" className="mythic-create-summary-name" style={{display: "flex", alignItems: "center", gap: "0.35rem"}}>
-                            {modified && (
-                                <span title="Modified from default"
+                            {changed && (
+                                <span title="Changed since load"
                                       style={{display: "inline-block", width: 8, height: 8, borderRadius: "50%", backgroundColor: theme.palette.warning.main, flexShrink: 0}} />
                             )}
                             {displayLabel}
