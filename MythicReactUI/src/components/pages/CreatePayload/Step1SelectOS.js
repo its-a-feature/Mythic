@@ -754,7 +754,7 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
             byGroup[g].push(p);
         }
         return order.map(g => ({
-            name: `${c2_name} · ${g}`,
+            name: g,
             parameters: byGroup[g],
         }));
     }
