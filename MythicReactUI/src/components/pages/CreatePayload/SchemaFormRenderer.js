@@ -16,6 +16,54 @@ import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+
+const CollapsibleSection = ({label, summary, description, defaultCollapsed, children}) => {
+    const [collapsed, setCollapsed] = React.useState(!!defaultCollapsed);
+    return (
+        <div style={{marginTop: "12px", marginBottom: "8px"}}>
+            <div
+                role="button"
+                tabIndex={0}
+                aria-expanded={!collapsed}
+                onClick={() => setCollapsed(prev => !prev)}
+                onKeyDown={(e) => {
+                    if(e.key === "Enter" || e.key === " "){
+                        e.preventDefault();
+                        setCollapsed(prev => !prev);
+                    }
+                }}
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "2px",
+                    cursor: "pointer",
+                    userSelect: "none",
+                    marginBottom: "4px",
+                }}
+            >
+                {collapsed
+                    ? <ChevronRightIcon fontSize="small" style={{opacity: 0.7}} />
+                    : <ExpandMoreIcon fontSize="small" style={{opacity: 0.7}} />}
+                <Typography variant="subtitle2" style={{fontWeight: 600}}>
+                    {label}
+                </Typography>
+                {summary && (
+                    <Typography variant="caption" color="text.secondary" style={{marginLeft: "4px"}}>
+                        {summary}
+                    </Typography>
+                )}
+            </div>
+            {!collapsed && description && (
+                <Typography variant="caption" color="text.secondary" style={{display: "block", marginBottom: "6px", marginLeft: "22px"}}>
+                    {description}
+                </Typography>
+            )}
+            {!collapsed && children}
+        </div>
+    );
+};
 
 // A schema descriptor is a JSON object. Supported `type` values:
 //   object      { type: "object", fields: [ {name, type, label, description, show_when?, ...}, ... ] }
@@ -121,44 +169,35 @@ const ObjectField = ({schema, value, onChange, depth}) => {
         );
     }
 
-    return (
-        <div style={{marginTop: "12px", marginBottom: "8px"}}>
-            {schema.label && (
-                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "4px"}}>
-                    {schema.label}
-                </Typography>
-            )}
-            {schema.description && (
-                <Typography variant="caption" color="text.secondary" style={{display: "block", marginBottom: "6px"}}>
-                    {schema.description}
-                </Typography>
-            )}
-            <div style={{
-                borderLeft: "2px solid rgba(127,127,127,0.3)",
-                paddingLeft: "14px",
-                paddingRight: "4px",
-                paddingTop: "4px",
-                paddingBottom: "4px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "6px",
-            }}>
-                {body}
-            </div>
+    const inner = (
+        <div style={{
+            borderLeft: "2px solid rgba(127,127,127,0.3)",
+            paddingLeft: "14px",
+            paddingRight: "4px",
+            paddingTop: "4px",
+            paddingBottom: "4px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+        }}>
+            {body}
         </div>
     );
+    if(schema.label){
+        return (
+            <CollapsibleSection label={schema.label} description={schema.description}>
+                {inner}
+            </CollapsibleSection>
+        );
+    }
+    return <div style={{marginTop: "12px", marginBottom: "8px"}}>{inner}</div>;
 };
 
 const ArrayOfPrimitiveField = ({schema, value, onChange, depth}) => {
     const arr = Array.isArray(value) ? value : [];
     const itemSchema = schema.items || {type: "string"};
-    return (
-        <div style={{marginTop: "12px", marginBottom: "8px"}}>
-            {schema.label && (
-                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "6px"}}>
-                    {schema.label}
-                </Typography>
-            )}
+    const body = (
+        <React.Fragment>
             {arr.map((item, i) => (
                 <div key={i} style={{display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px"}}>
                     <div style={{flexGrow: 1, minWidth: 0}}>
@@ -187,20 +226,25 @@ const ArrayOfPrimitiveField = ({schema, value, onChange, depth}) => {
                     onClick={() => onChange([...arr, emptyValueForSchema(itemSchema)])}>
                 Add
             </Button>
-        </div>
+        </React.Fragment>
     );
+    if(schema.label){
+        return (
+            <CollapsibleSection label={schema.label}
+                                summary={`(${arr.length})`}
+                                description={schema.description}>
+                {body}
+            </CollapsibleSection>
+        );
+    }
+    return <div style={{marginTop: "12px", marginBottom: "8px"}}>{body}</div>;
 };
 
 const ArrayOfObjectField = ({schema, value, onChange, depth}) => {
     const arr = Array.isArray(value) ? value : [];
     const itemSchema = schema.items;
-    return (
-        <div style={{marginTop: "12px", marginBottom: "8px"}}>
-            {schema.label && (
-                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "6px"}}>
-                    {schema.label}
-                </Typography>
-            )}
+    const body = (
+        <React.Fragment>
             {arr.map((item, i) => (
                 <Paper variant="outlined" key={i}
                        style={{
@@ -245,8 +289,18 @@ const ArrayOfObjectField = ({schema, value, onChange, depth}) => {
                     onClick={() => onChange([...arr, emptyValueForSchema(itemSchema)])}>
                 Add
             </Button>
-        </div>
+        </React.Fragment>
     );
+    if(schema.label){
+        return (
+            <CollapsibleSection label={schema.label}
+                                summary={`(${arr.length})`}
+                                description={schema.description}>
+                {body}
+            </CollapsibleSection>
+        );
+    }
+    return <div style={{marginTop: "12px", marginBottom: "8px"}}>{body}</div>;
 };
 
 const StringMapField = ({schema, value, onChange}) => {
@@ -276,13 +330,8 @@ const StringMapField = ({schema, value, onChange}) => {
         while(key in obj){ i++; key = `${base}_${i}`; }
         onChange({...obj, [key]: ""});
     };
-    return (
-        <div style={{marginTop: "12px", marginBottom: "8px"}}>
-            {schema.label && (
-                <Typography variant="subtitle2" style={{fontWeight: 600, marginBottom: "6px"}}>
-                    {schema.label}
-                </Typography>
-            )}
+    const body = (
+        <React.Fragment>
             {entries.length > 0 && (
                 <Table size="small">
                     <TableBody>
@@ -311,8 +360,18 @@ const StringMapField = ({schema, value, onChange}) => {
             <Button size="small" startIcon={<AddCircleIcon />} onClick={addEntry}>
                 Add entry
             </Button>
-        </div>
+        </React.Fragment>
     );
+    if(schema.label){
+        return (
+            <CollapsibleSection label={schema.label}
+                                summary={`(${entries.length})`}
+                                description={schema.description}>
+                {body}
+            </CollapsibleSection>
+        );
+    }
+    return <div style={{marginTop: "12px", marginBottom: "8px"}}>{body}</div>;
 };
 
 const EnumField = ({schema, value, onChange}) => {
