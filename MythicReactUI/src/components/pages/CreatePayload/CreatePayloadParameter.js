@@ -7,7 +7,8 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import DeleteIcon from '@mui/icons-material/Delete';
-import {IconButton, Input, Button, MenuItem, Grid, Dialog, DialogTitle, DialogContent, DialogActions, Chip} from '@mui/material';
+import {IconButton, Input, Button, MenuItem, Grid, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Tabs, Tab, CircularProgress} from '@mui/material';
+import {SchemaFormRenderer, emptyValueForSchema} from './SchemaFormRenderer';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -75,6 +76,7 @@ function getConfigEditorMode(parameterType, randomize, formatString){
     const tail = parts.slice(2);
     let languageHint = "text";
     let randomFn = "";
+    let formFn = "";
     for(const raw of tail){
         const token = raw.trim();
         if(token === ""){ continue; }
@@ -87,8 +89,9 @@ function getConfigEditorMode(parameterType, randomize, formatString){
         const key = token.slice(0, eq).trim().toLowerCase();
         const value = token.slice(eq + 1).trim();
         if(key === "random_fn"){ randomFn = value; }
+        else if(key === "form_fn"){ formFn = value; }
     }
-    return {languageHint, randomFn};
+    return {languageHint, randomFn, formFn};
 }
 function getConfigStatus(value, languageHint){
     const raw = (value ?? "");
@@ -168,6 +171,10 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const [configEditorOpen, setConfigEditorOpen] = React.useState(false);
     const aceEditorRef = React.useRef(null);
     const preRandomValueRef = React.useRef("");
+    const [editorTab, setEditorTab] = React.useState('source');
+    const [formSchema, setFormSchema] = React.useState(null);
+    const [formSchemaError, setFormSchemaError] = React.useState("");
+    const [visualParseError, setVisualParseError] = React.useState("");
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
     const [multiValue, setMultiValue] = React.useState([]);
@@ -249,6 +256,37 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setBackdropOpen(false);
         }
     });
+    const [fetchFormSchema, {loading: formSchemaLoading}] = useMutation(c2CustomRPCFunctionMutation, {
+        onCompleted: (data) => {
+            if(data?.c2CustomRPCFunction?.status === "success"){
+                const result = data.c2CustomRPCFunction.result || {};
+                if(result.schema && typeof result.schema === "object"){
+                    setFormSchema(result.schema);
+                    setFormSchemaError("");
+                } else {
+                    setFormSchemaError("Schema RPC returned no schema");
+                }
+            } else {
+                setFormSchemaError(data?.c2CustomRPCFunction?.error || "Failed to fetch form schema");
+            }
+        },
+        onError: (err) => {
+            setFormSchemaError("Failed to reach C2 custom RPC");
+            console.log(err);
+        }
+    });
+    React.useEffect(() => {
+        if(!configEditorOpen) return;
+        if(!configEditorMode?.formFn) return;
+        if(formSchema) return;
+        if(formSchemaLoading) return;
+        if(!c2_profile_name) return;
+        fetchFormSchema({variables: {
+            c2_profile: c2_profile_name,
+            function_name: configEditorMode.formFn,
+            arguments: {},
+        }});
+    }, [configEditorOpen, configEditorMode?.formFn]);
     const [invokeC2CustomRPC, {loading: c2CustomRPCLoading}] = useMutation(c2CustomRPCFunctionMutation, {
         onCompleted: (data) => {
             if(data?.c2CustomRPCFunction?.status === "success"){
@@ -488,6 +526,37 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             snackActions.info("Only JSON formatting is available inline. TOML input is left as-is.");
         }
     }
+    const parseSourceForVisual = () => {
+        const raw = (value ?? "").trim();
+        if(raw === ""){
+            return formSchema ? emptyValueForSchema(formSchema) : {};
+        }
+        return JSON.parse(raw);
+    };
+    const visualValue = React.useMemo(() => {
+        if(editorTab !== 'visual') return null;
+        try { return parseSourceForVisual(); }
+        catch(_) { return null; }
+    }, [editorTab, value, formSchema]);
+    const onVisualChange = (newVal) => {
+        try {
+            const serialized = JSON.stringify(newVal, null, 2);
+            onChangeText(name, serialized, testParameterValues(serialized));
+        } catch(e) {
+            snackActions.warning("Failed to serialize visual form state");
+            console.log(e);
+        }
+    };
+    const onSwitchToVisual = () => {
+        try {
+            parseSourceForVisual();
+            setVisualParseError("");
+            setEditorTab('visual');
+        } catch(e) {
+            setVisualParseError(e.message || String(e));
+            setEditorTab('source');
+        }
+    };
     const showUndoSnackbar = (label, previousValue) => {
         snackActions.info(
             <span style={{display: "inline-flex", alignItems: "center", gap: "8px"}}>
@@ -944,35 +1013,78 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                 </div>
                             </Paper>
                             <Dialog open={configEditorOpen} onClose={() => setConfigEditorOpen(false)} maxWidth="lg" fullWidth>
-                                <DialogTitle>{name}</DialogTitle>
+                                <DialogTitle style={{paddingBottom: 0}}>
+                                    {display_name && display_name.length > 0 ? display_name : name}
+                                    {configEditorMode.formFn && (
+                                        <Tabs value={editorTab}
+                                              onChange={(e, v) => { if(v === 'visual'){ onSwitchToVisual(); } else { setEditorTab('source'); } }}
+                                              style={{marginTop: "4px", minHeight: "32px"}}
+                                              TabIndicatorProps={{style: {height: "2px"}}}>
+                                            <Tab value="visual" label="Visual" style={{minHeight: "32px", textTransform: "none"}} />
+                                            <Tab value="source" label="Source" style={{minHeight: "32px", textTransform: "none"}} />
+                                        </Tabs>
+                                    )}
+                                </DialogTitle>
                                 <DialogContent dividers>
-                                    <div style={{display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap"}}>
-                                        <Typography variant="caption" color="text.secondary" style={{flex: "1 1 auto"}}>
-                                            Paste configuration inline, upload a local JSON/TOML file, or leave empty for default behavior without transforms.
-                                        </Typography>
-                                        <Button variant="text" size="small" onClick={onFormatConfigEditorJson}>
-                                            Format
-                                        </Button>
-                                        <Button variant="text" size="small" onClick={onCopyConfigToClipboard}>
-                                            Copy
-                                        </Button>
-                                    </div>
-                                    <AceEditor
-                                        mode={aceMode}
-                                        theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
-                                        width="100%"
-                                        minLines={20}
-                                        maxLines={40}
-                                        showPrintMargin={false}
-                                        wrapEnabled={true}
-                                        value={value}
-                                        placeholder={getConfigEditorPlaceholder(configEditorMode.languageHint)}
-                                        onChange={(newValue) => onChangeText(name, newValue, testParameterValues(newValue))}
-                                        setOptions={{useWorker: false, tabSize: 2, useSoftTabs: true}}
-                                        name={"ace_config_editor_" + id}
-                                        onLoad={(editor) => { aceEditorRef.current = editor; }}
-                                        editorProps={{$blockScrolling: true}}
-                                    />
+                                    {(!configEditorMode.formFn || editorTab === 'source') && (
+                                        <React.Fragment>
+                                            <div style={{display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap"}}>
+                                                <Typography variant="caption" color="text.secondary" style={{flex: "1 1 auto"}}>
+                                                    Paste configuration inline, upload a local JSON/TOML file, or leave empty for default behavior without transforms.
+                                                </Typography>
+                                                <Button variant="text" size="small" onClick={onFormatConfigEditorJson}>
+                                                    Format
+                                                </Button>
+                                                <Button variant="text" size="small" onClick={onCopyConfigToClipboard}>
+                                                    Copy
+                                                </Button>
+                                            </div>
+                                            {visualParseError && (
+                                                <Typography variant="caption" color="error" style={{display: "block", marginBottom: "4px"}}>
+                                                    Visual tab unavailable: {visualParseError}
+                                                </Typography>
+                                            )}
+                                            <AceEditor
+                                                mode={aceMode}
+                                                theme={theme.palette.mode === 'dark' ? 'monokai' : 'github'}
+                                                width="100%"
+                                                minLines={20}
+                                                maxLines={40}
+                                                showPrintMargin={false}
+                                                wrapEnabled={true}
+                                                value={value}
+                                                placeholder={getConfigEditorPlaceholder(configEditorMode.languageHint)}
+                                                onChange={(newValue) => onChangeText(name, newValue, testParameterValues(newValue))}
+                                                setOptions={{useWorker: false, tabSize: 2, useSoftTabs: true}}
+                                                name={"ace_config_editor_" + id}
+                                                onLoad={(editor) => { aceEditorRef.current = editor; }}
+                                                editorProps={{$blockScrolling: true}}
+                                            />
+                                        </React.Fragment>
+                                    )}
+                                    {configEditorMode.formFn && editorTab === 'visual' && (
+                                        <React.Fragment>
+                                            {formSchemaLoading && (
+                                                <div style={{display: "flex", gap: "8px", alignItems: "center", padding: "24px", justifyContent: "center"}}>
+                                                    <CircularProgress size={20} />
+                                                    <Typography variant="body2">Loading form schema…</Typography>
+                                                </div>
+                                            )}
+                                            {!formSchemaLoading && formSchemaError && (
+                                                <Typography variant="body2" color="error">
+                                                    {formSchemaError}
+                                                </Typography>
+                                            )}
+                                            {!formSchemaLoading && !formSchemaError && formSchema && visualValue !== null && (
+                                                <SchemaFormRenderer schema={formSchema} value={visualValue} onChange={onVisualChange} />
+                                            )}
+                                            {!formSchemaLoading && !formSchemaError && !formSchema && (
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Form schema has not been fetched yet. Open the editor again after the container is reachable.
+                                                </Typography>
+                                            )}
+                                        </React.Fragment>
+                                    )}
                                 </DialogContent>
                                 <DialogActions>
                                     <Button onClick={() => setConfigEditorOpen(false)}>Close</Button>
