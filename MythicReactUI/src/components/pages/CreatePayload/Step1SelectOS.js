@@ -733,7 +733,29 @@ export const GetGroupedParameters = ({buildParameters, os, c2_name}) => {
     });
     if(c2_name){
         buildParameters.sort(sortByUiPositionThenName);
-        return [{name: c2_name, parameters: buildParameters}];
+        // If no parameter in this c2 profile has a group_name set, keep the
+        // legacy behavior: a single bucket labeled with the c2 profile name.
+        const hasAnyGroup = buildParameters.some(p => p?.group_name && p.group_name.length > 0);
+        if(!hasAnyGroup){
+            return [{name: c2_name, parameters: buildParameters}];
+        }
+        // Otherwise honor group_name. Scope the group label with the c2
+        // profile name so multiple included profiles don't collide when
+        // they share a group name (e.g. both defining a "Callbacks" group).
+        const byGroup = {};
+        const order = [];
+        for(const p of buildParameters){
+            const g = (p?.group_name && p.group_name.length > 0) ? p.group_name : "Other";
+            if(!(g in byGroup)){
+                byGroup[g] = [];
+                order.push(g);
+            }
+            byGroup[g].push(p);
+        }
+        return order.map(g => ({
+            name: `${c2_name} · ${g}`,
+            parameters: byGroup[g],
+        }));
     }
     for(let i = 0; i < buildParameters.length; i++){
         for(let j = 0; j < groupedData.length; j++){
