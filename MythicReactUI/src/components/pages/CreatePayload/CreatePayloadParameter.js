@@ -76,7 +76,6 @@ function getConfigEditorMode(parameterType, randomize, formatString){
     const tail = parts.slice(2);
     let languageHint = "text";
     let randomFn = "";
-    let formFn = "";
     for(const raw of tail){
         const token = raw.trim();
         if(token === ""){ continue; }
@@ -89,9 +88,8 @@ function getConfigEditorMode(parameterType, randomize, formatString){
         const key = token.slice(0, eq).trim().toLowerCase();
         const value = token.slice(eq + 1).trim();
         if(key === "random_fn"){ randomFn = value; }
-        else if(key === "form_fn"){ formFn = value; }
     }
-    return {languageHint, randomFn, formFn};
+    return {languageHint, randomFn};
 }
 function getConfigStatus(value, languageHint){
     const raw = (value ?? "");
@@ -157,7 +155,7 @@ uris = ["/"]`;
 export function CreatePayloadParameter({onChange, parameter_type, default_value, name, required, verifier_regex, id,
                                            description, initialValue, choices, trackedValue, instance_name,
                                            payload_type, selected_os, dynamic_query_function, randomize, format_string,
-                                           c2_profile_name, display_name, choices_display_names,
+                                           c2_profile_name, display_name, choices_display_names, form_schema,
                                            displayMode = "table"}){
     const theme = useTheme();
     const configEditorMode = getConfigEditorMode(parameter_type, randomize, format_string);
@@ -172,8 +170,6 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const aceEditorRef = React.useRef(null);
     const preRandomValueRef = React.useRef("");
     const [editorTab, setEditorTab] = React.useState('source');
-    const [formSchema, setFormSchema] = React.useState(null);
-    const [formSchemaError, setFormSchemaError] = React.useState("");
     const [visualParseError, setVisualParseError] = React.useState("");
     const [value, setValue] = React.useState("");
     const [valueNum, setValueNum] = React.useState(0);
@@ -256,42 +252,10 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             setBackdropOpen(false);
         }
     });
-    const [fetchFormSchema, {loading: formSchemaLoading}] = useMutation(c2CustomRPCFunctionMutation, {
-        onCompleted: (data) => {
-            if(data?.c2CustomRPCFunction?.status === "success"){
-                const result = data.c2CustomRPCFunction.result || {};
-                if(result.schema && typeof result.schema === "object"){
-                    setFormSchema(result.schema);
-                    setFormSchemaError("");
-                } else {
-                    setFormSchemaError("Schema RPC returned no schema");
-                }
-            } else {
-                setFormSchemaError(data?.c2CustomRPCFunction?.error || "Failed to fetch form schema");
-            }
-        },
-        onError: (err) => {
-            setFormSchemaError("Failed to reach C2 custom RPC");
-            console.log(err);
-        }
-    });
-    React.useEffect(() => {
-        // Refetch schema each time the modal opens so updates on the
-        // container side propagate without requiring a page reload.
-        if(!configEditorOpen){
-            setFormSchema(null);
-            setFormSchemaError("");
-            return;
-        }
-        if(!configEditorMode?.formFn) return;
-        if(formSchemaLoading) return;
-        if(!c2_profile_name) return;
-        fetchFormSchema({variables: {
-            c2_profile: c2_profile_name,
-            function_name: configEditorMode.formFn,
-            arguments: {},
-        }});
-    }, [configEditorOpen, configEditorMode?.formFn]);
+    // Form schema is delivered as a parameter-level field via the c2 sync
+    // pipeline — no runtime RPC call required. Treat non-empty objects
+    // with a `type` key as a valid schema.
+    const hasFormSchema = !!(form_schema && typeof form_schema === "object" && !Array.isArray(form_schema) && typeof form_schema.type === "string" && form_schema.type.length > 0);
     const [invokeC2CustomRPC, {loading: c2CustomRPCLoading}] = useMutation(c2CustomRPCFunctionMutation, {
         onCompleted: (data) => {
             if(data?.c2CustomRPCFunction?.status === "success"){
@@ -534,7 +498,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     const parseSourceForVisual = () => {
         const raw = (value ?? "").trim();
         if(raw === ""){
-            return formSchema ? emptyValueForSchema(formSchema) : {};
+            return hasFormSchema ? emptyValueForSchema(form_schema) : {};
         }
         return JSON.parse(raw);
     };
@@ -542,7 +506,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         if(editorTab !== 'visual') return null;
         try { return parseSourceForVisual(); }
         catch(_) { return null; }
-    }, [editorTab, value, formSchema]);
+    }, [editorTab, value, form_schema]);
     const onVisualChange = (newVal) => {
         try {
             const serialized = JSON.stringify(newVal, null, 2);
@@ -1020,7 +984,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                             <Dialog open={configEditorOpen} onClose={() => setConfigEditorOpen(false)} maxWidth="lg" fullWidth>
                                 <DialogTitle style={{paddingBottom: 0}}>
                                     {display_name && display_name.length > 0 ? display_name : name}
-                                    {configEditorMode.formFn && (
+                                    {hasFormSchema && (
                                         <Tabs value={editorTab}
                                               onChange={(e, v) => { if(v === 'visual'){ onSwitchToVisual(); } else { setEditorTab('source'); } }}
                                               style={{marginTop: "4px", minHeight: "32px"}}
@@ -1031,7 +995,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                     )}
                                 </DialogTitle>
                                 <DialogContent dividers>
-                                    {(!configEditorMode.formFn || editorTab === 'source') && (
+                                    {(!hasFormSchema || editorTab === 'source') && (
                                         <React.Fragment>
                                             <div style={{display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap"}}>
                                                 <Typography variant="caption" color="text.secondary" style={{flex: "1 1 auto"}}>
@@ -1067,28 +1031,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                             />
                                         </React.Fragment>
                                     )}
-                                    {configEditorMode.formFn && editorTab === 'visual' && (
-                                        <React.Fragment>
-                                            {formSchemaLoading && (
-                                                <div style={{display: "flex", gap: "8px", alignItems: "center", padding: "24px", justifyContent: "center"}}>
-                                                    <CircularProgress size={20} />
-                                                    <Typography variant="body2">Loading form schema…</Typography>
-                                                </div>
-                                            )}
-                                            {!formSchemaLoading && formSchemaError && (
-                                                <Typography variant="body2" color="error">
-                                                    {formSchemaError}
-                                                </Typography>
-                                            )}
-                                            {!formSchemaLoading && !formSchemaError && formSchema && visualValue !== null && (
-                                                <SchemaFormRenderer schema={formSchema} value={visualValue} onChange={onVisualChange} />
-                                            )}
-                                            {!formSchemaLoading && !formSchemaError && !formSchema && (
-                                                <Typography variant="body2" color="text.secondary">
-                                                    Form schema has not been fetched yet. Open the editor again after the container is reachable.
-                                                </Typography>
-                                            )}
-                                        </React.Fragment>
+                                    {hasFormSchema && editorTab === 'visual' && visualValue !== null && (
+                                        <SchemaFormRenderer schema={form_schema} value={visualValue} onChange={onVisualChange} />
                                     )}
                                 </DialogContent>
                                 <DialogActions>

@@ -17,5 +17,6 @@ type C2profileparameters struct {
 	IsCryptoType  bool            `db:"crypto_type"`
 	Choices              MythicJSONArray `db:"choices"`
 	ChoicesDisplayNames  MythicJSONText  `db:"choices_display_names"`
+	FormSchema           MythicJSONText  `db:"form_schema"`
 	UiPosition           int             `db:"ui_position"`
 }
