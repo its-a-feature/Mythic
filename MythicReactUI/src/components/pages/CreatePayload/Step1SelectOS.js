@@ -10,6 +10,9 @@ import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {PayloadSelect} from "../CreateWrapper/Step3SelectPayload";
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import IconButton from '@mui/material/IconButton';
 import {getDefaultChoices, getDefaultValueForType, getSavedToType} from "./Step2SelectPayloadType";
 import {CreatePayloadBuildParametersTable} from "./CreatePayloadBuildParametersTable";
 import {ParseForDisplay} from "../Payloads/DetailedPayloadTable";
@@ -585,6 +588,7 @@ export const ConfigureBuildParameters = (
 ) => {
     const [payloadTypeConfigPieces, setPayloadTypeConfigPieces] = React.useState({});
     const [payloadTypeParameters, setSelectedPayloadTypeParameters] = React.useState([]);
+    const [summaryCollapsed, setSummaryCollapsed] = React.useState(false);
     const getPayloadTypeBuildParameters = useMythicLazyQuery(GetBuildParametersQuery, {fetchPolicy: "network-only"});
     const onChange = (name, value, error) => {
         const newParams = payloadTypeParameters.map( (param) => {
@@ -687,12 +691,43 @@ export const ConfigureBuildParameters = (
                     </Typography>
                 </div>
             </div>
-            <div className="mythic-create-builder-split">
-                <section className="mythic-create-section mythic-create-section-scroll">
-                    <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
-                        Configuration Summary
-                    </Typography>
-                    <ConfigurationSummary buildParameters={payloadTypeParameters} os={os} />
+            <div className="mythic-create-builder-split" style={summaryCollapsed ? {gridTemplateColumns: "3rem minmax(0, 1fr)"} : undefined}>
+                <section
+                    className="mythic-create-section mythic-create-section-scroll"
+                    style={summaryCollapsed ? {alignItems: "center", cursor: "pointer", paddingLeft: "0.25rem", paddingRight: "0.25rem"} : undefined}
+                    onClick={summaryCollapsed ? () => setSummaryCollapsed(false) : undefined}
+                >
+                    <div style={{display: "flex", alignItems: "center", justifyContent: summaryCollapsed ? "center" : "space-between", gap: "0.5rem"}}>
+                        {!summaryCollapsed && (
+                            <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center", flexGrow: 1}}>
+                                Configuration Summary
+                            </Typography>
+                        )}
+                        <IconButton size="small"
+                                    aria-label={summaryCollapsed ? "Expand configuration summary" : "Collapse configuration summary"}
+                                    title={summaryCollapsed ? "Expand" : "Collapse"}
+                                    onClick={(e) => { e.stopPropagation(); setSummaryCollapsed(prev => !prev); }}>
+                            {summaryCollapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
+                        </IconButton>
+                    </div>
+                    {summaryCollapsed && (
+                        <div style={{flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center", userSelect: "none"}}>
+                            <Typography variant={"body2"} style={{
+                                fontWeight: 600,
+                                writingMode: "vertical-rl",
+                                transform: "rotate(180deg)",
+                                letterSpacing: 0,
+                                textTransform: "uppercase",
+                                fontSize: "0.75rem",
+                                opacity: 0.75,
+                            }}>
+                                Configuration Summary
+                            </Typography>
+                        </div>
+                    )}
+                    {!summaryCollapsed && (
+                        <ConfigurationSummary buildParameters={payloadTypeParameters} os={os} />
+                    )}
                 </section>
                 <section className="mythic-create-section mythic-create-section-scroll">
                     <CreatePayloadBuildParametersTable onChange={onChange} buildParameters={payloadTypeParameters} os={os}
