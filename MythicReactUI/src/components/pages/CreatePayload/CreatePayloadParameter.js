@@ -7,7 +7,7 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import DeleteIcon from '@mui/icons-material/Delete';
-import {IconButton, Input, Button, MenuItem, Grid, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Tabs, Tab, CircularProgress} from '@mui/material';
+import {IconButton, Input, Button, MenuItem, Grid, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Tabs, Tab} from '@mui/material';
 import {SchemaFormRenderer, emptyValueForSchema} from './SchemaFormRenderer';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
