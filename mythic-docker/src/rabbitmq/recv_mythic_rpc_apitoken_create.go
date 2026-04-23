@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -138,7 +139,7 @@ func MythicRPCAPITokenCreate(input MythicRPCAPITokenCreateMessage) MythicRPCAPIT
 	response.APIToken = accessToken
 	if apiToken.TokenType == mythicjwt.AUTH_METHOD_GRAPHQL_SPECTATOR {
 		// deactivate the token after 5 min (should be a short-lived use)
-		go updateAPITokenAfter5Minutes(apiToken.ID)
+		go updateAPITokenAfter5Minutes(apiToken.ID, response.APIToken)
 	}
 	return response
 }

@@ -3,10 +3,12 @@ import { createGlobalStyle} from "styled-components"
 export const GlobalStyles = createGlobalStyle`
 body {
     margin: 0
+    
 }
 html, body, #root {
     height: 100%;
     width: 100%;
+    color-scheme: light dark;
 }
 @media screen and (max-width: 1100px) {
     .hideOnSmallWidth {
@@ -185,16 +187,6 @@ tspan {
 
 .selectedTask {
     background-color: ${(props) => props.theme.selectedCallbackColor + "DD"} !important;
-}
-*::-webkit-scrollbar {
-  width: 0.4em;
-  height: 0.4em;
-}
-*::-webkit-scrollbar-track {
-  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.00);
-}
-*::-webkit-scrollbar-thumb {
-  background-color: ${(props) => props.theme.palette.secondary.dark};
 }
 .MythicResizableGrid-headerCellRow {
     display: flex;
