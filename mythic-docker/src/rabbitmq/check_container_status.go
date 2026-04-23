@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
@@ -27,6 +28,8 @@ var checkContainerStatusAddConsumingContainerChannel = make(chan databaseStructs
 var consumingContainersToCheck = map[string]databaseStructs.ConsumingContainer{}
 var checkContainerStatusAddCustomBrowserChannel = make(chan databaseStructs.CustomBrowser)
 var customBrowsersToCheck = map[string]databaseStructs.CustomBrowser{}
+var containerOnStartLock sync.Mutex
+var containerOnStartInFlight = map[string]bool{}
 
 func checkContainerStatusAddPT() {
 	for {
@@ -123,6 +126,14 @@ type rabbitmqAPIQuery struct {
 }
 
 func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
+	containerOnStartLock.Lock()
+	if containerOnStartInFlight[containerName] {
+		containerOnStartLock.Unlock()
+		logging.LogInfo("Skipping duplicate container on start run already in progress", "container", containerName)
+		return
+	}
+	containerOnStartInFlight[containerName] = true
+	containerOnStartLock.Unlock()
 	operations := []databaseStructs.Operation{}
 	err := database.DB.Select(&operations, `SELECT id FROM operation WHERE deleted=false and complete=false`)
 	if err != nil {
@@ -201,7 +212,7 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 			continue
 		}
 		onStartMessage.APIToken = plainAPITokenValue
-		go updateAPITokenAfter5Minutes(apiToken.ID)
+		go updateAPITokenAfter5Minutes(apiToken.ID, containerName)
 		err = RabbitMQConnection.SendContainerOnStart(onStartMessage)
 		if err != nil {
 			logging.LogError(err, "Failed to send container on start")
@@ -210,12 +221,15 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 		time.Sleep(5 * time.Second)
 	}
 }
-func updateAPITokenAfter5Minutes(apitoken_id int) {
+func updateAPITokenAfter5Minutes(apitokenID int, containerName string) {
 	<-time.After(5 * time.Minute)
-	_, err := database.DB.Exec(`UPDATE apitokens SET active=false, deleted=true WHERE id=$1`, apitoken_id)
+	_, err := database.DB.Exec(`UPDATE apitokens SET active=false, deleted=true WHERE id=$1`, apitokenID)
 	if err != nil {
 		logging.LogError(err, "failed to mark apitoken as deleted")
 	}
+	containerOnStartLock.Lock()
+	delete(containerOnStartInFlight, containerName)
+	containerOnStartLock.Unlock()
 }
 func checkContainerStatus() {
 	// get all queues from rabbitmq
