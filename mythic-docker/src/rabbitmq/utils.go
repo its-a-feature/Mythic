@@ -1298,7 +1298,7 @@ type operationMessage struct {
 	warning      bool
 }
 
-var operationMessageChannel = make(chan operationMessage, 100)
+var operationMessageChannel = make(chan operationMessage, 1000)
 
 func listenForOperationsMessages() {
 	timer := time.NewTimer(time.Second * 10)
@@ -1341,7 +1341,7 @@ func listenForOperationsMessages() {
 							if existingMessage.ID == 0 {
 								err = database.DB.Get(&existingMessage, `
 									SELECT id, count, "message", source, "level" FROM operationeventlog WHERE
-									warning=true and source=$1 and operation_id=$2 and resolved=false and deleted=false and "level"=$3
+									warning=true and resolved=false and deleted=false and source=$1 and operation_id=$2 and "level"=$3
 									`, sourceString, operation.ID, msg.messageLevel)
 								if !errors.Is(err, sql.ErrNoRows) && err != nil {
 									logging.LogError(err, "Failed to query existing event log message")
@@ -1453,8 +1453,8 @@ func listenForOperationsMessages() {
 						if msg.operationID == 0 {
 							updateObject.OperationID = operation.ID
 						}
-						if _, err := database.DB.NamedExec(`UPDATE operationeventlog SET 
-			resolved=true  WHERE warning=true AND resolved=false AND deleted=false AND message=:message AND operation_id=:operation_id`, updateObject); err != nil {
+						if _, err := database.DB.NamedExec(`UPDATE operationeventlog SET  resolved=true  
+                         WHERE warning=true AND resolved=false AND deleted=false AND message=:message AND operation_id=:operation_id`, updateObject); err != nil {
 							logging.LogError(err, "Failed to resolve message")
 						}
 						removeUnresolvedError(operation.ID)
@@ -1470,19 +1470,23 @@ func listenForOperationsMessages() {
 	}
 }
 func SendAllOperationsMessage(message string, operationID int, source string, messageLevel database.MESSAGE_TYPE, warning bool) {
-	operationMessageChannel <- operationMessage{
+	select {
+	case operationMessageChannel <- operationMessage{
 		action:       "send",
 		message:      message,
 		source:       source,
 		operationID:  operationID,
 		messageLevel: messageLevel,
 		warning:      warning,
+	}:
 	}
 }
 func ResolveAllOperationsMessage(message string, operationID int) {
-	operationMessageChannel <- operationMessage{
+	select {
+	case operationMessageChannel <- operationMessage{
 		action:      "remove",
 		operationID: operationID,
 		message:     message,
+	}:
 	}
 }
