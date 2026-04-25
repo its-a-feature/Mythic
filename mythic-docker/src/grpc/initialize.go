@@ -176,7 +176,7 @@ func (t *translationContainerServer) SetMythicToCustomChannelExited(translationC
 }
 func (t *translationContainerServer) CheckClientConnected(translationContainerName string) bool {
 	t.RLock()
-	defer t.Unlock()
+	defer t.RUnlock()
 	if _, ok := t.clients[translationContainerName]; ok {
 		connected := t.clients[translationContainerName].connectedMythicToCustom &&
 			t.clients[translationContainerName].connectedGenerateKeys &&
