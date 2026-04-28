@@ -8,59 +8,7 @@ object_relationships:
   - name: task
     using:
       foreign_key_constraint_on: task_id
-insert_permissions:
-  - role: developer
-    permission:
-      check:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
-      columns:
-        - attack_id
-        - task_id
-  - role: mythic_admin
-    permission:
-      check:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
-      columns:
-        - attack_id
-        - task_id
-  - role: operation_admin
-    permission:
-      check:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
-      columns:
-        - attack_id
-        - task_id
-  - role: operator
-    permission:
-      check:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
-      columns:
-        - attack_id
-        - task_id
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - id
-        - attack_id
-        - task_id
-      filter:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
   - role: mythic_admin
     permission:
       columns:
@@ -68,10 +16,15 @@ select_permissions:
         - attack_id
         - task_id
       filter:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-task-read-operations
   - role: operation_admin
     permission:
       columns:
@@ -79,10 +32,15 @@ select_permissions:
         - attack_id
         - task_id
       filter:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-task-read-operations
   - role: operator
     permission:
       columns:
@@ -90,10 +48,15 @@ select_permissions:
         - attack_id
         - task_id
       filter:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-task-read-operations
   - role: spectator
     permission:
       columns:
@@ -101,36 +64,49 @@ select_permissions:
         - attack_id
         - task_id
       filter:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-task-read-operations
 delete_permissions:
-  - role: developer
-    permission:
-      filter:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
   - role: mythic_admin
     permission:
       filter:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-task-write-operations
   - role: operation_admin
     permission:
       filter:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-task-write-operations
   - role: operator
     permission:
       filter:
-        task:
-          callback:
-            operation_id:
-              _eq: X-Hasura-current-operation-id
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-task-write-operations

@@ -2,10 +2,11 @@ package webcontroller
 
 import (
 	"errors"
-	"github.com/its-a-feature/Mythic/database"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/its-a-feature/Mythic/database"
 
 	"github.com/gin-gonic/gin"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -49,29 +50,26 @@ func SendExternalWebhookWebhook(c *gin.Context) {
 		webhookDataMap := make(map[string]interface{})
 		for key, entry := range input.Input.WebhookData {
 			if strings.HasSuffix(key, "_id") {
-				if taskIdInt, err := strconv.Atoi(entry); err != nil {
-					logging.LogError(err, "Failed to convert task_id to int", "_id value", entry)
+				if idValue, err := strconv.Atoi(entry); err != nil {
+					logging.LogError(err, "Failed to convert id value to int", "key", key, "_id value", entry)
 				} else {
-					if key == "task_id" && taskIdInt > 0 {
-						// need to convert this from display_id to task_id
-						task := databaseStructs.Task{DisplayID: taskIdInt, OperationID: operatorOperation.CurrentOperation.ID}
-						if err := database.DB.Get(&task, `SELECT id FROM task WHERE display_id=$1 AND operation_id=$2`,
-							task.DisplayID, task.OperationID); err != nil {
+					if key == "task_display_id" && idValue > 0 {
+						task := databaseStructs.Task{DisplayID: idValue, OperationID: operatorOperation.CurrentOperation.ID}
+						err = database.DB.Get(&task, `SELECT id FROM task WHERE display_id=$1 AND operation_id=$2`,
+							task.DisplayID, task.OperationID)
+						if err != nil {
 							logging.LogError(err, "Failed to find task given id and operation")
 							c.JSON(http.StatusOK, SendExternalWebhookResponse{
 								Status: "error",
 								Error:  "Failed to locate task",
 							})
 							return
-						} else {
-							webhookDataMap["task_id"] = task.ID
-							webhookDataMap["display_id"] = taskIdInt
 						}
-
+						webhookDataMap["task_id"] = task.ID
+						webhookDataMap["task_display_id"] = idValue
 					} else {
-						webhookDataMap[key] = taskIdInt
+						webhookDataMap[key] = idValue
 					}
-
 				}
 			} else {
 				webhookDataMap[key] = entry

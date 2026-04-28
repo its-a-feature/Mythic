@@ -2,6 +2,9 @@ table:
   name: operatoroperation
   schema: public
 object_relationships:
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
   - name: disabledcommandsprofile
     using:
       foreign_key_constraint_on: base_disabled_commands_id
@@ -11,41 +14,11 @@ object_relationships:
   - name: operator
     using:
       foreign_key_constraint_on: operator_id
-insert_permissions:
-  - role: mythic_admin
-    permission:
-      check: {}
-      columns:
-        - base_disabled_commands_id
-        - operation_id
-        - operator_id
-        - view_mode
-  - role: operation_admin
-    permission:
-      check:
-        operation_id:
-          _in: X-Hasura-admin-operations
-      columns:
-        - base_disabled_commands_id
-        - operation_id
-        - operator_id
-        - view_mode
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - id
-        - operator_id
-        - operation_id
-        - timestamp
-        - base_disabled_commands_id
-        - view_mode
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
+        - apitokens_id
         - base_disabled_commands_id
         - id
         - operation_id
@@ -56,6 +29,7 @@ select_permissions:
   - role: operation_admin
     permission:
       columns:
+        - apitokens_id
         - base_disabled_commands_id
         - id
         - operation_id
@@ -63,11 +37,15 @@ select_permissions:
         - view_mode
         - timestamp
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-operation-read-operations
   - role: operator
     permission:
       columns:
+        - apitokens_id
         - base_disabled_commands_id
         - id
         - operation_id
@@ -75,11 +53,15 @@ select_permissions:
         - view_mode
         - timestamp
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-operation-read-operations
   - role: spectator
     permission:
       columns:
+        - apitokens_id
         - base_disabled_commands_id
         - id
         - operation_id
@@ -87,35 +69,8 @@ select_permissions:
         - view_mode
         - timestamp
       filter:
-        operation_id:
-          _in: X-Hasura-operations
-update_permissions:
-  - role: mythic_admin
-    permission:
-      columns:
-        - base_disabled_commands_id
-        - operation_id
-        - operator_id
-        - view_mode
-      filter: {}
-      check: {}
-  - role: operation_admin
-    permission:
-      columns:
-        - base_disabled_commands_id
-        - view_mode
-      filter:
-        operation_id:
-          _in: X-Hasura-admin-operations
-      check:
-        operation_id:
-          _in: X-Hasura-admin-operations
-delete_permissions:
-  - role: mythic_admin
-    permission:
-      filter: {}
-  - role: operation_admin
-    permission:
-      filter:
-        operation_id:
-          _in: X-Hasura-admin-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-operation-read-operations

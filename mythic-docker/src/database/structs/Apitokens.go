@@ -2,6 +2,7 @@ package databaseStructs
 
 import (
 	"github.com/its-a-feature/Mythic/utils/structs"
+	"github.com/lib/pq"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type Apitokens struct {
 	OperatorID          int               `db:"operator_id"`
 	Operator            Operator          `db:"operator"`
 	Name                string            `db:"name"`
+	Scopes              pq.StringArray    `db:"scopes" json:"scopes" mapstructure:"scopes"`
 	CreatedBy           int               `db:"created_by"`
 	Deleted             bool              `db:"deleted"`
 	EventStepInstanceID structs.NullInt64 `db:"eventstepinstance_id" json:"event_step_instance_id" mapstructure:"event_step_instance_id"`

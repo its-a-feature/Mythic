@@ -4,15 +4,12 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import {
     SettingsOperatorTableRow,
 } from './SettingsOperatorTableRow';
-import Typography from '@mui/material/Typography';
 import { SettingsOperatorDialog, SettingsBotDialog } from './SettingsOperatorDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {snackActions} from '../../utilities/Snackbar';
-import {useTheme} from '@mui/material/styles';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import TuneIcon from '@mui/icons-material/Tune';
@@ -21,20 +18,15 @@ import { IconButton } from '@mui/material';
 import {GET_GLOBAL_SETTINGS, SettingsGlobalDialog} from "./SettingsGlobalDialog";
 import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import SearchIcon from '@mui/icons-material/Search';
-import {SettingsOperatorAPITokenSearchDialog} from "./SettingsOperatorAPITokenSearchDialog";
 import ForwardToInboxTwoToneIcon from '@mui/icons-material/ForwardToInboxTwoTone';
 import {InviteLinksDialog} from "./InviteLinksDialog";
 import {useLazyQuery} from '@apollo/client';
 import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
-import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
-
 
 
 export function SettingsOperatorTable(props){
     const [openNew, setOpenNewDialog] = React.useState(false);
     const [openNewBot, setOpenNewBotDialog] = React.useState(false);
-    const [openAPITokenSearch, setOpenAPITokenSearch] = React.useState(false);
     const onSubmitNewOperator = (id, username, passwordOld, passwordNew, email) => {
         if(passwordNew.length === 0){
             snackActions.error("Password must not be empty");
@@ -92,12 +84,6 @@ export function SettingsOperatorTable(props){
                     <SmartToyTwoToneIcon />
                 </IconButton>
             </MythicStyledTooltip>
-            <MythicStyledTooltip title={"Search for API Tokens"}  tooltipStyle={{}} >
-                <IconButton size={"small"}  variant="contained"
-                            onClick={() => setOpenAPITokenSearch(true)}>
-                    <SearchIcon />
-                </IconButton>
-            </MythicStyledTooltip>
             <MythicStyledTooltip title={"Adjust Global Settings"} tooltipStyle={{}}>
                 <IconButton size="small" variant="contained"
                             onClick={() => setOpenGlobalSettingsDialog(!openGlobalSettingsDialog)} >
@@ -118,13 +104,6 @@ export function SettingsOperatorTable(props){
                               onClose={closeGlobalSettingsDialog}
                               innerDialog={<SettingsGlobalDialog
                                   onClose={closeGlobalSettingsDialog}  />}
-                />
-            }
-            {openAPITokenSearch &&
-                <MythicDialog open={openAPITokenSearch} maxWidth={"xl"} fullWidth={true}
-                              onClose={()=>{setOpenAPITokenSearch(false);}}
-                              innerDialog={<SettingsOperatorAPITokenSearchDialog
-                                  onClose={()=>{setOpenAPITokenSearch(false);}}  />}
                 />
             }
             {openInviteLinksDialog &&
@@ -181,8 +160,6 @@ export function SettingsOperatorTable(props){
                             key={"operator" + op.id}
                             {...op}
                         />
-
-
                 ))}
                 </TableBody>
             </Table>

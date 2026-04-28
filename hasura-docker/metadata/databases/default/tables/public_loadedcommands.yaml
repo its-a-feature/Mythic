@@ -2,6 +2,9 @@ table:
   name: loadedcommands
   schema: public
 object_relationships:
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
   - name: callback
     using:
       foreign_key_constraint_on: callback_id
@@ -11,23 +14,60 @@ object_relationships:
   - name: operator
     using:
       foreign_key_constraint_on: operator_id
-select_permissions:
-  - role: developer
+insert_permissions:
+  - role: mythic_admin
     permission:
+      check:
+        _and:
+          - callback:
+                operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - callback:
+                operation_id:
+                    _in: X-Hasura-Scope-callback-write-operations
+      set:
+        operator_id: x-hasura-user-id
       columns:
-        - id
-        - command_id
         - callback_id
+        - command_id
         - operator_id
-        - timestamp
-        - version
-      filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      check:
+        _and:
+          - callback:
+                operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                  _in: X-Hasura-Scope-callback-write-operations
+      set:
+        operator_id: x-hasura-user-id
+      columns:
+        - callback_id
+        - command_id
+        - operator_id
+  - role: operator
+    permission:
+      check:
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-write-operations
+      set:
+        operator_id: x-hasura-user-id
+      columns:
+        - callback_id
+        - command_id
+        - operator_id
+select_permissions:
   - role: mythic_admin
     permission:
       columns:
+        - apitokens_id
         - callback_id
         - command_id
         - id
@@ -35,12 +75,17 @@ select_permissions:
         - version
         - timestamp
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-read-operations
   - role: operation_admin
     permission:
       columns:
+        - apitokens_id
         - callback_id
         - command_id
         - id
@@ -48,12 +93,17 @@ select_permissions:
         - version
         - timestamp
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-read-operations
   - role: operator
     permission:
       columns:
+        - apitokens_id
         - callback_id
         - command_id
         - id
@@ -61,12 +111,17 @@ select_permissions:
         - version
         - timestamp
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-read-operations
   - role: spectator
     permission:
       columns:
+        - apitokens_id
         - callback_id
         - command_id
         - id
@@ -74,6 +129,41 @@ select_permissions:
         - version
         - timestamp
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-read-operations
+delete_permissions:
+  - role: mythic_admin
+    permission:
+      filter:
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-write-operations
+  - role: operation_admin
+    permission:
+      filter:
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-write-operations
+  - role: operator
+    permission:
+      filter:
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-write-operations

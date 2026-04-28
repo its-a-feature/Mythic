@@ -108,6 +108,7 @@ func TestGetClaims(t *testing.T) {
 			want: &mythicjwt.CustomClaims{
 				UserID:     123,
 				AuthMethod: mythicjwt.AUTH_METHOD_USER,
+				Scopes:     []string{mythicjwt.SCOPE_ALL},
 				StandardClaims: jwt.StandardClaims{
 					IssuedAt:  time.Now().Unix(),
 					ExpiresAt: time.Now().Add(mythicjwt.JWTTimespan).UTC().Unix(),

@@ -1,0 +1,268 @@
+table:
+  name: mythictree
+  schema: public
+object_relationships:
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
+  - name: callback
+    using:
+      foreign_key_constraint_on: callback_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+array_relationships:
+  - name: filemeta
+    using:
+      foreign_key_constraint_on:
+        column: mythictree_id
+        table:
+          name: filemeta
+          schema: public
+  - name: tags
+    using:
+      foreign_key_constraint_on:
+        column: mythictree_id
+        table:
+          name: tag
+          schema: public
+computed_fields:
+  - name: display_path_text
+    definition:
+      function:
+        name: mythictree_display_path
+        schema: public
+  - name: full_path_text
+    definition:
+      function:
+        name: mythictree_full_path
+        schema: public
+  - name: name_text
+    definition:
+      function:
+        name: mythictree_name
+        schema: public
+  - name: parent_path_text
+    definition:
+      function:
+        name: mythictree_parent_path
+        schema: public
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - can_have_children
+        - deleted
+        - has_children
+        - success
+        - display_path
+        - full_path
+        - name
+        - parent_path
+        - apitokens_id
+        - callback_id
+        - id
+        - operation_id
+        - task_id
+        - metadata
+        - comment
+        - host
+        - os
+        - tree_type
+        - timestamp
+      computed_fields:
+        - display_path_text
+        - full_path_text
+        - name_text
+        - parent_path_text
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-browser-read-operations
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - can_have_children
+        - deleted
+        - has_children
+        - success
+        - display_path
+        - full_path
+        - name
+        - parent_path
+        - apitokens_id
+        - callback_id
+        - id
+        - operation_id
+        - task_id
+        - metadata
+        - comment
+        - host
+        - os
+        - tree_type
+        - timestamp
+      computed_fields:
+        - display_path_text
+        - full_path_text
+        - name_text
+        - parent_path_text
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-browser-read-operations
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - can_have_children
+        - deleted
+        - has_children
+        - success
+        - display_path
+        - full_path
+        - name
+        - parent_path
+        - apitokens_id
+        - callback_id
+        - id
+        - operation_id
+        - task_id
+        - metadata
+        - comment
+        - host
+        - os
+        - tree_type
+        - timestamp
+      computed_fields:
+        - display_path_text
+        - full_path_text
+        - name_text
+        - parent_path_text
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-browser-read-operations
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - can_have_children
+        - deleted
+        - has_children
+        - success
+        - display_path
+        - full_path
+        - name
+        - parent_path
+        - apitokens_id
+        - callback_id
+        - id
+        - operation_id
+        - task_id
+        - metadata
+        - comment
+        - host
+        - os
+        - tree_type
+        - timestamp
+      computed_fields:
+        - display_path_text
+        - full_path_text
+        - name_text
+        - parent_path_text
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-browser-read-operations
+      allow_aggregations: true
+update_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - can_have_children
+        - comment
+        - deleted
+        - full_path
+        - host
+        - metadata
+        - name
+        - os
+        - parent_path
+        - success
+        - tree_type
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-browser-write-operations
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-browser-write-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - can_have_children
+        - comment
+        - deleted
+        - full_path
+        - host
+        - metadata
+        - name
+        - os
+        - parent_path
+        - success
+        - tree_type
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-browser-write-operations
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-browser-write-operations
+  - role: operator
+    permission:
+      columns:
+        - can_have_children
+        - comment
+        - deleted
+        - full_path
+        - host
+        - metadata
+        - name
+        - os
+        - parent_path
+        - success
+        - tree_type
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-browser-write-operations
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-browser-write-operations

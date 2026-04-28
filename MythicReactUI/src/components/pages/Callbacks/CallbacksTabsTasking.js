@@ -285,7 +285,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
         }
         if(cmd.commandparameters.length === 0){
             // if there are no parameters, just send whatever the user types along
-            onCreateTask({callback_id: tabInfo.displayID,
+            onCreateTask({callback_display_id: tabInfo.displayID,
                 command: cmd.cmd,
                 params: params,
                 parameter_group_name: "Default",
@@ -333,7 +333,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
 
             }else{
                 delete parsed["_"];
-                onCreateTask({callback_id: tabInfo.displayID, 
+                onCreateTask({callback_display_id: tabInfo.displayID,
                     command: cmd.cmd, 
                     params: JSON.stringify(parsed), 
                     tasking_location: newTaskingLocation, 
@@ -346,7 +346,7 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
     }
     const submitParametersDialog = (cmd, parameters, files, selectedParameterGroup, payload_type) => {
         setOpenParametersDialog(false);
-        onCreateTask({callback_id: tabInfo.displayID,
+        onCreateTask({callback_display_id: tabInfo.displayID,
             command: cmd,
             params: parameters,
             files: files,
@@ -355,11 +355,11 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             payload_type: payload_type
         });
     }
-    const onCreateTask = ({callback_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type}) => {
+    const onCreateTask = ({callback_display_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type}) => {
         if(selectedToken.token_id !== undefined){
-            createTask({variables: {callback_id, command, params, files, token_id: selectedToken.token_id, tasking_location, original_params, parameter_group_name, payload_type}});
+            createTask({variables: {callback_display_id, command, params, files, token_id: selectedToken.token_id, tasking_location, original_params, parameter_group_name, payload_type}});
         }else{
-            createTask({variables: {callback_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type}});
+            createTask({variables: {callback_display_id, command, params, files, tasking_location, original_params, parameter_group_name, payload_type}});
         }
     }
     const onSubmitFilter = (newFilter) => {

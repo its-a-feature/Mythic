@@ -1,7 +1,17 @@
 table:
   name: callback
   schema: public
+configuration:
+  column_config:
+    timestamp:
+      custom_name: timestamp
+  custom_column_names:
+    timestamp: timestamp
+  custom_root_fields: {}
 object_relationships:
+  - name: eventstepinstance
+    using:
+      foreign_key_constraint_on: eventstepinstance_id
   - name: locked_operator
     using:
       foreign_key_constraint_on: locked_operator_id
@@ -15,6 +25,13 @@ object_relationships:
     using:
       foreign_key_constraint_on: registered_payload_id
 array_relationships:
+  - name: apitokens
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          name: apitokens
+          schema: public
   - name: c2profileparametersinstances
     using:
       foreign_key_constraint_on:
@@ -64,6 +81,20 @@ array_relationships:
         table:
           name: loadedcommands
           schema: public
+  - name: mythictrees
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          name: mythictree
+          schema: public
+  - name: tags
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          name: tag
+          schema: public
   - name: tasks
     using:
       foreign_key_constraint_on:
@@ -72,6 +103,11 @@ array_relationships:
           name: task
           schema: public
 computed_fields:
+  - name: current_time
+    definition:
+      function:
+        name: current_time
+        schema: public
   - name: dec_key_base64
     definition:
       function:
@@ -84,53 +120,23 @@ computed_fields:
         name: callback_enckey
         schema: public
     comment: base64 encode the encryption key
+  - name: mythictree_groups_string
+    definition:
+      function:
+        name: callback_mythictree_groups
+        schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - active
-        - locked
-        - dec_key
-        - enc_key
-        - display_id
-        - id
-        - integrity_level
-        - locked_operator_id
-        - operation_id
-        - operator_id
-        - pid
-        - registered_payload_id
-        - agent_callback_id
-        - architecture
-        - crypto_type
-        - description
-        - domain
-        - external_ip
-        - extra_info
-        - host
-        - ip
-        - os
-        - process_name
-        - sleep_info
-        - user
-        - updated_at
-        - init_callback
-        - last_checkin
-      computed_fields:
-        - dec_key_base64
-        - enc_key_base64
-      filter:
-        operation_id:
-          _eq: X-Hasura-current-operation-id
-      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
+        - mythictree_groups
         - active
+        - dead
         - locked
         - dec_key
         - enc_key
         - display_id
+        - eventstepinstance_id
         - id
         - integrity_level
         - locked_operator_id
@@ -138,9 +144,12 @@ select_permissions:
         - operator_id
         - pid
         - registered_payload_id
+        - trigger_on_checkin_after_time
         - agent_callback_id
         - architecture
+        - color
         - crypto_type
+        - cwd
         - description
         - domain
         - external_ip
@@ -149,26 +158,36 @@ select_permissions:
         - ip
         - os
         - process_name
+        - process_short_name
         - sleep_info
         - user
-        - updated_at
+        - impersonation_context
         - init_callback
         - last_checkin
+        - timestamp
       computed_fields:
+        - current_time
         - dec_key_base64
         - enc_key_base64
+        - mythictree_groups_string
       filter:
-        operation_id:
-          _eq: X-Hasura-current-operation-id
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-callback-read-operations
       allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
+        - mythictree_groups
         - active
+        - dead
         - locked
         - dec_key
         - enc_key
         - display_id
+        - eventstepinstance_id
         - id
         - integrity_level
         - locked_operator_id
@@ -176,9 +195,12 @@ select_permissions:
         - operator_id
         - pid
         - registered_payload_id
+        - trigger_on_checkin_after_time
         - agent_callback_id
         - architecture
+        - color
         - crypto_type
+        - cwd
         - description
         - domain
         - external_ip
@@ -187,26 +209,36 @@ select_permissions:
         - ip
         - os
         - process_name
+        - process_short_name
         - sleep_info
         - user
-        - updated_at
+        - impersonation_context
         - init_callback
         - last_checkin
+        - timestamp
       computed_fields:
+        - current_time
         - dec_key_base64
         - enc_key_base64
+        - mythictree_groups_string
       filter:
-        operation_id:
-          _eq: X-Hasura-current-operation-id
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-callback-read-operations
       allow_aggregations: true
   - role: operator
     permission:
       columns:
+        - mythictree_groups
         - active
+        - dead
         - locked
         - dec_key
         - enc_key
         - display_id
+        - eventstepinstance_id
         - id
         - integrity_level
         - locked_operator_id
@@ -214,9 +246,12 @@ select_permissions:
         - operator_id
         - pid
         - registered_payload_id
+        - trigger_on_checkin_after_time
         - agent_callback_id
         - architecture
+        - color
         - crypto_type
+        - cwd
         - description
         - domain
         - external_ip
@@ -225,26 +260,36 @@ select_permissions:
         - ip
         - os
         - process_name
+        - process_short_name
         - sleep_info
         - user
-        - updated_at
+        - impersonation_context
         - init_callback
         - last_checkin
+        - timestamp
       computed_fields:
+        - current_time
         - dec_key_base64
         - enc_key_base64
+        - mythictree_groups_string
       filter:
-        operation_id:
-          _eq: X-Hasura-current-operation-id
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-callback-read-operations
       allow_aggregations: true
   - role: spectator
     permission:
       columns:
+        - mythictree_groups
         - active
+        - dead
         - locked
         - dec_key
         - enc_key
         - display_id
+        - eventstepinstance_id
         - id
         - integrity_level
         - locked_operator_id
@@ -252,9 +297,12 @@ select_permissions:
         - operator_id
         - pid
         - registered_payload_id
+        - trigger_on_checkin_after_time
         - agent_callback_id
         - architecture
+        - color
         - crypto_type
+        - cwd
         - description
         - domain
         - external_ip
@@ -263,45 +311,32 @@ select_permissions:
         - ip
         - os
         - process_name
+        - process_short_name
         - sleep_info
         - user
-        - updated_at
+        - impersonation_context
         - init_callback
         - last_checkin
+        - timestamp
       computed_fields:
+        - current_time
         - dec_key_base64
         - enc_key_base64
+        - mythictree_groups_string
       filter:
-        operation_id:
-          _eq: X-Hasura-current-operation-id
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-callback-read-operations
       allow_aggregations: true
 update_permissions:
-  - role: developer
-    permission:
-      columns:
-        - architecture
-        - description
-        - domain
-        - external_ip
-        - extra_info
-        - host
-        - integrity_level
-        - ip
-        - os
-        - pid
-        - process_name
-        - sleep_info
-        - user
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
-      check:
-        operation_id:
-          _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
         - architecture
+        - color
+        - cwd
         - description
         - domain
         - external_ip
@@ -309,58 +344,92 @@ update_permissions:
         - host
         - integrity_level
         - ip
+        - mythictree_groups
         - os
         - pid
         - process_name
+        - process_short_name
         - sleep_info
+        - trigger_on_checkin_after_time
         - user
+        - impersonation_context
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-callback-write-operations
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-callback-write-operations
   - role: operation_admin
     permission:
       columns:
         - architecture
+        - color
+        - cwd
         - description
         - domain
         - external_ip
         - extra_info
         - host
+        - impersonation_context
         - integrity_level
         - ip
+        - mythictree_groups
         - os
         - pid
         - process_name
+        - process_short_name
         - sleep_info
+        - trigger_on_checkin_after_time
         - user
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-callback-write-operations
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-callback-write-operations
   - role: operator
     permission:
       columns:
         - architecture
+        - color
+        - cwd
         - description
         - domain
         - external_ip
         - extra_info
         - host
+        - impersonation_context
         - integrity_level
         - ip
+        - mythictree_groups
         - os
         - pid
         - process_name
+        - process_short_name
         - sleep_info
+        - trigger_on_checkin_after_time
         - user
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-callback-write-operations
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-callback-write-operations

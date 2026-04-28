@@ -11,7 +11,7 @@ export const UploadTaskFile = async (file, comment) => {
     return null;
   }
   try{
-    const upload_response = await fetch('/api/v1.4/task_upload_file_webhook', {
+    const upload_response = await fetch('/task_upload_file_webhook', {
       method: 'POST',
       body: formData,
       headers: {
@@ -43,7 +43,7 @@ export const UploadEventFile = async (file, comment) => {
   formData.append("comment", comment);
   snackActions.info("Uploading " + file.name + " to Mythic...", {autoHideDuration: 1000});
   try{
-    const upload_response = await fetch('/api/v1.4/eventing_import_webhook', {
+    const upload_response = await fetch('/eventing_import_webhook', {
       method: 'POST',
       body: formData,
       headers: {
@@ -75,7 +75,7 @@ export const UploadEventGroupFile = async (file, eventgroup_id) => {
   formData.append("file", file);
   snackActions.info("Uploading " + file.name + " to Mythic...", {autoHideDuration: 1000});
   try{
-    const upload_response = await fetch('/api/v1.4/eventing_register_file_webhook', {
+    const upload_response = await fetch('/eventing_register_file_webhook', {
       method: 'POST',
       body: formData,
       headers: {

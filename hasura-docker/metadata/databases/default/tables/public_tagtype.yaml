@@ -2,6 +2,12 @@ table:
   name: tagtype
   schema: public
 object_relationships:
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
+  - name: eventstepinstance
+    using:
+      foreign_key_constraint_on: eventstepinstance_id
   - name: operation
     using:
       foreign_key_constraint_on: operation_id
@@ -14,123 +20,127 @@ array_relationships:
           name: tag
           schema: public
 insert_permissions:
-  - role: developer
-    permission:
-      check:
-        operation_id:
-          _in: X-Hasura-operations
-      set:
-        operation_id: x-hasura-current-operation-id
-      columns:
-        - color
-        - description
-        - name
-        - operation_id
   - role: mythic_admin
     permission:
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-write-operations
       set:
         operation_id: x-hasura-current-operation-id
       columns:
+        - apitokens_id
         - color
         - description
+        - eventstepinstance_id
         - name
         - operation_id
   - role: operation_admin
     permission:
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-write-operations
       set:
         operation_id: x-hasura-current-operation-id
       columns:
+        - apitokens_id
         - color
         - description
+        - eventstepinstance_id
         - name
         - operation_id
   - role: operator
     permission:
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-write-operations
       set:
         operation_id: x-hasura-current-operation-id
       columns:
+        - apitokens_id
         - color
         - description
+        - eventstepinstance_id
         - name
         - operation_id
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - id
-        - name
-        - color
-        - description
-        - operation_id
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
+        - apitokens_id
+        - eventstepinstance_id
         - id
-        - name
+        - operation_id
         - color
         - description
-        - operation_id
+        - name
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-read-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
+        - apitokens_id
+        - eventstepinstance_id
         - id
-        - name
+        - operation_id
         - color
         - description
-        - operation_id
+        - name
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-read-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
+        - apitokens_id
+        - eventstepinstance_id
         - id
-        - name
+        - operation_id
         - color
         - description
-        - operation_id
+        - name
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-read-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
+        - apitokens_id
+        - eventstepinstance_id
         - id
-        - name
-        - color
-        - description
         - operation_id
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
-update_permissions:
-  - role: developer
-    permission:
-      columns:
         - color
         - description
         - name
       filter:
-        operation_id:
-          _in: X-Hasura-operations
-      check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-read-operations
+      allow_aggregations: true
+update_permissions:
   - role: mythic_admin
     permission:
       columns:
@@ -138,11 +148,17 @@ update_permissions:
         - description
         - name
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-write-operations
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-write-operations
   - role: operation_admin
     permission:
       columns:
@@ -150,11 +166,17 @@ update_permissions:
         - description
         - name
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-write-operations
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-write-operations
   - role: operator
     permission:
       columns:
@@ -162,8 +184,14 @@ update_permissions:
         - description
         - name
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-write-operations
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-tag-write-operations

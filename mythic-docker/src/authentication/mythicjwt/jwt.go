@@ -27,20 +27,19 @@ type CustomClaims struct {
 }
 
 var (
-	RefreshTokenCache             = make(map[string]string)
-	RefreshTokenCacheLock         = sync.RWMutex{}
-	JWTTimespan                   = 4 * time.Hour
-	AUTH_METHOD_USER              = "user" // standard access_token through web UI
-	AUTH_METHOD_API               = "api"  // apitoken for usage with API requests (not web)
-	AUTH_METHOD_EVENT             = "event"
-	AUTH_METHOD_TASK              = "task"
-	AUTH_METHOD_GRAPHQL_SPECTATOR = "graphql_spectator"
-	AUTH_METHOD_SCOPED            = "scoped"
-	SCOPE_FILE_DIRECT_UPLOAD      = "file.direct.upload"
-	SCOPE_FILE_DIRECT_DOWNLOAD    = "file.direct.download"
-	ErrFailedToFindRefreshToken   = errors.New("Failed to find refresh token for specified access token")
-	ErrRefreshTokenMissmatch      = errors.New("Refresh token doesn't match for the given access token")
-	ErrUnexpectedSigningMethod    = errors.New("Unexpected signing method")
+	RefreshTokenCache           = make(map[string]string)
+	RefreshTokenCacheLock       = sync.RWMutex{}
+	JWTTimespan                 = 4 * time.Hour
+	AUTH_METHOD_USER            = "user" // standard access_token through web UI
+	AUTH_METHOD_API             = "api"  // apitoken for usage with API requests (not web)
+	AUTH_METHOD_EVENT           = "event"
+	AUTH_METHOD_TASK            = "task"
+	AUTH_METHOD_ON_START        = "on_start"
+	AUTH_METHOD_PAYLOAD         = "payload"
+	AUTH_METHOD_CALLBACK        = "callback"
+	ErrFailedToFindRefreshToken = errors.New("Failed to find refresh token for specified access token")
+	ErrRefreshTokenMissmatch    = errors.New("Refresh token doesn't match for the given access token")
+	ErrUnexpectedSigningMethod  = errors.New("Unexpected signing method")
 )
 
 func generateRandomPassword(passwordLength int) (string, error) {
@@ -106,14 +105,13 @@ func GenerateJWT(user databaseStructs.Operator, authMethod string, eventStepInst
 		ExpiresAt: time.Now().Add(JWTTimespan).UTC().Unix(),
 	}
 	claims := CustomClaims{
-		jwtStandardClaims,
-		user.ID,
-		authMethod,
-		eventStepInstanceID,
-		APITokensID,
-		int(user.CurrentOperationID.Int64),
-		[]string{SCOPE_FILE_DIRECT_UPLOAD, SCOPE_FILE_DIRECT_DOWNLOAD},
-		"",
+		StandardClaims:      jwtStandardClaims,
+		UserID:              user.ID,
+		AuthMethod:          authMethod,
+		EventStepInstanceID: eventStepInstanceID,
+		APITokensID:         APITokensID,
+		OperationID:         int(user.CurrentOperationID.Int64),
+		Scopes:              []string{SCOPE_ALL},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	access_token, err := token.SignedString(utils.MythicConfig.JWTSecret)
@@ -135,20 +133,20 @@ func GenerateJWT(user databaseStructs.Operator, authMethod string, eventStepInst
 	return access_token, "", user.ID, nil
 }
 
-func GenerateScopedJWT(user databaseStructs.Operator, scopes []string, fileUUID string, ttl time.Duration) (string, int, error) {
+func GenerateScopedJWT(user databaseStructs.Operator, scopes []string, fileUUID string, ttl time.Duration, eventStepInstanceID int, APITokensID int) (string, int, error) {
 	jwtStandardClaims := jwt.StandardClaims{
 		IssuedAt:  time.Now().UTC().Unix(),
 		ExpiresAt: time.Now().Add(ttl).UTC().Unix(),
 	}
 	claims := CustomClaims{
-		jwtStandardClaims,
-		user.ID,
-		AUTH_METHOD_SCOPED,
-		0,
-		0,
-		int(user.CurrentOperationID.Int64),
-		scopes,
-		fileUUID,
+		StandardClaims:      jwtStandardClaims,
+		UserID:              user.ID,
+		AuthMethod:          AUTH_METHOD_PAYLOAD,
+		OperationID:         int(user.CurrentOperationID.Int64),
+		Scopes:              scopes,
+		EventStepInstanceID: eventStepInstanceID,
+		APITokensID:         APITokensID,
+		FileUUID:            fileUUID,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	access_token, err := token.SignedString(utils.MythicConfig.JWTSecret)

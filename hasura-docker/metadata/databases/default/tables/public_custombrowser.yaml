@@ -1,0 +1,88 @@
+table:
+  name: custombrowser
+  schema: public
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - indicate_partial_listing
+        - show_current_path
+        - id
+        - columns
+        - default_visible_columns
+        - extra_table_inputs
+        - row_actions
+        - author
+        - description
+        - export_function
+        - name
+        - semver
+        - separator
+        - type
+      filter: {}
+    comment: ""
+  - role: operation_admin
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - indicate_partial_listing
+        - show_current_path
+        - id
+        - columns
+        - default_visible_columns
+        - extra_table_inputs
+        - row_actions
+        - author
+        - description
+        - export_function
+        - name
+        - semver
+        - separator
+        - type
+      filter: {}
+    comment: ""
+  - role: operator
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - indicate_partial_listing
+        - show_current_path
+        - id
+        - columns
+        - default_visible_columns
+        - extra_table_inputs
+        - row_actions
+        - author
+        - description
+        - export_function
+        - name
+        - semver
+        - separator
+        - type
+      filter: {}
+    comment: ""
+  - role: spectator
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - indicate_partial_listing
+        - show_current_path
+        - id
+        - columns
+        - default_visible_columns
+        - extra_table_inputs
+        - row_actions
+        - author
+        - description
+        - export_function
+        - name
+        - semver
+        - separator
+        - type
+      filter: {}
+    comment: ""
