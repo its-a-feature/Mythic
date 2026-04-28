@@ -615,6 +615,7 @@ func AddMythicService(service string, removeVolume bool) {
 				"JUPYTER_TOKEN=${JUPYTER_TOKEN}",
 				"CHOWN_EXTRA=/projects",
 				"CHOWN_EXTRA_OPTS=-R",
+				"JUPYTER_PORT=${JUPYTER_PORT}",
 			}
 		} else {
 			delete(pStruct, "ports")
