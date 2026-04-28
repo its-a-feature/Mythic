@@ -1,0 +1,27 @@
+table:
+  name: invite_link
+  schema: public
+object_relationships:
+  - name: created_by
+    using:
+      foreign_key_constraint_on: operator_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - operation_id
+        - operator_id
+        - total_used
+        - total_uses
+        - name
+        - operation_role
+        - short_code
+        - created_at
+      filter:
+        operation_id:
+          _eq: X-Hasura-current-operation-id
+    comment: ""

@@ -10,43 +10,54 @@ array_relationships:
           name: payloadtype
           schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - id
-        - name
-        - deleted
-        - container_running
-      filter: {}
   - role: mythic_admin
     permission:
       columns:
+        - author
+        - container_running
+        - deleted
+        - description
         - id
         - name
-        - deleted
-        - container_running
+        - semver
       filter: {}
   - role: operation_admin
     permission:
       columns:
+        - author
+        - container_running
+        - deleted
+        - description
         - id
         - name
-        - deleted
-        - container_running
+        - semver
       filter: {}
   - role: operator
     permission:
       columns:
+        - author
+        - container_running
+        - deleted
+        - description
         - id
         - name
-        - deleted
-        - container_running
+        - semver
       filter: {}
   - role: spectator
     permission:
       columns:
+        - author
+        - container_running
+        - deleted
+        - description
         - id
         - name
-        - deleted
-        - container_running
+        - semver
       filter: {}
+update_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - deleted
+      filter: {}
+      check: {}

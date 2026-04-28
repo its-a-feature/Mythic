@@ -223,8 +223,8 @@ export const taskingDataFragment = gql`
     }
 `;
 export const createTaskingMutation = gql`
-mutation createTasking($callback_id: Int, $callback_ids: [Int], $command: String!, $params: String!, $files: [String], $token_id: Int, $tasking_location: String, $original_params: String, $parameter_group_name: String, $parent_task_id: Int, $is_interactive_task: Boolean, $interactive_task_type: Int, $payload_type: String) {
-  createTask(callback_id: $callback_id, callback_ids: $callback_ids, command: $command, params: $params, files: $files, token_id: $token_id, tasking_location: $tasking_location, original_params: $original_params, parameter_group_name: $parameter_group_name, parent_task_id: $parent_task_id, is_interactive_task: $is_interactive_task, interactive_task_type: $interactive_task_type, payload_type: $payload_type) {
+mutation createTasking($callback_display_id: Int, $callback_display_ids: [Int], $command: String!, $params: String!, $files: [String], $token_id: Int, $tasking_location: String, $original_params: String, $parameter_group_name: String, $parent_task_id: Int, $is_interactive_task: Boolean, $interactive_task_type: Int, $payload_type: String) {
+  createTask(callback_display_id: $callback_display_id, callback_display_ids: $callback_display_ids, command: $command, params: $params, files: $files, token_id: $token_id, tasking_location: $tasking_location, original_params: $original_params, parameter_group_name: $parameter_group_name, parent_task_id: $parent_task_id, is_interactive_task: $is_interactive_task, interactive_task_type: $interactive_task_type, payload_type: $payload_type) {
     status
     id
     error

@@ -1,0 +1,121 @@
+table:
+  name: eventgroupinstance
+  schema: public
+object_relationships:
+  - name: cancelled_by_operator
+    using:
+      foreign_key_constraint_on: cancelled_by
+  - name: eventgroup
+    using:
+      foreign_key_constraint_on: eventgroup_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_id
+array_relationships:
+  - name: eventstepinstances
+    using:
+      foreign_key_constraint_on:
+        column: eventgroupinstance_id
+        table:
+          name: eventstepinstance
+          schema: public
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - cancelled_by
+        - current_order_step
+        - eventgroup_id
+        - id
+        - operation_id
+        - operator_id
+        - total_order_steps
+        - environment
+        - trigger_metadata
+        - status
+        - trigger
+        - created_at
+        - end_timestamp
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-scope-eventing-read-operations
+    comment: ""
+  - role: operation_admin
+    permission:
+      columns:
+        - cancelled_by
+        - current_order_step
+        - eventgroup_id
+        - id
+        - operation_id
+        - operator_id
+        - total_order_steps
+        - environment
+        - trigger_metadata
+        - status
+        - trigger
+        - created_at
+        - end_timestamp
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-scope-eventing-read-operations
+    comment: ""
+  - role: operator
+    permission:
+      columns:
+        - cancelled_by
+        - current_order_step
+        - eventgroup_id
+        - id
+        - operation_id
+        - operator_id
+        - total_order_steps
+        - environment
+        - trigger_metadata
+        - status
+        - trigger
+        - created_at
+        - end_timestamp
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-scope-eventing-read-operations
+    comment: ""
+  - role: spectator
+    permission:
+      columns:
+        - cancelled_by
+        - current_order_step
+        - eventgroup_id
+        - id
+        - operation_id
+        - operator_id
+        - total_order_steps
+        - environment
+        - trigger_metadata
+        - status
+        - trigger
+        - created_at
+        - end_timestamp
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-scope-eventing-read-operations
+    comment: ""

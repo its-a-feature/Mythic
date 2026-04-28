@@ -22,7 +22,7 @@ const subscribe_payloads = gql`
  }
   `;
 
-export function EventFeedNotifications(props) {
+export function EventFeedNotifications() {
     const [fromNow, setFromNow] = React.useState(getSkewedNow().toISOString());
     //const fromNow = React.useRef(  );
     useSubscription(subscribe_payloads, {

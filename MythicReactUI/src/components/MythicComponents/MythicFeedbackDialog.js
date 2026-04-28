@@ -50,7 +50,7 @@ export function MythicFeedbackDialog(props) {
   const handleSubmit = () => {
       let webhookData = {};
       if(taskID > 0){
-        webhookData["task_id"] = String(taskID);
+        webhookData["task_display_id"] = String(taskID);
       }
       webhookData["message"] =  message;
       webhookData["feedback_type"] = messageType;

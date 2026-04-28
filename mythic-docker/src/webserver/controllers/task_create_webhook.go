@@ -18,8 +18,8 @@ type CreateTaskInput struct {
 }
 
 type CreateTask struct {
-	CallbackDisplayID   *int     `json:"callback_id,omitempty"`
-	CallbackDisplayIDs  *[]int   `json:"callback_ids,omitempty"`
+	CallbackDisplayID   *int     `json:"callback_display_id,omitempty"`
+	CallbackDisplayIDs  *[]int   `json:"callback_display_ids,omitempty"`
 	Command             string   `json:"command" binding:"required"`
 	Params              string   `json:"params"`
 	Files               []string `json:"files"`

@@ -2,6 +2,9 @@ table:
   name: operator
   schema: public
 object_relationships:
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
   - name: operation
     using:
       foreign_key_constraint_on: current_operation_id
@@ -10,6 +13,13 @@ array_relationships:
     using:
       foreign_key_constraint_on:
         column: operator_id
+        table:
+          name: apitokens
+          schema: public
+  - name: apitokensByCreatedBy
+    using:
+      foreign_key_constraint_on:
+        column: created_by
         table:
           name: apitokens
           schema: public
@@ -41,12 +51,61 @@ array_relationships:
         table:
           name: credential
           schema: public
+  - name: eventgroupapprovals
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: eventgroupapproval
+          schema: public
+  - name: eventgroupinstances
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: eventgroupinstance
+          schema: public
+  - name: eventgroupinstancesByCancelledBy
+    using:
+      foreign_key_constraint_on:
+        column: cancelled_by
+        table:
+          name: eventgroupinstance
+          schema: public
+  - name: eventgroups
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: eventgroup
+          schema: public
+  - name: eventstepinstances
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: eventstepinstance
+          schema: public
+  - name: eventsteps
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: eventstep
+          schema: public
   - name: filemeta
     using:
       foreign_key_constraint_on:
         column: operator_id
         table:
           name: filemeta
+          schema: public
+  - name: global_settings
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: global_setting
           schema: public
   - name: loadedcommands
     using:
@@ -112,86 +171,93 @@ array_relationships:
           name: task
           schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - active
-        - admin
-        - creation_time
-        - deleted
-        - id
-        - last_login
-        - username
-        - view_utc_time
-      filter: {}
   - role: mythic_admin
     permission:
       columns:
+        - account_type
         - active
         - admin
+        - apitokens_id
         - creation_time
         - current_operation_id
         - deleted
+        - email
+        - failed_login_count
         - id
+        - last_failed_login_timestamp
         - last_login
-        - username
-        - view_utc_time
-      filter: {}
-  - role: operation_admin
-    permission:
-      columns:
-        - active
-        - admin
-        - creation_time
-        - deleted
-        - id
-        - last_login
-        - username
-        - view_utc_time
-      filter: {}
-  - role: operator
-    permission:
-      columns:
-        - active
-        - admin
-        - creation_time
-        - deleted
-        - id
-        - last_login
-        - username
-        - view_utc_time
-      filter: {}
-  - role: spectator
-    permission:
-      columns:
-        - active
-        - admin
-        - creation_time
-        - deleted
-        - id
-        - last_login
-        - username
-        - view_utc_time
-      filter: {}
-update_permissions:
-  - role: developer
-    permission:
-      columns:
         - username
         - view_utc_time
       filter:
         id:
-          _eq: X-Hasura-User-Id
-      check: null
+          _in: X-Hasura-Scope-operator-read-operators
+  - role: operation_admin
+    permission:
+      columns:
+        - account_type
+        - active
+        - admin
+        - apitokens_id
+        - creation_time
+        - current_operation_id
+        - deleted
+        - email
+        - failed_login_count
+        - id
+        - last_failed_login_timestamp
+        - last_login
+        - username
+        - view_utc_time
+      filter:
+        id:
+          _in: X-Hasura-Scope-operator-read-operators
+  - role: operator
+    permission:
+      columns:
+        - account_type
+        - active
+        - admin
+        - apitokens_id
+        - creation_time
+        - current_operation_id
+        - deleted
+        - email
+        - failed_login_count
+        - id
+        - last_failed_login_timestamp
+        - last_login
+        - username
+        - view_utc_time
+      filter:
+        id:
+          _in: X-Hasura-Scope-operator-read-operators
+  - role: spectator
+    permission:
+      columns:
+        - account_type
+        - active
+        - admin
+        - apitokens_id
+        - creation_time
+        - current_operation_id
+        - deleted
+        - email
+        - id
+        - last_login
+        - username
+        - view_utc_time
+      filter:
+        id:
+          _in: X-Hasura-Scope-operator-read-operators
+update_permissions:
   - role: mythic_admin
     permission:
       columns:
-        - active
-        - admin
-        - deleted
         - username
         - view_utc_time
-      filter: {}
+      filter:
+        id:
+          _in: X-Hasura-Scope-operator-write-operators
       check: null
   - role: operation_admin
     permission:
@@ -199,8 +265,11 @@ update_permissions:
         - username
         - view_utc_time
       filter:
-        id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - id:
+              _eq: X-Hasura-User-Id
+          - id:
+              _in: X-Hasura-Scope-operator-write-operators
       check: null
   - role: operator
     permission:
@@ -208,8 +277,11 @@ update_permissions:
         - username
         - view_utc_time
       filter:
-        id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - id:
+              _eq: X-Hasura-User-Id
+          - id:
+              _in: X-Hasura-Scope-operator-write-operators
       check: null
   - role: spectator
     permission:
@@ -217,6 +289,9 @@ update_permissions:
         - username
         - view_utc_time
       filter:
-        id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - id:
+              _eq: X-Hasura-User-Id
+          - id:
+              _in: X-Hasura-Scope-operator-write-operators
       check: null

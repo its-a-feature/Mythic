@@ -150,7 +150,7 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 			ContainerName: containerName,
 			ServerName:    utils.MythicConfig.GlobalServerName,
 		}
-		err = database.DB.Select(&operatorOperationData, `SELECT 
+		err = database.DB.Select(&operatorOperationData, `SELECT
     		operator.account_type "operator.account_type",
     		operator.id "operator.id",
     		operator.current_operation_id "operator.current_operation_id",
@@ -158,7 +158,7 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
     		operator.active "operator.active",
     		operation.name "operation.name",
     		operation.id "operation.id"
-			FROM operatoroperation 
+			FROM operatoroperation
 			JOIN operator ON operatoroperation.operator_id = operator.id
 			JOIN operation ON operatoroperation.operation_id = operation.id
 			WHERE operatoroperation.operation_id=$1`, operation.ID)
@@ -185,11 +185,17 @@ func CreateGraphQLSpectatorAPITokenAndSendOnStartMessage(containerName string) {
 			logging.LogInfo("Need a bot account assigned to this operation that's active and not deleted", "operation", operation.ID)
 			continue
 		}
-		apiToken.TokenType = mythicjwt.AUTH_METHOD_GRAPHQL_SPECTATOR
-		statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens 
-		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id) 
+		apiToken.TokenType = mythicjwt.AUTH_METHOD_ON_START
+		apiToken.Scopes = []string{
+			mythicjwt.SCOPE_EVENTING_WRITE,
+			mythicjwt.SCOPE_PAYLOAD_READ,
+			mythicjwt.SCOPE_FILE_WRITE,
+			mythicjwt.SCOPE_TAG_WRITE,
+		}
+		statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
+		(token_value, operator_id, token_type, active, "name", created_by, task_id, callback_id, scopes)
 		VALUES
-		(:token_value, :operator_id, :token_type, :active, :name, :created_by, :task_id, :callback_id)
+		(:token_value, :operator_id, :token_type, :active, :name, :created_by, :task_id, :callback_id, :scopes)
 		RETURNING id`)
 		if err != nil {
 			logging.LogError(err, "failed to prepare statement for new apitoken")
@@ -327,8 +333,8 @@ func checkContainerStatus() {
 			if running != c2profilesToCheck[container].ContainerRunning {
 				if entry, ok := c2profilesToCheck[container]; ok {
 					entry.ContainerRunning = running
-					_, err = database.DB.NamedExec(`UPDATE c2profile SET 
-							container_running=:container_running, deleted=false 
+					_, err = database.DB.NamedExec(`UPDATE c2profile SET
+							container_running=:container_running, deleted=false
 							WHERE id=:id`, entry,
 					)
 					if err != nil {
@@ -391,8 +397,8 @@ func checkContainerStatus() {
 			if running != consumingContainersToCheck[container].ContainerRunning {
 				if entry, ok := consumingContainersToCheck[container]; ok {
 					entry.ContainerRunning = running
-					_, err = database.DB.NamedExec(`UPDATE consuming_container SET 
-							container_running=:container_running, deleted=false 
+					_, err = database.DB.NamedExec(`UPDATE consuming_container SET
+							container_running=:container_running, deleted=false
 							WHERE id=:id`, entry,
 					)
 					if err != nil {
@@ -422,8 +428,8 @@ func checkContainerStatus() {
 			if running != consumingContainersToCheck[container].ContainerRunning {
 				if entry, ok := consumingContainersToCheck[container]; ok {
 					entry.ContainerRunning = running
-					_, err = database.DB.NamedExec(`UPDATE custombrowser SET 
-							container_running=:container_running, deleted=false 
+					_, err = database.DB.NamedExec(`UPDATE custombrowser SET
+							container_running=:container_running, deleted=false
 							WHERE id=:id`, entry,
 					)
 					if err != nil {

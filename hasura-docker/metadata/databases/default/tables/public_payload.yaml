@@ -1,7 +1,20 @@
 table:
   name: payload
   schema: public
+configuration:
+  column_config:
+    timestamp:
+      custom_name: timestamp
+  custom_column_names:
+    timestamp: timestamp
+  custom_root_fields: {}
 object_relationships:
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
+  - name: eventstepinstance
+    using:
+      foreign_key_constraint_on: eventstepinstance_id
   - name: filemetum
     using:
       foreign_key_constraint_on: file_id
@@ -21,6 +34,13 @@ object_relationships:
     using:
       foreign_key_constraint_on: task_id
 array_relationships:
+  - name: apitokens
+    using:
+      foreign_key_constraint_on:
+        column: payload_id
+        table:
+          name: apitokens
+          schema: public
   - name: buildparameterinstances
     using:
       foreign_key_constraint_on:
@@ -84,39 +104,23 @@ array_relationships:
         table:
           name: staginginfo
           schema: public
+  - name: tags
+    using:
+      foreign_key_constraint_on:
+        column: payload_id
+        table:
+          name: tag
+          schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - auto_generated
-        - callback_alert
-        - deleted
-        - file_id
-        - id
-        - operation_id
-        - operator_id
-        - payload_type_id
-        - task_id
-        - wrapped_payload_id
-        - build_container
-        - build_message
-        - build_phase
-        - build_stderr
-        - build_stdout
-        - description
-        - os
-        - uuid
-        - creation_time
-        - updated_at
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
         - auto_generated
         - callback_alert
+        - callback_allowed
         - deleted
+        - apitokens_id
+        - eventstepinstance_id
         - file_id
         - id
         - operation_id
@@ -131,18 +135,26 @@ select_permissions:
         - build_stdout
         - description
         - os
+        - payload_type_semver
         - uuid
         - creation_time
-        - updated_at
+        - timestamp
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-payload-read-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
         - auto_generated
         - callback_alert
+        - callback_allowed
         - deleted
+        - apitokens_id
+        - eventstepinstance_id
         - file_id
         - id
         - operation_id
@@ -157,18 +169,26 @@ select_permissions:
         - build_stdout
         - description
         - os
+        - payload_type_semver
         - uuid
         - creation_time
-        - updated_at
+        - timestamp
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-payload-read-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
         - auto_generated
         - callback_alert
+        - callback_allowed
         - deleted
+        - apitokens_id
+        - eventstepinstance_id
         - file_id
         - id
         - operation_id
@@ -183,18 +203,26 @@ select_permissions:
         - build_stdout
         - description
         - os
+        - payload_type_semver
         - uuid
         - creation_time
-        - updated_at
+        - timestamp
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-payload-read-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
         - auto_generated
         - callback_alert
+        - callback_allowed
         - deleted
+        - apitokens_id
+        - eventstepinstance_id
         - file_id
         - id
         - operation_id
@@ -209,50 +237,14 @@ select_permissions:
         - build_stdout
         - description
         - os
+        - payload_type_semver
         - uuid
         - creation_time
-        - updated_at
+        - timestamp
       filter:
-        operation_id:
-          _in: X-Hasura-operations
-update_permissions:
-  - role: developer
-    permission:
-      columns:
-        - callback_alert
-        - deleted
-        - description
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
-      check: null
-  - role: mythic_admin
-    permission:
-      columns:
-        - callback_alert
-        - deleted
-        - description
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
-      check: null
-  - role: operation_admin
-    permission:
-      columns:
-        - callback_alert
-        - deleted
-        - description
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
-      check: null
-  - role: operator
-    permission:
-      columns:
-        - callback_alert
-        - deleted
-        - description
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
-      check: null
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-payload-read-operations
+      allow_aggregations: true

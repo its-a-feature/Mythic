@@ -157,9 +157,9 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
         const callbacks = selectedData.current.map( c => c.display_id)
         if(callbacks.length > 0){
             if(finalTaskedParameters.current){
-                taskingData.current = {...taskingData.current, callback_ids: callbacks, openDialog: false, parameters: finalTaskedParameters.current};
+                taskingData.current = {...taskingData.current, callback_display_ids: callbacks, openDialog: false, parameters: finalTaskedParameters.current};
             }else{
-                taskingData.current = {...taskingData.current, callback_ids: callbacks, openDialog: true};
+                taskingData.current = {...taskingData.current, callback_display_ids: callbacks, openDialog: true};
             }
             setOpenTaskingButton(true);
         }else{
@@ -307,7 +307,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
           {openTaskingButton && 
               <TaskFromUIButton cmd={taskingData.current?.cmd} 
                   callback_id={taskingData?.current?.callback_id || 0}
-                  callback_ids={taskingData?.current?.callback_ids || undefined}
+                  callback_display_ids={taskingData?.current?.callback_display_ids || undefined}
                   parameters={taskingData.current?.parameters || ""}
                   openDialog={taskingData.current?.openDialog || false}
                   tasking_location={taskingData.current?.tasking_location || "command_line"}
@@ -323,4 +323,3 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
       </React.Fragment>
   );
 }
-

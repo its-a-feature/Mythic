@@ -135,7 +135,7 @@ export function C2PathDialog({callback, callbackgraphedges, onClose, onOpenTab})
     });
     const submitParametersDialog = (cmd, parameters, files) => {
         setOpenParametersDialog(false);
-        createTask({variables: {callback_id: selectedCallback.id, command: cmd, params: parameters, files}});
+        createTask({variables: {callback_display_id: selectedCallback.display_id, command: cmd, params: parameters, files}});
     }
     const [hideCallback] = useMutation(hideCallbackMutation, {
         update: (cache, {data}) => {

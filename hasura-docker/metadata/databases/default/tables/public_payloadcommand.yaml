@@ -8,64 +8,139 @@ object_relationships:
   - name: payload
     using:
       foreign_key_constraint_on: payload_id
-select_permissions:
-  - role: developer
+insert_permissions:
+  - role: mythic_admin
     permission:
+      check:
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-scope-payload-write-operations
       columns:
-        - id
-        - payload_id
         - command_id
-        - creation_time
-        - version
-      filter:
-        payload:
-          operation_id:
-            _in: X-Hasura-operations
+        - payload_id
+  - role: operation_admin
+    permission:
+      check:
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-scope-payload-write-operations
+      columns:
+        - command_id
+        - payload_id
+  - role: operator
+    permission:
+      check:
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-scope-payload-write-operations
+      columns:
+        - command_id
+        - payload_id
+select_permissions:
   - role: mythic_admin
     permission:
       columns:
-        - command_id
         - id
         - payload_id
-        - version
+        - command_id
         - creation_time
+        - version
       filter:
-        payload:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-Scope-payload-read-operations
   - role: operation_admin
     permission:
       columns:
-        - command_id
         - id
         - payload_id
-        - version
+        - command_id
         - creation_time
+        - version
       filter:
-        payload:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-Scope-payload-read-operations
   - role: operator
     permission:
       columns:
-        - command_id
         - id
         - payload_id
-        - version
+        - command_id
         - creation_time
+        - version
       filter:
-        payload:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-Scope-payload-read-operations
   - role: spectator
     permission:
       columns:
-        - command_id
         - id
         - payload_id
-        - version
+        - command_id
         - creation_time
+        - version
       filter:
-        payload:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-Scope-payload-read-operations
+delete_permissions:
+  - role: mythic_admin
+    permission:
+      filter:
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-scope-payload-write-operations
+  - role: operation_admin
+    permission:
+      filter:
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-scope-payload-write-operations
+  - role: operator
+    permission:
+      filter:
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-scope-payload-write-operations

@@ -540,7 +540,7 @@ const InteractiveTaskingBar = ({
                 enterOption = "";
             }
             createTask({variables: {
-                    callback_id: task.callback.display_id,
+                    callback_display_id: task.callback.display_id,
                     command: task.command.cmd,
                     params: inputText + enterOption,
                     tasking_location: "command_line",
@@ -553,7 +553,7 @@ const InteractiveTaskingBar = ({
         }else {
             // no control option selected, just send data along as input
             createTask({variables: {
-                    callback_id: task.callback.display_id,
+                    callback_display_id: task.callback.display_id,
                     command: task.command.cmd,
                     params: inputText + EnterOptions[selectedEnterOption].value,
                     tasking_location: "command_line",

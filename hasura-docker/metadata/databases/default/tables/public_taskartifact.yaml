@@ -3,15 +3,18 @@ table:
   schema: public
 configuration:
   column_config:
-    artifact_instance:
-      custom_name: artifact_instance_raw
+    artifact:
+      custom_name: artifact_raw
   custom_column_names:
-    artifact_instance: artifact_instance_raw
+    artifact: artifact_raw
   custom_root_fields: {}
 object_relationships:
-  - name: artifact
+  - name: apitoken
     using:
-      foreign_key_constraint_on: artifact_id
+      foreign_key_constraint_on: apitokens_id
+  - name: eventstepinstance
+    using:
+      foreign_key_constraint_on: eventstepinstance_id
   - name: operation
     using:
       foreign_key_constraint_on: operation_id
@@ -27,114 +30,273 @@ array_relationships:
           name: tag
           schema: public
 computed_fields:
-  - name: artifact_instance_text
+  - name: artifact_text
     definition:
       function:
         name: taskartifact_artifact_instance
         schema: public
-select_permissions:
-  - role: developer
+insert_permissions:
+  - role: mythic_admin
     permission:
-      columns:
-        - id
-        - task_id
-        - timestamp
-        - artifact_instance
-        - artifact_id
-        - operation_id
-        - host
-      computed_fields:
-        - artifact_instance_text
-      filter:
-        _or:
+      check:
+        _and:
           - operation_id:
-              _in: X-Hasura-operations
+              _eq: x-hasura-current-operation-id
           - task:
-              callback:
-                operation_id:
-                  _in: X-Hasura-operations
-      allow_aggregations: true
+              operation_id:
+                _eq: x-hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-task-write-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - apitokens_id
+        - artifact
+        - base_artifact
+        - eventstepinstance_id
+        - host
+        - needs_cleanup
+        - operation_id
+        - resolved
+        - task_id
+    comment: ""
+  - role: operation_admin
+    permission:
+      check:
+        _and:
+          - operation_id:
+              _eq: x-hasura-current-operation-id
+          - task:
+              operation_id:
+                _eq: x-hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-task-write-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - apitokens_id
+        - artifact
+        - base_artifact
+        - eventstepinstance_id
+        - host
+        - needs_cleanup
+        - operation_id
+        - resolved
+        - task_id
+    comment: ""
+  - role: operator
+    permission:
+      check:
+        _and:
+          - operation_id:
+              _eq: x-hasura-current-operation-id
+          - task:
+              operation_id:
+                _eq: x-hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-task-write-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - apitokens_id
+        - artifact
+        - base_artifact
+        - eventstepinstance_id
+        - host
+        - needs_cleanup
+        - operation_id
+        - resolved
+        - task_id
+    comment: ""
+select_permissions:
   - role: mythic_admin
     permission:
       columns:
+        - needs_cleanup
+        - resolved
+        - artifact
+        - apitokens_id
+        - eventstepinstance_id
         - id
-        - task_id
-        - timestamp
-        - artifact_instance
-        - artifact_id
         - operation_id
+        - task_id
+        - base_artifact
         - host
+        - timestamp
+        - updated_at
       computed_fields:
-        - artifact_instance_text
+        - artifact_text
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - task:
-              callback:
-                operation_id:
-                  _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - task:
+                  callback:
+                    operation_id:
+                      _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-task-read-operations
+              - task:
+                  callback:
+                    operation_id:
+                      _in: X-Hasura-Scope-task-read-operations
       allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
+        - needs_cleanup
+        - resolved
+        - artifact
+        - apitokens_id
+        - eventstepinstance_id
         - id
-        - task_id
-        - timestamp
-        - artifact_instance
-        - artifact_id
         - operation_id
+        - task_id
+        - base_artifact
         - host
+        - timestamp
+        - updated_at
       computed_fields:
-        - artifact_instance_text
+        - artifact_text
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - task:
-              callback:
-                operation_id:
-                  _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - task:
+                  callback:
+                    operation_id:
+                      _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-task-read-operations
+              - task:
+                  callback:
+                    operation_id:
+                      _in: X-Hasura-Scope-task-read-operations
       allow_aggregations: true
   - role: operator
     permission:
       columns:
+        - needs_cleanup
+        - resolved
+        - artifact
+        - apitokens_id
+        - eventstepinstance_id
         - id
-        - task_id
-        - timestamp
-        - artifact_instance
-        - artifact_id
         - operation_id
+        - task_id
+        - base_artifact
         - host
+        - timestamp
+        - updated_at
       computed_fields:
-        - artifact_instance_text
+        - artifact_text
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - task:
-              callback:
-                operation_id:
-                  _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - task:
+                  callback:
+                    operation_id:
+                      _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-task-read-operations
+              - task:
+                  callback:
+                    operation_id:
+                      _in: X-Hasura-Scope-task-read-operations
       allow_aggregations: true
   - role: spectator
     permission:
       columns:
+        - needs_cleanup
+        - resolved
+        - artifact
+        - apitokens_id
+        - eventstepinstance_id
         - id
-        - task_id
-        - timestamp
-        - artifact_instance
-        - artifact_id
         - operation_id
+        - task_id
+        - base_artifact
         - host
+        - timestamp
+        - updated_at
       computed_fields:
-        - artifact_instance_text
+        - artifact_text
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - task:
-              callback:
-                operation_id:
-                  _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - task:
+                  callback:
+                    operation_id:
+                      _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-task-read-operations
+              - task:
+                  callback:
+                    operation_id:
+                      _in: X-Hasura-Scope-task-read-operations
       allow_aggregations: true
+update_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - artifact
+        - base_artifact
+        - host
+        - needs_cleanup
+        - resolved
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-task-write-operations
+      check:
+        operation_id:
+          _eq: X-Hasura-current-operation-id
+    comment: ""
+  - role: operation_admin
+    permission:
+      columns:
+        - artifact
+        - base_artifact
+        - host
+        - needs_cleanup
+        - resolved
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-task-write-operations
+      check:
+        operation_id:
+          _eq: X-Hasura-current-operation-id
+    comment: ""
+  - role: operator
+    permission:
+      columns:
+        - artifact
+        - base_artifact
+        - host
+        - needs_cleanup
+        - resolved
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-task-write-operations
+      check:
+        operation_id:
+          _eq: X-Hasura-current-operation-id
+    comment: ""

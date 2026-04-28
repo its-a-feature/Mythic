@@ -152,12 +152,17 @@ export function EventFeed({}){
       fetchPolicy: "no-cache",
       onCompleted: (data) => {
         snackActions.dismiss();
-        let tempPageData = {...pageData};
-        tempPageData.totalCount = data.operationeventlog_aggregate.aggregate.count;
-        setPageData(tempPageData);
-        let newEventLog = [...data.operationeventlog];
-        newEventLog.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
-        setOperationEventLog(newEventLog);
+        try{
+          let tempPageData = {...pageData};
+          tempPageData.totalCount = data.operationeventlog_aggregate.aggregate.count;
+          setPageData(tempPageData);
+          let newEventLog = [...data.operationeventlog];
+          newEventLog.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
+          setOperationEventLog(newEventLog);
+        }catch(error){
+          console.log(error);
+        }
+
       }
   });
   const [getMoreEventFeed] = useLazyQuery(GET_Event_Feed_No_Warnings, {

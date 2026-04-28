@@ -1,0 +1,3 @@
+table:
+  name: mythic_server_migration_tracking
+  schema: public

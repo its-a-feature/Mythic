@@ -1,0 +1,7 @@
+table:
+  name: global_setting
+  schema: public
+object_relationships:
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_id

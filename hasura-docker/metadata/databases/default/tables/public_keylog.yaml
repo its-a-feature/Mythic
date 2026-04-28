@@ -2,6 +2,9 @@ table:
   name: keylog
   schema: public
 object_relationships:
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
   - name: operation
     using:
       foreign_key_constraint_on: operation_id
@@ -24,83 +27,83 @@ computed_fields:
         schema: public
     comment: utf8 version of keylogs
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - id
-        - task_id
-        - keystrokes
-        - window
-        - timestamp
-        - operation_id
-        - user
-      computed_fields:
-        - keystrokes_text
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
-      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
-        - id
-        - task_id
         - keystrokes
+        - apitokens_id
+        - id
+        - operation_id
+        - task_id
+        - user
         - window
         - timestamp
-        - operation_id
-        - user
       computed_fields:
         - keystrokes_text
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-response-read-operations
       allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
-        - id
-        - task_id
         - keystrokes
+        - apitokens_id
+        - id
+        - operation_id
+        - task_id
+        - user
         - window
         - timestamp
-        - operation_id
-        - user
       computed_fields:
         - keystrokes_text
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-response-read-operations
       allow_aggregations: true
   - role: operator
     permission:
       columns:
-        - id
-        - task_id
         - keystrokes
+        - apitokens_id
+        - id
+        - operation_id
+        - task_id
+        - user
         - window
         - timestamp
-        - operation_id
-        - user
       computed_fields:
         - keystrokes_text
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-response-read-operations
       allow_aggregations: true
   - role: spectator
     permission:
       columns:
-        - id
-        - task_id
         - keystrokes
+        - apitokens_id
+        - id
+        - operation_id
+        - task_id
+        - user
         - window
         - timestamp
-        - operation_id
-        - user
       computed_fields:
         - keystrokes_text
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-response-read-operations
       allow_aggregations: true

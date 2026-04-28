@@ -60,7 +60,6 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 	} else {
 		hasuraClaims["x-hasura-apitokens-id"] = "0"
 	}
-
 	allOperations, err := database.GetOperationsForUser(claims.UserID)
 	if err != nil {
 		logging.LogError(err, "Failed to get all operations for user when generating hasura claims")
@@ -84,21 +83,41 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 			hasuraClaims["x-hasura-current_operation"] = user.CurrentOperation.Name
 		}
 	}
-
 	if user.Admin {
 		hasuraClaims["x-hasura-role"] = "mythic_admin"
 	}
 	hasuraClaims["x-hasura-operations"] = fmt.Sprintf("{%s}", strings.Join(hasuraOperations, ","))
 	hasuraClaims["x-hasura-admin-operations"] = fmt.Sprintf("{%s}", strings.Join(hasuraAdminOperations, ","))
-
-	// short circuit and always provide spectator role in this case
-	if claims.AuthMethod == mythicjwt.AUTH_METHOD_GRAPHQL_SPECTATOR {
-		hasuraClaims["x-hasura-role"] = "spectator"
-		hasuraClaims["x-hasura-current-operation-id"] = fmt.Sprintf("%d", claims.OperationID)
+	hasuraOperatorIDs := []string{}
+	for _, requirement := range mythicjwt.HasuraScopeRequirements() {
+		claimValue := "{}"
+		if mythicjwt.AllowsScope(claims.Scopes, requirement.Scope) {
+			switch requirement.Anchor {
+			case "user":
+				claimValue = fmt.Sprintf("{%d}", claims.UserID)
+			case "operator":
+				if len(hasuraOperatorIDs) == 0 {
+					operatorIDs := []int{}
+					err = database.DB.Select(&operatorIDs, `SELECT id FROM operator`)
+					if err != nil {
+						logging.LogError(err, "Failed to get operator IDs for hasura scope claims")
+						return err
+					}
+					for _, operatorID := range operatorIDs {
+						hasuraOperatorIDs = append(hasuraOperatorIDs, fmt.Sprintf("%d", operatorID))
+					}
+				}
+				claimValue = fmt.Sprintf("{%s}", strings.Join(hasuraOperatorIDs, ","))
+			default:
+				claimValue = fmt.Sprintf("{%s}", strings.Join(hasuraOperations, ","))
+			}
+		}
+		logging.LogInfo("hasura claims", "claim", hasuraClaims)
+		hasuraClaims[requirement.SessionClaim] = claimValue
 	}
 	hasuraClaimsCacheLock.Lock()
-	hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d",
-		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID,
+	hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d-%s",
+		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID, strings.Join(claims.Scopes, ","),
 	)] = hasuraClaims
 	hasuraClaimsCacheLock.Unlock()
 	return nil
@@ -130,8 +149,8 @@ func GetHasuraClaims(c *gin.Context) {
 	c.Set(authentication.ContextKeyUserID, claims.UserID)
 	c.Set("hasura_claims", claims)
 	hasuraClaimsCacheLock.RLock()
-	hasuraClaims, ok := hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d",
-		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID,
+	hasuraClaims, ok := hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d-%s",
+		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID, strings.Join(claims.Scopes, ","),
 	)]
 	hasuraClaimsCacheLock.RUnlock()
 	if ok {
@@ -145,8 +164,8 @@ func GetHasuraClaims(c *gin.Context) {
 		return
 	}
 	hasuraClaimsCacheLock.RLock()
-	hasuraClaims, ok = hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d",
-		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID,
+	hasuraClaims, ok = hasuraClaimsCache[fmt.Sprintf("%d-%s-%d-%d-%s",
+		claims.UserID, claims.AuthMethod, claims.OperationID, claims.APITokensID, strings.Join(claims.Scopes, ","),
 	)]
 	hasuraClaimsCacheLock.RUnlock()
 	if ok {

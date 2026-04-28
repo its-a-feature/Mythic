@@ -17,15 +17,6 @@ array_relationships:
           name: attacktask
           schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - id
-        - t_num
-        - name
-        - os
-        - tactic
-      filter: {}
   - role: mythic_admin
     permission:
       columns:

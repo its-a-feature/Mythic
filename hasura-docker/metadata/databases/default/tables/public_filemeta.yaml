@@ -2,9 +2,21 @@ table:
   name: filemeta
   schema: public
 object_relationships:
-  - name: filebrowserobj
+  - name: apitoken
     using:
-      foreign_key_constraint_on: file_browser_id
+      foreign_key_constraint_on: apitokens_id
+  - name: copy_of_file
+    using:
+      foreign_key_constraint_on: copy_of_file_id
+  - name: eventgroup
+    using:
+      foreign_key_constraint_on: eventgroup_id
+  - name: eventstepinstance
+    using:
+      foreign_key_constraint_on: eventstepinstance_id
+  - name: mythictree
+    using:
+      foreign_key_constraint_on: mythictree_id
   - name: operation
     using:
       foreign_key_constraint_on: operation_id
@@ -15,6 +27,20 @@ object_relationships:
     using:
       foreign_key_constraint_on: task_id
 array_relationships:
+  - name: copies_of_file
+    using:
+      foreign_key_constraint_on:
+        column: copy_of_file_id
+        table:
+          name: filemeta
+          schema: public
+  - name: eventgroups
+    using:
+      foreign_key_constraint_on:
+        column: filemeta_id
+        table:
+          name: eventgroup
+          schema: public
   - name: payloads
     using:
       foreign_key_constraint_on:
@@ -36,57 +62,37 @@ computed_fields:
         name: filemeta_filename
         schema: public
     comment: convert bytea filename to text
+  - name: filename_utf8
+    definition:
+      function:
+        name: filemeta_filename_utf8
+        schema: public
   - name: full_remote_path_text
     definition:
       function:
         name: filemeta_full_remote_path
         schema: public
     comment: convert bytea full_remote_path to text
+  - name: full_remote_path_utf8
+    definition:
+      function:
+        name: filemeta_full_remote_path_utf8
+        schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - agent_file_id
-        - chunk_size
-        - chunks_received
-        - comment
-        - complete
-        - delete_after_fetch
-        - deleted
-        - file_browser_id
-        - filename
-        - full_remote_path
-        - host
-        - id
-        - is_download_from_agent
-        - is_payload
-        - is_screenshot
-        - md5
-        - operation_id
-        - operator_id
-        - path
-        - sha1
-        - task_id
-        - timestamp
-        - total_chunks
-      computed_fields:
-        - filename_text
-        - full_remote_path_text
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
-      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
         - agent_file_id
+        - apitokens_id
         - chunk_size
         - chunks_received
         - comment
         - complete
+        - copy_of_file_id
         - delete_after_fetch
         - deleted
-        - file_browser_id
+        - eventgroup_id
+        - eventstepinstance_id
         - filename
         - full_remote_path
         - host
@@ -95,31 +101,42 @@ select_permissions:
         - is_payload
         - is_screenshot
         - md5
+        - mythictree_id
         - operation_id
         - operator_id
         - path
+        - received_chunk_ids
         - sha1
+        - size
         - task_id
         - timestamp
         - total_chunks
       computed_fields:
         - filename_text
+        - filename_utf8
         - full_remote_path_text
+        - full_remote_path_utf8
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-file-read-operations
       allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
         - agent_file_id
+        - apitokens_id
         - chunk_size
         - chunks_received
         - comment
         - complete
+        - copy_of_file_id
         - delete_after_fetch
         - deleted
-        - file_browser_id
+        - eventgroup_id
+        - eventstepinstance_id
         - filename
         - full_remote_path
         - host
@@ -128,31 +145,42 @@ select_permissions:
         - is_payload
         - is_screenshot
         - md5
+        - mythictree_id
         - operation_id
         - operator_id
         - path
+        - received_chunk_ids
         - sha1
+        - size
         - task_id
         - timestamp
         - total_chunks
       computed_fields:
         - filename_text
+        - filename_utf8
         - full_remote_path_text
+        - full_remote_path_utf8
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-file-read-operations
       allow_aggregations: true
   - role: operator
     permission:
       columns:
         - agent_file_id
+        - apitokens_id
         - chunk_size
         - chunks_received
         - comment
         - complete
+        - copy_of_file_id
         - delete_after_fetch
         - deleted
-        - file_browser_id
+        - eventgroup_id
+        - eventstepinstance_id
         - filename
         - full_remote_path
         - host
@@ -161,31 +189,42 @@ select_permissions:
         - is_payload
         - is_screenshot
         - md5
+        - mythictree_id
         - operation_id
         - operator_id
         - path
+        - received_chunk_ids
         - sha1
+        - size
         - task_id
         - timestamp
         - total_chunks
       computed_fields:
         - filename_text
+        - filename_utf8
         - full_remote_path_text
+        - full_remote_path_utf8
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-file-read-operations
       allow_aggregations: true
   - role: spectator
     permission:
       columns:
         - agent_file_id
+        - apitokens_id
         - chunk_size
         - chunks_received
         - comment
         - complete
+        - copy_of_file_id
         - delete_after_fetch
         - deleted
-        - file_browser_id
+        - eventgroup_id
+        - eventstepinstance_id
         - filename
         - full_remote_path
         - host
@@ -194,33 +233,29 @@ select_permissions:
         - is_payload
         - is_screenshot
         - md5
+        - mythictree_id
         - operation_id
         - operator_id
         - path
+        - received_chunk_ids
         - sha1
+        - size
         - task_id
         - timestamp
         - total_chunks
       computed_fields:
         - filename_text
+        - filename_utf8
         - full_remote_path_text
+        - full_remote_path_utf8
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-file-read-operations
       allow_aggregations: true
 update_permissions:
-  - role: developer
-    permission:
-      columns:
-        - comment
-        - deleted
-        - filename
-      filter:
-        operation_id:
-          _in: X-Hasura-operations
-      check:
-        operation_id:
-          _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
@@ -228,11 +263,17 @@ update_permissions:
         - deleted
         - filename
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-file-write-operations
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-file-write-operations
   - role: operation_admin
     permission:
       columns:
@@ -240,11 +281,17 @@ update_permissions:
         - deleted
         - filename
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-file-write-operations
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-file-write-operations
   - role: operator
     permission:
       columns:
@@ -252,8 +299,14 @@ update_permissions:
         - deleted
         - filename
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-file-write-operations
       check:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-file-write-operations

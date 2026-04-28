@@ -13,15 +13,15 @@ type DeleteTasksAndCallbacksInput struct {
 }
 
 type DeleteTasksAndCallbacksMessage struct {
-	Tasks     []int `json:"tasks"`
-	Callbacks []int `json:"callbacks"`
+	TaskDisplayIDs     []int `json:"task_display_ids"`
+	CallbackDisplayIDs []int `json:"callback_display_ids"`
 }
 
 type DeleteTasksAndCallbacksMessageResponse struct {
-	Status          string `json:"status"`
-	Error           string `json:"error"`
-	FailedTasks     []int  `json:"failed_tasks"`
-	FailedCallbacks []int  `json:"failed_callbacks"`
+	Status                   string `json:"status"`
+	Error                    string `json:"error"`
+	FailedTaskDisplayIDs     []int  `json:"failed_task_display_ids"`
+	FailedCallbackDisplayIDs []int  `json:"failed_callback_display_ids"`
 }
 
 func DeleteTasksAndCallbacks(c *gin.Context) {
@@ -45,18 +45,18 @@ func DeleteTasksAndCallbacks(c *gin.Context) {
 		return
 	} else {
 		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
-		for _, callbackid := range input.Input.Callbacks {
+		for _, callbackDisplayID := range input.Input.CallbackDisplayIDs {
 			if _, err := database.DB.Exec(`DELETE FROM callback WHERE display_id=$1 AND operation_id=$2`,
-				callbackid, operatorOperation.CurrentOperation.ID); err != nil {
-				logging.LogError(err, "Failed to delete callback", "callback_id", callbackid)
-				response.FailedCallbacks = append(response.FailedCallbacks, callbackid)
+				callbackDisplayID, operatorOperation.CurrentOperation.ID); err != nil {
+				logging.LogError(err, "Failed to delete callback", "callback_display_id", callbackDisplayID)
+				response.FailedCallbackDisplayIDs = append(response.FailedCallbackDisplayIDs, callbackDisplayID)
 			}
 		}
-		for _, taskid := range input.Input.Tasks {
+		for _, taskDisplayID := range input.Input.TaskDisplayIDs {
 			if _, err := database.DB.Exec(`DELETE FROM task WHERE display_id=$1 AND operation_id=$2`,
-				taskid, operatorOperation.CurrentOperation.ID); err != nil {
-				logging.LogError(err, "Failed to delete task", "task_id", taskid)
-				response.FailedTasks = append(response.FailedTasks, taskid)
+				taskDisplayID, operatorOperation.CurrentOperation.ID); err != nil {
+				logging.LogError(err, "Failed to delete task", "task_display_id", taskDisplayID)
+				response.FailedTaskDisplayIDs = append(response.FailedTaskDisplayIDs, taskDisplayID)
 			}
 		}
 		response.Status = "success"

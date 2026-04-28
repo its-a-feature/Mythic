@@ -10,6 +10,18 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Adds the specified MITRE ATT&CK Technique to the task specified by this display id
+  - name: apiTokenScopeDefinitions
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/apitoken_scope_definitions_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: developer
+      - role: mythic_admin
+      - role: operation_admin
+      - role: operator
+    comment: Return the API token scope definitions supported by this Mythic server
   - name: c2GetIOC
     definition:
       kind: ""
@@ -156,7 +168,7 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
-    comment: Generate an apitoken of a specified type (typically 'User'), optionally for a specific bot account and with a specific name
+    comment: Generate an apitoken, optionally for a specific bot account and with a specific name
   - name: createArtifact
     definition:
       kind: synchronous
@@ -279,7 +291,7 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
-    comment: Creates a new task in Mythic for the specified callback_id or callback_ids (display ids)
+    comment: Creates a new task in Mythic for the specified callback_display_id or callback_display_ids
   - name: create_c2_instance
     definition:
       kind: synchronous
@@ -704,6 +716,18 @@ actions:
       - role: mythic_admin
       - role: operation_admin
       - role: operator
+  - name: scopeCheck
+    definition:
+      kind: ""
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/scope_check_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: spectator
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
+    comment: Check whether the current API token has a specific scope, optionally scoped to an operation
   - name: sendExternalWebhook
     definition:
       kind: synchronous
@@ -883,6 +907,9 @@ custom_types:
     - name: disabledCommand
   objects:
     - name: createAPITokenResponse
+    - name: ScopeCheckOutput
+    - name: APITokenScopeDefinitionsOutput
+    - name: APITokenScopeDefinition
     - name: OperatorOutput
     - name: createPayloadOutput
     - name: randomOutput

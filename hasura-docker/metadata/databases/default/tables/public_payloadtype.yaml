@@ -63,88 +63,130 @@ array_relationships:
           name: wrappedpayloadtypes
           schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - author
-        - container_running
-        - creation_time
-        - deleted
-        - file_extension
-        - id
-        - mythic_encrypts
-        - note
-        - name
-        - supported_os
-        - supports_dynamic_loading
-        - translation_container_id
-        - wrapper
-      filter: {}
   - role: mythic_admin
     permission:
       columns:
+        - agent_type
         - author
+        - c2_parameter_deviations
+        - command_augment_supported_agents
+        - command_help_function
         - container_running
         - creation_time
         - deleted
         - file_extension
         - id
+        - message_format
+        - message_uuid_length
         - mythic_encrypts
-        - note
         - name
+        - note
+        - semver
+        - supported_c2
         - supported_os
+        - supported_translation_container
+        - supported_wrapping
         - supports_dynamic_loading
+        - supports_multiple_c2_in_build
+        - supports_multiple_c2_instances_in_build
         - translation_container_id
+        - use_display_params_for_cli_history
         - wrapper
       filter: {}
   - role: operation_admin
     permission:
       columns:
+        - agent_type
         - author
+        - c2_parameter_deviations
+        - command_augment_supported_agents
+        - command_help_function
         - container_running
         - creation_time
         - deleted
         - file_extension
         - id
+        - message_format
+        - message_uuid_length
         - mythic_encrypts
-        - note
         - name
+        - note
+        - semver
+        - supported_c2
         - supported_os
+        - supported_translation_container
+        - supported_wrapping
         - supports_dynamic_loading
+        - supports_multiple_c2_in_build
+        - supports_multiple_c2_instances_in_build
         - translation_container_id
+        - use_display_params_for_cli_history
         - wrapper
       filter: {}
   - role: operator
     permission:
       columns:
+        - agent_type
         - author
+        - c2_parameter_deviations
+        - command_augment_supported_agents
+        - command_help_function
         - container_running
         - creation_time
         - deleted
         - file_extension
         - id
+        - message_format
+        - message_uuid_length
         - mythic_encrypts
-        - note
         - name
+        - note
+        - semver
+        - supported_c2
         - supported_os
+        - supported_translation_container
+        - supported_wrapping
         - supports_dynamic_loading
+        - supports_multiple_c2_in_build
+        - supports_multiple_c2_instances_in_build
         - translation_container_id
+        - use_display_params_for_cli_history
         - wrapper
       filter: {}
   - role: spectator
     permission:
       columns:
+        - agent_type
         - author
+        - c2_parameter_deviations
+        - command_augment_supported_agents
+        - command_help_function
         - container_running
         - creation_time
         - deleted
         - file_extension
         - id
+        - message_format
+        - message_uuid_length
         - mythic_encrypts
-        - note
         - name
+        - note
+        - semver
+        - supported_c2
         - supported_os
+        - supported_translation_container
+        - supported_wrapping
         - supports_dynamic_loading
+        - supports_multiple_c2_in_build
+        - supports_multiple_c2_instances_in_build
         - translation_container_id
+        - use_display_params_for_cli_history
         - wrapper
       filter: {}
+update_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - deleted
+      filter: {}
+      check: null
