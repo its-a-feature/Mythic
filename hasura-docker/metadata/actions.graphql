@@ -6,6 +6,10 @@ type Mutation {
 }
 
 type Query {
+  apiTokenScopeDefinitions: APITokenScopeDefinitionsOutput!
+}
+
+type Query {
   c2GetIOC(
     uuid: String!
   ): GetIOCOutput
@@ -89,9 +93,9 @@ type Mutation {
 
 type Mutation {
   createAPIToken(
-    token_type: String!
     operator_id: Int
     name: String
+    scopes: [String!]
   ): createAPITokenResponse!
 }
 
@@ -190,8 +194,8 @@ type Mutation {
     payload_type: String
     params: String!
     files: [String]
-    callback_id: Int
-    callback_ids: [Int]
+    callback_display_id: Int
+    callback_display_ids: [Int]
     token_id: Int
     tasking_location: String
     original_params: String
@@ -253,8 +257,8 @@ type Mutation {
 
 type Mutation {
   deleteTasksAndCallbacks(
-    tasks: [Int]
-    callbacks: [Int]
+    task_display_ids: [Int]
+    callback_display_ids: [Int]
   ): deleteTasksAndCallbacksOutput
 }
 
@@ -469,6 +473,14 @@ type Mutation {
   requestOpsecBypass(
     task_id: Int!
   ): BypassOutput
+}
+
+type Query {
+  scopeCheck(
+    resource: String!
+    action: String!
+    operation_id: Int
+  ): ScopeCheckOutput!
 }
 
 type Mutation {
@@ -689,7 +701,38 @@ type createAPITokenResponse {
   name: String
   created_by: Int
   token_type: String
+  scopes: [String!]
   creation_time: String!
+}
+
+type ScopeCheckOutput {
+  status: String!
+  error: String
+  allowed: Boolean
+  reason: String
+  required_scope: String
+  granted_scopes: [String!]
+  effective_scopes: [String!]
+  resource: String
+  action: String
+  operation_id: Int
+  message: String
+}
+
+type APITokenScopeDefinitionsOutput {
+  status: String!
+  error: String
+  scopes: [APITokenScopeDefinition!]!
+  grantable_wildcards: [String!]!
+}
+
+type APITokenScopeDefinition {
+  name: String!
+  display_name: String!
+  description: String!
+  resource: String!
+  access: String!
+  includes: [String!]
 }
 
 type OperatorOutput {
@@ -903,8 +946,8 @@ type meHookOutput {
 type deleteTasksAndCallbacksOutput {
   status: String!
   error: String
-  failed_tasks: [Int]
-  failed_callbacks: [Int]
+  failed_task_display_ids: [Int]
+  failed_callback_display_ids: [Int]
 }
 
 type sendExternalWebhookOutput {

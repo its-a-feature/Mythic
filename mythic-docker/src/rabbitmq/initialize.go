@@ -174,8 +174,14 @@ func emitStartupMessages() {
 
 func invalidateAllNonUserAPITokens() {
 	_, err := database.DB.Exec(`UPDATE apitokens 
-		SET deleted=true, active=false WHERE token_type=$1 OR token_type=$2 OR token_type=$3`,
-		mythicjwt.AUTH_METHOD_GRAPHQL_SPECTATOR, mythicjwt.AUTH_METHOD_TASK, mythicjwt.AUTH_METHOD_EVENT)
+			SET deleted=true, active=false 
+			WHERE 
+		    token_type=$1 OR token_type=$2 OR token_type=$3 OR token_type=$4 OR token_type=$5`,
+		mythicjwt.AUTH_METHOD_ON_START,
+		mythicjwt.AUTH_METHOD_TASK,
+		mythicjwt.AUTH_METHOD_EVENT,
+		mythicjwt.AUTH_METHOD_CALLBACK,
+		mythicjwt.AUTH_METHOD_PAYLOAD)
 	if err != nil {
 		logging.LogError(err, "failed to mark all spectator tokens as deleted and inactive")
 	}

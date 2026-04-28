@@ -1,0 +1,83 @@
+table:
+  name: eventgroupconsumingcontainer
+  schema: public
+object_relationships:
+  - name: consuming_container
+    using:
+      foreign_key_constraint_on: consuming_container_id
+  - name: eventgroup
+    using:
+      foreign_key_constraint_on: eventgroup_id
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - all_functions_available
+        - consuming_container_id
+        - eventgroup_id
+        - id
+        - function_names
+        - consuming_container_name
+      filter:
+        _and:
+          - eventgroup:
+              operation_id:
+                  _eq: x-hasura-current-operation-id
+          - eventgroup:
+              operation_id:
+                  _in: x-hasura-scope-eventing-read-operations
+    comment: ""
+  - role: operation_admin
+    permission:
+      columns:
+        - all_functions_available
+        - consuming_container_id
+        - eventgroup_id
+        - id
+        - function_names
+        - consuming_container_name
+      filter:
+        _and:
+          - eventgroup:
+              operation_id:
+                  _eq: x-hasura-current-operation-id
+          - eventgroup:
+              operation_id:
+                  _in: x-hasura-scope-eventing-read-operations
+    comment: ""
+  - role: operator
+    permission:
+      columns:
+        - all_functions_available
+        - consuming_container_id
+        - eventgroup_id
+        - id
+        - function_names
+        - consuming_container_name
+      filter:
+        _and:
+          - eventgroup:
+              operation_id:
+                  _eq: x-hasura-current-operation-id
+          - eventgroup:
+              operation_id:
+                  _in: x-hasura-scope-eventing-read-operations
+    comment: ""
+  - role: spectator
+    permission:
+      columns:
+        - all_functions_available
+        - consuming_container_id
+        - eventgroup_id
+        - id
+        - function_names
+        - consuming_container_name
+      filter:
+        _and:
+          - eventgroup:
+              operation_id:
+                  _eq: x-hasura-current-operation-id
+          - eventgroup:
+              operation_id:
+                  _in: x-hasura-scope-eventing-read-operations
+    comment: ""

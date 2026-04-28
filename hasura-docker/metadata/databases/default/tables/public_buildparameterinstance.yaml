@@ -8,20 +8,18 @@ object_relationships:
   - name: payload
     using:
       foreign_key_constraint_on: payload_id
+computed_fields:
+  - name: dec_key_base64
+    definition:
+      function:
+        name: buildparameterinstance_deckey
+        schema: public
+  - name: enc_key_base64
+    definition:
+      function:
+        name: buildparameterinstance_enckey
+        schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - dec_key
-        - enc_key
-        - build_parameter_id
-        - id
-        - payload_id
-        - value
-      filter:
-        payload:
-          operation_id:
-            _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
@@ -31,10 +29,17 @@ select_permissions:
         - id
         - payload_id
         - value
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
       filter:
-        payload:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-Scope-payload-read-operations
   - role: operation_admin
     permission:
       columns:
@@ -44,10 +49,17 @@ select_permissions:
         - id
         - payload_id
         - value
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
       filter:
-        payload:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-Scope-payload-read-operations
   - role: operator
     permission:
       columns:
@@ -57,10 +69,17 @@ select_permissions:
         - id
         - payload_id
         - value
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
       filter:
-        payload:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-Scope-payload-read-operations
   - role: spectator
     permission:
       columns:
@@ -70,7 +89,14 @@ select_permissions:
         - id
         - payload_id
         - value
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
       filter:
-        payload:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - payload:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - payload:
+              operation_id:
+                _in: X-Hasura-Scope-payload-read-operations

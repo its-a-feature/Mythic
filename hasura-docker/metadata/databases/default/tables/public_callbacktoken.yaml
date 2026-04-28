@@ -12,21 +12,6 @@ object_relationships:
     using:
       foreign_key_constraint_on: token_id
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - id
-        - token_id
-        - callback_id
-        - os
-        - task_id
-        - timestamp_created
-        - deleted
-        - host
-      filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
@@ -39,9 +24,13 @@ select_permissions:
         - os
         - timestamp_created
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-read-operations
   - role: operation_admin
     permission:
       columns:
@@ -54,9 +43,13 @@ select_permissions:
         - os
         - timestamp_created
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-read-operations
   - role: operator
     permission:
       columns:
@@ -69,9 +62,13 @@ select_permissions:
         - os
         - timestamp_created
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-read-operations
   - role: spectator
     permission:
       columns:
@@ -84,55 +81,71 @@ select_permissions:
         - os
         - timestamp_created
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-read-operations
 update_permissions:
-  - role: developer
-    permission:
-      columns:
-        - deleted
-      filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
-      check:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
         - deleted
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-write-operations
       check:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-write-operations
   - role: operation_admin
     permission:
       columns:
         - deleted
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-write-operations
       check:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-write-operations
   - role: operator
     permission:
       columns:
         - deleted
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-write-operations
       check:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        _and:
+          - callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+          - callback:
+              operation_id:
+                _in: X-Hasura-Scope-callback-write-operations

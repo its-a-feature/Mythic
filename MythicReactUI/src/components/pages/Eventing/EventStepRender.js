@@ -125,7 +125,7 @@ query getEventStepInstanceDetails($eventstepinstance_id: Int!){
           id
           deleted
           active
-          token_value
+          scopes
           token_type
           operator {
             username
@@ -200,7 +200,7 @@ query getEventStepInstanceDetails($eventgroupinstance_id: Int!){
       id
       deleted
       active
-      token_value
+      scopes
       token_type
       operator {
         username

@@ -251,7 +251,7 @@ export function CallbacksGraph({onOpenTab}){
     });
     const submitParametersDialog = (cmd, parameters, files) => {
         setOpenParametersDialog(false);
-        createTask({variables: {callback_id: selectedCallback.id, command: cmd, params: parameters, files}});
+        createTask({variables: {callback_display_id: selectedCallback.display_id, command: cmd, params: parameters, files}});
     }
     const [viewConfig, setViewConfig] = React.useState({
         rankDir: "TB",
@@ -430,4 +430,3 @@ export function CallbacksGraph({onOpenTab}){
         </div>
     );
 }
-

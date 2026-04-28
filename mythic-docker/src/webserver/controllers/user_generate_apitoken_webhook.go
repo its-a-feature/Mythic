@@ -11,6 +11,7 @@ import (
 	"github.com/its-a-feature/Mythic/authentication"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/lib/pq"
 )
 
 type GenerateAPITokenInput struct {
@@ -18,20 +19,21 @@ type GenerateAPITokenInput struct {
 }
 
 type GenerateAPIToken struct {
-	TokenType  string `json:"token_type" binding:"required"`
-	OperatorID int    `json:"operator_id"`
-	Name       string `json:"name"`
+	OperatorID int      `json:"operator_id"`
+	Name       string   `json:"name"`
+	Scopes     []string `json:"scopes"`
 }
 
 type GenerateAPITokenResponse struct {
 	Status       string    `json:"status"`
+	TokenType    string    `json:"token_type"`
 	TokenValue   string    `json:"token_value"`
 	Error        string    `json:"error"`
 	ID           int       `json:"id"`
 	OperatorID   int       `json:"operator_id"`
 	Name         string    `json:"name"`
 	CreatedBy    int       `json:"created_by"`
-	TokenType    string    `json:"token_type"`
+	Scopes       []string  `json:"scopes"`
 	CreationTime time.Time `json:"creation_time"`
 }
 
@@ -106,23 +108,39 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 	if claims.EventStepInstanceID > 0 {
 		authType = mythicjwt.AUTH_METHOD_EVENT
 	}
+	normalizedScopes, err := mythicjwt.NormalizeAPITokenScopes(input.Input.Scopes)
+	if err != nil {
+		c.JSON(http.StatusOK, GenerateAPITokenResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+	if err = mythicjwt.CanGrantAPITokenScopes(claims.Scopes, normalizedScopes); err != nil {
+		c.JSON(http.StatusOK, GenerateAPITokenResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
 	// save off the access_token as an API token and then return it
 	apiToken := databaseStructs.Apitokens{
 		TokenValue: "",
 		OperatorID: userID,
-		TokenType:  input.Input.TokenType,
+		TokenType:  authType,
 		Active:     true,
 		Name:       defaultName,
+		Scopes:     pq.StringArray(normalizedScopes),
 		CreatedBy:  createdBy,
 	}
 	if authType == mythicjwt.AUTH_METHOD_EVENT {
 		apiToken.EventStepInstanceID.Valid = true
 		apiToken.EventStepInstanceID.Int64 = int64(claims.EventStepInstanceID)
 	}
-	statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens 
-		(token_value, operator_id, token_type, active, "name", created_by, eventstepinstance_id) 
+	statement, err := database.DB.PrepareNamed(`INSERT INTO apitokens
+		(token_value, operator_id, token_type, active, "name", scopes, created_by, eventstepinstance_id)
 		VALUES
-		(:token_value, :operator_id, :token_type, :active, :name, :created_by, :eventstepinstance_id)
+		(:token_value, :operator_id, :token_type, :active, :name, :scopes, :created_by, :eventstepinstance_id)
 		RETURNING id`)
 	if err != nil {
 		c.JSON(http.StatusOK, GenerateAPITokenResponse{
@@ -164,6 +182,7 @@ func GenerateAPITokenWebhook(c *gin.Context) {
 		Name:         apiToken.Name,
 		CreatedBy:    apiToken.CreatedBy,
 		TokenType:    apiToken.TokenType,
+		Scopes:       []string(apiToken.Scopes),
 		CreationTime: apiToken.CreationTime,
 	})
 }

@@ -16,11 +16,13 @@ import (
 const directFileScopedTokenTTL = 30 * time.Second
 
 type MythicRPCDirectFileTokenCreateMessage struct {
-	AgentTaskID     *string `json:"agent_task_id"`
-	AgentCallbackID *string `json:"agent_callback_id"`
-	PayloadUUID     *string `json:"payload_uuid"`
-	FileUUID        string  `json:"file_uuid"`
-	Action          string  `json:"action"` // upload, download, both
+	AgentTaskID         *string `json:"agent_task_id"`
+	AgentCallbackID     *string `json:"agent_callback_id"`
+	PayloadUUID         *string `json:"payload_uuid"`
+	FileUUID            string  `json:"agent_file_id"`
+	APITokenID          *int    `json:"apitoken_id"`
+	EventstepInstanceID *int    `json:"eventstep_instance_id"`
+	Action              string  `json:"action"` // upload, download, both
 }
 
 type MythicRPCDirectFileTokenCreateMessageResponse struct {
@@ -36,19 +38,6 @@ func init() {
 		RoutingKey: MYTHIC_RPC_DIRECT_FILE_TOKEN_CREATE,
 		Handler:    processMythicRPCDirectFileTokenCreate,
 	})
-}
-
-func scopesForDirectFileAction(action string) ([]string, error) {
-	switch action {
-	case "upload":
-		return []string{mythicjwt.SCOPE_FILE_DIRECT_UPLOAD}, nil
-	case "download":
-		return []string{mythicjwt.SCOPE_FILE_DIRECT_DOWNLOAD}, nil
-	case "both", "":
-		return []string{mythicjwt.SCOPE_FILE_DIRECT_UPLOAD, mythicjwt.SCOPE_FILE_DIRECT_DOWNLOAD}, nil
-	default:
-		return nil, fmt.Errorf("invalid action %q (expected upload, download, or both)", action)
-	}
 }
 
 func resolveScopedTokenOperatorAndOperation(input MythicRPCDirectFileTokenCreateMessage) (int, int, error) {
@@ -103,11 +92,6 @@ func MythicRPCDirectFileTokenCreate(input MythicRPCDirectFileTokenCreateMessage)
 		response.Error = "file_uuid is required"
 		return response
 	}
-	scopes, err := scopesForDirectFileAction(input.Action)
-	if err != nil {
-		response.Error = err.Error()
-		return response
-	}
 	operatorID, operationID, err := resolveScopedTokenOperatorAndOperation(input)
 	if err != nil {
 		response.Error = err.Error()
@@ -120,7 +104,19 @@ func MythicRPCDirectFileTokenCreate(input MythicRPCDirectFileTokenCreateMessage)
 			Int64: int64(operationID),
 		},
 	}
-	token, _, err := mythicjwt.GenerateScopedJWT(user, scopes, input.FileUUID, directFileScopedTokenTTL)
+	eventstepInstanceID := 0
+	if input.EventstepInstanceID != nil {
+		eventstepInstanceID = *input.EventstepInstanceID
+	}
+	apitokenID := 0
+	if input.APITokenID != nil {
+		apitokenID = *input.APITokenID
+	}
+	scope := mythicjwt.SCOPE_FILE_READ
+	if input.Action == "upload" {
+		scope = mythicjwt.SCOPE_FILE_WRITE
+	}
+	token, _, err := mythicjwt.GenerateScopedJWT(user, []string{scope}, input.FileUUID, directFileScopedTokenTTL, eventstepInstanceID, apitokenID)
 	if err != nil {
 		response.Error = err.Error()
 		return response

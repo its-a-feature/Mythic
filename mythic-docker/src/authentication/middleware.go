@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"slices"
 
 	"github.com/its-a-feature/Mythic/authentication/mythicjwt"
 	"github.com/its-a-feature/Mythic/rabbitmq"
@@ -104,32 +103,86 @@ func RBACMiddlewareOperationAdmin() gin.HandlerFunc {
 		database.OPERATOR_OPERATION_VIEW_MODE_LEAD,
 	})
 }
-
-func scopeIncludes(scopes []string, required string) bool {
-	return slices.Contains(scopes, required)
+func RBACMiddlewareAdmin() gin.HandlerFunc {
+	return RBACMiddleware([]string{})
 }
 
-func DirectFileScopeMiddleware(requiredScope string) gin.HandlerFunc {
+type MissingScopeError struct {
+	RequiredScope string
+	GrantedScopes []string
+	Resource      string
+	Action        string
+	Route         string
+}
+
+func (m MissingScopeError) Response() gin.H {
+	return gin.H{
+		"error":          "missing_scope",
+		"message":        fmt.Sprintf("This API token does not have the required scope: %s", m.RequiredScope),
+		"required_scope": m.RequiredScope,
+		"granted_scopes": m.GrantedScopes,
+		"resource":       m.Resource,
+		"action":         m.Action,
+		"route":          m.Route,
+	}
+}
+
+func scopeDefinitionParts(scope string) (string, string) {
+	for _, definition := range mythicjwt.ScopeDefinitions() {
+		if definition.Name == scope {
+			return definition.Resource, definition.Access
+		}
+	}
+	return "", ""
+}
+
+func TokenScopeMiddleware(requiredScopes []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		claims, err := GetClaims(c)
-		if err != nil {
-			logging.LogError(err, "Failed to get claims for DirectFileScopeMiddleware")
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
-			c.Abort()
-			return
-		}
-		if !scopeIncludes(claims.Scopes, requiredScope) {
-			c.JSON(http.StatusForbidden, gin.H{"message": "Missing Proper Scope"})
-			c.Abort()
-			return
-		}
-		if claims.AuthMethod == mythicjwt.AUTH_METHOD_SCOPED &&
-			claims.FileUUID != "" &&
-			claims.FileUUID != c.Param("file_uuid") {
-			c.JSON(http.StatusForbidden, gin.H{"message": "Forbidden"})
-			c.Abort()
-			return
+		for _, requiredScope := range requiredScopes {
+			missingScope := enforceTokenScope(c, requiredScope)
+			if missingScope != nil {
+				c.JSON(http.StatusForbidden, missingScope.Response())
+				c.Abort()
+				return
+			}
 		}
 		c.Next()
 	}
+}
+
+func enforceTokenScope(c *gin.Context, requiredScope string) *MissingScopeError {
+	resource, action := scopeDefinitionParts(requiredScope)
+	route := c.FullPath()
+	if route == "" {
+		route = c.Request.URL.Path
+	}
+	claims, err := GetClaims(c)
+	if err != nil {
+		return &MissingScopeError{
+			RequiredScope: requiredScope,
+			GrantedScopes: []string{},
+			Resource:      resource,
+			Action:        action,
+			Route:         route,
+		}
+	}
+	if !mythicjwt.AllowsScope(claims.Scopes, requiredScope) {
+		return &MissingScopeError{
+			RequiredScope: requiredScope,
+			GrantedScopes: claims.Scopes,
+			Resource:      resource,
+			Action:        action,
+			Route:         route,
+		}
+	}
+	if claims.FileUUID != "" && claims.FileUUID != c.Param("file_uuid") {
+		return &MissingScopeError{
+			RequiredScope: requiredScope,
+			GrantedScopes: claims.Scopes,
+			Resource:      resource,
+			Action:        action,
+			Route:         route,
+		}
+	}
+	return nil
 }

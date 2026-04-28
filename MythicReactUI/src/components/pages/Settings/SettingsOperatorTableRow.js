@@ -1,5 +1,5 @@
 import React from 'react';
-import {Button, Link} from '@mui/material';
+import {Button, DialogActions, DialogContent, DialogContentText, DialogTitle, Link, TextField} from '@mui/material';
 import TableRow from '@mui/material/TableRow';
 import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
@@ -36,10 +36,11 @@ import { DataGrid } from '@mui/x-data-grid';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 
 const createAPITokenMutation = gql`
-mutation createAPITokenMutation($operator_id: Int, $name: String){
-  createAPIToken(token_type: "User", operator_id: $operator_id, name: $name){
+mutation createAPITokenMutation($operator_id: Int, $name: String, $scopes: [String!]){
+  createAPIToken(operator_id: $operator_id, name: $name, scopes: $scopes){
     id
     token_value
+    scopes
     token_type
     status
     error
@@ -72,7 +73,7 @@ mutation toggleAPITokenActiveMutation($id: Int!, $active: Boolean!){
 const GetAPITokens = gql`
     query getUserAPITokens($operator_id: Int!){
         apitokens(where: {operator_id: {_eq: $operator_id}}, order_by: {id: desc}) {
-          token_value
+          scopes
           token_type
           creation_time
           active
@@ -106,6 +107,7 @@ export function SettingsOperatorTableRow(props){
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [openUIConfig, setOpenUIConfig] = React.useState(false);
     const [openNewAPIToken, setOpenNewAPIToken] = React.useState(false);
+    const [newAPITokenValue, setNewAPITokenValue] = React.useState("");
     const [openExperimentalUIConfig, setOpenExperimentalUIConfig] = React.useState(false);
     const [openSecretsConfig, setOpenSecretsConfig] = React.useState(false);
     const [showDeleted, setShowDeleted] = React.useState(false);
@@ -120,7 +122,9 @@ export function SettingsOperatorTableRow(props){
         onCompleted: (data) => {
             if(data.createAPIToken.status === "success"){
                 snackActions.success("Successfully created new API Token");
-                setAPITokens([...apiTokens, {...data.createAPIToken, deleted: false, active: true,
+                const {token_value, ...createdToken} = data.createAPIToken;
+                setNewAPITokenValue(token_value);
+                setAPITokens([...apiTokens, {...createdToken, deleted: false, active: true,
                 created_by_operator: {username:me?.user?.username, id: me?.user?.user_id}}]);
 
             }else{
@@ -197,12 +201,9 @@ export function SettingsOperatorTableRow(props){
         props.onDeleteOperator(id, !props.deleted);
         setOpenDeleteDialog(false);
     }
-    const onSubmitNewAPIToken = (name) => {
-        onCreateAPIToken({operator_id:props.id, name: name});
+    const onSubmitNewAPIToken = (name, scopes) => {
+        createAPIToken({variables: {operator_id: props.id, name, scopes}})
         setOpenNewAPIToken(false);
-    }
-    const onCreateAPIToken = ({operator_id, name}) => {
-        createAPIToken({variables: {operator_id, name}})
     }
     const onDeleteAPIToken = (id) => {
         deleteAPIToken({variables: {id}})
@@ -383,7 +384,19 @@ export function SettingsOperatorTableRow(props){
                                 <MythicDialog open={openNewAPIToken}
                                               fullWidth={true}
                                               onClose={()=>{setOpenNewAPIToken(false);}}
-                                              innerDialog={<SettingsAPITokenDialog title="New API Token Name" onAccept={onSubmitNewAPIToken} handleClose={()=>{setOpenNewAPIToken(false);}}  {...props}/>}
+                                              maxWidth={"md"}
+                                              innerDialog={<SettingsAPITokenDialog title="New API Token" onAccept={onSubmitNewAPIToken} handleClose={()=>{setOpenNewAPIToken(false);}}  {...props}/>}
+                                />
+                            }
+                            {newAPITokenValue !== "" &&
+                                <MythicDialog open={newAPITokenValue !== ""}
+                                              fullWidth={true}
+                                              maxWidth={"md"}
+                                              onClose={()=>{setNewAPITokenValue("");}}
+                                              innerDialog={<APITokenValueDialog
+                                                  tokenValue={newAPITokenValue}
+                                                  onClose={()=>{setNewAPITokenValue("");}}
+                                              />}
                                 />
                             }
                             <APITokens me={me} apiTokens={apiTokens} onDeleteAPIToken={onDeleteAPIToken} onToggleActive={onToggleActive} showDeleted={showDeleted} />
@@ -442,16 +455,14 @@ const columns = [
         )
     },
     {
-        field: 'token',
-        headerName: 'Token',
-        width: 60,
-        valueGetter: (value, row) => row.token_value,
+        field: 'scopes',
+        headerName: 'Scopes',
+        flex: 1,
+        valueGetter: (value, row) => (row.scopes || []).join(", "),
         renderCell: (params) => (
-            <MythicStyledTooltip title={"Copy to clipboard"} >
-                <IconButton onClick={() => params.row.onCopyTokenValue(params.row.token_value)} >
-                    <ContentCopyIcon />
-                </IconButton>
-            </MythicStyledTooltip>
+            <Typography>
+                {(params.row.scopes || []).join(", ")}
+            </Typography>
         )
     },
     {
@@ -490,22 +501,49 @@ const columns = [
         }
     },
 ];
-const APITokens = ({apiTokens, onDeleteAPIToken, onToggleActive, showDeleted, me}) => {
-    const onCopyTokenValue = (token_value) => {
-        let success = copyStringToClipboard(token_value);
+const APITokenValueDialog = ({tokenValue, onClose}) => {
+    const onCopyTokenValue = () => {
+        let success = copyStringToClipboard(tokenValue);
         if(success){
             snackActions.success("copied token to clipboard");
         } else {
             snackActions.error("failed to copy token to clipboard");
         }
     }
+    return (
+        <>
+            <DialogTitle id="form-dialog-title">Copy API Token</DialogTitle>
+            <DialogContent dividers={true}>
+                <DialogContentText>
+                    This token value is only shown once. Copy it now before closing this dialog.
+                </DialogContentText>
+                <TextField
+                    fullWidth
+                    multiline
+                    minRows={4}
+                    value={tokenValue}
+                    InputProps={{readOnly: true}}
+                    sx={{mt: 2}}
+                />
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onCopyTokenValue} variant="contained" color="success" startIcon={<ContentCopyIcon />}>
+                    Copy
+                </Button>
+                <Button onClick={onClose} variant="contained" color="primary">
+                    I Copied It
+                </Button>
+            </DialogActions>
+        </>
+    );
+}
+const APITokens = ({apiTokens, onDeleteAPIToken, onToggleActive, showDeleted, me}) => {
     const theme = useTheme();
     const [data, setData] = React.useState([]);
     React.useEffect( () => {
         setData(apiTokens.reduce( (prev, c) => {
             if(showDeleted || (!showDeleted && !c.deleted)){
-                return [...prev, {...c, onCopyTokenValue: onCopyTokenValue,
-                    onDeleteAPIToken: onDeleteAPIToken, onToggleActive: onToggleActive,
+                return [...prev, {...c, onDeleteAPIToken: onDeleteAPIToken, onToggleActive: onToggleActive,
                     me: me, theme: theme
                 }];
             }
@@ -533,4 +571,3 @@ const APITokens = ({apiTokens, onDeleteAPIToken, onToggleActive, showDeleted, me
 
     )
 }
-

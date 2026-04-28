@@ -2,134 +2,310 @@ table:
   name: apitokens
   schema: public
 object_relationships:
+  - name: callback
+    using:
+      foreign_key_constraint_on: callback_id
+  - name: created_by_operator
+    using:
+      foreign_key_constraint_on: created_by
+  - name: eventstepinstance
+    using:
+      foreign_key_constraint_on: eventstepinstance_id
   - name: operator
     using:
       foreign_key_constraint_on: operator_id
+  - name: payload
+    using:
+      foreign_key_constraint_on: payload_id
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+array_relationships:
+  - name: callbackgraphedges
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: callbackgraphedge
+          schema: public
+  - name: credentials
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: credential
+          schema: public
+  - name: filemeta
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: filemeta
+          schema: public
+  - name: keylogs
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: keylog
+          schema: public
+  - name: loadedcommands
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: loadedcommands
+          schema: public
+  - name: mythictrees
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: mythictree
+          schema: public
+  - name: operationeventlogs
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: operationeventlog
+          schema: public
+  - name: operations
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: operation
+          schema: public
+  - name: operatoroperations
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: operatoroperation
+          schema: public
+  - name: operators
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: operator
+          schema: public
+  - name: payloads
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: payload
+          schema: public
+  - name: responses
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: response
+          schema: public
+  - name: tags
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: tag
+          schema: public
+  - name: tagtypes
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: tagtype
+          schema: public
+  - name: taskartifacts
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: taskartifact
+          schema: public
+  - name: tasks
+    using:
+      foreign_key_constraint_on:
+        column: apitokens_id
+        table:
+          name: task
+          schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - active
-        - id
-        - operator_id
-        - token_type
-        - token_value
-        - creation_time
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
   - role: mythic_admin
     permission:
       columns:
         - active
+        - deleted
+        - callback_id
+        - created_by
+        - eventstepinstance_id
         - id
         - operator_id
+        - payload_id
+        - task_id
+        - name
         - token_type
         - token_value
         - creation_time
+        - scopes
       filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - _or:
+              - created_by:
+                  _eq: X-Hasura-User-Id
+              - operator_id:
+                  _eq: X-Hasura-User-Id
+              - operator:
+                  account_type:
+                    _eq: bot
+          - operator_id:
+              _in: X-Hasura-Scope-apitoken-read-users
   - role: operation_admin
     permission:
       columns:
         - active
+        - deleted
+        - callback_id
+        - created_by
+        - eventstepinstance_id
         - id
         - operator_id
+        - payload_id
+        - task_id
+        - name
         - token_type
         - token_value
         - creation_time
+        - scopes
       filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - _or:
+            - created_by:
+                _eq: X-Hasura-User-Id
+            - operator_id:
+                _eq: X-Hasura-User-Id
+          - operator_id:
+              _in: X-Hasura-Scope-apitoken-read-users
   - role: operator
     permission:
       columns:
         - active
+        - deleted
+        - callback_id
+        - created_by
+        - eventstepinstance_id
         - id
         - operator_id
+        - payload_id
+        - task_id
+        - name
         - token_type
         - token_value
         - creation_time
+        - scopes
       filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - _or:
+              - created_by:
+                  _eq: X-Hasura-User-Id
+              - operator_id:
+                  _eq: X-Hasura-User-Id
+          - operator_id:
+              _in: X-Hasura-Scope-apitoken-read-users
   - role: spectator
     permission:
       columns:
         - active
-        - creation_time
+        - deleted
+        - callback_id
+        - created_by
+        - eventstepinstance_id
         - id
         - operator_id
+        - payload_id
+        - task_id
+        - name
         - token_type
         - token_value
+        - creation_time
+        - scopes
       filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - _or:
+              - created_by:
+                  _eq: X-Hasura-User-Id
+              - operator_id:
+                  _eq: X-Hasura-User-Id
+          - operator_id:
+              _in: X-Hasura-Scope-apitoken-read-users
 update_permissions:
-  - role: developer
-    permission:
-      columns:
-        - active
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
-      check: null
   - role: mythic_admin
     permission:
       columns:
         - active
+        - deleted
+        - name
       filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - _or:
+            - created_by:
+                _eq: X-Hasura-User-Id
+            - operator_id:
+                _eq: X-Hasura-User-Id
+            - operator:
+                account_type:
+                  _eq: bot
+          - operator_id:
+              _in: X-Hasura-Scope-apitoken-write-users
       check: null
   - role: operation_admin
     permission:
       columns:
         - active
+        - deleted
+        - name
       filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - _or:
+              - created_by:
+                  _eq: X-Hasura-User-Id
+              - operator_id:
+                  _eq: X-Hasura-User-Id
+          - operator_id:
+              _in: X-Hasura-Scope-apitoken-write-users
       check: null
   - role: operator
     permission:
       columns:
         - active
+        - deleted
+        - name
       filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - _or:
+              - created_by:
+                  _eq: X-Hasura-User-Id
+              - operator_id:
+                  _eq: X-Hasura-User-Id
+          - operator_id:
+              _in: X-Hasura-Scope-apitoken-write-users
       check: null
   - role: spectator
     permission:
       columns:
         - active
+        - deleted
+        - name
       filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
+        _and:
+          - _or:
+              - created_by:
+                  _eq: X-Hasura-User-Id
+              - operator_id:
+                  _eq: X-Hasura-User-Id
+          - operator_id:
+              _in: X-Hasura-Scope-apitoken-write-users
       check: null
-delete_permissions:
-  - role: developer
-    permission:
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
-  - role: mythic_admin
-    permission:
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
-  - role: operation_admin
-    permission:
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
-  - role: operator
-    permission:
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
-  - role: spectator
-    permission:
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id

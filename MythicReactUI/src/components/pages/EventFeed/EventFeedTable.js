@@ -16,7 +16,6 @@ import Grid from '@mui/material/Grid';
 import {alertCount} from "../../../cache";
 import {levelOptions} from "./EventFeed";
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
-import {MythicPageHeader} from "../../MythicComponents/MythicPageHeader";
 
 const EventList = ({onUpdateLevel, onUpdateResolution, operationeventlog}) => {
    return (

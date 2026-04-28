@@ -2,6 +2,9 @@ table:
   name: operationeventlog
   schema: public
 object_relationships:
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
   - name: operation
     using:
       foreign_key_constraint_on: operation_id
@@ -9,90 +12,80 @@ object_relationships:
     using:
       foreign_key_constraint_on: operator_id
 insert_permissions:
-  - role: developer
-    permission:
-      check:
-        operation_id:
-          _in: x-hasura-operations
-      set:
-        operation_id: x-hasura-current-operation-id
-        operator_id: x-hasura-user-id
-      columns:
-        - deleted
-        - level
-        - message
-        - operation_id
-        - operator_id
-        - resolved
   - role: mythic_admin
     permission:
       check:
-        operation_id:
-          _in: x-hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-eventlog-write-operations
       set:
         operation_id: x-hasura-current-operation-id
         operator_id: x-hasura-user-id
       columns:
+        - apitokens_id
         - deleted
         - level
         - message
         - operation_id
         - operator_id
         - resolved
+        - source
+        - warning
+    comment: ""
   - role: operation_admin
     permission:
       check:
-        operation_id:
-          _in: x-hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-eventlog-write-operations
       set:
         operation_id: x-hasura-current-operation-id
         operator_id: x-hasura-user-id
       columns:
+        - apitokens_id
         - deleted
         - level
         - message
         - operation_id
         - operator_id
         - resolved
+        - source
+        - warning
+    comment: ""
   - role: operator
     permission:
       check:
-        operation_id:
-          _in: x-hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-eventlog-write-operations
       set:
         operation_id: x-hasura-current-operation-id
         operator_id: x-hasura-user-id
       columns:
+        - apitokens_id
         - deleted
         - level
         - message
         - operation_id
         - operator_id
         - resolved
+        - source
+        - warning
+    comment: ""
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - count
-        - deleted
-        - id
-        - level
-        - message
-        - operation_id
-        - operator_id
-        - resolved
-        - source
-        - timestamp
-      filter:
-        operation_id:
-          _in:
-            - x-hasura-operations
-      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
         - deleted
         - resolved
+        - warning
+        - apitokens_id
         - count
         - id
         - operation_id
@@ -102,14 +95,19 @@ select_permissions:
         - source
         - timestamp
       filter:
-        operation_id:
-          _in: x-hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-eventlog-read-operations
       allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
         - deleted
         - resolved
+        - warning
+        - apitokens_id
         - count
         - id
         - operation_id
@@ -119,14 +117,19 @@ select_permissions:
         - source
         - timestamp
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-eventlog-read-operations
       allow_aggregations: true
   - role: operator
     permission:
       columns:
         - deleted
         - resolved
+        - warning
+        - apitokens_id
         - count
         - id
         - operation_id
@@ -136,14 +139,19 @@ select_permissions:
         - source
         - timestamp
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-eventlog-read-operations
       allow_aggregations: true
   - role: spectator
     permission:
       columns:
         - deleted
         - resolved
+        - warning
+        - apitokens_id
         - count
         - id
         - operation_id
@@ -153,29 +161,26 @@ select_permissions:
         - source
         - timestamp
       filter:
-        operation_id:
-          _in: X-Hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-eventlog-read-operations
       allow_aggregations: true
 update_permissions:
-  - role: developer
-    permission:
-      columns:
-        - deleted
-        - level
-        - resolved
-      filter:
-        operation_id:
-          _in: x-hasura-operations
-      check: null
   - role: mythic_admin
     permission:
       columns:
         - deleted
         - level
         - resolved
+        - warning
       filter:
-        operation_id:
-          _in: x-hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-eventlog-write-operations
       check: null
   - role: operation_admin
     permission:
@@ -183,9 +188,13 @@ update_permissions:
         - deleted
         - level
         - resolved
+        - warning
       filter:
-        operation_id:
-          _in: x-hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-eventlog-write-operations
       check: null
   - role: operator
     permission:
@@ -193,7 +202,11 @@ update_permissions:
         - deleted
         - level
         - resolved
+        - warning
       filter:
-        operation_id:
-          _in: x-hasura-operations
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-Scope-eventlog-write-operations
       check: null

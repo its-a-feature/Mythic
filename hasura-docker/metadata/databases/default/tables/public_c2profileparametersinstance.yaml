@@ -29,147 +29,150 @@ computed_fields:
         name: c2profileparametersinstance_enckey
         schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - id
-        - c2_profile_parameters_id
-        - c2_profile_id
-        - value
-        - enc_key
-        - dec_key
-        - payload_id
-        - instance_name
-        - operation_id
-        - callback_id
-      computed_fields:
-        - dec_key_base64
-        - enc_key_base64
-      filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
-        - id
-        - c2_profile_parameters_id
-        - c2_profile_id
-        - value
-        - enc_key
         - dec_key
+        - enc_key
+        - c2_profile_id
+        - c2_profile_parameters_id
+        - callback_id
+        - count
+        - id
+        - operation_id
         - payload_id
         - instance_name
-        - operation_id
-        - callback_id
+        - value
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-payload-read-operations
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-read-operations
   - role: operation_admin
     permission:
       columns:
-        - id
-        - c2_profile_parameters_id
-        - c2_profile_id
-        - value
-        - enc_key
         - dec_key
+        - enc_key
+        - c2_profile_id
+        - c2_profile_parameters_id
+        - callback_id
+        - count
+        - id
+        - operation_id
         - payload_id
         - instance_name
-        - operation_id
-        - callback_id
+        - value
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-payload-read-operations
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-read-operations
   - role: operator
     permission:
       columns:
-        - id
-        - c2_profile_parameters_id
-        - c2_profile_id
-        - value
-        - enc_key
         - dec_key
+        - enc_key
+        - c2_profile_id
+        - c2_profile_parameters_id
+        - callback_id
+        - count
+        - id
+        - operation_id
         - payload_id
         - instance_name
-        - operation_id
-        - callback_id
+        - value
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-payload-read-operations
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-read-operations
   - role: spectator
     permission:
       columns:
-        - id
-        - c2_profile_parameters_id
-        - c2_profile_id
-        - value
-        - enc_key
         - dec_key
+        - enc_key
+        - c2_profile_id
+        - c2_profile_parameters_id
+        - callback_id
+        - count
+        - id
+        - operation_id
         - payload_id
         - instance_name
-        - operation_id
-        - callback_id
+        - value
       computed_fields:
         - dec_key_base64
         - enc_key_base64
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-payload-read-operations
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-read-operations
 update_permissions:
-  - role: developer
-    permission:
-      columns:
-        - instance_name
-        - value
-      filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
-      check: null
   - role: mythic_admin
     permission:
       columns:
         - instance_name
         - value
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-payload-write-operations
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-write-operations
       check: null
   - role: operation_admin
     permission:
@@ -177,12 +180,19 @@ update_permissions:
         - instance_name
         - value
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-payload-write-operations
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-write-operations
       check: null
   - role: operator
     permission:
@@ -190,47 +200,66 @@ update_permissions:
         - instance_name
         - value
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-payload-write-operations
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-write-operations
       check: null
 delete_permissions:
-  - role: developer
-    permission:
-      filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-payload-write-operations
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-write-operations
   - role: operation_admin
     permission:
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-payload-write-operations
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-write-operations
   - role: operator
     permission:
       filter:
-        _or:
-          - operation_id:
-              _in: X-Hasura-operations
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - operation_id:
+                  _eq: X-Hasura-current-operation-id
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - operation_id:
+                  _in: X-Hasura-Scope-payload-write-operations
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-write-operations

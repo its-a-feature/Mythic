@@ -2,9 +2,6 @@ table:
   name: command
   schema: public
 object_relationships:
-  - name: commandopsec
-    using:
-      foreign_key_constraint_on: opsec_id
   - name: payloadtype
     using:
       foreign_key_constraint_on: payload_type_id
@@ -59,89 +56,75 @@ array_relationships:
           name: task
           schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - deleted
-        - needs_admin
-        - script_only
-        - cmd
-        - id
-        - opsec_id
-        - payload_type_id
-        - version
-        - attributes
-        - author
-        - description
-        - help_cmd
-        - supported_ui_features
-        - creation_time
-      filter: {}
   - role: mythic_admin
     permission:
       columns:
         - deleted
         - needs_admin
         - script_only
-        - cmd
         - id
-        - opsec_id
         - payload_type_id
         - version
         - attributes
         - author
+        - cmd
         - description
         - help_cmd
         - supported_ui_features
+        - creation_time
       filter: {}
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
         - deleted
         - needs_admin
         - script_only
-        - cmd
         - id
-        - opsec_id
         - payload_type_id
         - version
         - attributes
         - author
+        - cmd
         - description
         - help_cmd
         - supported_ui_features
+        - creation_time
       filter: {}
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
         - deleted
         - needs_admin
         - script_only
-        - cmd
         - id
-        - opsec_id
         - payload_type_id
         - version
         - attributes
         - author
+        - cmd
         - description
         - help_cmd
         - supported_ui_features
+        - creation_time
       filter: {}
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
         - deleted
         - needs_admin
         - script_only
-        - cmd
         - id
-        - opsec_id
         - payload_type_id
         - version
         - attributes
         - author
+        - cmd
         - description
         - help_cmd
         - supported_ui_features
+        - creation_time
       filter: {}
+      allow_aggregations: true

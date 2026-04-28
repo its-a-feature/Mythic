@@ -9,108 +9,119 @@ object_relationships:
     using:
       foreign_key_constraint_on: payloadtype_id
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - step_success
-        - id
-        - payload_id
-        - payloadtype_id
-        - step_number
-        - step_description
-        - step_name
-        - step_stderr
-        - step_stdout
-        - end_time
-        - start_time
-      filter:
-        _or:
-          - payloadtype_id:
-              _is_null: false
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
-        - step_success
+        - end_time
         - id
         - payload_id
         - payloadtype_id
-        - step_number
+        - start_time
         - step_description
         - step_name
+        - step_number
+        - step_skip
         - step_stderr
         - step_stdout
-        - end_time
-        - start_time
+        - step_success
       filter:
-        _or:
-          - payloadtype_id:
-              _is_null: false
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - payloadtype_id:
+                  _is_null: false
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - payloadtype_id:
+                  _is_null: false
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-read-operations
   - role: operation_admin
     permission:
       columns:
-        - step_success
+        - end_time
         - id
         - payload_id
         - payloadtype_id
-        - step_number
+        - start_time
         - step_description
         - step_name
+        - step_number
+        - step_skip
         - step_stderr
         - step_stdout
-        - end_time
-        - start_time
+        - step_success
       filter:
-        _or:
-          - payloadtype_id:
-              _is_null: false
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - payloadtype_id:
+                  _is_null: false
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - payloadtype_id:
+                  _is_null: false
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-read-operations
   - role: operator
     permission:
       columns:
-        - step_success
+        - end_time
         - id
         - payload_id
         - payloadtype_id
-        - step_number
+        - start_time
         - step_description
         - step_name
+        - step_number
+        - step_skip
         - step_stderr
         - step_stdout
-        - end_time
-        - start_time
+        - step_success
       filter:
-        _or:
-          - payloadtype_id:
-              _is_null: false
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - payloadtype_id:
+                  _is_null: false
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - payloadtype_id:
+                  _is_null: false
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-read-operations
   - role: spectator
     permission:
       columns:
-        - step_success
+        - end_time
         - id
         - payload_id
         - payloadtype_id
-        - step_number
+        - start_time
         - step_description
         - step_name
+        - step_number
+        - step_skip
         - step_stderr
         - step_stdout
-        - end_time
-        - start_time
+        - step_success
       filter:
-        _or:
-          - payloadtype_id:
-              _is_null: false
-          - payload:
-              operation_id:
-                _in: X-Hasura-operations
+        _and:
+          - _or:
+              - payloadtype_id:
+                  _is_null: false
+              - payload:
+                  operation_id:
+                    _eq: X-Hasura-current-operation-id
+          - _or:
+              - payloadtype_id:
+                  _is_null: false
+              - payload:
+                  operation_id:
+                    _in: X-Hasura-Scope-payload-read-operations

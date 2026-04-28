@@ -54,40 +54,78 @@ func Login(c *gin.Context) {
 
 }
 
-func GetMe(c *gin.Context) {
-	claims, err := authentication.GetClaims(c)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get claims from JWT"})
-		return
-	}
-	c.JSON(http.StatusOK, claims)
-}
-
 func GetMeWebhook(c *gin.Context) {
-	if user, err := GetUserIDFromGin(c); err != nil {
+	user, err := GetUserIDFromGin(c)
+	if err != nil {
 		logging.LogError(err, "Failed to get UserID")
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "error": "Failed to get UserID"})
 		return
-	} else if currentOperation, err := database.GetUserCurrentOperation(user); err != nil {
+	}
+	currentOperation, err := database.GetUserCurrentOperation(user)
+	if err != nil {
 		logging.LogError(err, "Failed to get current operation")
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "error": "Failed to get current operation"})
 		return
-	} else {
-		//logging.LogInfo("got mewebhook info", "currentOperation", currentOperation)
-		c.JSON(http.StatusOK, gin.H{
-			"status":                         "success",
-			"current_operation":              currentOperation.CurrentOperation.Name,
-			"current_operation_banner_text":  currentOperation.CurrentOperation.BannerText,
-			"current_operation_banner_color": currentOperation.CurrentOperation.BannerColor,
-			"current_operation_complete":     currentOperation.CurrentOperation.Complete,
-			"current_operation_id":           currentOperation.CurrentOperation.ID,
-			"user_id":                        currentOperation.CurrentOperator.ID,
-			"id":                             currentOperation.CurrentOperator.ID,
-			"current_utc_time":               time.Now().UTC(),
-		})
-		return
 	}
+	//logging.LogInfo("got mewebhook info", "currentOperation", currentOperation)
+	c.JSON(http.StatusOK, gin.H{
+		"status":                         "success",
+		"current_operation":              currentOperation.CurrentOperation.Name,
+		"current_operation_banner_text":  currentOperation.CurrentOperation.BannerText,
+		"current_operation_banner_color": currentOperation.CurrentOperation.BannerColor,
+		"current_operation_complete":     currentOperation.CurrentOperation.Complete,
+		"current_operation_id":           currentOperation.CurrentOperation.ID,
+		"user_id":                        currentOperation.CurrentOperator.ID,
+		"id":                             currentOperation.CurrentOperator.ID,
+		"current_utc_time":               time.Now().UTC(),
+		"scope_info":                     buildScopeIntrospectionResponse(c, currentClaimsOrNil(c)),
+	})
+	return
+}
 
+func currentClaimsOrNil(c *gin.Context) *mythicjwt.CustomClaims {
+	claims, err := authentication.GetClaims(c)
+	if err != nil {
+		return nil
+	}
+	return claims
+}
+
+func buildScopeIntrospectionResponse(c *gin.Context, claims *mythicjwt.CustomClaims) gin.H {
+	if claims == nil {
+		return gin.H{}
+	}
+	operationIDs := []int{}
+	if operations, err := database.GetOperationsForUser(claims.UserID); err == nil {
+		for _, operation := range *operations {
+			operationIDs = append(operationIDs, operation.CurrentOperation.ID)
+		}
+	}
+	effectiveScopes := mythicjwt.EffectiveScopes(claims.Scopes)
+	hasAllScopes := mythicjwt.AllowsScope(claims.Scopes, mythicjwt.SCOPE_ALL)
+	scopeDescriptions := []mythicjwt.ScopeDefinition{}
+	for _, definition := range mythicjwt.ScopeDefinitions() {
+		if hasAllScopes || mythicjwt.AllowsScope(effectiveScopes, definition.Name) {
+			scopeDescriptions = append(scopeDescriptions, definition)
+		}
+	}
+	return gin.H{
+		"auth_method":          claims.AuthMethod,
+		"apitoken_id":          claims.APITokensID,
+		"operator_id":          claims.UserID,
+		"current_operation_id": claims.OperationID,
+		"scopes":               claims.Scopes,
+		"effective_scopes":     effectiveScopes,
+		"scope_descriptions":   scopeDescriptions,
+		"available_scopes":     mythicjwt.ScopeDefinitions(),
+		"operation_ids":        operationIDs,
+		"hasura_scope_claims":  mythicjwt.HasuraScopeRequirements(),
+		"limitations": []string{
+			"Scopes apply within the operations available to the authenticated operator.",
+			"Write scopes include read access for the same resource.",
+			"Unregistered routes still rely on Mythic's existing role and operation checks.",
+		},
+	}
 }
 
 type RefreshJWTInput struct {
@@ -97,7 +135,8 @@ type RefreshJWTInput struct {
 
 func RefreshJWT(c *gin.Context) {
 	var input RefreshJWTInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
 		logging.LogError(err, "Failed to find parameters for Refresh")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -127,9 +166,8 @@ func RefreshJWT(c *gin.Context) {
 		"current_utc_time":               time.Now().UTC(),
 	}
 	// setting cookie max age to 2 days
-	c.Set("user_id", currentOperation.CurrentOperator.ID)
-	c.Set("username", currentOperation.CurrentOperator.Username)
+	c.Set(authentication.ContextKeyUserID, currentOperation.CurrentOperator.ID)
+	c.Set(authentication.ContextKeyUsername, currentOperation.CurrentOperator.Username)
 	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken, "user": user})
 	return
-
 }

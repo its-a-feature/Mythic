@@ -1,0 +1,189 @@
+table:
+  name: eventstepinstance
+  schema: public
+object_relationships:
+  - name: eventgroupinstance
+    using:
+      foreign_key_constraint_on: eventgroupinstance_id
+  - name: eventstep
+    using:
+      foreign_key_constraint_on: eventstep_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_id
+array_relationships:
+  - name: apitokens
+    using:
+      foreign_key_constraint_on:
+        column: eventstepinstance_id
+        table:
+          name: apitokens
+          schema: public
+  - name: callbacks
+    using:
+      foreign_key_constraint_on:
+        column: eventstepinstance_id
+        table:
+          name: callback
+          schema: public
+  - name: filemeta
+    using:
+      foreign_key_constraint_on:
+        column: eventstepinstance_id
+        table:
+          name: filemeta
+          schema: public
+  - name: payloads
+    using:
+      foreign_key_constraint_on:
+        column: eventstepinstance_id
+        table:
+          name: payload
+          schema: public
+  - name: responses
+    using:
+      foreign_key_constraint_on:
+        column: eventstepinstance_id
+        table:
+          name: response
+          schema: public
+  - name: tags
+    using:
+      foreign_key_constraint_on:
+        column: eventstepinstance_id
+        table:
+          name: tag
+          schema: public
+  - name: tagtypes
+    using:
+      foreign_key_constraint_on:
+        column: eventstepinstance_id
+        table:
+          name: tagtype
+          schema: public
+  - name: taskartifacts
+    using:
+      foreign_key_constraint_on:
+        column: eventstepinstance_id
+        table:
+          name: taskartifact
+          schema: public
+  - name: tasks
+    using:
+      foreign_key_constraint_on:
+        column: eventstepinstance_id
+        table:
+          name: task
+          schema: public
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - continue_on_error
+        - eventgroupinstance_id
+        - eventstep_id
+        - id
+        - operation_id
+        - operator_id
+        - order
+        - action_data
+        - environment
+        - inputs
+        - outputs
+        - status
+        - stderr
+        - stdout
+        - created_at
+        - end_timestamp
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-scope-eventing-read-operations
+    comment: ""
+  - role: operation_admin
+    permission:
+      columns:
+        - continue_on_error
+        - eventgroupinstance_id
+        - eventstep_id
+        - id
+        - operation_id
+        - operator_id
+        - order
+        - action_data
+        - environment
+        - inputs
+        - outputs
+        - status
+        - stderr
+        - stdout
+        - created_at
+        - end_timestamp
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-scope-eventing-read-operations
+    comment: ""
+  - role: operator
+    permission:
+      columns:
+        - continue_on_error
+        - eventgroupinstance_id
+        - eventstep_id
+        - id
+        - operation_id
+        - operator_id
+        - order
+        - action_data
+        - environment
+        - inputs
+        - outputs
+        - status
+        - stderr
+        - stdout
+        - created_at
+        - end_timestamp
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-scope-eventing-read-operations
+    comment: ""
+  - role: spectator
+    permission:
+      columns:
+        - continue_on_error
+        - eventgroupinstance_id
+        - eventstep_id
+        - id
+        - operation_id
+        - operator_id
+        - order
+        - action_data
+        - environment
+        - inputs
+        - outputs
+        - status
+        - stderr
+        - stdout
+        - created_at
+        - end_timestamp
+        - updated_at
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - operation_id:
+              _in: X-Hasura-scope-eventing-read-operations
+    comment: ""

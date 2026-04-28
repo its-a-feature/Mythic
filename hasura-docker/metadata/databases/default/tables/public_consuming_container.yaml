@@ -1,0 +1,80 @@
+table:
+  name: consuming_container
+  schema: public
+array_relationships:
+  - name: eventgroupconsumingcontainers
+    using:
+      foreign_key_constraint_on:
+        column: consuming_container_id
+        table:
+          name: eventgroupconsumingcontainer
+          schema: public
+select_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - id
+        - subscriptions
+        - description
+        - name
+        - semver
+        - type
+        - created_at
+        - updated_at
+      filter: {}
+    comment: ""
+  - role: operation_admin
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - id
+        - subscriptions
+        - description
+        - name
+        - semver
+        - type
+        - created_at
+        - updated_at
+      filter: {}
+    comment: ""
+  - role: operator
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - id
+        - subscriptions
+        - description
+        - name
+        - semver
+        - type
+        - created_at
+        - updated_at
+      filter: {}
+    comment: ""
+  - role: spectator
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - id
+        - subscriptions
+        - description
+        - name
+        - semver
+        - type
+        - created_at
+        - updated_at
+      filter: {}
+    comment: ""
+
+update_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - deleted
+      filter: {}
+      check: null

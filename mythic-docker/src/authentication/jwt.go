@@ -34,9 +34,9 @@ var (
 	// LegacyAPITokenJWTCutoff // int64(time.Now().Unix()) for a specific date via iat
 	LegacyAPITokenJWTCutoff = int64(1776211200) // April 15, 2026
 	SQLGetIDForActiveToken  = `SELECT 
-    	apitokens.id, apitokens.operator_id, apitokens.name, apitokens.active, apitokens.token_value, apitokens.deleted,
-    	apitokens.eventstepinstance_id, apitokens.token_type,
-    	operator.username "operator.username",
+		apitokens.id, apitokens.operator_id, apitokens.name, apitokens.active, apitokens.token_value, apitokens.deleted,
+		apitokens.eventstepinstance_id, apitokens.token_type, apitokens.scopes,
+		operator.username "operator.username",
 		operator.account_type "operator.account_type",
 		operator.current_operation_id "operator.current_operation_id"
 		FROM apitokens 
@@ -62,12 +62,13 @@ func getAPITokenFromDB(c *gin.Context, tokenString string) (databaseStructs.Apit
 }
 
 func claimsFromAPIToken(databaseApiToken databaseStructs.Apitokens) *mythicjwt.CustomClaims {
+	scopes := []string(databaseApiToken.Scopes)
 	claims := mythicjwt.CustomClaims{
 		UserID:      databaseApiToken.OperatorID,
 		AuthMethod:  databaseApiToken.TokenType,
 		APITokensID: databaseApiToken.ID,
 		OperationID: int(databaseApiToken.Operator.CurrentOperationID.Int64),
-		Scopes:      []string{mythicjwt.SCOPE_FILE_DIRECT_UPLOAD, mythicjwt.SCOPE_FILE_DIRECT_DOWNLOAD},
+		Scopes:      scopes,
 	}
 	if databaseApiToken.EventStepInstanceID.Valid {
 		claims.EventStepInstanceID = int(databaseApiToken.EventStepInstanceID.Int64)
@@ -202,6 +203,7 @@ func ExtractToken(c *gin.Context) (string, error) {
 					logging.LogError(err, "Failed to find hasura request")
 					return "", ErrMissingAuthorizationHeader
 				}
+
 				for key, value := range input.Headers {
 					c.Request.Header.Add(key, value)
 				}

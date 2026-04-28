@@ -5,6 +5,9 @@ object_relationships:
   - name: admin
     using:
       foreign_key_constraint_on: admin_id
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
 array_relationships:
   - name: browserscriptoperations
     using:
@@ -55,12 +58,40 @@ array_relationships:
         table:
           name: disabledcommandsprofile
           schema: public
-  - name: filebrowserobjs
+  - name: eventgroupapprovals
     using:
       foreign_key_constraint_on:
         column: operation_id
         table:
-          name: filebrowserobj
+          name: eventgroupapproval
+          schema: public
+  - name: eventgroupinstances
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: eventgroupinstance
+          schema: public
+  - name: eventgroups
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: eventgroup
+          schema: public
+  - name: eventstepinstances
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: eventstepinstance
+          schema: public
+  - name: eventsteps
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: eventstep
           schema: public
   - name: filemeta
     using:
@@ -75,6 +106,13 @@ array_relationships:
         column: operation_id
         table:
           name: keylog
+          schema: public
+  - name: mythictrees
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: mythictree
           schema: public
   - name: operationeventlogs
     using:
@@ -111,12 +149,12 @@ array_relationships:
         table:
           name: payload
           schema: public
-  - name: processes
+  - name: responses
     using:
       foreign_key_constraint_on:
         column: operation_id
         table:
-          name: process
+          name: response
           schema: public
   - name: tags
     using:
@@ -140,143 +178,82 @@ array_relationships:
           name: taskartifact
           schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - id
-        - name
-        - admin_id
-        - complete
-        - webhook
-        - channel
-        - display_name
-        - icon_emoji
-        - icon_url
-        - webhook_message
-      filter:
-        id:
-          _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
         - complete
+        - deleted
         - admin_id
+        - alert_count
+        - apitokens_id
         - id
+        - banner_color
+        - banner_text
         - channel
-        - display_name
-        - icon_emoji
-        - icon_url
         - name
         - webhook
-        - webhook_message
+        - updated_at
       filter: {}
   - role: operation_admin
     permission:
       columns:
         - complete
+        - deleted
         - admin_id
+        - alert_count
+        - apitokens_id
         - id
+        - banner_color
+        - banner_text
         - channel
-        - display_name
-        - icon_emoji
-        - icon_url
         - name
         - webhook
-        - webhook_message
+        - updated_at
       filter:
-        id:
-          _in: X-Hasura-operations
+        _and:
+          - id:
+              _eq: X-Hasura-current-operation-id
+          - id:
+              _in: X-Hasura-Scope-operation-read-operations
   - role: operator
     permission:
       columns:
         - complete
+        - deleted
         - admin_id
+        - alert_count
+        - apitokens_id
         - id
+        - banner_color
+        - banner_text
         - channel
-        - display_name
-        - icon_emoji
-        - icon_url
         - name
         - webhook
-        - webhook_message
+        - updated_at
       filter:
-        id:
-          _in: X-Hasura-operations
+        _and:
+          - id:
+              _eq: X-Hasura-current-operation-id
+          - id:
+              _in: X-Hasura-Scope-operation-read-operations
   - role: spectator
     permission:
       columns:
         - complete
+        - deleted
         - admin_id
+        - alert_count
+        - apitokens_id
         - id
+        - banner_color
+        - banner_text
         - channel
-        - display_name
-        - icon_emoji
-        - icon_url
         - name
         - webhook
-        - webhook_message
+        - updated_at
       filter:
-        id:
-          _in: X-Hasura-operations
-update_permissions:
-  - role: developer
-    permission:
-      columns:
-        - admin_id
-        - channel
-        - complete
-        - display_name
-        - icon_emoji
-        - icon_url
-        - name
-        - webhook
-        - webhook_message
-      filter:
-        id:
-          _in: X-Hasura-admin-operations
-      check: {}
-  - role: mythic_admin
-    permission:
-      columns:
-        - admin_id
-        - channel
-        - complete
-        - display_name
-        - icon_emoji
-        - icon_url
-        - name
-        - webhook
-        - webhook_message
-      filter: {}
-      check: {}
-  - role: operation_admin
-    permission:
-      columns:
-        - admin_id
-        - channel
-        - complete
-        - display_name
-        - icon_emoji
-        - icon_url
-        - name
-        - webhook
-        - webhook_message
-      filter:
-        id:
-          _in: X-Hasura-admin-operations
-      check: {}
-  - role: operator
-    permission:
-      columns:
-        - channel
-        - display_name
-        - icon_emoji
-        - icon_url
-        - webhook
-        - webhook_message
-      filter:
-        id:
-          _in: X-Hasura-operations
-      check:
-        id:
-          _in: X-Hasura-operations
+        _and:
+          - id:
+              _eq: X-Hasura-current-operation-id
+          - id:
+              _in: X-Hasura-Scope-operation-read-operations

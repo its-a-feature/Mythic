@@ -45,39 +45,28 @@ array_relationships:
           name: payloadtypec2profile
           schema: public
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - container_running
-        - deleted
-        - is_p2p
-        - is_server_routed
-        - running
-        - id
-        - author
-        - description
-        - name
-        - creation_time
-      filter: {}
   - role: mythic_admin
     permission:
       columns:
-        - id
-        - name
-        - description
-        - creation_time
-        - running
         - container_running
-        - author
+        - deleted
+        - has_logo
         - is_p2p
         - is_server_routed
-        - deleted
+        - running
+        - id
+        - author
+        - description
+        - name
+        - semver
+        - creation_time
       filter: {}
   - role: operation_admin
     permission:
       columns:
         - container_running
         - deleted
+        - has_logo
         - is_p2p
         - is_server_routed
         - running
@@ -85,6 +74,7 @@ select_permissions:
         - author
         - description
         - name
+        - semver
         - creation_time
       filter: {}
   - role: operator
@@ -92,6 +82,7 @@ select_permissions:
       columns:
         - container_running
         - deleted
+        - has_logo
         - is_p2p
         - is_server_routed
         - running
@@ -99,6 +90,7 @@ select_permissions:
         - author
         - description
         - name
+        - semver
         - creation_time
       filter: {}
   - role: spectator
@@ -106,6 +98,7 @@ select_permissions:
       columns:
         - container_running
         - deleted
+        - has_logo
         - is_p2p
         - is_server_routed
         - running
@@ -113,5 +106,13 @@ select_permissions:
         - author
         - description
         - name
+        - semver
         - creation_time
       filter: {}
+update_permissions:
+  - role: mythic_admin
+    permission:
+      columns:
+        - deleted
+      filter: {}
+      check: null

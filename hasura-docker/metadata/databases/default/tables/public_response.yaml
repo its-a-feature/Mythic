@@ -9,6 +9,21 @@ configuration:
     response: response_raw
   custom_root_fields: {}
 object_relationships:
+  - name: apitoken
+    using:
+      foreign_key_constraint_on: apitokens_id
+  - name: eventstepinstance
+    using:
+      foreign_key_constraint_on: eventstepinstance_id
+  - name: operation
+    using:
+      manual_configuration:
+        column_mapping:
+          operation_id: id
+        insertion_order: null
+        remote_table:
+          name: operation
+          schema: public
   - name: task
     using:
       foreign_key_constraint_on: task_id
@@ -33,28 +48,15 @@ computed_fields:
         schema: public
     comment: convert bytea to text for responses
 select_permissions:
-  - role: developer
-    permission:
-      columns:
-        - id
-        - response
-        - timestamp
-        - task_id
-        - sequence_number
-      computed_fields:
-        - response_escape
-        - response_text
-      filter:
-        task:
-          callback:
-            operation_id:
-              _in: X-Hasura-operations
-      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
-        - response
+        - apitokens_id
+        - eventstepinstance_id
         - id
+        - is_error
+        - operation_id
+        - response
         - sequence_number
         - task_id
         - timestamp
@@ -62,16 +64,25 @@ select_permissions:
         - response_escape
         - response_text
       filter:
-        task:
-          callback:
-            operation_id:
-              _in: X-Hasura-operations
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-response-read-operations
       allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
-        - response
+        - apitokens_id
+        - eventstepinstance_id
         - id
+        - is_error
+        - operation_id
+        - response
         - sequence_number
         - task_id
         - timestamp
@@ -79,16 +90,25 @@ select_permissions:
         - response_escape
         - response_text
       filter:
-        task:
-          callback:
-            operation_id:
-              _in: X-Hasura-operations
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-response-read-operations
       allow_aggregations: true
   - role: operator
     permission:
       columns:
-        - response
+        - apitokens_id
+        - eventstepinstance_id
         - id
+        - is_error
+        - operation_id
+        - response
         - sequence_number
         - task_id
         - timestamp
@@ -96,16 +116,25 @@ select_permissions:
         - response_escape
         - response_text
       filter:
-        task:
-          callback:
-            operation_id:
-              _in: X-Hasura-operations
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-response-read-operations
       allow_aggregations: true
   - role: spectator
     permission:
       columns:
+        - is_error
         - response
+        - apitokens_id
+        - eventstepinstance_id
         - id
+        - operation_id
         - sequence_number
         - task_id
         - timestamp
@@ -113,8 +142,13 @@ select_permissions:
         - response_escape
         - response_text
       filter:
-        task:
-          callback:
-            operation_id:
-              _in: X-Hasura-operations
+        _and:
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _in: X-Hasura-Scope-response-read-operations
       allow_aggregations: true
