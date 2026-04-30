@@ -37,7 +37,7 @@ select_permissions:
                   _is_null: false
               - payload:
                   operation_id:
-                    _in: X-Hasura-Scope-payload-read-operations
+                    _lte: X-Hasura-Scope-payload-read-operation
   - role: operation_admin
     permission:
       columns:
@@ -66,7 +66,7 @@ select_permissions:
                   _is_null: false
               - payload:
                   operation_id:
-                    _in: X-Hasura-Scope-payload-read-operations
+                    _lte: X-Hasura-Scope-payload-read-operation
   - role: operator
     permission:
       columns:
@@ -95,7 +95,7 @@ select_permissions:
                   _is_null: false
               - payload:
                   operation_id:
-                    _in: X-Hasura-Scope-payload-read-operations
+                    _lte: X-Hasura-Scope-payload-read-operation
   - role: spectator
     permission:
       columns:
@@ -124,4 +124,4 @@ select_permissions:
                   _is_null: false
               - payload:
                   operation_id:
-                    _in: X-Hasura-Scope-payload-read-operations
+                    _lte: X-Hasura-Scope-payload-read-operation

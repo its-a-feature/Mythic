@@ -75,7 +75,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventing-read-operations
+              _lte: X-Hasura-Scope-eventing-read-operation
       allow_aggregations: true
     comment: ""
   - role: operation_admin
@@ -105,7 +105,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventing-read-operations
+              _lte: X-Hasura-Scope-eventing-read-operation
       allow_aggregations: true
     comment: ""
   - role: operator
@@ -135,7 +135,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventing-read-operations
+              _lte: X-Hasura-Scope-eventing-read-operation
       allow_aggregations: true
     comment: ""
   - role: spectator
@@ -165,6 +165,6 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventing-read-operations
+              _lte: X-Hasura-Scope-eventing-read-operation
       allow_aggregations: true
     comment: ""

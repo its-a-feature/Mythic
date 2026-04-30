@@ -46,7 +46,7 @@ insert_permissions:
               operation_id:
                 _eq: x-hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-write-operations
+              _lte: X-Hasura-Scope-task-write-operation
       set:
         operation_id: x-hasura-current-operation-id
       columns:
@@ -70,7 +70,7 @@ insert_permissions:
               operation_id:
                 _eq: x-hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-write-operations
+              _lte: X-Hasura-Scope-task-write-operation
       set:
         operation_id: x-hasura-current-operation-id
       columns:
@@ -94,7 +94,7 @@ insert_permissions:
               operation_id:
                 _eq: x-hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-write-operations
+              _lte: X-Hasura-Scope-task-write-operation
       set:
         operation_id: x-hasura-current-operation-id
       columns:
@@ -137,11 +137,11 @@ select_permissions:
                       _eq: X-Hasura-current-operation-id
           - _or:
               - operation_id:
-                  _in: X-Hasura-Scope-task-read-operations
+                  _lte: X-Hasura-Scope-task-read-operation
               - task:
                   callback:
                     operation_id:
-                      _in: X-Hasura-Scope-task-read-operations
+                      _lte: X-Hasura-Scope-task-read-operation
       allow_aggregations: true
   - role: operation_admin
     permission:
@@ -171,11 +171,11 @@ select_permissions:
                       _eq: X-Hasura-current-operation-id
           - _or:
               - operation_id:
-                  _in: X-Hasura-Scope-task-read-operations
+                  _lte: X-Hasura-Scope-task-read-operation
               - task:
                   callback:
                     operation_id:
-                      _in: X-Hasura-Scope-task-read-operations
+                      _lte: X-Hasura-Scope-task-read-operation
       allow_aggregations: true
   - role: operator
     permission:
@@ -205,11 +205,11 @@ select_permissions:
                       _eq: X-Hasura-current-operation-id
           - _or:
               - operation_id:
-                  _in: X-Hasura-Scope-task-read-operations
+                  _lte: X-Hasura-Scope-task-read-operation
               - task:
                   callback:
                     operation_id:
-                      _in: X-Hasura-Scope-task-read-operations
+                      _lte: X-Hasura-Scope-task-read-operation
       allow_aggregations: true
   - role: spectator
     permission:
@@ -239,11 +239,11 @@ select_permissions:
                       _eq: X-Hasura-current-operation-id
           - _or:
               - operation_id:
-                  _in: X-Hasura-Scope-task-read-operations
+                  _lte: X-Hasura-Scope-task-read-operation
               - task:
                   callback:
                     operation_id:
-                      _in: X-Hasura-Scope-task-read-operations
+                      _lte: X-Hasura-Scope-task-read-operation
       allow_aggregations: true
 update_permissions:
   - role: mythic_admin
@@ -259,7 +259,7 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-write-operations
+              _lte: X-Hasura-Scope-task-write-operation
       check:
         operation_id:
           _eq: X-Hasura-current-operation-id
@@ -277,7 +277,7 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-write-operations
+              _lte: X-Hasura-Scope-task-write-operation
       check:
         operation_id:
           _eq: X-Hasura-current-operation-id
@@ -295,7 +295,7 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-write-operations
+              _lte: X-Hasura-Scope-task-write-operation
       check:
         operation_id:
           _eq: X-Hasura-current-operation-id

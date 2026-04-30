@@ -162,7 +162,7 @@ select_permissions:
                   account_type:
                     _eq: bot
           - operator_id:
-              _in: X-Hasura-Scope-apitoken-read-users
+              _lte: X-Hasura-Scope-apitoken-read-operator
   - role: operation_admin
     permission:
       columns:
@@ -188,7 +188,7 @@ select_permissions:
             - operator_id:
                 _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-apitoken-read-users
+              _lte: X-Hasura-Scope-apitoken-read-operator
   - role: operator
     permission:
       columns:
@@ -214,7 +214,7 @@ select_permissions:
               - operator_id:
                   _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-apitoken-read-users
+              _lte: X-Hasura-Scope-apitoken-read-operator
   - role: spectator
     permission:
       columns:
@@ -240,7 +240,7 @@ select_permissions:
               - operator_id:
                   _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-apitoken-read-users
+              _lte: X-Hasura-Scope-apitoken-read-operator
 update_permissions:
   - role: mythic_admin
     permission:
@@ -259,7 +259,7 @@ update_permissions:
                 account_type:
                   _eq: bot
           - operator_id:
-              _in: X-Hasura-Scope-apitoken-write-users
+              _lte: X-Hasura-Scope-apitoken-write-operator
       check: null
   - role: operation_admin
     permission:
@@ -275,7 +275,7 @@ update_permissions:
               - operator_id:
                   _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-apitoken-write-users
+              _lte: X-Hasura-Scope-apitoken-write-operator
       check: null
   - role: operator
     permission:
@@ -291,7 +291,7 @@ update_permissions:
               - operator_id:
                   _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-apitoken-write-users
+              _lte: X-Hasura-Scope-apitoken-write-operator
       check: null
   - role: spectator
     permission:
@@ -307,5 +307,5 @@ update_permissions:
               - operator_id:
                   _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-apitoken-write-users
+              _lte: X-Hasura-Scope-apitoken-write-operator
       check: null

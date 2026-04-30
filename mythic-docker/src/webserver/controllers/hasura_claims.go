@@ -19,6 +19,9 @@ var (
 	hasuraClaimsCacheLock = sync.RWMutex{}
 )
 
+// Scope claims are numeric gates: positive IDs pass when scoped and fail against "0" otherwise.
+const hasuraScopeAllowedID = "2147483647"
+
 func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 	if invalidateAllOthers {
 		hasuraClaimsCacheLock.Lock()
@@ -41,8 +44,6 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 	hasuraClaims := make(map[string]interface{})
 	//logging.LogTrace("JWT claims", "claims", claims, "user", claims.UserID)
 	hasuraClaims["x-hasura-user-id"] = fmt.Sprintf("%d", claims.UserID)
-	hasuraOperations := []string{}
-	hasuraAdminOperations := []string{}
 	user, err := database.GetUserFromID(claims.UserID)
 	//logging.LogTrace("user info", "user", user)
 	if err != nil {
@@ -50,11 +51,9 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 		return err
 	}
 	c.Set(authentication.ContextKeyUsername, user.Username)
-	if !user.CurrentOperationID.Valid {
-		hasuraClaims["x-hasura-current-operation-id"] = "0"
-		hasuraClaims["x-hasura-current_operation"] = "null"
-		hasuraClaims["x-hasura-role"] = "spectator"
-	}
+	hasuraClaims["x-hasura-current-operation-id"] = "0"
+	hasuraClaims["x-hasura-current_operation"] = "null"
+	hasuraClaims["x-hasura-role"] = "spectator"
 	if claims.APITokensID > 0 {
 		hasuraClaims["x-hasura-apitokens-id"] = fmt.Sprintf("%d", claims.APITokensID)
 	} else {
@@ -68,10 +67,6 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 
 	for _, operatorOperation := range *allOperations {
 		//logging.LogInfo("operatorOperation info", "operatorOperation", operatorOperation)
-		if operatorOperation.CurrentOperation.AdminID == claims.UserID {
-			hasuraAdminOperations = append(hasuraAdminOperations, fmt.Sprintf("%d", operatorOperation.CurrentOperation.ID))
-		}
-		hasuraOperations = append(hasuraOperations, fmt.Sprintf("%d", operatorOperation.CurrentOperation.ID))
 		if operatorOperation.CurrentOperation.ID == int(user.CurrentOperationID.Int64) {
 			hasuraClaims["x-hasura-role"] = operatorOperation.ViewMode
 			if hasuraClaims["x-hasura-role"] == "lead" {
@@ -86,31 +81,10 @@ func UpdateHasuraClaims(c *gin.Context, invalidateAllOthers bool) error {
 	if user.Admin {
 		hasuraClaims["x-hasura-role"] = "mythic_admin"
 	}
-	hasuraClaims["x-hasura-operations"] = fmt.Sprintf("{%s}", strings.Join(hasuraOperations, ","))
-	hasuraClaims["x-hasura-admin-operations"] = fmt.Sprintf("{%s}", strings.Join(hasuraAdminOperations, ","))
-	hasuraOperatorIDs := []string{}
 	for _, requirement := range mythicjwt.HasuraScopeRequirements() {
-		claimValue := "{}"
+		claimValue := "0"
 		if mythicjwt.AllowsScope(claims.Scopes, requirement.Scope) {
-			switch requirement.Anchor {
-			case "user":
-				claimValue = fmt.Sprintf("{%d}", claims.UserID)
-			case "operator":
-				if len(hasuraOperatorIDs) == 0 {
-					operatorIDs := []int{}
-					err = database.DB.Select(&operatorIDs, `SELECT id FROM operator`)
-					if err != nil {
-						logging.LogError(err, "Failed to get operator IDs for hasura scope claims")
-						return err
-					}
-					for _, operatorID := range operatorIDs {
-						hasuraOperatorIDs = append(hasuraOperatorIDs, fmt.Sprintf("%d", operatorID))
-					}
-				}
-				claimValue = fmt.Sprintf("{%s}", strings.Join(hasuraOperatorIDs, ","))
-			default:
-				claimValue = fmt.Sprintf("{%s}", strings.Join(hasuraOperations, ","))
-			}
+			claimValue = hasuraScopeAllowedID
 		}
 		logging.LogInfo("hasura claims", "claim", hasuraClaims)
 		hasuraClaims[requirement.SessionClaim] = claimValue
@@ -129,8 +103,7 @@ func GetHasuraClaims(c *gin.Context) {
 		x-hasura-current-operation-id <-- operation id ("0" if not set)
 		x-hasura-role <-- view mode for current operation
 			operator, spectator, operation_admin, mythic_admin
-		x-hasura-operations <-- "{" + "," separated list of operation ids, + "}"
-		x-hasura-admin-operations <-- "{" + "," separated list of operation ids, + "}"
+		x-hasura-scope-<resource>-<access>-<anchor> <-- max int if scoped, otherwise "0"
 	*/
 	//logging.LogDebug("hasura webhook info", "headers", c.Request.Header)
 	input, ok := c.Get("hasura")

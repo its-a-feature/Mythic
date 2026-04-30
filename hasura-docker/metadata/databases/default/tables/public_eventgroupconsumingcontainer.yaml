@@ -25,7 +25,7 @@ select_permissions:
                   _eq: x-hasura-current-operation-id
           - eventgroup:
               operation_id:
-                  _in: x-hasura-scope-eventing-read-operations
+                  _lte: x-hasura-scope-eventing-read-operation
     comment: ""
   - role: operation_admin
     permission:
@@ -43,7 +43,7 @@ select_permissions:
                   _eq: x-hasura-current-operation-id
           - eventgroup:
               operation_id:
-                  _in: x-hasura-scope-eventing-read-operations
+                  _lte: x-hasura-scope-eventing-read-operation
     comment: ""
   - role: operator
     permission:
@@ -61,7 +61,7 @@ select_permissions:
                   _eq: x-hasura-current-operation-id
           - eventgroup:
               operation_id:
-                  _in: x-hasura-scope-eventing-read-operations
+                  _lte: x-hasura-scope-eventing-read-operation
     comment: ""
   - role: spectator
     permission:
@@ -79,5 +79,5 @@ select_permissions:
                   _eq: x-hasura-current-operation-id
           - eventgroup:
               operation_id:
-                  _in: x-hasura-scope-eventing-read-operations
+                  _lte: x-hasura-scope-eventing-read-operation
     comment: ""

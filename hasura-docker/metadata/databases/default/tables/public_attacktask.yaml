@@ -24,7 +24,7 @@ select_permissions:
           - task:
               callback:
                 operation_id:
-                  _in: X-Hasura-Scope-task-read-operations
+                  _lte: X-Hasura-Scope-task-read-operation
   - role: operation_admin
     permission:
       columns:
@@ -40,7 +40,7 @@ select_permissions:
           - task:
               callback:
                 operation_id:
-                  _in: X-Hasura-Scope-task-read-operations
+                  _lte: X-Hasura-Scope-task-read-operation
   - role: operator
     permission:
       columns:
@@ -56,7 +56,7 @@ select_permissions:
           - task:
               callback:
                 operation_id:
-                  _in: X-Hasura-Scope-task-read-operations
+                  _lte: X-Hasura-Scope-task-read-operation
   - role: spectator
     permission:
       columns:
@@ -72,7 +72,7 @@ select_permissions:
           - task:
               callback:
                 operation_id:
-                  _in: X-Hasura-Scope-task-read-operations
+                  _lte: X-Hasura-Scope-task-read-operation
 delete_permissions:
   - role: mythic_admin
     permission:
@@ -85,7 +85,7 @@ delete_permissions:
           - task:
               callback:
                 operation_id:
-                  _in: X-Hasura-Scope-task-write-operations
+                  _lte: X-Hasura-Scope-task-write-operation
   - role: operation_admin
     permission:
       filter:
@@ -97,7 +97,7 @@ delete_permissions:
           - task:
               callback:
                 operation_id:
-                  _in: X-Hasura-Scope-task-write-operations
+                  _lte: X-Hasura-Scope-task-write-operation
   - role: operator
     permission:
       filter:
@@ -109,4 +109,4 @@ delete_permissions:
           - task:
               callback:
                 operation_id:
-                  _in: X-Hasura-Scope-task-write-operations
+                  _lte: X-Hasura-Scope-task-write-operation

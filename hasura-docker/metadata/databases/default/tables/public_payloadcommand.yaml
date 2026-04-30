@@ -18,7 +18,7 @@ insert_permissions:
                 _eq: X-Hasura-current-operation-id
           - payload:
               operation_id:
-                _in: X-Hasura-scope-payload-write-operations
+                _lte: X-Hasura-scope-payload-write-operation
       columns:
         - command_id
         - payload_id
@@ -31,7 +31,7 @@ insert_permissions:
                 _eq: X-Hasura-current-operation-id
           - payload:
               operation_id:
-                _in: X-Hasura-scope-payload-write-operations
+                _lte: X-Hasura-scope-payload-write-operation
       columns:
         - command_id
         - payload_id
@@ -44,7 +44,7 @@ insert_permissions:
                 _eq: X-Hasura-current-operation-id
           - payload:
               operation_id:
-                _in: X-Hasura-scope-payload-write-operations
+                _lte: X-Hasura-scope-payload-write-operation
       columns:
         - command_id
         - payload_id
@@ -64,7 +64,7 @@ select_permissions:
                 _eq: X-Hasura-current-operation-id
           - payload:
               operation_id:
-                _in: X-Hasura-Scope-payload-read-operations
+                _lte: X-Hasura-Scope-payload-read-operation
   - role: operation_admin
     permission:
       columns:
@@ -80,7 +80,7 @@ select_permissions:
                 _eq: X-Hasura-current-operation-id
           - payload:
               operation_id:
-                _in: X-Hasura-Scope-payload-read-operations
+                _lte: X-Hasura-Scope-payload-read-operation
   - role: operator
     permission:
       columns:
@@ -96,7 +96,7 @@ select_permissions:
                 _eq: X-Hasura-current-operation-id
           - payload:
               operation_id:
-                _in: X-Hasura-Scope-payload-read-operations
+                _lte: X-Hasura-Scope-payload-read-operation
   - role: spectator
     permission:
       columns:
@@ -112,7 +112,7 @@ select_permissions:
                 _eq: X-Hasura-current-operation-id
           - payload:
               operation_id:
-                _in: X-Hasura-Scope-payload-read-operations
+                _lte: X-Hasura-Scope-payload-read-operation
 delete_permissions:
   - role: mythic_admin
     permission:
@@ -123,7 +123,7 @@ delete_permissions:
                 _eq: X-Hasura-current-operation-id
           - payload:
               operation_id:
-                _in: X-Hasura-scope-payload-write-operations
+                _lte: X-Hasura-scope-payload-write-operation
   - role: operation_admin
     permission:
       filter:
@@ -133,7 +133,7 @@ delete_permissions:
                 _eq: X-Hasura-current-operation-id
           - payload:
               operation_id:
-                _in: X-Hasura-scope-payload-write-operations
+                _lte: X-Hasura-scope-payload-write-operation
   - role: operator
     permission:
       filter:
@@ -143,4 +143,4 @@ delete_permissions:
                 _eq: X-Hasura-current-operation-id
           - payload:
               operation_id:
-                _in: X-Hasura-scope-payload-write-operations
+                _lte: X-Hasura-scope-payload-write-operation
