@@ -280,20 +280,15 @@ func HasuraScopeRequirements() []HasuraScopeRequirement {
 	requirements := make([]HasuraScopeRequirement, 0, len(scopeDefinitions))
 	for _, definition := range scopeDefinitions {
 		anchor := "operation"
-		suffix := "operations"
-		if definition.Resource == "apitoken" {
-			anchor = "user"
-			suffix = "users"
-		} else if definition.Resource == "operator" {
+		if definition.Resource == "apitoken" || definition.Resource == "operator" {
 			anchor = "operator"
-			suffix = "operators"
 		}
 		requirements = append(requirements, HasuraScopeRequirement{
 			Resource:     definition.Resource,
 			Access:       definition.Access,
 			Scope:        definition.Name,
 			Anchor:       anchor,
-			SessionClaim: fmt.Sprintf("x-hasura-scope-%s-%s-%s", definition.Resource, definition.Access, suffix),
+			SessionClaim: fmt.Sprintf("x-hasura-scope-%s-%s-%s", definition.Resource, definition.Access, anchor),
 		})
 	}
 	return requirements

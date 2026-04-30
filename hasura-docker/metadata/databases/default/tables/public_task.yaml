@@ -199,7 +199,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-read-operations
+              _lte: X-Hasura-Scope-task-read-operation
       allow_aggregations: true
   - role: operation_admin
     permission:
@@ -261,7 +261,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-read-operations
+              _lte: X-Hasura-Scope-task-read-operation
       allow_aggregations: true
   - role: operator
     permission:
@@ -323,7 +323,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-read-operations
+              _lte: X-Hasura-Scope-task-read-operation
       allow_aggregations: true
   - role: spectator
     permission:
@@ -385,7 +385,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-read-operations
+              _lte: X-Hasura-Scope-task-read-operation
       allow_aggregations: true
 update_permissions:
   - role: mythic_admin
@@ -399,7 +399,7 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-write-operations
+              _lte: X-Hasura-Scope-task-write-operation
       check: null
       set:
         comment_operator_id: x-hasura-User-Id
@@ -414,7 +414,7 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-write-operations
+              _lte: X-Hasura-Scope-task-write-operation
       check: null
       set:
         comment_operator_id: x-hasura-User-Id
@@ -429,7 +429,7 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-task-write-operations
+              _lte: X-Hasura-Scope-task-write-operation
       check: null
       set:
         comment_operator_id: x-hasura-User-Id

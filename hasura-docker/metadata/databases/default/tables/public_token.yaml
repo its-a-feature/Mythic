@@ -60,7 +60,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-response-read-operations
+              _lte: X-Hasura-Scope-response-read-operation
       allow_aggregations: true
   - role: operation_admin
     permission:
@@ -92,7 +92,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-response-read-operations
+              _lte: X-Hasura-Scope-response-read-operation
       allow_aggregations: true
   - role: operator
     permission:
@@ -124,7 +124,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-response-read-operations
+              _lte: X-Hasura-Scope-response-read-operation
       allow_aggregations: true
   - role: spectator
     permission:
@@ -156,7 +156,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-response-read-operations
+              _lte: X-Hasura-Scope-response-read-operation
       allow_aggregations: true
 update_permissions:
   - role: mythic_admin
@@ -185,13 +185,13 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-response-write-operations
+              _lte: X-Hasura-Scope-response-write-operation
       check:
         _and:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-response-write-operations
+              _lte: X-Hasura-Scope-response-write-operation
   - role: operation_admin
     permission:
       columns:
@@ -218,13 +218,13 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-response-write-operations
+              _lte: X-Hasura-Scope-response-write-operation
       check:
         _and:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-response-write-operations
+              _lte: X-Hasura-Scope-response-write-operation
   - role: operator
     permission:
       columns:
@@ -251,10 +251,10 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-response-write-operations
+              _lte: X-Hasura-Scope-response-write-operation
       check:
         _and:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-response-write-operations
+              _lte: X-Hasura-Scope-response-write-operation

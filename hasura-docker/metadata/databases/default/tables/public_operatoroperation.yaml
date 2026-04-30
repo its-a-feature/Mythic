@@ -41,7 +41,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-operation-read-operations
+              _lte: X-Hasura-Scope-operation-read-operation
   - role: operator
     permission:
       columns:
@@ -57,7 +57,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-operation-read-operations
+              _lte: X-Hasura-Scope-operation-read-operation
   - role: spectator
     permission:
       columns:
@@ -73,4 +73,4 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-operation-read-operations
+              _lte: X-Hasura-Scope-operation-read-operation
