@@ -24,7 +24,7 @@ insert_permissions:
                     _eq: X-Hasura-current-operation-id
           - callback:
                 operation_id:
-                    _in: X-Hasura-Scope-callback-write-operations
+                    _lte: X-Hasura-Scope-callback-write-operation
       set:
         operator_id: x-hasura-user-id
       columns:
@@ -40,7 +40,7 @@ insert_permissions:
                     _eq: X-Hasura-current-operation-id
           - callback:
               operation_id:
-                  _in: X-Hasura-Scope-callback-write-operations
+                  _lte: X-Hasura-Scope-callback-write-operation
       set:
         operator_id: x-hasura-user-id
       columns:
@@ -56,7 +56,7 @@ insert_permissions:
                 _eq: X-Hasura-current-operation-id
           - callback:
               operation_id:
-                _in: X-Hasura-Scope-callback-write-operations
+                _lte: X-Hasura-Scope-callback-write-operation
       set:
         operator_id: x-hasura-user-id
       columns:
@@ -81,7 +81,7 @@ select_permissions:
                 _eq: X-Hasura-current-operation-id
           - callback:
               operation_id:
-                _in: X-Hasura-Scope-callback-read-operations
+                _lte: X-Hasura-Scope-callback-read-operation
   - role: operation_admin
     permission:
       columns:
@@ -99,7 +99,7 @@ select_permissions:
                 _eq: X-Hasura-current-operation-id
           - callback:
               operation_id:
-                _in: X-Hasura-Scope-callback-read-operations
+                _lte: X-Hasura-Scope-callback-read-operation
   - role: operator
     permission:
       columns:
@@ -117,7 +117,7 @@ select_permissions:
                 _eq: X-Hasura-current-operation-id
           - callback:
               operation_id:
-                _in: X-Hasura-Scope-callback-read-operations
+                _lte: X-Hasura-Scope-callback-read-operation
   - role: spectator
     permission:
       columns:
@@ -135,7 +135,7 @@ select_permissions:
                 _eq: X-Hasura-current-operation-id
           - callback:
               operation_id:
-                _in: X-Hasura-Scope-callback-read-operations
+                _lte: X-Hasura-Scope-callback-read-operation
 delete_permissions:
   - role: mythic_admin
     permission:
@@ -146,7 +146,7 @@ delete_permissions:
                 _eq: X-Hasura-current-operation-id
           - callback:
               operation_id:
-                _in: X-Hasura-Scope-callback-write-operations
+                _lte: X-Hasura-Scope-callback-write-operation
   - role: operation_admin
     permission:
       filter:
@@ -156,7 +156,7 @@ delete_permissions:
                 _eq: X-Hasura-current-operation-id
           - callback:
               operation_id:
-                _in: X-Hasura-Scope-callback-write-operations
+                _lte: X-Hasura-Scope-callback-write-operation
   - role: operator
     permission:
       filter:
@@ -166,4 +166,4 @@ delete_permissions:
                 _eq: X-Hasura-current-operation-id
           - callback:
               operation_id:
-                _in: X-Hasura-Scope-callback-write-operations
+                _lte: X-Hasura-Scope-callback-write-operation

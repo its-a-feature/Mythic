@@ -194,3 +194,77 @@ func TestCanGrantAPITokenScopes(t *testing.T) {
 		})
 	}
 }
+
+func TestHasuraScopeRequirementsUseScalarClaims(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		scope        string
+		wantAnchor   string
+		wantClaim    string
+		blockedClaim string
+	}{
+		{
+			scope:        SCOPE_FILE_READ,
+			wantAnchor:   "operation",
+			wantClaim:    "x-hasura-scope-file-read-operation",
+			blockedClaim: "x-hasura-scope-file-read-operations",
+		},
+		{
+			scope:        SCOPE_APITOKEN_READ,
+			wantAnchor:   "operator",
+			wantClaim:    "x-hasura-scope-apitoken-read-operator",
+			blockedClaim: "x-hasura-scope-apitoken-read-users",
+		},
+		{
+			scope:        SCOPE_OPERATOR_READ,
+			wantAnchor:   "operator",
+			wantClaim:    "x-hasura-scope-operator-read-operator",
+			blockedClaim: "x-hasura-scope-operator-read-operators",
+		},
+		{
+			scope:      SCOPE_OPERATOR_WRITE,
+			wantAnchor: "operator",
+			wantClaim:  "x-hasura-scope-operator-write-operator",
+		},
+		{
+			scope:      SCOPE_OPERATION_WRITE,
+			wantAnchor: "operation",
+			wantClaim:  "x-hasura-scope-operation-write-operation",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.wantClaim, func(t *testing.T) {
+			t.Parallel()
+			var requirement HasuraScopeRequirement
+			found := false
+			for _, possibleRequirement := range HasuraScopeRequirements() {
+				if possibleRequirement.Scope == tt.scope && possibleRequirement.Anchor == tt.wantAnchor {
+					requirement = possibleRequirement
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Fatalf("missing Hasura scope requirement for %s with anchor %s", tt.scope, tt.wantAnchor)
+			}
+			if requirement.Anchor != tt.wantAnchor {
+				t.Fatalf("Anchor = %q, want %q", requirement.Anchor, tt.wantAnchor)
+			}
+			if requirement.SessionClaim != tt.wantClaim {
+				t.Fatalf("SessionClaim = %q, want %q", requirement.SessionClaim, tt.wantClaim)
+			}
+			if requirement.SessionClaim == tt.blockedClaim {
+				t.Fatalf("SessionClaim kept plural list claim %q", tt.blockedClaim)
+			}
+		})
+	}
+
+	for _, requirement := range HasuraScopeRequirements() {
+		if requirement.Anchor == "user" {
+			t.Fatalf("Hasura scope requirement kept user anchor: %+v", requirement)
+		}
+	}
+}

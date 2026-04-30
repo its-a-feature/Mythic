@@ -80,18 +80,10 @@ select_permissions:
         - user_modified
       filter:
         _and:
-          - _or:
-              - operator_id:
-                  _eq: X-Hasura-User-Id
-              - browserscriptoperations:
-                  operation_id:
-                    _in: X-Hasura-operations
-          - _or:
-              - operator_id:
-                  _eq: X-Hasura-User-Id
-              - browserscriptoperations:
-                  operation_id:
-                    _in: X-Hasura-Scope-operation-read-operations
+          - operator_id:
+                _eq: X-Hasura-User-Id
+          - operator_id:
+                _lte: X-Hasura-Scope-operator-read-operator
   - role: operation_admin
     permission:
       columns:
@@ -109,18 +101,10 @@ select_permissions:
         - user_modified
       filter:
         _and:
-          - _or:
-              - operator_id:
-                  _eq: X-Hasura-User-Id
-              - browserscriptoperations:
-                  operation_id:
-                    _in: X-Hasura-operations
-          - _or:
-              - operator_id:
-                  _eq: X-Hasura-User-Id
-              - browserscriptoperations:
-                  operation_id:
-                    _in: X-Hasura-Scope-operation-read-operations
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - operator_id:
+              _lte: X-Hasura-Scope-operator-read-operator
   - role: operator
     permission:
       columns:
@@ -138,18 +122,10 @@ select_permissions:
         - user_modified
       filter:
         _and:
-          - _or:
-              - operator_id:
-                  _eq: X-Hasura-User-Id
-              - browserscriptoperations:
-                  operation_id:
-                    _in: X-Hasura-operations
-          - _or:
-              - operator_id:
-                  _eq: X-Hasura-User-Id
-              - browserscriptoperations:
-                  operation_id:
-                    _in: X-Hasura-Scope-operation-read-operations
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - operator_id:
+              _lte: X-Hasura-Scope-operator-read-operator
   - role: spectator
     permission:
       columns:
@@ -167,18 +143,10 @@ select_permissions:
         - user_modified
       filter:
         _and:
-          - _or:
-              - operator_id:
-                  _eq: X-Hasura-User-Id
-              - browserscriptoperations:
-                  operation_id:
-                    _in: X-Hasura-operations
-          - _or:
-              - operator_id:
-                  _eq: X-Hasura-User-Id
-              - browserscriptoperations:
-                  operation_id:
-                    _in: X-Hasura-Scope-operation-read-operations
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - operator_id:
+              _lte: X-Hasura-Scope-operator-read-operator
 update_permissions:
   - role: mythic_admin
     permission:
@@ -194,7 +162,7 @@ update_permissions:
           - operator_id:
               _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-operation-write-users
+              _lte: X-Hasura-Scope-operator-write-operator
       check: null
   - role: operation_admin
     permission:
@@ -210,7 +178,7 @@ update_permissions:
           - operator_id:
               _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-operation-write-users
+              _lte: X-Hasura-Scope-operator-write-operator
       check: null
   - role: operator
     permission:
@@ -226,7 +194,7 @@ update_permissions:
           - operator_id:
               _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-operation-write-users
+              _lte: X-Hasura-Scope-operator-write-operator
       check: null
 delete_permissions:
   - role: mythic_admin
@@ -236,7 +204,7 @@ delete_permissions:
           - operator_id:
               _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-operation-write-users
+              _lte: X-Hasura-Scope-operator-write-operator
   - role: operation_admin
     permission:
       filter:
@@ -244,7 +212,7 @@ delete_permissions:
           - operator_id:
               _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-operation-write-users
+              _lte: X-Hasura-Scope-operator-write-operator
   - role: operator
     permission:
       filter:
@@ -252,4 +220,4 @@ delete_permissions:
           - operator_id:
               _eq: X-Hasura-User-Id
           - operator_id:
-              _in: X-Hasura-Scope-operation-write-users
+              _lte: X-Hasura-Scope-operator-write-operator

@@ -19,7 +19,7 @@ insert_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventlog-write-operations
+              _lte: X-Hasura-Scope-eventlog-write-operation
       set:
         operation_id: x-hasura-current-operation-id
         operator_id: x-hasura-user-id
@@ -41,7 +41,7 @@ insert_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventlog-write-operations
+              _lte: X-Hasura-Scope-eventlog-write-operation
       set:
         operation_id: x-hasura-current-operation-id
         operator_id: x-hasura-user-id
@@ -63,7 +63,7 @@ insert_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventlog-write-operations
+              _lte: X-Hasura-Scope-eventlog-write-operation
       set:
         operation_id: x-hasura-current-operation-id
         operator_id: x-hasura-user-id
@@ -99,7 +99,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventlog-read-operations
+              _lte: X-Hasura-Scope-eventlog-read-operation
       allow_aggregations: true
   - role: operation_admin
     permission:
@@ -121,7 +121,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventlog-read-operations
+              _lte: X-Hasura-Scope-eventlog-read-operation
       allow_aggregations: true
   - role: operator
     permission:
@@ -143,7 +143,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventlog-read-operations
+              _lte: X-Hasura-Scope-eventlog-read-operation
       allow_aggregations: true
   - role: spectator
     permission:
@@ -165,7 +165,7 @@ select_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventlog-read-operations
+              _lte: X-Hasura-Scope-eventlog-read-operation
       allow_aggregations: true
 update_permissions:
   - role: mythic_admin
@@ -180,7 +180,7 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventlog-write-operations
+              _lte: X-Hasura-Scope-eventlog-write-operation
       check: null
   - role: operation_admin
     permission:
@@ -194,7 +194,7 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventlog-write-operations
+              _lte: X-Hasura-Scope-eventlog-write-operation
       check: null
   - role: operator
     permission:
@@ -208,5 +208,5 @@ update_permissions:
           - operation_id:
               _eq: X-Hasura-current-operation-id
           - operation_id:
-              _in: X-Hasura-Scope-eventlog-write-operations
+              _lte: X-Hasura-Scope-eventlog-write-operation
       check: null
