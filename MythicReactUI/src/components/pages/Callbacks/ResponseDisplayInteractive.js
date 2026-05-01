@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {createTaskingMutation, taskingDataFragment} from './CallbackMutations';
 import {snackActions} from "../../utilities/Snackbar";
-import { gql, useMutation, useSubscription } from '@apollo/client';
+import { gql, useLazyQuery, useMutation, useSubscription } from '@apollo/client';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import {SearchBar} from './ResponseDisplay';
 import Pagination from '@mui/material/Pagination';
@@ -18,8 +18,6 @@ import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 import WrapTextIcon from '@mui/icons-material/WrapText';
-import { useReactiveVar } from '@apollo/client';
-import { meState } from '../../../cache';
 import {useTheme} from '@mui/material/styles';
 import HeightIcon from '@mui/icons-material/Height';
 
@@ -40,6 +38,71 @@ subscription subResponsesQuery($task_id: Int!) {
     is_error
   }
 }`;
+const getInteractiveResponsesPageQuery = gql`
+query getInteractiveResponsesPage($task_id: Int!, $fetchLimit: Int!, $offset: Int!, $where: response_bool_exp!) {
+  response(where: $where, limit: $fetchLimit, offset: $offset, order_by: {id: asc}) {
+    id
+    response: response_text
+    timestamp
+    is_error
+  }
+  response_aggregate(where: $where) {
+    aggregate {
+      count
+    }
+  }
+  latest_response: response(where: {task_id: {_eq: $task_id}}, limit: 1, order_by: {id: desc}) {
+    id
+  }
+}`;
+const MAX_INTERACTIVE_SELECT_ALL_RESPONSES = 5000;
+const MAX_INTERACTIVE_TASK_WINDOW = 1000;
+const getInteractiveResponseWhereClause = (taskID, search) => {
+    if(search === undefined || search === ""){
+        return {task_id: {_eq: taskID}};
+    }
+    return {task_id: {_eq: taskID}, response_escape: {_ilike: "%" + search + "%"}};
+}
+const decodeInteractiveResponse = (response) => {
+    return {...response, response: b64DecodeUnicode(response.response)}
+}
+const getInteractiveAggregateCount = (data) => {
+    return data?.response_aggregate?.aggregate?.count || 0;
+}
+const getInteractiveLatestResponseID = (data) => {
+    return data?.latest_response?.[0]?.id || 0;
+}
+const getInteractiveEntryTime = (entry) => {
+    return new Date(entry?.status_timestamp_preprocessing || entry?.timestamp || 0).getTime();
+}
+const sortInteractiveEntries = (entries) => {
+    return [...entries].sort( (a,b) => {
+        const aDate = getInteractiveEntryTime(a);
+        const bDate = getInteractiveEntryTime(b);
+        if(aDate < bDate){
+            return -1;
+        }
+        if(bDate < aDate){
+            return 1;
+        }
+        return (a.id || 0) < (b.id || 0) ? -1 : 1;
+    });
+}
+const mergeInteractiveTaskData = ({existingTasks, incomingTasks, limit}) => {
+    const taskMap = new Map();
+    existingTasks.forEach( (task) => taskMap.set(task.id, task));
+    incomingTasks.forEach( (task) => taskMap.set(task.id, task));
+    const mergedTasks = sortInteractiveEntries(Array.from(taskMap.values()));
+    if(mergedTasks.length <= limit){
+        return mergedTasks;
+    }
+    return mergedTasks.slice(-limit);
+}
+const getVisibleInteractiveTasks = ({taskData, search}) => {
+    return search === "" ? taskData : taskData.filter( (task) => {
+        return (task.display_params || task.original_params || "").toLowerCase().includes(search.toLowerCase());
+    });
+}
 const getTaskingStatus = (task) => {
     if(task.status === "completed" || task.status === "success"){
         return <CheckCircleOutlineIcon color={"success"} fontSize={"1rem"} style={{marginRight: "2px"}} />
@@ -104,7 +167,7 @@ const handleTerminalCodes = (response) => {
 
     return output;
 }
-export const GetOutputFormatAll = ({data, myTask, taskID,  useASNIColor, messagesEndRef, showTaskStatus, wrapText, search}) => {
+export const GetOutputFormatAll = ({data, useASNIColor, messagesEndRef, showTaskStatus, wrapText, autoScroll=false}) => {
     const [dataElement, setDataElement] = React.useState(null);
     React.useEffect( () => {
         const elements = data.map( d => {
@@ -151,18 +214,10 @@ export const GetOutputFormatAll = ({data, myTask, taskID,  useASNIColor, message
         setDataElement(elements);
     }, [data, useASNIColor, showTaskStatus, wrapText]);
     React.useLayoutEffect( () => {
-        if(myTask){
-            let el = document.getElementById(`ptytask${taskID}`);
-            if(el && el.scrollHeight - el.scrollTop - el.clientHeight < 500){
-                if(!search){
-                    messagesEndRef?.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
-                    //console.log("scrolling");
-                }
-            } else {
-               // console.log("not scrolled down enough")
-            }
+        if(autoScroll){
+            messagesEndRef?.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
         }
-    }, [dataElement]);
+    }, [autoScroll, dataElement, messagesEndRef]);
     return (
         dataElement
     )
@@ -201,25 +256,96 @@ const EnterOptions = [
     {"value": "\r\n", "name": "CRLF"}
 ];
 export const ResponseDisplayInteractive = (props) =>{
-    const me = useReactiveVar(meState);
     const theme = useTheme();
     const [backdropOpen, setBackdropOpen] = React.useState(false);
-    const [scrollToBottom, setScrollToBottom] = React.useState(true);
     const pageSize = React.useRef(100);
     const highestFetched = React.useRef(0);
     const [taskData, setTaskData] = React.useState([]);
-    const [alloutput, setAllOutput] = React.useState([]);
+    const taskDataRef = React.useRef([]);
     const [rawResponses, setRawResponses] = React.useState([]);
+    const rawResponsesRef = React.useRef([]);
     const [search, setSearch] = React.useState("");
     const [totalCount, setTotalCount] = React.useState(0);
+    const totalCountRef = React.useRef(0);
     const messagesEndRef = React.useRef();
-    const page = React.useRef(1);
-    const taskIDRef = React.useRef(props.task.id);
-    const taskIDTaskingRef = React.useRef(props.task.id);
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const currentPageRef = React.useRef(1);
+    const taskResponseCountRef = React.useRef(props.task.response_count || 0);
+    const selectAllWarningShown = React.useRef(false);
     const [useASNIColor, setUseANSIColor] = React.useState(true);
     const [showTaskStatus, setShowTaskStatus] = React.useState(true);
     const [wrapText, setWrapText] = React.useState(true);
     const [autoScroll, setAutoScroll] = React.useState(true);
+    const setTrackedTotalCount = React.useCallback( (newTotalCount) => {
+        totalCountRef.current = newTotalCount;
+        setTotalCount(newTotalCount);
+    }, []);
+    const warnSelectAllCapped = React.useCallback( (loadedCount, aggregateCount) => {
+        if(aggregateCount > loadedCount && !selectAllWarningShown.current){
+            snackActions.warning(`Interactive output is too large to load all at once. Showing the first ${loadedCount} responses; use pagination to view the rest.`);
+            selectAllWarningShown.current = true;
+        }
+    }, []);
+    const visibleOutput = React.useMemo( () => {
+        const visibleTasks = getVisibleInteractiveTasks({taskData, search});
+        return sortInteractiveEntries([...rawResponses, ...visibleTasks]);
+    }, [taskData, rawResponses, search]);
+    React.useEffect( () => {
+        rawResponsesRef.current = rawResponses;
+    }, [rawResponses]);
+    React.useEffect( () => {
+        taskDataRef.current = taskData;
+    }, [taskData]);
+    const [fetchResponsePageQuery] = useLazyQuery(getInteractiveResponsesPageQuery, {
+        fetchPolicy: "no-cache",
+        onCompleted: (data) => {
+            const responseArray = data.response.map(decodeInteractiveResponse);
+            rawResponsesRef.current = responseArray;
+            setRawResponses(responseArray);
+            const aggregateCount = getInteractiveAggregateCount(data);
+            setTrackedTotalCount(aggregateCount);
+            highestFetched.current = Math.max(highestFetched.current, getInteractiveLatestResponseID(data));
+            if(props.selectAllOutput){
+                warnSelectAllCapped(responseArray.length, aggregateCount);
+            }
+            setBackdropOpen(false);
+        },
+        onError: data => {
+            console.error(data);
+            snackActions.error("Failed to fetch interactive responses: " + data.message);
+            setBackdropOpen(false);
+        }
+    });
+    const fetchResponsePage = React.useCallback( (requestedPage=1, showBackdrop=true) => {
+        const nextPage = props.selectAllOutput ? 1 : Math.max(1, requestedPage || 1);
+        currentPageRef.current = nextPage;
+        setCurrentPage(nextPage);
+        if(showBackdrop){
+            setBackdropOpen(true);
+        }
+        fetchResponsePageQuery({variables: {
+            task_id: props.task.id,
+            fetchLimit: props.selectAllOutput ? MAX_INTERACTIVE_SELECT_ALL_RESPONSES : pageSize.current,
+            offset: props.selectAllOutput ? 0 : pageSize.current * (nextPage - 1),
+            where: getInteractiveResponseWhereClause(props.task.id, search),
+        }});
+    }, [fetchResponsePageQuery, props.selectAllOutput, props.task.id, search]);
+    React.useEffect( () => {
+        rawResponsesRef.current = [];
+        taskDataRef.current = [];
+        setRawResponses([]);
+        setTaskData([]);
+        highestFetched.current = 0;
+        currentPageRef.current = 1;
+        setCurrentPage(1);
+        setTrackedTotalCount(0);
+        taskResponseCountRef.current = props.task.response_count || 0;
+        selectAllWarningShown.current = false;
+    }, [props.task.id, setTrackedTotalCount]);
+    React.useEffect( () => {
+        selectAllWarningShown.current = false;
+        fetchResponsePage(1);
+    }, [fetchResponsePage]);
     const {loading: loadingTasks} = useSubscription(getInteractiveTaskingQuery, {
       variables: {parent_task_id: props.task.id},
       onError: data => {
@@ -227,21 +353,13 @@ export const ResponseDisplayInteractive = (props) =>{
       },
       fetchPolicy: "no-cache",
       onData: ({data}) => {
-          if(props.task.id !== taskIDTaskingRef.current){
-              const newTaskData = data.data.task_stream;
-              setTaskData(newTaskData);
-              taskIDTaskingRef.current = props.task.id;
-          } else {
-              const newTaskData = data.data.task_stream.reduce( (prev, cur) => {
-                  let taskIndex = prev.findIndex(t => t.id === cur.id);
-                  if(taskIndex >= 0){
-                      prev[taskIndex] = {...cur}
-                      return prev
-                  }
-                  return [...prev, cur]
-              }, [...taskData]);
-              setTaskData(newTaskData);
-          }
+          const newTaskData = mergeInteractiveTaskData({
+              existingTasks: taskDataRef.current,
+              incomingTasks: data?.data?.task_stream || [],
+              limit: MAX_INTERACTIVE_TASK_WINDOW,
+          });
+          taskDataRef.current = newTaskData;
+          setTaskData(newTaskData);
           if(backdropOpen){
               setBackdropOpen(false);
           }
@@ -249,116 +367,85 @@ export const ResponseDisplayInteractive = (props) =>{
       }
     })
     const subscriptionDataCallback = React.useCallback( ({data}) => {
-        // we still have some room to view more, but only room for fetchLimit - totalFetched.current
-        if(props.task.id !== taskIDRef.current){
-            const newResponses = data.data.response_stream;
-            const newerResponses = newResponses.map( (r) => { return {...r, response: b64DecodeUnicode(r.response)}});
-            newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
-            let rawResponseArray = [];
-            let highestFetchedId = 0;
-            for(let i = 0; i < newerResponses.length; i++){
-                rawResponseArray.push(newerResponses[i]);
-                highestFetchedId = newerResponses[i]["id"];
-            }
-            setRawResponses(rawResponseArray);
-            highestFetched.current = highestFetchedId;
-            taskIDRef.current = props.task.id;
-        } else {
-            const newResponses = data.data.response_stream.filter(r => r.id > highestFetched.current);
-            const newerResponses = newResponses.map((r) => {
-                return {...r, response: b64DecodeUnicode(r.response)}
+        const streamedResponses = data?.data?.response_stream || [];
+        if(streamedResponses.length === 0){
+            return;
+        }
+        const newResponses = streamedResponses.filter(r => r.id > highestFetched.current);
+        if(newResponses.length === 0){
+            return;
+        }
+        highestFetched.current = Math.max(highestFetched.current, ...newResponses.map(r => r.id));
+        if(search !== ""){
+            const lowerCaseSearch = search.toLowerCase();
+            const matchingResponseStreamed = newResponses.some( (response) => {
+                return b64DecodeUnicode(response.response).toLowerCase().includes(lowerCaseSearch);
             });
-            newerResponses.sort((a, b) => a.id > b.id ? 1 : -1);
-            let rawResponseArray = [...rawResponses];
-            let highestFetchedId = highestFetched.current;
-            for (let i = 0; i < newerResponses.length; i++) {
-                rawResponseArray.push(newerResponses[i]);
-                highestFetchedId = newerResponses[i]["id"];
+            if(matchingResponseStreamed){
+                fetchResponsePage(currentPageRef.current, false);
             }
-            setRawResponses(rawResponseArray);
-            highestFetched.current = highestFetchedId;
+            return;
+        }
+        const currentTotalCount = Math.max(totalCountRef.current, taskResponseCountRef.current);
+        if(props.selectAllOutput){
+            const previousResponses = rawResponsesRef.current;
+            if(previousResponses.length >= MAX_INTERACTIVE_SELECT_ALL_RESPONSES){
+                warnSelectAllCapped(previousResponses.length, currentTotalCount);
+                return;
+            }
+            const remainingSlots = MAX_INTERACTIVE_SELECT_ALL_RESPONSES - previousResponses.length;
+            const decodedResponses = newResponses.slice(0, remainingSlots).map(decodeInteractiveResponse);
+            const mergedResponses = [...previousResponses, ...decodedResponses].sort( (a,b) => a.id > b.id ? 1 : -1);
+            rawResponsesRef.current = mergedResponses;
+            setRawResponses(mergedResponses);
+            warnSelectAllCapped(mergedResponses.length, currentTotalCount);
+            return;
+        }
+        const pageStartIndex = (currentPageRef.current - 1) * pageSize.current;
+        const pageEndIndex = currentPageRef.current * pageSize.current;
+        const streamedStartIndex = Math.max(0, currentTotalCount - newResponses.length);
+        const streamedEndIndex = currentTotalCount;
+        if(streamedStartIndex >= pageEndIndex || streamedEndIndex <= pageStartIndex){
+            return;
+        }
+        const visibleStreamedResponses = newResponses.reduce( (responses, response, index) => {
+            const responseIndex = streamedStartIndex + index;
+            if(responseIndex >= pageStartIndex && responseIndex < pageEndIndex){
+                return [...responses, decodeInteractiveResponse(response)];
+            }
+            return responses;
+        }, []);
+        if(visibleStreamedResponses.length > 0){
+            const responseMap = new Map();
+            rawResponsesRef.current.forEach( (response) => responseMap.set(response.id, response));
+            visibleStreamedResponses.forEach( (response) => responseMap.set(response.id, response));
+            const mergedResponses = Array.from(responseMap.values()).sort( (a,b) => a.id > b.id ? 1 : -1).slice(0, pageSize.current);
+            rawResponsesRef.current = mergedResponses;
+            setRawResponses(mergedResponses);
         }
         if(backdropOpen){
             setBackdropOpen(false);
         }
-    }, [highestFetched.current, rawResponses, props.task.id, backdropOpen, taskIDRef.current, autoScroll]);
+    }, [backdropOpen, fetchResponsePage, props.selectAllOutput, search, warnSelectAllCapped]);
     useSubscription(subResponsesQuery, {
         variables: {task_id: props.task.id},
         fetchPolicy: "no-cache",
         onData: subscriptionDataCallback
     });
     const onSubmitPageChange = (currentPage) => {
-
-        if(search === undefined || search === ""){
-            let allData = [...rawResponses, ...taskData];
-            allData.sort( (a,b) => {
-                let aDate = new Date(a?.status_timestamp_preprocessing || a.timestamp);
-                let bDate = new Date(b?.status_timestamp_preprocessing || b.timestamp);
-                return aDate < bDate ? -1 : bDate < aDate ? 1 : 0;
-            })
-            if(page.current === currentPage){
-                const pageCount = Math.max(1, Math.ceil(allData.length / pageSize.current));
-                if(page.current === pageCount -1){
-                    currentPage += 1;
-                }
-            }
-            if(props.selectAllOutput){
-                setAllOutput(allData);
-            } else {
-                setAllOutput(allData.slice((currentPage-1)*pageSize.current, currentPage*pageSize.current));
-            }
-            setTotalCount(allData.length);
-        }else{
-            let allData = [...rawResponses, ...taskData];
-            allData = allData.filter( (r) => {
-                if(r.response){
-                    return r.response.includes(search);
-                } else {
-                    return r.display_params.includes(search);
-                }
-            })
-            allData.sort( (a,b) => {
-                let aDate = new Date(a?.status_timestamp_preprocessing || a.timestamp);
-                let bDate = new Date(b?.status_timestamp_preprocessing || b.timestamp);
-                return aDate < bDate ? -1 : bDate < aDate ? 1 : 0;
-            });
-
-            if(page.current === currentPage){
-                const pageCount = Math.max(1, Math.ceil(allData.length / pageSize.current));
-                if(page.current === pageCount -1){
-                    // we just streamed more data and we're on the latest page, increase pageSize
-                    //pageSize.current += Math.abs(allData.length - totalCount);
-                    currentPage += 1;
-                }
-            }
-            setTotalCount(allData.length);
-            setAllOutput(allData.slice((currentPage-1)*pageSize.current, currentPage*pageSize.current));
-        }
-        page.current = currentPage;
+        fetchResponsePage(currentPage);
     }
-    React.useEffect( () => {
-        onSubmitPageChange(1);
-    }, [search]);
-    React.useEffect( () => {
-        onSubmitPageChange(1);
-    }, [props.selectAllOutput]);
     const onSubmitSearch = React.useCallback( (newSearch) => {
-        setSearch(newSearch);
+        currentPageRef.current = 1;
+        setCurrentPage(1);
+        setSearch(newSearch || "");
     }, []);
-    useEffect( () =>{
-        onSubmitPageChange(page.current);
-        /*
-        let allData = [...rawResponses, ...taskData];
-        allData.sort( (a,b) => {
-            let aDate = new Date(a.timestamp);
-            let bDate = new Date(b.timestamp);
-            return aDate < bDate ? -1 : bDate < aDate ? 1 : 0;
-        });
-        setAllOutput(allData);
-        setTotalCount(allData.length);
-
-         */
-    }, [rawResponses, taskData]);
+    React.useEffect( () => {
+        taskResponseCountRef.current = props.task.response_count || 0;
+        if(search === ""){
+            setTrackedTotalCount(props.task.response_count || 0);
+        }
+    }, [props.task.response_count, search, setTrackedTotalCount]);
     const toggleANSIColor = () => {
         setUseANSIColor(!useASNIColor);
     }
@@ -369,25 +456,24 @@ export const ResponseDisplayInteractive = (props) =>{
         setWrapText(!wrapText);
     }
     const toggleAutoScroll = () => {
-        setAutoScroll(!autoScroll);
+        setAutoScroll(current => !current);
     }
-    useEffect(() => {
-        if(autoScroll){
-            messagesEndRef?.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
-        }
-    }, [props.responseRef?.current?.scrollHeight, autoScroll]);
     React.useEffect( () => {
         if(loadingTasks){
-            setTaskData([]);
             setBackdropOpen(true);
         }else{
             setBackdropOpen(false);
         }
     }, [loadingTasks]);
-    setTimeout(() => {
-        // close the backdrop after 2 seconds in case there's no data to fetch
-        setBackdropOpen(false);
-    }, 2000);
+    React.useEffect(() => {
+        if(!backdropOpen){
+            return;
+        }
+        const timeoutID = setTimeout(() => {
+            setBackdropOpen(false);
+        }, 2000);
+        return () => clearTimeout(timeoutID);
+    }, [backdropOpen]);
   return (
 
       <div style={{
@@ -420,14 +506,12 @@ export const ResponseDisplayInteractive = (props) =>{
           <div style={{overflowY: "auto", width: "100%", marginBottom: "5px", height: props.expand ? "100%": undefined,
               flexGrow: 1, paddingLeft: "10px", minHeight: "50px"}} ref={props.responseRef}
                id={`ptytask${props.task.id}`}>
-              <GetOutputFormatAll data={alloutput}
-                               myTask={props.task.operator.username === (me?.user?.username || "")}
-                               taskID={props.task.id}
+              <GetOutputFormatAll data={visibleOutput}
                                useASNIColor={useASNIColor}
                                messagesEndRef={messagesEndRef}
                                showTaskStatus={showTaskStatus}
-                               search={props.searchOutput ? search : undefined}
-                               wrapText={wrapText}/>
+                               wrapText={wrapText}
+                               autoScroll={autoScroll}/>
               <div ref={messagesEndRef}/>
           </div>
           {!props.task?.is_interactive_task &&
@@ -441,7 +525,7 @@ export const ResponseDisplayInteractive = (props) =>{
               </div>
           }
 
-          <InteractivePaginationBar totalCount={totalCount} currentPage={page.current}
+          <InteractivePaginationBar totalCount={totalCount} currentPage={currentPage}
                                     onSubmitPageChange={onSubmitPageChange} expand={props.expand}
                                     pageSize={pageSize.current} selectAllOutput={props.selectAllOutput}/>
       </div>
@@ -679,7 +763,7 @@ const InteractivePaginationBar = ({totalCount, currentPage, onSubmitPageChange, 
                         boundaryCount={2} onChange={onChangePage} style={{margin: "10px"}}
                         showFirstButton showLastButton siblingCount={2}
             />
-            <Typography style={{paddingLeft: "10px"}}>Total: {totalCount}</Typography>
+            <Typography style={{paddingLeft: "10px"}}>Total Responses: {totalCount}</Typography>
         </div>
     )
 }
