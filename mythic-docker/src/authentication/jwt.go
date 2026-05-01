@@ -20,7 +20,6 @@ var (
 	ErrBearerInvalidValue              = errors.New("Authorization bearer value is invalid")
 	ErrMissingAuthorizationBearerToken = errors.New("Missing Authorization Bearer token")
 	ErrMissingAuthorizationHeader      = errors.New("Missing Authorization header")
-	ErrLegacyAPITokenJWTDeprecated     = errors.New("Legacy JWT API tokens are no longer accepted. Generate and use a new API token.")
 )
 
 const (
@@ -31,9 +30,7 @@ const (
 )
 
 var (
-	// LegacyAPITokenJWTCutoff // int64(time.Now().Unix()) for a specific date via iat
-	LegacyAPITokenJWTCutoff = int64(1776211200) // April 15, 2026
-	SQLGetIDForActiveToken  = `SELECT 
+	SQLGetIDForActiveToken = `SELECT 
 		apitokens.id, apitokens.operator_id, apitokens.name, apitokens.active, apitokens.token_value, apitokens.deleted,
 		apitokens.eventstepinstance_id, apitokens.token_type, apitokens.scopes,
 		operator.username "operator.username",
@@ -86,21 +83,17 @@ func validateAndSetAPITokenContext(c *gin.Context, tokenString string) error {
 		return err
 	}
 	if !databaseApiToken.Active {
-		go func(token databaseStructs.Apitokens) {
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Deactivated APIToken, %s, for user %s (%s) attempted to be used",
-				token.Name, token.Operator.Username, token.Operator.AccountType),
-				int(token.Operator.CurrentOperationID.Int64), token.Name+fmt.Sprintf("%d", token.ID)+token.Operator.Username,
-				database.MESSAGE_LEVEL_API, true)
-		}(databaseApiToken)
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Deactivated APIToken, %s, for user %s (%s) attempted to be used",
+			databaseApiToken.Name, databaseApiToken.Operator.Username, databaseApiToken.Operator.AccountType),
+			int(databaseApiToken.Operator.CurrentOperationID.Int64), databaseApiToken.Name+fmt.Sprintf("%d", databaseApiToken.ID)+databaseApiToken.Operator.Username,
+			database.MESSAGE_LEVEL_API, true)
 		return errors.New("Deactivated APIToken attempted to be used")
 	}
 	if databaseApiToken.Deleted {
-		go func(token databaseStructs.Apitokens) {
-			go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Deleted APIToken, \"%s\", for user %s (%s) attempted to be used",
-				token.Name, token.Operator.Username, token.Operator.AccountType),
-				int(token.Operator.CurrentOperationID.Int64), token.Name+fmt.Sprintf("%d", token.ID)+token.Operator.Username,
-				database.MESSAGE_LEVEL_API, true)
-		}(databaseApiToken)
+		go rabbitmq.SendAllOperationsMessage(fmt.Sprintf("Deleted APIToken, \"%s\", for user %s (%s) attempted to be used",
+			databaseApiToken.Name, databaseApiToken.Operator.Username, databaseApiToken.Operator.AccountType),
+			int(databaseApiToken.Operator.CurrentOperationID.Int64), databaseApiToken.Name+fmt.Sprintf("%d", databaseApiToken.ID)+databaseApiToken.Operator.Username,
+			database.MESSAGE_LEVEL_API, true)
 		return errors.New("Deleted APIToken attempted to be used")
 	}
 	source := c.GetHeader("MythicSource")
@@ -134,10 +127,10 @@ func GetClaims(c *gin.Context) (*mythicjwt.CustomClaims, error) {
 		return nil, err
 	}
 	if looksLikeOpaqueAPIToken(tokenString) {
-		apiTokenErr := validateAndSetAPITokenContext(c, tokenString)
-		if apiTokenErr != nil {
-			logging.LogError(err, "failed to parse jwt")
-			return nil, apiTokenErr
+		err = validateAndSetAPITokenContext(c, tokenString)
+		if err != nil {
+			logging.LogError(err, "failed to validate and set apitoken")
+			return nil, err
 		}
 		if existingClaims, exists := c.Get(ContextKeyClaims); exists {
 			if typedClaims, ok := existingClaims.(*mythicjwt.CustomClaims); ok {
@@ -155,15 +148,8 @@ func GetClaims(c *gin.Context) (*mythicjwt.CustomClaims, error) {
 		return utils.MythicConfig.JWTSecret, nil
 	})
 	if err != nil {
-		logging.LogError(err, "failed to parse jwt")
+		logging.LogError(err, "failed to parse and validate jwt")
 		return nil, err
-	}
-	if claims.IssuedAt < LegacyAPITokenJWTCutoff {
-		logging.LogError(ErrLegacyAPITokenJWTDeprecated,
-			"auth_method", claims.AuthMethod,
-			"issued_at", claims.IssuedAt,
-			"cutoff", LegacyAPITokenJWTCutoff)
-		return nil, ErrLegacyAPITokenJWTDeprecated
 	}
 	c.Set(ContextKeyUserID, claims.UserID)
 	c.Set(ContextKeyClaims, &claims)

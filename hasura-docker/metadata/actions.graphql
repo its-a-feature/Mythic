@@ -32,7 +32,7 @@ type Query {
 }
 
 type Mutation {
-  callbackgraphedge_add(
+  callbackgraphedgeAdd(
     source_id: Int!
     destination_id: Int!
     c2profile: String!
@@ -40,13 +40,13 @@ type Mutation {
 }
 
 type Mutation {
-  callbackgraphedge_remove(
+  callbackgraphedgeRemove(
     edge_id: Int!
   ): CallbackgraphedgeRemoveOutput
 }
 
 type Query {
-  config_check(
+  configCheck(
     uuid: String!
   ): ConfigCheckOutput
 }
@@ -207,7 +207,7 @@ type Mutation {
 }
 
 type Mutation {
-  create_c2_instance(
+  createC2Instance(
     c2_instance: String!
     instance_name: String!
     c2profile_id: Int!
@@ -263,7 +263,7 @@ type Mutation {
 }
 
 type Mutation {
-  download_bulk(
+  downloadBulk(
     files: [String!]!
   ): BulkDownloadOutput
 }
@@ -277,7 +277,7 @@ type Mutation {
 }
 
 type Mutation {
-  dynamic_query_function(
+  dynamicQueryFunction(
     command: String!
     parameter_name: String!
     payload_type: String!
@@ -428,7 +428,7 @@ type Mutation {
 }
 
 type Mutation {
-  import_c2_instance(
+  importC2Instance(
     c2_instance: jsonb!
     instance_name: String!
     c2profile_name: String!
@@ -446,25 +446,25 @@ type Mutation {
 }
 
 type Mutation {
-  rebuild_payload(
+  rebuildPayload(
     uuid: String!
   ): rebuildOutput
 }
 
 type Query {
-  redirect_rules(
+  redirectRules(
     uuid: String!
   ): redirectOutput
 }
 
 type Mutation {
-  reissue_task(
+  reissueTask(
     task_id: Int!
   ): ReissueTaskOutput
 }
 
 type Mutation {
-  reissue_task_handler(
+  reissueTaskHandler(
     task_id: Int!
   ): ReissueTaskHandlerOutput
 }
@@ -511,7 +511,7 @@ type Mutation {
 }
 
 type Mutation {
-  typedarray_parse_function(
+  typedarrayParseFunction(
     command: String!
     parameter_name: String!
     payload_type: String!
@@ -1324,4 +1324,3 @@ type custombrowserExportFunctionOutput {
   status: String!
   error: String
 }
-

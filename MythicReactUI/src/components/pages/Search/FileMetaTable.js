@@ -38,7 +38,7 @@ import {FileDownloadLinkWithAuth} from "../../utilities/FileDownloadWithAuth";
 
 export const downloadBulkQuery = gql`
 mutation downloadBulkMutation($files: [String!]!){
-    download_bulk(files: $files){
+    downloadBulk(files: $files){
         status
         error
         file_id
@@ -144,12 +144,12 @@ export function FileMetaDownloadTable(props){
     const [downloadBulk] = useMutation(downloadBulkQuery, {
         onCompleted: (data) => {
             snackActions.dismiss();
-            if(data.download_bulk.status === "success"){
+            if(data.downloadBulk.status === "success"){
                 snackActions.success(<SnackMessage
-                    file_id={data.download_bulk.file_id}
-                    />, {toastId: data.download_bulk.file_id, autoClose: false, closeOnClick: false});
+                    file_id={data.downloadBulk.file_id}
+                    />, {toastId: data.downloadBulk.file_id, autoClose: false, closeOnClick: false});
             }else{
-                snackActions.error(data.download_bulk.error);
+                snackActions.error(data.downloadBulk.error);
             }
         },
         onError: (data) => {
@@ -535,8 +535,8 @@ export function FileMetaUploadTable(props){
     const [downloadBulk] = useMutation(downloadBulkQuery, {
         onCompleted: (data) => {
             snackActions.dismiss();
-            if(data.download_bulk.status === "success"){
-                snackActions.success(<MythicSnackDownload title="Download Zip File" file_id={data.download_bulk.file_id} />, {toastId: data.download_bulk.file_id, autoClose: false, closeOnClick: false});
+            if(data.downloadBulk.status === "success"){
+                snackActions.success(<MythicSnackDownload title="Download Zip File" file_id={data.downloadBulk.file_id} />, {toastId: data.downloadBulk.file_id, autoClose: false, closeOnClick: false});
             }else{
                 snackActions.error(data.error);
             }
@@ -1179,10 +1179,10 @@ export function FileMetaEventingWorkflowsTable(props){
     const [downloadBulk] = useMutation(downloadBulkQuery, {
         onCompleted: (data) => {
             snackActions.dismiss();
-            if(data.download_bulk.status === "success"){
-                snackActions.success(<MythicSnackDownload title="Download Zip File" file_id={data.download_bulk.file_id} />, {toastId: data.download_bulk.file_id, autoClose: false, closeOnClick: false});
+            if(data.downloadBulk.status === "success"){
+                snackActions.success(<MythicSnackDownload title="Download Zip File" file_id={data.downloadBulk.file_id} />, {toastId: data.downloadBulk.file_id, autoClose: false, closeOnClick: false});
             }else{
-                snackActions.error(data.download_bulk.error);
+                snackActions.error(data.downloadBulk.error);
             }
         },
         onError: (data) => {

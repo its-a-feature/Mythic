@@ -9,7 +9,7 @@ import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 
 const checkPayloadConfigurationQuery = gql`
 query checkPayloadConfigurationQuery($uuid: String!) {
-  config_check(uuid: $uuid) {
+  configCheck(uuid: $uuid) {
       status
       error
       output
@@ -22,11 +22,11 @@ export function PayloadConfigCheckDialog(props) {
     const { loading, error } = useQuery(checkPayloadConfigurationQuery, {
         variables: {uuid: props.uuid},
         onCompleted: data => {
-          if(data.config_check.status === "success"){
-            setMessage(data.config_check.output);
+          if(data.configCheck.status === "success"){
+            setMessage(data.configCheck.output);
           }else{
-            snackActions.warning(data.config_check.error);
-            setMessage("Error!\n" + data.config_check.error);
+            snackActions.warning(data.configCheck.error);
+            setMessage("Error!\n" + data.configCheck.error);
           }
             
         },
@@ -60,4 +60,3 @@ export function PayloadConfigCheckDialog(props) {
       </React.Fragment>
   );
 }
-
