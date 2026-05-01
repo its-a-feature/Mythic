@@ -31,7 +31,7 @@ import CloudUploadTwoToneIcon from '@mui/icons-material/CloudUploadTwoTone';
 
 export const getDynamicQueryParamsString = `
 mutation getDynamicParamsMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $other_parameters: jsonb){
-    dynamic_query_function(callback: $callback, command: $command, payload_type: $payload_type, parameter_name: $parameter_name, other_parameters: $other_parameters){
+    dynamicQueryFunction(callback: $callback, command: $command, payload_type: $payload_type, parameter_name: $parameter_name, other_parameters: $other_parameters){
         status
         error
         choices
@@ -44,7 +44,7 @@ ${getDynamicQueryParamsString}
 `;
 const parseTypedArrayMutation = gql`
 mutation parseTypedArrayMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!, $input_array: [String!]!){
-    typedarray_parse_function(callback: $callback, command: $command, payload_type: $payload_type, parameter_name: $parameter_name, input_array: $input_array){
+    typedarrayParseFunction(callback: $callback, command: $command, payload_type: $payload_type, parameter_name: $parameter_name, input_array: $input_array){
         status
         error
         typed_array
@@ -125,19 +125,19 @@ export function TaskParametersDialogRow(props){
     const updateToLatestCredential = React.useRef(false);
     const [getDynamicParams] = useMutation(getDynamicQueryParams, {
         onCompleted: (data) => {
-            if(data.dynamic_query_function.status === "success"){
+            if(data.dynamicQueryFunction.status === "success"){
                 try{
                     let choicesInUse = [];
-                    if (data.dynamic_query_function.complex_choices !== null &&
-                        data.dynamic_query_function.complex_choices !== undefined &&
-                        data.dynamic_query_function.complex_choices.length > 0) {
+                    if (data.dynamicQueryFunction.complex_choices !== null &&
+                        data.dynamicQueryFunction.complex_choices !== undefined &&
+                        data.dynamicQueryFunction.complex_choices.length > 0) {
                         usingDynamicParamComplexChoices.current = true;
-                        setChoiceOptions([...data.dynamic_query_function.complex_choices]);
-                        choicesInUse = [...data.dynamic_query_function.complex_choices];
+                        setChoiceOptions([...data.dynamicQueryFunction.complex_choices]);
+                        choicesInUse = [...data.dynamicQueryFunction.complex_choices];
                     } else {
                         usingDynamicParamComplexChoices.current = false;
-                        setChoiceOptions([...data.dynamic_query_function.choices]);
-                        choicesInUse = [...data.dynamic_query_function.choices];
+                        setChoiceOptions([...data.dynamicQueryFunction.choices]);
+                        choicesInUse = [...data.dynamicQueryFunction.choices];
                     }
                     usingDynamicParamChoices.current = true;
                     if(props.type === "ChooseOne"){
@@ -220,7 +220,7 @@ export function TaskParametersDialogRow(props){
                 }
                 
             }else{
-                snackActions.warning(data.dynamic_query_function.error);
+                snackActions.warning(data.dynamicQueryFunction.error);
             }
             setBackdropOpen(false);
         },
@@ -232,9 +232,9 @@ export function TaskParametersDialogRow(props){
     });
     const [parseTypedArray] = useMutation(parseTypedArrayMutation, {
         onCompleted: (data) => {
-            if(data.typedarray_parse_function.status === "success"){
+            if(data.typedarrayParseFunction.status === "success"){
                 try{
-                    let newTypedArrayValue = [...data.typedarray_parse_function.typed_array.reduce( (prev, cur) => {
+                    let newTypedArrayValue = [...data.typedarrayParseFunction.typed_array.reduce( (prev, cur) => {
                         if(cur){
                             return [...prev, cur];
                         }
@@ -250,7 +250,7 @@ export function TaskParametersDialogRow(props){
                 }
 
             }else{
-                snackActions.warning(data.typedarray_parse_function.error);
+                snackActions.warning(data.typedarrayParseFunction.error);
             }
             setBackdropOpen(false);
         },

@@ -71,7 +71,7 @@ mutation deleteSavedInstance($name: String!, $c2_profile_id: Int!){
 `;
 const createInstanceMutation = gql`
 mutation createNewC2Instance($instance_name: String!, $c2_instance: String!, $c2profile_id: Int!){
-  create_c2_instance(c2_instance: $c2_instance, instance_name: $instance_name, c2profile_id: $c2profile_id){
+  createC2Instance(c2_instance: $c2_instance, instance_name: $instance_name, c2profile_id: $c2profile_id){
     status
     error
   }
@@ -79,7 +79,7 @@ mutation createNewC2Instance($instance_name: String!, $c2_instance: String!, $c2
 `;
 const importInstanceMutation = gql`
 mutation importNewC2Instance($c2_instance: jsonb!, $instance_name: String!, $c2profile_name: String!){
-import_c2_instance(
+importC2Instance(
     c2_instance: $c2_instance,
     instance_name: $instance_name
     c2profile_name: $c2profile_name
@@ -207,10 +207,10 @@ export function C2ProfileSavedInstancesDialog(props) {
     });
     const [createInstance] = useMutation(createInstanceMutation, {
       onCompleted: (data) => {
-        if(data.create_c2_instance.status === "success"){
+        if(data.createC2Instance.status === "success"){
           snackActions.success("Successfully created instance");
         }else{
-          snackActions.error("Failed to create instance: " + data.create_c2_instance.error);
+          snackActions.error("Failed to create instance: " + data.createC2Instance.error);
         }
         props.onClose();
         
@@ -221,10 +221,10 @@ export function C2ProfileSavedInstancesDialog(props) {
     });
     const [importInstance] = useMutation(importInstanceMutation, {
         onCompleted: (data) => {
-            if(data.import_c2_instance.status === "success"){
+            if(data.importC2Instance.status === "success"){
                 snackActions.success("Successfully imported instance")
             } else {
-                snackActions.error(data.import_c2_instance.error);
+                snackActions.error(data.importC2Instance.error);
             }
         },
         onError: (error) => {
@@ -433,4 +433,3 @@ export function C2ProfileSavedInstancesDialog(props) {
       </React.Fragment>
   );
 }
-

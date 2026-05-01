@@ -50,7 +50,7 @@ import {Dropdown, DropdownMenuItem, DropdownNestedMenuItem} from "../../MythicCo
 
 const rebuildPayloadMutation = gql`
 mutation triggerRebuildMutation($uuid: String!) {
-  rebuild_payload(uuid: $uuid) {
+  rebuildPayload(uuid: $uuid) {
       status
       error
       uuid
@@ -86,10 +86,10 @@ export function PayloadsTableRow(props){
     const dropdownAnchorRef = useRef(null);
     const [triggerRebuild] = useMutation(rebuildPayloadMutation, {
       onCompleted: (data) => {
-        if(data.rebuild_payload.status === "success"){
+        if(data.rebuildPayload.status === "success"){
           snackActions.success("Successfully triggered rebuild");
         } else {
-          snackActions.error("Failed to build:\n" + data.rebuild_payload.error);
+          snackActions.error("Failed to build:\n" + data.rebuildPayload.error);
         }
         
       },
@@ -515,4 +515,3 @@ export function PayloadsTableRow(props){
       ) : null
     )
 }
-
