@@ -5,7 +5,6 @@ import useScrollbarSize from 'react-scrollbar-size';
 import { VariableSizeGrid } from 'react-window';
 import HeaderCell from './HeaderCell';
 import Cell from './Cell';
-import DraggableHandles from './DraggableHandles';
 import {classes} from './styles';
 import {GetMythicSetting, useSetMythicSetting} from "../MythicSavedUserSetting";
 
@@ -44,6 +43,8 @@ const innerElementType = React.forwardRef(({ children, style }, ref) => {
                             contextMenuOptions={HeaderCellData.contextMenuOptions}
                             sortIndicatorIndex={HeaderCellData.sortIndicatorIndex}
                             sortDirection={HeaderCellData.sortDirection}
+                            isResizing={HeaderCellData.resizingColumnIndex === i}
+                            onResizePointerDown={HeaderCellData.startColumnResize}
                             VariableSizeGridProps={{
                                 style: {
                                     position: 'absolute',
@@ -103,8 +104,18 @@ const ResizableGridWrapper = ({
     }));
     const gridUUID = React.useMemo( () => GetShortRandomString(), []);
     const gridRef = useRef(null);
-    const dragHandlesRef = useRef(null);
+    const columnWidthsRef = useRef(columnWidths);
+    const lastResetColumnIndexRef = useRef(0);
+    const activeResizeRef = useRef(null);
+    const resizeFrameRef = useRef(null);
+    const cleanupResizeListenersRef = useRef(null);
+    const [resizingColumnIndex, setResizingColumnIndex] = useState(-1);
     const [updateSetting] = useSetMythicSetting();
+    const setColumnWidthsAndRef = useCallback( (newColumnWidths, resetColumnIndex=0) => {
+        lastResetColumnIndexRef.current = resetColumnIndex;
+        columnWidthsRef.current = newColumnWidths;
+        setColumnWidths(newColumnWidths);
+    }, []);
     const getColumnWidth = useCallback(
         (index) => {
             return columnWidths[index] || MIN_COLUMN_WIDTH;
@@ -146,35 +157,118 @@ const ResizableGridWrapper = ({
             }
             //updatedColumnWidths[updatedWidthIndex] += totalWidthDiff;
         }
-        setColumnWidths(updatedColumnWidths);
+        setColumnWidthsAndRef(updatedColumnWidths);
         if(name !== undefined){
             updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
         }
 
-    }, [scrollbarWidth, columns, AutoSizerProps.width, localColumnsRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [scrollbarWidth, columns, AutoSizerProps.width, localColumnsRef.current, setColumnWidthsAndRef]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        gridRef.current.resetAfterColumnIndex(0, true);
-        if(name !== undefined){
-            updateSetting({setting_name: `${name}_column_widths`, value: columnWidths});
+        if(gridRef.current){
+            gridRef.current.resetAfterColumnIndex(lastResetColumnIndexRef.current, true);
         }
     }, [columnWidths]);
 
     /* Event Handlers */
 
-    const resizeColumn = useCallback( (x, columnIndex) => {
-        const updatedColumnWidths = columnWidths.map((columnWidth, index) => {
-            if (columnIndex === index) {
-                return Math.floor(Math.max(columnWidth + x, MIN_COLUMN_WIDTH));
-            }
-            return Math.floor(columnWidth);
-        });
-        setColumnWidths(updatedColumnWidths);
-        if(name !== undefined){
-            updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+    const startColumnResize = useCallback( (event, columnIndex) => {
+        if(columns[columnIndex]?.disableResize){
+            return;
         }
-
-    }, [columnWidths]);
+        const initialWidths = columnWidthsRef.current.map( (columnWidth) => Math.floor(columnWidth || MIN_COLUMN_WIDTH));
+        const startClientX = event.clientX;
+        const startWidth = initialWidths[columnIndex] || MIN_COLUMN_WIDTH;
+        const previousCursor = document.body.style.cursor;
+        const previousUserSelect = document.body.style.userSelect;
+        const applyResizeWidth = (clientX) => {
+            const activeResize = activeResizeRef.current;
+            if(!activeResize){
+                return;
+            }
+            activeResize.latestClientX = clientX;
+            if(resizeFrameRef.current !== null){
+                return;
+            }
+            resizeFrameRef.current = window.requestAnimationFrame(() => {
+                resizeFrameRef.current = null;
+                const currentResize = activeResizeRef.current;
+                if(!currentResize){
+                    return;
+                }
+                const resizeDelta = currentResize.latestClientX - currentResize.startClientX;
+                const nextColumnWidth = Math.floor(Math.max(currentResize.startWidth + resizeDelta, MIN_COLUMN_WIDTH));
+                const updatedColumnWidths = currentResize.initialWidths.map( (columnWidth, index) => {
+                    return currentResize.columnIndex === index ? nextColumnWidth : columnWidth;
+                });
+                setColumnWidthsAndRef(updatedColumnWidths, currentResize.columnIndex);
+            });
+        };
+        const cleanupResizeListeners = () => {
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("pointercancel", handlePointerUp);
+            document.body.style.cursor = previousCursor;
+            document.body.style.userSelect = previousUserSelect;
+            cleanupResizeListenersRef.current = null;
+        };
+        const finishResize = (clientX) => {
+            const currentResize = activeResizeRef.current;
+            if(!currentResize){
+                cleanupResizeListeners();
+                return;
+            }
+            if(resizeFrameRef.current !== null){
+                window.cancelAnimationFrame(resizeFrameRef.current);
+                resizeFrameRef.current = null;
+            }
+            const resizeDelta = clientX - currentResize.startClientX;
+            const nextColumnWidth = Math.floor(Math.max(currentResize.startWidth + resizeDelta, MIN_COLUMN_WIDTH));
+            const updatedColumnWidths = currentResize.initialWidths.map( (columnWidth, index) => {
+                return currentResize.columnIndex === index ? nextColumnWidth : columnWidth;
+            });
+            activeResizeRef.current = null;
+            setColumnWidthsAndRef(updatedColumnWidths, currentResize.columnIndex);
+            if(name !== undefined){
+                updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+            }
+            setResizingColumnIndex(-1);
+            cleanupResizeListeners();
+        };
+        function handlePointerMove(pointerEvent){
+            pointerEvent.preventDefault();
+            applyResizeWidth(pointerEvent.clientX);
+        }
+        function handlePointerUp(pointerEvent){
+            pointerEvent.preventDefault();
+            finishResize(pointerEvent.clientX);
+        }
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        activeResizeRef.current = {
+            columnIndex,
+            initialWidths,
+            latestClientX: startClientX,
+            startClientX,
+            startWidth,
+        };
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        setResizingColumnIndex(columnIndex);
+        window.addEventListener("pointermove", handlePointerMove);
+        window.addEventListener("pointerup", handlePointerUp);
+        window.addEventListener("pointercancel", handlePointerUp);
+        cleanupResizeListenersRef.current = cleanupResizeListeners;
+    }, [columns, name, setColumnWidthsAndRef, updateSetting]);
+    useEffect(() => {
+        return () => {
+            cleanupResizeListenersRef.current?.();
+            activeResizeRef.current = null;
+            if(resizeFrameRef.current !== null){
+                window.cancelAnimationFrame(resizeFrameRef.current);
+                resizeFrameRef.current = null;
+            }
+        };
+    }, []);
     const autosizeColumn =  useCallback( ({columnIndex}) => {
         if(columns[columnIndex].disableDoubleClick){
             return
@@ -264,9 +358,12 @@ const ResizableGridWrapper = ({
             }
         }
         if(updatedValues){
-            setColumnWidths(() => updatedColumnWidths);
+            setColumnWidthsAndRef(updatedColumnWidths, columnIndex);
+            if(name !== undefined){
+                updateSetting({setting_name: `${name}_column_widths`, value: updatedColumnWidths});
+            }
         }
-    }, [columnWidths]);
+    }, [columnWidths, columns, items, name, setColumnWidthsAndRef, updateSetting]);
 
     useEffect( () => {
         if(callbackTableGridRef){
@@ -285,14 +382,10 @@ const ResizableGridWrapper = ({
         "sortIndicatorIndex": sortIndicatorIndex,
         "sortDirection": sortDirection,
         "getColumnWidth": getColumnWidth,
+        "resizingColumnIndex": resizingColumnIndex,
+        "startColumnResize": startColumnResize,
         "itemsWithHeader": itemsWithHeader,
     };
-    const localOnScroll = React.useCallback( ({scrollLeft}) => {
-
-        if (dragHandlesRef.current) {
-            dragHandlesRef.current.scrollTo({ left: scrollLeft });
-        }
-    }, [dragHandlesRef.current])
     return (
         <>
             <HeaderCellContext.Provider value={headerCellData}>
@@ -311,19 +404,9 @@ const ResizableGridWrapper = ({
                     innerElementType={innerElementType}
                     overscanRowCount={20}
                     useIsScrolling={false}
-                    onScroll={localOnScroll}
                     ref={gridRef}>
                     {CellRenderer}
                 </VariableSizeGrid>
-                <DraggableHandles
-                    height={AutoSizerProps.height}
-                    rowHeight={headerRowHeight}
-                    width={AutoSizerProps.width}
-                    minColumnWidth={MIN_COLUMN_WIDTH}
-                    columnWidths={columnWidths}
-                    onStop={resizeColumn}
-                    ref={dragHandlesRef}
-                />
             </HeaderCellContext.Provider>
 
         </>
@@ -381,6 +464,7 @@ MythicResizableGrid.propTypes = {
             name: PropTypes.string,
             width: PropTypes.number,
             disableAutosize: PropTypes.bool,
+            disableResize: PropTypes.bool,
             disableSort: PropTypes.bool
         })
     ).isRequired,

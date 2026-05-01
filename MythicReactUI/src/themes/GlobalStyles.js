@@ -200,6 +200,7 @@ tspan {
 .MythicResizableGrid-headerCell {
     display: flex;
     align-items: center;
+    position: relative;
     padding: 0 0.5em;
     box-sizing: border-box;
     justify-content: space-between;
@@ -214,6 +215,41 @@ tspan {
         background-color: ${(props) => props.theme.tableHover};
         cursor: pointer;
     }
+}
+.MythicResizableGrid-headerResizeHandle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+    touch-action: none;
+    z-index: 2;
+}
+.MythicResizableGrid-headerResizeHandle::before {
+    content: "";
+    position: absolute;
+    right: 2px;
+    width: 0px;
+    height: 100%;
+    border-left: 1px solid ${(props) => props.theme.palette.text.main};
+    border-right: 1px solid ${(props) => props.theme.palette.text.main};
+    opacity: 0.85;
+}
+.MythicResizableGrid-headerResizeHandle:hover,
+.MythicResizableGrid-headerResizeHandleActive {
+    background-color: ${(props) => props.theme.palette.info.main + "22"};
+}
+.MythicResizableGrid-headerResizeHandle:hover::after,
+.MythicResizableGrid-headerResizeHandleActive::after {
+    background-color: ${(props) => props.theme.palette.info.main};
+    opacity: 1;
+}
+.MythicResizableGrid-headerResizeHandle:hover::before,
+.MythicResizableGrid-headerResizeHandleActive::before {
+    border-color: ${(props) => props.theme.palette.info.main};
+    opacity: 1;
 }
 .MythicResizableGrid-hoveredRow {
     background-color: ${(props) => props.theme.tableHover + "CC"};
@@ -232,32 +268,6 @@ tspan {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-.MythicResizableGrid-draggableHandlesContainer {
-    position: absolute;
-    top: 0;
-    overflow-x: hidden;
-}
-.MythicResizableGrid-draggableHandlesClickArea {
-    position: absolute;
-    width: 16px;
-    cursor: col-resize;
-    pointer-events: initial;
-}
-.MythicResizableGrid-draggableHandlesClickAreaSelected {
-    position: absolute;
-    cursor: col-resize;
-    width: 10px;
-    pointer-events: initial;
-    background-color: ${(props) => props.theme.palette.info.main};
-    opacity: 0.5;
-    height: 100%;
-}
-.MythicResizableGrid-draggableHandlesIndicator {
-    position: relative;
-    width: 10px;
-    color: red;
-    height: 100px;
 }
 .Toastify__toast {
     word-break: break-all;
