@@ -9,7 +9,7 @@ import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
 
 const generateRedirectRulesMutation = gql`
 query generateRedirectRulesMutation($uuid: String!) {
-  redirect_rules(uuid: $uuid) {
+  redirectRules(uuid: $uuid) {
       status
       error
       output
@@ -22,11 +22,11 @@ export function PayloadRedirectRulesDialog(props) {
     const { loading, error } = useQuery(generateRedirectRulesMutation, {
         variables: {uuid: props.uuid},
         onCompleted: data => {
-          if(data.redirect_rules.status === "success"){
-            setMessage(data.redirect_rules.output);
+          if(data.redirectRules.status === "success"){
+            setMessage(data.redirectRules.output);
           }else{
-            snackActions.warning(data.redirect_rules.error);
-            setMessage("Error!\n" + data.redirect_rules.error);
+            snackActions.warning(data.redirectRules.error);
+            setMessage("Error!\n" + data.redirectRules.error);
           }
             
         },
@@ -60,4 +60,3 @@ export function PayloadRedirectRulesDialog(props) {
     </React.Fragment>
   );
 }
-

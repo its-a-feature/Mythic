@@ -35,7 +35,7 @@ mutation hideCallback ($callback_display_id: Int!, $active: Boolean!){
 
 export const removeEdgeMutation = gql`
 mutation removeEdgeMutation ($edge_id: Int!){
-    callbackgraphedge_remove(edge_id: $edge_id) {
+    callbackgraphedgeRemove(edge_id: $edge_id) {
         status
         error
       }
@@ -44,7 +44,7 @@ mutation removeEdgeMutation ($edge_id: Int!){
 
 export const addEdgeMutation = gql`
 mutation addEdgeMutation ($source_id: Int!, $destination_id: Int!, $c2profile: String!){
-  callbackgraphedge_add(c2profile: $c2profile, destination_id: $destination_id, source_id: $source_id) {
+  callbackgraphedgeAdd(c2profile: $c2profile, destination_id: $destination_id, source_id: $source_id) {
     status
     error
   }

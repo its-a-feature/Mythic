@@ -57,7 +57,7 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Using the UUID of a payload, ask's that payload's C2 Profiles to generate a sample message of what traffic would look like
-  - name: callbackgraphedge_add
+  - name: callbackgraphedgeAdd
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/callbackgraphedge_add_webhook'
@@ -68,7 +68,7 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Adds an active graph edge between the two callbacks specified by their ID via the C2 Profile specified by its Name
-  - name: callbackgraphedge_remove
+  - name: callbackgraphedgeRemove
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/callbackgraphedge_remove_webhook'
@@ -79,7 +79,7 @@ actions:
       - role: mythic_admin
       - role: developer
     comment: Removes an active graph edge specified by its ID
-  - name: config_check
+  - name: configCheck
     definition:
       kind: ""
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/config_check_webhook'
@@ -292,7 +292,7 @@ actions:
       - role: operation_admin
       - role: operator
     comment: Creates a new task in Mythic for the specified callback_display_id or callback_display_ids
-  - name: create_c2_instance
+  - name: createC2Instance
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_c2parameter_instance_webhook'
@@ -377,7 +377,7 @@ actions:
     permissions:
       - role: mythic_admin
     comment: Delete the specified tasks and callbacks by their display IDs
-  - name: download_bulk
+  - name: downloadBulk
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/download_bulk_webhook'
@@ -398,7 +398,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: dynamic_query_function
+  - name: dynamicQueryFunction
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/dynamic_query_webhook'
@@ -633,7 +633,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: import_c2_instance
+  - name: importC2Instance
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/import_c2parameter_instance_webhook'
@@ -665,7 +665,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: rebuild_payload
+  - name: rebuildPayload
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/rebuild_webhook'
@@ -675,7 +675,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: redirect_rules
+  - name: redirectRules
     definition:
       kind: ""
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/redirect_rules_webhook'
@@ -686,7 +686,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: reissue_task
+  - name: reissueTask
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/reissue_task_webhook'
@@ -696,7 +696,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: reissue_task_handler
+  - name: reissueTaskHandler
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/reissue_task_handler_webhook'
@@ -769,7 +769,7 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
-  - name: typedarray_parse_function
+  - name: typedarrayParseFunction
     definition:
       kind: synchronous
       handler: '{{MYTHIC_ACTIONS_URL_BASE}}/typedarray_parse_webhook'

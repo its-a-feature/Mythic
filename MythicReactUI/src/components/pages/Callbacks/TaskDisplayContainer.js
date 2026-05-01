@@ -44,7 +44,7 @@ import PlayCircleFilledTwoToneIcon from '@mui/icons-material/PlayCircleFilledTwo
 
 const ReissueTaskMutationGQL = gql`
 mutation reissueTaskMutation($task_id: Int!){
-  reissue_task(task_id: $task_id){
+  reissueTask(task_id: $task_id){
     status
     error
   }
@@ -52,7 +52,7 @@ mutation reissueTaskMutation($task_id: Int!){
 `;
 const ReissueTaskHandlerMutationGQL = gql`
 mutation reissueTaskHandlerMutation($task_id: Int!){
-  reissue_task_handler(task_id: $task_id){
+  reissueTaskHandler(task_id: $task_id){
     status
     error
   }
@@ -226,10 +226,10 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
     };
     const [reissueTask] = useMutation(ReissueTaskMutationGQL, {
         onCompleted: data => {
-            if(data.reissue_task.status === "success"){
+            if(data.reissueTask.status === "success"){
                 snackActions.success("Successfully re-issued task to Mythic");
             }else{
-                snackActions.error("Failed to re-issue task to Mythic: " + data.reissue_task.error);
+                snackActions.error("Failed to re-issue task to Mythic: " + data.reissueTask.error);
             }
         },
         onError: data => {
@@ -239,10 +239,10 @@ const SideDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput,
     });
     const [reissueTaskHandler] = useMutation(ReissueTaskHandlerMutationGQL, {
         onCompleted: data => {
-            if(data.reissue_task_handler.status === "success"){
+            if(data.reissueTaskHandler.status === "success"){
                 snackActions.success("Successfully resubmitted task for handling");
             }else{
-                snackActions.warning("Failed to resubmit task for handling: " + data.reissue_task_handler.error);
+                snackActions.warning("Failed to resubmit task for handling: " + data.reissueTaskHandler.error);
             }
 
         },
@@ -494,10 +494,10 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
   };
   const [reissueTask] = useMutation(ReissueTaskMutationGQL, {
     onCompleted: data => {
-      if(data.reissue_task.status === "success"){
+      if(data.reissueTask.status === "success"){
         snackActions.success("Successfully re-issued task to Mythic");
       }else{
-        snackActions.error("Failed to re-issue task to Mythic: " + data.reissue_task.error);
+        snackActions.error("Failed to re-issue task to Mythic: " + data.reissueTask.error);
       }
     },
     onError: data => {
@@ -507,10 +507,10 @@ const SpeedDialDisplayGeneric = ({toggleViewBrowserScript, toggleSelectAllOutput
   });
   const [reissueTaskHandler] = useMutation(ReissueTaskHandlerMutationGQL, {
     onCompleted: data => {
-      if(data.reissue_task_handler.status === "success"){
+      if(data.reissueTaskHandler.status === "success"){
         snackActions.success("Successfully resubmitted task for handling");
       }else{
-        snackActions.warning("Failed to resubmit task for handling: " + data.reissue_task_handler.error);
+        snackActions.warning("Failed to resubmit task for handling: " + data.reissueTaskHandler.error);
       }
 
     },

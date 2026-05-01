@@ -202,10 +202,10 @@ export function CallbacksTabsTaskingInputPreMemo(props){
     const lastValueTypedBeforeDynamicParamsRef = React.useRef("");
     const [getDynamicParams] = useMutation(getDynamicQueryParams, {
         onCompleted: (data) => {
-            if(data.dynamic_query_function.status === "success"){
+            if(data.dynamicQueryFunction.status === "success"){
                 try{
-                    if(data.dynamic_query_function.choices && data.dynamic_query_function.choices.length > 0){
-                        const choices = data.dynamic_query_function.choices.filter( c => {
+                    if(data.dynamicQueryFunction.choices && data.dynamicQueryFunction.choices.length > 0){
+                        const choices = data.dynamicQueryFunction.choices.filter( c => {
                             if(c.toLowerCase().includes(lastValueTypedBeforeDynamicParamsRef.current.toLowerCase())){
                                 return c;
                             }
@@ -239,7 +239,7 @@ export function CallbacksTabsTaskingInputPreMemo(props){
                 }
 
             }else{
-                snackActions.warning(data.dynamic_query_function.error, snackMessageStyles);
+                snackActions.warning(data.dynamicQueryFunction.error, snackMessageStyles);
             }
             setBackdropOpen(false);
         },

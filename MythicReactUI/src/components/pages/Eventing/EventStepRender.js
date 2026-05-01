@@ -1582,12 +1582,12 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
     const [downloadBulk] = useMutation(downloadBulkQuery, {
         onCompleted: (data) => {
             snackActions.dismiss();
-            if(data.download_bulk.status === "success"){
+            if(data.downloadBulk.status === "success"){
                 snackActions.success(<SnackMessage
-                    file_id={data.download_bulk.file_id}
-                />, {toastId: data.download_bulk.file_id, autoClose: false, closeOnClick: false});
+                    file_id={data.downloadBulk.file_id}
+                />, {toastId: data.downloadBulk.file_id, autoClose: false, closeOnClick: false});
             }else{
-                snackActions.error(data.download_bulk.error);
+                snackActions.error(data.downloadBulk.error);
             }
         },
         onError: (data) => {
@@ -1721,12 +1721,12 @@ function EventDetailsFilesTable({files}){
     const [downloadBulk] = useMutation(downloadBulkQuery, {
         onCompleted: (data) => {
             snackActions.dismiss();
-            if(data.download_bulk.status === "success"){
+            if(data.downloadBulk.status === "success"){
                 snackActions.success(<SnackMessage
-                    file_id={data.download_bulk.file_id}
-                />, {toastId: data.download_bulk.file_id, autoClose: false, closeOnClick: false});
+                    file_id={data.downloadBulk.file_id}
+                />, {toastId: data.downloadBulk.file_id, autoClose: false, closeOnClick: false});
             }else{
-                snackActions.error(data.download_bulk.error);
+                snackActions.error(data.downloadBulk.error);
             }
         },
         onError: (data) => {
