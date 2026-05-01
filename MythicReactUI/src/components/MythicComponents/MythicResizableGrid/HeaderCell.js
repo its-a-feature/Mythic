@@ -14,6 +14,8 @@ const HeaderCell = ({
     sortIndicatorIndex,
     sortDirection,
     headerNameKey = "name",
+    isResizing = false,
+    onResizePointerDown = () => {},
     VariableSizeGridProps: { style, rowIndex, columnIndex, data },
 }) => {
     const dropdownAnchorRef = React.useRef(null);
@@ -32,6 +34,29 @@ const HeaderCell = ({
             onDoubleClick(e, columnIndex);
         },
         [onDoubleClick, columnIndex]
+    );
+    const handleResizePointerDown = useCallback(
+        (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onResizePointerDown(event, columnIndex);
+        },
+        [onResizePointerDown, columnIndex]
+    );
+    const handleResizeDoubleClick = useCallback(
+        (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onDoubleClick(event, columnIndex);
+        },
+        [onDoubleClick, columnIndex]
+    );
+    const stopResizeClickPropagation = useCallback(
+        (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+        },
+        []
     );
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const handleContextClick = useCallback(
@@ -71,6 +96,17 @@ const HeaderCell = ({
                              setOpenContextMenu={setOpenContextMenu} handleMenuItemClick={handleMenuItemClick}
                 />
             </Box>
+            {!item.disableResize &&
+                <div
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label={`Resize ${item[headerNameKey]} column`}
+                    className={`${classes.headerResizeHandle} ${isResizing ? classes.headerResizeHandleActive : ""}`}
+                    onPointerDown={handleResizePointerDown}
+                    onDoubleClick={handleResizeDoubleClick}
+                    onClick={stopResizeClickPropagation}
+                />
+            }
         </div>
     );
 };
