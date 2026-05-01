@@ -54,7 +54,7 @@ export function SettingsOperatorExperimentalUIConfigDialog(props) {
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableBody>
                   <TableRow hover>
-                      <TableCell>{"Determine how many responses to fetch per task before paginating (0 is never paginate)"}</TableCell>
+                      <TableCell>{"Determine how many responses to fetch per task before paginating (0 uses the safe default)"}</TableCell>
                       <TableCell>
                           <MythicTextField
                               type={"number"}
@@ -81,4 +81,3 @@ export function SettingsOperatorExperimentalUIConfigDialog(props) {
   </React.Fragment>
   );
 }
-

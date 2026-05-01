@@ -147,6 +147,9 @@ export const CallbacksTabsTaskingPanel = ({tabInfo, index, value, onCloseTab, pa
             if(oldArray[i].timestamp !== newArray[i].timestamp){
                 return false;
             }
+            if(oldArray[i].response_count !== newArray[i].response_count){
+                return false;
+            }
             if(oldArray[i].opsec_pre_blocked !== newArray[i].opsec_pre_blocked){
                 return false;
             }
