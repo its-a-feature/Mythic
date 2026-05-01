@@ -33,31 +33,37 @@ subscription subResponsesStream($task_id: Int!){
 }
 `;
 const getResponsesLazyQuery = gql`
-query subResponsesQuery($task_id: Int!, $fetchLimit: Int, $offset: Int!, $search: String!) {
-  response(where: {task_id: {_eq: $task_id}, response_escape: {_ilike: $search}}, limit: $fetchLimit, offset: $offset, order_by: {id: asc}) {
+query subResponsesQuery($task_id: Int!, $fetchLimit: Int, $offset: Int!, $where: response_bool_exp!) {
+  response(where: $where, limit: $fetchLimit, offset: $offset, order_by: {id: asc}) {
     id
     response: response_text
     timestamp
     is_error
   }
-  response_aggregate(where: {task_id: {_eq: $task_id}, response_escape: {_ilike: $search}}){
+  response_aggregate(where: $where){
     aggregate{
       count
     }
+  }
+  latest_response: response(where: {task_id: {_eq: $task_id}}, limit: 1, order_by: {id: desc}) {
+    id
   }
 }`;
 const getAllResponsesLazyQuery = gql`
-query subResponsesQuery($task_id: Int!, $search: String!) {
-  response(where: {task_id: {_eq: $task_id}, response_escape: {_ilike: $search}}, order_by: {id: asc}) {
+query subResponsesQuery($task_id: Int!, $where: response_bool_exp!, $fetchLimit: Int) {
+  response(where: $where, limit: $fetchLimit, order_by: {id: asc}) {
     id
     response: response_text
     timestamp
     is_error
   }
-  response_aggregate(where: {task_id: {_eq: $task_id}, response_escape: {_ilike: $search}}){
+  response_aggregate(where: $where){
     aggregate{
       count
     }
+  }
+  latest_response: response(where: {task_id: {_eq: $task_id}}, limit: 1, order_by: {id: desc}) {
+    id
   }
 }`;
 const taskScript = gql`
@@ -93,6 +99,45 @@ export function b64DecodeUnicode(str) {
     }
   }
 }
+const MAX_SELECT_ALL_RESPONSES = 5000;
+const DEFAULT_RESPONSE_PAGE_SIZE = operatorSettingDefaults["experiment-responseStreamLimit"] || 200;
+const normalizeResponsePageSize = (pageSize) => {
+  const parsed = Number(pageSize);
+  if(!Number.isFinite(parsed) || parsed <= 0){
+    return DEFAULT_RESPONSE_PAGE_SIZE;
+  }
+  return Math.min(parsed, MAX_SELECT_ALL_RESPONSES);
+}
+const responseWhereClause = (taskID, search) => {
+  if(search === undefined || search === ""){
+    return {task_id: {_eq: taskID}};
+  }
+  return {task_id: {_eq: taskID}, response_escape: {_ilike: "%" + search + "%"}};
+}
+const decodeResponse = (response) => {
+  return {...response, response: b64DecodeUnicode(response.response)};
+}
+const responsesToOutput = (responses) => {
+  return responses.reduce( (prev, cur) => {
+    return prev + cur.response;
+  }, "");
+}
+const mergeResponsesById = ({existingResponses, incomingResponses, limit, keepNewest=false}) => {
+  const responseMap = new Map();
+  existingResponses.forEach( (response) => responseMap.set(response.id, response));
+  incomingResponses.forEach( (response) => responseMap.set(response.id, response));
+  const mergedResponses = Array.from(responseMap.values()).sort( (a,b) => a.id > b.id ? 1 : -1);
+  if(limit === undefined || mergedResponses.length <= limit){
+    return mergedResponses;
+  }
+  return keepNewest ? mergedResponses.slice(-limit) : mergedResponses.slice(0, limit);
+}
+const getAggregateCount = (data) => {
+  return data?.response_aggregate?.aggregate?.count || 0;
+}
+const getLatestResponseID = (data) => {
+  return data?.latest_response?.[0]?.id || 0;
+}
 export const ResponseDisplay = (props) =>{
   const interactive = props?.task?.command?.supported_ui_features.includes("task_response:interactive") || false;
   return (
@@ -105,34 +150,43 @@ export const ResponseDisplay = (props) =>{
 }
 const NonInteractiveResponseDisplay = (props) => {
   const theme = useTheme();
-  const [output, setOutput] = React.useState("");
   const [rawResponses, setRawResponses] = React.useState([]);
-  const seenResponseIDs = React.useRef([]);
-  const search = React.useRef("");
+  const rawResponsesRef = React.useRef([]);
+  const [search, setSearch] = React.useState("");
   const [totalCount, setTotalCount] = React.useState(0);
+  const totalCountRef = React.useRef(0);
   const [openBackdrop, setOpenBackdrop] = React.useState(true);
-  const togglingAllOutputToPaginated = React.useRef(false);
   const initialResponseStreamLimit = GetMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: operatorSettingDefaults["experiment-responseStreamLimit"]});
+  const pageSize = normalizeResponsePageSize(initialResponseStreamLimit);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const currentPageRef = React.useRef(1);
+  const highestKnownResponseID = React.useRef(0);
+  const pageDataLoaded = React.useRef(false);
+  const taskResponseCountRef = React.useRef(props.task.response_count || 0);
+  const selectAllWarningShown = React.useRef(false);
+  const output = React.useMemo(() => responsesToOutput(rawResponses), [rawResponses]);
+  React.useEffect( () => {
+    rawResponsesRef.current = rawResponses;
+  }, [rawResponses]);
+  const setTrackedTotalCount = React.useCallback( (newTotalCount) => {
+    totalCountRef.current = newTotalCount;
+    setTotalCount(newTotalCount);
+  }, []);
+  const warnSelectAllCapped = React.useCallback( (loadedCount, aggregateCount) => {
+    if(aggregateCount > loadedCount && !selectAllWarningShown.current){
+      snackActions.warning(`Task output is too large to load all at once. Showing the first ${loadedCount} responses; use pagination or download to view the rest.`);
+      selectAllWarningShown.current = true;
+    }
+  }, []);
   const [fetchMoreResponses] = useLazyQuery(getResponsesLazyQuery, {
-    fetchPolicy: "network-only",
+    fetchPolicy: "no-cache",
     onCompleted: (data) => {
-      data.response.forEach( (r) => {
-        if(!seenResponseIDs.current.includes(r.id)){
-          seenResponseIDs.current.push(r.id);
-        }
-      })
-      // set raw responses to be what we just manually fetched
-      const responseArray = data.response.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
+      const responseArray = data.response.map(decodeResponse);
+      rawResponsesRef.current = responseArray;
       setRawResponses(responseArray);
-
-      const responses = responseArray.reduce( (prev, cur) => {
-        return prev + cur.response;
-      }, b64DecodeUnicode(""));
-      setOutput(responses);
-      // update maxID
-      if(!props.selectAllOutput){
-        setTotalCount(data.response_aggregate.aggregate.count);
-      }
+      setTrackedTotalCount(getAggregateCount(data));
+      highestKnownResponseID.current = Math.max(highestKnownResponseID.current, getLatestResponseID(data));
+      pageDataLoaded.current = true;
       setOpenBackdrop(false);
     },
     onError: (data) => {
@@ -140,185 +194,184 @@ const NonInteractiveResponseDisplay = (props) => {
     }
   });
   const [fetchAllResponses] = useLazyQuery(getAllResponsesLazyQuery, {
-    fetchPolicy: "network-only",
+    fetchPolicy: "no-cache",
     onCompleted: (data) => {
-      const responseArray = data.response.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
+      const responseArray = data.response.map(decodeResponse);
+      rawResponsesRef.current = responseArray;
       setRawResponses(responseArray);
-
-      const responses = responseArray.reduce( (prev, cur) => {
-        return prev + cur.response;
-      }, b64DecodeUnicode(""));
-      setOutput(responses);
-
-      setTotalCount(1);
+      const aggregateCount = getAggregateCount(data);
+      setTrackedTotalCount(aggregateCount);
+      highestKnownResponseID.current = Math.max(highestKnownResponseID.current, getLatestResponseID(data));
+      pageDataLoaded.current = true;
+      currentPageRef.current = 1;
+      setCurrentPage(1);
+      warnSelectAllCapped(responseArray.length, aggregateCount);
       setOpenBackdrop(false);
-      togglingAllOutputToPaginated.current = true;
     },
     onError: (data) => {
-
+      snackActions.error("Failed to fetch all responses: " + data)
     }
   });
-  React.useEffect( () => {
-    //if(props.selectAllOutput !== oldSelectAllOutput.current){
-      //oldSelectAllOutput.current = props.selectAllOutput;
-      if(props.selectAllOutput){
-        setOpenBackdrop(true);
-        if(search.current === ""){
-          fetchAllResponses({variables: {task_id: props.task.id, search: "%%"}})
-        }else{
-          fetchAllResponses({variables: {task_id: props.task.id, search: "%" + search.current + "%"}})
-        }
-      }else if(togglingAllOutputToPaginated.current){
-        // going from select all output to not select all output
-        // don't fetch this on first load
-        onSubmitPageChange(1);
-        togglingAllOutputToPaginated.current = false;
-      }
-    //}
-  }, [props.selectAllOutput, togglingAllOutputToPaginated.current]);
+  const fetchResponsePage = React.useCallback( (requestedPage, showBackdrop=true) => {
+    const nextPage = Math.max(1, requestedPage || 1);
+    currentPageRef.current = nextPage;
+    setCurrentPage(nextPage);
+    if(showBackdrop){
+      setOpenBackdrop(true);
+    }
+    fetchMoreResponses({variables: {task_id: props.task.id,
+        fetchLimit: pageSize,
+        offset: pageSize * (nextPage - 1),
+        where: responseWhereClause(props.task.id, search)
+      }})
+  }, [fetchMoreResponses, pageSize, props.task.id, search]);
+  const fetchSelectAllResponses = React.useCallback( () => {
+    currentPageRef.current = 1;
+    setCurrentPage(1);
+    setOpenBackdrop(true);
+    fetchAllResponses({variables: {
+      task_id: props.task.id,
+      where: responseWhereClause(props.task.id, search),
+      fetchLimit: MAX_SELECT_ALL_RESPONSES
+    }});
+  }, [fetchAllResponses, props.task.id, search]);
   React.useEffect( () => {
     setOpenBackdrop(true);
-    setOutput("");
+    rawResponsesRef.current = [];
     setRawResponses([]);
-    setTotalCount(0);
-    //onSubmitPageChange(1);
+    setTrackedTotalCount(0);
+    currentPageRef.current = 1;
+    setCurrentPage(1);
+    highestKnownResponseID.current = 0;
+    pageDataLoaded.current = false;
+    taskResponseCountRef.current = props.task.response_count || 0;
+    selectAllWarningShown.current = false;
   }, [props.task.id]);
-  setTimeout(() => {
-    // close the backdrop after 2 seconds in case there's no data to fetch
-    setOpenBackdrop(false);
-  }, 1000);
-  const subscriptionDataCallback =  ({data}) => {
-    //console.log("fetchLimit", fetchLimit, "totalCount", totalCount);
-      if(rawResponses.length >= initialResponseStreamLimit && initialResponseStreamLimit > 0 && !props.selectAllOutput){
-        // we won't display it
-        console.log("got more than we can see currently", totalCount);
-        setOpenBackdrop(false);
-        let newTotal = totalCount;
-        data.data.response_stream.forEach( (r) => {
-          if(!seenResponseIDs.current.includes(r.id)){
-            newTotal += 1;
-            seenResponseIDs.current.push(r.id);
-          }
-        })
-        setTotalCount(newTotal);
+  React.useEffect( () => {
+    if(props.selectAllOutput){
+      fetchSelectAllResponses();
+    }else{
+      fetchResponsePage(1);
+    }
+  }, [props.selectAllOutput, props.task.id, search, fetchResponsePage, fetchSelectAllResponses]);
+  React.useEffect( () => {
+    if(!openBackdrop){
+      return;
+    }
+    const timeoutID = setTimeout(() => {
+      setOpenBackdrop(false);
+    }, 1000);
+    return () => clearTimeout(timeoutID);
+  }, [openBackdrop]);
+  React.useEffect( () => {
+    taskResponseCountRef.current = props.task.response_count || 0;
+    if(search !== ""){
+      return;
+    }
+    if(props.task.response_count > totalCountRef.current){
+      setTrackedTotalCount(props.task.response_count);
+    }
+  }, [props.task.response_count, search, setTrackedTotalCount]);
+  const subscriptionDataCallback = React.useCallback( ({data}) => {
+    const streamedResponses = data?.data?.response_stream || [];
+    if(streamedResponses.length === 0 || !pageDataLoaded.current){
+      return;
+    }
+    const previousHighestID = highestKnownResponseID.current;
+    const newStreamedResponses = streamedResponses.filter( (response) => response.id > previousHighestID);
+    if(newStreamedResponses.length === 0){
+      return;
+    }
+    highestKnownResponseID.current = Math.max(previousHighestID, ...newStreamedResponses.map( (response) => response.id));
+    if(search !== ""){
+      const lowerCaseSearch = search.toLowerCase();
+      const matchingResponseStreamed = newStreamedResponses.some( (response) => {
+        return b64DecodeUnicode(response.response).toLowerCase().includes(lowerCaseSearch);
+      });
+      if(matchingResponseStreamed){
+        fetchResponsePage(currentPageRef.current, false);
+      }
+      return;
+    }
+    const currentTotalCount = Math.max(totalCountRef.current, taskResponseCountRef.current);
+    if(props.selectAllOutput){
+      const previousResponses = rawResponsesRef.current;
+      if(previousResponses.length >= MAX_SELECT_ALL_RESPONSES){
+        warnSelectAllCapped(previousResponses.length, currentTotalCount);
         return;
       }
-      // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
-      let newTotal = totalCount;
-      const newerResponses = data.data.response_stream.reduce( (prev, cur) => {
-        if(!seenResponseIDs.current.includes(cur.id)){
-          newTotal += 1;
-          seenResponseIDs.current.push(cur.id);
-        }
-        let prevIndex = prev.findIndex( (v,i,a) => v.id === cur.id);
-        if(prevIndex >= 0){
-          prev[prevIndex] = {...cur, response: b64DecodeUnicode(cur.response)};
-          return prev;
-        }
-        return [...prev, {...cur, response: b64DecodeUnicode(cur.response)}]
-      }, rawResponses);
-      // sort them to make sure we're still in order
-      newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
-      setTotalCount(newTotal);
-      // newerResponses is everything we've seen plus everything new
-      if(initialResponseStreamLimit > 0 && !props.selectAllOutput){
-        // take just the responses that make up our stream limit
-        const finalRawResponses = newerResponses.slice(0, initialResponseStreamLimit);
-        const outputResponses = finalRawResponses.reduce( (prev, cur) => {
-          return prev + cur.response;
-        }, b64DecodeUnicode(""));
-        if(finalRawResponses.length !== rawResponses.length){
-          setRawResponses(finalRawResponses);
-          setOutput(outputResponses);
-        }
-      } else {
-        setRawResponses(newerResponses);
-        const outputResponses = newerResponses.reduce( (prev, cur) => {
-          return prev + cur.response;
-        }, b64DecodeUnicode(""));
-        setOutput(outputResponses);
+      const remainingResponseSlots = MAX_SELECT_ALL_RESPONSES - previousResponses.length;
+      const decodedResponses = newStreamedResponses.slice(0, remainingResponseSlots).map(decodeResponse);
+      const mergedResponses = mergeResponsesById({
+        existingResponses: previousResponses,
+        incomingResponses: decodedResponses,
+        limit: MAX_SELECT_ALL_RESPONSES,
+      });
+      rawResponsesRef.current = mergedResponses;
+      setRawResponses(mergedResponses);
+      warnSelectAllCapped(mergedResponses.length, currentTotalCount);
+      return;
+    }
+    const pageStartIndex = (currentPageRef.current - 1) * pageSize;
+    const pageEndIndex = currentPageRef.current * pageSize;
+    const streamedStartIndex = Math.max(0, currentTotalCount - newStreamedResponses.length);
+    const streamedEndIndex = currentTotalCount;
+    if(streamedStartIndex >= pageEndIndex || streamedEndIndex <= pageStartIndex){
+      return;
+    }
+    const visibleStreamedResponses = newStreamedResponses.reduce( (responses, response, index) => {
+      const responseIndex = streamedStartIndex + index;
+      if(responseIndex >= pageStartIndex && responseIndex < pageEndIndex){
+        return [...responses, decodeResponse(response)];
       }
-      setOpenBackdrop(false);
-
-  };
+      return responses;
+    }, []);
+    if(visibleStreamedResponses.length === 0){
+      return;
+    }
+    const mergedResponses = mergeResponsesById({
+      existingResponses: rawResponsesRef.current,
+      incomingResponses: visibleStreamedResponses,
+      limit: pageSize,
+    });
+    rawResponsesRef.current = mergedResponses;
+    setRawResponses(mergedResponses);
+  }, [fetchResponsePage, pageSize, props.selectAllOutput, search, warnSelectAllCapped]);
   useSubscription(subResponsesStream, {
     variables: {task_id: props.task.id},
-    fetchPolicy: "network_only",
+    fetchPolicy: "no-cache",
     onData: subscriptionDataCallback
   });
-  const onSubmitPageChange = (currentPage) => {
-    //console.log("onSubmitPageChange")
-    if(search.current === undefined || search.current === ""){
-        fetchMoreResponses({variables: {task_id: props.task.id,
-            fetchLimit: initialResponseStreamLimit === 0 ? undefined : initialResponseStreamLimit,
-            offset: initialResponseStreamLimit * (currentPage - 1),
-            search: "%_%"
-          }})
-      }else{
-        fetchMoreResponses({variables: {task_id: props.task.id,
-            fetchLimit: initialResponseStreamLimit  === 0 ? undefined : initialResponseStreamLimit,
-            offset: initialResponseStreamLimit * (currentPage - 1),
-            search: "%" +  search.current + "%"
-          }})
-      }
+  const onSubmitPageChange = (nextPage) => {
+    fetchResponsePage(nextPage);
   }
   const onSubmitSearch = React.useCallback( (newSearch) => {
-    search.current = newSearch;
-    //console.log("onSubmitSearch")
-    //setOpenBackdrop(true);
-    if(newSearch === undefined || newSearch === ""){
-      if(props.selectAllOutput){
-        fetchAllResponses({variables: {task_id: props.task.id, search: "%%"}})
-      }else{
-        fetchMoreResponses({variables: {task_id: props.task.id,
-            fetchLimit: initialResponseStreamLimit  === 0 ? undefined : initialResponseStreamLimit,
-            offset: 0,
-            search: "%_%"
-          }})
-      }
-
-    }else{
-      if(props.selectAllOutput){
-        fetchAllResponses({variables: {task_id: props.task.id, search: "%" + newSearch + "%"}})
-      }else{
-        fetchMoreResponses({variables: {task_id: props.task.id,
-            fetchLimit: initialResponseStreamLimit,
-            offset: 0,
-            search: "%" + newSearch + "%"
-          }})
-      }
-
-    }
-  }, [search.current]);
+    selectAllWarningShown.current = false;
+    currentPageRef.current = 1;
+    setCurrentPage(1);
+    setSearch(newSearch || "");
+  }, []);
 
   return (
-      <>
+      <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%", position: "relative",
+          backgroundColor: theme.outputBackgroundColor + (theme.palette.mode === 'dark' ? "D0" : "D0"),
+          color: theme.outputTextColor,
+      }}>
         <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2, position: "absolute"}}>
           <CircularProgress color="inherit" disableShrink  />
         </Backdrop>
-
-        {!openBackdrop &&
-            <div style={{display: "flex", flexDirection: "column", height: "100%", width: "100%",
-                backgroundColor: theme.outputBackgroundColor + (theme.palette.mode === 'dark' ? "D0" : "D0"),
-                color: theme.outputTextColor,
-            }}>
-                {props.searchOutput &&
-                    <SearchBar onSubmitSearch={onSubmitSearch} />
-                }
-              <div style={{overflowY: "auto", flexGrow: 1, width: "100%", height: props.expand ? "100%": undefined, display: "flex", flexDirection: "column"}} ref={props.responseRef}>
-                <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
-                                          output={output} command_id={props.command_id} displayType={"accordion"}
-                                          task={props.task} search={search.current} expand={props.expand}/>
-
-              </div>
-
-                  <PaginationBar selectAllOutput={props.selectAllOutput} totalCount={totalCount} pageSize={initialResponseStreamLimit}
-                                 onSubmitPageChange={onSubmitPageChange} task={props.task} search={search.current} />
-
-            </div>
-
+        {props.searchOutput &&
+            <SearchBar onSubmitSearch={onSubmitSearch} />
         }
-      </>
+        <div style={{overflowY: "auto", flexGrow: 1, width: "100%", height: props.expand ? "100%": undefined, display: "flex", flexDirection: "column"}} ref={props.responseRef}>
+          <ResponseDisplayComponent rawResponses={rawResponses} viewBrowserScript={props.viewBrowserScript}
+                                    output={output} command_id={props.command_id} displayType={"accordion"}
+                                    task={props.task} search={search} expand={props.expand}/>
+        </div>
+        <PaginationBar selectAllOutput={props.selectAllOutput} totalCount={totalCount} pageSize={pageSize}
+                       onSubmitPageChange={onSubmitPageChange} task={props.task} search={search}
+                       currentPage={currentPage} />
+      </div>
   )
 }
 export const ResponseDisplayConsole = (props) => {
@@ -332,41 +385,45 @@ export const ResponseDisplayConsole = (props) => {
   )
 }
 export const NonInteractiveResponseDisplayConsole = (props) => {
-  const [output, setOutput] = React.useState("");
   const [rawResponses, setRawResponses] = React.useState([]);
-  const taskID = React.useRef(props.task.id);
+  const rawResponsesRef = React.useRef([]);
+  const initialResponseStreamLimit = GetMythicSetting({setting_name: "experiment-responseStreamLimit", default_value: operatorSettingDefaults["experiment-responseStreamLimit"]});
+  const responseWindowSize = normalizeResponsePageSize(initialResponseStreamLimit);
+  const output = React.useMemo(() => responsesToOutput(rawResponses), [rawResponses]);
+  const consoleWindowWarningShown = React.useRef(false);
+  React.useEffect( () => {
+    rawResponsesRef.current = rawResponses;
+  }, [rawResponses]);
+  React.useEffect( () => {
+    rawResponsesRef.current = [];
+    setRawResponses([]);
+    consoleWindowWarningShown.current = false;
+  }, [props.task.id]);
   const subscriptionDataCallback = React.useCallback( ({data}) => {
-    //console.log("fetchLimit", fetchLimit, "totalCount", totalCount);
-    if(props.task.id !== taskID.current){
-      taskID.current = props.task.id;
-      const responseArray = data.data.response_stream.map( r =>{ return {...r, response: b64DecodeUnicode(r.response)}});
-      const responses = responseArray.reduce( (prev, cur) => {
-        return prev + cur.response;
-      }, b64DecodeUnicode(""));
-      setOutput(responses);
-      setRawResponses(responseArray);
-    } else {
-      // we still have some room to view more, but only room for initialResponseStreamLimit - totalFetched.current
-      const newerResponses = data.data.response_stream.reduce( (prev, cur) => {
-        let prevIndex = prev.findIndex( (v,i,a) => v.id === cur.id);
-        if(prevIndex >= 0){
-          prev[prevIndex] = {...cur, response: b64DecodeUnicode(cur.response)};
-          return prev;
-        }
-        return [...prev, {...cur, response: b64DecodeUnicode(cur.response)}]
-      }, rawResponses);
-      // sort them to make sure we're still in order
-      newerResponses.sort( (a,b) => a.id > b.id ? 1 : -1);
-      setRawResponses(newerResponses);
-      const outputResponses = newerResponses.reduce( (prev, cur) => {
-        return prev + cur.response;
-      }, b64DecodeUnicode(""));
-      setOutput(outputResponses);
+    const streamedResponses = data?.data?.response_stream || [];
+    if(streamedResponses.length === 0){
+      return;
     }
-  }, [output, rawResponses, props.task.id]);
+    const decodedResponses = streamedResponses.map(decodeResponse);
+    const previousResponses = rawResponsesRef.current;
+    const mergedResponses = mergeResponsesById({
+      existingResponses: previousResponses,
+      incomingResponses: decodedResponses,
+      limit: responseWindowSize,
+      keepNewest: true,
+    });
+    rawResponsesRef.current = mergedResponses;
+    setRawResponses(mergedResponses);
+    if(mergedResponses.length === responseWindowSize &&
+        previousResponses.length + decodedResponses.length > responseWindowSize &&
+        !consoleWindowWarningShown.current){
+      consoleWindowWarningShown.current = true;
+      snackActions.warning(`Console output is showing the latest ${responseWindowSize} responses. Older output is available through paginated task output or download.`);
+    }
+  }, [responseWindowSize]);
   useSubscription(subResponsesStream, {
     variables: {task_id: props.task.id},
-    fetchPolicy: "network_only",
+    fetchPolicy: "no-cache",
     onData: subscriptionDataCallback
   });
 
@@ -383,32 +440,17 @@ export const NonInteractiveResponseDisplayConsole = (props) => {
   )
 }
 
-export const PaginationBar = ({selectAllOutput, totalCount, onSubmitPageChange, task, search, pageSize}) => {
+export const PaginationBar = ({selectAllOutput, totalCount, onSubmitPageChange, task, search, pageSize, currentPage}) => {
   const [localTotalCount, setTotalcount] = React.useState(0);
-  const [maxCount, setMaxCount] = React.useState(0);
-  const [currentPage, setCurrentPage] = React.useState(1);
   const onChangePage =  (event, value) => {
-    setCurrentPage(value);
     onSubmitPageChange(value);
   };
   React.useEffect( () => {
-    if(maxCount !== task.response_count){
-      setMaxCount(task.response_count);
-    }
-  }, [task.response_count]);
-  React.useEffect( () => {
-    if(selectAllOutput){
-      setTotalcount(1);
-      setCurrentPage(1);
-    }else if(totalCount === 0) {
-      setTotalcount(maxCount);
-    }else{
-      setTotalcount(totalCount);
-    }
-  }, [totalCount, maxCount, search, selectAllOutput]);
+    setTotalcount(totalCount);
+  }, [totalCount, search, selectAllOutput]);
   const pageCount = Math.max(1, Math.ceil(localTotalCount / pageSize));
   // don't bother people with pagination information if they haven't even started paginating
-  if(pageCount < 2 || pageCount === Infinity || isNaN(pageCount)){
+  if(selectAllOutput || pageCount < 2 || pageCount === Infinity || isNaN(pageCount)){
     return (<div id={'scrolltotaskbottom' + task.id}></div>)
   }
   return (
@@ -446,7 +488,7 @@ export const SearchBar = ({onSubmitSearch}) => {
 
 const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, command_id, task, search, expand, displayType}) => {
   const [localViewBrowserScript, setViewBrowserScript] = React.useState(true);
-  const [browserScriptData, setBrowserScriptData] = React.useState({});
+  const [browserScriptData, setBrowserScriptData] = React.useState(undefined);
   const [loadingBrowserScript, setLoadingBrowserScript] = React.useState(true);
   const script = React.useRef(undefined);
   const filterOutput = (scriptData) => {
@@ -492,6 +534,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
     }
     if(script.current === undefined){
       setViewBrowserScript(false);
+      setBrowserScriptData({});
       return;
     }
     if(viewBrowserScript){
@@ -499,8 +542,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
         const rawResponseData = rawResponses.map(c => c.response);
         let res = script.current(task, rawResponseData);
         if(Object.keys(res).length === 0){
-          // if we run the browser script and there's no data, just display plaintext
-          setViewBrowserScript(false);
+          setBrowserScriptData({});
           return;
         }
         setViewBrowserScript(viewBrowserScript);
@@ -513,7 +555,7 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
         }
       }
     } else {
-      setViewBrowserScript(false);
+      return;
     }
   }, [rawResponses, task, loadingBrowserScript, viewBrowserScript]);
   const [fetchScripts] = useLazyQuery(taskScript, {
@@ -522,8 +564,10 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
       if(data.browserscript.length > 0){
         try{
           script.current = Function(`"use strict";return(${data.browserscript[0]["script"]})`)();
+          setBrowserScriptData(undefined);
         }catch(error){
           script.current = undefined;
+          setBrowserScriptData({});
           console.log(error);
         }
       }else{
@@ -539,24 +583,30 @@ const ResponseDisplayComponent = ({rawResponses, viewBrowserScript, output, comm
   useEffect( () => {
     if(command_id !== undefined){
       setLoadingBrowserScript(true);
+      setBrowserScriptData(undefined);
+      setViewBrowserScript(true);
       fetchScripts({variables: {command_id: command_id}});
     }
   }, [command_id, task.id]);
   if(loadingBrowserScript){
     return null
   }
+  const shouldUseBrowserScript = viewBrowserScript && localViewBrowserScript;
+  if(shouldUseBrowserScript && browserScriptData === undefined){
+    return null
+  }
   return (
-    localViewBrowserScript ? (
+    shouldUseBrowserScript ? (
         <ResponseDisplayBrowserScriptComponent expand={expand} displayType={displayType}
                                                task={task} browserScriptData={browserScriptData}
-                                               output={output}/>
+                                               output={output} allowPlaintextFallback={false}/>
     ) : (
       <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand} displayType={displayType}/>
     )
   )
 }
 
-export function ResponseDisplayBrowserScriptComponent({output, browserScriptData, task, expand, displayType}) {
+export function ResponseDisplayBrowserScriptComponent({output, browserScriptData, task, expand, displayType, allowPlaintextFallback=true}) {
   return (
       <>
         {Object.keys(browserScriptData).length > 0 ? (
@@ -601,7 +651,9 @@ export function ResponseDisplayBrowserScriptComponent({output, browserScriptData
               }
             </>
             ) : (
-                <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand} displayType={displayType}/>
+                allowPlaintextFallback ? (
+                    <ResponseDisplayPlaintext plaintext={output} task={task} expand={expand} displayType={displayType}/>
+                ) : null
             )
         }
       </>
