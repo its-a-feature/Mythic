@@ -7,7 +7,7 @@ import {useQuery, gql } from '@apollo/client';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import {CallbacksTabsTaskingInput} from "./CallbacksTabsTaskingInput";
 import {CallbacksTableIPCell, CallbacksTableLastCheckinCell} from "./CallbacksTableRow";
-import { DataGrid } from '@mui/x-data-grid';
+import {MythicDataGrid} from "../../MythicComponents/MythicDataGrid";
 import { validate as uuidValidate } from 'uuid';
 import {snackActions} from "../../utilities/Snackbar";
 import  DialogContentText  from '@mui/material/DialogContentText';
@@ -105,8 +105,8 @@ const CustomSelectTable = ({initialData, selectedData}) => {
         }));
     }, [initialData]);
     return (
-        <div style={{height: "calc(80vh)"}}>
-            <DataGrid
+        <div style={{height: "calc(80vh)", minHeight: 0}}>
+            <MythicDataGrid
                 rows={data}
                 columns={columns}
                 initialState={{
@@ -124,7 +124,6 @@ const CustomSelectTable = ({initialData, selectedData}) => {
                     setRowSelectionModel(newRowSelectionModel);
                 }}
                 rowSelectionModel={rowSelectionModel}
-                density={"compact"}
             />
         </div>
 
