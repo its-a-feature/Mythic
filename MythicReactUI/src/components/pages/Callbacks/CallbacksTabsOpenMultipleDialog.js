@@ -4,7 +4,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
 import {useQuery, gql } from '@apollo/client';
 import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell, CallbacksTableIPCell} from "./CallbacksTableRow";
-import { DataGrid } from '@mui/x-data-grid';
+import {MythicDataGrid} from "../../MythicComponents/MythicDataGrid";
 import  DialogContentText  from '@mui/material/DialogContentText';
 
 
@@ -98,8 +98,8 @@ const CustomSelectTable = ({initialData, selectedData, onRowClick}) => {
         }));
     }, [initialData]);
     return (
-        <div style={{height: "calc(80vh)"}}>
-            <DataGrid
+        <div style={{height: "calc(80vh)", minHeight: 0}}>
+            <MythicDataGrid
                 rows={data}
                 columns={columns}
                 initialState={{
@@ -113,7 +113,6 @@ const CustomSelectTable = ({initialData, selectedData, onRowClick}) => {
                 }}
                 autoPageSize
                 onRowClick={onRowClick}
-                density={"compact"}
             />
         </div>
 
@@ -156,4 +155,3 @@ export function CallbacksTabsOpenMultipleDialog({onClose, tabType, onOpenTabs}) 
   </React.Fragment>
   );
 }
-
