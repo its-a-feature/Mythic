@@ -28,6 +28,8 @@
     "@mui/x-charts": "^8.1.0",
     "@mui/x-data-grid": "^8.1.0",
     "@mui/x-date-pickers": "^8.1.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "@xyflow/react": "^12.6.0",
     "ace-builds": "^1.40.1",
     "anser": "^2.3.2",
