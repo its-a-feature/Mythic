@@ -32,8 +32,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import {gql, useMutation} from '@apollo/client';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import {copyStringToClipboard} from "../../utilities/Clipboard";
-import { DataGrid } from '@mui/x-data-grid';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {MythicDataGrid} from "../../MythicComponents/MythicDataGrid";
 
 const createAPITokenMutation = gql`
 mutation createAPITokenMutation($operator_id: Int, $name: String, $scopes: [String!]){
@@ -551,8 +551,8 @@ const APITokens = ({apiTokens, onDeleteAPIToken, onToggleActive, showDeleted, me
         }, []));
     }, [apiTokens, showDeleted]);
     return (
-        <div style={{display: "flex", flexDirection: "column", width: "100%", height: "calc(30vh)"}}>
-            <DataGrid
+        <div style={{display: "flex", flexDirection: "column", width: "100%", height: "calc(30vh)", minHeight: 0}}>
+            <MythicDataGrid
                 rows={data}
                 columns={columns}
                 initialState={{
@@ -565,7 +565,6 @@ const APITokens = ({apiTokens, onDeleteAPIToken, onToggleActive, showDeleted, me
                     },
                 }}
                 autoPageSize
-                density={"compact"}
             />
         </div>
 

@@ -447,6 +447,13 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         fontSize: "0.86rem",
                         "--DataGrid-rowBorderColor": tableBorderSoft,
                         "--DataGrid-containerBackground": tableHeaderColor,
+                        overflow: "hidden",
+                        "& .MuiDataGrid-main": {
+                            backgroundColor: backgroundPaper,
+                        },
+                        "& .MuiDataGrid-virtualScroller": {
+                            backgroundColor: backgroundPaper,
+                        },
                         "& .MuiDataGrid-columnHeaders": {
                             backgroundColor: tableHeaderColor,
                             borderBottom: `1px solid ${borderColor}`,
@@ -463,8 +470,14 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                             letterSpacing: 0,
                             textTransform: "uppercase",
                         },
+                        "& .MuiDataGrid-columnSeparator": {
+                            color: tableBorderSoft,
+                        },
                         "& .MuiDataGrid-cell": {
                             borderBottom: `1px solid ${tableBorderSoft}`,
+                            outline: "none",
+                        },
+                        "& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within, & .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within": {
                             outline: "none",
                         },
                         "& .MuiDataGrid-row:nth-of-type(even)": {
@@ -482,10 +495,28 @@ const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefault
                         "& .MuiDataGrid-footerContainer": {
                             borderTop: `1px solid ${borderColor}`,
                             minHeight: 34,
+                            color: textSecondary,
                         },
                         "& .MuiDataGrid-toolbarContainer": {
                             borderBottom: `1px solid ${tableBorderSoft}`,
                             minHeight: 34,
+                        },
+                        "& .MuiDataGrid-overlay": {
+                            backgroundColor: backgroundPaper,
+                            color: textSecondary,
+                        },
+                        "& .MuiTablePagination-root, & .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                            color: textSecondary,
+                            fontSize: "0.78rem",
+                        },
+                        "& .MuiSvgIcon-root, & .MuiIconButton-root": {
+                            color: textSecondary,
+                        },
+                        "& .MuiCheckbox-root": {
+                            color: textSecondary,
+                            "&.Mui-checked, &.MuiCheckbox-indeterminate": {
+                                color: primary,
+                            },
                         },
                     },
                 },

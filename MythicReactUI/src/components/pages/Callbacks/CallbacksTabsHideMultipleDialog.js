@@ -7,7 +7,7 @@ import {useMutation} from '@apollo/client';
 import {hideCallbacksMutation} from './CallbackMutations';
 import {snackActions} from "../../utilities/Snackbar";
 import {CallbacksTableLastCheckinCell, CallbacksTablePayloadTypeCell, CallbacksTableIPCell} from "./CallbacksTableRow";
-import { DataGrid } from '@mui/x-data-grid';
+import {MythicDataGrid} from "../../MythicComponents/MythicDataGrid";
 import  DialogContentText  from '@mui/material/DialogContentText';
 
 
@@ -111,8 +111,8 @@ const CustomSelectTable = ({initialData, selectedData, sortModel}) => {
         }));
     }, [initialData]);
     return (
-        <div style={{height: "calc(80vh)"}}>
-            <DataGrid
+        <div style={{height: "calc(80vh)", minHeight: 0}}>
+            <MythicDataGrid
                 rows={data}
                 columns={columns}
                 initialState={{
@@ -130,7 +130,6 @@ const CustomSelectTable = ({initialData, selectedData, sortModel}) => {
                     setRowSelectionModel(newRowSelectionModel);
                 }}
                 rowSelectionModel={rowSelectionModel}
-                density={"compact"}
             />
         </div>
 
@@ -239,4 +238,3 @@ export function CallbacksTabsSelectMultipleDialog({onClose, onSubmit}) {
         </React.Fragment>
     );
 }
-
