@@ -269,6 +269,16 @@ tspan {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.MythicInteractiveTerminal {
+    background-color: ${(props) => props.theme.outputBackgroundColor};
+}
+.MythicInteractiveTerminal .xterm {
+    height: 100%;
+    padding: 6px 8px;
+}
+.MythicInteractiveTerminal .xterm-viewport {
+    background-color: transparent !important;
+}
 .Toastify__toast {
     word-break: break-all;
     white-space: pre-wrap !important;

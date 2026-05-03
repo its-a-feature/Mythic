@@ -14,6 +14,9 @@ import Anser from "anser";
 import PaletteIcon from '@mui/icons-material/Palette';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import './ResponseDisplayInteractiveANSI.css';
+import {Terminal} from '@xterm/xterm';
+import {FitAddon} from '@xterm/addon-fit';
+import '@xterm/xterm/css/xterm.css';
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
@@ -224,6 +227,225 @@ export const GetOutputFormatAll = ({data, useASNIColor, messagesEndRef, showTask
 
 }
 
+const INTERACTIVE_TERMINAL_SCROLLBACK = 5000;
+const INTERACTIVE_TERMINAL_MAX_UNWRAPPED_COLS = 300;
+const ANSI_STYLE_CODE_REGEX = /\x1b\[[0-?]*[ -/]*m/g;
+const TERMINAL_CONTROL_CODE_REGEX = /\x1b\][^\x07]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b[ -/]*[@-~]/g;
+const stripAnsiStyleCodes = (value) => {
+    return value.replace(ANSI_STYLE_CODE_REGEX, "");
+}
+const getTerminalText = (value) => {
+    return value === undefined || value === null ? "" : String(value);
+}
+const getInteractiveTerminalTheme = (theme) => {
+    return {
+        background: theme.outputBackgroundColor,
+        foreground: theme.outputTextColor,
+        cursor: theme.palette.info.main,
+        selectionBackground: theme.palette.info.main + "55",
+    }
+}
+const getInteractiveTerminalEntrySignature = (entry) => {
+    if(entry.response !== undefined){
+        return `response:${entry.id}:${entry.timestamp}:${entry.is_error}:${entry.response.length}`;
+    }
+    return `task:${entry.id}:${entry.status}:${entry.original_params}:${entry.display_params}`;
+}
+const getInteractiveTerminalMeasurementText = (value) => {
+    return getTerminalText(value).replace(TERMINAL_CONTROL_CODE_REGEX, "");
+}
+const getInteractiveTerminalEntryMeasurementText = (entry) => {
+    if(entry.response !== undefined){
+        return getInteractiveTerminalMeasurementText(entry.response);
+    }
+    return getInteractiveTerminalMeasurementText(entry.original_params || entry.display_params);
+}
+const getLongestInteractiveTerminalLineLength = (entries) => {
+    return entries.reduce( (longestLineLength, entry) => {
+        return getInteractiveTerminalEntryMeasurementText(entry).split(/\r\n|\n|\r/).reduce( (longestEntryLineLength, line) => {
+            return Math.max(longestEntryLineLength, Array.from(line.replaceAll("\t", "    ")).length);
+        }, longestLineLength);
+    }, 0);
+}
+const getInteractiveTerminalTaskStatus = ({task, useASNIColor}) => {
+    if(task.status === "completed" || task.status === "success"){
+        return useASNIColor ? "\x1b[32m[completed]\x1b[0m " : "[completed] ";
+    }
+    if(task.status === "submitted"){
+        return useASNIColor ? "\x1b[33m[submitted]\x1b[0m " : "[submitted] ";
+    }
+    if(task.status === "error"){
+        return useASNIColor ? "\x1b[31m[error]\x1b[0m " : "[error] ";
+    }
+    return task.status ? `[${task.status}] ` : "";
+}
+const formatInteractiveTerminalEntry = ({entry, useASNIColor, showTaskStatus}) => {
+    if(entry.response !== undefined){
+        const response = useASNIColor ? getTerminalText(entry.response) : stripAnsiStyleCodes(getTerminalText(entry.response));
+        if(entry.is_error && useASNIColor){
+            return `\x1b[37;41m${response}\x1b[0m`;
+        }
+        return response;
+    }
+    const status = showTaskStatus ? getInteractiveTerminalTaskStatus({task: entry, useASNIColor}) : "";
+    const prompt = useASNIColor ? "\x1b[36m> \x1b[0m" : "> ";
+    return `\r\n${status}${prompt}${getTerminalText(entry.original_params || entry.display_params)}\r\n`;
+}
+const InteractiveTerminalDisplay = ({data, useASNIColor, showTaskStatus, wrapText, autoScroll, theme}) => {
+    const terminalScrollContainerRef = React.useRef(null);
+    const terminalElementRef = React.useRef(null);
+    const terminalRef = React.useRef(null);
+    const fitAddonRef = React.useRef(null);
+    const resizeObserverRef = React.useRef(null);
+    const replayStateRef = React.useRef({settingsKey: "", signatures: []});
+    const autoScrollRef = React.useRef(autoScroll);
+    const wrapTextRef = React.useRef(wrapText);
+    const unwrappedColumnCountRef = React.useRef(0);
+    const [terminalReady, setTerminalReady] = React.useState(false);
+    const longestLineLength = React.useMemo( () => {
+        return getLongestInteractiveTerminalLineLength(data);
+    }, [data]);
+    const fitTerminal = React.useCallback( () => {
+        const terminal = terminalRef.current;
+        const fitAddon = fitAddonRef.current;
+        const terminalElement = terminalElementRef.current;
+        const scrollContainer = terminalScrollContainerRef.current;
+        if(!terminal || !fitAddon || !terminalElement || !scrollContainer){
+            return;
+        }
+        try{
+            terminalElement.style.width = "100%";
+            const proposedDimensions = fitAddon.proposeDimensions();
+            if(!proposedDimensions){
+                return;
+            }
+            const rows = Math.max(1, proposedDimensions.rows);
+            if(wrapTextRef.current){
+                fitAddon.fit();
+                scrollContainer.scrollLeft = 0;
+            } else {
+                const visibleCols = Math.max(1, proposedDimensions.cols);
+                const cols = Math.max(visibleCols, unwrappedColumnCountRef.current);
+                terminalElement.style.width = `${Math.ceil((cols / visibleCols) * scrollContainer.clientWidth)}px`;
+                terminal.resize(cols, rows);
+            }
+        }catch(error){
+            console.error(error);
+        }
+    }, []);
+    React.useEffect( () => {
+        autoScrollRef.current = autoScroll;
+        if(autoScroll){
+            terminalRef.current?.scrollToBottom();
+        }
+    }, [autoScroll]);
+    React.useEffect( () => {
+        wrapTextRef.current = wrapText;
+        fitTerminal();
+    }, [wrapText, fitTerminal]);
+    React.useEffect( () => {
+        if(wrapText){
+            unwrappedColumnCountRef.current = 0;
+        } else {
+            unwrappedColumnCountRef.current = Math.min(Math.max(longestLineLength + 2, 1), INTERACTIVE_TERMINAL_MAX_UNWRAPPED_COLS);
+        }
+        fitTerminal();
+    }, [fitTerminal, longestLineLength, wrapText]);
+    React.useEffect( () => {
+        if(!terminalElementRef.current){
+            return;
+        }
+        const terminal = new Terminal({
+            allowTransparency: true,
+            convertEol: true,
+            cursorBlink: true,
+            disableStdin: true,
+            fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            fontSize: 13,
+            scrollback: INTERACTIVE_TERMINAL_SCROLLBACK,
+            theme: getInteractiveTerminalTheme(theme),
+        });
+        const fitAddon = new FitAddon();
+        terminal.loadAddon(fitAddon);
+        terminal.open(terminalElementRef.current);
+        terminalRef.current = terminal;
+        fitAddonRef.current = fitAddon;
+        resizeObserverRef.current = new ResizeObserver(() => fitTerminal());
+        if(terminalScrollContainerRef.current){
+            resizeObserverRef.current.observe(terminalScrollContainerRef.current);
+        }
+        window.requestAnimationFrame(() => {
+            fitTerminal();
+            setTerminalReady(true);
+        });
+        return () => {
+            resizeObserverRef.current?.disconnect();
+            resizeObserverRef.current = null;
+            fitAddonRef.current = null;
+            terminalRef.current = null;
+            terminal.dispose();
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    React.useEffect( () => {
+        if(terminalRef.current){
+            terminalRef.current.options.theme = getInteractiveTerminalTheme(theme);
+        }
+    }, [theme]);
+    React.useEffect( () => {
+        if(!terminalReady || !terminalRef.current){
+            return;
+        }
+        const terminal = terminalRef.current;
+        fitTerminal();
+        const nextSignatures = data.map(getInteractiveTerminalEntrySignature);
+        const settingsKey = `${useASNIColor}:${showTaskStatus}:${wrapText}`;
+        const previousReplayState = replayStateRef.current;
+        const canAppend = previousReplayState.settingsKey === settingsKey &&
+            nextSignatures.length >= previousReplayState.signatures.length &&
+            previousReplayState.signatures.every((signature, index) => signature === nextSignatures[index]);
+        const previousViewportY = terminal.buffer.active.viewportY;
+        const entriesToWrite = canAppend ? data.slice(previousReplayState.signatures.length) : data;
+        if(!canAppend){
+            terminal.reset();
+        }
+        const terminalOutput = entriesToWrite.map( (entry) => formatInteractiveTerminalEntry({
+            entry,
+            useASNIColor,
+            showTaskStatus,
+        })).join("");
+        replayStateRef.current = {
+            settingsKey,
+            signatures: nextSignatures,
+        };
+        const afterWrite = () => {
+            if(autoScrollRef.current){
+                terminal.scrollToBottom();
+            } else {
+                terminal.scrollToLine(previousViewportY);
+            }
+        };
+        if(terminalOutput.length > 0){
+            terminal.write(terminalOutput, afterWrite);
+        } else {
+            afterWrite();
+        }
+    }, [data, showTaskStatus, terminalReady, useASNIColor, wrapText]);
+    return (
+        <div
+            ref={terminalScrollContainerRef}
+            className={"MythicInteractiveTerminal"}
+            style={{
+                height: "100%",
+                minHeight: "50px",
+                overflowX: wrapText ? "hidden" : "auto",
+                overflowY: "hidden",
+                width: "100%",
+            }}>
+            <div ref={terminalElementRef} style={{height: "100%", width: "100%"}} />
+        </div>
+    )
+}
+
 const InteractiveMessageTypes = [
     {"name": "None", "value": -1, "text": "None"},
     {"name": "Tab", "value": 13, "text": "^I"},
@@ -267,7 +489,6 @@ export const ResponseDisplayInteractive = (props) =>{
     const [search, setSearch] = React.useState("");
     const [totalCount, setTotalCount] = React.useState(0);
     const totalCountRef = React.useRef(0);
-    const messagesEndRef = React.useRef();
     const [currentPage, setCurrentPage] = React.useState(1);
     const currentPageRef = React.useRef(1);
     const taskResponseCountRef = React.useRef(props.task.response_count || 0);
@@ -503,16 +724,15 @@ export const ResponseDisplayInteractive = (props) =>{
           {props.searchOutput &&
               <SearchBar onSubmitSearch={onSubmitSearch}/>
           }
-          <div style={{overflowY: "auto", width: "100%", marginBottom: "5px", height: props.expand ? "100%": undefined,
-              flexGrow: 1, paddingLeft: "10px", minHeight: "50px"}} ref={props.responseRef}
+          <div style={{overflow: "hidden", width: "100%", marginBottom: "5px", height: props.expand ? "100%": undefined,
+              flexGrow: 1, minHeight: "50px"}} ref={props.responseRef}
                id={`ptytask${props.task.id}`}>
-              <GetOutputFormatAll data={visibleOutput}
-                               useASNIColor={useASNIColor}
-                               messagesEndRef={messagesEndRef}
-                               showTaskStatus={showTaskStatus}
-                               wrapText={wrapText}
-                               autoScroll={autoScroll}/>
-              <div ref={messagesEndRef}/>
+              <InteractiveTerminalDisplay data={visibleOutput}
+                                          useASNIColor={useASNIColor}
+                                          showTaskStatus={showTaskStatus}
+                                          wrapText={wrapText}
+                                          autoScroll={autoScroll}
+                                          theme={theme}/>
           </div>
           {!props.task?.is_interactive_task &&
               <div style={{width: "100%", display: "inline-flex", alignItems: "flex-end"}}>
