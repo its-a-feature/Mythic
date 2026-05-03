@@ -3,6 +3,7 @@ import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 import {useQuery, gql, useMutation} from '@apollo/client';
@@ -346,6 +347,7 @@ export function DetailedCallbackTable(props){
                   Payload Information
               </Typography>
             </Paper>
+            <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow hover>
@@ -451,11 +453,13 @@ export function DetailedCallbackTable(props){
                     }
                 </TableBody>
               </Table>
+              </TableContainer>
               <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                 <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
                     Build Parameters
                 </Typography>
               </Paper>
+            <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -491,11 +495,13 @@ export function DetailedCallbackTable(props){
                   }
                 </TableBody>
               </Table>
+              </TableContainer>
               <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                 <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
                     Build Steps
                 </Typography>
               </Paper>
+              <TableContainer className="mythicElement">
               <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -521,6 +527,7 @@ export function DetailedCallbackTable(props){
                   }
                 </TableBody>
               </Table>
+              </TableContainer>
                 { c2Profiles.map( (c2) => (
                     <React.Fragment key={"c2frag" + data.callback_by_pk.payload.id + c2.c2_profile}>
                           <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
@@ -528,6 +535,7 @@ export function DetailedCallbackTable(props){
                                 {c2.c2_profile}
                             </Typography>
                           </Paper>
+                        <TableContainer className="mythicElement">
                         <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
                             <TableHead>
                               <TableRow>
@@ -554,6 +562,7 @@ export function DetailedCallbackTable(props){
                               }
                             </TableBody>
                           </Table>
+                          </TableContainer>
                       </React.Fragment>
                 ))}
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
@@ -563,6 +572,7 @@ export function DetailedCallbackTable(props){
               </Typography>
               <Button style={{float: "right"}} variant="contained" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}} >Add/Remove Commands</Button>
             </Paper>
+            <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
             <TableHead>
               <TableRow>
@@ -638,6 +648,7 @@ export function DetailedCallbackTable(props){
                   }
             </TableBody>
           </Table>
+          </TableContainer>
           </DialogContent>
           <DialogActions>
             <Button onClick={props.onClose} variant="contained" color="primary">
@@ -647,4 +658,3 @@ export function DetailedCallbackTable(props){
         </React.Fragment>
         )
 }
-

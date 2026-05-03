@@ -111,7 +111,7 @@ export function C2ProfileListFilesDialog(props) {
             <input onChange={onFileChange} type="file" multiple hidden />
           </Button>
         </DialogTitle>
-          <TableContainer >
+          <TableContainer className="mythicElement">
             <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
@@ -225,4 +225,3 @@ const C2ProfileListFilesDialogTableRow = ({container_name, id, filename}) => {
       </React.Fragment>
   )
 }
-

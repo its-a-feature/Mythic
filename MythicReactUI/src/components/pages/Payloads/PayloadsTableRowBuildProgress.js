@@ -13,6 +13,7 @@ import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import DialogContent from '@mui/material/DialogContent';
 
@@ -171,6 +172,7 @@ export function PayloadBuildStepStatusDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Step {props.step.step_number + 1} - {props.step.step_name}</DialogTitle>
         <DialogContent>
+            <TableContainer className="mythicElement">
             <Table size="small" style={{ maxWidth: "100%", overflow: "scroll"}}>
                 <TableHead>
                     <TableRow>
@@ -206,6 +208,7 @@ export function PayloadBuildStepStatusDialog(props) {
                     </TableRow>
                 </TableBody>
             </Table>
+            </TableContainer>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={props.onClose} color="primary">

@@ -6,6 +6,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 
@@ -22,6 +23,7 @@ export function EventGroupConsumingContainersDialog({onClose, selectedEventGroup
             </DialogTitle>
 
             <DialogContent dividers={true} style={{maxHeight: "calc(70vh)"}}>
+                <TableContainer className="mythicElement">
                 <Table>
                     <TableHead>
                         <TableRow>
@@ -37,6 +39,7 @@ export function EventGroupConsumingContainersDialog({onClose, selectedEventGroup
                         ))}
                     </TableBody>
                 </Table>
+                </TableContainer>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} variant="contained" color="primary">

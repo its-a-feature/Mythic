@@ -31,6 +31,7 @@ import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
@@ -1106,6 +1107,7 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                             Original and Instance Metadata
                         </AccordionSummary>
                         <AccordionDetails style={{cursor: "default"}}>
+                            <TableContainer className="mythicElement">
                             <Table style={{width: "100%", overflow: "auto", tableLayout: "fixed", }}>
                                 <TableHead>
                                     <TableRow>
@@ -1167,6 +1169,7 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                                     </TableRow>
                                 </TableBody>
                             </Table>
+                            </TableContainer>
                         </AccordionDetails>
                     </Accordion>
                 </Paper>
@@ -1241,6 +1244,7 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                             Callbacks Generated
                         </Typography>
                     </Paper>
+                    <TableContainer className="mythicElement">
                     <Table>
                         <TableBody>
                             {data.eventstepinstance_by_pk.callbacks.map(trackedData => (
@@ -1253,6 +1257,7 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                             ))}
                         </TableBody>
                     </Table>
+                    </TableContainer>
                 </>
                 }
                 <EventDetailsFilesTable files={data.eventstepinstance_by_pk.filemeta} />
@@ -1265,6 +1270,7 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                                 API Tokens generated
                             </Typography>
                         </Paper>
+                        <TableContainer className="mythicElement">
                         <Table>
                             <TableHead>
                                 <TableRow>
@@ -1287,6 +1293,7 @@ function EventStepInstanceDetailDialog({selectedEventStepInstance, onClose}) {
                                 ))}
                             </TableBody>
                         </Table>
+                        </TableContainer>
                     </>
                 }
             </DialogContent>
@@ -1395,6 +1402,7 @@ function EventGroupInstanceDetailDialog({selectedEventGroupInstance, onClose}) {
                                 Callbacks Generated
                             </Typography>
                         </Paper>
+                        <TableContainer className="mythicElement">
                         <Table>
                             <TableBody>
                                 {data.callback.map(trackedData => (
@@ -1410,6 +1418,7 @@ function EventGroupInstanceDetailDialog({selectedEventGroupInstance, onClose}) {
                                 ))}
                             </TableBody>
                         </Table>
+                        </TableContainer>
                     </>
                 }
                 <EventDetailsFilesTable files={data?.filemeta} />
@@ -1422,6 +1431,7 @@ function EventGroupInstanceDetailDialog({selectedEventGroupInstance, onClose}) {
                                 API Tokens generated
                             </Typography>
                         </Paper>
+                        <TableContainer className="mythicElement">
                         <Table>
                             <TableHead>
                                 <TableRow>
@@ -1444,6 +1454,7 @@ function EventGroupInstanceDetailDialog({selectedEventGroupInstance, onClose}) {
                                 ))}
                             </TableBody>
                         </Table>
+                        </TableContainer>
                     </>
                 }
 
@@ -1518,6 +1529,7 @@ function EventStepDetailDialog({selectedEventStep, onClose}) {
                             variant={'h5'} component={Paper} >
                     Action: <b>{data.eventstep_by_pk.action}</b>
                 </Typography>
+                <TableContainer className="mythicElement">
                 <Table style={{width: "100%", overflow: "auto", tableLayout: "fixed"}}>
                     <TableHead>
                         <TableRow>
@@ -1564,6 +1576,7 @@ function EventStepDetailDialog({selectedEventStep, onClose}) {
                         </TableRow>
                     </TableBody>
                 </Table>
+                </TableContainer>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} variant="contained" color="primary">
@@ -1630,6 +1643,7 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                     <ArchiveIcon/>Zip & Download All Available Payloads
                 </Button>
             </Paper>
+            <TableContainer className="mythicElement">
             <Table>
                 <TableBody>
                     {openDelete &&
@@ -1674,6 +1688,7 @@ function EventDetailsPayloadsTable({payloads, deletePayload}){
                     ))}
                 </TableBody>
             </Table>
+            </TableContainer>
         </>
     )
 }
@@ -1687,6 +1702,7 @@ function EventDetailsTaskTable({tasks}){
                     Tasks Issued
                 </Typography>
             </Paper>
+            <TableContainer className="mythicElement">
             <Table>
                 <TableBody>
                     {tasks.map(trackedData => (
@@ -1713,6 +1729,7 @@ function EventDetailsTaskTable({tasks}){
                     ))}
                 </TableBody>
             </Table>
+            </TableContainer>
         </>
     )
 }
@@ -1757,6 +1774,7 @@ function EventDetailsFilesTable({files}){
                     <ArchiveIcon/>Zip & Download All Files
                 </Button>
             </Paper>
+            <TableContainer className="mythicElement">
             <Table>
                 <TableHead>
                     <TableRow>
@@ -1794,6 +1812,7 @@ function EventDetailsFilesTable({files}){
                     ))}
                 </TableBody>
             </Table>
+            </TableContainer>
         </>
     )
 }

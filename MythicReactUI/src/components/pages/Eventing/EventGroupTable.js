@@ -21,6 +21,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import IconButton from '@mui/material/IconButton';
@@ -210,6 +211,7 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
                      )
                  }
                  <br/><Typography variant={"h8"}>{selectedEventGroup?.description}</Typography>
+                 <TableContainer className="mythicElement">
                  <Table>
                      <TableHead>
                          <TableRow>
@@ -343,6 +345,7 @@ export function EventGroupTable({selectedEventGroup, me, showInstances, showGrap
                          </TableRow>
                      </TableBody>
                  </Table>
+                 </TableContainer>
 
              </div>
          }

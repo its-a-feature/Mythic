@@ -10,6 +10,7 @@ import {Gauge, GaugeContainer,
     GaugeReferenceArc,
     useGaugeState} from '@mui/x-charts/Gauge';
 import Table from '@mui/material/Table';
+import TableContainer from '@mui/material/TableContainer';
 import { BarChart } from '@mui/x-charts/BarChart';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -53,7 +54,7 @@ export const PieChartCard = ({
             width: width,
             height: "100%",
             border: `1px solid ${theme.borderColor}`,
-            borderRadius: "5px",
+            borderRadius: theme.shape.borderRadius,
             overflow: "hidden",
         }}>
             <h3 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0,}}>
@@ -172,7 +173,7 @@ export const GaugeCard = ({data, width = "100%", additionalStyles, innerElement,
             width: width,
             height: "100%",
             border: `1px solid ${theme.borderColor}`,
-            borderRadius: "5px",
+            borderRadius: theme.shape.borderRadius,
             overflow: "hidden",
         }}>
             <h3 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0,}}>
@@ -221,7 +222,7 @@ export const CallbackDataCard = ({mainTitle, secondTitle, mainElement, secondary
             width: width,
             height: "100%",
             border: `1px solid ${theme.borderColor}`,
-            borderRadius: "5px",
+            borderRadius: theme.shape.borderRadius,
             overflow: "hidden",
         }} >
                 <h2 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0}}>
@@ -256,7 +257,7 @@ export const TableDataCard = ({title, width = "100%", tableHead, tableBody, edit
             width: width,
             height: "100%",
             border: `1px solid ${theme.borderColor}`,
-            borderRadius: "5px",
+            borderRadius: theme.shape.borderRadius,
             overflow: "hidden",
         }}>
             <h3 style={{marginTop: 0, marginLeft: "0.5rem", marginBottom: 0, paddingBottom: 0}}>
@@ -274,12 +275,12 @@ export const TableDataCard = ({title, width = "100%", tableHead, tableBody, edit
                     {customizeElement}
                 </span>
             </h3>
-            <div style={{height: 200, overflowY: "auto", width: "100%"}}>
+            <TableContainer className="mythicElement" style={{height: 200, overflowY: "auto", width: "100%"}}>
                 <Table style={{ maxWidth: "100%", overflow: "auto"}} stickyHeader size="small">
                     {tableHead}
                     {tableBody}
                 </Table>
-            </div>
+            </TableContainer>
         </Paper>
     )
 }
@@ -319,7 +320,7 @@ export const LineTimeChartCard = ({data, additionalStyles}) => {
             width: "100%",
             height: "100%",
             border: `1px solid ${theme.borderColor}`,
-            borderRadius: "5px",
+            borderRadius: theme.shape.borderRadius,
             overflow: "hidden",
         }} >
             <Typography variant={"h3"} style={{margin: 0, padding: 0, position: "relative", left: "30%"}}>
@@ -434,7 +435,7 @@ export const LineTimeMultiChartCard = ({data, additionalStyles, colors=normalCol
             marginRight: "0.5rem",
             height: "100%",
             border: `1px solid ${theme.borderColor}`,
-            borderRadius: "5px",
+            borderRadius: theme.shape.borderRadius,
             overflow: "hidden",
         }} >
             <Typography variant={"h3"} style={{margin: 0, padding: 0, position: "relative", left: "30%"}}>
@@ -522,7 +523,7 @@ export const StackedBarChartCard = ({data, labels, title, width="100%", hidden, 
             width: width,
             height: "100%",
             border: `1px solid ${theme.borderColor}`,
-            borderRadius: "5px",
+            borderRadius: theme.shape.borderRadius,
             overflow: "hidden",
         }} >
             <h3 style={{marginTop: 0, marginLeft: "5px", marginBottom: 0, paddingBottom: 0, position: "absolute"}}>

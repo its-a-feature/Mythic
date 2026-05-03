@@ -17,20 +17,31 @@ const Root = styled('div')(({theme}) => ({
 
 const ValidationTextField = styled(TextField)(({theme}) => ({
     [`&.${classes.textFieldRoot}`]: {
+        '& .MuiInputBase-root': {
+            backgroundColor: theme.palette.background.paper,
+            borderRadius: theme.shape.borderRadius,
+        },
         '& fieldset': {
-            borderColor: 'grey',
+            borderColor: theme.borderColor,
             borderWidth: 1,
         },
+        '&:hover fieldset': {
+            borderColor: theme.palette.text.secondary,
+        },
+        '& .Mui-focused fieldset': {
+            borderColor: `${theme.palette.primary.main} !important`,
+            borderWidth: '1px !important',
+        },
         '& input:invalid + fieldset': {
-            borderColor: 'red',
+            borderColor: theme.palette.error.main,
             borderWidth: 2,
         },
         '& input:valid:focus + fieldset': {
-            borderLeftWidth: 6,
+            borderLeftWidth: 2,
             padding: '4px !important', // override inline-style
         },
         '& textarea:focus + textarea + fieldset': {
-            borderLeftWidth: 6,
+            borderLeftWidth: 2,
             //padding: '4px !important', // override inline-style
         },
     },

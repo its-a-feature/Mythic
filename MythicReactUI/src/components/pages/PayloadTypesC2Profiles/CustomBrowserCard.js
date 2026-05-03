@@ -17,6 +17,7 @@ import {MythicDialog} from "../../MythicComponents/MythicDialog";
 import {C2ProfileListFilesDialog} from "./C2ProfileListFilesDialog";
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 
 const toggleDeleteStatus = gql`
@@ -103,6 +104,7 @@ export function CustomBrowserRow({service, showDeleted}) {
                 </MythicStyledTooltip>
             </MythicTableCell>
             <MythicTableCell style={{padding: 0}}>
+                <TableContainer className="mythicElement">
                 <Table>
                     <TableHead>
                         <TableRow hover>
@@ -119,6 +121,8 @@ export function CustomBrowserRow({service, showDeleted}) {
                         ))}
                     </TableBody>
                 </Table>
+                </TableContainer>
+                <TableContainer className="mythicElement">
                 <Table>
                     <TableHead>
                         <TableRow hover>
@@ -135,6 +139,8 @@ export function CustomBrowserRow({service, showDeleted}) {
                         ))}
                     </TableBody>
                 </Table>
+                </TableContainer>
+                <TableContainer className="mythicElement">
                 <Table>
                     <TableHead>
                         <TableRow hover>
@@ -155,6 +161,7 @@ export function CustomBrowserRow({service, showDeleted}) {
                         ))}
                     </TableBody>
                 </Table>
+                </TableContainer>
             </MythicTableCell>
 
             {openListFilesDialog &&

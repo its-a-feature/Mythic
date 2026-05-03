@@ -8,6 +8,7 @@ import { snackActions } from '../../utilities/Snackbar';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import { meState } from '../../../cache';
@@ -199,7 +200,7 @@ export function PayloadSelect(props) {
         props.finished(payload);
     }
     return (
-        <div style={{height: "100%", overflow: "auto"}}>
+        <TableContainer className="mythicElement" style={{height: "100%", overflow: "auto"}}>
             <Table stickyHeader size="small" style={{tableLayout:"fixed", maxWidth: "100%",}}>
                 <TableHead>
                     <TableRow>
@@ -222,7 +223,7 @@ export function PayloadSelect(props) {
                     ))}
                 </TableBody>
             </Table>
-        </div>
+        </TableContainer>
 
 );
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import {
@@ -129,7 +130,7 @@ export function SettingsOperatorTable(props){
                 />
             }
         </MythicPageHeader>
-        <div style={{display: "flex", flexGrow: 1, overflowY: "auto", alignItems: "flex-start"}}>
+        <TableContainer className="mythicElement" style={{display: "flex", flexGrow: 1, overflowY: "auto", alignItems: "flex-start"}}>
             <Table stickyHeader size="small" style={{"tableLayout": "fixed",}}>
                 <TableHead >
                     <TableRow>
@@ -163,8 +164,7 @@ export function SettingsOperatorTable(props){
                 ))}
                 </TableBody>
             </Table>
-        </div>
+        </TableContainer>
     </>
     )
 }
-

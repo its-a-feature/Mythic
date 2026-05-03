@@ -8,6 +8,7 @@ import {useMutation, gql} from '@apollo/client';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 
@@ -64,6 +65,7 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
                     <b>Run As: </b>{selectedEventGroup.run_as} <br/>
                     {getRunAsHelp(selectedEventGroup.run_as)}
                 </DialogContentText>
+                <TableContainer className="mythicElement">
                 <Table>
                     <TableHead>
                         <TableRow>
@@ -126,6 +128,7 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
                         ))}
                     </TableBody>
                 </Table>
+                </TableContainer>
 
             </DialogContent>
             <DialogActions>
@@ -136,4 +139,3 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
         </React.Fragment>
     );
 }
-

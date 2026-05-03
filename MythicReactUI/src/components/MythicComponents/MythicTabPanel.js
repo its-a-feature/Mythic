@@ -9,6 +9,7 @@ import MenuList from '@mui/material/MenuList';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Paper from '@mui/material/Paper';
 import Badge from '@mui/material/Badge';
+import {useTheme} from '@mui/material/styles';
 import {
     Draggable,
 } from "@hello-pangea/dnd";
@@ -72,6 +73,7 @@ export function MythicTabLabel(props) {
     };
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const dropdownAnchorRef = React.useRef(null);
+    const theme = useTheme();
     const handleContextClick = (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -94,8 +96,11 @@ export function MythicTabLabel(props) {
             {(provided, snapshot) => (
                 <div ref={provided.innerRef}
                     {...provided.draggableProps}>
+                    {(() => {
+                        const selected = selectedIndex === index || snapshot.isDragging;
+                        const tabAccent = tabInfo?.color || theme.palette.primary.main;
+                        return (
                     <Tab
-                        className={selectedIndex === index || snapshot.isDragging ? "selectedCallback" : "" }
                         label={
                             <span onContextMenu={handleContextClick} style={{}} ref={dropdownAnchorRef}>
                                 <Badge color="success" variant="dot" invisible={!highlight} >
@@ -109,10 +114,20 @@ export function MythicTabLabel(props) {
                         {...a11yProps(index)}
                         {...other}
                         {...provided.dragHandleProps}
-                        style={{padding: "0px 5px 0px 5px", borderRadius: "4px", margin: 0,
-                            borderBottom: selectedIndex === index ? `2px solid grey` : '',
-                            backgroundColor: selectedIndex === index ? tabInfo.color : snapshot.isDragging ? tabInfo.color : ""}}
+                        style={{
+                            padding: "0px 6px",
+                            margin: "0 3px 0 0",
+                            minHeight: "32px",
+                            borderRadius: `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
+                            border: `1px solid ${theme.borderColor}`,
+                            borderTop: `2px solid ${selected ? tabAccent : "transparent"}`,
+                            borderBottom: selected ? `1px solid ${theme.palette.background.paper}` : `1px solid ${theme.borderColor}`,
+                            backgroundColor: selected ? theme.palette.background.paper : theme.surfaces?.muted,
+                            color: theme.palette.text.primary,
+                        }}
                     />
+                        );
+                    })()}
                     <Popper open={openContextMenu} anchorEl={dropdownAnchorRef.current} role={undefined} transition style={{zIndex: 40}}>
                         {({ TransitionProps, placement }) => (
                             <Grow
