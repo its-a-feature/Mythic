@@ -3,6 +3,7 @@ import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 import {useQuery, gql, useMutation} from '@apollo/client';
@@ -551,6 +552,7 @@ function DetailedPayloadInnerTable(props){
                   Payload Information
               </Typography>
             </Paper>
+            <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow hover>
@@ -656,11 +658,13 @@ function DetailedPayloadInnerTable(props){
                     }
                 </TableBody>
               </Table>
+              </TableContainer>
               <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                 <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
                     Build Parameters
                 </Typography>
               </Paper>
+              <TableContainer className="mythicElement">
               <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -695,11 +699,13 @@ function DetailedPayloadInnerTable(props){
                   }
                 </TableBody>
               </Table>
+              </TableContainer>
               <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                 <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
                     Build Steps
                 </Typography>
               </Paper>
+              <TableContainer className="mythicElement">
               <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -723,6 +729,7 @@ function DetailedPayloadInnerTable(props){
                   }
                 </TableBody>
               </Table>
+              </TableContainer>
                 { c2Profiles.map( (c2) => (
                     <React.Fragment key={"c2frag" + props.payload_id + c2.c2_profile}>
                           <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
@@ -730,6 +737,7 @@ function DetailedPayloadInnerTable(props){
                                 {c2.c2_profile}
                             </Typography>
                           </Paper>
+                        <TableContainer className="mythicElement">
                         <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
                             <TableHead>
                               <TableRow>
@@ -764,6 +772,7 @@ function DetailedPayloadInnerTable(props){
                               }
                             </TableBody>
                           </Table>
+                          </TableContainer>
                       </React.Fragment>
                 ))}
                 
@@ -775,6 +784,7 @@ function DetailedPayloadInnerTable(props){
                       <Button style={{float: "right"}} variant="contained" size="small" onClick={()=>{setOpenAddRemoveCommandsDialog(true)}} >Add/Remove Commands</Button>
                     </Paper>
                     {commands.length > 0 &&
+                      <TableContainer className="mythicElement">
                       <Table size="small" aria-label="details" style={{"overflowWrap": "break-word"}}>
                       <TableHead>
                         <TableRow>
@@ -803,6 +813,7 @@ function DetailedPayloadInnerTable(props){
                         }
                           </TableBody>
                         </Table>
+                        </TableContainer>
                       }
                 </React.Fragment>
                 

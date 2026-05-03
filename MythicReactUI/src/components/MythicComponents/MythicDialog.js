@@ -25,6 +25,7 @@ import Draggable from 'react-draggable';
 import {MythicDraggableDialogTitle} from "./MythicDraggableDialogTitle";
 
 export function MythicDialog(props) {
+    const theme = useTheme();
     const [draggedState, setDraggedState] = React.useState({
         style: {},
         paperStyle: {
@@ -121,10 +122,13 @@ export function MythicDialog(props) {
             aria-labelledby="scroll-dialog-title"
             aria-describedby="scroll-dialog-description"
             sx={{
-                [".MuiPaper-root"]: {
+                ".MuiPaper-root": {
+                    borderRadius: "8px",
+                    backgroundColor: theme.palette.background.paper,
+                    border: `1px solid ${theme.borderColor}`,
                     ...draggedState.paperStyle
                 },
-                [".MuiDialog-container"]: {
+                ".MuiDialog-container": {
                     ...draggedState.containerStyle
                 }
             }}

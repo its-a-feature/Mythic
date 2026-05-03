@@ -8,6 +8,7 @@ import {useMutation, gql} from '@apollo/client';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import {IconButton} from '@mui/material';
@@ -120,6 +121,7 @@ export function EventTriggerKeywordDialog({onClose, selectedEventGroup}) {
                         ))
                     }
                 </Select>
+                <TableContainer className="mythicElement">
                 <Table>
                     <TableHead>
                         <TableRow>
@@ -166,6 +168,7 @@ export function EventTriggerKeywordDialog({onClose, selectedEventGroup}) {
                         </TableRow>
                     </TableBody>
                 </Table>
+                </TableContainer>
 
             </DialogContent>
             <DialogActions>

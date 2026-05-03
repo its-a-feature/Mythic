@@ -60,12 +60,14 @@ export const StyledPaper = styled(Paper)((
   }
 ) => ({
   [`&.${classes.root}`]: {
-    marginTop: "3px",
+    marginTop: "4px",
     marginRight: "0px",
     height: "auto",
     width: "100%",
     boxShadow: "unset",
-    backgroundColor: theme.palette.background.default + "CC",
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.borderColor}`,
+    borderRadius: theme.shape.borderRadius,
   },
 
   [`& .${classes.heading}`]: {
@@ -235,8 +237,8 @@ const ColoredTaskDisplay = ({task, theme, children, expanded}) => {
   }, [task.status, task.completed])
     return(
       <span style={{display: "flex", margin: 0, borderWidth: 0, padding: 0, minHeight: "48px", alignItems: "center",
-        height: "100%", borderLeft: "6px solid " + themeColor, paddingLeft: "5px", width: "100%", maxWidth: "100%",
-        borderTopLeftRadius: "4px", borderBottomLeftRadius: expanded ? 0 : "4px"}}>
+        height: "100%", borderLeft: "4px solid " + themeColor, paddingLeft: "7px", width: "100%", maxWidth: "100%",
+        borderTopLeftRadius: theme.shape.borderRadius, borderBottomLeftRadius: expanded ? 0 : theme.shape.borderRadius}}>
         {children}
       </span>
     )

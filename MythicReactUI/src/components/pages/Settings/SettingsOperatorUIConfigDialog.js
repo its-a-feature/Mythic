@@ -11,7 +11,6 @@ import TableBody from '@mui/material/TableBody';
 import Link from '@mui/material/Link';
 import TableContainer from '@mui/material/TableContainer';
 import Typography from '@mui/material/Typography';
-import {HexColorInput, HexColorPicker} from 'react-colorful';
 import {GetMythicSetting, useSetMythicSetting} from "../../MythicComponents/MythicSavedUserSetting";
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
@@ -28,6 +27,7 @@ import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {useLazyQuery } from '@apollo/client';
 import PhoneCallbackIcon from '@mui/icons-material/PhoneCallback';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
+import {MythicColorSwatchInput} from "../../MythicComponents/MythicColorInput";
 
 const interactTypeOptions = [
     {value: "interact", display: "Accordions"},
@@ -51,6 +51,406 @@ const isValidColor = (color) =>{
     }
     return true;
 }
+
+const COLOR_EDITOR_SECTIONS = [
+    {
+        title: "Application Shell",
+        description: "Page chrome, surfaces, typography, and borders.",
+        colors: [
+            {name: "background", display: "App Background", description: "Main page background behind views and dialogs.", preview: "surface"},
+            {name: "paper", display: "Panel Background", description: "Menus, dialogs, and content surfaces.", preview: "surface"},
+            {name: "pageHeader", display: "Page Headers", description: "Header bars at the top of major pages.", preview: "surface"},
+            {name: "text", display: "Text", description: "Primary readable text throughout the UI.", preview: "surface"},
+            {name: "borderColor", display: "Borders", description: "Outlines around panels, tables, and controls.", preview: "surface"},
+        ],
+    },
+    {
+        title: "Navigation",
+        description: "Left navigation gradient, labels, and icons.",
+        colors: [
+            {name: "navBarColor", display: "Navigation Top", description: "Start color for the navigation background.", preview: "navigation"},
+            {name: "navBarBottomColor", display: "Navigation Bottom", description: "End color for the navigation background.", preview: "navigation"},
+            {name: "navBarIcons", display: "Navigation Icons", description: "Icon color in the navigation bar.", preview: "navigation"},
+            {name: "navBarText", display: "Navigation Text", description: "Text color in the navigation bar.", preview: "navigation"},
+        ],
+    },
+    {
+        title: "Tables and Selection",
+        description: "Table headers, hover states, and selected callback emphasis.",
+        colors: [
+            {name: "tableHeader", display: "Table Header", description: "Sticky header rows in tables and data grids.", preview: "table"},
+            {name: "tableHover", display: "Table Hover", description: "Rows when hovered or softly emphasized.", preview: "table"},
+            {name: "selectedCallbackColor", display: "Active Callback", description: "Currently active callback row highlight.", preview: "table"},
+            {name: "selectedCallbackHierarchyColor", display: "Tree Host Highlight", description: "Current host highlight in tree views.", preview: "table"},
+        ],
+    },
+    {
+        title: "Status Colors",
+        description: "Button, alert, tag, and status accents.",
+        colors: [
+            {name: "primary", display: "Primary", description: "Primary actions and key affordances.", preview: "status"},
+            {name: "secondary", display: "Secondary", description: "Secondary actions and supporting accents.", preview: "status"},
+            {name: "info", display: "Info", description: "Informational actions and notices.", preview: "status"},
+            {name: "success", display: "Success", description: "Success actions, healthy states, and confirmations.", preview: "status"},
+            {name: "warning", display: "Warning", description: "Warning actions and caution states.", preview: "status"},
+            {name: "error", display: "Error", description: "Danger actions, failed states, and errors.", preview: "status"},
+        ],
+    },
+    {
+        title: "Tasking",
+        description: "Task prompt, context badges, and command output.",
+        colors: [
+            {name: "taskPromptTextColor", display: "Prompt Text", description: "Tasking prompt text.", preview: "task"},
+            {name: "taskPromptCommandTextColor", display: "Command Text", description: "Command and parameter text in tasking.", preview: "task"},
+            {name: "taskContextColor", display: "Context", description: "Generic tasking context labels.", preview: "task"},
+            {name: "taskContextImpersonationColor", display: "Impersonation Context", description: "User or impersonation tasking context labels.", preview: "task"},
+            {name: "taskContextExtraColor", display: "Extra Context", description: "Additional tasking context labels.", preview: "task"},
+            {name: "outputBackgroundColor", display: "Output Background", description: "Task output and terminal-style response background.", preview: "output"},
+            {name: "outputTextColor", display: "Output Text", description: "Task output and terminal-style response text.", preview: "output"},
+        ],
+    },
+    {
+        title: "File Browsing",
+        description: "File browser empty-folder treatment.",
+        colors: [
+            {name: "emptyFolderColor", display: "Empty Folder", description: "Empty folder icon and text in file-based browsers.", preview: "file"},
+        ],
+    },
+];
+
+const clonePalette = (sourcePalette) => {
+    const clonedPalette = {};
+    Object.entries(sourcePalette || {}).forEach(([key, value]) => {
+        clonedPalette[key] = typeof value === "object" && value !== null ? {...value} : value;
+    });
+    return clonedPalette;
+}
+
+const addAlpha = (color, alphaHex) => {
+    if(isValidColor(color)){
+        return `${color}${alphaHex}`;
+    }
+    return color;
+}
+
+const getPaletteValue = (palette, name, mode) => {
+    const color = palette?.[name]?.[mode];
+    if(isValidColor(color)){
+        return color;
+    }
+    const defaultColor = operatorSettingDefaults.palette?.[name]?.[mode];
+    if(isValidColor(defaultColor)){
+        return defaultColor;
+    }
+    return mode === "dark" ? "#1f2937" : "#f8fafc";
+}
+
+const getReadableTextColor = (backgroundColor) => {
+    if(!isValidColor(backgroundColor)){
+        return "#ffffff";
+    }
+    const red = parseInt(backgroundColor.slice(1, 3), 16);
+    const green = parseInt(backgroundColor.slice(3, 5), 16);
+    const blue = parseInt(backgroundColor.slice(5, 7), 16);
+    const brightness = (red * 299 + green * 587 + blue * 114) / 1000;
+    return brightness >= 140 ? "#111827" : "#ffffff";
+}
+
+const ModeColorControl = ({mode, name, color, onChange}) => (
+    <Box sx={{minWidth: 0}}>
+        <Typography variant="caption" sx={{display: "block", color: "text.secondary", mb: 0.5}}>
+            {mode === "dark" ? "Dark" : "Light"}
+        </Typography>
+        <MythicColorSwatchInput
+            color={color}
+            label={`${name} ${mode} color`}
+            onChange={(value) => onChange(name, mode, value)}
+        />
+    </Box>
+);
+
+const PreviewLabel = ({children, color}) => (
+    <Typography
+        variant="caption"
+        sx={{
+            color,
+            display: "block",
+            lineHeight: 1.2,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+        }}
+    >
+        {children}
+    </Typography>
+);
+
+const ColorUsagePreview = ({option, palette, mode}) => {
+    const background = getPaletteValue(palette, "background", mode);
+    const paper = getPaletteValue(palette, "paper", mode);
+    const text = getPaletteValue(palette, "text", mode);
+    const border = getPaletteValue(palette, "borderColor", mode);
+    const navTop = getPaletteValue(palette, "navBarColor", mode);
+    const navBottom = getPaletteValue(palette, "navBarBottomColor", mode);
+    const navIcon = getPaletteValue(palette, "navBarIcons", mode);
+    const navText = getPaletteValue(palette, "navBarText", mode);
+    const tableHeader = getPaletteValue(palette, "tableHeader", mode);
+    const tableHover = getPaletteValue(palette, "tableHover", mode);
+    const selectedCallback = getPaletteValue(palette, "selectedCallbackColor", mode);
+    const selectedHierarchy = getPaletteValue(palette, "selectedCallbackHierarchyColor", mode);
+    const outputBackground = getPaletteValue(palette, "outputBackgroundColor", mode);
+    const outputText = getPaletteValue(palette, "outputTextColor", mode);
+    const promptText = getPaletteValue(palette, "taskPromptTextColor", mode);
+    const commandText = getPaletteValue(palette, "taskPromptCommandTextColor", mode);
+    const context = getPaletteValue(palette, "taskContextColor", mode);
+    const impersonation = getPaletteValue(palette, "taskContextImpersonationColor", mode);
+    const extra = getPaletteValue(palette, "taskContextExtraColor", mode);
+    const previewColor = getPaletteValue(palette, option.name, mode);
+    const shellSx = {
+        border: `1px solid ${addAlpha(border, "99")}`,
+        borderRadius: "6px",
+        overflow: "hidden",
+        minHeight: 74,
+        backgroundColor: background,
+    };
+    switch(option.preview){
+        case "navigation":
+            return (
+                <Box sx={{...shellSx, display: "flex"}}>
+                    <Box sx={{width: 58, background: `linear-gradient(180deg, ${navTop}, ${navBottom})`, p: 1}}>
+                        <PhoneCallbackIcon style={{color: navIcon, fontSize: 18}}/>
+                        <PreviewLabel color={navText}>Tasks</PreviewLabel>
+                    </Box>
+                    <Box sx={{flex: 1, backgroundColor: paper, p: 1}}>
+                        <PreviewLabel color={text}>{mode} navigation</PreviewLabel>
+                        <Box sx={{height: 7, mt: 1, borderRadius: "4px", backgroundColor: previewColor}} />
+                    </Box>
+                </Box>
+            );
+        case "table":
+            return (
+                <Box sx={shellSx}>
+                    <Box sx={{height: 22, px: 1, display: "flex", alignItems: "center", backgroundColor: tableHeader}}>
+                        <PreviewLabel color={text}>Table header</PreviewLabel>
+                    </Box>
+                    <Box sx={{height: 18, px: 1, display: "flex", alignItems: "center", borderTop: `1px solid ${addAlpha(border, "99")}`, backgroundColor: paper}}>
+                        <PreviewLabel color={text}>Normal row</PreviewLabel>
+                    </Box>
+                    <Box sx={{height: 18, px: 1, display: "flex", alignItems: "center", backgroundColor: addAlpha(tableHover, "CC")}}>
+                        <PreviewLabel color={text}>Hover row</PreviewLabel>
+                    </Box>
+                    <Box sx={{height: 18, display: "grid", gridTemplateColumns: "1fr 1fr"}}>
+                        <Box sx={{px: 1, backgroundColor: addAlpha(selectedCallback, "CC")}}>
+                            <PreviewLabel color={text}>Active</PreviewLabel>
+                        </Box>
+                        <Box sx={{px: 1, backgroundColor: addAlpha(selectedHierarchy, "CC")}}>
+                            <PreviewLabel color={text}>Tree</PreviewLabel>
+                        </Box>
+                    </Box>
+                </Box>
+            );
+        case "status":
+            return (
+                <Box sx={{...shellSx, p: 1, backgroundColor: paper}}>
+                    <Box sx={{display: "inline-flex", alignItems: "center", px: 1, py: 0.5, borderRadius: "4px", backgroundColor: previewColor, color: getReadableTextColor(previewColor), fontSize: "0.75rem", fontWeight: 700}}>
+                        {option.display}
+                    </Box>
+                    <Box sx={{mt: 1, height: 10, borderRadius: "4px", backgroundColor: addAlpha(previewColor, "66")}} />
+                    <PreviewLabel color={text}>{mode} accent</PreviewLabel>
+                </Box>
+            );
+        case "task":
+            return (
+                <Box sx={{...shellSx, p: 1, backgroundColor: paper}}>
+                    <PreviewLabel color={promptText}>operator@host</PreviewLabel>
+                    <Typography variant="caption" sx={{color: commandText, display: "block", lineHeight: 1.2}}>
+                        shell whoami
+                    </Typography>
+                    <Box sx={{display: "flex", gap: 0.5, mt: 0.75, minWidth: 0}}>
+                        {[context, impersonation, extra].map((color, index) => (
+                            <Box key={`${mode}-${color}-${index}`} sx={{height: 12, flex: 1, borderRadius: "3px", backgroundColor: color}} />
+                        ))}
+                    </Box>
+                </Box>
+            );
+        case "output":
+            return (
+                <Box sx={{...shellSx, p: 1, backgroundColor: outputBackground}}>
+                    <Typography variant="caption" sx={{color: outputText, display: "block", fontFamily: "monospace", lineHeight: 1.25}}>
+                        user\host
+                    </Typography>
+                    <Typography variant="caption" sx={{color: outputText, display: "block", fontFamily: "monospace", lineHeight: 1.25}}>
+                        completed
+                    </Typography>
+                </Box>
+            );
+        case "file":
+            return (
+                <Box sx={{...shellSx, p: 1, backgroundColor: paper}}>
+                    <Box sx={{height: 24, borderRadius: "4px", backgroundColor: addAlpha(previewColor, "33"), border: `1px solid ${addAlpha(previewColor, "99")}`}} />
+                    <Typography variant="caption" sx={{color: previewColor, display: "block", mt: 0.75, fontWeight: 700}}>
+                        Empty folder
+                    </Typography>
+                </Box>
+            );
+        case "surface":
+        default:
+            return (
+                <Box sx={{...shellSx, p: 0.75}}>
+                    <Box sx={{height: 16, borderRadius: "4px 4px 0 0", backgroundColor: getPaletteValue(palette, "pageHeader", mode)}} />
+                    <Box sx={{p: 0.75, backgroundColor: paper, border: `1px solid ${addAlpha(border, "99")}`, borderTop: 0, borderRadius: "0 0 4px 4px"}}>
+                        <PreviewLabel color={text}>{mode} surface</PreviewLabel>
+                        <Box sx={{height: 7, mt: 0.75, borderRadius: "4px", backgroundColor: previewColor}} />
+                    </Box>
+                </Box>
+            );
+    }
+}
+
+const ColorTokenEditor = ({option, palette, onChange}) => (
+    <Box
+        sx={{
+            display: "grid",
+            gridTemplateColumns: {xs: "1fr", md: "minmax(170px, 0.8fr) minmax(250px, 1fr) minmax(260px, 1.1fr)"},
+            gap: 1.5,
+            alignItems: "center",
+            p: 1.5,
+            borderTop: "1px solid",
+            borderColor: "divider",
+            "&:first-of-type": {borderTop: 0},
+        }}
+    >
+        <Box sx={{minWidth: 0}}>
+            <Typography variant="body2" sx={{fontWeight: 700}}>
+                {option.display}
+            </Typography>
+            <Typography variant="caption" sx={{color: "text.secondary", display: "block", lineHeight: 1.3}}>
+                {option.description}
+            </Typography>
+        </Box>
+        <Box sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5, minWidth: 0}}>
+            <ModeColorControl
+                mode="dark"
+                name={option.name}
+                color={palette?.[option.name]?.dark}
+                onChange={onChange}
+            />
+            <ModeColorControl
+                mode="light"
+                name={option.name}
+                color={palette?.[option.name]?.light}
+                onChange={onChange}
+            />
+        </Box>
+        <Box sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, minWidth: 0}}>
+            <ColorUsagePreview option={option} palette={palette} mode="dark" />
+            <ColorUsagePreview option={option} palette={palette} mode="light" />
+        </Box>
+    </Box>
+);
+
+const BackgroundImageEditor = ({palette, backgroundFileImageDarkRef, backgroundFileImageLightRef, onChangePaletteColor, onFileBackgroundImageChangeDark, onFileBackgroundImageChangeLight}) => (
+    <Box sx={{mt: 2}}>
+        <Box sx={{mb: 1}}>
+            <Typography variant="h6" sx={{fontWeight: 700}}>Background Images</Typography>
+            <Typography variant="caption" sx={{color: "text.secondary"}}>
+                Optional page background images for each theme mode.
+            </Typography>
+        </Box>
+        <Box
+            sx={{
+                display: "grid",
+                gridTemplateColumns: {xs: "1fr", md: "1fr 1fr"},
+                gap: 1.5,
+            }}
+        >
+            {[
+                {mode: "dark", label: "Dark", ref: backgroundFileImageDarkRef, onChange: onFileBackgroundImageChangeDark},
+                {mode: "light", label: "Light", ref: backgroundFileImageLightRef, onChange: onFileBackgroundImageChangeLight},
+            ].map((imageOption) => (
+                <Box
+                    key={imageOption.mode}
+                    sx={{
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        backgroundColor: imageOption.mode === "dark" ? "#111827" : "#f8fafc",
+                    }}
+                >
+                    <Box sx={{display: "flex", alignItems: "center", gap: 1, p: 1}}>
+                        <Typography variant="body2" sx={{fontWeight: 700, flexGrow: 1, color: imageOption.mode === "dark" ? "#ffffff" : "#111827"}}>
+                            {imageOption.label}
+                        </Typography>
+                        <Button size="small" color="info" variant="contained" onClick={() => imageOption.ref.current.click()}>
+                            Upload
+                            <input ref={imageOption.ref} onChange={imageOption.onChange} type="file" hidden />
+                        </Button>
+                        <Button size="small" color="warning" variant="contained" onClick={() => onChangePaletteColor("backgroundImage", imageOption.mode, null)}>
+                            Remove
+                        </Button>
+                    </Box>
+                    <Box
+                        sx={{
+                            height: 120,
+                            backgroundImage: palette.backgroundImage?.[imageOption.mode],
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                            borderTop: "1px solid",
+                            borderColor: "divider",
+                        }}
+                    />
+                </Box>
+            ))}
+        </Box>
+    </Box>
+);
+
+const ColorPaletteEditor = ({palette, onChangePaletteColor, backgroundFileImageDarkRef, backgroundFileImageLightRef, onFileBackgroundImageChangeDark, onFileBackgroundImageChangeLight}) => (
+    <Box sx={{width: "100%", py: 1}}>
+        <Typography variant="h4" sx={{mb: 0.5}}>
+            Theme Colors
+        </Typography>
+        <Typography variant="body2" sx={{color: "text.secondary", mb: 2}}>
+            Colors are grouped by where operators will see them, with dark and light previews shown side by side.
+        </Typography>
+        {COLOR_EDITOR_SECTIONS.map((section) => (
+            <Box key={section.title} sx={{mb: 2.5}}>
+                <Box sx={{mb: 1}}>
+                    <Typography variant="h6" sx={{fontWeight: 700}}>{section.title}</Typography>
+                    <Typography variant="caption" sx={{color: "text.secondary"}}>{section.description}</Typography>
+                </Box>
+                <Box
+                    sx={{
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        backgroundColor: "background.paper",
+                    }}
+                >
+                    {section.colors.map((option) => (
+                        <ColorTokenEditor
+                            key={option.name}
+                            option={option}
+                            palette={palette}
+                            onChange={onChangePaletteColor}
+                        />
+                    ))}
+                </Box>
+            </Box>
+        ))}
+        <BackgroundImageEditor
+            palette={palette}
+            backgroundFileImageDarkRef={backgroundFileImageDarkRef}
+            backgroundFileImageLightRef={backgroundFileImageLightRef}
+            onChangePaletteColor={onChangePaletteColor}
+            onFileBackgroundImageChangeDark={onFileBackgroundImageChangeDark}
+            onFileBackgroundImageChangeLight={onFileBackgroundImageChangeLight}
+        />
+    </Box>
+);
+
 export function SettingsOperatorUIConfigDialog(props) {
     const fileInputRef = React.useRef(null);
     const backgroundFileImageLightRef = React.useRef(null);
@@ -247,35 +647,8 @@ export function SettingsOperatorUIConfigDialog(props) {
             light: isValidColor(initialPalette?.borderColor?.light) ? initialPalette?.borderColor?.light : operatorSettingDefaults.palette.borderColor.light,
         },
     });
-    const paletteOptionsSolidColor = [
-        {name: "primary", display: "Primary"},
-        {name: "error", display: "Error"},
-        {name: "warning", display: "Warning"},
-        {name: "info", display: "Informational"},
-        {name: "success", display: "Success"},
-        {name: "secondary", display: "Secondary"},
-        {name: "pageHeader", display: "Page Headers"},
-        {name: "taskPromptTextColor", display: "Tasking Prompt Text"},
-        {name: "taskPromptCommandTextColor", display: "Tasking Command and Parameter Text"}
-    ];
-    const paletteOptionsTextColor = [
-        {name: "tableHeader", display: "Table Headers"},
-        {name: "tableHover", display: "Table Hover"},
-        {name: "selectedCallbackColor", display: "Currently active callback row highlight"},
-        {name: "selectedCallbackHierarchyColor", display: "Current Host highlight in tree views"},
-        {name: "paper", display: "Menu and Modals Background"},
-        {name: "background", display: "Background"},
-        {name: "taskContextColor", display: "Tasking Context Generic Background Color"},
-        {name: "taskContextImpersonationColor", display: "Tasking Context User Background Color"},
-        {name: "taskContextExtraColor", display: "Tasking Context Extra Info Background Color"},
-        {name: "emptyFolderColor", display: "Color of the empty folder icon and text in file-based browsers"},
-        {name: "borderColor", display: "Color of borders around elements"}
-    ]
     const [resumeNotifications, setResumeNotifications] = React.useState(false);
-    const [_, updateSettings, clearSettings] = useSetMythicSetting();
-    const onChangeFontSize = (name, value, error) => {
-      setFontSize(value);
-    }
+    const [, updateSettings, clearSettings] = useSetMythicSetting();
     const onChangeFontFamily = (name, value, error) => {
       setFontFamily(value);
     }
@@ -365,7 +738,7 @@ export function SettingsOperatorUIConfigDialog(props) {
       setInteractType(operatorSettingDefaults.interactType);
       setUseDisplayParamsForCLIHistory(operatorSettingDefaults.useDisplayParamsForCLIHistory);
       setResumeNotifications(false);
-      setPalette(operatorSettingDefaults.palette);
+      setPalette(clonePalette(operatorSettingDefaults.palette));
       setTaskTimestampDisplayField(operatorSettingDefaults.taskTimestampDisplayField);
       setHideTaskingContext(operatorSettingDefaults.hideTaskingContext);
       setTaskingContextFields(operatorSettingDefaults.taskingContextFields);
@@ -376,9 +749,9 @@ export function SettingsOperatorUIConfigDialog(props) {
         props.onClose();
     }
     const setColorDefaults = (mode) => {
-        let newPaletteOptions = {...palette};
+        let newPaletteOptions = clonePalette(palette);
         for(const [key, value] of Object.entries(operatorSettingDefaults.palette)){
-            newPaletteOptions[key][mode] = value[mode];
+            newPaletteOptions[key] = {...newPaletteOptions[key], [mode]: value[mode]};
         }
         setPalette(newPaletteOptions);
     }
@@ -661,242 +1034,15 @@ export function SettingsOperatorUIConfigDialog(props) {
                       </MythicStyledTableCell>
                   </TableRow>
                   <TableRow>
-                      <MythicStyledTableCell></MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <Typography variant={"h4"}>
-                              Global Palette Colors
-                          </Typography>
-                      </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                      <MythicStyledTableCell>Navigation Bar Color</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarColor?.dark} onChange={(v) => onChangePaletteColor("navBarColor", "dark", v)}/>
-                                  <HexColorInput color={palette?.navBarColor?.dark} onChange={(v) => onChangePaletteColor("navBarColor", "dark", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.dark, display: "flex", alignItems: "center"}}>
-                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.dark, marginRight: "5px"}}/>
-                                      <Typography style={{color: palette.navBarText.dark, display: "inline-block"}}>Dark Mode Color</Typography>
-                                  </Box>
-                              </div>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarColor?.light} onChange={(v) => onChangePaletteColor("navBarColor", "light", v)}/>
-                                  <HexColorInput color={palette?.navBarColor?.light} onChange={(v) => onChangePaletteColor("navBarColor", "light", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarColor?.light, display: "flex", alignItems: "center"}}>
-                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.light, marginRight: "5px"}}/>
-                                      <Typography style={{color: palette.navBarText.light, display: "inline-block"}}>Light Mode Color</Typography>
-                                  </Box>
-                              </div>
-                          </div>
-                      </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                      <MythicStyledTableCell>Navigation Bar Bottom Color</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarBottomColor?.dark} onChange={(v) => onChangePaletteColor("navBarBottomColor", "dark", v)}/>
-                                  <HexColorInput color={palette?.navBarBottomColor?.dark} onChange={(v) => onChangePaletteColor("navBarBottomColor", "dark", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarBottomColor?.dark, display: "flex", alignItems: "center"}}>
-                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.dark, marginRight: "5px"}}/>
-                                      <Typography style={{color: palette.navBarText.dark, display: "inline-block"}}>Dark Mode Color</Typography>
-                                  </Box>
-                              </div>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarBottomColor?.light} onChange={(v) => onChangePaletteColor("navBarBottomColor", "light", v)}/>
-                                  <HexColorInput color={palette?.navBarBottomColor?.light} onChange={(v) => onChangePaletteColor("navBarBottomColor", "light", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.navBarBottomColor?.light, display: "flex", alignItems: "center"}}>
-                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.light, marginRight: "5px"}}/>
-                                      <Typography style={{color: palette.navBarText.light, display: "inline-block"}}>Light Mode Color</Typography>
-                                  </Box>
-                              </div>
-                          </div>
-                      </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                      <MythicStyledTableCell>Navigation Bar Icon Colors</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarIcons?.dark} onChange={(v) => onChangePaletteColor("navBarIcons", "dark", v)}/>
-                                  <HexColorInput color={palette?.navBarIcons?.dark} onChange={(v) => onChangePaletteColor("navBarIcons", "dark", v)}/>
-                                  <Box sx={{width: "100%", height: 25, background: `linear-gradient(.25turn, ${palette?.navBarColor?.dark}, ${palette?.navBarBottomColor?.dark})`, display: "flex", alignItems: "center"}}>
-                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.dark, marginRight: "5px"}}/>
-                                      <Typography style={{color: palette.navBarText.dark, display: "inline-block"}}>Dark Mode Color</Typography>
-                                  </Box>
-                              </div>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarIcons?.light} onChange={(v) => onChangePaletteColor("navBarIcons", "light", v)}/>
-                                  <HexColorInput color={palette?.navBarIcons?.light} onChange={(v) => onChangePaletteColor("navBarIcons", "light", v)}/>
-                                  <Box sx={{width: "100%", height: 25, background: `linear-gradient(.25turn, ${palette?.navBarColor?.light}, ${palette?.navBarBottomColor?.light})`, display: "flex", alignItems: "center"}}>
-                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.light, marginRight: "5px"}}/>
-                                      <Typography style={{color: palette.navBarText.light, display: "inline-block"}}>Light Mode Color</Typography>
-                                  </Box>
-                              </div>
-                          </div>
-                      </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                      <MythicStyledTableCell>Navigation Bar Text Color</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarText?.dark} onChange={(v) => onChangePaletteColor("navBarText", "dark", v)}/>
-                                  <HexColorInput color={palette?.navBarText?.dark} onChange={(v) => onChangePaletteColor("navBarText", "dark", v)}/>
-                                  <Box sx={{width: "100%", height: 25, background: `linear-gradient(.25turn, ${palette?.navBarColor?.dark}, ${palette?.navBarBottomColor?.dark})`, display: "flex", alignItems: "center"}}>
-                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.dark, marginRight: "5px"}}/>
-                                      <Typography style={{color: palette.navBarText.dark, display: "inline-block"}}>Dark Mode Color</Typography>
-                                  </Box>
-                              </div>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.navBarText?.light} onChange={(v) => onChangePaletteColor("navBarText", "light", v)}/>
-                                  <HexColorInput color={palette?.navBarText?.light} onChange={(v) => onChangePaletteColor("navBarText", "light", v)}/>
-                                  <Box sx={{width: "100%", height: 25, background: `linear-gradient(.25turn, ${palette?.navBarColor?.light}, ${palette?.navBarBottomColor?.light})`, display: "flex", alignItems: "center"}}>
-                                      <PhoneCallbackIcon style={{color: palette.navBarIcons.light, marginRight: "5px"}}/>
-                                      <Typography style={{color: palette.navBarText.light, display: "inline-block"}}>Light Mode Color</Typography>
-                                  </Box>
-                              </div>
-                          </div>
-                      </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                      <MythicStyledTableCell>Background Images</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <div style={{display: "flex", width: "100%", justifyContent: "space-between"}}>
-                              <div style={{width: "100%"}}>
-                                  <Button color={"info"} variant={"contained"} onClick={()=>backgroundFileImageDarkRef.current.click()} >
-                                      Upload Dark
-                                      <input ref={backgroundFileImageDarkRef} onChange={onFileBackgroundImageChangeDark} type="file" hidden />
-                                  </Button>
-                                  <Button color={"warning"} variant={"contained"} onClick={() => onChangePaletteColor("backgroundImage", "dark", null)} >
-                                      Remove Dark
-                                  </Button>
-                                  <div style={{backgroundImage: palette.backgroundImage.dark,  width: "100%", height: "300px", backgroundSize: "contain"}}>
-                                  </div>
-                              </div>
-                              <div style={{width: "100%"}}>
-                                  <Button color={"info"} variant={"contained"} onClick={()=>backgroundFileImageLightRef.current.click()} >
-                                      Upload Light
-                                      <input ref={backgroundFileImageLightRef} onChange={onFileBackgroundImageChangeLight} type="file" hidden />
-                                  </Button>
-                                  <Button color={"warning"} variant={"contained"} onClick={() => onChangePaletteColor("backgroundImage", "light", null)} >
-                                      Remove Light
-                                  </Button>
-                                  <div style={{backgroundImage: palette.backgroundImage.light,  width: "100%", height: "300px", backgroundSize: "contain"}}>
-                                  </div>
-                              </div>
-                          </div>
-
-                      </MythicStyledTableCell>
-                  </TableRow>
-                  {paletteOptionsSolidColor.map(p => (
-                      <TableRow hover key={p.display}>
-                          <MythicStyledTableCell>{p.display}</MythicStyledTableCell>
-                          <MythicStyledTableCell>
-                              <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
-                                  <div style={{display: "inline-block", width: "100%"}}>
-                                      <HexColorPicker style={{width: "100%"}} color={palette?.[p.name]?.dark} onChange={(v) => onChangePaletteColor(p.name, "dark", v)}/>
-                                      <HexColorInput color={palette?.[p.name]?.dark} onChange={(v) => onChangePaletteColor(p.name, "dark", v)}/>
-                                      <Box sx={{width: "100%", height: 25, backgroundColor: palette?.[p.name]?.dark}}>
-                                          <Typography style={{color: "white"}}>Dark Mode Color</Typography>
-                                      </Box>
-                                  </div>
-                                  <div style={{display: "inline-block", width: "100%"}}>
-                                      <HexColorPicker style={{width: "100%"}} color={palette?.[p.name]?.light} onChange={(v) => onChangePaletteColor(p.name, "light", v)}/>
-                                      <HexColorInput color={palette?.[p.name]?.light} onChange={(v) => onChangePaletteColor(p.name, "light", v)}/>
-                                      <Box sx={{width: "100%", height: 25, backgroundColor: palette?.[p.name]?.light}}>
-                                          <Typography style={{color: "black"}}>Light Mode Color</Typography>
-                                      </Box>
-                                  </div>
-                              </div>
-                          </MythicStyledTableCell>
-                      </TableRow>
-                  ))}
-                  {paletteOptionsTextColor.map(p => (
-                      <TableRow hover key={p.display}>
-                          <MythicStyledTableCell>{p.display}</MythicStyledTableCell>
-                          <MythicStyledTableCell>
-                              <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
-                                  <div style={{display: "inline-block", width: "100%"}}>
-                                      <HexColorPicker style={{width: "100%"}} color={palette?.[p.name]?.dark} onChange={(v) => onChangePaletteColor(p.name, "dark", v)}/>
-                                      <HexColorInput color={palette?.[p.name]?.dark} onChange={(v) => onChangePaletteColor(p.name, "dark", v)}/>
-                                      <Box sx={{width: "100%", height: 25, backgroundColor: palette?.[p.name]?.dark}}>
-                                          <Typography style={{color: palette.text.dark}}>Dark Mode Color</Typography>
-                                      </Box>
-                                  </div>
-                                  <div style={{display: "inline-block", width: "100%"}}>
-                                      <HexColorPicker style={{width: "100%"}} color={palette?.[p.name]?.light} onChange={(v) => onChangePaletteColor(p.name, "light", v)}/>
-                                      <HexColorInput color={palette?.[p.name]?.light} onChange={(v) => onChangePaletteColor(p.name, "light", v)}/>
-                                      <Box sx={{width: "100%", height: 25, backgroundColor: palette?.[p.name]?.light}}>
-                                          <Typography style={{color: palette.text.light}}>Light Mode Color</Typography>
-                                      </Box>
-                                  </div>
-                              </div>
-                          </MythicStyledTableCell>
-                      </TableRow>
-                  ))}
-                  <TableRow hover>
-                      <MythicStyledTableCell>Text Color</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.text?.dark} onChange={(v) => onChangePaletteColor("text", "dark", v)}/>
-                                  <HexColorInput color={palette?.text?.dark} onChange={(v) => onChangePaletteColor("text", "dark", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.background?.dark, display: "flex", alignItems: "center"}}>
-                                      <Typography style={{color: palette.text.dark, display: "inline-block"}}>Dark Mode Color</Typography>
-                                  </Box>
-                              </div>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.text?.light} onChange={(v) => onChangePaletteColor("text", "light", v)}/>
-                                  <HexColorInput color={palette?.text?.light} onChange={(v) => onChangePaletteColor("text", "light", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.background?.light, display: "flex", alignItems: "center"}}>
-                                      <Typography style={{color: palette.text.light, display: "inline-block"}}>Light Mode Color</Typography>
-                                  </Box>
-                              </div>
-                          </div>
-                      </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                      <MythicStyledTableCell>Task Output Text Color</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.outputTextColor?.dark} onChange={(v) => onChangePaletteColor("outputTextColor", "dark", v)}/>
-                                  <HexColorInput color={palette?.outputTextColor?.dark} onChange={(v) => onChangePaletteColor("outputTextColor", "dark", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.outputBackgroundColor?.dark, display: "flex", alignItems: "center"}}>
-                                      <Typography style={{color: palette.outputTextColor.dark, display: "inline-block"}}>Dark Mode Output Text Color</Typography>
-                                  </Box>
-                              </div>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.outputTextColor?.light} onChange={(v) => onChangePaletteColor("outputTextColor", "light", v)}/>
-                                  <HexColorInput color={palette?.outputTextColor?.light} onChange={(v) => onChangePaletteColor("outputTextColor", "light", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.outputBackgroundColor?.light, display: "flex", alignItems: "center"}}>
-                                      <Typography style={{color: palette.outputTextColor.light, display: "inline-block"}}>Light Mode Output Text Color</Typography>
-                                  </Box>
-                              </div>
-                          </div>
-                      </MythicStyledTableCell>
-                  </TableRow>
-                  <TableRow hover>
-                      <MythicStyledTableCell>Task Output Background Color</MythicStyledTableCell>
-                      <MythicStyledTableCell>
-                          <div style={{display: "flex", width: "100%", paddingRight: "15px"}}>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.outputBackgroundColor?.dark} onChange={(v) => onChangePaletteColor("outputBackgroundColor", "dark", v)}/>
-                                  <HexColorInput color={palette?.outputBackgroundColor?.dark} onChange={(v) => onChangePaletteColor("outputBackgroundColor", "dark", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.outputBackgroundColor?.dark, display: "flex", alignItems: "center"}}>
-                                      <Typography style={{color: palette.outputTextColor.dark, display: "inline-block"}}>Dark Mode Output Text Color</Typography>
-                                  </Box>
-                              </div>
-                              <div style={{display: "inline-block", width: "100%"}}>
-                                  <HexColorPicker style={{width: "100%"}} color={palette?.outputBackgroundColor?.light} onChange={(v) => onChangePaletteColor("outputBackgroundColor", "light", v)}/>
-                                  <HexColorInput color={palette?.outputBackgroundColor?.light} onChange={(v) => onChangePaletteColor("outputBackgroundColor", "light", v)}/>
-                                  <Box sx={{width: "100%", height: 25, backgroundColor: palette?.outputBackgroundColor?.light, display: "flex", alignItems: "center"}}>
-                                      <Typography style={{color: palette.outputTextColor.light, display: "inline-block"}}>Light Mode Output Text Color</Typography>
-                                  </Box>
-                              </div>
-                          </div>
+                      <MythicStyledTableCell colSpan={2} style={{paddingTop: "16px", paddingBottom: "16px"}}>
+                          <ColorPaletteEditor
+                              palette={palette}
+                              onChangePaletteColor={onChangePaletteColor}
+                              backgroundFileImageDarkRef={backgroundFileImageDarkRef}
+                              backgroundFileImageLightRef={backgroundFileImageLightRef}
+                              onFileBackgroundImageChangeDark={onFileBackgroundImageChangeDark}
+                              onFileBackgroundImageChangeLight={onFileBackgroundImageChangeLight}
+                          />
                       </MythicStyledTableCell>
                   </TableRow>
               </TableBody>
@@ -921,4 +1067,3 @@ export function SettingsOperatorUIConfigDialog(props) {
     </React.Fragment>
   );
 }
-

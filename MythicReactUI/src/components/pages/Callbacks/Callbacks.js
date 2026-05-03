@@ -11,6 +11,7 @@ import {reorder} from "../../MythicComponents/MythicDraggableList";
 import Paper from '@mui/material/Paper';
 import IconButton from '@mui/material/IconButton';
 import {MythicStyledTooltip} from "../../MythicComponents/MythicStyledTooltip";
+import {useTheme} from '@mui/material/styles';
 
 export const getCallbackIdFromClickedTab = (tabId) => {
     if(tabId === null || tabId === undefined){return 0}
@@ -32,6 +33,7 @@ export const getCallbackIdFromClickedTab = (tabId) => {
 }
 
 export function Callbacks({me}) {
+    const theme = useTheme();
     const [openCallbackImport, setOpenCallbackImport] = React.useState(false);
     const [topDisplay, setTopDisplay] = React.useState('table');
     const [newDataForTab, setNewDataForTab] = React.useState({});
@@ -216,8 +218,18 @@ export function Callbacks({me}) {
                    onDragEnd={(sizes) => localStorage.setItem('callbackTableSplitSizes', JSON.stringify(sizes))}
                    style={{ height: "100%" }}>
                 <div style={{display: "flex", flexDirection: "row-reverse"}}>
-                    <Paper elevation={5} style={{width: "30px", display: "flex", flexDirection: "column", alignItems: "center", overflow: "hidden",
-                    backgroundColor: "transparent"}}>
+                    <Paper elevation={0} style={{
+                        width: "34px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        overflow: "hidden",
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1px solid ${theme.borderColor}`,
+                        borderRight: 0,
+                        borderRadius: `${theme.shape.borderRadius}px 0 0 ${theme.shape.borderRadius}px`,
+                        paddingTop: "3px",
+                    }}>
                         {topDisplay !== 'table' &&
                             <MythicStyledTooltip title={"Table View"}>
                                 <IconButton onClick={() =>setTopDisplay("table")}>

@@ -252,7 +252,7 @@ export function FileMetaDownloadTable(props){
                     <DeleteIcon />Delete Selected
                 </Button>
             </span>
-            <div style={{height: "100%", overflowY: "auto"}}>
+            <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
                 <Table stickyHeader size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
@@ -284,7 +284,7 @@ export function FileMetaDownloadTable(props){
                 ))}
                 </TableBody>
             </Table>
-            </div>
+            </TableContainer>
         </TableContainer>
     )
 }
@@ -639,7 +639,7 @@ export function FileMetaUploadTable(props){
                     <DeleteIcon />Delete Selected
                 </Button>
             </span>
-            <div style={{height: "100%", overflowY: "auto"}}>
+            <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
                 <Table stickyHeader size="small"
                        style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                     <TableHead>
@@ -673,7 +673,7 @@ export function FileMetaUploadTable(props){
                         ))}
                     </TableBody>
                 </Table>
-            </div>
+            </TableContainer>
         </TableContainer>
     )
 }
@@ -1283,7 +1283,7 @@ export function FileMetaEventingWorkflowsTable(props){
                     <DeleteIcon />Delete Selected
                 </Button>
             </span>
-            <div style={{height: "100%", overflowY: "auto"}}>
+            <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
                 <Table stickyHeader size="small"
                        style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                     <TableHead>
@@ -1316,7 +1316,7 @@ export function FileMetaEventingWorkflowsTable(props){
                         ))}
                     </TableBody>
                 </Table>
-            </div>
+            </TableContainer>
         </TableContainer>
     )
 }

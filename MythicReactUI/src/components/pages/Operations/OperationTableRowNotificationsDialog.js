@@ -8,9 +8,9 @@ import MythicTextField from '../../MythicComponents/MythicTextField';
 import {useQuery, gql} from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import Switch from '@mui/material/Switch';
-import {HexColorInput, HexColorPicker} from 'react-colorful';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import {getReadableTextColor, MythicColorSwatchInput} from '../../MythicComponents/MythicColorInput';
 
 const GET_OperationData = gql`
 query GetOperations($operation_id: Int!) {
@@ -118,10 +118,43 @@ export function OperationTableRowNotificationsDialog(props) {
                 onChange={onTextChange}
                 name="Banner Text"
             />
-            <HexColorPicker color={bannerColor} onChange={setBannerColor} />
-            <HexColorInput color={bannerColor} onChange={setBannerColor} />
-            <Box sx={{width: "100%", height: 25, backgroundColor: bannerColor}} >
-                <Typography style={{color: "white"}}>{bannerText}</Typography>
+            <Box
+                sx={{
+                    mt: 2,
+                    p: 1.5,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: "8px",
+                    backgroundColor: "background.paper",
+                }}
+            >
+                <Box sx={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, mb: 1}}>
+                    <Box sx={{minWidth: 0}}>
+                        <Typography variant="body2" sx={{fontWeight: 700}}>Banner Color</Typography>
+                        <Typography variant="caption" sx={{color: "text.secondary"}}>Operation banner background</Typography>
+                    </Box>
+                    <MythicColorSwatchInput
+                        color={bannerColor}
+                        label="Operation banner color"
+                        onChange={setBannerColor}
+                    />
+                </Box>
+                <Box
+                    sx={{
+                        minHeight: 38,
+                        px: 1.5,
+                        display: "flex",
+                        alignItems: "center",
+                        borderRadius: "6px",
+                        backgroundColor: bannerColor,
+                        border: "1px solid",
+                        borderColor: "divider",
+                    }}
+                >
+                    <Typography sx={{color: getReadableTextColor(bannerColor), fontWeight: 700}}>
+                        {bannerText || "Operation Banner"}
+                    </Typography>
+                </Box>
             </Box>
         </DialogContent>
         <DialogActions>
@@ -135,4 +168,3 @@ export function OperationTableRowNotificationsDialog(props) {
   </React.Fragment>
   );
 }
-

@@ -1008,7 +1008,7 @@ export function TaskParametersDialog(props) {
                     
                 }
             </Typography>
-            <TableContainer>
+            <TableContainer className="mythicElement">
                 <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                     <TableHead>
                         <TableRow>
@@ -1044,4 +1044,3 @@ export function TaskParametersDialog(props) {
   </React.Fragment>
   );
 }
-

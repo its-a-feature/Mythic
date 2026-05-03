@@ -1,6 +1,7 @@
 import React from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import { CreatePayloadParameter } from './CreatePayloadParameter';
@@ -13,6 +14,7 @@ export function CreatePayloadC2ProfileParametersTable(props){
         props.onChange(props.name, paramName, value, error);
     }
     return (
+        <TableContainer className="mythicElement">
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "auto"}}>
                 <TableHead>
                     <TableRow>
@@ -26,5 +28,6 @@ export function CreatePayloadC2ProfileParametersTable(props){
                     ))}
                 </TableBody>
             </Table>
+        </TableContainer>
     );
 } 

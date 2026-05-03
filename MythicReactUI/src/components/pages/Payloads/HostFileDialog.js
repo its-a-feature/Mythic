@@ -9,6 +9,7 @@ import MythicTableCell from "../../MythicComponents/MythicTableCell";
 import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
@@ -101,6 +102,7 @@ export function HostFileDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Host File via C2 Profile</DialogTitle>
         <DialogContent dividers={true}>
+          <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableBody>
                     <TableRow hover>
@@ -140,6 +142,7 @@ export function HostFileDialog(props) {
                     </TableRow>
                 </TableBody>
             </Table>
+          </TableContainer>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={props.onClose} color="primary">
@@ -155,4 +158,3 @@ export function HostFileDialog(props) {
   </React.Fragment>
   );
 }
-

@@ -121,7 +121,7 @@ export function SearchPayloadsTable({payloads, setPayloads, showDeleted, me}){
     }
     return (
             <div style={{display: "flex", flexGrow: 1, overflowY: "auto"}}>
-                <TableContainer style={{height: "100%", overflowY: "auto"}}>
+                <TableContainer className="mythicElement" style={{height: "100%", overflowY: "auto"}}>
                     <Table stickyHeader size="small" style={{ "maxWidth": "100%", "overflow": "scroll", tableLayout: "fixed"}}>
                         <TableHead>
                             <TableRow>
@@ -153,4 +153,3 @@ export function SearchPayloadsTable({payloads, setPayloads, showDeleted, me}){
             </div>
     )
 }
-

@@ -8,6 +8,7 @@ import {useMutation,useQuery, gql} from '@apollo/client';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import {IconButton} from '@mui/material';
@@ -223,6 +224,7 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
                 {selectedEventGroup.id !== 0 &&
                     <EventGroupTable me={me} selectedEventGroup={selectedEventGroup} showInstances={false} showGraph={false} height={"unset"}/>
                 }
+                <TableContainer className="mythicElement">
                 <Table>
                     <TableHead>
                         <TableRow>
@@ -269,6 +271,7 @@ export function EventTriggerContextSelectDialog({onClose, triggerContext}) {
                         </TableRow>
                     </TableBody>
                 </Table>
+                </TableContainer>
 
             </DialogContent>
             <DialogActions>

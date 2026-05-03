@@ -54,7 +54,7 @@ export function ProxySearchTable(props){
     }
 
     return (
-        <TableContainer style={{overflowY: "auto", flexGrow: 1, marginTop: "5px"}}>
+        <TableContainer className="mythicElement" style={{overflowY: "auto", flexGrow: 1, marginTop: "5px"}}>
             <Table stickyHeader size="small" style={{tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
@@ -222,4 +222,3 @@ function ProxySearchTableRow(props){
         </React.Fragment>
     )
 }
-
