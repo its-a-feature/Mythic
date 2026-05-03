@@ -2,13 +2,38 @@ import { createGlobalStyle} from "styled-components"
 // hex transparencies https://gist.github.com/lopspower/03fb1cc0ac9f32ef38f4
 export const GlobalStyles = createGlobalStyle`
 body {
-    margin: 0
-    
+    margin: 0;
+    background-color: ${(props) => props.theme.palette.background.default};
+    color: ${(props) => props.theme.palette.text.primary};
+    font-family: ${(props) => props.theme.typography.fontFamily};
 }
 html, body, #root {
     height: 100%;
     width: 100%;
     color-scheme: light dark;
+}
+* {
+    box-sizing: border-box;
+}
+::selection {
+    background-color: ${(props) => props.theme.palette.primary.main + "40"};
+}
+* {
+    scrollbar-color: ${(props) => props.theme.borderColor} transparent;
+    scrollbar-width: thin;
+}
+*::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+*::-webkit-scrollbar-thumb {
+    background-color: ${(props) => props.theme.borderColor};
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+}
+*::-webkit-scrollbar-track {
+    background: transparent;
 }
 @media screen and (max-width: 1100px) {
     .hideOnSmallWidth {
@@ -35,23 +60,27 @@ html, body, #root {
 }
 .MuiTableCell-head {
     background-color: ${(props) => props.theme.tableHeader} !important;
-    font-weight: bold;
-    border-top: 2px solid ${(props) => props.theme.borderColor};
-    border-bottom: 2px solid ${(props) => props.theme.borderColor};
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    border-top: 0;
+    border-bottom: 1px solid ${(props) => props.theme.table?.border || props.theme.borderColor};
 }
 tr:nth-child(even) {
-  background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "80" : props.theme.tableHover + "80"};
+  background-color:  ${(props) => props.theme.table?.rowStripe || props.theme.tableHover + "66"};
 }
 .alternateRow {
-    background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "0D" : props.theme.tableHover + "80"};
+    background-color:  ${(props) => props.theme.table?.rowStripe || props.theme.tableHover + "66"};
 }
 .MythicResizableGridRowHighlight {
-  background-color:  ${(props) => props.theme.palette.mode === 'dark' ? props.theme.tableHover + "60" : props.theme.tableHover + "10"};
+  background-color:  ${(props) => props.theme.table?.rowStripe || props.theme.tableHover + "66"};
 } 
 .MuiTableRow-hover {
     &:hover,
     &--hovered {
-        background-color: ${(props) => props.theme.tableHover + "CC"} !important;
+        background-color: ${(props) => props.theme.table?.rowHover || props.theme.tableHover + "CC"} !important;
         color: ${(props) => props.theme.palette.text.primary} !important;
     }
 }
@@ -62,7 +91,7 @@ tr:nth-child(even) {
 .MuiListItem-root {
     &:hover,
     &--hovered {
-        background-color: ${(props) => props.theme.tableHover + "CC"} !important;
+        background-color: ${(props) => props.theme.surfaces?.hover || props.theme.palette.action.hover} !important;
         color: ${(props) => props.theme.palette.text.primary} !important;
     }
 }
@@ -115,7 +144,7 @@ tspan {
     z-index: 0 !important
 }
 .gutter {
-  background-color: ${(props) => props.theme.topAppBarColor};
+  background-color: ${(props) => props.theme.borderColor};
   background-repeat: no-repeat;
   background-position: 50%;
 }
@@ -170,8 +199,8 @@ tspan {
 .context-menu {
     background-color: ${(props) => props.theme.palette.background.paper};
     border: 1px solid ${(props) => props.theme.borderColor};
-    border-radius: 5px;
-    box-shadow: 10px 19px 20px rgba(0, 0, 0, 10%);
+    border-radius: ${(props) => props.theme.shape.borderRadius + 2}px;
+    box-shadow: ${(props) => props.theme.palette.mode === 'dark' ? "0 18px 48px rgba(0, 0, 0, 40%)" : "0 18px 48px rgba(15, 23, 42, 12%)"};
     position: absolute;
     z-index: 10;
 }
@@ -201,20 +230,29 @@ tspan {
     display: flex;
     align-items: center;
     position: relative;
-    padding: 0 0.5em;
+    padding: 0 8px;
     box-sizing: border-box;
     justify-content: space-between;
     user-select: none;
-    border-top: 2px solid ${(props) => props.theme.borderColor};
-    border-bottom: 2px solid ${(props) => props.theme.borderColor};
+    border-right: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-bottom: 1px solid ${(props) => props.theme.table?.border || props.theme.borderColor};
     background-color: ${(props) => props.theme.tableHeader} !important;
+    color: ${(props) => props.theme.palette.text.primary};
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0;
     &:first-child-of-type {
-        border-left: 2px solid ${(props) => props.theme.borderColor};
+        border-left: 0;
     }
     &:hover {
-        background-color: ${(props) => props.theme.tableHover};
+        background-color: ${(props) => props.theme.table?.headerHover || props.theme.tableHover};
         cursor: pointer;
     }
+}
+.MythicResizableGrid-headerCell .MythicResizableGrid-cellInner {
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.2;
 }
 .MythicResizableGrid-headerResizeHandle {
     position: absolute;
@@ -233,9 +271,9 @@ tspan {
     right: 2px;
     width: 0px;
     height: 100%;
-    border-left: 1px solid ${(props) => props.theme.palette.text.main};
-    border-right: 1px solid ${(props) => props.theme.palette.text.main};
-    opacity: 0.85;
+    border-left: 1px solid ${(props) => props.theme.palette.text.secondary};
+    border-right: 1px solid ${(props) => props.theme.palette.text.secondary};
+    opacity: 0.55;
 }
 .MythicResizableGrid-headerResizeHandle:hover,
 .MythicResizableGrid-headerResizeHandleActive {
@@ -252,15 +290,19 @@ tspan {
     opacity: 1;
 }
 .MythicResizableGrid-hoveredRow {
-    background-color: ${(props) => props.theme.tableHover + "CC"};
+    background-color: ${(props) => props.theme.table?.rowHover || props.theme.tableHover + "CC"};
 }
 .MythicResizableGrid-cell {
     display: flex;
     align-items: center;
-    padding: 0 0.5em;
+    padding: 0 8px;
     box-sizing: border-box;
-    font-family: monospace;
-    border-bottom: 1px solid ${(props) => props.theme.borderColor};
+    color: ${(props) => props.theme.palette.text.primary};
+    font-family: ${(props) => props.theme.typography.fontFamily};
+    font-size: 0.86rem;
+    font-variant-numeric: tabular-nums;
+    border-right: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
     cursor: default !important;
 }
 .MythicResizableGrid-cellInner {
@@ -289,7 +331,7 @@ tspan {
 }
 .MuiPaper-root {
     border: 1px solid ${(props) => props.theme.borderColor};
-    border-radius: 5px;
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
     background-color: ${(props) => props.theme.palette.background.paper};
     background-image: unset;
 }
@@ -303,13 +345,13 @@ tspan {
 .MuiList-root {
     background-color: ${(props) => props.theme.palette.background.paper};
     border: 1px solid ${(props) => props.theme.borderColor};
-    border-radius: 3px;
-    line-height: 30px;
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    line-height: 28px;
 }
 .dropdownMenuColored {
     background-color: ${(props) => props.theme.palette.background.paper} !important;
     border: 1px solid ${(props) => props.theme.borderColor};
-    border-radius: 5px;
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
     //color: white;
 }
 // gets the title of the table
@@ -329,21 +371,21 @@ tspan {
     min-height: 2rem;
 }
 .selectedCallback {
-    background-color: ${(props) => props.theme.selectedCallbackColor + "CC"};
+    background-color: ${(props) => props.theme.table?.selected || props.theme.selectedCallbackColor + "CC"};
 }
 .selectedCallbackHierarchy {
-    background-color: ${(props) => props.theme.selectedCallbackHierarchyColor + "CC"};
+    background-color: ${(props) => props.theme.table?.selectedHierarchy || props.theme.selectedCallbackHierarchyColor + "CC"};
 }
 
 .MuiDataGrid-row.Mui-selected {
-    background-color: ${(props) => props.theme.selectedCallbackColor} !important;
+    background-color: ${(props) => props.theme.table?.selected || props.theme.selectedCallbackColor + "CC"} !important;
 }
 .roundedBottomCorners {
     border-bottom-left-radius: 4px;
     border-bottom-right-radius: 4px;
 }
 .MuiInputLabel-root {
-    color:  ${(props) => props.theme.borderColor} !important;
+    color:  ${(props) => props.theme.palette.text.secondary} !important;
 }
 .MuiOutlinedInput-notchedOutline {
     border-color: ${(props) => props.theme.borderColor} !important;
@@ -355,19 +397,22 @@ tspan {
     border-color: ${(props) => props.theme.borderColor} !important;
 }
 .Mui-focused {
-    border-color: ${(props) => props.theme.borderColor} !important;
+    border-color: ${(props) => props.theme.palette.primary.main} !important;
 }
 .MuiInputBase-input {
     border-color: ${(props) => props.theme.borderColor} !important;
 }
 .MuiInput-root::after {
-    border-color: ${(props) => props.theme.borderColor} !important;
+    border-color: ${(props) => props.theme.palette.primary.main} !important;
 }
 .MuiTableCell-root {
-    padding: 0 16px 0 16px;
+    padding: 6px 10px;
+    border-bottom: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    line-height: 1.35;
+    vertical-align: middle;
 }
 .MuiTabs-root {
-    min-height: 30px;
+    min-height: 34px;
 }
 .MuiTab-root {
     min-width: unset !important;
@@ -395,11 +440,11 @@ tspan {
     color: ${(props) => props.theme.outputTextColor};
 }
 .rounded-tab { 
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-    padding: 0 10px 0 10px;
+    border-top-left-radius: ${(props) => props.theme.shape.borderRadius}px;
+    border-top-right-radius: ${(props) => props.theme.shape.borderRadius}px;
+    padding: 2px 10px 0 10px;
     border-top: 1px solid ${(props) => props.theme.borderColor};
-    border-left: 2px solid ${(props) => props.theme.borderColor};
+    border-left: 1px solid ${(props) => props.theme.borderColor};
     border-right: 1px solid ${(props) => props.theme.borderColor};
     border-bottom: 1px solid ${(props) => props.theme.borderColor};
     position: relative;

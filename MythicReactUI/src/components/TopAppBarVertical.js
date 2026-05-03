@@ -92,14 +92,16 @@ const openedMixin = (theme) => ({
     overflowX: 'hidden',
     borderRadius: "0 !important",
     border: "0px !important",
-    backgroundColor: "unset !important",
+    background: `${theme.navigation.background} !important`,
+    backgroundColor: `${theme.navigation.backgroundColor} !important`,
 });
 const closedMixin = (theme) => ({
     overflowX: 'hidden',
     width: `calc(${theme.spacing(4)} + 1px)`,
     borderRadius: "0 !important",
     border: "0px !important",
-    backgroundColor: "unset !important",
+    background: `${theme.navigation.background} !important`,
+    backgroundColor: `${theme.navigation.backgroundColor} !important`,
     [theme.breakpoints.up('sm')]: {
       width: `calc(${theme.spacing(5)} + 1px)`,
       borderRadius: "0 !important",
@@ -112,18 +114,25 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
       flexShrink: 0,
       whiteSpace: 'nowrap',
       boxSizing: 'border-box',
-      background: `linear-gradient(180deg, ${theme.topAppBarColor}, ${theme.topAppBarBottomColor}) !important`,
-      backgroundColor: `unset !important`,
+      background: `${theme.navigation.background} !important`,
+      backgroundColor: `${theme.navigation.backgroundColor} !important`,
+      color: theme.navigation.text,
+      '& .MuiDrawer-paper': {
+        border: "0 !important",
+        borderRight: "0 !important",
+        borderRadius: "0 !important",
+        boxShadow: "none !important",
+      },
+      '& .MuiList-root': {
+        border: "0 !important",
+        borderRadius: "0 !important",
+      },
       [`& .${classes.listSubHeader}`]: {
-        //color: ` ${theme.navBarTextIconColor} !important`,
-        //backgroundColor: `${theme.topAppBarColor} !important`,
-        backgroundColor: "unset !important",
+        backgroundColor: "transparent !important",
       },
       [`& .${classes.listSubHeader}:hover`]: {
-        //backgroundColor: `${theme.topAppBarColor} !important`,
-        filter: `brightness(90%)`,
-        color: `${theme.navBarTextIconColor} !important`,
-        backgroundColor: "unset !important",
+        color: `${theme.navigation.text} !important`,
+        backgroundColor: `${theme.navigation.hover} !important`,
       },
       variants: [
         {
@@ -132,9 +141,16 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
             ...openedMixin(theme),
             '& .MuiDrawer-paper': {
                 ...openedMixin(theme),
-                backgroundColor: "unset !important",
+                background: `${theme.navigation.background} !important`,
+                backgroundColor: `${theme.navigation.backgroundColor} !important`,
+                border: "0 !important",
+                borderRight: "0 !important",
+                borderRadius: "0 !important",
+                boxShadow: "none !important",
                 '& .MuiList-root': {
-                    backgroundColor: "unset !important",
+                    backgroundColor: "transparent !important",
+                    border: "0 !important",
+                    borderRadius: "0 !important",
                 }
             },
           },
@@ -145,9 +161,16 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
             ...closedMixin(theme),
             '& .MuiDrawer-paper': {
                 ...closedMixin(theme),
-                backgroundColor: "unset !important",
+                background: `${theme.navigation.background} !important`,
+                backgroundColor: `${theme.navigation.backgroundColor} !important`,
+                border: "0 !important",
+                borderRight: "0 !important",
+                borderRadius: "0 !important",
+                boxShadow: "none !important",
                 '& .MuiList-root': {
-                    backgroundColor: "unset !important",
+                    backgroundColor: "transparent !important",
+                    border: "0 !important",
+                    borderRadius: "0 !important",
                 }
             },
           },
@@ -157,13 +180,22 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 );
 export const StyledListItem = styled(ListItem)(
     ({ theme }) => ({
-      paddingTop: "2px",
-      paddingLeft: "10px",
-      paddingRight: "10px",
-      marginTop: 0,
-      paddingBottom: "2px",
-      color: theme.navBarTextColor,
-      backgroundColor: "unset !important",
+      minHeight: "34px",
+      paddingTop: "4px",
+      paddingLeft: "8px",
+      paddingRight: "8px",
+      margin: "2px 4px",
+      paddingBottom: "4px",
+      borderRadius: theme.shape.borderRadius,
+      color: theme.navigation.text,
+      backgroundColor: "transparent !important",
+      "& .MuiListItemText-primary": {
+        fontSize: theme.typography.pxToRem(12.5),
+        fontWeight: 600,
+      },
+      "&:hover": {
+        backgroundColor: `${theme.navigation.hover} !important`,
+      },
     }),
 );
 export const StyledListItemIcon = styled(ListItemIcon)(
@@ -171,9 +203,10 @@ export const StyledListItemIcon = styled(ListItemIcon)(
         paddingTop:0,
         marginTop: 0,
         paddingBottom: 0,
-        minWidth: "45px",
-        //color: theme.navBarTextIconColor,
-        backgroundColor: "unset !important",
+        minWidth: "32px",
+        justifyContent: "center",
+        color: theme.navigation.icon,
+        backgroundColor: "transparent !important",
     }),
 );
 
@@ -758,33 +791,33 @@ export function TopAppBarVertical(props) {
     <>
       {me?.user?.current_operation_id ? (<EventFeedNotifications me={me} />) : null }
       <Drawer anchor="left" variant="permanent" open={menuOpen} onClose={handleDrawerClose}
-        style={{borderRight: "1px solid grey !important", backgroundColor: "unset !important"
-            }}>
+        PaperProps={{sx: {border: "0 !important", borderRight: "0 !important", borderRadius: "0 !important", boxShadow: "none !important"}}}
+        style={{background: theme.navigation.background, backgroundColor: theme.navigation.backgroundColor}}>
         <List style={{paddingTop: 0, marginTop: 0, height: "100%", display: "flex", flexDirection: "column",
-            backgroundColor: "unset !important",
-            borderBottom: "unset !important", borderLeft: "unset !important", borderTop: "unset !important"}}>
-          <ListItem className={classes.listSubHeader} style={{marginTop:0, paddingTop: 0, paddingLeft: "2px", paddingBottom: 0}}>
+            backgroundColor: "transparent !important",
+            border: "0 !important", borderRadius: 0}}>
+          <ListItem className={classes.listSubHeader} style={{margin: "4px 4px 6px", paddingTop: "5px", paddingLeft: "4px", paddingBottom: "5px", borderRadius: theme.shape.borderRadius}}>
             <ListItemIcon >
-                <img src={ReactLogo} onClick={()=>navigate('/new')} width={"40px"} height={"35px"}/>
+                <img src={ReactLogo} onClick={()=>navigate('/new')} width={"40px"} height={"35px"} alt="Mythic" style={{cursor: "pointer"}}/>
             </ListItemIcon>
             <ListItemText style={{margin: 0}} primary={
                 <>
-                    <Typography style={{ fontSize: 12, color: theme.navBarTextColor, display: "inline-block"}}>
+                    <Typography style={{ fontSize: 12, color: theme.navigation.muted, display: "inline-block", lineHeight: 1.35}}>
                         <b>Mythic:</b> v{serverVersion}<br/>
                         <b>UI:</b> v{mythicUIVersion}<br/>
                     </Typography>
-                    <IconButton onClick={props.toggleTheme} style={{float:"right", display: menuOpen ? "" : "none"}} >
+                    <IconButton onClick={props.toggleTheme} style={{float:"right", display: menuOpen ? "" : "none", color: theme.navigation.icon}} >
                         {theme.palette.mode === 'light' &&
-                            <DarkModeTwoToneIcon style={{color: "#2f0e67"}} fontSize={"medium"} className="mythicElement" />
+                            <DarkModeTwoToneIcon style={{color: theme.navigation.icon}} fontSize={"medium"} className="mythicElement" />
                         }
                         {theme.palette.mode === 'dark' &&
-                            <LightModeTwoToneIcon style={{color: '#eacc1b'}} fontSize={"medium"} className="mythicElement" />
+                            <LightModeTwoToneIcon style={{color: theme.palette.warning.main}} fontSize={"medium"} className="mythicElement" />
                         }
                     </IconButton>
                 </>
             } />
           </ListItem>
-          <StyledListItem className={classes.listSubHeader} onClick={toggleDrawerOpen} style={{height: "30px"}} >
+          <StyledListItem className={classes.listSubHeader} onClick={toggleDrawerOpen} style={{height: "32px"}} >
             <StyledListItemIcon ><MenuIcon style={{color: theme.navBarTextIconColor}} onClick={toggleDrawerOpen} fontSize={"medium"} className="mythicElement" /></StyledListItemIcon>
             <ListItemText primary={
               <>
@@ -815,10 +848,10 @@ export function TopAppBarVertical(props) {
 
             } />
         </StyledListItem>
-            <Divider style={{borderColor: "white"}} />
+            <Divider style={{borderColor: theme.navigation.muted, margin: "4px 8px"}} />
             <div style={{flexGrow: 1, overflowY: "auto", overflowX: "hidden"}}>
                 {getShortcuts({shortcuts: sideShortcuts})}
-                <Divider style={{borderColor: "white"}} />
+                <Divider style={{borderColor: theme.navigation.muted, margin: "4px 8px"}} />
                 <StyledListItem className={classes.listSubHeader} onClick={handleToggleExtra}>
                     <StyledListItemIcon>
                         <MoreHorizIcon style={{color: theme.navBarTextIconColor}} fontSize={"medium"} />
@@ -827,7 +860,7 @@ export function TopAppBarVertical(props) {
                     {openExtra ? <ExpandLess /> : <ExpandMore />}
                 </StyledListItem>
                 {openExtra &&  getExtraShortcuts()}
-                <Divider style={{borderColor: "white"}} />
+                <Divider style={{borderColor: theme.navigation.muted, margin: "4px 8px"}} />
                 <div className={classes.listSubHeader} style={{ flexGrow: 1}}></div>
             </div>
           <TopBarRightShortcutsVertical me={me} menuOpen={menuOpen} serverName={serverName} />

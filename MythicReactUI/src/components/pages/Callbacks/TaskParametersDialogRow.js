@@ -801,7 +801,7 @@ export function TaskParametersDialogRow(props){
                 )
             case "Array":
                 return (
-                    <TableContainer >
+                    <TableContainer className="mythicElement">
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 <TableRow>
@@ -846,7 +846,7 @@ export function TaskParametersDialogRow(props){
                 )
             case "TypedArray":
                 return (
-                    <TableContainer >
+                    <TableContainer className="mythicElement">
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 <TableRow>

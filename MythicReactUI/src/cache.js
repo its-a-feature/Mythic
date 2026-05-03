@@ -25,9 +25,9 @@ export const defaultShortcuts = [
     "CreatePayload", "Eventing",
 ].sort();
 export const operatorSettingDefaults =  {
-    fontSize: 12,
+    fontSize: 13,
     navBarOpen: false,
-    fontFamily: "Verdana, Arial, sans-serif",
+    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     showMedia: true,
     hideUsernames: false,
     showIP: false,
@@ -47,36 +47,36 @@ export const operatorSettingDefaults =  {
     sideShortcuts: defaultShortcuts,
     palette: {
         primary: {
-            dark: "#75859b",
-            light: "#75859b",
+            dark: "#8ab4f8",
+            light: "#2563eb",
         },
         error: {
-            dark: '#bd5142',
-            light: '#c42c32'
+            dark: '#f87171',
+            light: '#dc2626'
         },
         success: {
-            dark: '#85b089',
-            light: '#0e7004',
+            dark: '#4ade80',
+            light: '#15803d',
         },
         secondary: {
-            dark: '#bebebe',
-            light: '#a6a5a5'
+            dark: '#94a3b8',
+            light: '#64748b'
         },
         info: {
-            dark: '#84b4dc',
-            light: '#4990b2'
+            dark: '#38bdf8',
+            light: '#0284c7'
         },
         warning: {
-            dark: "#dc8455",
-            light: "#ffb74d",
+            dark: "#fbbf24",
+            light: "#d97706",
         },
         background: {
-            dark: '#282828',
-            light: '#f6f6f6'
+            dark: '#0f141b',
+            light: '#f4f6f8'
         },
         paper: {
-            dark: '#282828',
-            light: '#ececec'
+            dark: '#161b22',
+            light: '#ffffff'
         },
         tableHeader: {
             dark: '#484848',
@@ -87,20 +87,20 @@ export const operatorSettingDefaults =  {
             light: "#e8e8e8",
         },
         pageHeader: {
-            dark: '#1b2025',
-            light: '#706c6e'
+            dark: '#171d25',
+            light: '#ffffff'
         },
         text: {
-            dark: "#e4e4e4",
-            light: "#000000",
+            dark: "#e5e7eb",
+            light: "#111827",
         },
         selectedCallbackColor: {
-            dark: '#26456e',
-            light: '#c6e5f6',
+            dark: '#1e3a5f',
+            light: '#dbeafe',
         },
         selectedCallbackHierarchyColor: {
-            dark: '#273e5d',
-            light: '#deeff8',
+            dark: '#22324c',
+            light: '#eef4ff',
         },
         backgroundImage: {
             dark: null,
@@ -115,48 +115,48 @@ export const operatorSettingDefaults =  {
             light: '#ffffff'
         },
         navBarColor: {
-            dark: "#194573",
-            light: "#3b606d",
+            dark: "#111827",
+            light: "#111827",
         },
         navBarBottomColor: {
-            dark: "#330814",
-            light: "#283581",
+            dark: "#1f2937",
+            light: "#1f2937",
         },
         taskPromptTextColor: {
-            dark: '#bebebe',
-            light: '#a6a5a5'
+            dark: '#9ca3af',
+            light: '#64748b'
         },
         taskPromptCommandTextColor: {
-            dark: "#e4e4e4",
-            light: "#000000",
+            dark: "#f8fafc",
+            light: "#111827",
         },
         taskContextColor: {
-            dark: "#122848",
-            light: "#acc0da",
+            dark: "#14253d",
+            light: "#dbeafe",
         },
         taskContextImpersonationColor: {
-            dark: "#641616",
-            light: "#dec0c0",
+            dark: "#4c1d20",
+            light: "#fee2e2",
         },
         taskContextExtraColor: {
-            dark: "#2a5953",
-            light: "#a7ce9d",
+            dark: "#123d39",
+            light: "#dcfce7",
         },
         emptyFolderColor: {
-            dark: '#bebebe',
-            light: '#a6a5a5'
+            dark: '#94a3b8',
+            light: '#64748b'
         },
         outputBackgroundColor: {
-            dark: '#282828',
-            light: '#f6f6f6'
+            dark: '#0b1017',
+            light: '#f8fafc'
         },
         outputTextColor: {
-            dark: '#f6f6f6',
-            light: '#282828',
+            dark: '#e5e7eb',
+            light: '#111827',
         },
         borderColor: {
-            dark: "#595858",
-            light: "#c5c5c5"
+            dark: "#2f3742",
+            light: "#d9dee7"
         }
     },
 }
@@ -227,4 +227,3 @@ export const FailedRefresh = (restart_websockets) =>{
     }
 
 }
-

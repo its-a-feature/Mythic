@@ -10,6 +10,7 @@ import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import LinearProgress from '@mui/material/LinearProgress';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
@@ -93,6 +94,7 @@ export function PayloadTypeCommandDialog({service, payload_name, onClose}) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{payload_name}'s Commands</DialogTitle>
         <DialogContent dividers={true} style={{padding: 0}}>
+            <TableContainer className="mythicElement" style={{height: "100%"}}>
             <Table size="small" stickyHeader={true} aria-label="details"
                    style={{"tableLayout": "fixed", "overflowWrap": "break-word", overflowY:"auto", width: "100%", height: "100%"}}>
                 <TableHead>
@@ -136,6 +138,7 @@ export function PayloadTypeCommandDialog({service, payload_name, onClose}) {
                     }
                 </TableBody>
             </Table>
+            </TableContainer>
             {openScriptDialog.open &&
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openScriptDialog.open}
                               onClose={()=>{setOpenScriptDialog({open: false, command_id: 0});}}
@@ -226,6 +229,7 @@ export function ScriptingCommandDialog({command_id, command_name, onClose}){
                                 Parameter Group: {paramGroup[0].parameter_group_name}
                             </Typography>
                         </Paper>
+                        <TableContainer className="mythicElement">
                         <Table style={{tableLayout: "fixed"}}>
                             <TableHead>
                                 <TableRow>
@@ -373,6 +377,7 @@ export function ScriptingCommandDialog({command_id, command_name, onClose}){
                                 ))}
                             </TableBody>
                         </Table>
+                        </TableContainer>
 
                     </div>
                 ))}
@@ -385,4 +390,3 @@ export function ScriptingCommandDialog({command_id, command_name, onClose}){
         </React.Fragment>
     )
 }
-

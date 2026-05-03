@@ -7,6 +7,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import {useMutation, gql} from '@apollo/client';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import TableRow from '@mui/material/TableRow';
 
 import {snackActions} from "../../utilities/Snackbar";
@@ -52,6 +53,7 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
                 <DialogContentText>
                     These files can be accessed via `workflow.filename` in a step's inputs.
                 </DialogContentText>
+                <TableContainer className="mythicElement">
                 <Table>
                     <TableBody>
                         {selectedEventGroup.filemeta.map( e => (
@@ -59,6 +61,7 @@ export function EventFileManageDialog({onClose, selectedEventGroup}) {
                         ))}
                     </TableBody>
                 </Table>
+                </TableContainer>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} variant="contained" color="primary">

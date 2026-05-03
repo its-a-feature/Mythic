@@ -293,7 +293,7 @@ export function CreateInviteLinksDialog(props) {
             <DialogContentText>
                 <b style={{marginLeft: "10px"}}>{"Note:"}</b> Invite links are deleted if Mythic restarts
             </DialogContentText>
-            <TableContainer >
+            <TableContainer className="mythicElement">
                 <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll", marginRight: "10px"}}>
                     <TableBody>
                         <TableRow hover>
@@ -367,4 +367,3 @@ export function CreateInviteLinksDialog(props) {
         </React.Fragment>
     );
 }
-

@@ -9,6 +9,7 @@ import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import LinearProgress from '@mui/material/LinearProgress';
 import { getDefaultChoices } from '../CreatePayload/Step2SelectPayloadType';
@@ -99,6 +100,7 @@ export function PayloadTypeBuildDialog(props) {
           <DialogContentText>
             These are the build parameters associated with this payload
           </DialogContentText>
+            <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{"tableLayout": "fixed", "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -135,6 +137,7 @@ export function PayloadTypeBuildDialog(props) {
                   }
                 </TableBody>
               </Table>
+            </TableContainer>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={props.onClose} color="primary">
@@ -144,4 +147,3 @@ export function PayloadTypeBuildDialog(props) {
   </React.Fragment>
   );
 }
-

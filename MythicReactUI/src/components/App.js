@@ -62,6 +62,438 @@ query getUserSettings {
 }
 `;
 
+const getModernThemeAdditions = (themeMode, preferences = operatorSettingDefaults) => {
+    const isDark = themeMode === "dark";
+    const mode = isDark ? "dark" : "light";
+    const safePreferences = preferences || operatorSettingDefaults;
+    const getColor = (key) => {
+        return safePreferences?.palette?.[key]?.[mode] || operatorSettingDefaults.palette[key][mode];
+    };
+    const withAlpha = (color, alphaHex) => {
+        if(typeof color === "string" && color.startsWith("#") && color.length === 7){
+            return `${color}${alphaHex}`;
+        }
+        return color;
+    };
+    const textPrimary = getColor("text");
+    const textSecondary = isDark ? "#9ca3af" : "#475569";
+    const borderColor = getColor("borderColor");
+    const backgroundDefault = getColor("background");
+    const backgroundPaper = getColor("paper");
+    const navBackground = getColor("navBarColor");
+    const navAccent = getColor("navBarBottomColor");
+    const navText = getColor("navBarText");
+    const navIcon = getColor("navBarIcons");
+    const primary = getColor("primary");
+    const tableHeaderColor = getColor("tableHeader");
+    const tableHoverColor = getColor("tableHover");
+    const tableRowStripeColor = withAlpha(tableHoverColor, isDark ? "55" : "66");
+    const tableRowHoverColor = withAlpha(tableHoverColor, "CC");
+    const hoverColor = tableRowHoverColor;
+    const tableSelectedColor = withAlpha(getColor("selectedCallbackColor"), "CC");
+    const tableSelectedHierarchyColor = withAlpha(getColor("selectedCallbackHierarchyColor"), "CC");
+    const tableBorderSoft = withAlpha(borderColor, isDark ? "AA" : "CC");
+
+    return {
+        shape: {
+            borderRadius: 6,
+        },
+        pageHeaderText: {
+            main: textPrimary,
+        },
+        navigation: {
+            background: `linear-gradient(180deg, ${navBackground}, ${navAccent})`,
+            backgroundColor: navBackground,
+            border: borderColor,
+            hover: withAlpha(getColor("tableHover"), "66"),
+            selected: withAlpha(getColor("selectedCallbackColor"), "99"),
+            text: navText,
+            icon: navIcon,
+            muted: withAlpha(navText, "B3"),
+            accent: navAccent,
+        },
+        surfaces: {
+            app: backgroundDefault,
+            paper: backgroundPaper,
+            raised: isDark ? "#1b222c" : "#ffffff",
+            muted: isDark ? withAlpha(backgroundDefault, "DD") : withAlpha(backgroundDefault, "EE"),
+            hover: tableRowHoverColor,
+            selected: tableSelectedColor,
+        },
+        table: {
+            header: tableHeaderColor,
+            headerHover: tableRowHoverColor,
+            rowStripe: tableRowStripeColor,
+            rowHover: tableRowHoverColor,
+            selected: tableSelectedColor,
+            selectedHierarchy: tableSelectedHierarchyColor,
+            border: borderColor,
+            borderSoft: tableBorderSoft,
+        },
+        typography: {
+            fontSize: safePreferences?.fontSize || operatorSettingDefaults.fontSize,
+            fontFamily: safePreferences?.fontFamily || operatorSettingDefaults.fontFamily,
+            h5: {
+                fontWeight: 650,
+                letterSpacing: 0,
+            },
+            h6: {
+                fontWeight: 650,
+                letterSpacing: 0,
+            },
+            subtitle1: {
+                fontWeight: 650,
+            },
+            button: {
+                textTransform: "none",
+                fontWeight: 650,
+                letterSpacing: 0,
+            },
+        },
+        components: {
+            MuiCssBaseline: {
+                styleOverrides: {
+                    body: {
+                        backgroundColor: backgroundDefault,
+                        color: textPrimary,
+                        WebkitFontSmoothing: "antialiased",
+                        MozOsxFontSmoothing: "grayscale",
+                    },
+                },
+            },
+            MuiPaper: {
+                defaultProps: {
+                    elevation: 0,
+                },
+                styleOverrides: {
+                    root: {
+                        backgroundImage: "none",
+                        boxShadow: "none",
+                    },
+                },
+            },
+            MuiButton: {
+                defaultProps: {
+                    disableElevation: true,
+                    size: "small",
+                },
+                styleOverrides: {
+                    root: {
+                        minHeight: 30,
+                        borderRadius: 6,
+                        textTransform: "none",
+                        fontWeight: 650,
+                    },
+                    contained: {
+                        boxShadow: "none",
+                    },
+                },
+            },
+            MuiIconButton: {
+                styleOverrides: {
+                    root: {
+                        borderRadius: 6,
+                        padding: 5,
+                        color: textSecondary,
+                        "&:hover": {
+                            backgroundColor: hoverColor,
+                            color: textPrimary,
+                        },
+                    },
+                },
+            },
+            MuiAppBar: {
+                styleOverrides: {
+                    root: {
+                        backgroundImage: "none",
+                        boxShadow: "none",
+                        borderBottom: `1px solid ${borderColor}`,
+                    },
+                },
+            },
+            MuiDialog: {
+                styleOverrides: {
+                    paper: {
+                        borderRadius: 8,
+                        border: `1px solid ${borderColor}`,
+                        backgroundImage: "none",
+                        boxShadow: isDark ? "0 24px 80px rgba(0, 0, 0, 0.45)" : "0 24px 80px rgba(15, 23, 42, 0.14)",
+                    },
+                },
+            },
+            MuiDialogTitle: {
+                styleOverrides: {
+                    root: {
+                        padding: "10px 14px",
+                        fontSize: "1rem",
+                        fontWeight: 650,
+                        borderBottom: `1px solid ${borderColor}`,
+                    },
+                },
+            },
+            MuiDialogContent: {
+                styleOverrides: {
+                    root: {
+                        padding: "12px 14px",
+                    },
+                },
+            },
+            MuiDialogActions: {
+                styleOverrides: {
+                    root: {
+                        gap: 8,
+                        padding: "10px 14px",
+                        borderTop: `1px solid ${borderColor}`,
+                    },
+                },
+            },
+            MuiOutlinedInput: {
+                styleOverrides: {
+                    root: {
+                        borderRadius: 6,
+                        backgroundColor: backgroundPaper,
+                        "&:hover .MuiOutlinedInput-notchedOutline": {
+                            borderColor: textSecondary,
+                        },
+                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                            borderColor: primary,
+                            borderWidth: 1,
+                        },
+                    },
+                    notchedOutline: {
+                        borderColor,
+                    },
+                },
+            },
+            MuiInput: {
+                styleOverrides: {
+                    root: {
+                        "&:before": {
+                            borderBottomColor: borderColor,
+                        },
+                        "&:after": {
+                            borderBottomColor: primary,
+                        },
+                    },
+                },
+            },
+            MuiInputBase: {
+                styleOverrides: {
+                    root: {
+                        fontSize: "0.92rem",
+                    },
+                },
+            },
+            MuiInputLabel: {
+                styleOverrides: {
+                    root: {
+                        color: textSecondary,
+                        "&.Mui-focused": {
+                            color: primary,
+                        },
+                    },
+                },
+            },
+            MuiTabs: {
+                styleOverrides: {
+                    root: {
+                        minHeight: 34,
+                    },
+                    indicator: {
+                        height: 2,
+                        borderRadius: 2,
+                    },
+                },
+            },
+            MuiTab: {
+                styleOverrides: {
+                    root: {
+                        minHeight: 34,
+                        padding: "6px 10px",
+                        textTransform: "none",
+                        fontSize: "0.82rem",
+                        fontWeight: 650,
+                        letterSpacing: 0,
+                    },
+                },
+            },
+            MuiMenu: {
+                styleOverrides: {
+                    paper: {
+                        border: `1px solid ${borderColor}`,
+                        borderRadius: 8,
+                        boxShadow: isDark ? "0 18px 48px rgba(0, 0, 0, 0.40)" : "0 18px 48px rgba(15, 23, 42, 0.12)",
+                    },
+                },
+            },
+            MuiList: {
+                styleOverrides: {
+                    root: {
+                        backgroundImage: "none",
+                    },
+                },
+            },
+            MuiTooltip: {
+                styleOverrides: {
+                    tooltip: {
+                        borderRadius: 6,
+                        fontSize: 12,
+                    },
+                },
+            },
+            MuiAccordion: {
+                styleOverrides: {
+                    root: {
+                        boxShadow: "none",
+                        "&:before": {
+                            display: "none",
+                        },
+                    },
+                },
+            },
+            MuiChip: {
+                styleOverrides: {
+                    root: {
+                        borderRadius: 5,
+                        fontWeight: 650,
+                    },
+                },
+            },
+            MuiTableContainer: {
+                styleOverrides: {
+                    root: {
+                        backgroundColor: backgroundPaper,
+                        borderRadius: 6,
+                    },
+                },
+            },
+            MuiTable: {
+                styleOverrides: {
+                    root: {
+                        backgroundColor: backgroundPaper,
+                        borderCollapse: "separate",
+                        borderSpacing: 0,
+                    },
+                },
+            },
+            MuiTableCell: {
+                styleOverrides: {
+                    root: {
+                        borderBottom: `1px solid ${tableBorderSoft}`,
+                        color: textPrimary,
+                        fontSize: "0.86rem",
+                        lineHeight: 1.35,
+                        padding: "6px 10px",
+                        verticalAlign: "middle",
+                    },
+                    head: {
+                        backgroundColor: tableHeaderColor,
+                        borderBottom: `1px solid ${borderColor}`,
+                        borderTop: 0,
+                        color: textPrimary,
+                        fontSize: "0.76rem",
+                        fontWeight: 700,
+                        letterSpacing: 0,
+                        textTransform: "uppercase",
+                        whiteSpace: "nowrap",
+                    },
+                    stickyHeader: {
+                        backgroundColor: tableHeaderColor,
+                        zIndex: 3,
+                    },
+                },
+            },
+            MuiTableRow: {
+                styleOverrides: {
+                    root: {
+                        "&:last-child .MuiTableCell-root": {
+                            borderBottom: 0,
+                        },
+                        "&.Mui-selected": {
+                            backgroundColor: tableSelectedColor,
+                            "&:hover": {
+                                backgroundColor: tableSelectedColor,
+                            },
+                        },
+                        "&.MuiTableRow-hover:hover": {
+                            backgroundColor: tableRowHoverColor,
+                        },
+                    },
+                },
+            },
+            MuiTableSortLabel: {
+                styleOverrides: {
+                    root: {
+                        color: textSecondary,
+                        "&.Mui-active": {
+                            color: textPrimary,
+                        },
+                        "&:hover": {
+                            color: textPrimary,
+                        },
+                    },
+                    icon: {
+                        color: `${textSecondary} !important`,
+                    },
+                },
+            },
+            MuiDataGrid: {
+                styleOverrides: {
+                    root: {
+                        backgroundColor: backgroundPaper,
+                        border: `1px solid ${borderColor}`,
+                        borderRadius: 6,
+                        color: textPrimary,
+                        fontSize: "0.86rem",
+                        "--DataGrid-rowBorderColor": tableBorderSoft,
+                        "--DataGrid-containerBackground": tableHeaderColor,
+                        "& .MuiDataGrid-columnHeaders": {
+                            backgroundColor: tableHeaderColor,
+                            borderBottom: `1px solid ${borderColor}`,
+                            minHeight: 34,
+                        },
+                        "& .MuiDataGrid-columnHeader": {
+                            backgroundColor: tableHeaderColor,
+                            color: textPrimary,
+                            fontWeight: 700,
+                        },
+                        "& .MuiDataGrid-columnHeaderTitle": {
+                            fontSize: "0.76rem",
+                            fontWeight: 700,
+                            letterSpacing: 0,
+                            textTransform: "uppercase",
+                        },
+                        "& .MuiDataGrid-cell": {
+                            borderBottom: `1px solid ${tableBorderSoft}`,
+                            outline: "none",
+                        },
+                        "& .MuiDataGrid-row:nth-of-type(even)": {
+                            backgroundColor: tableRowStripeColor,
+                        },
+                        "& .MuiDataGrid-row:hover": {
+                            backgroundColor: tableRowHoverColor,
+                        },
+                        "& .MuiDataGrid-row.Mui-selected": {
+                            backgroundColor: tableSelectedColor,
+                            "&:hover": {
+                                backgroundColor: tableSelectedColor,
+                            },
+                        },
+                        "& .MuiDataGrid-footerContainer": {
+                            borderTop: `1px solid ${borderColor}`,
+                            minHeight: 34,
+                        },
+                        "& .MuiDataGrid-toolbarContainer": {
+                            borderBottom: `1px solid ${tableBorderSoft}`,
+                            minHeight: 34,
+                        },
+                    },
+                },
+            },
+        },
+    };
+};
+
 
 export function App(props) {
     const me = useReactiveVar(meState);
@@ -117,8 +549,17 @@ export function App(props) {
                         text: {
                             primary: themeMode === 'dark' ? preferences?.palette?.text?.dark || operatorSettingDefaults.palette.text.dark :
                                 preferences?.palette?.text?.light || operatorSettingDefaults.palette.text.light,
+                            secondary: themeMode === 'dark' ? '#9ca3af' : '#475569',
+                            disabled: themeMode === 'dark' ? '#6b7280' : '#94a3b8',
                             contrast: themeMode === 'dark' ? '#000' : '#fff',
                         },
+                        action: {
+                            hover: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.07)' : 'rgba(15, 23, 42, 0.06)',
+                            selected: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.11)' : 'rgba(37, 99, 235, 0.10)',
+                            focus: themeMode === 'dark' ? 'rgba(138, 180, 248, 0.20)' : 'rgba(37, 99, 235, 0.18)',
+                        },
+                        divider: themeMode === 'dark' ? preferences?.palette?.borderColor?.dark || operatorSettingDefaults.palette.borderColor.dark :
+                            preferences?.palette?.borderColor?.light || operatorSettingDefaults.palette.borderColor.light,
                         graphGroupRGBA: themeMode === 'dark' ? 'rgba(57, 76, 93, 0.5)' : 'rgba(211, 215, 232, 0.5)',
                         speedDialAction: themeMode === 'dark' ? '#495054' : '#ffffff',
                     },
@@ -168,6 +609,7 @@ export function App(props) {
                         preferences?.palette?.outputTextColor?.light || operatorSettingDefaults.palette.outputTextColor.light,
                     borderColor: themeMode === 'dark' ? preferences?.palette?.borderColor?.dark || operatorSettingDefaults.palette.borderColor.dark :
                         preferences?.palette?.borderColor?.light || operatorSettingDefaults.palette.borderColor.light,
+                    ...getModernThemeAdditions(themeMode, preferences),
                 })
             }catch(error){
                 console.log(error);
@@ -218,8 +660,17 @@ export function App(props) {
                         text: {
                             primary: themeMode === 'dark' ? operatorSettingDefaults.palette.text.dark :
                                 operatorSettingDefaults.palette.text.light,
+                            secondary: themeMode === 'dark' ? '#9ca3af' : '#475569',
+                            disabled: themeMode === 'dark' ? '#6b7280' : '#94a3b8',
                             contrast: themeMode === 'dark' ? '#000' : '#fff',
                         },
+                        action: {
+                            hover: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.07)' : 'rgba(15, 23, 42, 0.06)',
+                            selected: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.11)' : 'rgba(37, 99, 235, 0.10)',
+                            focus: themeMode === 'dark' ? 'rgba(138, 180, 248, 0.20)' : 'rgba(37, 99, 235, 0.18)',
+                        },
+                        divider: themeMode === 'dark' ? operatorSettingDefaults.palette.borderColor.dark :
+                            operatorSettingDefaults.palette.borderColor.light,
                         graphGroupRGBA: themeMode === 'dark' ? 'rgba(57, 76, 93, 0.5)' : 'rgba(211, 215, 232, 0.5)',
                         speedDialAction: themeMode === 'dark' ? '#495054' : '#ffffff',
                     },
@@ -259,9 +710,10 @@ export function App(props) {
                         fontSize: 12,//operatorSettingDefaults?.fontSize,
                         fontFamily: operatorSettingDefaults?.fontFamily
                     },
+                    ...getModernThemeAdditions(themeMode, operatorSettingDefaults),
                 })
             }
-        },[themeMode, loadingPreference, preferences.fontSize, preferences.fontFamily, preferences.palette]
+        },[themeMode, preferences]
     );
     const mountedRef = React.useRef(true);
     const [openRefreshDialog, setOpenRefreshDialog] = React.useState(false);
@@ -358,7 +810,7 @@ export function App(props) {
                             flexDirection: 'column',
                             overflow: "hidden",
                         }}>
-                            <div style={{height: "5px", width: "100%",  background: me.loggedIn ? `linear-gradient(25deg, ${theme.topAppBarColor}, ${theme.topAppBarBottomColor})` : ""}}/>
+                            <div style={{height: me.loggedIn ? "2px" : 0, width: "100%",  background: me.loggedIn ? `linear-gradient(90deg, ${theme.topAppBarColor}, ${theme.topAppBarBottomColor})` : ""}}/>
                             {me.loggedIn && me?.user?.current_operation_banner_text !== "" &&
                                 <Typography style={{
                                     backgroundColor: me?.user?.current_operation_banner_color,
@@ -366,7 +818,9 @@ export function App(props) {
                                     textAlign: "center",
                                     fontWeight: "600",
                                     color: "white",
-                                    border: `1px solid ${theme.topAppBarColor || "grey"}`
+                                    borderBottom: `1px solid ${theme.borderColor}`,
+                                    fontSize: theme.typography.pxToRem(12),
+                                    lineHeight: "24px",
                                 }}>
                                     {me?.user?.current_operation_banner_text}
                                 </Typography>
@@ -379,7 +833,9 @@ export function App(props) {
                                     textAlign: "center",
                                     fontWeight: "600",
                                     color: "white",
-                                    border: `1px solid ${theme.topAppBarColor || "grey"}`
+                                    borderBottom: `1px solid ${theme.borderColor}`,
+                                    fontSize: theme.typography.pxToRem(12),
+                                    lineHeight: "24px",
                                 }}>
                                     {"Can't connect to Mythic. Please check connection and refresh"}
                                 </Typography>

@@ -2,6 +2,7 @@ import React from 'react';
 import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import {useQuery, gql, useMutation} from '@apollo/client';
 import FormControl from '@mui/material/FormControl';
@@ -122,6 +123,7 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
                 <b>Note:</b> Having <b>no</b> group entries will hide all information from this callback from your FileBrowser and ProcessBrowser views.
             </div>
           <DialogContent dividers={true}>
+            <TableContainer className="mythicElement">
             <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word"}}>
                 <TableHead>
                 </TableHead>
@@ -167,6 +169,7 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
 
                 </TableBody>
             </Table>
+            </TableContainer>
           </DialogContent>
           <DialogActions>
             <Button onClick={props.onClose} variant="contained" color="primary">
@@ -190,4 +193,3 @@ export function ModifyCallbackMythicTreeGroupsDialog(props){
         </React.Fragment>
         )
 }
-

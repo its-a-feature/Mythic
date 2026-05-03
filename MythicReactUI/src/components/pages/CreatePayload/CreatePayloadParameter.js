@@ -586,7 +586,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 );
             case "Array":
                 return (
-                    <TableContainer >
+                    <TableContainer className="mythicElement">
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {arrayValue.map( (a, i) => (
@@ -616,7 +616,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 );
             case "TypedArray":
                 return (
-                    <TableContainer >
+                    <TableContainer className="mythicElement">
                         <Table size="small" style={{tableLayout: "fixed", maxWidth: "100%", "overflow": "auto"}}>
                             <TableBody>
                                 {typedArrayValue.map( (a, i) => (
@@ -819,4 +819,3 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             </TableRow>
         )
 }
-

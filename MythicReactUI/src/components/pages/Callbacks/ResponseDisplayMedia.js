@@ -49,7 +49,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import DownloadIcon from '@mui/icons-material/Download';
 import {b64DecodeUnicode} from "./ResponseDisplay";
 import {MythicDialog, TableRowSizeCell} from "../../MythicComponents/MythicDialog";
-import {Table, TableHead, TableRow, TableBody, TableCell, Paper} from '@mui/material';
+import {Table, TableContainer, TableHead, TableRow, TableBody, TableCell, Paper} from '@mui/material';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import WarningOutlinedIcon from '@mui/icons-material/WarningOutlined';
 import {TagsDisplay, ViewEditTags} from "../../MythicComponents/MythicTag";
@@ -376,6 +376,7 @@ export const DisplayMedia = ({agent_file_id, filename, expand, task, fileMetaDat
 const MaxRenderSize = 2000000; // 2MB
 const DisplayFileMetaData = ({fileMetaData}) => {
     return (
+        <TableContainer className="mythicElement">
         <Table style={{marginLeft: "0px", width: "100%", tableLayout: "fixed"}}>
             <TableHead>
                 <TableRow>
@@ -423,6 +424,7 @@ const DisplayFileMetaData = ({fileMetaData}) => {
                 </TableRow>
             </TableBody>
         </Table>
+        </TableContainer>
     )
 }
 const DisplayText = ({agent_file_id, expand, filename, preview, fileMetaData}) => {
@@ -895,6 +897,7 @@ const DisplayDatabaseResult = ({result}) => {
     const [columns, setColumns] = React.useState(result.columns);
     const [rows, setRows] = React.useState(result.values?.slice(0, MAX_ROWS));
     return (
+        <TableContainer className="mythicElement" style={{height: "100%", position: "relative"}}>
         <Table stickyHeader style={{width: "100%", height: "100%", position: "absolute"}}>
             <TableHead >
                 <TableRow>
@@ -915,5 +918,6 @@ const DisplayDatabaseResult = ({result}) => {
                 ))}
             </TableBody>
         </Table>
+        </TableContainer>
     )
 }

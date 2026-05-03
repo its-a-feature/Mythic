@@ -3,6 +3,7 @@ import TableRow from '@mui/material/TableRow';
 import Table from '@mui/material/Table';
 import TableCell from '@mui/material/TableCell';
 import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import {useQuery, gql} from '@apollo/client';
 import DialogActions from '@mui/material/DialogActions';
@@ -111,6 +112,7 @@ export function ViewCallbackMythicTreeGroupsDialog(props){
               <Backdrop open={backdropOpen} style={{zIndex: 2, position: "absolute"}} invisible={false}>
                   <CircularProgress color="inherit" />
               </Backdrop>
+            <TableContainer className="mythicElement">
             <Table stickyHeader={true} size="small" style={{ "overflowWrap": "break-word", width: "100%"}}>
                 <TableHead>
                     <TableRow>
@@ -154,6 +156,7 @@ export function ViewCallbackMythicTreeGroupsDialog(props){
                     ))}
                 </TableBody>
             </Table>
+            </TableContainer>
           </DialogContent>
           <DialogActions>
             <Button onClick={props.onClose} variant="contained" color="primary">
@@ -240,6 +243,7 @@ export function ViewAllCallbackMythicTreeGroupsDialog(props){
                                 {g.group}
                             </Typography>
                         </Paper>
+                        <TableContainer className="mythicElement">
                         <Table size="small" aria-label="details" style={{ "overflowWrap": "break-word", width: "100%"}}>
                             <TableHead>
                                 <TableRow>
@@ -283,6 +287,7 @@ export function ViewAllCallbackMythicTreeGroupsDialog(props){
                                 ))}
                             </TableBody>
                         </Table>
+                        </TableContainer>
                     </div>
 
                 ))}

@@ -8,7 +8,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useReactiveVar } from '@apollo/client';
 import {meState} from "../../../cache";
-import {Table, TableBody, TableHead, TableRow, Typography, IconButton, Paper, Switch} from '@mui/material';
+import {Table, TableBody, TableContainer, TableHead, TableRow, Typography, IconButton, Paper, Switch} from '@mui/material';
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
@@ -632,7 +632,7 @@ const CreateEventingStep1 = ({finished, back, first, last, cancel, prevData}) =>
     }, [prevData]);
     return (
         <>
-            <div style={{flexGrow: 1, width: "100%", display: "flex", flexDirection: "column", overflowY: "auto"}}>
+            <TableContainer className="mythicElement" style={{flexGrow: 1, width: "100%", display: "flex", flexDirection: "column", overflowY: "auto"}}>
                 <Table style={{tableLayout: "fixed", width: "100%",}}>
                     <TableHead >
                         <TableRow>
@@ -742,7 +742,7 @@ const CreateEventingStep1 = ({finished, back, first, last, cancel, prevData}) =>
                         </TableRow>
                     </TableBody>
                 </Table>
-            </div>
+            </TableContainer>
             <CreateEventingStepperNavigationButtons first={first} last={last} finished={finishedStep1} back={back} cancel={cancel} />
         </>
     )

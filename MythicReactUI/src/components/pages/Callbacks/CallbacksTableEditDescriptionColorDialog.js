@@ -10,15 +10,17 @@ import "ace-builds/src-noconflict/theme-github";
 import "ace-builds/src-noconflict/theme-monokai";
 import "ace-builds/src-noconflict/ext-searchbox";
 import {useTheme} from '@mui/material/styles';
-import {HexColorInput, HexColorPicker} from 'react-colorful';
 import Typography from '@mui/material/Typography';
+import {isValidHexColor, MythicColorSwatchInput} from '../../MythicComponents/MythicColorInput';
 
 export function CallbacksTableEditDescriptionColorDialog(props) {
   const [comment, setComment] = React.useState("");
   const [color, setColor] = React.useState("");
   const theme = useTheme();
     const onCommitSubmit = () => {
-        if(color === "ffffff" || color === "000000"){
+        const normalizedColor = color?.toLowerCase() || "";
+        if(normalizedColor === "" || normalizedColor === "ffffff" || normalizedColor === "#ffffff" ||
+            normalizedColor === "000000" || normalizedColor === "#000000"){
             props.onSubmit(comment, "");
         } else {
             props.onSubmit(comment, color);
@@ -39,6 +41,8 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
         }
         setColor(props.color);
     }, [props.description, props.color]);
+    const previewColor = isValidHexColor(color) ? color : "";
+    const previewBorder = previewColor === "" ? "1px dashed" : `2px solid ${previewColor}`;
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
@@ -61,14 +65,62 @@ export function CallbacksTableEditDescriptionColorDialog(props) {
                     showInvisibles: false,
                 }}
             />
-            <HexColorPicker color={color} onChange={setColor} style={{width: "100%"}} />
-            <HexColorInput color={color} onChange={setColor} style={{width: "80%"}} />
-            <Button onClick={()=>setColor("ffffff")} color={"success"}>
-                Clear
-            </Button>
-            <Box sx={{width: "100%", height: 25, backgroundColor: color}} >
-                <Typography style={{color: "white", display: "inline-block", marginRight: "10px"}}>DarkMode Text With Color Background</Typography>
-                <Typography style={{color: "black", display: "inline-block"}}>LightMode Text With Color Background</Typography>
+            <Box sx={{p: 1.5, borderTop: "1px solid", borderColor: "divider", backgroundColor: "background.paper"}}>
+                <Box
+                    sx={{
+                        p: 1.5,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: "8px",
+                    }}
+                >
+                    <Box sx={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, mb: 1}}>
+                        <Box sx={{minWidth: 0}}>
+                            <Typography variant="body2" sx={{fontWeight: 700}}>Callback Color</Typography>
+                            <Typography variant="caption" sx={{color: "text.secondary"}}>Callback row and tasking accent</Typography>
+                        </Box>
+                        <Box sx={{display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", justifyContent: "flex-end"}}>
+                            <MythicColorSwatchInput
+                                color={isValidHexColor(color) ? color : "#000000"}
+                                label="Callback color"
+                                onChange={setColor}
+                            />
+                            <Button onClick={() => setColor("")} color="success" variant="outlined" size="small">
+                                Clear
+                            </Button>
+                        </Box>
+                    </Box>
+                    <Box sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "1fr 1fr"}, gap: 1}}>
+                        <Box
+                            sx={{
+                                minHeight: 40,
+                                px: 1.5,
+                                display: "flex",
+                                alignItems: "center",
+                                borderRadius: "6px",
+                                border: previewBorder,
+                                borderColor: previewColor === "" ? "divider" : previewColor,
+                                backgroundColor: "#1f2937",
+                            }}
+                        >
+                            <Typography sx={{color: "#ffffff", fontWeight: 700}}>Dark callback row</Typography>
+                        </Box>
+                        <Box
+                            sx={{
+                                minHeight: 40,
+                                px: 1.5,
+                                display: "flex",
+                                alignItems: "center",
+                                borderRadius: "6px",
+                                border: previewBorder,
+                                borderColor: previewColor === "" ? "divider" : previewColor,
+                                backgroundColor: "#f8fafc",
+                            }}
+                        >
+                            <Typography sx={{color: "#111827", fontWeight: 700}}>Light callback row</Typography>
+                        </Box>
+                    </Box>
+                </Box>
             </Box>
         </DialogContent>
         <DialogActions>
