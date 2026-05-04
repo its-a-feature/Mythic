@@ -75,7 +75,7 @@ function getConfigEditorMode(parameterType, randomize, formatString){
     const parts = normalized.split(":");
     const tail = parts.slice(2);
     let languageHint = "text";
-    let randomFn = "";
+    let presetsFn = "";
     for(const raw of tail){
         const token = raw.trim();
         if(token === ""){ continue; }
@@ -87,9 +87,9 @@ function getConfigEditorMode(parameterType, randomize, formatString){
         }
         const key = token.slice(0, eq).trim().toLowerCase();
         const value = token.slice(eq + 1).trim();
-        if(key === "random_fn"){ randomFn = value; }
+        if(key === "presets_fn"){ presetsFn = value; }
     }
-    return {languageHint, randomFn};
+    return {languageHint, presetsFn};
 }
 function getConfigStatus(value, languageHint){
     const raw = (value ?? "");
@@ -168,7 +168,8 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
     };
     const [configEditorOpen, setConfigEditorOpen] = React.useState(false);
     const aceEditorRef = React.useRef(null);
-    const preRandomValueRef = React.useRef("");
+    const prePresetValueRef = React.useRef("");
+    const [configEditorPresets, setConfigEditorPresets] = React.useState([]);
     const [editorTab, setEditorTab] = React.useState('source');
     const [visualParseError, setVisualParseError] = React.useState("");
     const [value, setValue] = React.useState("");
@@ -260,15 +261,15 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
         onCompleted: (data) => {
             if(data?.c2CustomRPCFunction?.status === "success"){
                 const result = data.c2CustomRPCFunction.result || {};
-                const newValue = typeof result.value === "string" ? result.value : "";
-                if(newValue !== ""){
-                    const prev = preRandomValueRef.current;
-                    onChangeText(name, newValue, testParameterValues(newValue));
-                    if(prev !== ""){
-                        showUndoSnackbar("Random config generated.", prev);
-                    }
-                } else {
-                    snackActions.warning("Random generator returned no value");
+                if(Array.isArray(result.presets)){
+                    const cleaned = result.presets
+                        .filter(p => p && typeof p.filename === "string" && typeof p.content === "string")
+                        .map(p => ({
+                            filename: p.filename,
+                            label: typeof p.label === "string" && p.label.length > 0 ? p.label : p.filename,
+                            content: p.content,
+                        }));
+                    setConfigEditorPresets(cleaned);
                 }
             } else {
                 snackActions.warning(data?.c2CustomRPCFunction?.error || "Custom RPC failed");
@@ -279,18 +280,25 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
             console.log(err);
         }
     });
-    const onInvokeRandomFn = () => {
-        if(!configEditorMode || !configEditorMode.randomFn){ return; }
-        if(!c2_profile_name){
-            snackActions.warning("Random generate not available: missing c2 profile context");
-            return;
-        }
-        preRandomValueRef.current = value ?? "";
+    useEffect(() => {
+        if(!configEditorMode || !configEditorMode.presetsFn || !c2_profile_name){ return; }
         invokeC2CustomRPC({variables: {
             c2_profile: c2_profile_name,
-            function_name: configEditorMode.randomFn,
+            function_name: configEditorMode.presetsFn,
             arguments: {},
         }});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [c2_profile_name, configEditorMode?.presetsFn]);
+    const onSelectPreset = (filename) => {
+        if(!filename){ return; }
+        const preset = configEditorPresets.find(p => p.filename === filename);
+        if(!preset){ return; }
+        const prev = value ?? "";
+        prePresetValueRef.current = prev;
+        onChangeText(name, preset.content, testParameterValues(preset.content));
+        if(prev !== "" && prev !== preset.content){
+            showUndoSnackbar(`Loaded preset "${preset.label}".`, prev);
+        }
     };
     const reIssueDynamicQueryFunction = () => {
         setBackdropOpen(true);
@@ -950,7 +958,13 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                 if(configEditorMode !== null){
                     const aceMode = detectAceMode(configEditorMode.languageHint, value);
                     const status = getConfigStatus(value, configEditorMode.languageHint);
-                    const hasRandomFn = !!configEditorMode.randomFn;
+                    const hasPresets = !!configEditorMode.presetsFn && configEditorPresets.length > 0;
+                    const matchingPresetFilename = (() => {
+                        const v = value ?? "";
+                        if(v === ""){ return ""; }
+                        const match = configEditorPresets.find(p => p.content === v);
+                        return match ? match.filename : "";
+                    })();
                     const chipColor = status.kind === "invalid" ? "error" : status.kind === "set" ? "success" : "default";
                     return (
                         <React.Fragment>
@@ -960,10 +974,25 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                         Upload
                                         <input onChange={onConfigEditorUpload} type="file" hidden accept=".json,.toml,.txt,application/json,text/plain" />
                                     </Button>
-                                    {hasRandomFn && (
-                                        <Button variant="text" size="small" onClick={onInvokeRandomFn} disabled={c2CustomRPCLoading}>
-                                            {c2CustomRPCLoading ? "Generating…" : "Random"}
-                                        </Button>
+                                    {hasPresets && (
+                                        <FormControl size="small" style={{minWidth: "180px"}} disabled={c2CustomRPCLoading}>
+                                            <InputLabel id={"preset_label_" + id}>Preset</InputLabel>
+                                            <Select
+                                                labelId={"preset_label_" + id}
+                                                label="Preset"
+                                                value={matchingPresetFilename}
+                                                displayEmpty
+                                                renderValue={(selected) => {
+                                                    if(!selected){ return <em style={{opacity: 0.6}}>Choose a preset…</em>; }
+                                                    const p = configEditorPresets.find(x => x.filename === selected);
+                                                    return p ? p.label : selected;
+                                                }}
+                                                onChange={(e) => onSelectPreset(e.target.value)}>
+                                                {configEditorPresets.map(p => (
+                                                    <MenuItem key={p.filename} value={p.filename}>{p.label}</MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
                                     )}
                                     <Button variant="text" size="small" color="warning" onClick={onClearConfigEditor}>
                                         Clear
