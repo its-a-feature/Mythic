@@ -976,10 +976,7 @@ export function CreatePayloadParameter({onChange, parameter_type, default_value,
                                     </Button>
                                     {hasPresets && (
                                         <FormControl size="small" style={{minWidth: "180px"}} disabled={c2CustomRPCLoading}>
-                                            <InputLabel id={"preset_label_" + id}>Preset</InputLabel>
                                             <Select
-                                                labelId={"preset_label_" + id}
-                                                label="Preset"
                                                 value={matchingPresetFilename}
                                                 displayEmpty
                                                 renderValue={(selected) => {
