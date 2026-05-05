@@ -474,6 +474,12 @@ tspan {
     padding: 0.5rem;
     width: 100%;
 }
+.mythic-table-toolbar-search {
+    align-items: stretch;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.028)" : "rgba(0,0,0,0.012)"};
+    gap: 0.45rem;
+    padding: 0.45rem;
+}
 .mythic-table-toolbar-group {
     align-items: center;
     display: flex;
@@ -482,6 +488,9 @@ tspan {
     gap: 0.4rem;
     max-width: 100%;
     min-width: min(100%, 9rem);
+}
+.mythic-table-toolbar-search .mythic-table-toolbar-group {
+    gap: 0.35rem;
 }
 .mythic-table-toolbar-group-grow {
     flex: 1 1 20rem;
@@ -496,6 +505,10 @@ tspan {
     min-height: 32px;
     min-width: min(100%, 10rem);
     width: 100%;
+}
+.mythic-table-toolbar-search .mythic-toolbar-select,
+.mythic-table-toolbar-search .MythicTextField-root .MuiInputBase-root {
+    background-color: ${(props) => props.theme.palette.background.paper};
 }
 .mythic-toolbar-button {
     white-space: nowrap;
@@ -516,10 +529,33 @@ tspan {
     color: ${(props) => props.theme.palette.success.main} !important;
 }
 .mythic-toolbar-toggle {
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.025)"} !important;
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor} !important;
+    border-radius: ${(props) => props.theme.shape.borderRadius}px !important;
+    color: ${(props) => props.theme.palette.text.secondary} !important;
+    gap: 0.35rem;
+    min-height: 32px;
+    text-transform: none;
     white-space: nowrap;
 }
+.mythic-toolbar-toggle.Mui-selected {
+    background-color: ${(props) => props.theme.palette.primary.main + "18"} !important;
+    border-color: ${(props) => props.theme.palette.primary.main + "55"} !important;
+    color: ${(props) => props.theme.palette.primary.main} !important;
+}
+.mythic-toolbar-toggle:hover,
+.mythic-toolbar-toggle.Mui-selected:hover {
+    background-color: ${(props) => props.theme.palette.primary.main + "22"} !important;
+    border-color: ${(props) => props.theme.palette.primary.main + "77"} !important;
+    color: ${(props) => props.theme.palette.primary.main} !important;
+}
 .mythic-toolbar-icon-button {
+    color: ${(props) => props.theme.palette.text.secondary} !important;
     margin-right: 2px;
+}
+.mythic-toolbar-icon-button:hover {
+    background-color: ${(props) => props.theme.palette.primary.main + "16"} !important;
+    color: ${(props) => props.theme.palette.primary.main} !important;
 }
 .mythic-dialog-body {
     display: flex;

@@ -230,7 +230,7 @@ const SearchTabCallbacksSearchPanel = (props) => {
         }
     }, [props.value, props.index])
     return (
-        <MythicTableToolbar>
+        <MythicTableToolbar variant="search">
             <MythicTableToolbarGroup grow>
                 <MythicSearchField value={search} onChange={handleSearchValueChange} onEnter={submitSearch} onSearch={submitSearch} />
             </MythicTableToolbarGroup>

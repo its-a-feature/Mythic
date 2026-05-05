@@ -9,9 +9,9 @@ import Tooltip from '@mui/material/Tooltip';
 import SearchIcon from '@mui/icons-material/Search';
 import MythicTextField from './MythicTextField';
 
-export const MythicTableToolbar = ({children, className = "", style = {}}) => {
+export const MythicTableToolbar = ({children, className = "", style = {}, variant}) => {
     return (
-        <Box className={`mythic-table-toolbar ${className}`.trim()} style={style}>
+        <Box className={`mythic-table-toolbar ${variant ? `mythic-table-toolbar-${variant}` : ""} ${className}`.trim()} style={style}>
             {children}
         </Box>
     );
@@ -77,7 +77,7 @@ export const MythicSearchField = ({
                                     onClick={onSearch}
                                     size="small"
                                 >
-                                    <SearchIcon color="info" fontSize="small" />
+                                    <SearchIcon fontSize="small" />
                                 </IconButton>
                             </span>
                         </Tooltip>
