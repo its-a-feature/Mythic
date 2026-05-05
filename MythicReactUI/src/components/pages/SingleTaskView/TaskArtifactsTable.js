@@ -1,17 +1,14 @@
 import React, { useEffect } from 'react';
-import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
-import {useTheme} from '@mui/material/styles';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
+import {MythicPageHeaderChip, MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 
 export function TaskArtifactsTable(props){
    const [artifacts, setArtifacts] = React.useState([]);
-   const theme = useTheme();
 
    useEffect( () => {
     const condensed = props.tasks.reduce( (prev, tsk) => {
@@ -24,38 +21,37 @@ export function TaskArtifactsTable(props){
    if(artifacts.length === 0){
      return null
    }
+   const artifactCountLabel = artifacts.length === 1 ? "1 artifact" : `${artifacts.length} artifacts`;
   return (
-    <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                Artifact Tasks
-            </Typography>
-        </Paper>
-        
-        <Paper elevation={5} style={{position: "relative", backgroundColor: theme.body}}>
-        <TableContainer className="mythicElement">
-          <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
+    <div className="mythic-single-task-metadata-section">
+        <MythicSectionHeader
+            dense
+            title="Artifact Tasks"
+            subtitle="Artifacts created while these tasks executed."
+            actions={<MythicPageHeaderChip label={artifactCountLabel} />}
+        />
+        <TableContainer className="mythicElement mythic-single-task-table-wrap">
+          <Table className="mythic-single-task-table" size="small">
                 <TableHead>
                     <TableRow>
-                        <TableCell>Task ID</TableCell>
-                        <TableCell>Artifact Type</TableCell>
-                        <TableCell>Host</TableCell>
-                        <TableCell>Artifact</TableCell>
+                        <MythicStyledTableCell style={{width: "6rem"}}>Task ID</MythicStyledTableCell>
+                        <MythicStyledTableCell style={{width: "12rem"}}>Artifact Type</MythicStyledTableCell>
+                        <MythicStyledTableCell style={{width: "12rem"}}>Host</MythicStyledTableCell>
+                        <MythicStyledTableCell>Artifact</MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
                   {artifacts.map( (artifact) => (
                     <TableRow key={"artifact" + artifact.id} hover>
-                      <TableCell>{artifact.display_id}</TableCell>
-                      <TableCell>{artifact.base_artifact}</TableCell>
-                      <TableCell>{artifact.host}</TableCell>
-                      <TableCell>{artifact.artifact_text}</TableCell>
+                      <MythicStyledTableCell>{artifact.display_id}</MythicStyledTableCell>
+                      <MythicStyledTableCell>{artifact.base_artifact}</MythicStyledTableCell>
+                      <MythicStyledTableCell className="mythic-single-task-cell-break">{artifact.host}</MythicStyledTableCell>
+                      <MythicStyledTableCell className="mythic-single-task-cell-break">{artifact.artifact_text}</MythicStyledTableCell>
                     </TableRow>
                   ))}
                 </TableBody>
             </Table>
           </TableContainer>
-        </Paper>
-    </React.Fragment>
+    </div>
   );
 }
