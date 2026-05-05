@@ -21,6 +21,7 @@ import CategoryIcon from '@mui/icons-material/Category';
 import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
 import {MythicPageHeader, MythicPageHeaderChip} from "../../MythicComponents/MythicPageHeader";
 import {MythicToolbarButton, MythicToolbarToggle} from "../../MythicComponents/MythicTableToolbar";
+import {MythicStateChip} from "../../MythicComponents/MythicStateChip";
 
 const get_eventgroups = gql`
 query GetEventGroups {
@@ -180,6 +181,20 @@ const getEventGroupStatus = (eventGroup) => {
     }
     return {key: "runnable", label: "Runnable", rank: 0};
 };
+const getEventGroupStateChipState = (statusKey) => {
+    switch(statusKey){
+        case "runnable":
+            return "enabled";
+        case "needs_approval":
+            return "warning";
+        case "disabled":
+            return "disabled";
+        case "deleted":
+            return "error";
+        default:
+            return "neutral";
+    }
+}
 export function Eventing({me}){
     const [openTestModal, setOpenTestModal] = React.useState(false);
     const [openCreateEventingStepper, setOpenCreateEventingStepper] = React.useState(false);
@@ -428,7 +443,7 @@ export function Eventing({me}){
                                 <div className="mythic-eventing-list-item-content">
                                     <div className="mythic-eventing-list-item-main">
                                         <span className="mythic-eventing-list-item-name">All workflow runs</span>
-                                        <span className="mythic-eventing-row-chip mythic-eventing-row-chip-all">{visibleEventGroups.length}</span>
+                                        <MythicStateChip compact label={visibleEventGroups.length} state="info" />
                                     </div>
                                     <div className="mythic-eventing-list-item-meta">Review instances across all event groups</div>
                                 </div>
@@ -446,7 +461,7 @@ export function Eventing({me}){
                                                 <div className="mythic-eventing-list-item-content">
                                                     <div className="mythic-eventing-list-item-main">
                                                         <span className={`mythic-eventing-list-item-name ${eventGroup.deleted ? "mythic-eventing-list-item-name-deleted" : ""}`.trim()}>{eventGroup.name}</span>
-                                                        <span className={`mythic-eventing-row-chip mythic-eventing-row-chip-${status.key}`}>{status.label}</span>
+                                                        <MythicStateChip compact label={status.label} state={getEventGroupStateChipState(status.key)} />
                                                     </div>
                                                     <div className="mythic-eventing-list-item-meta">
                                                         <span>{eventGroup.trigger || "No trigger"}</span>
