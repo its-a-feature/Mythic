@@ -141,144 +141,116 @@ export function Step3SelectCommands(props){
     const updateSelectedCommands = (commands) => {
         selectedCommands.current = commands;
     }
+    const hasHoveredCommand = hoveredCommand?.cmd !== undefined;
+    const commandReason = hoveredCommand?.reason || "This command can be included or removed as needed";
     return (
-        <div style={{
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
-        }}>
-            {/* Content area that can grow */}
-            <div style={{
-                flexGrow: 1,
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "row",
-                minHeight: 0 // Important for flex shrinking
-            }}>
-                {/* Left section - fixed height */}
-                <div style={{
-                    padding: "5px",
-                    display: "flex",
-                    width: "60%",
-                    flexDirection: "column",
-                    minHeight: 0,
-                    overflow: "hidden" // Don't shrink this section
-                }}>
-                    <div style={{width: "100%", marginBottom: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px", display: "flex", flexShrink: 0}}>
-                        <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
-                        <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                            <b>Description: </b>{props.buildOptions.description}
-                        </Typography>
-                    </div>
-                    <div style={{width: "100%",
-                        //border: "1px solid grey",
-                        flexDirection: "column",
-                        borderRadius: "5px",
-                        //padding: "10px",
-                        flexGrow: 1, minHeight: 0, display: "flex"}}>
-                        <Typography variant={"p"} style={{fontWeight: 600}}>
-                            {"1. Select Commands to Include in the Payload"}
-                        </Typography>
-                        <div style={{flexGrow: 1, minHeight: 0, overflow: "hidden", display: "flex"}}>
-                            <CommandTransferSelect commands={commandOptions}
-                                                   payload_type={props.buildOptions["payload_type"]}
-                                                   first={props.first} last={props.last}
-                                                   updateSelectedCommands={updateSelectedCommands}
-                                                   setHoveredCommand={setHoveredCommand}/>
+        <div className="mythic-create-flow-shell">
+            <div className="mythic-create-flow-content">
+                <div className="mythic-create-builder-split" style={{gridTemplateColumns: "minmax(0, 0.6fr) minmax(18rem, 0.4fr)"}}>
+                    <section className="mythic-create-section mythic-create-section-fill mythic-create-section-plain">
+                        <div className="mythic-create-subsection" style={{flex: "0 0 auto"}}>
+                            <div className="mythic-create-agent-summary">
+                                <div className="mythic-create-agent-icon">
+                                    <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "100%", height: "100%", objectFit: "contain"}} />
+                                </div>
+                                <div className="mythic-create-meta-list">
+                                    <div>
+                                        <span className="mythic-create-meta-label">Selected payload type</span>
+                                        <div className="mythic-create-meta-value">{props.buildOptions.payload_type}</div>
+                                    </div>
+                                    <div>
+                                        <span className="mythic-create-meta-label">Description</span>
+                                        <div className="mythic-create-meta-value">{props.buildOptions.description}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mythic-create-subsection mythic-create-subsection-fill">
+                            <div className="mythic-create-section-header">
+                                <div>
+                                    <Typography component="div" className="mythic-create-section-title">
+                                        Select commands
+                                    </Typography>
+                                    <Typography component="div" className="mythic-create-section-description">
+                                        Move commands into the payload and review hover details before continuing.
+                                    </Typography>
+                                </div>
+                            </div>
+                            <div style={{flexGrow: 1, minHeight: 0, overflow: "hidden", display: "flex"}}>
+                                <CommandTransferSelect commands={commandOptions}
+                                                       payload_type={props.buildOptions["payload_type"]}
+                                                       first={props.first} last={props.last}
+                                                       updateSelectedCommands={updateSelectedCommands}
+                                                       setHoveredCommand={setHoveredCommand}/>
+                            </div>
                         </div>
 
-                    </div>
-                </div>
+                    </section>
 
-                {/* Bottom section - scrollable table area */}
-                <div style={{
-                    width: "40%",
-                    padding: "5px",
-                    borderRadius: "5px",
-                    display: "flex",
-                    flexDirection: "column",
-                    flexGrow: 1,
-                    minHeight: 0, // Important for flex shrinking
-                    overflow: "hidden"
-                }}>
-                    <div style={{width: "100%", flexGrow: 1, marginBottom: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px",
-                                height: "40%"}}>
-                        <Typography variant={"p"} style={{fontWeight: 600}}>
-                            {"Hovered Command Details"}
-                        </Typography><br/>
-                            {hoveredCommand["cmd"] !== undefined &&
-                                <>
-                                    {hoveredCommand["cmd"]}
-                                    <StyledDivider classes={{root: classes.divider}}/>
-                                    <Typography style={{}}>
-                                        <b>Description: </b>
+                    <section className="mythic-create-section mythic-create-section-fill mythic-create-section-plain">
+                        <div className="mythic-create-subsection">
+                            <Typography component="div" className="mythic-create-section-title">
+                                Hovered command details
+                            </Typography>
+                            {hasHoveredCommand ? (
+                                <div className="mythic-create-meta-list">
+                                    <div>
+                                        <span className="mythic-create-meta-label">Command</span>
+                                        <div className="mythic-create-meta-value">{hoveredCommand.cmd}</div>
+                                    </div>
+                                    <div>
+                                        <span className="mythic-create-meta-label">Description</span>
+                                        <div className="mythic-create-meta-value">{hoveredCommand.description}</div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <Typography component="div" className="mythic-create-section-description">
+                                    Hover over a command to preview its description and behavior.
+                                </Typography>
+                            )}
+                        </div>
+                        <div className="mythic-create-subsection mythic-create-subsection-fill">
+                            <Typography component="div" className="mythic-create-section-title">
+                                Command behavior
+                            </Typography>
+                            <div className="mythic-create-subsection-scroll">
+                                {hasHoveredCommand ? (
+                                    <div className="mythic-create-meta-list">
+                                        <div>
+                                            <span className="mythic-create-meta-label">{hoveredCommand.disabled ? "Cannot be moved" : "Information"}</span>
+                                            <div className="mythic-create-meta-value">{commandReason}</div>
+                                        </div>
+                                        <div>
+                                            <span className="mythic-create-meta-label">Command line help</span>
+                                            <div className="mythic-create-meta-value">{hoveredCommand.help_cmd}</div>
+                                        </div>
+                                        <div>
+                                            <span className="mythic-create-meta-label">Needs admin permissions</span>
+                                            <div className="mythic-create-meta-value">{hoveredCommand.needs_admin ? "True" : "False"}</div>
+                                        </div>
+                                        <div>
+                                            <span className="mythic-create-meta-label">Supported UI features</span>
+                                            <div className="mythic-create-meta-value">{hoveredCommand?.supported_ui_features?.join(", ") || "None"}</div>
+                                        </div>
+                                        {hoveredCommand?.attributes?.dependencies && hoveredCommand?.attributes?.dependencies.length > 0 &&
+                                            <div>
+                                                <span className="mythic-create-meta-label">Dependencies</span>
+                                                <div className="mythic-create-meta-value">{hoveredCommand?.attributes?.dependencies.join(", ")}</div>
+                                            </div>}
+                                        {hoveredCommand?.attributes?.alias !== undefined &&
+                                            <div>
+                                                <span className="mythic-create-meta-label">Alias</span>
+                                                <div className="mythic-create-meta-value">{hoveredCommand?.attributes?.alias ? "True":"False"}</div>
+                                            </div>}
+                                    </div>
+                                ) : (
+                                    <Typography component="div" className="mythic-create-section-description">
+                                        Command metadata appears here after hovering over an available or selected command.
                                     </Typography>
-                                    <Typography style={{marginLeft: "20px"}}>
-                                        {hoveredCommand["description"]}
-                                    </Typography><br/>
-                                </>
-                            }
-
-                    </div>
-                    <div style={{width: "100%", flexGrow: 1,  marginBottom: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px",
-                                height: "20%", overflow: "scroll"}}>
-                        {hoveredCommand["reason"] !== "" ? (
-                            <>
-                                <Typography style={{}}>
-                                    <b>{hoveredCommand["disabled"] ? ("Cannot be moved: ") : ("Information: ")} </b>
-                                </Typography>
-                                <Typography style={{marginLeft: "20px"}}>
-                                    {hoveredCommand["reason"]}
-                                </Typography>
-                            </>
-                        ) : (
-                            <>
-                                <Typography style={{}}>
-                                    <b>{"Information: "} </b>
-                                </Typography>
-                                <Typography style={{marginLeft: "20px"}}>
-                                    {"This command can be included or removed as needed"}
-                                </Typography>
-                            </>
-                        )}
-                        <Typography style={{}}>
-                            <b>Command line Help: </b>
-                        </Typography>
-                        <Typography style={{marginLeft: "20px"}}>
-                            {hoveredCommand["help_cmd"]}
-                        </Typography>
-                        <Typography style={{}}>
-                            <b>Needs Admin Permissions: </b>
-                        </Typography>
-                        <Typography style={{marginLeft: "20px"}}>
-                            {hoveredCommand["needs_admin"] ? "True" : "False"}
-                        </Typography>
-                        <Typography style={{}}>
-                            <b>Supported UI Features: </b>
-                        </Typography>
-                        <Typography style={{marginLeft: "20px"}}>
-                            {hoveredCommand?.supported_ui_features?.join(", ")}
-                        </Typography>
-                        {hoveredCommand?.attributes?.dependencies && hoveredCommand?.attributes?.dependencies.length > 0 &&
-                            <>
-                                <Typography style={{}}>
-                                    <b>Dependencies: </b>
-                                </Typography>
-                                <Typography style={{marginLeft: "20px"}}>
-                                    {hoveredCommand?.attributes?.dependencies.join(", ")}
-                                </Typography>
-                            </>}
-                        {hoveredCommand?.attributes?.alias !== undefined &&
-                            <>
-                                <Typography style={{}}>
-                                    <b>Alias: </b>
-                                </Typography>
-                                <Typography style={{marginLeft: "20px"}}>
-                                    {hoveredCommand?.attributes?.alias ? "True":"False"}
-                                </Typography>
-                            </>}
-                    </div>
-
+                                )}
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
             {openConfirmDialog &&
@@ -288,8 +260,7 @@ export function Step3SelectCommands(props){
                                      acceptText="Accept"
                                      onSubmit={acceptConfirm} />
             }
-            {/* Navigation buttons - always at bottom */}
-            <div style={{flexShrink: 0}}>
+            <div className="mythic-create-flow-footer">
                 <CreatePayloadNavigationButtons
                     first={props.first}
                     last={props.last}

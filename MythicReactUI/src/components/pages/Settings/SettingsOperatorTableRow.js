@@ -1,5 +1,9 @@
 import React from 'react';
-import {Button, DialogContent, DialogTitle, Link, TextField} from '@mui/material';
+import {Button, DialogContent, DialogTitle, TextField} from '@mui/material';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
@@ -33,7 +37,10 @@ import {gql, useMutation} from '@apollo/client';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import {copyStringToClipboard} from "../../utilities/Clipboard";
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
-import {MythicDataGrid} from "../../MythicComponents/MythicDataGrid";
+import {MythicTableEmptyState, MythicTableErrorState, MythicTableLoadingState} from "../../MythicComponents/MythicStateDisplay";
+import {MythicClientSideTablePagination, useMythicClientPagination} from "../../MythicComponents/MythicTablePagination";
+import {APITokenRow} from "./SettingsOperatorAPITokenRow";
+import {MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
 import {
     MythicDialogBody,
     MythicDialogButton,
@@ -118,12 +125,10 @@ export function SettingsOperatorTableRow(props){
     const [openSecretsConfig, setOpenSecretsConfig] = React.useState(false);
     const [showDeleted, setShowDeleted] = React.useState(false);
     const [apiTokens, setAPITokens] = React.useState([]);
-    const queryAPITokensSuccess = (data) => {
-        setAPITokens(data.apitokens);
-    }
-    const queryAPITokens = useMythicLazyQuery(GetAPITokens, {
-        fetchPolicy: "no-cache"
-    });
+    const [apiTokensLoading, setAPITokensLoading] = React.useState(false);
+    const [apiTokensError, setAPITokensError] = React.useState("");
+    const apiTokenQueryOptions = React.useMemo(() => ({fetchPolicy: "no-cache"}), []);
+    const queryAPITokens = useMythicLazyQuery(GetAPITokens, apiTokenQueryOptions);
     const [createAPIToken] = useMutation(createAPITokenMutation, {
         onCompleted: (data) => {
             if(data.createAPIToken.status === "success"){
@@ -218,11 +223,30 @@ export function SettingsOperatorTableRow(props){
         toggleAPITokenActive({variables:{id, active}})
     }
     React.useEffect( () => {
+        let active = true;
         if(open){
+            setAPITokensLoading(true);
+            setAPITokensError("");
             queryAPITokens({variables: {operator_id: props.id}})
-                .then(({data}) => queryAPITokensSuccess(data)).catch(({data}) => console.log(data));
+                .then(({data}) => {
+                    if(active){
+                        setAPITokens(data.apitokens);
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                    if(active){
+                        setAPITokensError("Unable to load API tokens for this operator.");
+                    }
+                }).finally(() => {
+                    if(active){
+                        setAPITokensLoading(false);
+                    }
+                });
         }
-    }, [open]);
+        return () => {
+            active = false;
+        }
+    }, [open, props.id, queryAPITokens]);
     return (
         <React.Fragment>
             <TableRow key={props.id}>
@@ -366,11 +390,11 @@ export function SettingsOperatorTableRow(props){
                     <MythicStyledTableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
                       <Collapse in={open} timeout="auto" unmountOnExit>
                         <Box margin={1}>
-                          <div className="mythic-detail-section-header">
-                            <Typography component="div" className="mythic-detail-section-title">
-                              API Tokens
-                            </Typography>
-                            <div className="mythic-detail-section-actions">
+                          <MythicSectionHeader
+                            dense
+                            title="API Tokens"
+                            actions={
+                              <>
                               {showDeleted ? (
                                   <MythicStyledTooltip title={"Hide API Tokens"}>
                                       <IconButton className="mythic-dialog-title-action" size="small" onClick={() => setShowDeleted(!showDeleted)}><VisibilityIcon fontSize="small" /></IconButton>
@@ -390,8 +414,9 @@ export function SettingsOperatorTableRow(props){
                               >
                                   API Token
                               </Button>
-                            </div>
-                          </div>
+                              </>
+                            }
+                          />
                             {openNewAPIToken &&
                                 <MythicDialog open={openNewAPIToken}
                                               fullWidth={true}
@@ -411,7 +436,15 @@ export function SettingsOperatorTableRow(props){
                                               />}
                                 />
                             }
-                            <APITokens me={me} apiTokens={apiTokens} onDeleteAPIToken={onDeleteAPIToken} onToggleActive={onToggleActive} showDeleted={showDeleted} />
+                            <APITokens
+                                error={apiTokensError}
+                                loading={apiTokensLoading}
+                                me={me}
+                                apiTokens={apiTokens}
+                                onDeleteAPIToken={onDeleteAPIToken}
+                                onToggleActive={onToggleActive}
+                                showDeleted={showDeleted}
+                            />
                         </Box>
                       </Collapse>
                     </MythicStyledTableCell>
@@ -420,98 +453,6 @@ export function SettingsOperatorTableRow(props){
         </React.Fragment>
         )
 }
-const columns = [
-    {   field: 'deleted',
-        headerName: 'Delete',
-        width: 60,
-        renderCell: (params) => (
-            params.row.deleted ? null : (
-                <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => {params.row.onDeleteAPIToken(params.row.id)}}>
-                    <DeleteIcon fontSize="small" />
-                </IconButton>
-            )
-        ),
-        valueGetter: (value, row) => row.deleted
-    },
-    {
-        field: 'active',
-        headerName: 'Active',
-        width: 80,
-        valueGetter: (value, row) => row.active,
-        renderCell: (params) => (
-                <Switch
-                    color={ "info"}
-                    disabled={params.row.deleted}
-                    checked={params.row.active}
-                    onChange={() => {params.row.onToggleActive(params.row.id, !params.row.active)}}
-                    inputProps={{ 'aria-label': 'info checkbox' }}
-                    name="active"
-                />
-        )
-    },
-    {
-        field: 'created_by',
-        headerName: 'Created By',
-        flex: 1,
-        valueGetter: (value, row) => row.created_by_operator?.username,
-        renderCell: (params) => (
-            <>
-                <Typography>
-                    {params.row?.created_by_operator?.username}
-                </Typography>
-                <Typography style={{fontSize: params.row?.theme?.typography.pxToRem(12),}}>
-                    Created at: {toLocalTime(params.row?.creation_time, params.row.me?.user?.view_utc_time )}
-                </Typography>
-            </>
-        )
-    },
-    {
-        field: 'scopes',
-        headerName: 'Scopes',
-        flex: 1,
-        valueGetter: (value, row) => (row.scopes || []).join(", "),
-        renderCell: (params) => (
-            <Typography>
-                {(params.row.scopes || []).join(", ")}
-            </Typography>
-        )
-    },
-    {
-        field: 'token_type',
-        headerName: 'Type',
-        width: 150,
-    },
-    {
-        field: 'name',
-        headerName: 'Name',
-        flex: 1,
-    },
-    {
-        field: 'eventstepinstance',
-        headerName: 'Eventing Usage',
-        flex: 1,
-        renderCell: (params) => (
-            params.row.eventstepinstance &&
-                <>
-                    <Typography>
-                        {params.row.eventstepinstance?.eventgroupinstance?.eventgroup?.name}{" / "}
-                        <Link target={"_blank"} color="textPrimary" underline="always"
-                              href={'/new/eventing?eventgroup=' +
-                                  params.row?.eventstepinstance?.eventgroupinstance?.eventgroup?.id +
-                                  "&eventgroupinstance=" + params.row?.eventstepinstance?.eventgroupinstance?.id
-                              }>
-                            { params.row.eventstepinstance?.eventstep?.name}{" (" + params.row?.eventstepinstance?.eventgroupinstance?.id + ")"}
-                        </Link>
-                    </Typography>
-                </>
-
-        ),
-        sortable: false,
-        valueGetter: (value, row) => {
-            return row.eventstepinstance?.eventgroupinstance?.eventgroup?.name
-        }
-    },
-];
 const APITokenValueDialog = ({tokenValue, onClose}) => {
     const onCopyTokenValue = () => {
         let success = copyStringToClipboard(tokenValue);
@@ -549,36 +490,76 @@ const APITokenValueDialog = ({tokenValue, onClose}) => {
         </>
     );
 }
-const APITokens = ({apiTokens, onDeleteAPIToken, onToggleActive, showDeleted, me}) => {
-    const theme = useTheme();
-    const [data, setData] = React.useState([]);
-    React.useEffect( () => {
-        setData(apiTokens.reduce( (prev, c) => {
-            if(showDeleted || (!showDeleted && !c.deleted)){
-                return [...prev, {...c, onDeleteAPIToken: onDeleteAPIToken, onToggleActive: onToggleActive,
-                    me: me, theme: theme
-                }];
-            }
-            return [...prev];
-        }, []));
+const APITokens = ({apiTokens, error, loading, onDeleteAPIToken, onToggleActive, showDeleted, me}) => {
+    const data = React.useMemo(() => {
+        return apiTokens
+            .filter((token) => showDeleted || !token.deleted)
+            .sort((left, right) => right.id - left.id);
     }, [apiTokens, showDeleted]);
-    return (
-        <div style={{display: "flex", flexDirection: "column", width: "100%", height: "calc(30vh)", minHeight: 0}}>
-            <MythicDataGrid
-                rows={data}
-                columns={columns}
-                initialState={{
-                    pagination: {
-                        paginationModel: {
-                        },
-                    },
-                    sorting: {
-                        sortModel: [{ field: 'id', sort: 'desc' }],
-                    },
-                }}
-                autoPageSize
-            />
-        </div>
+    const pagination = useMythicClientPagination({
+        items: data,
+        resetKey: showDeleted ? "show-deleted" : "hide-deleted",
+    });
 
+    return (
+        <>
+            <TableContainer className="mythicElement mythic-dialog-table-wrap mythic-fixed-row-table-wrap" style={{height: "calc(30vh)", minHeight: "12rem", overflowY: "auto"}}>
+                <Table stickyHeader size="small" style={{height: "auto"}}>
+                    <TableHead>
+                        <TableRow>
+                            <MythicStyledTableCell style={{width: "3rem"}} />
+                            <MythicStyledTableCell style={{width: "5rem"}}>Active</MythicStyledTableCell>
+                            <MythicStyledTableCell>Created By</MythicStyledTableCell>
+                            <MythicStyledTableCell>Scopes</MythicStyledTableCell>
+                            <MythicStyledTableCell style={{width: "9rem"}}>Type</MythicStyledTableCell>
+                            <MythicStyledTableCell>Name</MythicStyledTableCell>
+                            <MythicStyledTableCell>Eventing Usage</MythicStyledTableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {loading ? (
+                            <MythicTableLoadingState
+                                colSpan={7}
+                                columns={7}
+                                compact
+                                minHeight={86}
+                                rows={3}
+                                title="Loading API tokens"
+                                description="Fetching tokens for this operator."
+                            />
+                        ) : error ? (
+                            <MythicTableErrorState
+                                colSpan={7}
+                                compact
+                                minHeight={150}
+                                title="Unable to load API tokens"
+                                description={error}
+                            />
+                        ) : data.length === 0 ? (
+                            <MythicTableEmptyState
+                                colSpan={7}
+                                compact
+                                minHeight={160}
+                                title="No API tokens"
+                                description={showDeleted ? "This operator does not have any API tokens yet." : "This operator does not have any active API tokens."}
+                            />
+                        ) : (
+                            pagination.pageData.map((token) => (
+                                <APITokenRow
+                                    key={"api-token" + token.id}
+                                    {...token}
+                                    me={me}
+                                    onDeleteAPIToken={onDeleteAPIToken}
+                                    onToggleActive={onToggleActive}
+                                />
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+            {!loading && !error &&
+                <MythicClientSideTablePagination pagination={pagination} />
+            }
+        </>
     )
 }

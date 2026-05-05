@@ -13,6 +13,7 @@ import TableRow from '@mui/material/TableRow';
 import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {Typography} from '@mui/material';
 import {useTheme} from '@mui/material/styles';
+import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 export function EventGroupConsumingContainersDialog({onClose, selectedEventGroup}) {
 
@@ -34,9 +35,18 @@ export function EventGroupConsumingContainersDialog({onClose, selectedEventGroup
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {selectedEventGroup.eventgroupconsumingcontainers.map( e => (
-                            <EventGroupConsumingContainersDialogTableRow key={e.id} container={e} />
-                        ))}
+                        {selectedEventGroup.eventgroupconsumingcontainers.length === 0 ? (
+                            <MythicTableEmptyState
+                                colSpan={4}
+                                compact
+                                title="No container requirements"
+                                description="This workflow does not declare required eventing containers."
+                            />
+                        ) : (
+                            selectedEventGroup.eventgroupconsumingcontainers.map( e => (
+                                <EventGroupConsumingContainersDialogTableRow key={e.id} container={e} />
+                            ))
+                        )}
                     </TableBody>
                 </Table>
                 </TableContainer>

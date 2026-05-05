@@ -5,11 +5,10 @@ import DialogContent from '@mui/material/DialogContent';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useReactiveVar } from '@apollo/client';
 import {meState} from "../../../cache";
-import {Table, TableBody, TableHead, TableRow, Typography, IconButton, Switch} from '@mui/material';
+import {Typography, IconButton, Switch} from '@mui/material';
 import FormControl from '@mui/material/FormControl';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
-import MythicStyledTableCell from "../../MythicComponents/MythicTableCell";
 import {CreatePayloadParameter} from "../CreatePayload/CreatePayloadParameter";
 import MythicTextField from "../../MythicComponents/MythicTextField";
 import {ResponseDisplayPlaintext} from "../Callbacks/ResponseDisplayPlaintext";
@@ -691,19 +690,11 @@ const CreateEventingStep1 = ({finished, back, first, last, cancel, prevData}) =>
                         <div className="mythic-eventing-metadata-field">
                             <div className="mythic-eventing-metadata-label">Trigger data</div>
                             {triggerOptionsData[trigger]?.trigger_data?.length > 0 ?
-                                (<Table className="mythic-eventing-metadata-trigger-table">
-                                    <TableHead>
-                                        <TableRow>
-                                            <MythicStyledTableCell className={"empty-table-header"} style={{width: "38%"}}></MythicStyledTableCell>
-                                            <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {triggerData?.map( t => (
-                                            <CreatePayloadParameter key={t.name} onChange={onChangeTriggerData} {...t} />
-                                        ))}
-                                    </TableBody>
-                                </Table>) :
+                                (<div className="mythic-eventing-trigger-parameter-list">
+                                    {triggerData?.map( t => (
+                                        <CreatePayloadParameter key={t.name} onChange={onChangeTriggerData} displayMode="card" {...t} />
+                                    ))}
+                                </div>) :
                                 (<div className="mythic-eventing-metadata-empty">None</div>)
                             }
                         </div>
@@ -793,6 +784,39 @@ const EventingStepFieldBlock = ({label, description, required = false, children,
         </div>
     </div>
 )
+const eventingActionDataHelp = "At execution time, any values here that are the names of an input will be swapped out before the action runs.";
+const EventingActionDataShell = ({children}) => (
+    <>
+        <Typography component="div" className="mythic-eventing-step-help-text">
+            {eventingActionDataHelp}
+        </Typography>
+        <div className="mythic-eventing-action-data-list">
+            {children}
+        </div>
+    </>
+)
+const EventingActionDataField = ({label, description, required = false, children, className = ""}) => (
+    <div className={`mythic-eventing-action-data-card ${className}`.trim()}>
+        <div className="mythic-eventing-action-data-copy">
+            <div className="mythic-eventing-action-data-title-row">
+                <Typography component="div" className="mythic-eventing-action-data-title">
+                    {label}
+                </Typography>
+                {required &&
+                    <span className="mythic-eventing-action-data-chip mythic-eventing-action-data-chip-required">Required</span>
+                }
+            </div>
+            {description &&
+                <Typography component="div" className="mythic-eventing-action-data-description">
+                    {description}
+                </Typography>
+            }
+        </div>
+        <div className="mythic-eventing-action-data-control">
+            {children}
+        </div>
+    </div>
+)
 const EventingStepEmptyInline = ({children}) => (
     <div className="mythic-eventing-step-empty-inline">{children}</div>
 )
@@ -857,78 +881,76 @@ const EventingStepInputs = ({updateStep, index, localInputOptions, step1Data, pr
                     <EventingStepEmptyInline>No inputs configured.</EventingStepEmptyInline>
                 }
                 {localInputs.map( (d, i) => (
-                    <div className="mythic-eventing-step-list-item" key={"localinputs" + i}>
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeLocalInput(i)}>
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
-                        <div className="mythic-eventing-step-list-content">
-                            <div className="mythic-eventing-step-input-grid">
-                                <MythicTextField name={"Input name"} placeholder={"Input name"}
-                                                 onChange={(name, value, error) => onChangeLocalInputName(i, value)}
-                                                 value={localInputs[i].name}
-                                                 marginBottom={"0px"}/>
-                                <FormControl sx={{display: "inline-block", width: "100%"}}>
-                                    <TextField
-                                        label={"Input source"}
-                                        select
-                                        size={"small"}
-                                        style={{width: "100%"}}
-                                        value={localInputs[i].type}
-                                        onChange={(e) => {
-                                            changeLocalInputType(e, i)
-                                        }}
-                                    >
-                                        {localInputOptions.map((opt) => (
-                                            <MenuItem key={"step2inputs" + opt} value={opt}>
-                                                {opt}
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
-                                </FormControl>
-                                {localInputs[i].type === "env" && triggerOptionsData[step1Data.trigger].env.length > 0 ?
-                                    (
-                                        <div className="mythic-eventing-choice-row">
-                                            <FormControl sx={{display: "inline-block", width: "100%"}}>
-                                                <TextField
-                                                    label={"Environment option"}
-                                                    select
-                                                    size={"small"}
-                                                    style={{width: "100%"}}
-                                                    disabled={localInputs[i].value.length > 0}
-                                                    value={localInputs[i].value_type}
-                                                    onChange={(e) => {
-                                                        onChangeLocalInputValueType(e, i)
-                                                    }}
-                                                >
-                                                    {triggerOptionsData[step1Data.trigger].env.map((opt) => (
-                                                        <MenuItem key={"step2inputs" + opt} value={opt}>
-                                                            {opt}
-                                                        </MenuItem>
-                                                    ))}
-                                                </TextField>
-                                            </FormControl>
-                                            <span className="mythic-eventing-choice-separator">or</span>
-                                            <div className="mythic-eventing-choice-custom">
-                                                <MythicTextField placeholder={""} name={"Custom value"}
-                                                                 onChange={(name, value, error) => onChangeLocalInputValue(i, value)}
-                                                                 value={localInputs[i].value}
-                                                                 marginBottom={"0px"} />
-                                            </div>
+                    <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable" key={"localinputs" + i}>
+                        <div className="mythic-eventing-step-input-grid">
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger mythic-eventing-step-row-action" size="small" onClick={() => removeLocalInput(i)}>
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                            <MythicTextField name={"Input name"} placeholder={"Input name"}
+                                             onChange={(name, value, error) => onChangeLocalInputName(i, value)}
+                                             value={localInputs[i].name}
+                                             marginBottom={"0px"}/>
+                            <FormControl sx={{display: "inline-block", width: "100%"}}>
+                                <TextField
+                                    label={"Input source"}
+                                    select
+                                    size={"small"}
+                                    style={{width: "100%"}}
+                                    value={localInputs[i].type}
+                                    onChange={(e) => {
+                                        changeLocalInputType(e, i)
+                                    }}
+                                >
+                                    {localInputOptions.map((opt) => (
+                                        <MenuItem key={"step2inputs" + opt} value={opt}>
+                                            {opt}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            </FormControl>
+                            {localInputs[i].type === "env" && triggerOptionsData[step1Data.trigger].env.length > 0 ?
+                                (
+                                    <div className="mythic-eventing-choice-row mythic-eventing-step-choice-row">
+                                        <FormControl sx={{display: "inline-block", width: "100%"}}>
+                                            <TextField
+                                                label={"Environment option"}
+                                                select
+                                                size={"small"}
+                                                style={{width: "100%"}}
+                                                disabled={localInputs[i].value.length > 0}
+                                                value={localInputs[i].value_type}
+                                                onChange={(e) => {
+                                                    onChangeLocalInputValueType(e, i)
+                                                }}
+                                            >
+                                                {triggerOptionsData[step1Data.trigger].env.map((opt) => (
+                                                    <MenuItem key={"step2inputs" + opt} value={opt}>
+                                                        {opt}
+                                                    </MenuItem>
+                                                ))}
+                                            </TextField>
+                                        </FormControl>
+                                        <span className="mythic-eventing-choice-separator">or</span>
+                                        <div className="mythic-eventing-choice-custom">
+                                            <MythicTextField placeholder={""} name={"Custom value"}
+                                                             onChange={(name, value, error) => onChangeLocalInputValue(i, value)}
+                                                             value={localInputs[i].value}
+                                                             marginBottom={"0px"} />
                                         </div>
-                                    )
-                                    :
-                                    (<MythicTextField placeholder={""} name={"Input value"}
-                                                      onChange={(name, value, error) => onChangeLocalInputValue(i, value)}
-                                                      value={localInputs[i].value}
-                                                      marginBottom={"0px"} InputProps={{
-                                        startAdornment:
-                                            <Typography
-                                                style={{color: theme.palette.secondary.main, marginRight: "5px"}}>
-                                                {getInputAdornment(localInputs[i].type)}
-                                            </Typography>
-                                    }}/>)
-                                }
-                            </div>
+                                    </div>
+                                )
+                                :
+                                (<MythicTextField placeholder={""} name={"Input value"}
+                                                  onChange={(name, value, error) => onChangeLocalInputValue(i, value)}
+                                                  value={localInputs[i].value}
+                                                  marginBottom={"0px"} InputProps={{
+                                    startAdornment:
+                                        <Typography
+                                            style={{color: theme.palette.secondary.main, marginRight: "5px"}}>
+                                            {getInputAdornment(localInputs[i].type)}
+                                        </Typography>
+                                }}/>)
+                            }
                             <div className="mythic-eventing-step-helper-text">{getInputTypeDescription(localInputs[i].type)}</div>
                         </div>
                     </div>
@@ -987,52 +1009,50 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
                     <EventingStepEmptyInline>No outputs configured.</EventingStepEmptyInline>
                 }
                 {localOutputs.map( (d, i) => (
-                    <div className="mythic-eventing-step-list-item" key={"localoutputs" + i}>
-                        <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeLocalOutput(i)}>
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
-                        <div className="mythic-eventing-step-list-content">
-                            <div className="mythic-eventing-step-output-grid">
-                                <MythicTextField name={"Output name"} placeholder={"Output name"}
-                                                 onChange={(name, value, error) => onChangeLocalOutputName(i, value)}
-                                                 value={localOutputs[i].name}
-                                                 marginBottom={"0px"}/>
-                                {outputOptionsData[selectedAction].output_fields.length > 0 ? (
-                                    <div className="mythic-eventing-choice-row">
-                                        <FormControl sx={{display: "inline-block", width: "100%"}}>
-                                            <TextField
-                                                label={"Output option"}
-                                                select
-                                                size={"small"}
-                                                style={{width: "100%"}}
-                                                disabled={localOutputs[i].value.length > 0}
-                                                value={localOutputs[i].type}
-                                                onChange={(e) => {
-                                                    onChangeLocalOutputType(e, i)
-                                                }}
-                                            >
-                                                {outputOptionsData[selectedAction].output_fields.map((opt) => (
-                                                    <MenuItem key={"step2inputs" + opt} value={opt}>
-                                                        {opt}
-                                                    </MenuItem>
-                                                ))}
-                                            </TextField>
-                                        </FormControl>
-                                        <span className="mythic-eventing-choice-separator">or</span>
-                                        <div className="mythic-eventing-choice-custom">
-                                            <MythicTextField placeholder={""} name={"Custom value"}
-                                                             onChange={(name, value, error) => onChangeLocalOutputValue(i, value)}
-                                                             value={localOutputs[i].value}
-                                                             marginBottom={"0px"}/>
-                                        </div>
+                    <div className="mythic-eventing-step-list-item mythic-eventing-step-list-item-editable" key={"localoutputs" + i}>
+                        <div className="mythic-eventing-step-output-grid">
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger mythic-eventing-step-row-action" size="small" onClick={() => removeLocalOutput(i)}>
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                            <MythicTextField name={"Output name"} placeholder={"Output name"}
+                                             onChange={(name, value, error) => onChangeLocalOutputName(i, value)}
+                                             value={localOutputs[i].name}
+                                             marginBottom={"0px"}/>
+                            {outputOptionsData[selectedAction].output_fields.length > 0 ? (
+                                <div className="mythic-eventing-choice-row mythic-eventing-step-choice-row">
+                                    <FormControl sx={{display: "inline-block", width: "100%"}}>
+                                        <TextField
+                                            label={"Output option"}
+                                            select
+                                            size={"small"}
+                                            style={{width: "100%"}}
+                                            disabled={localOutputs[i].value.length > 0}
+                                            value={localOutputs[i].type}
+                                            onChange={(e) => {
+                                                onChangeLocalOutputType(e, i)
+                                            }}
+                                        >
+                                            {outputOptionsData[selectedAction].output_fields.map((opt) => (
+                                                <MenuItem key={"step2inputs" + opt} value={opt}>
+                                                    {opt}
+                                                </MenuItem>
+                                            ))}
+                                        </TextField>
+                                    </FormControl>
+                                    <span className="mythic-eventing-choice-separator">or</span>
+                                    <div className="mythic-eventing-choice-custom">
+                                        <MythicTextField placeholder={""} name={"Custom value"}
+                                                         onChange={(name, value, error) => onChangeLocalOutputValue(i, value)}
+                                                         value={localOutputs[i].value}
+                                                         marginBottom={"0px"}/>
                                     </div>
-                                ) : (
-                                    <MythicTextField placeholder={""} name={"Custom value"}
-                                                     onChange={(name, value, error) => onChangeLocalOutputValue(i, value)}
-                                                     value={localOutputs[i].value}
-                                                     marginBottom={"0px"}/>
-                                )}
-                            </div>
+                                </div>
+                            ) : (
+                                <MythicTextField placeholder={""} name={"Custom value"}
+                                                 onChange={(name, value, error) => onChangeLocalOutputValue(i, value)}
+                                                 value={localOutputs[i].value}
+                                                 marginBottom={"0px"}/>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -1044,7 +1064,6 @@ const EventingStepOutputs = ({updateStep, index, selectedAction, prevData}) => {
     )
 }
 const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData}) => {
-    const theme = useTheme();
     const paramsDictionaryRef = React.useRef("");
     const [actionData, setActionData] = React.useState({
         callback_display_id: "",
@@ -1111,154 +1130,63 @@ const EventingStepActionDataTaskCreate = ({allSteps, updateStep, index, prevData
         }
     }, []);
     return (
-        <>
-            <Typography>
-                {"At execution time, any values here that are the names of an INPUT will be swapped out. For example, if you have an input called CALLBACK_ID and set the 'Callback Display ID' to the value 'CALLBACK_ID', then when this step executes, 'CALLBACK_ID' will be swapped out with the value from the input section."}
-            </Typography>
-            <Table>
-                <TableHead>
-                    <TableRow>
-                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Callback Display ID"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.callback_display_id} name={"callback_display_id"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Command Name"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.command_name} name={"command_name"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Payload Type"}
-                            </Typography>
-                            <Typography>
-                                {"Use this if you want to specify a command_name that belongs to a payload type other than the one backing this callback. This is useful for things like command_augmentation commands"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.payload_type} name={"payload_type"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Parameters"}
-                            </Typography>
-                            <Typography>
-                                {"You can either specify a parameter string here or a dictionary of named parameters with the params dictionary option below"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.params} name={"params"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Parameters Dictionary"}
-                            </Typography>
-                            <Typography>
-                                {"You can either specify a dictionary of named parameters here or a string parameter value above"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell>
-                            <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
-                                                      onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Parameter Group Name"}
-                            </Typography>
-                            <Typography>
-                                {"This can stay default unless you explicitly want your parameters to be treated as a specific parameter group (advanced use case)"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.parameter_group_name} name={"parameter_group_name"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Parent Task ID"}
-                            </Typography>
-                            <Typography>
-                                {"Set this to the Task ID (not display ID or agent ID) of another task to make it appear as a subtask"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.parent_task_id} name={"parent_task_id"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Interactive Task"}
-                            </Typography>
-                            <Typography>
-                                {"Toggle this to true to mark this as an interactive Task. This wouldn't be the task that starts an interactive task session, but for follow-on tasks inside of that interactive session."}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <Switch onChange={(e) => {onChangeValue("is_interactive_task", e.target.checked, "")}} checked={actionData.is_interactive_task}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    {actionData.is_interactive_task &&
-                        <TableRow>
-                            <MythicStyledTableCell>
-                                <Typography style={{fontWeight: 600}}>
-                                    {"Interactive Task Type"}
-                                </Typography>
-                                <Typography>
-                                    {"This indicates the kind of data that's getting sent as part of the interactive task. 0 means standard input and is a safe default."}
-                                </Typography>
-                            </MythicStyledTableCell>
-                            <MythicStyledTableCell >
-                                <MythicTextField onChange={onChangeValue} value={actionData.interactive_task_type} name={"interactive_task_type"}
-                                />
-                            </MythicStyledTableCell>
-                        </TableRow>
-                    }
-                </TableBody>
-            </Table>
-        </>
+        <EventingActionDataShell>
+            <EventingActionDataField label="Callback Display ID" required>
+                <MythicTextField onChange={onChangeValue} value={actionData.callback_display_id} name={"callback_display_id"} />
+            </EventingActionDataField>
+            <EventingActionDataField label="Command Name" required>
+                <MythicTextField onChange={onChangeValue} value={actionData.command_name} name={"command_name"} />
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Payload Type"
+                description="Use this if you want to specify a command name that belongs to a payload type other than the one backing this callback. This is useful for command augmentation commands."
+            >
+                <MythicTextField onChange={onChangeValue} value={actionData.payload_type} name={"payload_type"} />
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Parameters"
+                description="Specify a parameter string here, or use a dictionary of named parameters below."
+            >
+                <MythicTextField onChange={onChangeValue} value={actionData.params} name={"params"} />
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Parameters Dictionary"
+                description="Specify a dictionary of named parameters here, or use the string parameter value above."
+            >
+                <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
+                                          onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Parameter Group Name"
+                description="This can stay default unless you explicitly want your parameters treated as a specific parameter group."
+            >
+                <MythicTextField onChange={onChangeValue} value={actionData.parameter_group_name} name={"parameter_group_name"} />
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Parent Task ID"
+                description="Set this to the Task ID, not display ID or agent ID, of another task to make it appear as a subtask."
+            >
+                <MythicTextField onChange={onChangeValue} value={actionData.parent_task_id} name={"parent_task_id"} />
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Interactive Task"
+                description="Mark this as an interactive follow-on task inside an existing interactive task session."
+            >
+                <Switch onChange={(e) => {onChangeValue("is_interactive_task", e.target.checked, "")}} checked={actionData.is_interactive_task} />
+            </EventingActionDataField>
+            {actionData.is_interactive_task &&
+                <EventingActionDataField
+                    label="Interactive Task Type"
+                    description="This indicates the kind of data sent as part of the interactive task. 0 means standard input and is a safe default."
+                >
+                    <MythicTextField onChange={onChangeValue} value={actionData.interactive_task_type} name={"interactive_task_type"} />
+                </EventingActionDataField>
+            }
+        </EventingActionDataShell>
     )
 
 }
 const EventingStepActionDataCustomFunction = ({allSteps, updateStep, index, prevData}) => {
-    const theme = useTheme();
     const paramsDictionaryRef = React.useRef("");
     const [actionData, setActionData] = React.useState({
         container_name: "",
@@ -1302,68 +1230,25 @@ const EventingStepActionDataCustomFunction = ({allSteps, updateStep, index, prev
         }
     }, []);
     return (
-        <>
-            <Typography>
-                {"At execution time, any values here that are the names of an INPUT will be swapped out. For example, if you have an input called CALLBACK_ID and set the 'Callback Display ID' to the value 'CALLBACK_ID', then when this step executes, 'CALLBACK_ID' will be swapped out with the value from the input section."}
-            </Typography>
-            <Table>
-                <TableHead>
-                    <TableRow>
-                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Container Name"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.container_name} name={"container_name"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Function Name"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.function_name} name={"function_name"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Extra Data Dictionary"}
-                            </Typography>
-                            <Typography>
-                                {"You can pass more dictionary data to your custom function here"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell>
-                            <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
-                                                      onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
-                        </MythicStyledTableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        </>
+        <EventingActionDataShell>
+            <EventingActionDataField label="Container Name" required>
+                <MythicTextField onChange={onChangeValue} value={actionData.container_name} name={"container_name"} />
+            </EventingActionDataField>
+            <EventingActionDataField label="Function Name" required>
+                <MythicTextField onChange={onChangeValue} value={actionData.function_name} name={"function_name"} />
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Extra Data Dictionary"
+                description="Pass additional dictionary data to your custom function."
+            >
+                <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
+                                          onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
+            </EventingActionDataField>
+        </EventingActionDataShell>
     )
 
 }
 const EventingStepActionDataConditionalCheck = ({allSteps, updateStep, index, prevData}) => {
-    const theme = useTheme();
     const [actionData, setActionData] = React.useState({
         container_name: "",
         function_name: "",
@@ -1425,98 +1310,51 @@ const EventingStepActionDataConditionalCheck = ({allSteps, updateStep, index, pr
         }
     }, []);
     return (
-        <>
-            <Typography>
-                {"At execution time, any values here that are the names of an INPUT will be swapped out. For example, if you have an input called CALLBACK_ID and set the 'Callback Display ID' to the value 'CALLBACK_ID', then when this step executes, 'CALLBACK_ID' will be swapped out with the value from the input section."}
-            </Typography>
-            <Table>
-                <TableHead>
-                    <TableRow>
-                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Container Name"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.container_name} name={"container_name"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Function Name"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.function_name} name={"function_name"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Step Names"}
-                            </Typography>
-                            <Typography>
-                                {"This is an array of step names that you're conditionally going to skip"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell>
-                            {actionData.steps.map( (s, i) => (
-                                <div style={{
-                                    display: "flex",
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    marginTop: "8px"
-                                }} key={"step" + s}>
-                                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeStep(i)}>
-                                        <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                    <FormControl sx={{display: "inline-block", marginTop: "10px", width: "100%"}}
-                                                 size="small">
-                                        <TextField
-                                            label={"Step to potentially skip"}
-                                            select
-                                            size={"small"}
-                                            style={{width: "100%"}}
-                                            value={s}
-                                            onChange={(e) => changeStep(e, i)}
-                                        >
-                                            {stepOptions.map((opt) => (
-                                                <MenuItem key={"step1" + opt} value={opt}>
-                                                    {opt}
-                                                </MenuItem>
-                                            ))}
-                                        </TextField>
-                                    </FormControl>
-                                </div>
-                            ))}
-                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small" onClick={addStep}>
-                                <AddCircleOutlineIcon fontSize="small" />
+        <EventingActionDataShell>
+            <EventingActionDataField label="Container Name" required>
+                <MythicTextField onChange={onChangeValue} value={actionData.container_name} name={"container_name"} />
+            </EventingActionDataField>
+            <EventingActionDataField label="Function Name" required>
+                <MythicTextField onChange={onChangeValue} value={actionData.function_name} name={"function_name"} />
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Step Names"
+                description="These are the step names that can be conditionally skipped."
+            >
+                <div className="mythic-eventing-action-array-list">
+                    {actionData.steps.map( (s, i) => (
+                        <div className="mythic-eventing-action-array-row" key={"step" + s + i}>
+                            <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-danger" size="small" onClick={() => removeStep(i)}>
+                                <DeleteIcon fontSize="small" />
                             </IconButton>
-                        </MythicStyledTableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        </>
+                            <FormControl sx={{display: "inline-block", width: "100%"}} size="small">
+                                <TextField
+                                    label={"Step to potentially skip"}
+                                    select
+                                    size={"small"}
+                                    style={{width: "100%"}}
+                                    value={s}
+                                    onChange={(e) => changeStep(e, i)}
+                                >
+                                    {stepOptions.map((opt) => (
+                                        <MenuItem key={"step1" + opt} value={opt}>
+                                            {opt}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            </FormControl>
+                        </div>
+                    ))}
+                    <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-success" size="small" onClick={addStep}>
+                        <AddCircleOutlineIcon fontSize="small" />
+                    </IconButton>
+                </div>
+            </EventingActionDataField>
+        </EventingActionDataShell>
     )
 
 }
 const EventingStepActionDataCreatePayload = ({allSteps, updateStep, index, prevData}) => {
-    const theme = useTheme();
     const defaultData = {
         "payload_type": "",
         "description": "",
@@ -1569,40 +1407,16 @@ const EventingStepActionDataCreatePayload = ({allSteps, updateStep, index, prevD
         }
     }, []);
     return (
-        <>
-            <Typography>
-                {"At execution time, any values here that are the names of an INPUT will be swapped out. For example, if you have an input called CALLBACK_ID and set the 'Callback Display ID' to the value 'CALLBACK_ID', then when this step executes, 'CALLBACK_ID' will be swapped out with the value from the input section."}
-            </Typography>
-            <Table>
-                <TableHead>
-                    <TableRow>
-                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Payload Configuration"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell>
-                            <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
-                                                      onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
-                        </MythicStyledTableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        </>
+        <EventingActionDataShell>
+            <EventingActionDataField label="Payload Configuration" required>
+                <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
+                                          onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
+            </EventingActionDataField>
+        </EventingActionDataShell>
     )
 
 }
 const EventingStepActionDataCreateCallback = ({allSteps, updateStep, index, prevData}) => {
-    const theme = useTheme();
     const defaultData = {
         user: "",
         host: "",
@@ -1652,40 +1466,16 @@ const EventingStepActionDataCreateCallback = ({allSteps, updateStep, index, prev
         }
     }, []);
     return (
-        <>
-            <Typography>
-                {"At execution time, any values here that are the names of an INPUT will be swapped out. For example, if you have an input called CALLBACK_ID and set the 'Callback Display ID' to the value 'CALLBACK_ID', then when this step executes, 'CALLBACK_ID' will be swapped out with the value from the input section."}
-            </Typography>
-            <Table>
-                <TableHead>
-                    <TableRow>
-                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Callback Configuration"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell>
-                            <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
-                                                      onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
-                        </MythicStyledTableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        </>
+        <EventingActionDataShell>
+            <EventingActionDataField label="Callback Configuration" required>
+                <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
+                                          onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
+            </EventingActionDataField>
+        </EventingActionDataShell>
     )
 
 }
 const EventingStepActionDataTaskIntercept = ({allSteps, updateStep, index, prevData}) => {
-    const theme = useTheme();
     const [actionData, setActionData] = React.useState({
         container_name: "",
     });
@@ -1713,40 +1503,15 @@ const EventingStepActionDataTaskIntercept = ({allSteps, updateStep, index, prevD
         }
     }, []);
     return (
-        <>
-            <Typography>
-                {"At execution time, any values here that are the names of an INPUT will be swapped out. For example, if you have an input called CALLBACK_ID and set the 'Callback Display ID' to the value 'CALLBACK_ID', then when this step executes, 'CALLBACK_ID' will be swapped out with the value from the input section."}
-            </Typography>
-            <Table>
-                <TableHead>
-                    <TableRow>
-                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Container Name"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.container_name} name={"container_name"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        </>
+        <EventingActionDataShell>
+            <EventingActionDataField label="Container Name" required>
+                <MythicTextField onChange={onChangeValue} value={actionData.container_name} name={"container_name"} />
+            </EventingActionDataField>
+        </EventingActionDataShell>
     )
 
 }
 const EventingStepActionDataResponseIntercept = ({allSteps, updateStep, index, prevData}) => {
-    const theme = useTheme();
     const [actionData, setActionData] = React.useState({
         container_name: "",
     });
@@ -1774,40 +1539,15 @@ const EventingStepActionDataResponseIntercept = ({allSteps, updateStep, index, p
         }
     }, []);
     return (
-        <>
-            <Typography>
-                {"At execution time, any values here that are the names of an INPUT will be swapped out. For example, if you have an input called CALLBACK_ID and set the 'Callback Display ID' to the value 'CALLBACK_ID', then when this step executes, 'CALLBACK_ID' will be swapped out with the value from the input section."}
-            </Typography>
-            <Table>
-                <TableHead>
-                    <TableRow>
-                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Container Name"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.container_name} name={"container_name"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        </>
+        <EventingActionDataShell>
+            <EventingActionDataField label="Container Name" required>
+                <MythicTextField onChange={onChangeValue} value={actionData.container_name} name={"container_name"} />
+            </EventingActionDataField>
+        </EventingActionDataShell>
     )
 
 }
 const EventingStepActionDataCreateAlert = ({allSteps, updateStep, index, prevData}) => {
-    const theme = useTheme();
     const alertLevelOptions = ["debug", "info", "warning"];
     const paramsDictionaryRef = React.useRef("{}");
     const [actionData, setActionData] = React.useState({
@@ -1864,116 +1604,62 @@ const EventingStepActionDataCreateAlert = ({allSteps, updateStep, index, prevDat
         }
     }, []);
     return (
-        <>
-            <Typography>
-                {"At execution time, any values here that are the names of an INPUT will be swapped out. For example, if you have an input called CALLBACK_ID and set the 'Callback Display ID' to the value 'CALLBACK_ID', then when this step executes, 'CALLBACK_ID' will be swapped out with the value from the input section."}
-            </Typography>
-            <Table>
-                <TableHead>
-                    <TableRow>
-                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Alert Message"}
-                            </Typography>
-                            <Typography style={{color: theme.palette.warning.main, fontWeight: 600}}>
-                                {"Required"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.alert} name={"alert"} showLabel={false}
-                                             placeholder={"Alert message to send to event log and toast notification"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Source"}
-                            </Typography>
-                            <Typography >
-                                {"Optional 'source' for the alert that shows up in webhooks and is used to collapse similar messages in the event log"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <MythicTextField onChange={onChangeValue} value={actionData.source} name={"source"} showLabel={false}
-                                             placeholder={"message source"}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Alert Level"}
-                            </Typography>
-                            <Typography >
-                                {"Set the alert level of the message. 'debug' will go to the event log without toast notifications. 'info' will do a toast notification. 'warning' will do a toast notification, increase the warning count, and send a webhook."}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <FormControl sx={{ display: "inline-block", marginTop: "10px", width: "100%" }} size="small">
-                                <TextField
-                                    label={"What's the alert level of the message"}
-                                    select
-                                    size={"small"}
-                                    style={{ width: "100%"}}
-                                    value={actionData.level}
-                                    onChange={(e) => setActionData({...actionData, level: e.target.value})}
-                                >
-                                    {alertLevelOptions.map((opt) => (
-                                        <MenuItem key={"step1" + opt} value={opt}>
-                                            {opt}
-                                        </MenuItem>
-                                    ))}
-                                </TextField>
-                            </FormControl>
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Send Webhook"}
-                            </Typography>
-                            <Typography >
-                                {"If the alert level is 'warning' and there's a webhook container hooked up, then the 'alert' data gets sent as a webhook. Regardless of that though, and regardless of the alert level, toggling this to true allows you to send custom JSON field to the webhook container's custom processing."}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell >
-                            <Switch
-                                checked={actionData.send_webhook}
-                                onChange={onChangeBoolean}
-                                color={"info"}
-                                inputProps={{ 'aria-label': 'primary checkbox' }}
-                            />
-                        </MythicStyledTableCell>
-                    </TableRow>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Custom Webhook Data"}
-                            </Typography>
-                            <Typography>
-                                {"You can pass more dictionary data to your custom webhook parsing here"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell>
-                            <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
-                                                      onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
-                        </MythicStyledTableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        </>
+        <EventingActionDataShell>
+            <EventingActionDataField label="Alert Message" required>
+                <MythicTextField onChange={onChangeValue} value={actionData.alert} name={"alert"} showLabel={false}
+                                 placeholder={"Alert message to send to event log and toast notification"} />
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Source"
+                description="Optional source for webhooks and collapsed event log messages."
+            >
+                <MythicTextField onChange={onChangeValue} value={actionData.source} name={"source"} showLabel={false}
+                                 placeholder={"message source"} />
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Alert Level"
+                description="'debug' goes to the event log, 'info' also shows a toast, and 'warning' increases warning counts and can send a webhook."
+            >
+                <FormControl sx={{ display: "inline-block", width: "100%" }} size="small">
+                    <TextField
+                        label={"What's the alert level of the message"}
+                        select
+                        size={"small"}
+                        style={{ width: "100%"}}
+                        value={actionData.level}
+                        onChange={(e) => setActionData({...actionData, level: e.target.value})}
+                    >
+                        {alertLevelOptions.map((opt) => (
+                            <MenuItem key={"step1" + opt} value={opt}>
+                                {opt}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+                </FormControl>
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Send Webhook"
+                description="Send alert data or custom JSON to the webhook container's custom processing."
+            >
+                <Switch
+                    checked={actionData.send_webhook}
+                    onChange={onChangeBoolean}
+                    color={"info"}
+                    inputProps={{ 'aria-label': 'primary checkbox' }}
+                />
+            </EventingActionDataField>
+            <EventingActionDataField
+                label="Custom Webhook Data"
+                description="Pass additional dictionary data to your custom webhook parsing."
+            >
+                <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
+                                          onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
+            </EventingActionDataField>
+        </EventingActionDataShell>
     )
 
 }
 const EventingStepActionDataSendWebhook = ({allSteps, updateStep, index, prevData}) => {
-    const theme = useTheme();
     const paramsDictionaryRef = React.useRef("{}");
     const [actionData, setActionData] = React.useState({
         webhook_data: "{}"
@@ -2010,35 +1696,15 @@ const EventingStepActionDataSendWebhook = ({allSteps, updateStep, index, prevDat
         }
     }, []);
     return (
-        <>
-            <Typography>
-                {"At execution time, any values here that are the names of an INPUT will be swapped out. For example, if you have an input called CALLBACK_ID and set the 'Callback Display ID' to the value 'CALLBACK_ID', then when this step executes, 'CALLBACK_ID' will be swapped out with the value from the input section."}
-            </Typography>
-            <Table>
-                <TableHead>
-                    <TableRow>
-                        <MythicStyledTableCell className={"empty-table-header"} style={{width: "30%"}}></MythicStyledTableCell>
-                        <MythicStyledTableCell className={"empty-table-header"}></MythicStyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    <TableRow>
-                        <MythicStyledTableCell>
-                            <Typography style={{fontWeight: 600}}>
-                                {"Custom Webhook Data"}
-                            </Typography>
-                            <Typography>
-                                {"You can pass a dictionary of data to your custom webhook parsing here"}
-                            </Typography>
-                        </MythicStyledTableCell>
-                        <MythicStyledTableCell>
-                            <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
-                                                      onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
-                        </MythicStyledTableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        </>
+        <EventingActionDataShell>
+            <EventingActionDataField
+                label="Custom Webhook Data"
+                description="Pass a dictionary of data to your custom webhook parsing."
+            >
+                <ResponseDisplayPlaintext plaintext={paramsDictionaryRef.current} autoFormat={false}
+                                          onChangeContent={onChangeParamsDictionary} initial_mode={"json"}/>
+            </EventingActionDataField>
+        </EventingActionDataShell>
     )
 
 }
@@ -2236,7 +1902,7 @@ const EventingStep = ({step, allSteps, updateStep, index, step1Data}) => {
                         </FormControl>
                     </EventingStepFieldBlock>
                 </EventingStepConfigSection>
-                <div className="mythic-eventing-step-section-grid">
+                <div className="mythic-eventing-step-section-stack">
                     <EventingStepConfigSection
                         title="Inputs"
                         description="Map values from triggers, environment data, Mythic, or earlier step outputs."

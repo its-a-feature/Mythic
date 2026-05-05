@@ -7,8 +7,9 @@ import Typography from '@mui/material/Typography';
 import {snackActions} from '../../utilities/Snackbar';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
 import {getDefaultChoices, getDefaultValueForType, getSavedToType} from "../CreatePayload/Step2SelectPayloadType";
-import { Backdrop, CircularProgress } from '@mui/material';
+import { Backdrop } from '@mui/material';
 import {MythicAgentSVGIcon} from "../../MythicComponents/MythicAgentSVGIcon";
+import {MythicLoadingState} from "../../MythicComponents/MythicStateDisplay";
 import {
     ConfigureBuildParameters,
     GetPayloads,
@@ -220,31 +221,23 @@ export function Step1SelectOS(props){
         payloadConfigRef.current = payload
     }
     return (
-        <div style={{
-            height: "100%",
-            display: "flex",
-            flexDirection: "column"
-        }}>
-            {/* Content area that can grow */}
-            <div style={{
-                flexGrow: 1,
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 0 // Important for flex shrinking
-            }}>
-                {/* Top section - fixed height */}
-                <div style={{
-                    display: "flex",
-                    flexShrink: 0 // Don't shrink this section
-                }}>
-                    <div style={{width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
-                        <Typography variant={"p"} style={{fontWeight: 600}}>
-                            1. Select Operating System
-                        </Typography>
+        <div className="mythic-create-flow-shell">
+            <div className="mythic-create-flow-content">
+                <div className="mythic-create-selection-grid">
+                    <section className="mythic-create-section">
+                        <div className="mythic-create-section-header">
+                            <div>
+                                <Typography component="div" className="mythic-create-section-title">
+                                    Select operating system
+                                </Typography>
+                                <Typography component="div" className="mythic-create-section-description">
+                                    Filter wrapper types by the target platform.
+                                </Typography>
+                            </div>
+                        </div>
                         <Select
+                            className="mythic-create-select"
                             value={os}
-                            style={{width: "100%"}}
                             disabled={!props.first}
                             onChange={onChangeOS}
                         >
@@ -254,57 +247,57 @@ export function Step1SelectOS(props){
                                 ))
                             }
                         </Select>
-                        <Typography style={{fontWeight: 600}}>
-                            Compatible Payload Types
-                        </Typography>
-                        {payloadtypesPerOS[os]?.join(", ")}
-                    </div>
-                    <div style={{width: "100%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px"}}>
-                        <div style={{width: "100%", display: "flex", alignItems: "flex-start", marginBottom: "10px", flexDirection: "column"}}>
-                            <Typography style={{fontWeight: 600}} variant={"p"}>
-                                2. Select Payload Type
-                            </Typography>
-                            <Select
-                                style={{width: "100%"}}
-                                disabled={!props.first}
-                                value={selectedPayloadType}
-                                onChange={evt => setSelectedPayloadType(evt.target.value)}
-                            >
-                                {
-                                    payloadtypesPerOS[os]?.map((opt) => (
-                                        <MenuItem key={"step1" + opt} value={opt}>{opt}</MenuItem>
-                                    ))
-                                }
-                            </Select>
-
+                        <div>
+                            <span className="mythic-create-meta-label">Compatible wrapper types</span>
+                            <div className="mythic-create-meta-value">{payloadtypesPerOS[os]?.join(", ")}</div>
                         </div>
-                        <div style={{display: "flex"}}>
-                            <MythicAgentSVGIcon payload_type={selectedPayloadType} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
-                            <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                                <b>Version: </b>{payloadtypeData[selectedPayloadType]?.semver}<br/>
-                                <b>Description: </b>{payloadtypeData[selectedPayloadType]?.note}<br/>
-                            </Typography>
+                    </section>
+                    <section className="mythic-create-section">
+                        <div className="mythic-create-section-header">
+                            <div>
+                                <Typography component="div" className="mythic-create-section-title">
+                                    Select wrapper type
+                                </Typography>
+                                <Typography component="div" className="mythic-create-section-description">
+                                    Choose the wrapper family to configure for this build.
+                                </Typography>
+                            </div>
                         </div>
-                    </div>
+                        <Select
+                            className="mythic-create-select"
+                            disabled={!props.first}
+                            value={selectedPayloadType}
+                            onChange={evt => setSelectedPayloadType(evt.target.value)}
+                        >
+                            {
+                                payloadtypesPerOS[os]?.map((opt) => (
+                                    <MenuItem key={"step1" + opt} value={opt}>{opt}</MenuItem>
+                                ))
+                            }
+                        </Select>
+                        <div className="mythic-create-agent-summary">
+                            <div className="mythic-create-agent-icon">
+                                <MythicAgentSVGIcon payload_type={selectedPayloadType} style={{width: "100%", height: "100%", objectFit: "contain"}} />
+                            </div>
+                            <div className="mythic-create-meta-list">
+                                <div>
+                                    <span className="mythic-create-meta-label">Version</span>
+                                    <div className="mythic-create-meta-value">{payloadtypeData[selectedPayloadType]?.semver || "Unknown"}</div>
+                                </div>
+                                <div>
+                                    <span className="mythic-create-meta-label">Description</span>
+                                    <div className="mythic-create-meta-value">{payloadtypeData[selectedPayloadType]?.note || "No description available."}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
-
-                {/* Bottom section - scrollable table area */}
-                <div style={{
-                    margin: "5px",
-                    border: props.first ? "1px solid grey" : '',
-                    borderRadius: "5px",
-                    padding: "10px 5px 5px 10px",
-                    display: "flex",
-                    flexDirection: "column",
-                    flexGrow: 1,
-                    minHeight: 0, // Important for flex shrinking
-                    overflow: "hidden"
-                }}>
-                    {props.first &&
-                        <div style={{flexGrow: 1, overflowY: "auto", position: "relative"}}>
+                <section className="mythic-create-section mythic-create-section-fill">
+                    {props.first ? (
+                        <div style={{display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0, overflow: "hidden", position: "relative"}}>
                             {openBackdrop &&
                                 <Backdrop open={openBackdrop} onClick={()=>{setOpenBackdrop(false);}} style={{zIndex: 2000, position: "absolute"}}>
-                                    <CircularProgress color="inherit" disableShrink  />
+                                    <MythicLoadingState compact title="Loading payloads" description="Fetching compatible payloads." sx={{color: "inherit"}} />
                                 </Backdrop>
                             }
                             <StartFromExistingPayloadOrStartFresh first={props.first}
@@ -315,18 +308,15 @@ export function Step1SelectOS(props){
                                                                   onStartFresh={onStartFresh}
                             />
                         </div>
-
-                    }
-                    {!props.first &&
+                    ) : (
                         <ConfigureBuildParameters os={os} selectedPayloadType={selectedPayloadType}
                                                   prevData={props.prevData}
                                                   onUpdatePayloadConfig={onUpdatePayloadConfig} />
-                    }
-                </div>
+                    )}
+                </section>
             </div>
 
-            {/* Navigation buttons - always at bottom */}
-            <div style={{flexShrink: 0}}>
+            <div className="mythic-create-flow-footer">
                 <CreatePayloadNavigationButtons
                     first={props.first}
                     last={props.last}
