@@ -45,6 +45,7 @@ import {
     MythicDialogBody,
     MythicDialogButton,
     MythicDialogFooter,
+    MythicDialogSection,
     MythicFormNote
 } from "../../MythicComponents/MythicDialogLayout";
 
@@ -467,20 +468,26 @@ const APITokenValueDialog = ({tokenValue, onClose}) => {
             <DialogTitle id="form-dialog-title">Copy API Token</DialogTitle>
             <DialogContent dividers={true}>
                 <MythicDialogBody>
-                    <MythicFormNote>
+                    <MythicFormNote className="mythic-api-token-copy-warning">
                         This token value is only shown once. Copy it now before closing this dialog.
                     </MythicFormNote>
-                    <TextField
-                        fullWidth
-                        multiline
-                        minRows={4}
-                        value={tokenValue}
-                        InputProps={{readOnly: true}}
-                    />
+                    <MythicDialogSection
+                        title="Token Value"
+                        description="Store this somewhere safe before you close the dialog."
+                    >
+                        <TextField
+                            className="mythic-api-token-value-field"
+                            fullWidth
+                            multiline
+                            minRows={4}
+                            value={tokenValue}
+                            InputProps={{readOnly: true}}
+                        />
+                    </MythicDialogSection>
                 </MythicDialogBody>
             </DialogContent>
             <MythicDialogFooter>
-                <MythicDialogButton onClick={onCopyTokenValue} startIcon={<ContentCopyIcon />}>
+                <MythicDialogButton className="mythic-table-row-action-hover-info" onClick={onCopyTokenValue} startIcon={<ContentCopyIcon />}>
                     Copy
                 </MythicDialogButton>
                 <MythicDialogButton intent="primary" onClick={onClose}>
