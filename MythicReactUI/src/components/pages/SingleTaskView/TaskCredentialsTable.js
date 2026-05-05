@@ -1,23 +1,21 @@
 import React, { useEffect } from 'react';
 import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
-import {useTheme} from '@mui/material/styles';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import { MythicStyledTooltip } from '../../MythicComponents/MythicStyledTooltip';
 import { copyStringToClipboard } from '../../utilities/Clipboard';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faCopy} from '@fortawesome/free-solid-svg-icons';
 import {IconButton} from '@mui/material';
 import {snackActions} from '../../utilities/Snackbar';
+import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
+import {MythicPageHeaderChip, MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 
 export function TaskCredentialsTable(props){
    const [credentials, setCredentials] = React.useState([]);
-   const theme = useTheme();
 
    useEffect( () => {
     const condensed = props.tasks.reduce( (prev, tsk) => {
@@ -29,25 +27,25 @@ export function TaskCredentialsTable(props){
    if(credentials.length === 0){
      return null
    }
+   const credentialCountLabel = credentials.length === 1 ? "1 credential" : `${credentials.length} credentials`;
   return (
-    <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                Credentials
-            </Typography>
-        </Paper>
-        
-        <Paper elevation={5} style={{position: "relative", backgroundColor: theme.body}} >
-        <TableContainer className="mythicElement">
-          <Table  size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
+    <div className="mythic-single-task-metadata-section">
+        <MythicSectionHeader
+            dense
+            title="Credentials"
+            subtitle="Credentials captured by the selected task set."
+            actions={<MythicPageHeaderChip label={credentialCountLabel} />}
+        />
+        <TableContainer className="mythicElement mythic-single-task-table-wrap">
+          <Table className="mythic-single-task-table" size="small">
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "4rem"}}>Task</TableCell>
-                        <TableCell style={{width: "8rem"}}>Type</TableCell>
-                        <TableCell>Realm</TableCell>
-                        <TableCell>Account</TableCell>
-                        <TableCell>Credentials</TableCell>
-                        <TableCell>Comment</TableCell>
+                        <MythicStyledTableCell style={{width: "4.5rem"}}>Task</MythicStyledTableCell>
+                        <MythicStyledTableCell style={{width: "9rem"}}>Type</MythicStyledTableCell>
+                        <MythicStyledTableCell>Realm</MythicStyledTableCell>
+                        <MythicStyledTableCell>Account</MythicStyledTableCell>
+                        <MythicStyledTableCell>Credentials</MythicStyledTableCell>
+                        <MythicStyledTableCell>Comment</MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -57,8 +55,7 @@ export function TaskCredentialsTable(props){
                 </TableBody>
             </Table>
           </TableContainer>
-        </Paper>
-    </React.Fragment>
+    </div>
   );
 }
 
@@ -75,30 +72,32 @@ const CredentialTableRow = ({cred}) => {
 }
   return (
     <TableRow key={"cred" + cred.id} hover>
-      <TableCell >{cred.display_id}</TableCell>
-      <TableCell>{cred.type}</TableCell>
-      <TableCell style={{whiteSpace: "pre-wrap", wordBreak: "break-all"}}>{cred.realm}</TableCell>
-      <TableCell style={{whiteSpace: "pre-wrap", wordBreak: "break-all"}}>{cred.account}</TableCell>
-      <TableCell>
+      <MythicStyledTableCell>{cred.display_id}</MythicStyledTableCell>
+      <MythicStyledTableCell>
+        <MythicStatusChip label={cred.type} status="neutral" showIcon={false} />
+      </MythicStyledTableCell>
+      <MythicStyledTableCell className="mythic-single-task-cell-break">{cred.realm}</MythicStyledTableCell>
+      <MythicStyledTableCell className="mythic-single-task-cell-break">{cred.account}</MythicStyledTableCell>
+      <MythicStyledTableCell>
         {cred.credential_text.length > 64 ? 
           (
-              <React.Fragment>
+              <div className="mythic-single-task-credential-cell">
                   <MythicStyledTooltip title={"Copy to clipboard"}>
-                      <IconButton onClick={() => onCopyToClipboard(cred.credential_text)} size="small">
-                          <FontAwesomeIcon icon={faCopy} />
+                      <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-hover-info" onClick={() => onCopyToClipboard(cred.credential_text)} size="small">
+                          <ContentCopyIcon fontSize="small" />
                       </IconButton>
                   </MythicStyledTooltip>
-                  <Typography variant="body2" style={{wordBreak: "break-all", maxWidth: "40rem"}}>{displayCred}</Typography>
-              </React.Fragment>
+                  <Typography className="mythic-single-task-credential-text" variant="body2">{displayCred}</Typography>
+              </div>
           )
           :
           (
               <React.Fragment>
-                  <Typography variant="body2" style={{wordBreak: "break-all", maxWidth: "40rem"}}>{displayCred}</Typography>
+                  <Typography className="mythic-single-task-credential-text" variant="body2">{displayCred}</Typography>
               </React.Fragment>   
           )}
-        </TableCell>
-      <TableCell style={{whiteSpace: "pre-wrap", wordBreak: "break-all"}}>{cred.comment}</TableCell>
+        </MythicStyledTableCell>
+      <MythicStyledTableCell className="mythic-single-task-cell-break">{cred.comment}</MythicStyledTableCell>
     </TableRow>
   )
 }

@@ -3,18 +3,23 @@ import {TaskDisplay} from '../Callbacks/TaskDisplay';
 import {gql, useLazyQuery, useQuery } from '@apollo/client';
 import  {useParams} from "react-router-dom";
 import {TaskMetadataTable} from './MetadataTable';
-import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
-import {Button, Link} from '@mui/material';
+import Checkbox from '@mui/material/Checkbox';
+import {Link} from '@mui/material';
 import {IncludeMoreTasksDialog} from './IncludeMoreTasksDialog';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {snackActions} from '../../utilities/Snackbar';
 import {copyStringToClipboard} from '../../utilities/Clipboard';
-import Switch from '@mui/material/Switch';
-import {useTheme} from '@mui/material/styles';
 import {taskingDataFragment} from '../Callbacks/CallbackMutations'
 import {meState} from "../../../cache";
 import { useReactiveVar } from '@apollo/client';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
+import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CloseIcon from '@mui/icons-material/Close';
+import {MythicPageBody} from "../../MythicComponents/MythicPageBody";
+import {MythicPageHeader, MythicPageHeaderChip, MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
+import {MythicToolbarButton} from "../../MythicComponents/MythicTableToolbar";
 
 const tasksQuery = gql`
 ${taskingDataFragment}
@@ -82,7 +87,11 @@ export function SingleTaskView(props){
     const [tasks, setTasks] = React.useState([]);
     const [removing, setRemoving] = React.useState(false);
     const [openIncludeMoreTasksDialog, setOpenIncludeMoreTasksDialog] = React.useState(false);
-    const theme = useTheme();
+    const taskCount = tasks.filter((task) => task.type === "task").length;
+    const callbackCount = tasks.filter((task) => task.type === "callback").length;
+    const selectedRemoveCount = tasks.filter((task) => task.type === "task" && task.checked).length;
+    const taskCountLabel = taskCount === 1 ? "1 task" : `${taskCount} tasks`;
+    const callbackCountLabel = callbackCount === 1 ? "1 callback" : `${callbackCount} callbacks`;
     const mergeData = (taskData) => {
         let allNewParents = taskData.filter( (task) => task.parent_task_id === null);
         let allData = [];
@@ -163,18 +172,36 @@ export function SingleTaskView(props){
         });
         setTasks(updated);
     }
-    const removeTasksButton = () => {
-        removing ? setRemoving(false) : setRemoving(true);
-        const remainingTasks = tasks.filter( (task) => !task.checked);
+    const enterRemoveMode = () => {
+        setRemoving(true);
+    }
+    const cancelRemoveMode = () => {
+        setRemoving(false);
+        setTasks(tasks.map((task) => task.type === "task" ? {...task, checked: false} : task));
+    }
+    const removeSelectedTasks = () => {
+        const remainingTaskRows = tasks.filter( (task) => task.type === "task" && !task.checked);
+        const remainingCallbackDisplayIds = new Set(remainingTaskRows.map( (task) => task.callback.display_id));
+        const remainingTasks = tasks.filter( (task) => {
+            if(task.type === "task"){
+                return !task.checked;
+            }
+            return remainingCallbackDisplayIds.has(task.display_id);
+        }).map((task) => task.type === "task" ? {...task, checked: false} : task);
         setTasks(remainingTasks);
         const remainingTaskIDs = remainingTasks.reduce( (prev, cur) => {
             if(cur.type === "task"){
-                return [...prev, cur.display_id];
+                const subIds = cur.tasks.filter( (subTask) => !prev.includes(subTask.display_id)).map( (subTask) => subTask.display_id);
+                if(prev.includes(cur.display_id)){
+                    return [...prev, ...subIds];
+                }
+                return [...prev, cur.display_id, ...subIds];
             }else{
                 return [...prev];
             }
         }, []);
         setTaskIDs(remainingTaskIDs);
+        setRemoving(false);
     }
     const collapse_range = (all_nums) =>{
         // takes in an array of the expanded numbers and collapses it down
@@ -242,44 +269,84 @@ export function SingleTaskView(props){
             getTasks({variables: {task_range: [parseInt(taskId)]}});
         }      
     }, [getTasks, taskId]);
+    const getCallbackTitle = (callback) => {
+        const domain = callback.domain === "" ? "" : `${callback.domain}\\`;
+        const integrity = callback.integrity_level > 2 ? "*" : "";
+        return `${domain}${callback.user}${integrity}@${callback.host}`;
+    }
   return (
-    <div style={{height: "100%", display: "flex", flexDirection: "column", width:"100%", overflowY: 'auto',}}>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px"}} variant={"elevation"}>
-            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                Task View
-            </Typography>
-            <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.success.main}} 
-                onClick={getShareableLink}>Get Shareable link</Button>
-            <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.warning.main}} 
-                onClick={removeTasksButton}>Remove Tasks From View</Button>
-        </Paper>
-        <div style={{ display: "flex", flexDirection: "column"}}>
+    <MythicPageBody>
+        <MythicPageHeader
+            title="Task View"
+            subtitle="Review task output, pull nearby task context into view, and inspect metadata collected by those tasks."
+            meta={
+                <>
+                    <MythicPageHeaderChip label={taskCountLabel} />
+                    <MythicPageHeaderChip label={callbackCountLabel} />
+                    {removing && <MythicPageHeaderChip label={`${selectedRemoveCount} selected`} status={selectedRemoveCount > 0 ? "warning" : undefined} />}
+                </>
+            }
+            actions={
+                <>
+                    <MythicToolbarButton className="mythic-table-row-action-hover-info" variant="outlined" onClick={getShareableLink} startIcon={<ContentCopyIcon fontSize="small" />}>
+                        Share Link
+                    </MythicToolbarButton>
+                    {removing ? (
+                        <>
+                            <MythicToolbarButton className="mythic-table-row-action-hover-warning" variant="outlined" onClick={cancelRemoveMode} startIcon={<CloseIcon fontSize="small" />}>
+                                Cancel
+                            </MythicToolbarButton>
+                            <MythicToolbarButton className="mythic-table-row-action-hover-danger" disabled={selectedRemoveCount === 0} variant="outlined" onClick={removeSelectedTasks} startIcon={<DeleteIcon fontSize="small" />}>
+                                Remove Selected
+                            </MythicToolbarButton>
+                        </>
+                    ) : (
+                        <MythicToolbarButton className="mythic-table-row-action-hover-warning" variant="outlined" onClick={enterRemoveMode} startIcon={<PlaylistRemoveIcon fontSize="small" />}>
+                            Remove Tasks
+                        </MythicToolbarButton>
+                    )}
+                </>
+            }
+        />
+        <div className="mythic-single-task-list">
             {tasks.map( (task) => (
                 task.type === "task" ? (
-                    <div key={"taskdisplay:" + task.display_id} style={{marginRight: "5px"}}>
-                        <div style={{width: removing ? "95%" : "100%", display: "inline-block"}}>
+                    <div className={`mythic-single-task-card-row${removing ? " mythic-single-task-card-row-removing" : ""}`} key={"taskdisplay:" + task.display_id}>
+                        <div className="mythic-single-task-display">
                             <TaskDisplay me={me} task={task} command_id={task.command === null ? 0 : task.command.id} />
                         </div>
                         {removing ? (
-                            <Switch
-                                checked={task.checked}
-                                onChange={toggleTaskToRemove}
-                                name={"task" + task.display_id}
-                                inputProps={{ 'aria-label': 'checkbox', 'color': theme.palette.error.main }}
-                            />
+                            <label className={`mythic-single-task-remove-control${task.checked ? " mythic-single-task-remove-control-selected" : ""}`}>
+                                <Checkbox
+                                    checked={task.checked}
+                                    color="error"
+                                    name={"task" + task.display_id}
+                                    onChange={toggleTaskToRemove}
+                                    size="small"
+                                    inputProps={{ 'aria-label': `remove task ${task.display_id}` }}
+                                />
+                                <span>Remove</span>
+                            </label>
                         ) : null}
                     </div>
 
                 ) : (
-                    <Paper key={"taskdisplayforcallback:" + task.id} elevation={5} style={{ marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-                        <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                            {task.domain === "" ? null : (task.domain + "\\")}{task.user}{task.integrity_level > 2 ? ("*") : null}@{task.host} (
-                            <Link style={{wordBreak: "break-all"}} color={"textPrimary"} underline="always" target="_blank" href={"/new/callbacks/" + task.display_id}>{task.display_id}</Link>
-                            )
-                        </Typography>
-                        <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.info.main}}
-                                onClick={() => {setTaskSearchInfo(task.display_id)}}>Include More Tasks</Button>
-                    </Paper>
+                    <MythicSectionHeader
+                        dense
+                        key={"taskdisplayforcallback:" + task.id}
+                        title={getCallbackTitle(task)}
+                        subtitle={
+                            <>
+                                Callback <Link className="mythic-single-task-callback-link" color="inherit" underline="always" target="_blank" rel="noreferrer" href={"/new/callbacks/" + task.display_id}>#{task.display_id}</Link>
+                            </>
+                        }
+                        actions={
+                            <MythicToolbarButton className="mythic-table-row-action-hover-info" variant="outlined" onClick={() => {setTaskSearchInfo(task.display_id)}} startIcon={<PlaylistAddIcon fontSize="small" />}>
+                                Include Tasks
+                            </MythicToolbarButton>
+                        }
+                        sx={{mt: 0.75}}
+                    />
                 ))
 
             )
@@ -292,7 +359,7 @@ export function SingleTaskView(props){
             />
         }
         <TaskMetadataTable taskIDs={taskIDs} />
-    </div>
+    </MythicPageBody>
   );
 }
 //

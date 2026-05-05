@@ -1,20 +1,18 @@
 import React, { useEffect } from 'react';
-import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
-import {useTheme} from '@mui/material/styles';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Link from '@mui/material/Link';
 import {b64DecodeUnicode} from '../Callbacks/ResponseDisplay';
+import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
+import {MythicPageHeaderChip, MythicSectionHeader} from "../../MythicComponents/MythicPageHeader";
+import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
 
 
 export function TaskFilesTable(props){
    const [files, setFiles] = React.useState([]);
-   const theme = useTheme();
 
    useEffect( () => {
     const condensed = props.tasks.reduce( (prev, tsk) => {
@@ -27,56 +25,73 @@ export function TaskFilesTable(props){
    if(files.length === 0){
      return null
    }
+   const fileCountLabel = files.length === 1 ? "1 file" : `${files.length} files`;
   return (
-    <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                Files / Screenshots
-            </Typography>
-        </Paper>
-        
-        <Paper elevation={5} style={{position: "relative", backgroundColor: theme.body}}>
-        <TableContainer className="mythicElement">
-          <Table  size="small" style={{ "overflow": "scroll"}}>
+    <div className="mythic-single-task-metadata-section">
+        <MythicSectionHeader
+            dense
+            title="Files / Screenshots"
+            subtitle="Files, payloads, downloads, uploads, and screenshots associated with these tasks."
+            actions={<MythicPageHeaderChip label={fileCountLabel} />}
+        />
+        <TableContainer className="mythicElement mythic-single-task-table-wrap">
+          <Table className="mythic-single-task-table mythic-single-task-files-table" size="small">
                 <TableHead>
                     <TableRow>
-                        <TableCell>Filename</TableCell>
-                        <TableCell style={{width: "5rem"}}>Type</TableCell>
-                        <TableCell >Remote Path</TableCell>
-                        <TableCell >Comment</TableCell>
-                        <TableCell >Hashes</TableCell>
+                        <MythicStyledTableCell>Filename</MythicStyledTableCell>
+                        <MythicStyledTableCell style={{width: "8rem"}}>Type</MythicStyledTableCell>
+                        <MythicStyledTableCell>Remote Path</MythicStyledTableCell>
+                        <MythicStyledTableCell>Comment</MythicStyledTableCell>
+                        <MythicStyledTableCell>Hashes</MythicStyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
                   {files.map( (file) => (
                     <TableRow key={"file" + file.id} hover>
-                      <TableCell>
+                      <MythicStyledTableCell className="mythic-single-task-cell-break">
                         {!file.deleted && file.complete ? (
-                          <Link href={"/direct/download/" + file.agent_file_id} style={{textDecoration: "underline", color: "inherit"}}>{b64DecodeUnicode(file.filename_text)}</Link>
+                          <Link className="mythic-single-task-table-link" href={"/direct/download/" + file.agent_file_id}>{b64DecodeUnicode(file.filename_text)}</Link>
                         ) : ( 
                           !file.complete ? (
                             b64DecodeUnicode(file.filename_text) +  " (" + file.chunks_received + "/" + file.total_chunks + ")"
                           ) : (b64DecodeUnicode(file.filename_text))
                          )}
-                        </TableCell>
-                      <TableCell>
-                        {file.is_screenshot ? ("Screenshot") : (
-                          file.is_payload ? ("Payload") : (
-                            file.is_download_from_agent ? ("Download") : (
-                              "Upload"
-                            )
-                          )
-                        )}
-                      </TableCell>
-                      <TableCell style={{whiteSpace: "pre-wrap", wordBreak: "break-all"}}>{b64DecodeUnicode(file.full_remote_path_text) === "" ? ("") : (file.host + "\n" + b64DecodeUnicode(file.full_remote_path_text)) }</TableCell>
-                      <TableCell style={{whiteSpace: "pre-wrap", wordBreak: "break-all"}}>{file.comment}</TableCell>
-                      <TableCell>{"MD5: "}{file.md5}<br/>{"SHA1: "}{file.sha1}</TableCell>
+                        </MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                        <TaskFileTypeChip file={file} />
+                      </MythicStyledTableCell>
+                      <MythicStyledTableCell className="mythic-single-task-cell-break">{b64DecodeUnicode(file.full_remote_path_text) === "" ? ("") : (file.host + "\n" + b64DecodeUnicode(file.full_remote_path_text)) }</MythicStyledTableCell>
+                      <MythicStyledTableCell className="mythic-single-task-cell-break">{file.comment}</MythicStyledTableCell>
+                      <MythicStyledTableCell>
+                        <div className="mythic-single-task-hash-list">
+                          <span>MD5: {file.md5}</span>
+                          <span>SHA1: {file.sha1}</span>
+                        </div>
+                      </MythicStyledTableCell>
                     </TableRow>
                   ))}
                 </TableBody>
             </Table>
           </TableContainer>
-        </Paper>
-    </React.Fragment>
+    </div>
   );
+}
+
+const TaskFileTypeChip = ({file}) => {
+  if(file.deleted){
+    return <MythicStatusChip label="Deleted" status="deleted" />;
+  }
+  if(!file.complete){
+    return <MythicStatusChip label="In progress" status="building" />;
+  }
+  if(file.is_screenshot){
+    return <MythicStatusChip label="Screenshot" status="info" showIcon={false} />;
+  }
+  if(file.is_payload){
+    return <MythicStatusChip label="Payload" status="warning" showIcon={false} />;
+  }
+  if(file.is_download_from_agent){
+    return <MythicStatusChip label="Download" status="success" showIcon={false} />;
+  }
+  return <MythicStatusChip label="Upload" status="neutral" showIcon={false} />;
 }

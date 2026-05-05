@@ -1,10 +1,11 @@
 import React, {useEffect} from 'react';
-import {useLazyQuery, gql } from '@apollo/client';
+import {gql } from '@apollo/client';
 import {TaskArtifactsTable} from './TaskArtifactsTable';
 import {TaskMITREATTACKTable} from './TaskMITREATTACKTable';
 import {TaskFilesTable} from './TaskFilesTable';
 import {TaskCredentialsTable} from './TaskCredentialsTable';
 import {useMythicLazyQuery} from "../../utilities/useMythicLazyQuery";
+import {MythicEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 
 const MetadataQuery = gql`
@@ -68,10 +69,22 @@ query taskMetadataQuery($task_range: [Int!]) {
   }`;
 export function TaskMetadataTable(props){
    const [tasks, setTasks] = React.useState([]);
+   const metadataQueryOptions = React.useMemo(() => ({fetchPolicy: "no-cache"}), []);
+   const hasMetadata = React.useMemo(() => {
+        return tasks.some((task) => (
+            task.credentials.length > 0 ||
+            task.filemeta.length > 0 ||
+            task.taskartifacts.length > 0 ||
+            task.attacktasks.length > 0
+        ));
+   }, [tasks]);
 
-   const getMetadata = useMythicLazyQuery(MetadataQuery, {fetchPolicy: "no-cache"
-    });
+   const getMetadata = useMythicLazyQuery(MetadataQuery, metadataQueryOptions);
     useEffect( () => {
+        if(props.taskIDs.length === 0){
+            setTasks([]);
+            return;
+        }
         getMetadata({variables: {task_range: props.taskIDs } }).then(({data}) => {
             setTasks(data.task);
         }).catch(({data}) => {
@@ -79,11 +92,20 @@ export function TaskMetadataTable(props){
         });
     }, [props.taskIDs, getMetadata]);
   return (
-    <div style={{marginTop: "10px", marginRight: "5px"}}>
+    <div className="mythic-single-task-metadata">
         <TaskArtifactsTable tasks={tasks}/>
         <TaskMITREATTACKTable tasks={tasks}/>
         <TaskFilesTable tasks={tasks}/>
         <TaskCredentialsTable tasks={tasks}/>
+        {tasks.length > 0 && !hasMetadata &&
+            <div className="mythic-single-task-empty-card">
+                <MythicEmptyState
+                    compact
+                    title="No task metadata"
+                    description="These tasks do not currently have artifacts, MITRE mappings, files, screenshots, or credentials to show."
+                />
+            </div>
+        }
     </div>
   );
 }

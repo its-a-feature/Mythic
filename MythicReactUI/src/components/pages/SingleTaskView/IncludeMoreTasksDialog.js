@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState, useEffect} from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -8,7 +8,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
-import Input from '@mui/material/Input';
+import Typography from '@mui/material/Typography';
 
 export function IncludeMoreTasksDialog(props) {
     const [taskSelected, setTaskSelected] = useState(0);
@@ -22,7 +22,6 @@ export function IncludeMoreTasksDialog(props) {
         {"type": "callback", "text": "This Callback"},
         {"type": "operator", "text": "All callbacks but limited by operator"}
     ];
-    const inputRef = useRef(null); 
     const onRequestSubmit = () => {
         props.submitFetchTasks({
             taskSelected,
@@ -43,59 +42,69 @@ export function IncludeMoreTasksDialog(props) {
         if(props.taskOptions.length > 0){
             setTaskSelected(props.taskOptions[0]);
         }
-    }, [props.tasks, props.taskOptions])
+    }, [props.taskOptions])
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Add More Tasks to View</DialogTitle>
-        <DialogContent dividers={true}>
-        <React.Fragment>
-                <FormControl style={{width:"100%"}}>
-                  <InputLabel ref={inputRef}>View More Tasks Around Task:</InputLabel>
+        <DialogContent className="mythic-dialog-body" dividers={true}>
+            <div className="mythic-dialog-section">
+                <div className="mythic-dialog-section-header">
+                    <div>
+                        <Typography className="mythic-dialog-section-title">Task window</Typography>
+                        <Typography className="mythic-dialog-section-description">Choose the anchor task and how many nearby tasks to pull into this view.</Typography>
+                    </div>
+                </div>
+                <FormControl className="mythic-single-task-dialog-control" fullWidth size="small">
+                  <InputLabel id="single-task-around-task-label">View More Tasks Around Task</InputLabel>
                   <Select
-                    labelId="demo-dialog-select-label"
-                    id="demo-dialog-select"
+                    label="View More Tasks Around Task"
+                    labelId="single-task-around-task-label"
+                    id="single-task-around-task-select"
                     value={taskSelected}
                     onChange={handleTaskChange}
-                    input={<Input />}
                   >
                     {taskOptions.map( (opt) => (
                         <MenuItem value={opt} key={"selectiontask:" + opt}>{opt}</MenuItem>
                     ) )}
                   </Select>
                 </FormControl>
-                <br/><br/>
-            </React.Fragment>
-            <MythicTextField type="number" value={beforeCount} onChange={(name, value, error)=>setBeforeCount(value)} name={"Number of tasks before"} />
-            <MythicTextField type="number" value={afterCount} onChange={(name, value, error)=>setAfterCount(value)} name={"Number of tasks after"} />
-            <React.Fragment>
-                <FormControl style={{width:"100%"}}>
-                  <InputLabel ref={inputRef}>Search Type</InputLabel>
+                <div className="mythic-single-task-dialog-grid">
+                    <MythicTextField type="number" value={beforeCount} onChange={(name, value, error)=>setBeforeCount(value)} name={"Number of tasks before"} marginBottom="0px" />
+                    <MythicTextField type="number" value={afterCount} onChange={(name, value, error)=>setAfterCount(value)} name={"Number of tasks after"} marginBottom="0px" />
+                </div>
+            </div>
+            <div className="mythic-dialog-section">
+                <div className="mythic-dialog-section-header">
+                    <div>
+                        <Typography className="mythic-dialog-section-title">Search scope</Typography>
+                        <Typography className="mythic-dialog-section-description">Limit the neighboring task search to this callback, all callbacks, or an operator.</Typography>
+                    </div>
+                </div>
+                <FormControl className="mythic-single-task-dialog-control" fullWidth size="small">
+                  <InputLabel id="single-task-search-type-label">Search Type</InputLabel>
                   <Select
-                    labelId="demo-dialog-select-label"
-                    id="demo-dialog-select"
+                    label="Search Type"
+                    labelId="single-task-search-type-label"
+                    id="single-task-search-type-select"
                     value={searchTerm}
                     onChange={handleChange}
-                    input={<Input />}
                   >
                     {searchOptions.map( (opt) => (
                         <MenuItem value={opt.type} key={"selectiontype:" + opt.type}>{opt.text}</MenuItem>
                     ) )}
                   </Select>
                 </FormControl>
-                <br/><br/>
-            </React.Fragment>
-            {searchTerm === 'operator' ? (
-                <MythicTextField multiline={false} onChange={(name, value, error)=>{setOperator(value)}} value={operator} name={"Operator Username"}/>
-            ) : null}
-            
+                {searchTerm === 'operator' ? (
+                    <MythicTextField multiline={false} onChange={(name, value, error)=>{setOperator(value)}} value={operator} name={"Operator Username"} marginBottom="0px" />
+                ) : null}
+            </div>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} variant="contained" color="primary">
+          <Button className="mythic-table-row-action" onClick={props.onClose} variant="contained">
             Close
           </Button>
-          <Button onClick={onRequestSubmit} variant="contained" color="success">Fetch Tasks</Button>          
+          <Button className="mythic-table-row-action mythic-table-row-action-hover-success" disabled={taskOptions.length === 0} onClick={onRequestSubmit} variant="contained" color="success">Fetch Tasks</Button>
         </DialogActions>
   </React.Fragment>
   );
 }
-

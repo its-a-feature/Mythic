@@ -1124,6 +1124,153 @@ tspan {
 .mythic-form-switch-control {
     flex: 0 0 auto;
 }
+.mythic-single-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+    min-width: 0;
+    overflow: visible;
+    width: 100%;
+}
+.mythic-single-task-card-row {
+    align-items: flex-start;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    width: 100%;
+}
+.mythic-single-task-card-row-removing {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+.mythic-single-task-display {
+    min-width: 0;
+    width: 100%;
+}
+.mythic-single-task-remove-control {
+    align-items: center;
+    background-color: ${(props) => props.theme.palette.mode === "dark" ? alpha(props.theme.palette.error.main, 0.14) : alpha(props.theme.palette.error.main, 0.08)};
+    border: 1px solid ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.45 : 0.28)};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    color: ${(props) => props.theme.palette.error.main};
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 750;
+    gap: 0.1rem;
+    justify-content: center;
+    margin-top: 4px;
+    min-height: 52px;
+    min-width: 4.25rem;
+    padding: 0.35rem 0.45rem;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.mythic-single-task-remove-control:hover,
+.mythic-single-task-remove-control-selected {
+    background-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.24 : 0.14)};
+    border-color: ${(props) => alpha(props.theme.palette.error.main, props.theme.palette.mode === "dark" ? 0.72 : 0.48)};
+}
+.mythic-single-task-remove-control .MuiCheckbox-root {
+    padding: 0;
+}
+.mythic-single-task-callback-link {
+    color: inherit !important;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+.mythic-single-task-metadata {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.3rem;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-single-task-metadata-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-single-task-table-wrap {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    overflow: auto;
+}
+.mythic-single-task-table {
+    min-width: 48rem;
+    table-layout: fixed;
+}
+.mythic-single-task-files-table {
+    min-width: 68rem;
+}
+.mythic-single-task-mitre-table {
+    min-width: 32rem;
+}
+.mythic-single-task-cell-break {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.mythic-single-task-table-link {
+    color: inherit !important;
+    font-weight: 700;
+    text-decoration: underline !important;
+}
+.mythic-single-task-hash-list {
+    display: flex;
+    flex-direction: column;
+    font-family: ${(props) => props.theme.typography.fontFamilyMono || "monospace"};
+    font-size: 0.74rem;
+    gap: 0.2rem;
+    overflow-wrap: anywhere;
+}
+.mythic-single-task-credential-cell {
+    align-items: flex-start;
+    display: flex;
+    gap: 0.45rem;
+    min-width: 0;
+}
+.mythic-single-task-credential-text {
+    max-width: 42rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+.mythic-single-task-empty-card {
+    background-color: ${(props) => props.theme.surfaces?.raised || props.theme.palette.background.paper};
+    border: 1px solid ${(props) => props.theme.table?.borderSoft || props.theme.borderColor};
+    border-radius: ${(props) => props.theme.shape.borderRadius}px;
+    min-width: 0;
+    width: 100%;
+}
+.mythic-single-task-dialog-control {
+    margin-top: 0.45rem !important;
+}
+.mythic-single-task-dialog-grid {
+    align-items: flex-start;
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    margin-top: 0.65rem;
+    min-width: 0;
+}
+@media screen and (max-width: 760px) {
+    .mythic-single-task-card-row-removing {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .mythic-single-task-remove-control {
+        align-items: center;
+        flex-direction: row;
+        justify-content: flex-start;
+        margin-top: 0;
+        min-height: 38px;
+        width: 100%;
+    }
+}
 .mythic-create-flow-shell {
     display: flex;
     flex-direction: column;
