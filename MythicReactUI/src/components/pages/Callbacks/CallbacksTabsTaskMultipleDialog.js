@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -6,11 +6,10 @@ import Grid from '@mui/material/Grid';
 import {useQuery, gql } from '@apollo/client';
 import {TaskFromUIButton} from './TaskFromUIButton';
 import {CallbacksTabsTaskingInput} from "./CallbacksTabsTaskingInput";
-import {CallbacksTableIPCell, CallbacksTableLastCheckinCell} from "./CallbacksTableRow";
-import {MythicDataGrid} from "../../MythicComponents/MythicDataGrid";
 import { validate as uuidValidate } from 'uuid';
 import {snackActions} from "../../utilities/Snackbar";
 import  DialogContentText  from '@mui/material/DialogContentText';
+import {CallbacksTabsSelectTable} from "./CallbacksTabsSelectTable";
 
 
 const callbacksAndFeaturesQuery = gql`
@@ -36,99 +35,6 @@ query callbacksAndFeatures($payloadtype_id: Int!) {
   }
 }`;
 
-const columns = [
-    { field: 'display_id', headerName: 'ID', width: 80, type: 'number', },
-    {
-        field: 'host',
-        headerName: 'Host',
-        flex: 0.5,
-    },
-    {
-        field: 'user',
-        headerName: 'User',
-        flex: 0.5,
-    },
-    {
-        field: 'pid',
-        headerName: 'PID',
-        type: 'number',
-        width: 80,
-    },
-    {
-        field: 'description',
-        headerName: 'Description',
-        flex: 1,
-    },
-    {
-        field: 'ip',
-        headerName: 'IP',
-        width: 100,
-        renderCell: (params) => <CallbacksTableIPCell rowData={params.row} cellData={params.row.ip} />,
-        sortable: false,
-        valueGetter: (value, row) => {
-            try{
-                return JSON.parse(row.ip)[0];
-            }catch(error){
-                return row.ip;
-            }
-        }
-    },
-    {
-        field: "last_checkin",
-        headerName: "Checkin",
-        width: 100,
-        valueGetter: (value, row) => new Date(row.last_checkin),
-        renderCell: (params) =>
-            <CallbacksTableLastCheckinCell rowData={params.row} />,
-    },
-    {
-        field: "mythictree_groups_string",
-        headerName: "Groups",
-        flex: 0.5,
-    }
-];
-const CustomSelectTable = ({initialData, selectedData}) => {
-    const [data, setData] = React.useState([]);
-    const [rowSelectionModel, setRowSelectionModel] = React.useState({
-        type: 'include',
-        ids: new Set([]),
-    });
-    React.useEffect( () => {
-        selectedData.current = data.reduce( (prev, cur) => {
-            if(rowSelectionModel.ids.has(cur.id)){return [...prev, cur]}
-            return [...prev];
-        }, []);
-    }, [data, rowSelectionModel]);
-    React.useEffect( () => {
-        setData(initialData.map(c => {
-            return {...c};
-        }));
-    }, [initialData]);
-    return (
-        <div style={{height: "calc(80vh)", minHeight: 0}}>
-            <MythicDataGrid
-                rows={data}
-                columns={columns}
-                initialState={{
-                    pagination: {
-                        paginationModel: {
-                        },
-                    },
-                    sorting: {
-                        sortModel: [{ field: 'display_id', sort: 'desc' }],
-                    },
-                }}
-                autoPageSize
-                checkboxSelection
-                onRowSelectionModelChange={(newRowSelectionModel) => {
-                    setRowSelectionModel(newRowSelectionModel);
-                }}
-                rowSelectionModel={rowSelectionModel}
-            />
-        </div>
-
-    )
-}
 export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
     const mountedRef = React.useRef(true);
     const [selectedToken, setSelectedToken] = React.useState({});
@@ -137,7 +43,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
     const finalTaskedParameters = React.useRef(null);
     const [initialData, setInitialData] = React.useState([]);
     const selectedData = React.useRef([]);
-    useQuery(callbacksAndFeaturesQuery, {variables: {payloadtype_id: callback.payload.payloadtype.id},
+    const {loading} = useQuery(callbacksAndFeaturesQuery, {variables: {payloadtype_id: callback.payload.payloadtype.id},
       fetchPolicy: "no-cache",
       onCompleted: (data) => {
           setInitialData(data.callback.map( c => {
@@ -294,8 +200,15 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
           <DialogContentText style={{textAlign: "center"}}>
               <b>Note: </b> Last checkin times are based on when this window opened and won't refresh.
           </DialogContentText>
-          <CustomSelectTable initialData={initialData}
-                             selectedData={selectedData}  />
+          <CallbacksTabsSelectTable
+              includeAgent={false}
+              initialData={initialData}
+              loading={loading}
+              selectedData={selectedData}
+              sortModel={{ field: 'display_id', sort: 'desc' }}
+              tableId="task-multiple-callbacks-table"
+              tableLabel={`Task multiple ${callback.payload.payloadtype.name} callbacks`}
+          />
           <Grid size={12}>
               <CallbacksTabsTaskingInput filterTasks={false} onSubmitFilter={()=>{}} onSubmitCommandLine={onSubmitCommandLine}
                                          changeSelectedToken={changeSelectedToken}

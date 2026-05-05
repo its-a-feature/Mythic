@@ -2,6 +2,7 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
+import Skeleton from '@mui/material/Skeleton';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
@@ -122,5 +123,70 @@ export function MythicTableEmptyState({colSpan, ...props}) {
                 <MythicEmptyState {...props} />
             </TableCell>
         </TableRow>
+    );
+}
+
+export function MythicTableSearchEmptyState({colSpan, ...props}) {
+    return (
+        <TableRow>
+            <TableCell colSpan={colSpan} sx={{borderBottom: 0, p: 0}}>
+                <MythicSearchEmptyState {...props} />
+            </TableCell>
+        </TableRow>
+    );
+}
+
+export function MythicTableErrorState({colSpan, ...props}) {
+    return (
+        <TableRow>
+            <TableCell colSpan={colSpan} sx={{borderBottom: 0, p: 0}}>
+                <MythicErrorState {...props} />
+            </TableCell>
+        </TableRow>
+    );
+}
+
+export function MythicTableSkeletonRows({colSpan, columns = 4, rows = 4}) {
+    const skeletonColumns = Math.max(1, columns);
+    return (
+        <>
+            {[...Array(rows).keys()].map((rowIndex) => (
+                <TableRow key={`mythic-table-skeleton-${rowIndex}`}>
+                    <TableCell colSpan={colSpan} sx={{px: 1.25, py: 0.75}}>
+                        <Box sx={{
+                            display: "grid",
+                            gap: 1,
+                            gridTemplateColumns: `repeat(${skeletonColumns}, minmax(0, 1fr))`,
+                        }}>
+                            {[...Array(skeletonColumns).keys()].map((columnIndex) => (
+                                <Skeleton
+                                    animation="wave"
+                                    height={22}
+                                    key={`mythic-table-skeleton-${rowIndex}-${columnIndex}`}
+                                    sx={{borderRadius: 1}}
+                                    variant="rounded"
+                                    width={columnIndex === skeletonColumns - 1 ? "72%" : "100%"}
+                                />
+                            ))}
+                        </Box>
+                    </TableCell>
+                </TableRow>
+            ))}
+        </>
+    );
+}
+
+export function MythicTableLoadingState({colSpan, columns, rows = 4, showSkeleton = true, ...props}) {
+    return (
+        <>
+            <TableRow>
+                <TableCell colSpan={colSpan} sx={{borderBottom: showSkeleton ? undefined : 0, p: 0}}>
+                    <MythicLoadingState {...props} />
+                </TableCell>
+            </TableRow>
+            {showSkeleton &&
+                <MythicTableSkeletonRows colSpan={colSpan} columns={columns} rows={rows} />
+            }
+        </>
     );
 }

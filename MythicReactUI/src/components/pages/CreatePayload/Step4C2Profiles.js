@@ -374,44 +374,39 @@ export function Step4C2Profiles(props){
         setDisabledC2Add(false);
     }, [includedC2Profiles, selectedC2]);
     return (
-        <div style={{
-            height: "100%",
-            display: "flex",
-            flexDirection: "column"
-        }}>
-            {/* Content area that can grow */}
-            <div style={{
-                flexGrow: 1,
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 0 // Important for flex shrinking
-            }}>
-                {/* Top section - fixed height */}
-                <div style={{
-                    display: "flex",
-                    flexShrink: 0 // Don't shrink this section
-                }}>
-                    <div style={{width: "40%", margin: "5px", border: "1px solid grey", borderRadius: "5px", padding: "10px", display: "flex"}}>
-                        <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "80px", padding: "5px", objectFit: "unset"}} />
-                        <div>
-                            <Typography variant={"p"} style={{}}>
-                                <b>OS: </b>{props.buildOptions.os}
-                            </Typography><br/>
-                            <Typography variant="body2" component="p" style={{whiteSpace: "pre-wrap"}}>
-                                <b>Description: </b>{props.buildOptions.description}
-                            </Typography>
+        <div className="mythic-create-flow-shell">
+            <div className="mythic-create-flow-content">
+                <div className="mythic-create-selection-grid">
+                    <section className="mythic-create-section">
+                        <div className="mythic-create-agent-summary">
+                            <div className="mythic-create-agent-icon">
+                                <MythicAgentSVGIcon payload_type={props.buildOptions.payload_type} style={{width: "100%", height: "100%", objectFit: "contain"}} />
+                            </div>
+                            <div className="mythic-create-meta-list">
+                                <div>
+                                    <span className="mythic-create-meta-label">Operating system</span>
+                                    <div className="mythic-create-meta-value">{props.buildOptions.os}</div>
+                                </div>
+                                <div>
+                                    <span className="mythic-create-meta-label">Description</span>
+                                    <div className="mythic-create-meta-value">{props.buildOptions.description}</div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div style={{width: "60%",
-                        margin: "5px",
-                        border: "1px solid grey",
-                        borderRadius: "5px", padding: "10px"}}>
-                        <Typography variant={"p"} style={{fontWeight: 600}}>
-                            1. Select C2 Profiles to Include
-                        </Typography>
+                    </section>
+                    <section className="mythic-create-section">
+                        <div className="mythic-create-section-header">
+                            <div>
+                                <Typography component="div" className="mythic-create-section-title">
+                                    Select C2 profiles
+                                </Typography>
+                                <Typography component="div" className="mythic-create-section-description">
+                                    Add one or more egress or peer profiles to configure for this payload.
+                                </Typography>
+                            </div>
+                        </div>
                         <Select
-                            style={{width: "100%", marginBottom: "5px", marginTop: "5px", display: "flex"}}
+                            className="mythic-create-select"
                             value={selectedC2}
                             onChange={onChangeSelectedC2}
                         >
@@ -429,79 +424,43 @@ export function Step4C2Profiles(props){
                                 className="mythic-table-row-action mythic-table-row-action-hover-success"
                                 size="small"
                                 variant="contained"
-                                style={{marginLeft: "10px", marginBottom: "5px"}}
                                 onClick={addC2}
                                 disabled={disabledC2Add}
                                 startIcon={<AddCircleIcon fontSize="small" />} >
                                 Include Profile
                         </Button>
-                    </div>
+                    </section>
                 </div>
 
-                {/* Bottom section - scrollable table area */}
-                <div style={{
-                    margin: "5px",
-                    //border: "1px solid grey",
-                    borderRadius: "5px",
-                    //padding: "10px",
-                    display: "flex",
-                    flexDirection: "column",
-                    flexGrow: 1,
-                    minHeight: 0, // Important for flex shrinking
-                    overflow: "hidden"
-                }}>
-                    {/* Header section - fixed */}
-                    <div style={{flexShrink: 0}}>
-                        <Typography variant={"p"} style={{fontWeight: 600}}>
-                            2. Include and Configure C2 Profiles
-                        </Typography>
+                <section className="mythic-create-section mythic-create-section-fill">
+                    <div className="mythic-create-section-header">
+                        <div>
+                            <Typography component="div" className="mythic-create-section-title">
+                                Include and configure C2 profiles
+                            </Typography>
+                            <Typography component="div" className="mythic-create-section-description">
+                                Review the active C2 profiles and adjust their build-time parameters.
+                            </Typography>
+                        </div>
                     </div>
-                    <div style={{
-                        flexGrow: 1,
-                        overflow: "auto",
-                        display: "flex",
-                        flexDirection: "row",
-                        minHeight: 0 // Important for flex shrinking
-                    }}>
-                        <div style={{
-                            width: "30%",
-                            margin: "5px",
-                            border: "1px solid grey",
-                            borderRadius: "5px",
-                            padding: "5px",
-                            display: "flex",
-                            flexDirection: "column",
-                            flexGrow: 1,
-                            minHeight: 0, // Important for flex shrinking
-                            overflow: "auto"
-                        }}>
-                            <Typography textAlign="center" variant={"h7"} style={{fontWeight: 600, width: "100%"}}>
+                    <div className="mythic-create-builder-split">
+                        <section className="mythic-create-section mythic-create-section-scroll">
+                            <Typography component="div" className="mythic-create-section-title" style={{textAlign: "center"}}>
                                 Configuration Summary
                             </Typography>
                             {includedC2Profiles.map( (c, index) => (
                                 <ConfigurationSummary key={c.name + index} buildParameters={c.c2profileparameters}
                                                       os={props.buildOptions.os} c2_name={c.name} />
                             ))}
-                        </div>
-                        <div style={{
-                            width: "100%",
-                            margin: "5px",
-                            border: "1px solid grey",
-                            borderRadius: "5px",
-                            padding: "0px",
-                            display: "flex",
-                            flexDirection: "column",
-                            flexGrow: 1,
-                            minHeight: 0, // Important for flex shrinking
-                            overflow: "hidden"
-                        }}>
+                        </section>
+                        <section className="mythic-create-section mythic-create-section-scroll">
                             <C2ProfileTabs includedC2Profiles={includedC2Profiles} os={props.buildOptions.os}
                                            onCloseTab={removeC2} onChange={updateC2Parameter}
                                            onChangeCreatedInstanceName={onChangeCreatedInstanceName}
                             />
-                        </div>
+                        </section>
                     </div>
-                </div>
+                </section>
             </div>
             {openConfirmDialog &&
                 <MythicConfirmDialog open={openConfirmDialog}
@@ -510,8 +469,7 @@ export function Step4C2Profiles(props){
                                      acceptText="Accept"
                                      onSubmit={acceptConfirm} />
             }
-            {/* Navigation buttons - always at bottom */}
-            <div style={{flexShrink: 0}}>
+            <div className="mythic-create-flow-footer">
                 <CreatePayloadNavigationButtons
                     first={props.first}
                     last={props.last}
@@ -673,7 +631,8 @@ const C2ProfileTabs = ({includedC2Profiles, onChange, os, onCloseTab, onChangeCr
                 }} >
                     {c.c2profileparametersinstances.length > 0 &&
                         <Select
-                            style={{width: "100%", marginBottom: "5px"}}
+                            className="mythic-create-select"
+                            style={{marginBottom: "0.65rem"}}
                             value={c.selected_instance}
                             onChange={evt => onChangeCreatedInstanceName(evt, index, c)}
                         >

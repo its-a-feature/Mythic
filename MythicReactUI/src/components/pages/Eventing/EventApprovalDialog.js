@@ -17,6 +17,7 @@ import CheckCircleTwoToneIcon from '@mui/icons-material/CheckCircleTwoTone';
 import CancelTwoToneIcon from '@mui/icons-material/CancelTwoTone';
 import {snackActions} from "../../utilities/Snackbar";
 import {MythicStatusChip} from "../../MythicComponents/MythicStatusChip";
+import {MythicTableEmptyState} from "../../MythicComponents/MythicStateDisplay";
 
 const updateApprovalStatusMutation = gql`
 mutation updateApprovalStatus($eventgroupapproval_id: Int!, $approved: Boolean!) {
@@ -76,54 +77,63 @@ export function EventGroupTableRunAsDialog({eventgroupapprovals, me, onClose, se
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {eventgroupapprovals.map( e => (
-                            <TableRow key={e.id}>
-                                <TableCell>{e.operator.username}</TableCell>
-                                <TableCell>
-                                    {e.approved ? (
-                                        <div className="mythic-table-row-actions">
-                                            <MythicStatusChip label="Approved" status="success" icon={<CheckCircleTwoToneIcon />} />
-                                            <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" disabled={e.operator.id !== me?.user?.id} variant={"contained"}
-                                                    startIcon={<CancelTwoToneIcon fontSize="small" />}
-                                                    onClick={() => onApprovalClick({id: e.id, approved: false})}>
-                                                Deny
-                                            </Button>
-                                        </div>
+                        {eventgroupapprovals.length === 0 ? (
+                            <MythicTableEmptyState
+                                colSpan={3}
+                                compact
+                                title="No approvals needed"
+                                description="This workflow does not have pending operator approvals."
+                            />
+                        ) : (
+                            eventgroupapprovals.map( e => (
+                                <TableRow key={e.id}>
+                                    <TableCell>{e.operator.username}</TableCell>
+                                    <TableCell>
+                                        {e.approved ? (
+                                            <div className="mythic-table-row-actions">
+                                                <MythicStatusChip label="Approved" status="success" icon={<CheckCircleTwoToneIcon />} />
+                                                <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" disabled={e.operator.id !== me?.user?.id} variant={"contained"}
+                                                        startIcon={<CancelTwoToneIcon fontSize="small" />}
+                                                        onClick={() => onApprovalClick({id: e.id, approved: false})}>
+                                                    Deny
+                                                </Button>
+                                            </div>
 
-                                    ) : e.created_at === e.updated_at ? (
-                                        <div className="mythic-table-row-actions">
-                                            <Button className="mythic-table-row-action mythic-table-row-action-hover-success" disabled={e.operator.id !== me?.user?.id}
-                                                    variant={"contained"}
-                                                    startIcon={<CheckCircleTwoToneIcon fontSize="small" />}
-                                                    onClick={() => onApprovalClick({id: e.id, approved: true})}>
-                                                Approve
-                                            </Button>
-                                            <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" disabled={e.operator.id !== me?.user?.id} variant={"contained"}
-                                                    startIcon={<CancelTwoToneIcon fontSize="small" />}
-                                                    onClick={() => onApprovalClick({id: e.id, approved: false})}>
-                                                Deny
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="mythic-table-row-actions">
-                                            <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant={"contained"}
-                                                    disabled={e.operator.id !== me?.user?.id}
-                                                    startIcon={<CheckCircleTwoToneIcon fontSize="small" />}
-                                                    onClick={() => onApprovalClick({id: e.id, approved: true})}>
-                                                Approve
-                                            </Button>
-                                            <MythicStatusChip label="Denied" status="warning" icon={<CancelTwoToneIcon />} />
+                                        ) : e.created_at === e.updated_at ? (
+                                            <div className="mythic-table-row-actions">
+                                                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" disabled={e.operator.id !== me?.user?.id}
+                                                        variant={"contained"}
+                                                        startIcon={<CheckCircleTwoToneIcon fontSize="small" />}
+                                                        onClick={() => onApprovalClick({id: e.id, approved: true})}>
+                                                    Approve
+                                                </Button>
+                                                <Button className="mythic-table-row-action mythic-table-row-action-hover-warning" disabled={e.operator.id !== me?.user?.id} variant={"contained"}
+                                                        startIcon={<CancelTwoToneIcon fontSize="small" />}
+                                                        onClick={() => onApprovalClick({id: e.id, approved: false})}>
+                                                    Deny
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="mythic-table-row-actions">
+                                                <Button className="mythic-table-row-action mythic-table-row-action-hover-success" variant={"contained"}
+                                                        disabled={e.operator.id !== me?.user?.id}
+                                                        startIcon={<CheckCircleTwoToneIcon fontSize="small" />}
+                                                        onClick={() => onApprovalClick({id: e.id, approved: true})}>
+                                                    Approve
+                                                </Button>
+                                                <MythicStatusChip label="Denied" status="warning" icon={<CancelTwoToneIcon />} />
 
-                                        </div>
-                                    )}
-                                </TableCell>
-                                <TableCell>
-                                    {e.created_at !== e.updated_at ? (
-                                        toLocalTime(e?.updated_at, me?.user?.view_utc_time)
-                                    ) : null}
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {e.created_at !== e.updated_at ? (
+                                            toLocalTime(e?.updated_at, me?.user?.view_utc_time)
+                                        ) : null}
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
                     </TableBody>
                 </Table>
                 </TableContainer>
