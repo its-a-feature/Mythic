@@ -1,5 +1,5 @@
 import React from 'react';
-import {Box, Checkbox, Chip, Divider, FormControlLabel, InputAdornment, TextField, Typography} from '@mui/material';
+import {Box, Checkbox, Chip, InputAdornment, TextField, Typography} from '@mui/material';
 import Button from '@mui/material/Button';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -247,13 +247,20 @@ export function SettingsAPITokenDialog(props) {
             );
         });
     }, [filter, groupedScopes]);
+    const visibleScopeCount = React.useMemo(() => {
+        return visibleResources.reduce((prev, resource) => prev + groupedScopes[resource].length, 0);
+    }, [groupedScopes, visibleResources]);
+    const scopeLoadFailed = scopeQueryError !== undefined || scopeData?.apiTokenScopeDefinitions?.status === "error";
+    const scopesUnavailable = scopeLoading || scopeLoadFailed;
+    const selectedScopesLabel = selectedScopes.includes("*") ? "Full access selected" : `${selectedScopes.length} selected`;
+    const fullAccessDisabled = !grantableWildcards.includes("*");
 
     const onUsernameChange = (name, value, error) => {
         setName(value);
     }
 
     const onAccept = () =>{
-        props.onAccept(name, selectedScopes);
+        props.onAccept(name.trim(), selectedScopes);
     }
     const onFilterChange = (event) => {
         setFilter(event.target.value);
@@ -295,12 +302,18 @@ export function SettingsAPITokenDialog(props) {
 
     return (
         <React.Fragment>
-            <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
+            <DialogTitle id="form-dialog-title">
+                {props.title}
+            </DialogTitle>
             <DialogContent dividers={true} >
                 <MythicDialogBody>
                 <MythicDialogSection title="Token Details">
                     <MythicFormGrid minWidth="18rem">
-                        <MythicFormField label="Token Name" required>
+                        <MythicFormField
+                            label="Token Name"
+                            description="Use a short name that describes where this token will be used."
+                            required
+                        >
                             <MythicTextField
                                 autoFocus
                                 placeholder={props.name}
@@ -320,108 +333,126 @@ export function SettingsAPITokenDialog(props) {
                     description="Tokens with no scopes are created with no API access. Write scopes include read access for the same resource."
                     actions={
                         <>
-                            <Chip size="small" label={`${selectedScopes.length} selected`} />
-                            <Button size="small" onClick={selectVisibleScopes}>
+                            <Chip className="mythic-api-token-scope-count" size="small" label={`${visibleScopeCount} visible`} />
+                            <Chip className="mythic-api-token-scope-count" size="small" label={selectedScopesLabel} />
+                            <Button disabled={scopesUnavailable || visibleScopeCount === 0 || scopeIsSelected("*")} size="small" onClick={selectVisibleScopes}>
                                 Select Visible
                             </Button>
-                            <Button size="small" onClick={clearScopes}>
+                            <Button disabled={selectedScopes.length === 0} size="small" onClick={clearScopes}>
                                 Clear
                             </Button>
                         </>
                     }
                 >
                 <TextField
+                    className="mythic-api-token-scope-search"
                     size="small"
                     fullWidth
                     value={filter}
                     onChange={onFilterChange}
                     placeholder="Search scopes"
-                    disabled={scopeLoading || scopeQueryError !== undefined || scopeData?.apiTokenScopeDefinitions?.status === "error"}
+                    disabled={scopesUnavailable}
                     InputProps={{startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>}}
-                    sx={{mb: 1}}
                 />
-                <Box sx={{border: theme => `1px solid ${theme.palette.divider}`, borderRadius: 1, maxHeight: "45vh", overflowY: "auto"}}>
-                    {(scopeLoading || scopeQueryError !== undefined || scopeData?.apiTokenScopeDefinitions?.status === "error") &&
-                        <Box sx={{p: 1.25}}>
-                            <Typography variant="body2" color={scopeLoading ? "text.secondary" : "error"}>
+                <Box className="mythic-api-token-scope-library">
+                    {scopesUnavailable &&
+                        <Box className={`mythic-api-token-scope-state${scopeLoadFailed ? " mythic-api-token-scope-state-error" : ""}`}>
+                            <Typography variant="body2">
                                 {scopeLoading ? "Loading scopes..." : (scopeQueryError?.message || scopeData?.apiTokenScopeDefinitions?.error || "Failed to load scopes")}
                             </Typography>
                         </Box>
                     }
-                    {!scopeLoading && scopeQueryError === undefined && scopeData?.apiTokenScopeDefinitions?.status !== "error" &&
+                    {!scopesUnavailable &&
                     <>
-                    <Box sx={{p: 1.25}}>
-                        <FormControlLabel
-                            control={<Checkbox
+                    <Box
+                        className={`mythic-api-token-scope-card mythic-api-token-scope-card-full${scopeIsSelected("*") ? " mythic-api-token-scope-card-selected" : ""}${fullAccessDisabled ? " mythic-api-token-scope-card-disabled" : ""}`}
+                        component="label"
+                    >
+                        <Checkbox
                                 disabled={!grantableWildcards.includes("*")}
                                 checked={scopeIsSelected("*")}
                                 onChange={() => toggleScope("*")}
-                            />}
-                            label={
-                                <Box>
-                                    <Typography variant="body2">Full access (*)</Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Grants every current and future API scope available to this operator.
-                                    </Typography>
-                                </Box>
-                            }
                         />
+                        <Box className="mythic-api-token-scope-card-copy">
+                            <Typography className="mythic-api-token-scope-card-title">Full access (*)</Typography>
+                            <Typography className="mythic-api-token-scope-card-description">
+                                Grants every current and future API scope available to this operator.
+                            </Typography>
+                        </Box>
                     </Box>
-                    <Divider />
+                    {visibleResources.length === 0 &&
+                        <Box className="mythic-api-token-scope-state">
+                            <Typography variant="body2">No scopes match your search.</Typography>
+                        </Box>
+                    }
                     {visibleResources.map(resource => {
                         const resourceWildcard = `${resource}.*`;
                         const canGrantResourceWildcard = grantableWildcards.includes(resourceWildcard);
-                        const resourceScopes = groupedScopes[resource].sort((a, b) => a.access.localeCompare(b.access));
+                        const resourceScopes = [...groupedScopes[resource]].sort((a, b) => (a.access || "").localeCompare(b.access || ""));
+                        const resourceWildcardSelected = scopeIsSelected("*") || scopeIsSelected(resourceWildcard);
                         return (
-                            <Box key={resource} sx={{p: 1.25, borderBottom: theme => `1px solid ${theme.palette.divider}`}}>
-                                <Box sx={{display: "flex", alignItems: "center", gap: 1, mb: 0.5}}>
-                                    <Typography variant="subtitle2" sx={{textTransform: "capitalize", flexGrow: 1}}>
-                                        {resource.split("_").join(" ")}
-                                    </Typography>
-                                    <FormControlLabel
-                                        sx={{mr: 0}}
-                                        control={<Checkbox
+                            <Box className="mythic-api-token-resource-card" key={resource}>
+                                <Box className="mythic-api-token-resource-header">
+                                    <Box sx={{minWidth: 0}}>
+                                        <Typography className="mythic-api-token-resource-title">
+                                            {resource.split("_").join(" ")}
+                                        </Typography>
+                                        <Typography className="mythic-api-token-resource-subtitle">
+                                            {resourceScopes.length === 1 ? "1 available scope" : `${resourceScopes.length} available scopes`}
+                                        </Typography>
+                                    </Box>
+                                    <Box
+                                        className={`mythic-api-token-resource-wildcard${resourceWildcardSelected ? " mythic-api-token-resource-wildcard-selected" : ""}${!canGrantResourceWildcard ? " mythic-api-token-resource-wildcard-disabled" : ""}`}
+                                        component="label"
+                                    >
+                                        <Checkbox
                                             size="small"
                                             disabled={scopeIsSelected("*") || !canGrantResourceWildcard}
-                                            checked={scopeIsSelected(resourceWildcard)}
+                                            checked={resourceWildcardSelected}
                                             onChange={() => toggleScope(resourceWildcard)}
-                                        />}
-                                        label={<Typography variant="body2">{resourceWildcard}</Typography>}
-                                    />
+                                        />
+                                        <span>{resourceWildcard}</span>
+                                    </Box>
                                 </Box>
-                                <Box sx={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 1}}>
-                                    {resourceScopes.map(scope => (
+                                <Box className="mythic-api-token-scope-grid">
+                                    {resourceScopes.map(scope => {
+                                        const includedByWildcard = scopeIsSelected("*") || scopeIsSelected(resourceWildcard);
+                                        const scopeSelected = scopeIsSelected(scope.name) || includedByWildcard;
+                                        return (
                                         <Box
+                                            className={`mythic-api-token-scope-card${scopeSelected ? " mythic-api-token-scope-card-selected" : ""}${includedByWildcard ? " mythic-api-token-scope-card-inherited" : ""}`}
+                                            component="label"
                                             key={scope.name}
-                                            sx={{
-                                                border: theme => `1px solid ${theme.palette.divider}`,
-                                                borderRadius: 1,
-                                                px: 1,
-                                                py: 0.5,
-                                            }}
                                         >
-                                            <FormControlLabel
-                                                sx={{alignItems: "flex-start", mr: 0}}
-                                                control={<Checkbox
+                                            <Checkbox
                                                     size="small"
-                                                    disabled={scopeIsSelected("*") || scopeIsSelected(resourceWildcard)}
-                                                    checked={scopeIsSelected(scope.name) || scopeIsSelected("*") || scopeIsSelected(resourceWildcard)}
+                                                    disabled={includedByWildcard}
+                                                    checked={scopeSelected}
                                                     onChange={() => toggleScope(scope.name)}
-                                                />}
-                                                label={
-                                                    <Box>
-                                                        <Typography variant="body2">{scope.display_name || scope.name}</Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            {scope.name}
-                                                        </Typography>
-                                                        <Typography variant="caption" color="text.secondary" sx={{display: "block"}}>
-                                                            {scope.description}
-                                                        </Typography>
-                                                    </Box>
-                                                }
                                             />
+                                            <Box className="mythic-api-token-scope-card-copy">
+                                                <Box className="mythic-api-token-scope-card-title-row">
+                                                    <Typography className="mythic-api-token-scope-card-title">{scope.display_name || scope.name}</Typography>
+                                                    <Chip
+                                                        className={`mythic-api-token-access-chip mythic-api-token-access-chip-${scope.access || "unknown"}`}
+                                                        label={scope.access || "scope"}
+                                                        size="small"
+                                                    />
+                                                </Box>
+                                                <Typography className="mythic-api-token-scope-name">
+                                                    {scope.name}
+                                                </Typography>
+                                                <Typography className="mythic-api-token-scope-card-description">
+                                                    {scope.description}
+                                                </Typography>
+                                                {scope.includes?.length > 0 &&
+                                                    <Typography className="mythic-api-token-scope-includes">
+                                                        Includes {scope.includes.join(", ")}
+                                                    </Typography>
+                                                }
+                                            </Box>
                                         </Box>
-                                    ))}
+                                    )})}
                                 </Box>
                             </Box>
                         );
@@ -436,7 +467,7 @@ export function SettingsAPITokenDialog(props) {
                 <MythicDialogButton onClick={props.handleClose}>
                     Cancel
                 </MythicDialogButton>
-                <MythicDialogButton intent="primary" onClick={onAccept}>
+                <MythicDialogButton disabled={name.trim() === ""} intent="primary" onClick={onAccept}>
                     {"Create New"}
                 </MythicDialogButton>
             </MythicDialogFooter>
