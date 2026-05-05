@@ -313,7 +313,9 @@ function CredentialTableRow(props){
     return (
         <React.Fragment>
             <TableRow hover>
-                <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={props.deleted ? "Restore" : "Remove" }/>
+                {openDeleteDialog &&
+                    <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={props.deleted ? "Restore" : "Remove" }/>
+                }
                 {editCommentDialogOpen &&
                     <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen} 
                         onClose={()=>{setEditCommentDialogOpen(false);}} 

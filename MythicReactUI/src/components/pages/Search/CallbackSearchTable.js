@@ -93,8 +93,9 @@ function CallbackSearchTableRow(props){
     return (
         <React.Fragment>
             <TableRow hover style={{backgroundColor: props.color}}>
-                <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={props.active ? "Hide" : "Restore" }/>
-                
+                {openDeleteDialog &&
+                    <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={props.active ? "Hide" : "Restore" }/>
+                }
                 <MythicStyledTableCell>{!props.active ? (
                     <MythicStyledTooltip title="Restore Callback for Tasking">
                         <IconButton className="mythic-table-row-icon-action mythic-table-row-icon-action-danger" size="small" onClick={()=>{setOpenDeleteDialog(true);}}><VisibilityOffIcon fontSize="small" /></IconButton>

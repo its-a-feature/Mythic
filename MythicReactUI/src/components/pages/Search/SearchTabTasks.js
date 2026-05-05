@@ -256,7 +256,7 @@ const SearchTabTasksSearchPanel = (props) => {
         }
     }, [props.value, props.index]);
     return (
-        <MythicTableToolbar>
+        <MythicTableToolbar variant="search">
             <MythicTableToolbarGroup style={{minWidth: "12rem"}}>
                 <MythicSearchField disabled={props.alreadySearching} placeholder="Host..." name="Host" value={host}
                                    onChange={handleHostValueChange} onEnter={submitSearch}/>

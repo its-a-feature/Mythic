@@ -552,7 +552,7 @@ const SearchTabFilesSearchPanel = (props) => {
         }
     }, [props.value, props.index]);
     return (
-        <MythicTableToolbar>
+        <MythicTableToolbar variant="search">
             <MythicTableToolbarGroup style={{minWidth: "13rem"}}>
                 <MythicSearchField placeholder="Host Name Search..." name="Host" value={searchHost}
                                    onChange={handleSearchHostValueChange} onEnter={submitSearch}/>

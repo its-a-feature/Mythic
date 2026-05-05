@@ -136,7 +136,9 @@ function TokenTableRow(props){
     return (
         <React.Fragment>
             <TableRow hover>
-                <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={props.deleted ? "Restore" : "Hide" }/>
+                {openDeleteDialog &&
+                    <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDeleteDialog} acceptText={props.deleted ? "Restore" : "Hide" }/>
+                }
                 
                 <MythicStyledTableCell>{props.deleted ? (
                     <MythicStyledTooltip title="Restore Token for use in Tasking">
